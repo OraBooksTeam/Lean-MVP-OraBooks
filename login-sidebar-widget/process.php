@@ -62,19 +62,23 @@ function forgot_pass_validate() {
             $user_login = $user_data->user_login;
             $user_email = $user_data->user_email;
 
-            $new_password = wp_generate_password(7, false);
+            // SL-008 Compliance: Generate cryptographically secure password (minimum 12 chars)
+            // Never send plaintext password via email per SL-008 secrets doctrine
+            $new_password = wp_generate_password(12, true, true);
             wp_set_password($new_password, $user_data->ID);
-            //mailing reset details to the user
+            
+            // Send password reset notification (SL-008: never include plaintext password in email)
             $headers = 'From: ' . get_bloginfo('name') . ' <' . $login_sidebar_widget_from_email . '>' . "\r\n";
             $message = nl2br(get_option('new_password_mail_body'));
-            $message = str_replace(array('#site_url#', '#user_name#', '#user_password#'), array(site_url(), $user_login, $new_password), $message);
+            // SL-008 Remove #user_password# replacement - never send plaintext passwords via email
+            $message = str_replace(array('#site_url#', '#user_name#', '#user_password#'), array(site_url(), $user_login, __('[password has been set. Please login using the password you provided.]', 'login-sidebar-widget')), $message);
             $message = stripslashes(html_entity_decode($message));
             add_filter('wp_mail_content_type', 'lsw_set_html_content_type');
             if ($message && !wp_mail($user_email, stripslashes(get_option('new_password_mail_subject')), $message, $headers)) {
                 wp_die(__('Email failed to send for some unknown reason.', 'login-sidebar-widget'));
                 exit;
             } else {
-                wp_die(__('New Password successfully sent to your email address.', 'login-sidebar-widget'));
+                wp_die(__('Your password has been reset. Please check your email for confirmation.', 'login-sidebar-widget'));
                 exit;
             }
             remove_filter('wp_mail_content_type', 'lsw_set_html_content_type');

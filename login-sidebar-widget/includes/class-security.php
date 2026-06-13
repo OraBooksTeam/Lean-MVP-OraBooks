@@ -74,20 +74,106 @@ if (!class_exists('Login_Widget_Admin_Security')) {
 
         }
 
+        /**
+         * SL-008 Compliance: Decrypt reCAPTCHA private key on retrieval.
+         * Secrets must never be stored in plaintext per SL-008 doctrine.
+         */
+        public static function get_recaptcha_public_key() {
+            return get_option('lsw_google_recaptcha_public_key');
+        }
+
+        /**
+         * SL-008 Compliance: Decrypt reCAPTCHA private key on retrieval.
+         * Secrets must be encrypted at rest per SL-008 doctrine.
+         */
+        public static function get_recaptcha_private_key() {
+            $encrypted = get_option('lsw_google_recaptcha_private_key_encrypted');
+            if (!empty($encrypted)) {
+                return self::decrypt_secret($encrypted);
+            }
+            // Fallback for legacy plaintext storage (will be migrated on save)
+            return get_option('lsw_google_recaptcha_private_key');
+        }
+
+        /**
+         * SL-008 Compliance: Save reCAPTCHA private key with encryption at rest.
+         */
+        public static function save_recaptcha_private_key($plaintext_key) {
+            if (empty($plaintext_key)) {
+                delete_option('lsw_google_recaptcha_private_key');
+                delete_option('lsw_google_recaptcha_private_key_encrypted');
+                return;
+            }
+            $encrypted = self::encrypt_secret($plaintext_key);
+            update_option('lsw_google_recaptcha_private_key_encrypted', $encrypted);
+            // Remove legacy plaintext
+            delete_option('lsw_google_recaptcha_private_key');
+        }
+
+        /**
+         * SL-008 Compliance: Encrypt a secret using WP salts as key material.
+         * Uses AUTH_KEY + AUTH_SALT as encryption key with AES-256-CTR.
+         */
+        private static function encrypt_secret($plaintext) {
+            if (!defined('AUTH_KEY') || !defined('AUTH_SALT')) {
+                // Fallback: if salts not defined, store as-is (should not happen in production)
+                return $plaintext;
+            }
+            $key = hash('sha256', AUTH_KEY . AUTH_SALT, true);
+            $iv = openssl_random_pseudo_bytes(16);
+            $ciphertext = openssl_encrypt($plaintext, 'aes-256-ctr', $key, OPENSSL_RAW_DATA, $iv);
+            if ($ciphertext === false) {
+                return $plaintext;
+            }
+            return base64_encode($iv . $ciphertext);
+        }
+
+        /**
+         * SL-008 Compliance: Decrypt a secret that was encrypted with encrypt_secret().
+         */
+        private static function decrypt_secret($encoded) {
+            if (!defined('AUTH_KEY') || !defined('AUTH_SALT')) {
+                return $encoded;
+            }
+            $key = hash('sha256', AUTH_KEY . AUTH_SALT, true);
+            $data = base64_decode($encoded);
+            if ($data === false || strlen($data) < 16) {
+                return $encoded;
+            }
+            $iv = substr($data, 0, 16);
+            $ciphertext = substr($data, 16);
+            $plaintext = openssl_decrypt($ciphertext, 'aes-256-ctr', $key, OPENSSL_RAW_DATA, $iv);
+            if ($plaintext === false) {
+                return $encoded;
+            }
+            return $plaintext;
+        }
+
+        /**
+         * SL-008 Compliance: Migrate legacy plaintext reCAPTCHA secret to encrypted storage.
+         */
+        public static function migrate_recaptcha_secret() {
+            $legacy = get_option('lsw_google_recaptcha_private_key');
+            if (!empty($legacy) && !get_option('lsw_google_recaptcha_private_key_encrypted')) {
+                self::save_recaptcha_private_key($legacy);
+                do_action('lsws_secret_migrated', 'recaptcha_private_key');
+            }
+        }
+
         public function google_recaptcha_put_v2() {
             require_once LSW_DIR_PATH . '/recaptcha/recaptchalib_i_am_not_robot.php';
-            $publickey = get_option('lsw_google_recaptcha_public_key');
-            $privatekey = get_option('lsw_google_recaptcha_private_key');
+            $publickey = self::get_recaptcha_public_key();
+            $privatekey = self::get_recaptcha_private_key();
 
             if ($publickey == '' or $privatekey == '') {
                 _e('Google Recaptcha not configured.', 'contact-form-with-shortcode');
                 return;
             }
             ?>
-			<div class="g-recaptcha" data-sitekey="<?php echo $publickey; ?>"></div>
-			<script src='https://www.google.com/recaptcha/api.js'></script>
+			<div class="g-recaptcha" data-sitekey="<?php echo esc_attr($publickey); ?>"></div>
+			<script src='https://www.google.com/recaptcha/api.js' async defer></script>
 			<?php
-}
+        }
 
         public function security_add() {
 
@@ -115,8 +201,8 @@ if (!class_exists('Login_Widget_Admin_Security')) {
 
                 } else {
                     require_once LSW_DIR_PATH . '/recaptcha/recaptchalib_i_am_not_robot.php';
-                    $publickey = get_option('lsw_google_recaptcha_public_key');
-                    $privatekey = get_option('lsw_google_recaptcha_private_key');
+                    $publickey = self::get_recaptcha_public_key();
+                    $privatekey = self::get_recaptcha_private_key();
 
                     $reCaptcha = new ReCaptcha($privatekey);
 
@@ -143,8 +229,8 @@ if (!class_exists('Login_Widget_Admin_Security')) {
 
                 } else {
                     require_once LSW_DIR_PATH . '/recaptcha/recaptchalib_i_am_not_robot.php';
-                    $publickey = get_option('lsw_google_recaptcha_public_key');
-                    $privatekey = get_option('lsw_google_recaptcha_private_key');
+                    $publickey = self::get_recaptcha_public_key();
+                    $privatekey = self::get_recaptcha_private_key();
 
                     $reCaptcha = new ReCaptcha($privatekey);
 
@@ -202,5 +288,372 @@ if (!class_exists('Login_Widget_Admin_Security')) {
 if (!function_exists('security_init')) {
     function security_init() {
         new Login_Widget_Admin_Security;
+        // SL-008 Compliance: Migrate any legacy plaintext secrets to encrypted storage
+        Login_Widget_Admin_Security::migrate_recaptcha_secret();
     }
 }
+
+/**
+ * SL-013 – 2FA (TOTP) Helper Class
+ *
+ * Implements TOTP (RFC 6238) two-factor authentication with:
+ *   - ±30 second clock drift tolerance
+ *   - 8 single-use backup codes (bcrypt hashed)
+ *   - TOTP secret encrypted at rest (AES-256-CTR, same key material as SL-008)
+ *   - All secrets stored in WordPress user meta (no schema migration required)
+ *   - Audit logging via do_action('orabooks_security_event', ...)
+ *
+ * User meta keys:
+ *   lsw_totp_secret_enc   – AES-256-CTR encrypted Base32 TOTP secret
+ *   lsw_totp_backup_codes – JSON array of bcrypt-hashed single-use backup codes
+ *   lsw_2fa_enabled       – '1' when 2FA is active, '' when not
+ */
+if (!class_exists('OraBooks_2FA')) {
+    class OraBooks_2FA {
+
+        // ──────────────────────────────────────────────────────────────────
+        // Base32 alphabet (RFC 4648)
+        // ──────────────────────────────────────────────────────────────────
+        private static $BASE32_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+
+        // ──────────────────────────────────────────────────────────────────
+        // Secret generation & storage
+        // ──────────────────────────────────────────────────────────────────
+
+        /**
+         * Generate a cryptographically secure 160-bit Base32 TOTP secret.
+         *
+         * @return string 32-character uppercase Base32 string.
+         */
+        public static function generate_totp_secret() {
+            $bytes  = random_bytes(20); // 160 bits
+            $secret = '';
+            $chars  = self::$BASE32_CHARS;
+            $len    = strlen($bytes);
+
+            for ($i = 0; $i < $len; $i += 5) {
+                $chunk = substr($bytes . "\0\0\0\0", $i, 5);
+                $b     = array_values(unpack('C5', $chunk));
+                $secret .= $chars[($b[0] & 0xF8) >> 3];
+                $secret .= $chars[(($b[0] & 0x07) << 2) | (($b[1] & 0xC0) >> 6)];
+                $secret .= $chars[($b[1] & 0x3E) >> 1];
+                $secret .= $chars[(($b[1] & 0x01) << 4) | (($b[2] & 0xF0) >> 4)];
+                $secret .= $chars[(($b[2] & 0x0F) << 1) | (($b[3] & 0x80) >> 7)];
+                $secret .= $chars[($b[3] & 0x7C) >> 2];
+                $secret .= $chars[(($b[3] & 0x03) << 3) | (($b[4] & 0xE0) >> 5)];
+                $secret .= $chars[$b[4] & 0x1F];
+            }
+            return substr($secret, 0, 32); // 160 bits → 32 Base32 chars
+        }
+
+        /**
+         * Build an otpauth:// URI for QR code generation.
+         * The QR code can be rendered using any client-side library (e.g. qrcode.js).
+         *
+         * @param  string $user_email  The user's email address (account label).
+         * @param  string $secret      Base32 TOTP secret.
+         * @param  string $issuer      Issuer name shown in authenticator app.
+         * @return string              otpauth URI.
+         */
+        public static function generate_qr_uri($user_email, $secret, $issuer = 'OraBooks') {
+            $label = rawurlencode($issuer . ':' . $user_email);
+            return sprintf(
+                'otpauth://totp/%s?secret=%s&issuer=%s&algorithm=SHA1&digits=6&period=30',
+                $label,
+                rawurlencode($secret),
+                rawurlencode($issuer)
+            );
+        }
+
+        /**
+         * Encrypt and store the TOTP secret in user meta.
+         *
+         * @param  int    $user_id WP user ID.
+         * @param  string $secret  Plaintext Base32 secret.
+         */
+        public static function save_totp_secret($user_id, $secret) {
+            $encrypted = self::encrypt_secret($secret);
+            update_user_meta($user_id, 'lsw_totp_secret_enc', $encrypted);
+        }
+
+        /**
+         * Retrieve and decrypt the TOTP secret from user meta.
+         *
+         * @param  int         $user_id WP user ID.
+         * @return string|null          Plaintext Base32 secret, or null if not set.
+         */
+        public static function get_totp_secret($user_id) {
+            $encrypted = get_user_meta($user_id, 'lsw_totp_secret_enc', true);
+            if (empty($encrypted)) {
+                return null;
+            }
+            return self::decrypt_secret($encrypted);
+        }
+
+        // ──────────────────────────────────────────────────────────────────
+        // TOTP verification (RFC 6238, ±30 second drift window)
+        // ──────────────────────────────────────────────────────────────────
+
+        /**
+         * Decode a Base32 string to raw bytes.
+         *
+         * @param  string $input Base32-encoded string (uppercase).
+         * @return string        Raw binary string.
+         */
+        private static function base32_decode($input) {
+            $input  = strtoupper($input);
+            $chars  = self::$BASE32_CHARS;
+            $output = '';
+            $buffer = 0;
+            $bits   = 0;
+
+            for ($i = 0; $i < strlen($input); $i++) {
+                $pos = strpos($chars, $input[$i]);
+                if ($pos === false) continue;
+                $buffer = ($buffer << 5) | $pos;
+                $bits += 5;
+                if ($bits >= 8) {
+                    $bits  -= 8;
+                    $output .= chr(($buffer >> $bits) & 0xFF);
+                }
+            }
+            return $output;
+        }
+
+        /**
+         * Verify a 6-digit TOTP code against the stored secret.
+         * Allows ±1 time step (±30 seconds) per SL-013.
+         *
+         * @param  string $secret   Base32 TOTP secret (plaintext).
+         * @param  string $otp      The 6-digit code entered by the user.
+         * @return bool             True if valid.
+         */
+        public static function verify_totp($secret, $otp) {
+            $otp        = str_pad(trim($otp), 6, '0', STR_PAD_LEFT);
+            $secret_bin = self::base32_decode($secret);
+            $timestamp  = (int) floor(time() / 30);
+
+            for ($offset = -1; $offset <= 1; $offset++) {
+                $T    = pack('N*', 0) . pack('N*', $timestamp + $offset);
+                $hash = hash_hmac('sha1', $T, $secret_bin, true);
+                $ob   = ord($hash[19]) & 0x0f;
+                $code = (unpack('N', substr($hash, $ob, 4))[1] & 0x7fffffff) % 1000000;
+                if (str_pad($code, 6, '0', STR_PAD_LEFT) === $otp) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        // ──────────────────────────────────────────────────────────────────
+        // Backup codes
+        // ──────────────────────────────────────────────────────────────────
+
+        /**
+         * Generate 8 cryptographically random, single-use backup codes (8 alphanumeric chars each).
+         *
+         * @return string[] Array of 8 plaintext backup codes.
+         */
+        public static function generate_backup_codes() {
+            $codes    = [];
+            $alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // unambiguous chars
+            for ($i = 0; $i < 8; $i++) {
+                $code = '';
+                for ($j = 0; $j < 8; $j++) {
+                    $code .= $alphabet[random_int(0, strlen($alphabet) - 1)];
+                }
+                $codes[] = $code;
+            }
+            return $codes;
+        }
+
+        /**
+         * Hash and save backup codes to user meta (bcrypt via wp_hash_password).
+         *
+         * @param  int      $user_id WP user ID.
+         * @param  string[] $codes   Plaintext backup codes.
+         */
+        public static function save_backup_codes($user_id, $codes) {
+            $hashed = array_map('wp_hash_password', $codes);
+            update_user_meta($user_id, 'lsw_totp_backup_codes', wp_json_encode($hashed));
+        }
+
+        /**
+         * Verify a backup code against stored hashes.
+         * If valid, the code is immediately invalidated (single-use per SL-013).
+         *
+         * @param  int    $user_id WP user ID.
+         * @param  string $code    Plaintext backup code entered by the user.
+         * @return bool            True if valid and successfully consumed.
+         */
+        public static function verify_backup_code($user_id, $code) {
+            $raw = get_user_meta($user_id, 'lsw_totp_backup_codes', true);
+            if (empty($raw)) {
+                return false;
+            }
+            $hashes = json_decode($raw, true);
+            if (!is_array($hashes)) {
+                return false;
+            }
+
+            $code = strtoupper(trim($code));
+            foreach ($hashes as $idx => $hash) {
+                if (wp_check_password($code, $hash)) {
+                    // Invalidate the used code (single-use)
+                    unset($hashes[$idx]);
+                    update_user_meta($user_id, 'lsw_totp_backup_codes', wp_json_encode(array_values($hashes)));
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        // ──────────────────────────────────────────────────────────────────
+        // 2FA enabled flag
+        // ──────────────────────────────────────────────────────────────────
+
+        /**
+         * Check whether 2FA is enabled for a given user.
+         *
+         * @param  int  $user_id WP user ID.
+         * @return bool
+         */
+        public static function is_enabled($user_id) {
+            return (bool) get_user_meta($user_id, 'lsw_2fa_enabled', true);
+        }
+
+        /**
+         * Enable 2FA for a user (sets the flag in user meta).
+         *
+         * @param int $user_id WP user ID.
+         */
+        public static function enable($user_id) {
+            update_user_meta($user_id, 'lsw_2fa_enabled', '1');
+        }
+
+        /**
+         * Disable 2FA for a user.
+         *
+         * @param int $user_id WP user ID.
+         */
+        public static function disable($user_id) {
+            update_user_meta($user_id, 'lsw_2fa_enabled', '');
+            delete_user_meta($user_id, 'lsw_totp_secret_enc');
+            delete_user_meta($user_id, 'lsw_totp_backup_codes');
+        }
+
+        // ──────────────────────────────────────────────────────────────────
+        // Pending 2FA challenge transient helpers
+        // ──────────────────────────────────────────────────────────────────
+
+        /**
+         * Store a pending 2FA challenge (called after password auth succeeds).
+         * Returns a unique challenge token that must be included in the challenge form.
+         *
+         * @param  int    $user_id  WP user ID.
+         * @param  bool   $remember Whether to set a persistent auth cookie.
+         * @return string           Nonce-like challenge token.
+         */
+        public static function create_challenge($user_id, $remember = false) {
+            $token = bin2hex(random_bytes(32));
+            set_transient(
+                'lsw_2fa_challenge_' . $token,
+                ['user_id' => (int) $user_id, 'remember' => (bool) $remember],
+                5 * MINUTE_IN_SECONDS  // 5-minute expiry per SL-013 spec
+            );
+            return $token;
+        }
+
+        /**
+         * Retrieve and validate a pending 2FA challenge token.
+         *
+         * @param  string     $token Challenge token from form.
+         * @return array|null        ['user_id' => int, 'remember' => bool] or null if expired/invalid.
+         */
+        public static function get_challenge($token) {
+            if (empty($token) || !ctype_xdigit($token)) {
+                return null;
+            }
+            return get_transient('lsw_2fa_challenge_' . sanitize_text_field($token));
+        }
+
+        /**
+         * Delete a challenge transient (after successful or failed verification).
+         *
+         * @param string $token Challenge token.
+         */
+        public static function clear_challenge($token) {
+            delete_transient('lsw_2fa_challenge_' . sanitize_text_field($token));
+        }
+
+        // ──────────────────────────────────────────────────────────────────
+        // Encryption helpers (same AES-256-CTR pattern as SL-008)
+        // ──────────────────────────────────────────────────────────────────
+
+        /**
+         * Encrypt a plaintext string using AES-256-CTR with WP salt key material.
+         *
+         * @param  string $plaintext
+         * @return string Base64-encoded ciphertext (IV prepended).
+         */
+        private static function encrypt_secret($plaintext) {
+            if (!defined('AUTH_KEY') || !defined('AUTH_SALT')) {
+                return $plaintext;
+            }
+            $key        = hash('sha256', AUTH_KEY . AUTH_SALT . '2fa', true); // domain-separated from reCAPTCHA
+            $iv         = random_bytes(16);
+            $ciphertext = openssl_encrypt($plaintext, 'aes-256-ctr', $key, OPENSSL_RAW_DATA, $iv);
+            if ($ciphertext === false) {
+                return $plaintext;
+            }
+            return base64_encode($iv . $ciphertext);
+        }
+
+        /**
+         * Decrypt a secret encrypted by encrypt_secret().
+         *
+         * @param  string $encoded Base64-encoded IV + ciphertext.
+         * @return string          Decrypted plaintext.
+         */
+        private static function decrypt_secret($encoded) {
+            if (!defined('AUTH_KEY') || !defined('AUTH_SALT')) {
+                return $encoded;
+            }
+            $key  = hash('sha256', AUTH_KEY . AUTH_SALT . '2fa', true);
+            $data = base64_decode($encoded);
+            if ($data === false || strlen($data) < 16) {
+                return $encoded;
+            }
+            $iv         = substr($data, 0, 16);
+            $ciphertext = substr($data, 16);
+            $plaintext  = openssl_decrypt($ciphertext, 'aes-256-ctr', $key, OPENSSL_RAW_DATA, $iv);
+            return ($plaintext !== false) ? $plaintext : $encoded;
+        }
+
+        // ──────────────────────────────────────────────────────────────────
+        // Audit logging
+        // ──────────────────────────────────────────────────────────────────
+
+        /**
+         * Log a 2FA security audit event.
+         *
+         * @param string $event   Event name (e.g. '2fa_enabled', 'login_success').
+         * @param array  $context Additional context data.
+         */
+        public static function audit($event, $context = []) {
+            // Fire centralised OraBooks security event action (SL-008 pattern)
+            do_action('orabooks_security_event', $event, $context);
+
+            // Also log to the existing login log table if available
+            if (class_exists('Login_Log_Adds')) {
+                $lla = new Login_Log_Adds;
+                $msg = 'SL-013 2FA: ' . $event;
+                if (!empty($context['user_id'])) {
+                    $msg .= ' [user_id:' . (int) $context['user_id'] . ']';
+                }
+                $ip = apply_filters('lwws_log_ip', $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0');
+                $lla->log_add($ip, $msg, date('Y-m-d H:i:s'), 'success');
+            }
+        }
+    }
+}

@@ -110,10 +110,17 @@ class OraBooks_SSLCommerz_Gateway extends OraBooks_Payment_Gateway {
             ? 'https://securepay.sslcommerz.com/gwprocess/v4/api.php'
             : 'https://sandbox.sslcommerz.com/gwprocess/v4/api.php';
 
+        // SL-008 Compliance: TLS verification must be enabled for all production communication.
+        // Disabling sslverify is only permitted in local/dev environments.
+        $ssl_verify = true;
+        if (defined('WP_ENVIRONMENT_TYPE') && WP_ENVIRONMENT_TYPE === 'local') {
+            $ssl_verify = false;
+        }
+        
         $response = wp_remote_post($url, [
             'body'    => $post_data,
             'timeout' => 30,
-            'sslverify' => false
+            'sslverify' => $ssl_verify
         ]);
 
         if (is_wp_error($response)) {
@@ -147,7 +154,13 @@ class OraBooks_SSLCommerz_Gateway extends OraBooks_Payment_Gateway {
         $status  = sanitize_text_field($_POST['status']);
 
         if ($status !== 'VALID') {
-            error_log("SSLCommerz IPN Failed: " . print_r($_POST, true));
+            // SL-008 Compliance: Never log POST data which may contain secrets (val_id, tran_id is safe, but store_passwd could be present).
+            // Only log sanitized, non-sensitive fields.
+            $safe_log = array(
+                'tran_id' => sanitize_text_field($tran_id),
+                'status' => sanitize_text_field($status),
+            );
+            error_log("SSLCommerz IPN Failed: " . wp_json_encode($safe_log));
             return;
         }
 

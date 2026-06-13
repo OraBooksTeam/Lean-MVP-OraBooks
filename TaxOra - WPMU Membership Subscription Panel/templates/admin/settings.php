@@ -82,8 +82,8 @@ $login_page_id = get_option('orabooks_login_page_id');
 $from_email = get_option('orabooks_from_email', get_bloginfo('admin_email'));
 $from_name = get_option('orabooks_from_name', get_bloginfo('name'));
 
-$recaptcha_site_key = get_option('orabooks_recaptcha_site_key', '');
-$recaptcha_secret_key = get_option('orabooks_recaptcha_secret_key', '');
+$recaptcha_site_key = orabooks_get_membership_option('orabooks_recaptcha_site_key', '');
+$recaptcha_secret_key = orabooks_get_membership_option('orabooks_recaptcha_secret_key', '');
 
 // Get features configuration
 // NOTE: No default features - all features come from addon plugins

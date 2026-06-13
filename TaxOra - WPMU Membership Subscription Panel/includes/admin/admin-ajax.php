@@ -949,9 +949,14 @@ function orabooks_ajax_save_settings() {
 
         // Security Settings (ReCAPTCHA)
         $recaptcha_site_key = isset( $_POST['recaptcha_site_key'] ) ? sanitize_text_field( $_POST['recaptcha_site_key'] ) : '';
-        update_option( 'orabooks_recaptcha_site_key', $recaptcha_site_key );
+        orabooks_update_membership_option( 'orabooks_recaptcha_site_key', $recaptcha_site_key );
         if ( ! empty( $_POST['recaptcha_secret_key'] ) ) {
-            update_option( 'orabooks_recaptcha_secret_key', sanitize_text_field( $_POST['recaptcha_secret_key'] ) );
+            orabooks_update_membership_option( 'orabooks_recaptcha_secret_key', sanitize_text_field( $_POST['recaptcha_secret_key'] ) );
+            // SL-008: Audit log credential update
+            do_action('orabooks_security_event', 'credential_updated', array(
+                'option' => 'orabooks_recaptcha_secret_key',
+                'user_id' => get_current_user_id(),
+            ));
         }
 
         // Feature Settings
