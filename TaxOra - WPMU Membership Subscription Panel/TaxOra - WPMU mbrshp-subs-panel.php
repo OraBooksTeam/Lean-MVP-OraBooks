@@ -122,6 +122,30 @@ if (taxora_membership_check_core_system()) {
     require_once TAXORA_MEMBERSHIP_DIR . 'includes/class-orabooks-permission-matrix.php';
     require_once TAXORA_MEMBERSHIP_DIR . 'includes/class-orabooks-mode-manager.php';
     
+    // Include rate limiter (SL-013: registration, login, subdomain check rate limits)
+    require_once TAXORA_MEMBERSHIP_DIR . 'includes/class-orabooks-rate-limiter.php';
+    
+    // Include OIDC/Google login handler (SL-013 §5.5)
+    require_once TAXORA_MEMBERSHIP_DIR . 'includes/class-orabooks-oidc.php';
+    
+    // Include JWT token management (SL-013: JWT 15min, refresh 7day, rotation)
+    require_once TAXORA_MEMBERSHIP_DIR . 'includes/class-orabooks-jwt.php';
+    
+    // Include forgot/reset password with rate limiting (SL-013 §5.13)
+    require_once TAXORA_MEMBERSHIP_DIR . 'includes/class-orabooks-password-reset.php';
+    
+    // Include RBAC (SL-003)
+    require_once TAXORA_MEMBERSHIP_DIR . 'includes/class-orabooks-rbac.php';
+
+    // Include ACL check endpoints (SL-003 middleware + AJAX endpoints)
+    require_once TAXORA_MEMBERSHIP_DIR . 'includes/class-orabooks-acl-endpoints.php';
+
+    // Include 2FA handler (SL-013 §5.8-5.10: TOTP, backup codes, challenge flow)
+    require_once TAXORA_MEMBERSHIP_DIR . 'includes/class-orabooks-2fa-handler.php';
+
+    // Include Commissions system (SL-068: partner commission tracking, lifecycle, payouts)
+    require_once TAXORA_MEMBERSHIP_DIR . 'includes/class-orabooks-commissions.php';
+
     // Include build guide compliant core systems
     require_once TAXORA_MEMBERSHIP_DIR . 'includes/class-orabooks-audit-logger.php';
     require_once TAXORA_MEMBERSHIP_DIR . 'includes/class-orabooks-chart-of-accounts.php';

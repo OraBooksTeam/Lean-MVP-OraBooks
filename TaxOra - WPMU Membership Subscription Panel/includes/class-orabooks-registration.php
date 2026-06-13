@@ -61,6 +61,10 @@ class OraBooks_Registration {
         // Handle email verification
         add_action('init', array($this, 'handle_email_verification'));
         
+        // SL-013 §5.3: Resend verification email AJAX endpoint
+        add_action('wp_ajax_orabooks_resend_verification', array($this, 'ajax_resend_verification'));
+        add_action('wp_ajax_nopriv_orabooks_resend_verification', array($this, 'ajax_resend_verification'));
+        
         // Store temporary partner data during registration
         add_action('init', array($this, 'start_session'));
     }
@@ -76,6 +80,8 @@ class OraBooks_Registration {
 
     /**
      * SL-013: Validate registration form data
+     * Rate limit: 5 attempts per hour per IP (SL-013 spec)
+     * Password policy: 8+ chars, upper, lower, number, special (SL-013 spec)
      */
     public function validate_registration($errors, $sanitized_user_login, $user_email) {
         // Check if this is our custom registration
@@ -83,11 +89,39 @@ class OraBooks_Registration {
             return $errors;
         }
 
+        // ── SL-013: Registration Rate Limit (5/hour per IP) ──────────────
+        if (class_exists('OraBooks_Rate_Limiter')) {
+            $ip = OraBooks_Rate_Limiter::get_client_ip();
+            $rate_check = OraBooks_Rate_Limiter::get_instance()->check_and_increment(
+                'register',
+                $ip,
+                5,       // limit
+                3600     // window: 1 hour
+            );
+            if (is_wp_error($rate_check)) {
+                do_action('orabooks_security_event', 'registration_rate_limited', array(
+                    'ip_address' => $ip,
+                    'user_email' => $user_email,
+                ));
+                $errors->add('rate_limit_exceeded', __('Too many registration attempts from this IP address. Please try again later.', 'orabooks'));
+                return $errors;
+            }
+        }
+
         $user_type = sanitize_text_field($_POST['orabooks_user_type']);
 
         // Validate user type
         if (!in_array($user_type, self::USER_TYPES, true)) {
             $errors->add('invalid_user_type', __('Invalid user type.', 'orabooks'));
+        }
+
+        // ── SL-013: Password Policy Enforcement ─────────────────────────
+        if (isset($_POST['password'])) {
+            $password = $_POST['password'];
+            $policy_errors = self::validate_password_policy($password);
+            foreach ($policy_errors as $policy_error) {
+                $errors->add('password_policy', $policy_error);
+            }
         }
 
         // Partner-specific validation
@@ -136,6 +170,36 @@ class OraBooks_Registration {
                 // Store partner code for after registration
                 $_SESSION['orabooks_pending_partner_code'] = $partner_code;
             }
+        }
+
+        return $errors;
+    }
+
+    /**
+     * SL-013: Validate password policy.
+     * Requirements: minimum 8 characters, at least one uppercase, one lowercase,
+     * one digit, and one special character.
+     *
+     * @param string $password The password to validate.
+     * @return array List of error messages (empty if valid).
+     */
+    public static function validate_password_policy($password) {
+        $errors = array();
+
+        if (strlen($password) < 8) {
+            $errors[] = __('Password must be at least 8 characters long.', 'orabooks');
+        }
+        if (!preg_match('/[A-Z]/', $password)) {
+            $errors[] = __('Password must contain at least one uppercase letter.', 'orabooks');
+        }
+        if (!preg_match('/[a-z]/', $password)) {
+            $errors[] = __('Password must contain at least one lowercase letter.', 'orabooks');
+        }
+        if (!preg_match('/[0-9]/', $password)) {
+            $errors[] = __('Password must contain at least one number.', 'orabooks');
+        }
+        if (!preg_match('/[^a-zA-Z0-9]/', $password)) {
+            $errors[] = __('Password must contain at least one special character (e.g. !@#$%).', 'orabooks');
         }
 
         return $errors;
@@ -266,11 +330,10 @@ If you did not create an account, please ignore this email.', 'orabooks'),
         if (!$is_partner) {
             $pending_partner_code = get_user_meta($user_id, 'pending_partner_code', true);
             if (!empty($pending_partner_code) && class_exists('OraBooks_Partners')) {
-                $partners = OraBooks_Partners::get_instance();
-                
-                // Validate and create attribution
-                $validation = $partners->validate_partner_code($pending_partner_code, $user_id);
-                if (!is_wp_error($validation)) {
+                $partners = OraBooks_Partners::get_instance();                // Validate and create attribution (with email domain fraud check)
+                    $customer_email = get_userdata($user_id)->user_email;
+                    $validation = $partners->validate_partner_code($pending_partner_code, $user_id, $customer_email);
+                    if (!is_wp_error($validation)) {
                     $partners->create_attribution(
                         $validation['partner_user_id'],
                         $user_id,
@@ -296,6 +359,101 @@ If you did not create an account, please ignore this email.', 'orabooks'),
         exit;
     }
 
+    // ================================================================
+    // SL-013 §5.3: Resend Verification Email
+    // ================================================================
+
+    /**
+     * AJAX: Resend verification email with rate limiting.
+     * Rate limit: 3 times per hour per email (SL-013 §5.3).
+     * Revokes old token, generates new one (24h expiry), sends email.
+     *
+     * Request: { nonce, user_id? (or email) }
+     * Response: { message: string }
+     */
+    public function ajax_resend_verification() {
+        // Verify nonce
+        $nonce = isset($_POST['nonce']) ? sanitize_text_field($_POST['nonce']) : '';
+        if (!wp_verify_nonce($nonce, 'orabooks_resend_verification')) {
+            wp_send_json_error(__('Security check failed.', 'orabooks'), 403);
+        }
+
+        // Determine target user: from logged-in user or explicit user_id/email
+        $user_id = 0;
+        $email = '';
+
+        if (is_user_logged_in()) {
+            $user_id = get_current_user_id();
+            $user = get_userdata($user_id);
+            $email = $user ? $user->user_email : '';
+        } elseif (!empty($_POST['user_id'])) {
+            $user_id = intval($_POST['user_id']);
+            $user = get_userdata($user_id);
+            if (!$user) {
+                wp_send_json_error(__('User not found.', 'orabooks'), 404);
+            }
+            $email = $user->user_email;
+        } elseif (!empty($_POST['email'])) {
+            $email = sanitize_email($_POST['email']);
+            $user = get_user_by('email', $email);
+            if (!$user) {
+                // Don't reveal whether the email exists (generic message)
+                wp_send_json_success(array(
+                    'message' => __('If an account exists with this email, a verification link has been sent.', 'orabooks'),
+                ));
+            }
+            $user_id = $user->ID;
+        } else {
+            wp_send_json_error(__('User ID or email is required.', 'orabooks'), 400);
+        }
+
+        // Rate limit: 3 per hour per email (SL-013 §5.3)
+        if (class_exists('OraBooks_Rate_Limiter')) {
+            $rate_key = 'resend_verification_' . $email;
+            $rate_check = OraBooks_Rate_Limiter::get_instance()->check_and_increment(
+                $rate_key,
+                $email,
+                3,       // limit: 3 requests
+                3600     // window: 1 hour
+            );
+
+            if (is_wp_error($rate_check)) {
+                do_action('orabooks_security_event', 'verification_resend_rate_limited', array(
+                    'user_id' => $user_id,
+                    'email' => $email,
+                ));
+                wp_send_json_error(__('Too many requests. Please try again later.', 'orabooks'), 429);
+            }
+        }
+
+        // Check if email is already verified
+        $is_verified = get_user_meta($user_id, 'is_email_verified', true);
+        if ($is_verified) {
+            wp_send_json_error(__('Email is already verified.', 'orabooks'), 400);
+        }
+
+        // Revoke old token and generate new one
+        $verification_token = wp_generate_password(32, false);
+        $verification_expires = date('Y-m-d H:i:s', time() + DAY_IN_SECONDS);
+
+        update_user_meta($user_id, 'email_verification_token', $verification_token);
+        update_user_meta($user_id, 'email_verification_expires_at', $verification_expires);
+
+        // Send verification email
+        $this->send_verification_email($user_id, $verification_token);
+
+        // Audit event
+        do_action('orabooks_security_event', 'verification_resent', array(
+            'user_id' => $user_id,
+            'email' => $email,
+            'ip_address' => isset($_SERVER['REMOTE_ADDR']) ? sanitize_text_field($_SERVER['REMOTE_ADDR']) : '',
+        ));
+
+        wp_send_json_success(array(
+            'message' => __('Verification email resent. Please check your inbox.', 'orabooks'),
+        ));
+    }
+
     /**
      * SL-013: Redirect after registration
      */
@@ -305,6 +463,34 @@ If you did not create an account, please ignore this email.', 'orabooks'),
             return add_query_arg('checkemail', 'confirm', wp_login_url());
         }
         return $redirect;
+    }
+
+    /**
+     * SL-013: Handle first login for partners - auto-create partner org
+     */
+    /**
+     * SL-013 §5.7: Redirect partners to onboarding page on first login.
+     *
+     * @param string    $redirect_to The redirect destination URL.
+     * @param string    $request     The requested redirect destination URL.
+     * @param WP_User|WP_Error $user WP_User object on success, WP_Error on failure.
+     * @return string Modified redirect URL.
+     */
+    public static function partner_login_redirect($redirect_to, $request, $user) {
+        if (is_wp_error($user) || !$user) {
+            return $redirect_to;
+        }
+
+        $user_id = $user->ID;
+        $transient_key = 'orabooks_partner_onboarding_' . $user_id;
+        $should_redirect = get_transient($transient_key);
+
+        if ($should_redirect) {
+            delete_transient($transient_key);
+            return home_url('/partner/onboarding/');
+        }
+
+        return $redirect_to;
     }
 
     /**
@@ -365,6 +551,9 @@ If you did not create an account, please ignore this email.', 'orabooks'),
                     'user_id' => $user_id,
                     'org_id' => $org_id,
                 ));
+
+                // Set transient for onboarding redirect
+                set_transient('orabooks_partner_onboarding_' . $user_id, true, 600);
             }
         }
     }
@@ -377,3 +566,6 @@ OraBooks_Registration::get_instance();
 add_action('wp_login', function($user_login, $user) {
     OraBooks_Registration::handle_partner_first_login($user->ID);
 }, 10, 2);
+
+// Redirect partners to onboarding page on first login (SL-013 §5.7)
+add_filter('login_redirect', array('OraBooks_Registration', 'partner_login_redirect'), 10, 3);

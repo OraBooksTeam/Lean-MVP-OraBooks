@@ -76,6 +76,7 @@ function orabooks_handle_multisite_tables() {
         $wpdb->orabooks_email_queue = $prefix . 'orabooks_email_queue';
         $wpdb->orabooks_usage_log = $prefix . 'orabooks_usage_log';
         $wpdb->orabooks_audit_log = $prefix . 'orabooks_audit_log';
+        $wpdb->orabooks_refresh_tokens = $prefix . 'orabooks_refresh_tokens';
     } else {
         $wpdb->orabooks_levels = $wpdb->prefix . 'orabooks_levels';
         $wpdb->orabooks_orders = $wpdb->prefix . 'orabooks_orders';
@@ -85,6 +86,7 @@ function orabooks_handle_multisite_tables() {
         $wpdb->orabooks_email_queue = $wpdb->prefix . 'orabooks_email_queue';
         $wpdb->orabooks_usage_log = $wpdb->prefix . 'orabooks_usage_log';
         $wpdb->orabooks_audit_log = $wpdb->prefix . 'orabooks_audit_log';
+        $wpdb->orabooks_refresh_tokens = $wpdb->prefix . 'orabooks_refresh_tokens';
     }
 }
 
@@ -557,6 +559,26 @@ function orabooks_create_tables() {
         KEY retention_cleanup (timestamp)
     ) $charset_collate;";
     dbDelta( $sql8 );
+
+    // ── SL-013: Refresh tokens table (JWT management) ──────────────
+    $tokens_table = $wpdb->base_prefix . 'orabooks_refresh_tokens';
+    $sql_tokens = "CREATE TABLE IF NOT EXISTS {$tokens_table} (
+        id BIGINT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL,
+        org_id INT NULL,
+        token_hash VARCHAR(64) NOT NULL,
+        device_metadata TEXT NULL,
+        ip_address VARCHAR(45) NULL,
+        user_agent TEXT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        expires_at TIMESTAMP NOT NULL,
+        revoked_at TIMESTAMP NULL,
+        INDEX idx_user (user_id),
+        INDEX idx_hash (token_hash),
+        INDEX idx_expires (expires_at),
+        INDEX idx_user_revoked (user_id, revoked_at)
+    ) {$charset_collate};";
+    dbDelta($sql_tokens);
 
     // Create default data
     orabooks_create_default_data();

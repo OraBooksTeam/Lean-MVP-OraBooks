@@ -189,6 +189,33 @@ if (!class_exists('Login_Widget_Admin_Security')) {
             start_session_if_not_started();
             $lla = new Login_Log_Adds;
 
+            // ── SL-013: Login Rate Limit (5 failures/15 min per IP+email) ──
+            if (!empty($username) && class_exists('OraBooks_Rate_Limiter')) {
+                $ip = OraBooks_Rate_Limiter::get_client_ip();
+                $rate_key = $ip . '|' . strtolower(trim($username));
+                $limiter = OraBooks_Rate_Limiter::get_instance();
+
+                // Check before processing (increment only on failure below)
+                $status = $limiter->check_rate_limit('login', $rate_key, 5, 900); // 5 attempts / 15 min
+
+                if (!$status['allowed']) {
+                    $lla->log_add(
+                        apply_filters('lwws_log_ip', $_SERVER['REMOTE_ADDR']),
+                        'Login rate limited - ' . $username,
+                        date("Y-m-d H:i:s"),
+                        'failed'
+                    );
+                    do_action('orabooks_security_event', 'login_rate_limited', array(
+                        'username' => $username,
+                        'ip_address' => $ip,
+                    ));
+                    return new WP_Error(
+                        'rate_limit_exceeded',
+                        __('Too many failed login attempts. Please try again in 15 minutes.', 'login-sidebar-widget')
+                    );
+                }
+            }
+
             $captcha_on_admin_login = (get_option('captcha_on_admin_login') == 'Yes' ? true : false);
             if ($captcha_on_admin_login and in_array($GLOBALS['pagenow'], array('wp-login.php'))) {
 
@@ -269,6 +296,20 @@ if (!class_exists('Login_Widget_Admin_Security')) {
                 }
             }
             // All In One WP Security //
+
+            // ── SL-013: On failure, increment rate limit counter ──────────
+            if (is_wp_error($user) && !empty($username) && class_exists('OraBooks_Rate_Limiter')) {
+                $ip = OraBooks_Rate_Limiter::get_client_ip();
+                $rate_key = $ip . '|' . strtolower(trim($username));
+                OraBooks_Rate_Limiter::get_instance()->increment('login', $rate_key, 5, 900);
+            }
+
+            // ── SL-013: On success, reset rate limit counter ──────────────
+            if (!is_wp_error($user) && !empty($username) && class_exists('OraBooks_Rate_Limiter')) {
+                $ip = OraBooks_Rate_Limiter::get_client_ip();
+                $rate_key = $ip . '|' . strtolower(trim($username));
+                OraBooks_Rate_Limiter::get_instance()->reset('login', $rate_key);
+            }
 
             return $user;
         }

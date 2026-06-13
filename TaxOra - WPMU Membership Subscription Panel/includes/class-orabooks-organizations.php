@@ -345,6 +345,7 @@ class OraBooks_Organizations {
 
     /**
      * SL-004: Validate subdomain format and reserved words.
+     * Includes SL-013 subdomain check rate limit (10 requests per minute per IP).
      *
      * @param string $subdomain Subdomain to validate
      * @return true|WP_Error
@@ -370,6 +371,56 @@ class OraBooks_Organizations {
         }
 
         return true;
+    }
+
+    /**
+     * SL-013 §5.16: Check subdomain availability with rate limiting.
+     * Rate limit: 10 requests per minute per IP.
+     *
+     * @param string $subdomain Subdomain to check
+     * @return array|WP_Error {
+     *     @type bool   $available Whether the subdomain is available.
+     *     @type int    $remaining Remaining rate limit requests.
+     * }
+     */
+    public function check_subdomain_availability($subdomain) {
+        $ip = '';
+        $remaining = 10;
+
+        // Rate limit: 10/min per IP (SL-013 §5.16)
+        if (class_exists('OraBooks_Rate_Limiter')) {
+            $ip = OraBooks_Rate_Limiter::get_client_ip();
+            $rate_check = OraBooks_Rate_Limiter::get_instance()->check_and_increment(
+                'check_subdomain',
+                $ip,
+                10,      // limit: 10 requests
+                60       // window: 1 minute
+            );
+
+            if (is_wp_error($rate_check)) {
+                return $rate_check;
+            }
+
+            // Get remaining from a fresh read-only check (no double increment)
+            $rl_status = OraBooks_Rate_Limiter::get_instance()->check_rate_limit(
+                'check_subdomain', $ip, 10, 60
+            );
+            $remaining = $rl_status['remaining'];
+        }
+
+        // Validate format first
+        $validation = $this->validate_subdomain($subdomain);
+        if (is_wp_error($validation)) {
+            return $validation;
+        }
+
+        // Check uniqueness
+        $existing = $this->get_organization_by_subdomain($subdomain);
+
+        return array(
+            'available' => !$existing,
+            'remaining' => $remaining,
+        );
     }
 
     /**
@@ -756,6 +807,9 @@ class OraBooks_Organizations {
         do_action('orabooks_security_event', 'partner_fraud_freeze', array(
             'org_id' => $org_id,
         ));
+
+        // Notify SL-068 to forfeit all partner commissions
+        do_action('orabooks_partner_fraud_freeze', $org_id);
 
         $this->clear_cache($org->subdomain);
 
