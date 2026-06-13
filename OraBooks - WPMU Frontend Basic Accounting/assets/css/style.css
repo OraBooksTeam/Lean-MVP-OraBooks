@@ -1,0 +1,816 @@
+/* Frontend Accounting Global Styles - Premium Design */
+:root {
+    --primary: #1569B3;
+    /* OraBooks Blue */
+    --primary-hover: #10548f;
+    /* OraBooks Blue Hover */
+    --secondary: #64748b;
+    /* Slate 500 */
+    --success: #39B54A;
+    /* OraBooks Green */
+    --danger: #ef4444;
+    /* Red 500 */
+    --warning: #f59e0b;
+    /* Amber 500 */
+    --bg-body: #f8fafc;
+    /* Slate 50 */
+    --bg-card: #ffffff;
+    --text-main: #0f172a;
+    /* Slate 900 */
+    --text-muted: #64748b;
+    /* Slate 500 */
+    --border-color: #e2e8f0;
+    /* Slate 200 */
+    --sidebar-bg: #1569B3;
+    --sidebar-brand-bg: linear-gradient(to bottom, #0f528e, #1569B3);
+    --nav-text: #d8ecfb;
+    --nav-hover-bg: rgba(57, 181, 74, 0.16);
+    --nav-active-bg: linear-gradient(90deg, rgba(57, 181, 74, 0.28) 0%, rgba(21, 105, 179, 0.5) 100%);
+    --nav-active-text: #ffffff;
+    --nav-active-border: rgba(57, 181, 74, 0.45);
+    --submenu-bg: rgba(13, 79, 138, 0.45);
+    --subnav-active-bg: rgba(57, 181, 74, 0.32);
+    --glass-bg: rgba(255, 255, 255, 0.95);
+    --glass-border: rgba(255, 255, 255, 0.2);
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+    --radius-md: 0.5rem;
+    --radius-lg: 0.75rem;
+    --radius-xl: 1rem;
+    --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+#left-area ul,
+.entry-content ul,
+.et-l--body ul,
+.et-l--footer ul,
+.et-l--header ul {
+    list-style-type: none !important;
+    padding: 0 0 15px 1em;
+    line-height: 26px
+}
+
+body {
+    margin: 0;
+    font-family: var(--font-sans);
+    background-color: var(--bg-body);
+    color: var(--text-main);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+}
+
+/* Animations */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes slideInRight {
+    from {
+        opacity: 0;
+        transform: translateX(-20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+/* Auth Container - Glassmorphism */
+.obn-auth-container {
+    max-width: 480px;
+    margin: 8vh auto;
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    border-radius: 24px;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
+    padding: 3rem;
+    position: relative;
+    overflow: hidden;
+}
+
+.obn-auth-container::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 6px;
+    background: linear-gradient(90deg, var(--primary), var(--success));
+}
+
+.obn-tabs {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 2.5rem;
+    background: #f1f5f9;
+    padding: 4px;
+    border-radius: 12px;
+}
+
+.obn-tab {
+    flex: 1;
+    background: transparent;
+    border: none;
+    padding: 0.75rem 1rem;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    cursor: pointer;
+    border-radius: 10px;
+    transition: all 0.2s ease;
+}
+
+.obn-tab.active {
+    background: #fff;
+    color: var(--primary);
+    box-shadow: var(--shadow-sm);
+}
+
+.obn-form-wrapper {
+    display: none;
+    animation: fadeIn 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.obn-form-wrapper.active {
+    display: block;
+}
+
+.obn-form-wrapper h2 {
+    margin-top: 0;
+    margin-bottom: 1.5rem;
+    font-size: 1.5rem;
+    font-weight: 700;
+    text-align: center;
+    color: var(--text-main);
+}
+
+.obn-form-group {
+    margin-bottom: 1.25rem;
+}
+
+.obn-form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text-main);
+}
+
+.obn-form-group input {
+    width: 100%;
+    padding: 0.875rem 1rem;
+    border: 2px solid transparent;
+    background: #fff;
+    border-radius: 12px;
+    font-size: 0.95rem;
+    transition: all 0.2s;
+    box-shadow: 0 0 0 1px #e2e8f0;
+}
+
+.obn-form-group input:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 4px rgba(21, 105, 179, 0.12);
+}
+
+.obn-btn {
+    width: 100%;
+    padding: 1rem;
+    background: linear-gradient(135deg, var(--primary) 0%, var(--success) 100%);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-top: 1rem;
+    box-shadow: 0 4px 6px -1px rgba(21, 105, 179, 0.2);
+}
+
+.obn-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 15px -3px rgba(21, 105, 179, 0.28);
+}
+
+.obn-message {
+    margin-top: 1.5rem;
+    padding: 1rem;
+    border-radius: 12px;
+    font-size: 0.9rem;
+    text-align: center;
+    display: none;
+    animation: fadeIn 0.3s;
+}
+
+.obn-message.success {
+    background: #dcfce7;
+    color: #166534;
+    border: 1px solid #bbf7d0;
+}
+
+.obn-message.error {
+    background: #fee2e2;
+    color: #991b1b;
+    border: 1px solid #fecaca;
+}
+
+/* Dashboard Wrapper - App Layout */
+.obn-dashboard-wrapper {
+    display: flex;
+    height: 100vh;
+    background: #f8fafc;
+    overflow: hidden;
+}
+
+/* Sidebar - Dark & Sleek */
+.obn-sidebar {
+    width: 280px;
+    background: var(--sidebar-bg);
+    color: #e2e8f0;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid #1e293b;
+    transition: width 0.3s ease;
+}
+
+.obn-sidebar-brand {
+    padding: 1.5rem 1rem;
+    background: var(--sidebar-brand-bg);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.obn-sidebar-brand h3 {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 800;
+    background: linear-gradient(135deg, #fff 0%, #94a3b8 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    letter-spacing: -0.5px;
+}
+
+.obn-sidebar-nav {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1.5rem 1rem;
+}
+
+.obn-sidebar-nav ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.obn-sidebar-nav li {
+    margin-bottom: 0.25rem;
+}
+
+.obn-nav-link {
+    display: flex;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    color: var(--nav-text);
+    text-decoration: none;
+    border-radius: 0.75rem;
+    font-weight: 500;
+    transition: all 0.2s;
+    border: 1px solid transparent;
+}
+
+.obn-nav-link:hover {
+    background: var(--nav-hover-bg);
+    color: #fff;
+}
+
+.obn-nav-link.active {
+    background: var(--nav-active-bg);
+    color: var(--nav-active-text);
+    border: 1px solid var(--nav-active-border);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.obn-caret {
+    margin-left: auto;
+    font-size: 0.8em;
+    opacity: 0.7;
+}
+
+/* Submenu */
+.obn-submenu {
+    display: none;
+    background: var(--submenu-bg);
+    border-radius: 0.5rem;
+    margin: 0.25rem 0.5rem 0.5rem 1.5rem !important;
+    padding: 0.25rem 0;
+}
+
+.obn-submenu li {
+    margin-bottom: 0.1rem;
+}
+
+.obn-subnav-link {
+    display: block;
+    padding: 0.5rem 1rem;
+    color: #cbd5e1;
+    text-decoration: none;
+    font-size: 0.9rem;
+    border-radius: 0.5rem;
+    transition: all 0.2s;
+}
+
+.obn-subnav-link:hover {
+    color: #fff;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.obn-subnav-link.active {
+    background: var(--subnav-active-bg) !important;
+    color: #fff !important;
+    font-weight: 600;
+}
+
+/* Sidebar Footer */
+.obn-sidebar-footer {
+    padding: 1.5rem;
+    border-top: 1px solid #1e293b;
+    background: #0f172a;
+}
+
+.obn-logout-link {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 0.875rem;
+    background: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+    border-radius: 0.75rem;
+    text-decoration: none;
+    font-weight: 600;
+    transition: all 0.2s;
+    border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+.obn-logout-link:hover {
+    background: #ef4444;
+    color: white;
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+}
+
+/* Main Content - Modern Dashboard */
+.obn-main-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+    overflow: hidden;
+    position: relative;
+}
+
+.obn-top-bar {
+    padding: 0.2rem 2.5rem;
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: sticky;
+    top: 0;
+    z-index: 40;
+}
+
+.obn-top-bar h2 {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--text-main);
+}
+
+.obn-content-area {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0.2rem 2.5rem;
+    scroll-behavior: smooth;
+    max-width: 1600px;
+    width: 100%;
+    margin: 0 auto;
+}
+
+/* Cards & Containers */
+.obn-card,
+.bg-white {
+    background: #fff;
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--border-color);
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.obn-card:hover {
+    box-shadow: var(--shadow-md);
+}
+
+/* View Section Animation */
+.obn-view-section {
+    display: none;
+    animation: fadeIn 0.4s ease-out;
+}
+
+.obn-view-section.active {
+    display: block;
+}
+
+/* Form Styling Enhancements */
+input,
+select,
+textarea {
+    font-family: var(--font-sans);
+}
+
+/* Override Tailwind shadows for consistency if needed */
+.shadow-lg {
+    box-shadow: var(--shadow-lg) !important;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}
+
+/* Premium Table Styles */
+.obn-table-wrapper {
+    overflow-x: auto;
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border-color);
+    box-shadow: var(--shadow-sm);
+}
+
+table.obn-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: 0.925rem;
+    color: var(--text-main);
+}
+
+table.obn-table thead th {
+    background: #f8fafc;
+    color: var(--secondary);
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0.05em;
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid var(--border-color);
+    text-align: left;
+    white-space: nowrap;
+}
+
+table.obn-table tbody td {
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid var(--border-color);
+    background: #fff;
+    transition: background 0.15s;
+    vertical-align: middle;
+}
+
+table.obn-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+table.obn-table tbody tr:hover td {
+    background: #f1f5f9;
+}
+
+/* Action Buttons in Tables */
+.obn-table-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.obn-btn-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    border-radius: 0.375rem;
+    color: var(--secondary);
+    transition: all 0.2s;
+}
+
+.obn-btn-icon:hover {
+    background: #f1f5f9;
+    color: var(--primary);
+}
+
+.obn-btn-icon.delete:hover {
+    background: #fee2e2;
+    color: #ef4444;
+}
+
+/* End of global styles */
+
+/* Select2 Premium Styling & Fixes */
+.select2-container--default .select2-selection--single {
+    height: 42px !important;
+    padding: 6px 4px !important;
+    border-radius: 10px !important;
+    border: 1px solid #e2e8f0 !important;
+    background-color: #f9fafb !important;
+    display: flex !important;
+    align-items: center !important;
+    transition: all 0.2s !important;
+}
+
+.select2-container--default .select2-selection--single .select2-selection__rendered {
+    color: #1f2937 !important;
+    font-size: 14px !important;
+    line-height: 1 !important;
+}
+
+.select2-container--default .select2-selection--single:focus,
+.select2-container--default.select2-container--focus .select2-selection--single {
+    border-color: #1569B3 !important;
+    box-shadow: 0 0 0 3px rgba(21, 105, 179, 0.12) !important;
+    background-color: #fff !important;
+}
+
+.select2-container--default .select2-selection--single .select2-selection__arrow {
+    height: 40px !important;
+    right: 8px !important;
+}
+
+.select2-dropdown {
+    border-radius: 12px !important;
+    border: 1px solid #e2e8f0 !important;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
+    overflow: hidden !important;
+    z-index: 999999 !important;
+    background-color: #fff !important;
+}
+
+.select2-results__option {
+    padding: 10px 14px !important;
+    font-size: 14px !important;
+}
+
+.select2-container--default .select2-results__option--highlighted[aria-selected] {
+    background-color: #1569B3 !important;
+}
+
+.select2-search--dropdown .select2-search__field {
+    border-radius: 8px !important;
+    padding: 10px 12px !important;
+    border: 1px solid #e2e8f0 !important;
+    margin-bottom: 5px !important;
+}
+
+/* Ensure dropdown is positioned correctly inside relative parents */
+.select2-container {
+    z-index: 1000 !important;
+}
+
+/* Sidebar Responsive Adjustments */
+
+/* === Responsive / Mobile Styles === */
+.obn-hamburger {
+    display: none;
+    /* Hidden on desktop */
+    font-size: 1.5rem;
+    color: var(--text-main);
+    background: none;
+    border: none;
+    cursor: pointer;
+    margin-right: 1rem;
+    padding: 0.5rem;
+}
+
+.obn-overlay {
+    display: none;
+    position: fixed;
+    top: 56px;
+    left: 0;
+    width: 100%;
+    height: calc(100% - 56px);
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 45;
+    /* Below sidebar (50) but above content */
+    backdrop-filter: blur(2px);
+}
+
+@media (max-width: 640px) {
+    .obn-overlay {
+        top: 52px;
+        height: calc(100% - 52px);
+    }
+}
+
+@media (max-width: 480px) {
+    .obn-overlay {
+        top: 50px;
+        height: calc(100% - 50px);
+    }
+}
+
+@media (max-width: 768px) {
+
+    /* Sidebar becomes an off-canvas drawer */
+    .obn-sidebar {
+        position: fixed;
+        top: 56px !important;
+        left: 0;
+        height: calc(100% - 56px);
+        width: 280px;
+        z-index: 50;
+        transform: translateX(-100%);
+        transition: transform 0.3s ease-in-out;
+        box-shadow: var(--shadow-xl);
+    }
+
+    .obn-sidebar.open {
+        transform: translateX(0);
+    }
+
+    @media (max-width: 640px) {
+        .obn-sidebar {
+            top: 52px !important;
+            height: calc(100% - 52px);
+        }
+    }
+
+    @media (max-width: 480px) {
+        .obn-sidebar {
+            top: 50px !important;
+            height: calc(100% - 50px);
+        }
+    }
+
+    .obn-dashboard-wrapper {
+        flex-direction: column;
+        margin-top: 0;
+    }
+
+    body.has-taxora-topbar .obn-dashboard-wrapper {
+        margin-top: 56px !important;
+    }
+
+    @media (max-width: 640px) {
+        body.has-taxora-topbar .obn-dashboard-wrapper {
+            margin-top: 52px !important;
+        }
+    }
+
+    @media (max-width: 480px) {
+        body.has-taxora-topbar .obn-dashboard-wrapper {
+            margin-top: 50px !important;
+        }
+    }
+
+    .obn-main-content {
+        width: 100%;
+        margin-left: 0;
+    }
+
+    .obn-top-bar {
+        padding: 1rem 1.5rem;
+        /* Reduce padding */
+    }
+
+    .obn-hamburger {
+        display: block;
+        /* Show on mobile */
+    }
+
+    /* Cards consume full width on mobile */
+    .obn-content-area {
+        padding: 1rem;
+    }
+
+    /* Adjust Grid Columns for Mobile (if not using Tailwind classes directly) */
+    /* Note: Tailwind 'grid-cols-1' usually handles this, but ensuring backups */
+    .grid-cols-2,
+    .grid-cols-3,
+    .grid-cols-4 {
+        grid-template-columns: 1fr !important;
+    }
+
+    /* .md:grid-cols-2 block removed to fix lint error */
+
+    /* Table Responsive Scroll */
+    .obn-table-wrapper {
+        margin-bottom: 1rem;
+    }
+}
+
+/* Fix for TaxOra Topbar overlap */
+body.has-taxora-topbar .obn-dashboard-wrapper {
+    height: calc(100vh - 56px) !important;
+    margin-top: 56px !important;
+}
+
+@media (max-width: 640px) {
+    body.has-taxora-topbar .obn-dashboard-wrapper {
+        height: calc(100vh - 52px) !important;
+        margin-top: 52px !important;
+    }
+}
+
+@media (max-width: 480px) {
+    body.has-taxora-topbar .obn-dashboard-wrapper {
+        height: calc(100vh - 50px) !important;
+        margin-top: 50px !important;
+    }
+}
+
+/* Ensure content area is not obscured */
+body.has-taxora-topbar .obn-main-content {
+    height: 100%;
+}
+
+body.has-taxora-topbar .obn-top-bar {
+    padding-top: 5px !important;
+    padding-bottom: 5px !important;
+}
+
+body.has-taxora-topbar .obn-content-area {
+    padding-top: 5px !important;
+}
+
+/* Override for TaxOra Topbar overlap */
+body.taxora-topbar-active.taxora-topbar-frontend .obn-dashboard-wrapper,
+body.has-taxora-topbar .obn-dashboard-wrapper {
+    height: calc(100vh - 56px) !important;
+    top: 56px !important;
+    margin-top: 0 !important;
+}
+
+@media (max-width: 640px) {
+    body.taxora-topbar-active.taxora-topbar-frontend .obn-dashboard-wrapper,
+    body.has-taxora-topbar .obn-dashboard-wrapper {
+        height: calc(100vh - 52px) !important;
+        top: 52px !important;
+        margin-top: 0 !important;
+    }
+}
+
+@media (max-width: 480px) {
+    body.taxora-topbar-active.taxora-topbar-frontend .obn-dashboard-wrapper,
+    body.has-taxora-topbar .obn-dashboard-wrapper {
+        height: calc(100vh - 50px) !important;
+        top: 50px !important;
+        margin-top: 0 !important;
+    }
+}
+
+/* Ensure content area is not obscured */
+body.taxora-topbar-active.taxora-topbar-frontend .obn-main-content,
+body.has-taxora-topbar .obn-main-content {
+    height: 100%;
+}
+
+body.taxora-topbar-active.taxora-topbar-frontend .obn-top-bar,
+body.has-taxora-topbar .obn-top-bar {
+    padding-top: 5px !important;
+    padding-bottom: 5px !important;
+}
+
+body.taxora-topbar-active.taxora-topbar-frontend .obn-content-area,
+body.has-taxora-topbar .obn-content-area {
+    padding-top: 5px !important;
+}

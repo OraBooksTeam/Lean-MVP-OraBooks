@@ -1,0 +1,156 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+    :root {
+        --safe-area-inset-bottom: env(safe-area-inset-bottom);
+        --topbar-height: 56px;
+    }
+    
+    @media (max-width: 1440px) {
+        :root { --topbar-height: 54px; }
+    }
+    @media (max-width: 1024px) {
+        :root { --topbar-height: 50px; }
+    }
+    
+    html, body {
+        @apply h-full overflow-hidden antialiased;
+        font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    }
+
+    body {
+        -webkit-tap-highlight-color: transparent;
+        overscroll-behavior-y: contain;
+        @apply bg-gray-50 text-slate-900;
+    }
+}
+
+@layer components {
+    /* Premium Glassmorphism */
+    .glass {
+        @apply bg-white/70 backdrop-blur-xl border border-white/30;
+    }
+
+    /* Navigation Interaction */
+    .nav-btn {
+        @apply flex items-center w-full gap-3 px-4 py-3 rounded-xl transition-all duration-300;
+    }
+
+    .nav-btn-active {
+        @apply bg-primary-500 text-white shadow-lg shadow-primary-500/30;
+    }
+
+    .nav-btn-inactive {
+        @apply text-slate-400 hover:text-white hover:bg-white/5;
+    }
+
+    .active-nav {
+        @apply text-primary-500;
+    }
+
+    .active-nav svg {
+        filter: drop-shadow(0 0 8px rgba(14, 165, 233, 0.4));
+    }
+
+    /* Scrollbars */
+    .hide-scrollbar {
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+    }
+    .hide-scrollbar::-webkit-scrollbar {
+        display: none;
+    }
+
+    /* Animations */
+    .page-transition {
+        @apply transition-all duration-300 ease-out;
+    }
+
+    .section-hidden {
+        @apply opacity-0 translate-y-4 pointer-events-none;
+    }
+
+    /* Premium Widgets */
+    .widget {
+        @apply bg-white rounded-3xl border border-slate-200/60 overflow-hidden transition-all duration-500;
+        box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.04), 0 5px 20px -5px rgba(0, 0, 0, 0.02);
+    }
+
+    .widget:hover {
+        @apply border-primary-500/20;
+        box-shadow: 0 20px 50px -12px rgba(0, 0, 0, 0.08), 0 10px 20px -5px rgba(0, 0, 0, 0.03);
+    }
+
+    .widget-header {
+        @apply flex items-center justify-between px-6 py-4 bg-slate-50/50 border-b border-slate-100 cursor-grab select-none transition-colors hover:bg-slate-50;
+    }
+
+    .widget-title {
+        @apply font-bold text-slate-800 text-xs uppercase tracking-widest opacity-80;
+    }
+
+    .widget-controls button {
+        @apply w-8 h-8 flex items-center justify-center bg-white border border-slate-200 rounded-lg text-slate-400 font-bold shadow-sm transition-all duration-300 hover:bg-primary-500 hover:text-white hover:scale-110 hover:border-primary-500;
+    }
+
+    .widget-content {
+        @apply p-6;
+    }
+
+    .widget.minimized {
+        @apply min-h-0;
+    }
+
+    .widget.minimized .widget-content {
+        @apply hidden;
+    }
+
+    /* Status Badges */
+    .badge {
+        @apply px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider;
+    }
+
+    .badge-success {
+        @apply bg-emerald-50 text-emerald-600 border border-emerald-100;
+    }
+
+    .badge-primary {
+        @apply bg-primary-50 text-primary-600 border border-primary-100;
+    }
+
+    /* Topbar Compatibility */
+    body.taxora-topbar-active {
+        padding-top: var(--topbar-height) !important;
+        height: 100vh !important;
+    }
+
+    body.taxora-topbar-active aside,
+    body.taxora-topbar-active #mobile-sidebar {
+        top: var(--topbar-height) !important;
+        height: calc(100vh - var(--topbar-height)) !important;
+    }
+
+    body.taxora-topbar-active .dashboard-header {
+        top: var(--topbar-height) !important;
+    }
+
+    /* Ensure sidebars are on top but below topbar if needed */
+    #mobile-sidebar {
+        z-index: 100000 !important;
+    }
+
+    #sidebar-backdrop {
+        z-index: 99999 !important;
+    }
+
+    /* Ensure main scroller accounts for headers */
+    #main-scroller {
+        height: calc(100vh - 4rem); /* 4rem is h-16 of dashboard-header */
+    }
+
+    body.taxora-topbar-active #main-scroller {
+        height: calc(100vh - 4rem - var(--topbar-height));
+    }
+}

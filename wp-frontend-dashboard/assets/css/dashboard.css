@@ -1,0 +1,1017 @@
+/**
+ * WP Frontend Dashboard - WordPress Native Styles
+ * All classes namespaced under .wpfd-dashboard
+ */
+
+/* ============================================
+   WPF DASHBOARD SECTION 1: RESET & BASE
+   ============================================ */
+.wpfd-dashboard * {
+    box-sizing: border-box;
+}
+
+.wpfd-dashboard {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    line-height: 1.6;
+    color: #1e293b;
+    background: #f8fafc;
+    margin: 0;
+    padding: 0;
+}
+
+/* ============================================
+   WPF DASHBOARD SECTION 2: CONTAINER
+   ============================================ */
+.wpfd-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+/* ============================================
+   WPF DASHBOARD SECTION 3: LAYOUT
+   ============================================ */
+.wpfd-layout {
+    display: flex;
+    gap: 32px;
+    margin-top: 32px;
+}
+
+/* ============================================
+   WPF DASHBOARD SECTION 4: SIDEBAR
+   ============================================ */
+.wpfd-sidebar {
+    width: 280px;
+    flex-shrink: 0;
+}
+
+.wpfd-sidebar-content {
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.04);
+    position: sticky;
+    top: 100px;
+    max-height: calc(100vh - 120px);
+    overflow-y: auto;
+}
+
+/* ============================================
+   WPF DASHBOARD SECTION 5: NAVIGATION
+   ============================================ */
+.wpfd-nav-list {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 32px 0;
+}
+
+.wpfd-nav-item {
+    margin-bottom: 4px;
+}
+
+.wpfd-nav-link {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    border-radius: 10px;
+    color: #64748b;
+    text-decoration: none;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    border: 1px solid transparent;
+}
+
+.wpfd-nav-link:hover {
+    background: #f8fafc;
+    color: #3b82f6;
+    border-color: #e2e8f0;
+}
+
+.wpfd-nav-link-active {
+    background: #dbeafe;
+    color: #3b82f6;
+    border-color: #bfdbfe;
+}
+
+.wpfd-nav-link svg {
+    flex-shrink: 0;
+}
+
+/* ============================================
+   WPF DASHBOARD SECTION 6: QUICK ACTIONS
+   ============================================ */
+.wpfd-sidebar-quick-actions {
+    margin-bottom: 32px;
+    padding-bottom: 32px;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.wpfd-sidebar-title {
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #94a3b8;
+    margin: 0 0 16px 0;
+}
+
+.wpfd-sidebar-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.wpfd-sidebar-action {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    color: #475569;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.wpfd-sidebar-action:hover {
+    background: #f1f5f9;
+    border-color: #cbd5e1;
+    color: #1e293b;
+}
+
+.wpfd-sidebar-action svg {
+    flex-shrink: 0;
+}
+
+/* ============================================
+   WPF DASHBOARD SECTION 7: USER INFO
+   ============================================ */
+.wpfd-sidebar-user {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px;
+    background: #f8fafc;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+}
+
+.wpfd-user-avatar {
+    flex-shrink: 0;
+}
+
+.wpfd-user-avatar img {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 2px solid #e2e8f0;
+}
+
+.wpfd-user-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.wpfd-user-info .wpfd-user-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: #1e293b;
+    margin: 0 0 2px 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.wpfd-user-role {
+    font-size: 12px;
+    color: #64748b;
+    text-transform: capitalize;
+    margin: 0;
+}
+
+/* ============================================
+   WPF DASHBOARD SECTION 8: HEADER
+   ============================================ */
+.wpfd-header {
+    background: white;
+    border-bottom: 1px solid #e2e8f0;
+    padding: 16px 0;
+    position: sticky;
+    top: 0;
+    z-index: 9999;
+}
+
+.wpfd-header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.wpfd-mobile-menu-toggle {
+    display: none;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 6px;
+    color: #64748b;
+    transition: all 0.2s ease;
+}
+
+.wpfd-mobile-menu-toggle:hover {
+    background: #f1f5f9;
+    color: #1e293b;
+}
+
+.wpfd-logo h1 {
+    margin: 0;
+    font-size: 24px;
+    font-weight: 700;
+    color: #1e293b;
+}
+
+.wpfd-logo .custom-logo {
+    max-height: 40px;
+    width: auto;
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
+.wpfd-user-menu {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.wpfd-user-name {
+    font-weight: 500;
+    color: #64748b;
+}
+
+.wpfd-logout-btn {
+    padding: 8px 16px;
+    background: #ef4444;
+    color: white;
+    text-decoration: none;
+    border-radius: 8px;
+    font-weight: 500;
+    transition: background-color 0.2s;
+}
+
+.wpfd-logout-btn:hover {
+    background: #dc2626;
+}
+
+/* ============================================
+   WPF DASHBOARD SECTION 9: MAIN CONTENT
+   ============================================ */
+.wpfd-main {
+    flex: 1;
+    min-width: 0;
+}
+
+.wpfd-dashboard-overview {
+    margin-bottom: 32px;
+}
+
+.wpfd-page-title {
+    font-size: 32px;
+    font-weight: 700;
+    color: #1e293b;
+    margin: 0 0 8px 0;
+}
+
+.wpfd-page-subtitle {
+    font-size: 18px;
+    color: #64748b;
+    margin: 0;
+    font-weight: 500;
+}
+
+/* ============================================
+   WPF DASHBOARD SECTION 10: STATS GRID
+   ============================================ */
+.wpfd-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 24px;
+    margin-bottom: 32px;
+}
+
+.wpfd-stat-card {
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    padding: 24px;
+    position: relative;
+    transition: all 0.3s ease;
+}
+
+a.wpfd-stat-card {
+    text-decoration: none;
+    color: inherit;
+    display: block;
+}
+
+.wpfd-stat-card:hover {
+    border-color: #3b82f6;
+    transform: translateY(-4px);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08);
+}
+
+.wpfd-stat-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    background: #f1f5f9;
+    border-radius: 12px;
+    margin-bottom: 20px;
+    color: #64748b;
+    transition: all 0.3s ease;
+}
+
+.wpfd-stat-card:hover .wpfd-stat-icon {
+    background: #dbeafe;
+    color: #3b82f6;
+}
+
+.wpfd-stat-content {
+    margin-bottom: 16px;
+}
+
+.wpfd-stat-label {
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #94a3b8;
+    margin: 0 0 4px 0;
+}
+
+.wpfd-stat-value {
+    font-size: 32px;
+    font-weight: 700;
+    color: #1e293b;
+    margin: 0;
+}
+
+.wpfd-stat-badge {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 4px 8px;
+    background: #dbeafe;
+    color: #3b82f6;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+/* ============================================
+   WPF DASHBOARD SECTION 11: ADDON FEATURES
+   ============================================ */
+.wpfd-addon-features {
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    padding: 32px;
+    margin-bottom: 32px;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.04);
+}
+
+/* ============================================
+   WPF DASHBOARD SECTION 12: RECENT ACTIVITY
+   ============================================ */
+.wpfd-recent-activity-section {
+    background: white !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 16px !important;
+    padding: 32px !important;
+    margin-bottom: 32px !important;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.04) !important;
+}
+
+/* ============================================
+   WPF DASHBOARD SECTION 13: STORAGE USAGE
+   ============================================ */
+.wpfd-storage-section {
+    background: white !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 16px !important;
+    padding: 32px !important;
+    margin-bottom: 32px !important;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.04) !important;
+}
+
+.wpfd-section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 32px;
+}
+
+.wpfd-section-title {
+    font-size: 20px;
+    font-weight: 700;
+    color: #1e293b;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.wpfd-section-title svg {
+    color: #3b82f6;
+}
+
+.wpfd-feature-count {
+    font-size: 12px;
+    font-weight: 700;
+    padding: 6px 12px;
+    background: #dbeafe;
+    color: #3b82f6;
+    border-radius: 16px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.wpfd-features-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.wpfd-feature-category {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.wpfd-category-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.wpfd-category-title {
+    font-size: 14px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #475569;
+    margin: 0;
+}
+
+.wpfd-category-count {
+    font-size: 12px;
+    padding: 2px 8px;
+    background: #dbeafe;
+    color: #3b82f6;
+    border: 1px solid #bfdbfe;
+    border-radius: 8px;
+    font-weight: 600;
+}
+
+.wpfd-category-features {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 16px;
+}
+
+.wpfd-feature-card {
+    padding: 16px;
+    background: #f8fafc;
+    border: 1px solid transparent;
+    border-radius: 16px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+a.wpfd-feature-card {
+    text-decoration: none;
+    color: inherit;
+    display: block;
+}
+
+.wpfd-feature-card:not(a) {
+    cursor: default;
+}
+
+.wpfd-feature-card:hover {
+    background: #f1f5f9;
+    border-color: #e2e8f0;
+}
+
+.wpfd-feature-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 12px;
+}
+
+.wpfd-feature-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    border: 1px solid #e2e8f0;
+    color: #94a3b8;
+    transition: all 0.3s ease;
+}
+
+.wpfd-feature-card:hover .wpfd-feature-icon {
+    background: #dbeafe;
+    color: #3b82f6;
+}
+
+.wpfd-feature-status {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 4px 8px;
+    background: #dcfce7;
+    color: #16a34a;
+    border-radius: 6px;
+}
+
+.wpfd-feature-name {
+    font-size: 14px;
+    font-weight: 700;
+    color: #1e293b;
+    margin: 0 0 8px 0;
+    transition: color 0.3s ease;
+}
+
+.wpfd-feature-card:hover .wpfd-feature-name {
+    color: #3b82f6;
+}
+
+.wpfd-feature-description {
+    font-size: 12px;
+    color: #64748b;
+    line-height: 1.5;
+    margin: 0 0 12px 0;
+}
+
+.wpfd-feature-link {
+    display: flex;
+    align-items: center;
+    font-size: 12px;
+    color: #3b82f6;
+    font-weight: 500;
+    transition: color 0.3s ease;
+}
+
+.wpfd-feature-link:hover {
+    color: #2563eb;
+}
+
+.wpfd-feature-link svg {
+    margin-left: 4px;
+    transition: transform 0.3s ease;
+}
+
+.wpfd-feature-card:hover .wpfd-feature-link svg {
+    transform: translateX(2px);
+}
+
+/* ============================================
+   WPF DASHBOARD SECTION 14: EMPTY STATE
+   ============================================ */
+.wpfd-empty-state {
+    text-align: center;
+    padding: 64px 32px;
+}
+
+.wpfd-empty-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 80px;
+    height: 80px;
+    background: #f1f5f9;
+    border-radius: 16px;
+    margin: 0 auto 24px auto;
+    color: #94a3b8;
+}
+
+.wpfd-empty-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: #1e293b;
+    margin: 0 0 8px 0;
+}
+
+.wpfd-empty-description {
+    font-size: 14px;
+    color: #64748b;
+    margin: 0;
+}
+
+/* ============================================
+   WPF DASHBOARD SECTION 15: CONTENT GRID
+   ============================================ */
+.wpfd-content-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 32px;
+}
+
+/* ============================================
+   WPF DASHBOARD SECTION 16: RECENT POSTS
+   ============================================ */
+.wpfd-recent-posts {
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    padding: 32px;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.04);
+}
+
+.wpfd-posts-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.wpfd-post-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    background: #f8fafc;
+    border: 1px solid transparent;
+    border-radius: 16px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.wpfd-post-item:hover {
+    background: #f1f5f9;
+    border-color: #e2e8f0;
+}
+
+.wpfd-post-content {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.wpfd-post-number {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 56px;
+    height: 56px;
+    background: white;
+    border-radius: 16px;
+    font-weight: 700;
+    color: #d1d5db;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    border: 1px solid #e2e8f0;
+    transition: color 0.3s ease;
+}
+
+.wpfd-post-item:hover .wpfd-post-number {
+    color: #3b82f6;
+}
+
+.wpfd-post-info {
+    flex: 1;
+}
+
+.wpfd-post-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: #1e293b;
+    margin: 0 0 6px 0;
+    transition: color 0.3s ease;
+}
+
+.wpfd-post-item:hover .wpfd-post-title {
+    color: #3b82f6;
+}
+
+.wpfd-post-meta {
+    font-size: 10px;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-weight: 700;
+    margin: 0;
+}
+
+.wpfd-post-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.wpfd-status-badge {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 4px 8px;
+    background: #dbeafe;
+    color: #3b82f6;
+    border-radius: 6px;
+}
+
+.wpfd-empty-posts {
+    text-align: center;
+    padding: 32px;
+    color: #64748b;
+    font-weight: 500;
+}
+
+/* ============================================
+   WPF DASHBOARD SECTION 17: QUICK ACTIONS
+   ============================================ */
+.wpfd-quick-actions {
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    padding: 32px;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.04);
+}
+
+.wpfd-action-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 32px;
+}
+
+.wpfd-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 18px 16px;
+    border-radius: 16px;
+    font-weight: 700;
+    font-size: 14px;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    border: none;
+    cursor: pointer;
+}
+
+.wpfd-btn svg {
+    margin-right: 10px;
+}
+
+.wpfd-btn-primary {
+    background: linear-gradient(135deg, #3b82f6, #6366f1);
+    color: white;
+    box-shadow: 0 4px 20px rgba(59, 130, 246, 0.2);
+}
+
+.wpfd-btn-primary:hover {
+    background: linear-gradient(135deg, #2563eb, #4f46e5);
+    transform: scale(0.95);
+}
+
+.wpfd-btn-secondary {
+    background: #f8fafc;
+    color: #475569;
+    border: 1px solid #e2e8f0;
+}
+
+.wpfd-btn-secondary:hover {
+    background: #f1f5f9;
+    transform: scale(0.95);
+}
+
+/* ============================================
+   WPF DASHBOARD SECTION 18: STORAGE USAGE
+   ============================================ */
+.wpfd-storage-usage {
+    margin-top: 32px;
+    padding-top: 32px;
+    border-top: 1px solid #e2e8f0;
+}
+
+.wpfd-storage-title {
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #94a3b8;
+    margin: 0 0 16px 0;
+}
+
+.wpfd-storage-bar {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.wpfd-storage-progress {
+    width: 100%;
+    height: 6px;
+    background: #e2e8f0;
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.wpfd-storage-fill {
+    height: 100%;
+    background: #3b82f6;
+    border-radius: 3px;
+    box-shadow: 0 0 8px rgba(59, 130, 246, 0.5);
+    transition: width 0.3s ease;
+}
+
+.wpfd-storage-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.wpfd-storage-label span:first-child {
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.wpfd-storage-label span:last-child {
+    color: #1e293b;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* ============================================
+   WPF DASHBOARD SECTION 19: RESPONSIVE (TABLET)
+   ============================================ */
+@media (max-width: 1024px) {
+    .wpfd-layout {
+        flex-direction: column;
+        gap: 24px;
+    }
+    
+    .wpfd-sidebar {
+        position: fixed;
+        top: -100%;
+        right: 0;
+        left: 0;
+        width: 100%;
+        height: auto;
+        max-height: calc(100vh - 80px);
+        background: white;
+        z-index: 1000;
+        transition: top 0.3s ease;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        padding: 20px;
+        overflow-y: auto;
+        border-radius: 0;
+    }
+    
+    .wpfd-sidebar.wpfd-sidebar-mobile-open {
+        top: 80px;
+    }
+    
+    .wpfd-sidebar-content {
+        height: 100%;
+        overflow-y: auto;
+        position: static;
+        max-height: none;
+    }
+    
+    .wpfd-main {
+        margin-left: 0;
+    }
+    
+    .wpfd-nav-list {
+        display: block;
+        margin-bottom: 24px;
+    }
+    
+    .wpfd-nav-item {
+        margin-bottom: 4px;
+    }
+    
+    .wpfd-sidebar-actions {
+        display: block;
+        margin-bottom: 24px;
+    }
+    
+    .wpfd-sidebar-user {
+        margin-top: auto;
+        padding-top: 24px;
+        border-top: 1px solid #e2e8f0;
+    }
+    
+    .wpfd-mobile-menu-toggle {
+        display: block;
+    }
+}
+
+/* ============================================
+   WPF DASHBOARD SECTION 20: RESPONSIVE (MOBILE)
+   ============================================ */
+@media (max-width: 768px) {
+    .wpfd-container {
+        padding: 0 16px;
+    }
+    
+    .wpfd-header-content {
+        flex-direction: row;
+        gap: 16px;
+    }
+    
+    .wpfd-layout {
+        margin-top: 24px;
+    }
+    
+    .wpfd-page-title {
+        font-size: 24px;
+    }
+    
+    .wpfd-page-subtitle {
+        font-size: 16px;
+    }
+    
+    .wpfd-stats-grid {
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+    
+    .wpfd-stat-card {
+        padding: 16px;
+    }
+    
+    .wpfd-addon-features,
+    .wpfd-recent-posts,
+    .wpfd-quick-actions {
+        padding: 16px;
+    }
+    
+    .wpfd-content-grid {
+        grid-template-columns: 1fr;
+        gap: 24px;
+    }
+    
+    .wpfd-category-features {
+        grid-template-columns: 1fr;
+    }
+    
+    .wpfd-post-content {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+    }
+    
+    .wpfd-post-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 16px;
+    }
+    
+    .wpfd-nav-list {
+        flex-direction: column;
+        gap: 4px;
+    }
+    
+    .wpfd-sidebar-actions {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ============================================
+   WPF DASHBOARD SECTION 21: RESPONSIVE (SMALL)
+   ============================================ */
+@media (max-width: 480px) {
+    .wpfd-main {
+        padding: 20px 0;
+    }
+    
+    .wpfd-section-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+    }
+    
+    .wpfd-stat-value {
+        font-size: 24px;
+    }
+}

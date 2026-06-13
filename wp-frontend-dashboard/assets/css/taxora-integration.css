@@ -1,0 +1,452 @@
+/**
+ * TaxOra Integration CSS
+ * Styles for seamless integration between WP Frontend Dashboard
+ * and TaxOra Membership Plugin
+ */
+
+/* ============================================
+   WPF TAXORA INTEGRATION SECTION 1: MEMBERSHIP WIDGET
+   ============================================ */
+.wpfd-widget.membership-status {
+    background: linear-gradient(135deg, #3b82f6 0%, #6366f1 100%);
+    color: white;
+    border-radius: 16px;
+    padding: 24px;
+    margin-bottom: 20px;
+}
+
+.wpfd-widget.membership-status .widget-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+}
+
+.wpfd-widget.membership-status .widget-title {
+    font-size: 18px;
+    font-weight: 700;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.wpfd-widget.membership-status .membership-icon {
+    width: 24px;
+    height: 24px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.wpfd-widget.membership-status .membership-level {
+    font-size: 24px;
+    font-weight: 800;
+    margin-bottom: 8px;
+}
+
+.wpfd-widget.membership-status .membership-status {
+    font-size: 14px;
+    opacity: 0.9;
+    margin-bottom: 16px;
+}
+
+.wpfd-widget.membership-status .membership-status.active {
+    color: #10b981;
+}
+
+.wpfd-widget.membership-status .membership-status.inactive {
+    color: #f59e0b;
+}
+
+.wpfd-widget.membership-status .upgrade-btn {
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    padding: 10px 20px;
+    border-radius: 10px;
+    text-decoration: none;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.3s ease;
+}
+
+.wpfd-widget.membership-status .upgrade-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: translateY(-1px);
+}
+
+/* ============================================
+   WPF TAXORA INTEGRATION SECTION 2: FEATURES WIDGET
+   ============================================ */
+.wpfd-widget.features {
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 16px;
+    padding: 24px;
+    margin-bottom: 20px;
+}
+
+.wpfd-widget.features .widget-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+}
+
+.wpfd-widget.features .widget-title {
+    font-size: 18px;
+    font-weight: 700;
+    margin: 0;
+    color: #1f2937;
+}
+
+.wpfd-widget.features .features-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+}
+
+.wpfd-widget.features .feature-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px;
+    background: #f9fafb;
+    border-radius: 12px;
+    border: 1px solid #e5e7eb;
+    transition: all 0.3s ease;
+}
+
+.wpfd-widget.features .feature-item:hover {
+    background: #f3f4f6;
+    border-color: #d1d5db;
+    transform: translateY(-1px);
+}
+
+.wpfd-widget.features .feature-icon {
+    width: 40px;
+    height: 40px;
+    background: #eff6ff;
+    color: #3b82f6;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+}
+
+.wpfd-widget.features .feature-info {
+    flex: 1;
+}
+
+.wpfd-widget.features .feature-name {
+    font-weight: 600;
+    color: #1f2937;
+    margin-bottom: 4px;
+}
+
+.wpfd-widget.features .feature-description {
+    font-size: 12px;
+    color: #6b7280;
+}
+
+.wpfd-widget.features .feature-link {
+    color: #3b82f6;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.wpfd-widget.features .feature-link:hover {
+    text-decoration: underline;
+}
+
+/* ============================================
+   WPF TAXORA INTEGRATION SECTION 3: SITE MANAGEMENT WIDGET
+   ============================================ */
+.wpfd-widget.site-management {
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 16px;
+    padding: 24px;
+    margin-bottom: 20px;
+}
+
+.wpfd-widget.site-management .widget-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+}
+
+.wpfd-widget.site-management .widget-title {
+    font-size: 18px;
+    font-weight: 700;
+    margin: 0;
+    color: #1f2937;
+}
+
+.wpfd-widget.site-management .site-info {
+    margin-bottom: 20px;
+}
+
+.wpfd-widget.site-management .site-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #1f2937;
+    margin-bottom: 8px;
+}
+
+.wpfd-widget.site-management .site-url {
+    font-size: 14px;
+    color: #6b7280;
+    margin-bottom: 16px;
+}
+
+.wpfd-widget.site-management .site-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 16px;
+    margin-bottom: 20px;
+}
+
+.wpfd-widget.site-management .stat-item {
+    text-align: center;
+    padding: 16px;
+    background: #f9fafb;
+    border-radius: 12px;
+    border: 1px solid #e5e7eb;
+}
+
+.wpfd-widget.site-management .stat-number {
+    font-size: 24px;
+    font-weight: 800;
+    color: #3b82f6;
+    margin-bottom: 4px;
+}
+
+.wpfd-widget.site-management .stat-label {
+    font-size: 12px;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.wpfd-widget.site-management .site-actions {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.wpfd-widget.site-management .action-btn {
+    padding: 10px 20px;
+    border-radius: 10px;
+    text-decoration: none;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.3s ease;
+    border: 1px solid transparent;
+}
+
+.wpfd-widget.site-management .action-btn.primary {
+    background: #3b82f6;
+    color: white;
+    border-color: #3b82f6;
+}
+
+.wpfd-widget.site-management .action-btn.primary:hover {
+    background: #2563eb;
+    transform: translateY(-1px);
+}
+
+.wpfd-widget.site-management .action-btn.secondary {
+    background: white;
+    color: #6b7280;
+    border-color: #e5e7eb;
+}
+
+.wpfd-widget.site-management .action-btn.secondary:hover {
+    background: #f9fafb;
+    border-color: #d1d5db;
+}
+
+/* ============================================
+   WPF TAXORA INTEGRATION SECTION 4: NAVIGATION
+   ============================================ */
+.wpfd-navigation .nav-item.has-membership {
+    position: relative;
+}
+
+.wpfd-navigation .nav-item.has-membership .nav-link::after {
+    content: '';
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 8px;
+    height: 8px;
+    background: #10b981;
+    border-radius: 50%;
+    border: 2px solid white;
+}
+
+.wpfd-navigation .nav-item.upgrade-required .nav-link::after {
+    content: '';
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 8px;
+    height: 8px;
+    background: #f59e0b;
+    border-radius: 50%;
+    border: 2px solid white;
+}
+
+/* ============================================
+   WPF TAXORA INTEGRATION SECTION 5: MENU BADGES
+   ============================================ */
+.wpfd-menu-badge {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    background: #f59e0b;
+    color: white;
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 6px;
+    border-radius: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    z-index: 10;
+}
+
+.wpfd-menu-badge.bg-warning {
+    background: #f59e0b;
+}
+
+.wpfd-menu-badge.bg-success {
+    background: #10b981;
+}
+
+.wpfd-menu-badge.bg-danger {
+    background: #ef4444;
+}
+
+/* ============================================
+   WPF TAXORA INTEGRATION SECTION 6: RESPONSIVE
+   ============================================ */
+@media (max-width: 768px) {
+    .wpfd-widget.features .features-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .wpfd-widget.site-management .site-stats {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .wpfd-widget.site-management .site-actions {
+        flex-direction: column;
+    }
+    
+    .wpfd-widget.site-management .action-btn {
+        justify-content: center;
+    }
+}
+
+@media (max-width: 480px) {
+    .wpfd-widget.membership-status,
+    .wpfd-widget.features,
+    .wpfd-widget.site-management {
+        padding: 16px;
+        margin-bottom: 16px;
+    }
+    
+    .wpfd-widget.membership-status .membership-level {
+        font-size: 20px;
+    }
+    
+    .wpfd-widget.site-management .site-stats {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ============================================
+   WPF TAXORA INTEGRATION SECTION 7: ANIMATIONS
+   ============================================ */
+.wpfd-widget {
+    transition: all 0.3s ease;
+}
+
+.wpfd-widget:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+}
+
+/* ============================================
+   WPF TAXORA INTEGRATION SECTION 8: LOADING STATES
+   ============================================ */
+.wpfd-widget.loading {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+.wpfd-widget.loading::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 20px;
+    height: 20px;
+    margin: -10px 0 0 -10px;
+    border: 2px solid #e5e7eb;
+    border-top-color: #3b82f6;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* ============================================
+   WPF TAXORA INTEGRATION SECTION 9: ERROR STATES
+   ============================================ */
+.wpfd-widget.error {
+    background: #fef2f2;
+    border-color: #fecaca;
+}
+
+.wpfd-widget.error .widget-title {
+    color: #dc2626;
+}
+
+.wpfd-widget.error .error-message {
+    color: #dc2626;
+    font-size: 14px;
+    margin-top: 12px;
+}
+
+/* ============================================
+   WPF TAXORA INTEGRATION SECTION 10: SUCCESS STATES
+   ============================================ */
+.wpfd-widget.success {
+    background: #f0fdf4;
+    border-color: #bbf7d0;
+}
+
+.wpfd-widget.success .widget-title {
+    color: #16a34a;
+}
+
+.wpfd-widget.success .success-message {
+    color: #16a34a;
+    font-size: 14px;
+    margin-top: 12px;
+}

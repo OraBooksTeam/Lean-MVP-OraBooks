@@ -1,0 +1,471 @@
+/**
+ * Professional Addon Manager CSS for TaxOra Membership Plugin
+ * Modern, clean, and user-friendly interface
+ */
+
+/* ===== ROOT CONTAINERS ===== */
+.addon-manager-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 32px;
+    margin-top: 24px;
+}
+
+.addon-section {
+    background: #ffffff;
+    border: 1px solid #e1e5e7;
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.addon-section h3 {
+    margin: 0 0 20px 0;
+    color: #1f2937;
+    font-size: 18px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.addon-section h3::before {
+    content: '';
+    width: 4px;
+    height: 4px;
+    background: #007cba;
+    border-radius: 50%;
+}
+
+/* ===== ADDON ITEMS ===== */
+.addon-list {
+    display: grid;
+    gap: 16px;
+}
+
+.addon-item {
+    border: 1px solid #e1e5e7;
+    border-radius: 8px;
+    padding: 20px;
+    background: #fafbfc;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+.addon-item::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #007cba 0%, #0056b3 100%);
+    transition: width 0.3s ease;
+    width: 0;
+}
+
+.addon-item:hover {
+    border-color: #007cba;
+    box-shadow: 0 4px 12px rgba(0, 124, 186, 0.15);
+    transform: translateY(-2px);
+}
+
+.addon-item:hover::before {
+    width: 100%;
+}
+
+.addon-item.enabled {
+    border-color: #00a32a;
+    background: linear-gradient(135deg, #f0fff4 0%, #e8f5e8 100%);
+}
+
+.addon-item.enabled::before {
+    background: linear-gradient(90deg, #00a32a 0%, #007cba 100%);
+}
+
+.addon-item.disabled {
+    opacity: 0.6;
+    background: #f8f9fa;
+    border-color: #e9ecef;
+}
+
+.addon-item.disabled::before {
+    background: linear-gradient(90deg, #6c757d 0%, #495057 100%);
+}
+
+/* ===== ADDON HEADER ===== */
+.addon-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.addon-header h4 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: #1f2937;
+}
+
+.addon-status {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 6px 12px;
+    border-radius: 20px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.status-enabled {
+    background: #00a32a;
+    color: white;
+    box-shadow: 0 2px 4px rgba(0, 163, 75, 0.2);
+}
+
+.status-disabled {
+    background: #6c757d;
+    color: white;
+    box-shadow: 0 2px 4px rgba(108, 117, 125, 0.2);
+}
+
+.status-enabled::before,
+.status-disabled::before {
+    content: '✓';
+    font-size: 12px;
+}
+
+/* ===== ADDON DESCRIPTION ===== */
+.addon-description {
+    margin-bottom: 16px;
+}
+
+.addon-description p {
+    margin: 0;
+    color: #495057;
+    line-height: 1.6;
+    font-size: 14px;
+}
+
+.addon-description small {
+    color: #6c757d;
+    font-size: 12px;
+    margin-top: 4px;
+}
+
+/* ===== ADDON ACTIONS ===== */
+.addon-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.addon-actions .button {
+    font-size: 13px;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.addon-actions .button:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0, 124, 186, 0.2);
+}
+
+/* ===== PLAN FEATURES ===== */
+.plan-features-assignment {
+    margin-top: 24px;
+}
+
+.plan-feature-item {
+    border: 1px solid #e1e5e7;
+    border-radius: 8px;
+    padding: 24px;
+    margin-bottom: 24px;
+    background: #ffffff;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.plan-feature-item h4 {
+    margin: 0 0 16px 0;
+    color: #1f2937;
+    font-size: 18px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.plan-feature-item h4::before {
+    content: '📋';
+    font-size: 20px;
+}
+
+.feature-assignment-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
+}
+
+.feature-checkbox {
+    border: 1px solid #e1e5e7;
+    border-radius: 6px;
+    padding: 16px;
+    background: #fafbfc;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
+    position: relative;
+}
+
+.feature-checkbox:hover {
+    border-color: #007cba;
+    background: #ffffff;
+    box-shadow: 0 2px 8px rgba(0, 124, 186, 0.1);
+}
+
+.feature-checkbox label {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    cursor: pointer;
+    margin: 0;
+    line-height: 1.4;
+}
+
+.feature-icon {
+    font-size: 20px;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f8f9fa;
+    border-radius: 6px;
+    flex-shrink: 0;
+}
+
+.feature-name {
+    font-weight: 600;
+    color: #1f2937;
+    font-size: 14px;
+}
+
+.feature-desc {
+    font-size: 13px;
+    color: #495057;
+    line-height: 1.4;
+    margin-top: 4px;
+}
+
+/* ===== PLAN ACTIONS ===== */
+.plan-actions {
+    margin-top: 20px;
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.button-small {
+    font-size: 12px;
+    padding: 6px 12px;
+    border-radius: 4px;
+    font-weight: 500;
+}
+
+/* ===== LOADING STATES (scoped to addon-manager) ===== */
+.addon-section.loading,
+.addon-list.loading,
+.addon-manager-grid .loading {
+    opacity: 0.6;
+    pointer-events: none;
+    position: relative;
+}
+
+.addon-section.loading::after,
+.addon-list.loading::after,
+.addon-manager-grid .loading::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 20px;
+    height: 20px;
+    margin: -10px 0 0 -10px;
+    border: 2px solid #007cba;
+    border-radius: 50%;
+    border-top: 2px solid transparent;
+    animation: addon-spin 1s linear infinite;
+}
+
+@keyframes addon-spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* ===== SEARCH FUNCTIONALITY ===== */
+.addon-search-container {
+    margin-bottom: 16px;
+}
+
+.addon-search-container input {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #e1e5e7;
+    border-radius: 6px;
+    font-size: 14px;
+    transition: border-color 0.2s ease;
+}
+
+.addon-search-container input:focus {
+    outline: none;
+    border-color: #007cba;
+    box-shadow: 0 0 0 2px rgba(0, 124, 186, 0.1);
+}
+
+/* ===== LOADING ANIMATIONS (scoped) ===== */
+.addon-loading-spinner {
+    width: 20px;
+    height: 20px;
+    border: 2px solid #007cba;
+    border-radius: 50%;
+    border-top: 2px solid transparent;
+    animation: spin 1s linear infinite;
+    margin: 0 auto;
+}
+
+/* ===== NOTIFICATION SYSTEM ===== */
+.orabooks-notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 999999;
+    max-width: 400px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    border-left: 4px solid #007cba;
+    animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+.notification-content {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px;
+}
+
+.notification-icon {
+    font-size: 16px;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f8f9fa;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.notification-message {
+    font-size: 14px;
+    color: #333;
+    line-height: 1.4;
+}
+
+.notification-close {
+    background: none;
+    border: none;
+    font-size: 20px;
+    cursor: pointer;
+    color: #666;
+    padding: 4px;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+}
+
+.notification-close:hover {
+    background: #f1f5f5;
+    color: white;
+}
+
+/* ===== VISUAL FEEDBACK ===== */
+.plan-feature-item.just-saved {
+    border-color: #00a32a;
+    background: linear-gradient(135deg, #f0fff4 0%, #e8f5e8 100%);
+    animation: highlightSave 0.5s ease;
+}
+
+@keyframes highlightSave {
+    0% {
+        box-shadow: 0 0 0 0 rgba(0, 163, 75, 0);
+    }
+    50% {
+        box-shadow: 0 0 0 10px rgba(0, 163, 75, 0.3);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(0, 163, 75, 0);
+    }
+}
+
+/* ===== RESPONSIVE DESIGN ===== */
+@media (max-width: 1024px) {
+    .addon-manager-grid {
+        grid-template-columns: 1fr;
+        gap: 24px;
+    }
+    
+    .feature-assignment-grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+    
+    .addon-search-container input {
+        font-size: 13px;
+    }
+}
+
+@media (max-width: 768px) {
+    .addon-section {
+        padding: 16px;
+    }
+    
+    .plan-feature-item {
+        padding: 16px;
+    }
+    
+    .feature-checkbox {
+        padding: 12px;
+    }
+    
+    .addon-actions {
+        flex-direction: column;
+        gap: 6px;
+    }
+    
+    .plan-actions {
+        flex-direction: column;
+        gap: 6px;
+    }
+    
+    .feature-checkbox label {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+}

@@ -1,0 +1,261 @@
+/**
+ * WP Admin Mask - Hides WordPress branding/identity elements only.
+ * Sections numbered to organize files and prevent conflicts.
+ */
+
+/* ============================================
+   WPF MASK SECTION 01: ADMIN BAR
+   ============================================ */
+#wp-admin-bar-wp-logo,
+#wp-admin-bar-wp-logo-default,
+#wp-admin-bar-wp-logo-external,
+#wp-admin-bar-about,
+#wp-admin-bar-wp-logo .ab-icon::before {
+    display: none !important;
+}
+
+/* ============================================
+   WPF MASK SECTION 02: ADMIN FOOTER
+   ============================================ */
+#footer-thankyou,
+#footer-upgrade {
+    display: none !important;
+}
+
+/* ============================================
+   WPF MASK SECTION 03: DASHBOARD WIDGETS
+   ============================================ */
+#welcome-panel,
+#dashboard_primary,
+#dashboard_secondary {
+    display: none !important;
+}
+
+/* ============================================
+   WPF MASK SECTION 04: VERSION INFO
+   ============================================ */
+#wp-version-message,
+.wp-version,
+.wpmu-version,
+.update-core .wp-current-version ~ p,
+.update-core p.wp-current-version,
+#dashboard_right_now .wpmu-version,
+#dashboard_right_now .wp-version,
+#dashboard_right_now p.wp-version,
+#dashboard_right_now .version,
+#dashboard_right_now #wp-version-message {
+    display: none !important;
+}
+
+/* ============================================
+   WPF MASK SECTION 05: LOGIN PAGE
+   ============================================ */
+.login h1 a {
+    display: none !important;
+}
+
+/* ============================================
+   WPF MASK SECTION 06: ADMIN BAR STYLING
+   ============================================ */
+#wp-admin-bar-top-secondary {
+    background: #f8fafc !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 6px !important;
+    padding: 8px 12px !important;
+    margin: 0 4px 0 0 !important;
+    font-size: 13px !important;
+    color: #374151 !important;
+    text-decoration: none !important;
+}
+
+#wp-admin-bar-top-secondary .ab-item {
+    color: #374151 !important;
+    text-decoration: none !important;
+}
+
+#wp-admin-bar-top-secondary .ab-item:hover {
+    color: #1f293b !important;
+    text-decoration: none !important;
+}
+
+#wp-admin-bar-top-secondary .ab-label {
+    font-weight: 500 !important;
+    margin-right: 6px !important;
+}
+
+.login #backtoblog,
+.login .privacy-policy-page-link,
+.login .language-switcher {
+    display: none !important;
+}
+
+/* ============================================
+   WPF MASK SECTION 07: WP.ORG LINKS
+   ============================================ */
+#dashboard_right_now a[href*="wordpress.org"],
+#dashboard_primary a[href*="wordpress.org"],
+.plugins .plugin-description a[href*="wordpress.org"],
+.plugin-install-php .plugin-card a[href*="wordpress.org"],
+.media-upload-form .upload-flash-bypass a[href*="wordpress.org"],
+.site-info a[href*="wordpress.org"],
+.site-info a[rel="generator"] {
+    display: none !important;
+}
+
+/* ============================================
+   WPF MASK SECTION 08: PROMOTIONAL NOTICES
+   ============================================ */
+.notice.notice-info.wp-maintenance-p,
+.notice.wp-maintenance-p,
+.js-update-wordpress-notice,
+.notice.try-gutenberg,
+.notice.update-php-notice {
+    display: none !important;
+}
+
+/* ============================================
+   WPF MASK SECTION 09: MISC FINGERPRINTS
+   ============================================ */
+.powered-by-wordpress {
+    display: none !important;
+}
+
+/* Hide "My Sites" WordPress branding in multisite */
+#wp-admin-bar-my-sites .ab-item::before {
+    display: none !important;
+}
+
+/* Fix wp-admin-bar-user-info styling */
+#wp-admin-bar-user-info {
+    background: #f8fafc !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 6px !important;
+    padding: 8px 12px !important;
+    margin: 0 4px 0 0 !important;
+    font-size: 13px !important;
+    color: #374151 !important;
+}
+
+#wp-admin-bar-user-info .ab-item,
+#wp-admin-bar-user-info .ab-item a {
+    color: #374151 !important;
+    text-decoration: none !important;
+}
+
+#wp-admin-bar-user-info .ab-item:hover,
+#wp-admin-bar-user-info .ab-item:hover a {
+    color: #f3f4f6 !important;
+}
+
+#wp-admin-bar-user-info .avatar {
+    border-radius: 50% !important;
+    border: 2px solid #d1d5db !important;
+}
+
+/* ============================================
+   WPF MASK SECTION 10: EDITOR HEADERS
+   ============================================ */
+/* Hide the back to WordPress button (W logo) */
+.edit-post-fullscreen-mode-close.components-button,
+.edit-post-header__preview-button-external,
+.edit-post-header .components-button.has-icon[aria-label="View Posts"],
+.edit-post-header .components-button.has-icon[aria-label="View Pages"],
+.edit-post-header .edit-post-fullscreen-mode-close svg,
+.editor-header .edit-post-fullscreen-mode-close,
+.interface-header .edit-post-fullscreen-mode-close {
+    display: none !important;
+}
+
+/* Ensure the header itself is visible so buttons like Publish work */
+.edit-post-header,
+.editor-header,
+.interface-header,
+.edit-post-layout__top-bar,
+.editor-layout__top-bar {
+    background: #ffffff !important;
+    border-bottom: 1px solid #e2e8f0 !important;
+    display: flex !important;
+}
+
+/* Adjust toolbar to fit since we hide the logo */
+.edit-post-header__toolbar {
+    margin-left: 0 !important;
+}
+
+/* ============================================
+   WPF MASK SECTION 11: ADMIN MENU
+   ============================================ */
+#adminmenuback,
+#adminmenuwrap,
+#adminmenu {
+    display: none !important;
+}
+
+/* Adjust body margin when sidebar is hidden */
+body.wp-admin {
+    margin-left: 0 !important;
+}
+
+/* Adjust content area when sidebar is hidden */
+#wpcontent {
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+}
+
+/* Full width content */
+#wpbody-content {
+    max-width: none !important;
+    margin: 0 !important;
+    width: 100% !important;
+}
+
+/* Full width wrap containers */
+.wrap {
+    max-width: none !important;
+    margin: 0 0 20px 0 !important;
+    border-radius: 0 !important;
+}
+/* ============================================
+   WPF MASK SECTION 12: SCREEN OPTIONS
+   ============================================ */
+#screen-options-link-wrap,
+#contextual-help-link-wrap,
+#screen-meta,
+#screen-meta-links {
+    display: none !important;
+}
+
+/* Hide WordPress logo in Gutenberg and other residual WP icons */
+.edit-post-fullscreen-mode-close,
+.edit-post-header-preview__button-external svg,
+.editor-post-publish-panel__header-publish-button svg {
+    display: none !important;
+}
+
+/* Ensure no WordPress logo appears in the block editor top left */
+.interface-interface-skeleton__header .edit-post-fullscreen-mode-close svg {
+    display: none !important;
+}
+
+/* Custom background to match PWA */
+body.wp-admin {
+    background: #f9fafb !important;
+}
+
+/* Hide page titles and action buttons to avoid duplication with PWA header */
+/* BUT show them in the editor view for full WP compatibility */
+body:not(.wpfd-editor-view) .wrap h1,
+body:not(.wpfd-editor-view) .wrap h2:first-child,
+body:not(.wpfd-editor-view) .wp-heading-inline,
+body:not(.wpfd-editor-view) .page-title-action,
+body:not(.wpfd-editor-view) .edit-comments-php .wrap .wp-heading-inline,
+body:not(.wpfd-editor-view) .upload-php .wrap .wp-heading-inline {
+    display: none !important;
+}
+
+/* Adjust top padding if title is hidden */
+.wrap {
+    padding-top: 10px !important;
+}

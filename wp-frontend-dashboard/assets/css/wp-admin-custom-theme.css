@@ -1,0 +1,1836 @@
+/**
+ * WP Admin Custom Theme 
+ * Sections numbered to organize files and prevent conflicts.
+ */
+
+/* ============================================
+   WPF ADMIN THEME SECTION 01: GLOBAL VARIABLES
+   ============================================ */
+:root {
+    --wpfd-primary: #3b82f6;
+    --wpfd-primary-dark: #2563eb;
+    --wpfd-primary-light: #dbeafe;
+    --wpfd-secondary: #6366f1;
+    --wpfd-secondary-dark: #4f46e5;
+    --wpfd-bg: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+    --wpfd-bg-alt: #f1f5f9;
+    --wpfd-sidebar-bg: linear-gradient(180deg, #1e293b 0%, #0f172a 50%, #1e1b4b 100%);
+    --wpfd-sidebar-text: #94a3b8;
+    --wpfd-sidebar-hover: #334155;
+    --wpfd-sidebar-active: #3b82f6;
+    --wpfd-header-bg: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+    --wpfd-text: #1e293b;
+    --wpfd-text-light: #64748b;
+    --wpfd-border: #e2e8f0;
+    --wpfd-white: #ffffff;
+    --wpfd-radius: 12px;
+    --wpfd-radius-lg: 16px;
+    --wpfd-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    --wpfd-shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    --wpfd-shadow-xl: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    --wpfd-gradient-primary: linear-gradient(135deg, #3b82f6 0%, #6366f1 50%, #8b5cf6 100%);
+    --wpfd-gradient-secondary: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a855f7 100%);
+    --wpfd-gradient-success: linear-gradient(135deg, #10b981 0%, #059669 50%, #047857 100%);
+    --wpfd-gradient-warning: linear-gradient(135deg, #f59e0b 0%, #d97706 50%, #b45309 100%);
+    --wpfd-gradient-danger: linear-gradient(135deg, #ef4444 0%, #dc2626 50%, #b91c1c 100%);
+    --wpfd-gradient-card: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+    --wpfd-gradient-hover: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+}
+
+body.wp-admin {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
+    background: var(--wpfd-bg) !important;
+    color: var(--wpfd-text) !important;
+    line-height: 1.6 !important;
+}
+
+/* ============================================
+   WPF ADMIN THEME SECTION 02: ADMIN BAR
+   ============================================ */
+#wpadminbar {
+    display: none !important;
+}
+
+/* Show admin bar only on dashboard page */
+body.wpfd-dashboard #wpadminbar {
+    display: block !important;
+}
+
+/* Remove admin bar offset from body */
+body.admin-bar {
+    margin-top: 0 !important;
+}
+
+/* Remove admin bar spacing from content */
+#wpcontent .wrap {
+    margin-top: 0 !important;
+}
+
+/* ============================================
+   WPF ADMIN THEME SECTION 03: CONTENT AREA
+   ============================================ */
+#wpcontent {
+    background: var(--wpfd-bg) !important;
+    padding-left: 0 !important;
+}
+
+#wpbody-content {
+    background: var(--wpfd-bg) !important;
+    padding-top: 15px !important;
+    width: 100% !important;
+    max-width: 100% !important;
+}
+
+/* Main content wrapper - full width */
+.wrap {
+    background: transparent !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    border: none !important;
+    padding: 24px !important;
+    margin: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+}
+
+/* ============================================
+   WPF ADMIN THEME SECTION 04: PAGE TITLES
+   ============================================ */
+/* Page titles - Clean typography */
+.wrap h1,
+.wrap h2 {
+    color: var(--wpfd-text) !important;
+    font-weight: 700 !important;
+    padding-bottom: 12px !important;
+    margin-bottom: 20px !important;
+    font-size: 24px !important;
+}
+
+.wrap .subtitle {
+    color: var(--wpfd-text-light) !important;
+    margin-top: -16px !important;
+    margin-bottom: 24px !important;
+    font-size: 14px !important;
+    font-weight: 500 !important;
+}
+
+/* ============================================
+   WPF ADMIN THEME SECTION 05: BUTTONS
+   ============================================ */
+.wp-core-ui .button-primary {
+    background: var(--wpfd-gradient-primary) !important;
+    border: none !important;
+    color: var(--wpfd-white) !important;
+    border-radius: var(--wpfd-radius) !important;
+    padding: 10px 20px !important;
+    font-weight: 600 !important;
+    transition: all 0.3s ease !important;
+    box-shadow: 0 4px 14px rgba(59, 130, 246, 0.3) !important;
+    background-size: 200% 200% !important;
+    animation: gradient-shift 3s ease infinite !important;
+}
+
+.wp-core-ui .button-primary:hover {
+    background: var(--wpfd-gradient-secondary) !important;
+    color: var(--wpfd-white) !important;
+    box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4) !important;
+    transform: translateY(-2px) scale(1.02) !important;
+}
+
+.wp-core-ui .button,
+.wp-core-ui .button-secondary {
+    border-color: var(--wpfd-border) !important;
+    color: var(--wpfd-text) !important;
+    background: var(--wpfd-white) !important;
+    border-radius: var(--wpfd-radius) !important;
+    padding: 10px 20px !important;
+    font-weight: 500 !important;
+    transition: all 0.3s ease !important;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05) !important;
+}
+
+.wp-core-ui .button:hover,
+.wp-core-ui .button-secondary:hover {
+    border-color: var(--wpfd-primary) !important;
+    color: var(--wpfd-primary) !important;
+    background: var(--wpfd-primary-light) !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15) !important;
+}
+
+.page-title-action {
+    background: var(--wpfd-gradient-primary) !important;
+    color: var(--wpfd-white) !important;
+    border: none !important;
+    border-radius: var(--wpfd-radius) !important;
+    padding: 10px 20px !important;
+    font-weight: 600 !important;
+    box-shadow: 0 4px 14px rgba(59, 130, 246, 0.3) !important;
+    transition: all 0.3s ease !important;
+}
+
+.page-title-action:hover {
+    background: var(--wpfd-gradient-secondary) !important;
+    color: var(--wpfd-white) !important;
+    box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4) !important;
+    transform: translateY(-2px) !important;
+}
+
+/* ============================================
+   WPF ADMIN THEME SECTION 06: TABLES
+   ============================================ */
+.wp-list-table {
+    border: 1px solid var(--wpfd-border) !important;
+    border-radius: var(--wpfd-radius-lg) !important;
+    overflow: hidden !important;
+    border-collapse: separate !important;
+    border-spacing: 0 !important;
+    box-shadow: var(--wpfd-shadow) !important;
+    transition: all 0.3s ease !important;
+}
+
+.wp-list-table thead th {
+    background: var(--wpfd-bg-alt) !important;
+    color: var(--wpfd-text) !important;
+    border-color: var(--wpfd-border) !important;
+    font-weight: 600 !important;
+    padding: 16px 14px !important;
+    font-size: 13px !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.05em !important;
+}
+
+.wp-list-table tbody td {
+    border-color: var(--wpfd-border) !important;
+    color: var(--wpfd-text) !important;
+    padding: 16px 14px !important;
+    transition: all 0.2s ease !important;
+}
+
+.wp-list-table tbody tr:hover {
+    background: var(--wpfd-gradient-hover) !important;
+    transform: scale(1.005) !important;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.1) !important;
+}
+
+.wp-list-table tbody tr:nth-child(even) {
+    background: #fafbfc !important;
+}
+
+.wp-list-table tbody tr:nth-child(even):hover {
+    background: var(--wpfd-primary-light) !important;
+}
+
+/* ============================================
+   WPF ADMIN THEME SECTION 07: FORM ELEMENTS
+   ============================================ */
+input[type="text"],
+input[type="password"],
+input[type="email"],
+input[type="url"],
+input[type="number"],
+input[type="search"],
+select,
+textarea {
+    border-color: var(--wpfd-border) !important;
+    color: var(--wpfd-text) !important;
+    background: var(--wpfd-white) !important;
+    border-radius: var(--wpfd-radius) !important;
+    padding: 12px 16px !important;
+    transition: all 0.3s ease !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05) !important;
+}
+
+input[type="text"]:focus,
+input[type="password"]:focus,
+input[type="email"]:focus,
+input[type="url"]:focus,
+input[type="number"]:focus,
+input[type="search"]:focus,
+select:focus,
+textarea:focus {
+    border-color: var(--wpfd-primary) !important;
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1) !important;
+    outline: none !important;
+    transform: translateY(-1px) !important;
+}
+
+/* ============================================
+   WPF ADMIN THEME SECTION 08: TABS
+   ============================================ */
+.nav-tab-wrapper {
+    border-bottom: 2px solid var(--wpfd-border) !important;
+    margin-bottom: 24px !important;
+    padding-bottom: 0 !important;
+}
+
+.nav-tab {
+    color: var(--wpfd-text-light) !important;
+    border: none !important;
+    border-bottom: 3px solid transparent !important;
+    background: none !important;
+    padding: 12px 20px !important;
+    font-weight: 500 !important;
+    margin-right: 4px !important;
+    border-radius: var(--wpfd-radius) var(--wpfd-radius) 0 0 !important;
+    transition: all 0.3s ease !important;
+}
+
+.nav-tab:hover {
+    color: var(--wpfd-primary) !important;
+    background: var(--wpfd-primary-light) !important;
+    transform: translateY(-1px) !important;
+}
+
+.nav-tab.nav-tab-active {
+    color: var(--wpfd-primary) !important;
+    border-bottom: 3px solid var(--wpfd-primary) !important;
+    background: var(--wpfd-white) !important;
+    font-weight: 600 !important;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.1) !important;
+}
+
+/* ============================================
+   WPF ADMIN THEME SECTION 09: NOTICES
+   ============================================ */
+.notice {
+    border-radius: var(--wpfd-radius-lg) !important;
+    padding: 16px 20px !important;
+    margin: 16px 0 !important;
+    box-shadow: var(--wpfd-shadow) !important;
+    border-left-width: 5px !important;
+    font-weight: 500 !important;
+    transition: all 0.3s ease !important;
+}
+
+.notice:hover {
+    box-shadow: var(--wpfd-shadow-lg) !important;
+    transform: translateX(4px) !important;
+}
+
+.notice-success {
+    border-left-color: #10b981 !important;
+    background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%) !important;
+    color: #065f46 !important;
+}
+
+.notice-warning {
+    border-left-color: #f59e0b !important;
+    background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%) !important;
+    color: #92400e !important;
+}
+
+.notice-error {
+    border-left-color: #ef4444 !important;
+    background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%) !important;
+    color: #991b1b !important;
+}
+
+.notice-info,
+.notice-update-php {
+    border-left-color: var(--wpfd-primary) !important;
+    background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%) !important;
+    color: #1e40af !important;
+}
+
+/* ============================================
+   WPF ADMIN THEME SECTION 10: POST EDIT
+   ============================================ */
+.postbox {
+    border: 1px solid var(--wpfd-border) !important;
+    border-radius: var(--wpfd-radius-lg) !important;
+    box-shadow: var(--wpfd-shadow) !important;
+    margin-bottom: 20px !important;
+    overflow: hidden !important;
+    transition: all 0.3s ease !important;
+}
+
+.postbox:hover {
+    box-shadow: var(--wpfd-shadow-lg) !important;
+}
+
+.postbox .hndle {
+    background: var(--wpfd-bg-alt) !important;
+    border-color: var(--wpfd-border) !important;
+    color: var(--wpfd-text) !important;
+    font-weight: 600 !important;
+    padding: 16px 20px !important;
+    font-size: 15px !important;
+}
+
+.postbox .handlediv {
+    color: var(--wpfd-text-light) !important;
+    transition: all 0.2s ease !important;
+}
+
+.postbox .handlediv:hover {
+    color: var(--wpfd-primary) !important;
+    transform: rotate(90deg) !important;
+}
+
+.postbox .inside {
+    padding: 20px !important;
+    color: var(--wpfd-text) !important;
+}
+
+/* ============================================
+   WPF ADMIN THEME SECTION 11: FOOTER
+   ============================================ */
+#wpfooter {
+    background: var(--wpfd-white) !important;
+    color: var(--wpfd-text-light) !important;
+    border-top: 1px solid var(--wpfd-border) !important;
+    padding: 12px 20px !important;
+    font-size: 12px !important;
+}
+
+/* ============================================
+   WPF ADMIN THEME SECTION 12: FILTER LINKS
+   ============================================ */
+.subsubsub {
+    margin: 10px 0 !important;
+}
+
+.subsubsub a {
+    color: var(--wpfd-text-light) !important;
+    padding: 4px 10px !important;
+    border-radius: 20px !important;
+    transition: all 0.2s ease !important;
+}
+
+.subsubsub a:hover {
+    color: var(--wpfd-primary) !important;
+    background: var(--wpfd-primary-light) !important;
+}
+
+.subsubsub a.current {
+    color: var(--wpfd-white) !important;
+    background: var(--wpfd-primary) !important;
+    font-weight: 500 !important;
+}
+
+.subsubsub .count {
+    color: var(--wpfd-text-light) !important;
+}
+
+/* ============================================
+   WPF ADMIN THEME SECTION 13: PAGINATION
+   ============================================ */
+.tablenav-pages {
+    margin: 20px 0 !important;
+}
+
+.tablenav-pages a {
+    color: var(--wpfd-primary) !important;
+    padding: 8px 14px !important;
+    border-radius: var(--wpfd-radius) !important;
+    border: 1px solid var(--wpfd-border) !important;
+    transition: all 0.3s ease !important;
+    font-weight: 500 !important;
+}
+
+.tablenav-pages a:hover {
+    color: var(--wpfd-primary) !important;
+    background: var(--wpfd-primary-light) !important;
+    border-color: var(--wpfd-primary) !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15) !important;
+}
+
+.tablenav-pages .current {
+    color: var(--wpfd-white) !important;
+    background: var(--wpfd-gradient-primary) !important;
+    border-radius: var(--wpfd-radius) !important;
+    padding: 8px 14px !important;
+    font-weight: 600 !important;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3) !important;
+}
+
+/* ============================================
+   WPF ADMIN THEME SECTION 14: SEARCH BOX
+   ============================================ */
+.search-box input[name="s"] {
+    border-radius: 24px !important;
+    padding: 10px 18px !important;
+    border-color: var(--wpfd-border) !important;
+    transition: all 0.3s ease !important;
+}
+
+.search-box input[name="s"]:focus {
+    border-color: var(--wpfd-primary) !important;
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1) !important;
+}
+
+.search-box .button {
+    border-radius: 24px !important;
+    margin-left: 8px !important;
+    padding: 10px 20px !important;
+}
+
+/* ============================================
+   WPF ADMIN THEME SECTION 15: BULK ACTIONS
+   ============================================ */
+.tablenav select {
+    border-color: var(--wpfd-border) !important;
+    color: var(--wpfd-text) !important;
+    border-radius: var(--wpfd-radius) !important;
+    padding: 8px 12px !important;
+    transition: all 0.3s ease !important;
+}
+
+.tablenav select:focus {
+    border-color: var(--wpfd-primary) !important;
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1) !important;
+}
+
+.tablenav .actions {
+    padding: 12px 0 !important;
+}
+
+/* ============================================
+   WPF ADMIN THEME SECTION 16: SCREEN META
+   ============================================ */
+#screen-meta-links a {
+    color: var(--wpfd-text-light) !important;
+    border-radius: var(--wpfd-radius) !important;
+}
+
+#screen-meta-links a:hover {
+    color: var(--wpfd-primary) !important;
+}
+
+#screen-meta {
+    background: var(--wpfd-white) !important;
+    border-color: var(--wpfd-border) !important;
+    border-radius: 0 0 var(--wpfd-radius) var(--wpfd-radius) !important;
+}
+
+/* ============================================
+   WPF ADMIN THEME SECTION 17: LOGIN PAGE
+   ============================================ */
+.login {
+    background: var(--wpfd-bg) !important;
+}
+
+.login form {
+    border: 1px solid var(--wpfd-border) !important;
+    border-radius: var(--wpfd-radius) !important;
+    box-shadow: var(--wpfd-shadow-lg) !important;
+    padding: 30px !important;
+    margin-top: 20px !important;
+}
+
+.login .button-primary {
+    background: var(--wpfd-primary) !important;
+    border-color: var(--wpfd-primary-dark) !important;
+    border-radius: var(--wpfd-radius) !important;
+    padding: 10px !important;
+    font-weight: 600 !important;
+}
+
+.login .button-primary:hover {
+    background: var(--wpfd-primary-dark) !important;
+}
+
+.login label {
+    color: var(--wpfd-text) !important;
+    font-weight: 500 !important;
+}
+
+.login #nav a,
+.login #backtoblog a {
+    color: var(--wpfd-primary) !important;
+}
+
+.login #nav a:hover,
+.login #backtoblog a:hover {
+    color: var(--wpfd-primary-dark) !important;
+}
+
+/* ============================================
+   WPF ADMIN THEME SECTION 18: LINKS
+   ============================================ */
+a {
+    color: var(--wpfd-primary) !important;
+}
+
+a:hover {
+    color: var(--wpfd-primary-dark) !important;
+}
+
+.row-actions a {
+    color: var(--wpfd-primary) !important;
+}
+
+.row-actions a:hover {
+    color: var(--wpfd-primary-dark) !important;
+}
+
+/* ============================================
+   WPF ADMIN THEME SECTION 19: CHECKBOXES/RADIOS
+   ============================================ */
+input[type="checkbox"]:checked::before {
+    color: var(--wpfd-primary) !important;
+}
+
+input[type="radio"]:checked::before {
+    color: var(--wpfd-primary) !important;
+}
+
+/* ============================================
+   WPF ADMIN THEME SECTION 20: DASHBOARD WIDGETS
+   ============================================ */
+#dashboard-widgets .postbox {
+    border-radius: var(--wpfd-radius-lg) !important;
+    box-shadow: var(--wpfd-shadow) !important;
+    border: 1px solid var(--wpfd-border) !important;
+    transition: all 0.3s ease !important;
+    overflow: hidden !important;
+}
+
+#dashboard-widgets .postbox:hover {
+    box-shadow: var(--wpfd-shadow-lg) !important;
+}
+
+#dashboard_right_now .inside {
+    color: var(--wpfd-text) !important;
+}
+
+/* Dashboard widget counters */
+#dashboard_right_now .count {
+    font-size: 28px !important;
+    font-weight: 700 !important;
+    background: var(--wpfd-gradient-primary) !important;
+    -webkit-background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+    background-clip: text !important;
+}
+
+/* Dashboard widget links */
+#dashboard_right_now a {
+    color: var(--wpfd-primary) !important;
+    text-decoration: none !important;
+    font-weight: 500 !important;
+    transition: all 0.2s ease !important;
+}
+
+#dashboard_right_now a:hover {
+    color: var(--wpfd-secondary) !important;
+    transform: translateX(2px) !important;
+}
+
+/* ============================================
+   WPF ADMIN THEME SECTION 21: MEDIA MODAL
+   ============================================ */
+.media-modal-content {
+    border-radius: var(--wpfd-radius-lg) !important;
+    box-shadow: var(--wpfd-shadow-xl) !important;
+}
+
+/* ============================================
+   WPF ADMIN THEME SECTION 22: CUSTOMIZER
+   ============================================ */
+/* Customizer main container */
+.wp-customizer {
+    background: var(--wpfd-bg) !important;
+}
+
+/* Customizer sidebar - main pane */
+.customize-pane-parent {
+    background: #ffffff !important;
+    border-right: 1px solid #e2e8f0 !important;
+    box-shadow: 4px 0 24px rgba(0,0,0,0.1) !important;
+}
+
+/* Customizer sidebar sections */
+.customize-pane-parent .accordion-section {
+    background: transparent !important;
+    border-bottom: 1px solid #e2e8f0 !important;
+}
+
+/* Customizer sidebar menu items */
+.customize-pane-parent .accordion-section-title {
+    background: transparent !important;
+    color: #1e293b !important;
+}
+
+.customize-pane-parent .accordion-section-title:hover {
+    background: #f1f5f9 !important;
+    color: #0f172a !important;
+}
+
+.customize-pane-parent .accordion-section.open .accordion-section-title {
+    background: #f8fafc !important;
+    color: #0f172a !important;
+}
+
+/* Customizer sidebar content area */
+.customize-pane-parent .accordion-section-content {
+    background: #ffffff !important;
+}
+
+/* Customizer sidebar control containers */
+.customize-pane-parent .customize-control {
+    background: #ffffff !important;
+}
+
+/* Customizer sidebar input fields */
+.customize-pane-parent input[type="text"],
+.customize-pane-parent input[type="number"],
+.customize-pane-parent input[type="email"],
+.customize-pane-parent input[type="url"],
+.customize-pane-parent input[type="password"],
+.customize-pane-parent select,
+.customize-pane-parent textarea {
+    background: #f8fafc !important;
+    border: 1px solid #e2e8f0 !important;
+    color: #1e293b !important;
+}
+
+/* Customizer sidebar checkboxes/radios */
+.customize-pane-parent input[type="checkbox"],
+.customize-pane-parent input[type="radio"] {
+    background: #ffffff !important;
+    border: 1px solid #e2e8f0 !important;
+}
+
+/* Customizer sidebar buttons */
+.customize-pane-parent .button {
+    background: var(--wpfd-gradient-primary) !important;
+    border: none !important;
+    color: #ffffff !important;
+}
+
+/* Customizer sidebar help text */
+.customize-pane-parent .customize-control-description {
+    background: transparent !important;
+    color: #64748b !important;
+}
+
+/* Customizer header */
+#customize-header-actions {
+    background: #ffffff !important;
+    border-bottom: 1px solid #e2e8f0 !important;
+    padding: 16px 20px !important;
+}
+
+/* Close button - keep default WordPress cross icon */
+.customize-controls-close {
+    color: #1e293b !important;
+    transition: all 0.3s ease !important;
+}
+
+.customize-controls-close:hover {
+    color: var(--wpfd-primary) !important;
+    transform: rotate(90deg) !important;
+}
+
+/* Panel titles */
+.customize-panel-title,
+.customize-section-title {
+    color: #1e293b !important;
+    font-weight: 600 !important;
+    font-size: 15px !important;
+    padding: 18px 24px !important;
+    border-bottom: 1px solid #e2e8f0 !important;
+    background: #f8fafc !important;
+}
+
+.customize-panel-title:hover,
+.customize-section-title:hover {
+    color: #0f172a !important;
+    background: #f1f5f9 !important;
+}
+
+/* Control labels */
+.customize-control-title {
+    color: #1e293b !important;
+    font-weight: 500 !important;
+    font-size: 14px !important;
+}
+
+/* Control descriptions */
+.customize-control-description {
+    color: #64748b !important;
+    font-size: 12px !important;
+    margin-top: 6px !important;
+    line-height: 1.4 !important;
+}
+
+/* Panel back button */
+.customize-panel-back,
+.customize-section-back {
+    color: #64748b !important;
+    font-size: 20px !important;
+    padding: 14px 20px !important;
+    transition: all 0.3s ease !important;
+}
+
+.customize-panel-back:hover,
+.customize-section-back:hover {
+    color: var(--wpfd-primary) !important;
+    background: #f1f5f9 !important;
+}
+
+/* Accordion sections */
+.accordion-section {
+    border-bottom: 1px solid #e2e8f0 !important;
+}
+
+.accordion-section-title {
+    color: #1e293b !important;
+    font-weight: 500 !important;
+    font-size: 14px !important;
+    padding: 16px 24px !important;
+    background: transparent !important;
+    transition: all 0.3s ease !important;
+}
+
+.accordion-section-title:hover {
+    color: #0f172a !important;
+    background: #f1f5f9 !important;
+    padding-left: 28px !important;
+}
+
+.accordion-section.open .accordion-section-title {
+    color: #0f172a !important;
+    background: #f8fafc !important;
+}
+
+/* Active panel */
+.customize-panel.active {
+    background: #f8fafc !important;
+}
+
+/* Customizer panel content */
+.customize-panel-content {
+    background: #ffffff !important;
+    border-top: 1px solid #e2e8f0 !important;
+}
+
+/* Customizer section content */
+.customize-section-content {
+    background: #ffffff !important;
+    padding: 16px 24px !important;
+}
+
+/* Customizer controls in panel/section */
+.customize-pane-parent .customize-control {
+    background: #ffffff !important;
+    padding: 16px 24px !important;
+    border-bottom: 1px solid #e2e8f0 !important;
+}
+
+.customize-pane-parent .customize-control:last-child {
+    border-bottom: none !important;
+}
+
+/* Customizer control description */
+.customize-control-description {
+    color: #64748b !important;
+    font-size: 13px !important;
+    margin-top: 8px !important;
+    line-height: 1.5 !important;
+}
+
+/* Customizer control input wrapper */
+.customize-control .customize-control-input-wrapper {
+    background: #f8fafc !important;
+    border-radius: var(--wpfd-radius) !important;
+    padding: 4px !important;
+}
+
+/* Customizer select dropdown */
+.customize-control select {
+    background: #f8fafc !important;
+    border: 1px solid #e2e8f0 !important;
+    color: #1e293b !important;
+}
+
+/* Customizer checkbox/radio wrapper */
+.customize-control .customize-control-inside {
+    background: transparent !important;
+}
+
+/* Customizer textarea */
+.customize-control textarea {
+    background: #f8fafc !important;
+    border: 1px solid #e2e8f0 !important;
+    color: #1e293b !important;
+}
+
+/* Customizer radio/checkbox labels */
+.customize-control label {
+    color: #1e293b !important;
+}
+
+/* Customizer radio/checkbox options */
+.customize-control input[type="radio"] + label,
+.customize-control input[type="checkbox"] + label {
+    color: #1e293b !important;
+}
+
+/* Customizer color picker wrapper */
+.customize-control-color .color-picker-hex {
+    background: #f8fafc !important;
+    border: 1px solid #e2e8f0 !important;
+    color: #1e293b !important;
+}
+
+/* Customizer range slider */
+.customize-control input[type="range"] {
+    background: #f8fafc !important;
+}
+
+/* Customizer button controls */
+.customize-control .button {
+    background: var(--wpfd-gradient-primary) !important;
+    border: none !important;
+    color: #ffffff !important;
+}
+
+/* Customizer upload button */
+.customize-control-upload button {
+    background: #f8fafc !important;
+    border: 1px solid #e2e8f0 !important;
+    color: #1e293b !important;
+}
+
+/* Customizer image control */
+.customize-control-image .actions button {
+    background: #f8fafc !important;
+    border: 1px solid #e2e8f0 !important;
+    color: #1e293b !important;
+}
+
+/* Customizer background position control */
+.customize-control-background .button-group button {
+    background: #f8fafc !important;
+    border: 1px solid #e2e8f0 !important;
+    color: #1e293b !important;
+}
+
+.customize-control-background .button-group button.active {
+    background: var(--wpfd-primary) !important;
+    border-color: var(--wpfd-primary) !important;
+    color: #ffffff !important;
+}
+
+/* Customizer dropdown pages control */
+.customize-control-dropdown-pages select {
+    background: #f8fafc !important;
+    border: 1px solid #e2e8f0 !important;
+    color: #1e293b !important;
+}
+
+/* Customizer nav menu control */
+.customize-control-nav_menu .menu-item-handle {
+    background: #f8fafc !important;
+    border: 1px solid #e2e8f0 !important;
+}
+
+/* Customizer theme control */
+.customize-control-theme .theme-browser .theme {
+    background: #f8fafc !important;
+    border: 1px solid #e2e8f0 !important;
+}
+
+.customize-control-theme .theme.active {
+    border-color: var(--wpfd-primary) !important;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3) !important;
+}
+
+/* Customizer sidebar sections that might have white backgrounds */
+.accordion-section.open .accordion-section-content {
+    background: #ffffff !important;
+}
+
+/* Customizer panel description */
+.customize-panel-description {
+    background: #f8fafc !important;
+    padding: 16px 24px !important;
+    border-bottom: 1px solid #e2e8f0 !important;
+}
+
+/* Customizer section description */
+.customize-section-description {
+    background: #f8fafc !important;
+    padding: 12px 24px !important;
+    border-bottom: 1px solid #e2e8f0 !important;
+}
+
+/* Customizer widget area control */
+.customize-control-widget .widget-top {
+    background: #f8fafc !important;
+    border: 1px solid #e2e8f0 !important;
+}
+
+.customize-control-widget .widget-top:hover {
+    background: #f1f5f9 !important;
+}
+
+/* Customizer widget control */
+.customize-control-widget .widget-inside {
+    background: #ffffff !important;
+    border-top: 1px solid #e2e8f0 !important;
+}
+
+/* Customizer sidebar menu items with submenus */
+.accordion-section.menu:hover .accordion-section-title {
+    background: #f1f5f9 !important;
+}
+
+/* Customizer active menu item */
+.accordion-section.current-section .accordion-section-title {
+    background: rgba(59, 130, 246, 0.1) !important;
+    color: #0f172a !important;
+}
+
+/* Customizer panel back button container */
+.customize-panel-back-container {
+    background: #f8fafc !important;
+}
+
+/* Customizer section back button container */
+.customize-section-back-container {
+    background: #f8fafc !important;
+}
+
+/* Preview toggle button */
+.customize-controls-preview-toggle {
+    background: #f8fafc !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 24px !important;
+    padding: 8px 16px !important;
+    color: #1e293b !important;
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    transition: all 0.3s ease !important;
+}
+
+.customize-controls-preview-toggle:hover {
+    background: #f1f5f9 !important;
+    color: #0f172a !important;
+    transform: scale(1.05) !important;
+}
+
+/* Save button */
+.button-primary.customize-control-save_button {
+    background: var(--wpfd-gradient-primary) !important;
+    border: none !important;
+    border-radius: 24px !important;
+    padding: 10px 24px !important;
+    font-weight: 600 !important;
+    font-size: 13px !important;
+    box-shadow: 0 4px 14px rgba(59, 130, 246, 0.4) !important;
+    transition: all 0.3s ease !important;
+}
+
+.button-primary.customize-control-save_button:hover {
+    background: var(--wpfd-gradient-secondary) !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 6px 20px rgba(99, 102, 241, 0.5) !important;
+}
+
+/* Input controls in customizer */
+.customize-control input[type="text"],
+.customize-control input[type="number"],
+.customize-control input[type="email"],
+.customize-control input[type="url"],
+.customize-control input[type="password"],
+.customize-control select,
+.customize-control textarea {
+    background: #f8fafc !important;
+    border: 1px solid #e2e8f0 !important;
+    color: #1e293b !important;
+    border-radius: var(--wpfd-radius) !important;
+    padding: 10px 14px !important;
+}
+
+.customize-control input[type="text"]:focus,
+.customize-control input[type="number"]:focus,
+.customize-control input[type="email"]:focus,
+.customize-control input[type="url"]:focus,
+.customize-control input[type="password"]:focus,
+.customize-control select:focus,
+.customize-control textarea:focus {
+    background: #ffffff !important;
+    border-color: var(--wpfd-primary) !important;
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.2) !important;
+}
+
+/* Color picker */
+.customize-control-color .color-picker-hex {
+    background: #f8fafc !important;
+    border: 1px solid #e2e8f0 !important;
+    color: #1e293b !important;
+    border-radius: var(--wpfd-radius) !important;
+}
+
+/* Radio/checkbox controls */
+.customize-control input[type="checkbox"],
+.customize-control input[type="radio"] {
+    accent-color: var(--wpfd-primary) !important;
+}
+
+/* Range slider */
+.customize-control input[type="range"] {
+    accent-color: var(--wpfd-primary) !important;
+}
+
+/* Customizer help button */
+.customize-help-toggle {
+    color: #64748b !important;
+    transition: all 0.3s ease !important;
+}
+
+.customize-help-toggle:hover {
+    color: var(--wpfd-primary) !important;
+}
+
+/* Device preview buttons */
+.customize-preview-devices {
+    background: #f8fafc !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 24px !important;
+    padding: 6px !important;
+}
+
+.customize-preview-devices button {
+    color: #64748b !important;
+    background: transparent !important;
+    border: none !important;
+    padding: 8px 12px !important;
+    transition: all 0.3s ease !important;
+}
+
+.customize-preview-devices button:hover {
+    color: #1e293b !important;
+    background: #f1f5f9 !important;
+}
+
+.customize-preview-devices button.active {
+    color: #ffffff !important;
+    background: var(--wpfd-gradient-primary) !important;
+    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3) !important;
+}
+
+/* Scrollbar styling for customizer sidebar */
+.customize-pane-parent::-webkit-scrollbar {
+    width: 8px !important;
+}
+
+.customize-pane-parent::-webkit-scrollbar-track {
+    background: #f1f5f9 !important;
+}
+
+.customize-pane-parent::-webkit-scrollbar-thumb {
+    background: #cbd5e1 !important;
+    border-radius: 4px !important;
+}
+
+.customize-pane-parent::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8 !important;
+}
+
+/* Customizer panel content scrollbar */
+.customize-panel-content::-webkit-scrollbar {
+    width: 6px !important;
+}
+
+.customize-panel-content::-webkit-scrollbar-track {
+    background: #f1f5f9 !important;
+}
+
+.customize-panel-content::-webkit-scrollbar-thumb {
+    background: #cbd5e1 !important;
+    border-radius: 3px !important;
+}
+
+.customize-panel-content::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8 !important;
+}
+
+/* Customizer section content scrollbar */
+.customize-section-content::-webkit-scrollbar {
+    width: 6px !important;
+}
+
+.customize-section-content::-webkit-scrollbar-track {
+    background: #f1f5f9 !important;
+}
+
+.customize-section-content::-webkit-scrollbar-thumb {
+    background: #cbd5e1 !important;
+    border-radius: 3px !important;
+}
+
+.customize-section-content::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8 !important;
+}
+
+/* ============================================
+   24. RADICAL BLOCK EDITOR (GUTENBERG) REDESIGN
+   ============================================ */
+/* Root background for the entire editor interface */
+.interface-interface-skeleton {
+    background: #f1f5f9 !important;
+}
+
+/* Header Toolbar - Premium Glassmorphism */
+.edit-post-header {
+    background: rgba(255, 255, 255, 0.8) !important;
+    backdrop-filter: blur(12px) !important;
+    -webkit-backdrop-filter: blur(12px) !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.3) !important;
+    height: 72px !important;
+    padding: 0 30px !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03) !important;
+    z-index: 100 !important;
+}
+
+/* Editor Canvas Area - Floating Card Style */
+.interface-interface-skeleton__content {
+    background: #f1f5f9 !important;
+}
+
+.edit-post-visual-editor {
+    background: #f1f5f9 !important;
+}
+
+/* The actual writing paper */
+.editor-styles-wrapper {
+    background: #ffffff !important;
+    max-width: 900px !important;
+    margin: 40px auto !important;
+    padding: 60px 80px !important;
+    border-radius: 32px !important;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.05) !important;
+    border: 1px solid #e2e8f0 !important;
+}
+
+/* Hide the default editor borders */
+.edit-post-visual-editor__content-area {
+    background: transparent !important;
+}
+
+/* Block Toolbar - Floating Glassmorphism */
+.block-editor-block-contextual-toolbar {
+    background: rgba(15, 23, 42, 0.9) !important;
+    backdrop-filter: blur(8px) !important;
+    border: 1px solid rgba(255,255,255,0.1) !important;
+    border-radius: 12px !important;
+    padding: 4px !important;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.2) !important;
+}
+
+.block-editor-block-contextual-toolbar .components-button {
+    color: #ffffff !important;
+}
+
+.block-editor-block-contextual-toolbar .components-button:hover {
+    background: rgba(255,255,255,0.1) !important;
+}
+
+/* Primary Publish Button - State of the Art */
+.edit-post-header__settings .editor-post-publish-button__button,
+.editor-post-publish-panel__header-publish-button {
+    background: linear-gradient(135deg, #4f46e5 0%, #0ea5e9 100%) !important;
+    border: none !important;
+    color: #ffffff !important;
+    border-radius: 14px !important;
+    padding: 12px 28px !important;
+    font-weight: 800 !important;
+    font-size: 14px !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.05em !important;
+    box-shadow: 0 8px 20px rgba(79, 70, 229, 0.3) !important;
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
+}
+
+.edit-post-header__settings .editor-post-publish-button__button:hover {
+    transform: translateY(-3px) scale(1.02) !important;
+    box-shadow: 0 12px 30px rgba(14, 165, 233, 0.4) !important;
+}
+
+/* Sidebar - Premium Minimalist */
+.interface-interface-skeleton__sidebar {
+    background: #ffffff !important;
+    border-left: 1px solid #e2e8f0 !important;
+    width: 320px !important;
+}
+
+.components-panel__header {
+    background: #ffffff !important;
+    height: 60px !important;
+    border-bottom: 1px solid #f1f5f9 !important;
+    padding: 0 20px !important;
+}
+
+.components-panel__body {
+    border: none !important;
+    background: #ffffff !important;
+}
+
+.components-panel__body-title {
+    background: #ffffff !important;
+}
+
+.components-panel__body-title .components-button {
+    color: #1e293b !important;
+    font-weight: 700 !important;
+    font-size: 13px !important;
+    padding: 20px !important;
+}
+
+/* Block Inserter (The + Menu) */
+.block-editor-inserter__menu {
+    border-radius: 24px !important;
+    border: 1px solid #e2e8f0 !important;
+    box-shadow: 0 30px 60px rgba(0,0,0,0.1) !important;
+}
+
+.block-editor-block-types-list__item {
+    border-radius: 16px !important;
+    transition: all 0.2s ease !important;
+}
+
+.block-editor-block-types-list__item:hover {
+    background: #f1f5f9 !important;
+    transform: translateY(-2px) !important;
+}
+
+/* Publish Panel - Full Redesign */
+.editor-post-publish-panel {
+    background: #ffffff !important;
+    border-radius: 32px 32px 0 0 !important;
+    box-shadow: 0 -20px 50px rgba(0,0,0,0.1) !important;
+}
+
+.editor-post-publish-panel__header {
+    border-bottom: 1px solid #f1f5f9 !important;
+    padding: 30px !important;
+}
+
+/* Block List Spacing & Focus */
+.block-editor-block-list__layout {
+    padding-top: 40px !important;
+    padding-bottom: 40px !important;
+}
+
+.block-editor-block-list__block.is-selected {
+    box-shadow: 0 0 0 1px var(--wpfd-primary) !important;
+    border-radius: 8px !important;
+}
+
+/* Secondary Buttons in Header */
+.edit-post-header .components-button:not(.editor-post-publish-button__button) {
+    color: #64748b !important;
+    border-radius: 10px !important;
+    transition: all 0.2s ease !important;
+    font-weight: 600 !important;
+}
+
+.edit-post-header .components-button:not(.editor-post-publish-button__button):hover {
+    background: #f1f5f9 !important;
+    color: #1e293b !important;
+}
+
+/* Modal Panels Restyling */
+.components-modal__frame {
+    border-radius: 32px !important;
+    overflow: hidden !important;
+    border: none !important;
+    box-shadow: 0 50px 100px -20px rgba(0,0,0,0.25) !important;
+}
+
+.components-modal__header {
+    background: #ffffff !important;
+    border-bottom: 1px solid #f1f5f9 !important;
+    padding: 24px 32px !important;
+}
+
+.components-modal__header-title {
+    font-weight: 800 !important;
+    color: #0f172a !important;
+}
+
+/* ============================================
+   26. MEDIA LIBRARY GRID OVERHAUL
+   ============================================ */
+.upload-php .wp-list-table {
+    border: none !important;
+    box-shadow: none !important;
+}
+
+.attachments-browser {
+    background: #f8fafc !important;
+    padding: 20px !important;
+}
+
+.attachment {
+    border-radius: 16px !important;
+    overflow: hidden !important;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05) !important;
+    transition: all 0.3s ease !important;
+    border: 1px solid #e2e8f0 !important;
+}
+
+.attachment:hover {
+    transform: translateY(-4px) !important;
+    box-shadow: 0 12px 24px rgba(0,0,0,0.1) !important;
+    border-color: var(--wpfd-primary) !important;
+}
+
+.attachment.selected {
+    box-shadow: 0 0 0 3px var(--wpfd-primary) !important;
+}
+
+/* Media Sidebar (Details) */
+.media-sidebar {
+    background: #ffffff !important;
+    border-left: 1px solid #e2e8f0 !important;
+    padding: 24px !important;
+}
+
+.media-sidebar h2 {
+    font-weight: 800 !important;
+    text-transform: uppercase !important;
+    font-size: 11px !important;
+    letter-spacing: 0.1em !important;
+    color: #64748b !important;
+}
+
+/* ============================================
+   27. USER PROFILE & EDIT PAGES
+   ============================================ */
+.user-edit-php .form-table,
+.profile-php .form-table {
+    background: #ffffff !important;
+    border-radius: 24px !important;
+    padding: 30px !important;
+    border: 1px solid #e2e8f0 !important;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.03) !important;
+    margin-top: 20px !important;
+}
+
+.user-edit-php .form-table th,
+.profile-php .form-table th {
+    font-weight: 600 !important;
+    color: #1e293b !important;
+    padding: 20px 0 !important;
+}
+
+/* Hide WP Profile specific headers if redundant */
+.user-edit-php h2,
+.profile-php h2 {
+    font-size: 1.5rem !important;
+    font-weight: 800 !important;
+    margin-top: 40px !important;
+    color: #0f172a !important;
+}
+
+/* Profile Picture / Avatar Circle */
+.user-edit-php .avatar,
+.profile-php .avatar {
+    border-radius: 100px !important;
+    border: 4px solid #ffffff !important;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1) !important;
+}
+
+/* ============================================
+   28. GLOBAL SETTINGS (options-general.php)
+   ============================================ */
+.options-general-php .form-table,
+.options-writing-php .form-table,
+.options-reading-php .form-table,
+.options-discussion-php .form-table {
+    background: #ffffff !important;
+    border-radius: 24px !important;
+    padding: 40px !important;
+    border: 1px solid #e2e8f0 !important;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.03) !important;
+}
+
+/* Section Dividers in Settings */
+.form-table tr {
+    border-bottom: 1px solid #f1f5f9 !important;
+}
+
+.form-table tr:last-child {
+    border-bottom: none !important;
+}
+
+/* Save Buttons in Settings */
+.options-general-php .submit .button-primary {
+    min-width: 150px !important;
+    height: 48px !important;
+    font-size: 14px !important;
+}
+
+/* ============================================
+   30. MEDIA MODAL & POPUPS
+   ============================================ */
+.media-modal-content {
+    border-radius: 32px !important;
+    overflow: hidden !important;
+    box-shadow: 0 50px 100px -20px rgba(0,0,0,0.3) !important;
+}
+
+.media-frame-title {
+    background: #ffffff !important;
+    border-bottom: 1px solid #f1f5f9 !important;
+}
+
+.media-frame-content {
+    background: #f8fafc !important;
+}
+
+/* ============================================
+   31. UPDATE SCREENS (update-core.php)
+   ============================================ */
+.update-php .wrap,
+.update-core-php .wrap {
+    background: #ffffff !important;
+    border-radius: 24px !important;
+    padding: 40px !important;
+    max-width: 800px !important;
+    margin: 40px auto !important;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.03) !important;
+}
+
+
+/* ============================================
+   32. UPGRADE PLAN (TAXORA MEMBERSHIP)
+   ============================================ */
+.orabooks-upgrade-plan-container {
+    padding: 0 !important;
+    max-width: 100% !important;
+}
+
+.upgrade-plan-header {
+    margin-bottom: 50px !important;
+}
+
+.upgrade-plan-header h2 {
+    font-size: 3rem !important;
+    font-weight: 900 !important;
+    background: linear-gradient(135deg, #0f172a 0%, #334155 100%) !important;
+    margin-bottom: 15px !important;
+}
+
+.upgrade-plan-header p {
+    font-size: 1.1rem !important;
+    color: #64748b !important;
+    max-width: 600px !important;
+}
+
+.upgrade-plan-container {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)) !important;
+    gap: 25px !important;
+    max-width: 1200px !important;
+    margin: 0 auto !important;
+}
+
+.upgrade-plan-card {
+    background: white !important;
+    border: 2px solid #e2e8f0 !important;
+    border-radius: 20px !important;
+    padding: 35px 30px !important;
+    text-align: center !important;
+    position: relative !important;
+    transition: all 0.3s ease !important;
+    height: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
+}
+
+.upgrade-plan-card:hover {
+    border-color: #3b82f6 !important;
+    transform: translateY(-5px) !important;
+    box-shadow: 0 20px 40px rgba(59, 130, 246, 0.1) !important;
+}
+
+.upgrade-plan-card.featured {
+    border-color: #3b82f6 !important;
+    box-shadow: 0 10px 30px rgba(59, 130, 246, 0.15) !important;
+}
+
+.upgrade-plan-card.featured::before {
+    content: 'RECOMMENDED' !important;
+    position: absolute !important;
+    top: -12px !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    background: linear-gradient(135deg, #3b82f6, #2563eb) !important;
+    color: white !important;
+    padding: 5px 20px !important;
+    border-radius: 20px !important;
+    font-size: 0.75rem !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.5px !important;
+}
+
+.upgrade-plan-name {
+    font-size: 1.8rem !important;
+    font-weight: 800 !important;
+    color: #1e293b !important;
+    margin-bottom: 10px !important;
+}
+
+.upgrade-plan-price {
+    font-size: 2.5rem !important;
+    font-weight: 900 !important;
+    color: #3b82f6 !important;
+    margin-bottom: 5px !important;
+}
+
+.upgrade-plan-price span {
+    font-size: 1rem !important;
+    color: #64748b !important;
+    font-weight: 400 !important;
+}
+
+.upgrade-plan-description {
+    color: #64748b !important;
+    font-size: 0.95rem !important;
+    margin-bottom: 25px !important;
+    flex-grow: 1 !important;
+}
+
+.upgrade-plan-features {
+    list-style: none !important;
+    padding: 0 !important;
+    margin: 0 0 30px 0 !important;
+    text-align: left !important;
+}
+
+.upgrade-plan-features li {
+    padding: 8px 0 !important;
+    border-bottom: 1px solid #f1f5f9 !important;
+    color: #475569 !important;
+    font-size: 0.9rem !important;
+}
+
+.upgrade-plan-features li:last-child {
+    border-bottom: none !important;
+}
+
+.upgrade-plan-features li::before {
+    content: '✓' !important;
+    color: #10b981 !important;
+    font-weight: bold !important;
+    margin-right: 10px !important;
+}
+
+/* Upgrade Buttons */
+.orabooks-btn {
+    width: 100% !important;
+    height: 56px !important;
+    border: none !important;
+    border-radius: 12px !important;
+    font-size: 1rem !important;
+    font-weight: 700 !important;
+    cursor: pointer !important;
+    transition: all 0.3s ease !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.5px !important;
+    margin-top: auto !important;
+}
+
+.orabooks-btn.primary {
+    background: linear-gradient(135deg, #3b82f6, #2563eb) !important;
+    color: white !important;
+    box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3) !important;
+}
+
+.orabooks-btn.primary:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 8px 25px rgba(59, 130, 246, 0.4) !important;
+}
+
+.orabooks-btn.secondary {
+    background: #f8fafc !important;
+    color: #475569 !important;
+    border: 2px solid #e2e8f0 !important;
+}
+
+.orabooks-btn.secondary:hover {
+    background: #f1f5f9 !important;
+    border-color: #cbd5e1 !important;
+}
+
+/* Success messages */
+.orabooks-success-message {
+    background: #28a745 !important;
+    color: white !important;
+    padding: 20px !important;
+    border-radius: 8px !important;
+    margin-bottom: 30px !important;
+    border: 1px solid #28a745 !important;
+    text-align: center !important;
+    font-size: 16px !important;
+    box-shadow: 0 2px 10px rgba(40, 167, 69, 0.2) !important;
+}
+
+/* Hide redundancy */
+.upgrade-plan-actions {
+    display: none !important;
+}
+
+/* ============================================
+   33. CHECKOUT (TAXORA MEMBERSHIP)
+   ============================================ */
+.orabooks-checkout-container {
+    max-width: 800px !important;
+    margin: 0 auto !important;
+}
+
+.orabooks-checkout-header {
+    text-align: center !important;
+    margin-bottom: 40px !important;
+}
+
+.orabooks-checkout-header h2 {
+    font-size: 2.5rem !important;
+    font-weight: 800 !important;
+    color: #0f172a !important;
+}
+
+.orabooks-checkout-details {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 30px !important;
+}
+
+.checkout-summary {
+    background: #f8fafc !important;
+    border-radius: 24px !important;
+    padding: 30px !important;
+    border: 1px solid #e2e8f0 !important;
+}
+
+.checkout-summary h3 {
+    font-size: 1.25rem !important;
+    font-weight: 700 !important;
+    margin-bottom: 20px !important;
+    color: #0f172a !important;
+}
+
+.summary-item {
+    display: flex !important;
+    justify-content: space-between !important;
+    padding: 12px 0 !important;
+    border-bottom: 1px solid #e2e8f0 !important;
+    font-size: 1rem !important;
+}
+
+.summary-item:last-child {
+    border-bottom: none !important;
+}
+
+.summary-item .price {
+    font-weight: 800 !important;
+    color: var(--wpfd-primary) !important;
+    font-size: 1.25rem !important;
+}
+
+/* Payment Gateways */
+.payment-gateways-selection h3 {
+    font-size: 1.25rem !important;
+    font-weight: 700 !important;
+    margin: 30px 0 20px !important;
+    text-align: center !important;
+}
+
+.gateway-options {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)) !important;
+    gap: 15px !important;
+}
+
+.gateway-item {
+    background: #ffffff !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 16px !important;
+    padding: 15px !important;
+    cursor: pointer !important;
+    transition: all 0.3s ease !important;
+    text-align: center !important;
+}
+
+.gateway-item:hover, .gateway-item.selected {
+    border-color: var(--wpfd-primary) !important;
+    background: #f0f7ff !important;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.1) !important;
+}
+
+.gateway-item input[type="radio"] {
+    display: none !important;
+}
+
+.gateway-label {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    gap: 10px !important;
+    font-weight: 600 !important;
+    font-size: 0.9rem !important;
+}
+
+.gateway-logo {
+    height: 32px !important;
+    object-fit: contain !important;
+}
+
+.checkout-action {
+    margin-top: 40px !important;
+}
+
+.orabooks-btn-large {
+    height: 64px !important;
+    font-size: 1.25rem !important;
+}
+
+/* ============================================
+   34. RESPONSIVE
+   ============================================ */
+@media (max-width: 782px) {
+    .wrap {
+        padding: 20px !important;
+        border-radius: var(--wpfd-radius) !important;
+    }
+
+    #wpcontent {
+        padding-left: 10px !important;
+    }
+
+    .wp-list-table thead th {
+        padding: 12px 10px !important;
+        font-size: 12px !important;
+    }
+
+    .wp-list-table tbody td {
+        padding: 12px 10px !important;
+    }
+    
+    .editor-styles-wrapper {
+        margin: 10px !important;
+        padding: 30px 20px !important;
+        border-radius: 16px !important;
+    }
+
+    .form-table {
+        padding: 20px !important;
+    }
+    
+    .media-modal-content {
+        border-radius: 0 !important;
+    }
+
+    .orabooks-levels-grid {
+        grid-template-columns: 1fr !important;
+    }
+}
