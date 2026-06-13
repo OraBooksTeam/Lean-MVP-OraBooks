@@ -16,115 +16,179 @@ define( 'TAXORA_TOPBAR_PATH', plugin_dir_path( __FILE__ ) );
 // ============================================================
 // HELPER: Build quick-access addon feature buttons for topbar
 // ============================================================
+function taxora_topbar_hex2rgb( $hex ) {
+	$hex = str_replace( '#', '', $hex );
+	if ( strlen( $hex ) == 3 ) {
+		$r = hexdec( substr( $hex, 0, 1 ) . substr( $hex, 0, 1 ) );
+		$g = hexdec( substr( $hex, 1, 1 ) . substr( $hex, 1, 1 ) );
+		$b = hexdec( substr( $hex, 2, 1 ) . substr( $hex, 2, 1 ) );
+	} else {
+		$r = hexdec( substr( $hex, 0, 2 ) );
+		$g = hexdec( substr( $hex, 2, 2 ) );
+		$b = hexdec( substr( $hex, 4, 2 ) );
+	}
+	return "$r, $g, $b";
+}
+
 function taxora_topbar_get_addon_buttons() {
 	if ( ! is_user_logged_in() ) {
 		return '';
 	}
 
-	// Define known addons with their labels, URLs, icons (SVG paths), and gradient colours
-	$known_addons = array(
+	// 1. Define base list of user-facing dashboard features with premium styling
+	$all_features = array(
 		'accounting' => array(
-			'label'    => 'Accounting',
-			'url'      => home_url( '/accounting' ),
-			'color'    => '#6366f1',
-			'bg'       => 'rgba(99,102,241,0.1)',
-			'border'   => 'rgba(99,102,241,0.25)',
-			'icon'     => '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/><path d="M7 8h10M7 12h6"/></svg>',
-			'check'    => array(
-				'function' => 'run_obn_frontend_accounting',
-				'constant' => 'OBN_ACCOUNTING_VERSION',
-			),
+			'label' => 'Accounting',
+			'desc'  => 'Manage accounts, invoicing & transactions',
+			'url'   => home_url( '/accounting' ),
+			'color' => '#6366f1',
+			'icon'  => '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/><path d="M7 8h10M7 12h6"/></svg>',
 		),
 		'inventory' => array(
-			'label'    => 'Inventory',
-			'url'      => home_url( '/inventory' ),
-			'color'    => '#10b981',
-			'bg'       => 'rgba(16,185,129,0.1)',
-			'border'   => 'rgba(16,185,129,0.25)',
-			'icon'     => '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>',
-			'check'    => array(
-				'function' => 'frontend_inventory_init',
-				'constant' => 'FRONTEND_INVENTORY_VERSION',
-			),
+			'label' => 'Inventory',
+			'desc'  => 'Manage stock, products & warehouses',
+			'url'   => home_url( '/inventory' ),
+			'color' => '#10b981',
+			'icon'  => '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>',
+		),
+		'analytics' => array(
+			'label' => 'Analytics',
+			'desc'  => 'Track performance & business metrics',
+			'url'   => home_url( '/analytics' ),
+			'color' => '#3b82f6',
+			'icon'  => '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>',
+		),
+		'reporting' => array(
+			'label' => 'Reporting',
+			'desc'  => 'Generate financial & module reports',
+			'url'   => home_url( '/reporting' ),
+			'color' => '#ec4899',
+			'icon'  => '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>',
 		),
 	);
 
-	// Try to pull dynamic addon list from OraBooks_Addon_Registry if available
-	$active_ids = array();
-	if ( class_exists( 'OraBooks_Addon_Registry' ) ) {
-		foreach ( OraBooks_Addon_Registry::get_addons() as $id => $data ) {
-			if ( ! empty( $data['enabled'] ) ) {
-				$active_ids[] = strtolower( $id );
+	// 2. Query active feature list assigned to logged-in user via Membership Panel database tables
+	$features = array();
+	$user_id = get_current_user_id();
+
+	global $wpdb;
+	$user_level = get_user_meta( $user_id, 'orabooks_level', true );
+	if ( $user_level && isset( $wpdb->orabooks_feature_assignments ) ) {
+		$assigned_features = $wpdb->get_results( $wpdb->prepare(
+			"SELECT feature_key FROM {$wpdb->orabooks_feature_assignments} WHERE level_id = %d",
+			$user_level
+		) );
+		foreach ( $assigned_features as $af ) {
+			$slug = strtolower( $af->feature_key );
+			$features[] = $slug;
+			
+			// Auto-register future dynamic features found in active database assignments!
+			if ( ! isset( $all_features[ $slug ] ) ) {
+				$all_features[ $slug ] = array(
+					'label' => ucfirst( $slug ),
+					'desc'  => 'Access ' . ucfirst( $slug ) . ' module features',
+					'url'   => home_url( '/' . $slug ),
+					'color' => '#818cf8',
+					'icon'  => '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>',
+				);
 			}
 		}
 	}
 
-	$html = '<div class="taxora-addon-strip" id="taxora-addon-strip" role="navigation" aria-label="Quick access features">';
-	$rendered = 0;
-
-	foreach ( $known_addons as $id => $addon ) {
-		// Determine if this addon/plugin is active
-		$is_active = false;
-
-		// 1. Check via registry
-		if ( ! empty( $active_ids ) ) {
-			foreach ( $active_ids as $aid ) {
-				if ( strpos( $aid, $id ) !== false || strpos( $id, $aid ) !== false ) {
-					$is_active = true;
-					break;
-				}
+	// 3. Fallback: Query legacy feature-access function
+	if ( empty( $features ) && function_exists( 'orabooks_user_has_feature_access' ) ) {
+		$taxora_features = array( 'accounting', 'inventory', 'analytics', 'customization', 'reporting' );
+		foreach ( $taxora_features as $feat ) {
+			if ( orabooks_user_has_feature_access( $user_id, $feat ) ) {
+				$features[] = $feat;
 			}
 		}
+	}
 
-		// 2. Fallback: check known function/constant from plugin
-		if ( ! $is_active ) {
-			$chk = $addon['check'];
-			if (
-				( isset( $chk['function'] ) && function_exists( $chk['function'] ) ) ||
-				( isset( $chk['constant'] ) && defined( $chk['constant'] ) )
-			) {
-				$is_active = true;
-			}
+	// 4. Double fallback: Check active backend plugin states directly
+	if ( empty( $features ) ) {
+		if ( function_exists( 'run_obn_frontend_accounting' ) || defined( 'OBN_ACCOUNTING_VERSION' ) ) {
+			$features[] = 'accounting';
 		}
-
-		if ( ! $is_active ) {
-			continue;
+		if ( function_exists( 'frontend_inventory_init' ) || defined( 'FRONTEND_INVENTORY_VERSION' ) ) {
+			$features[] = 'inventory';
 		}
+	}
 
-		$color  = esc_attr( $addon['color'] );
-		$bg     = esc_attr( $addon['bg'] );
-		$border = esc_attr( $addon['border'] );
-		$label  = esc_html( $addon['label'] );
-		$url    = esc_url( $addon['url'] );
-		$icon   = $addon['icon']; // trusted SVG
+	// Unique list of keys
+	$features = array_unique( $features );
 
-		// Detect current page to mark as active
-		$request_uri = isset( $_SERVER['REQUEST_URI'] ) ? wp_unslash( $_SERVER['REQUEST_URI'] ) : '';
-		$is_current  = ( strpos( $request_uri, '/' . $id ) !== false );
-		$active_cls  = $is_current ? ' taxora-addon-pill--active' : '';
+	// Filter and build addons to render
+	$addons_to_render = array();
+	foreach ( $features as $feat_slug ) {
+		if ( isset( $all_features[ $feat_slug ] ) ) {
+			$addons_to_render[ $feat_slug ] = $all_features[ $feat_slug ];
+		}
+	}
 
+	if ( empty( $addons_to_render ) ) {
+		return '';
+	}
+
+	// Detect currently active module in request
+	$request_uri = isset( $_SERVER['REQUEST_URI'] ) ? wp_unslash( $_SERVER['REQUEST_URI'] ) : '';
+	$active_addon_label = 'Quick Access';
+	
+	foreach ( $addons_to_render as $id => $addon ) {
+		if ( strpos( $request_uri, '/' . $id ) !== false ) {
+			$active_addon_label = esc_html( $addon['label'] );
+			break;
+		}
+	}
+
+	// Render premium launcher dropdown markup
+	$html = '<div class="taxora-addon-dropdown-container" id="taxora-addon-dropdown-container">
+		<button class="taxora-addon-trigger" id="taxora-addon-trigger" aria-haspopup="true" aria-expanded="false" aria-label="Toggle Quick Access menu">
+			<span class="taxora-addon-trigger-icon">⚡</span>
+			<span class="taxora-addon-trigger-label">' . $active_addon_label . '</span>
+			<svg class="taxora-addon-trigger-chevron" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+				<polyline points="6 9 12 15 18 9"></polyline>
+			</svg>
+		</button>
+		
+		<div class="taxora-addon-dropdown" id="taxora-addon-dropdown" role="menu" aria-label="Quick Access features">
+			<div class="taxora-addon-dropdown-header">
+				<span>Modules & Addons</span>
+			</div>
+			<div class="taxora-addon-dropdown-list">';
+
+	foreach ( $addons_to_render as $id => $addon ) {
+		$is_current = ( strpos( $request_uri, '/' . $id ) !== false );
+		$active_cls = $is_current ? ' taxora-addon-item--active' : '';
+		
 		$html .= sprintf(
-			'<a href="%s" class="taxora-addon-pill%s" id="taxora-addon-%s"
-				style="--pill-color:%s;--pill-bg:%s;--pill-border:%s"
-				aria-label="Open %s" aria-current="%s">
-				%s<span class="taxora-addon-pill__label">%s</span>
+			'<a href="%s" class="taxora-addon-item%s" role="menuitem" aria-current="%s" style="--addon-color: %s">
+				<div class="taxora-addon-item-icon" style="background: rgba(%s, 0.1);">
+					%s
+				</div>
+				<div class="taxora-addon-item-content">
+					<div class="taxora-addon-item-title">%s</div>
+					<div class="taxora-addon-item-desc">%s</div>
+				</div>
+				%s
 			</a>',
-			$url,
+			esc_url( $addon['url'] ),
 			$active_cls,
-			esc_attr( $id ),
-			$color, $bg, $border,
-			$label,
 			$is_current ? 'page' : 'false',
-			$icon,
-			$label
+			esc_attr( $addon['color'] ),
+			taxora_topbar_hex2rgb( $addon['color'] ),
+			$addon['icon'],
+			esc_html( $addon['label'] ),
+			esc_html( $addon['desc'] ),
+			$is_current ? '<span class="taxora-addon-item-indicator"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></span>' : ''
 		);
-		$rendered++;
 	}
 
-	$html .= '</div>';
+	$html .= '</div>
+		</div>
+	</div>';
 
-	// Return empty string if no active addons found (no orphan container)
-	return $rendered > 0 ? $html : '';
+	return $html;
 }
 
 // ============================================================
@@ -182,6 +246,19 @@ function taxora_topbar_get_html() {
 						<a href="javascript:void(0)" data-lang="ar">Arabic</a>
 					</div>
 				</div>
+				<button class="taxora-theme-toggle" id="taxora-theme-toggle" aria-label="Switch to dark mode" aria-pressed="false" tabindex="0">
+					<span class="taxora-theme-toggle-icon sun-icon active">
+						<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+							<circle cx="12" cy="12" r="5"></circle>
+							<path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"></path>
+						</svg>
+					</span>
+					<span class="taxora-theme-toggle-icon moon-icon">
+						<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+							<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+						</svg>
+					</span>
+				</button>
 				<div class="taxora-dropdown">
 					<button class="taxora-dropdown-btn" id="taxora-settings-btn">' . $settings_label . ' &#9662;</button>
 					<div class="taxora-dropdown-menu" id="taxora-settings-menu">
@@ -235,16 +312,67 @@ function taxora_topbar_enqueue_scripts() {
 	if ( file_exists( TAXORA_TOPBAR_PATH . 'assets/js/taxora-language.js' ) ) {
 		wp_enqueue_script( 'taxora-language-js', TAXORA_TOPBAR_URL . 'assets/js/taxora-language.js', array( 'taxora-topbar-js' ), TAXORA_TOPBAR_VERSION, true );
 	}
+
+	// Register theme-mode.css
+	if ( file_exists( TAXORA_TOPBAR_PATH . 'assets/css/theme-mode.css' ) ) {
+		wp_enqueue_style( 'taxora-theme-mode-css', TAXORA_TOPBAR_URL . 'assets/css/theme-mode.css', array(), TAXORA_TOPBAR_VERSION );
+	}
+
+	// Register theme-toggle.js
+	if ( file_exists( TAXORA_TOPBAR_PATH . 'assets/js/theme-toggle.js' ) ) {
+		wp_enqueue_script( 'taxora-theme-toggle-js', TAXORA_TOPBAR_URL . 'assets/js/theme-toggle.js', array(), TAXORA_TOPBAR_VERSION, true );
+	}
 }
 add_action( 'wp_enqueue_scripts', 'taxora_topbar_enqueue_scripts' );
+
+function taxora_topbar_get_early_theme_script() {
+	return '<script id="taxora-early-theme-init">
+	(function() {
+		try {
+			var theme = localStorage.getItem("taxora_theme_mode") || "light";
+			var html = document.documentElement;
+			html.classList.remove("taxora-light-mode", "taxora-dark-mode", "light", "dark");
+			html.classList.add("taxora-" + theme + "-mode", theme);
+			
+			var body = document.body;
+			if (body) {
+				body.classList.remove("taxora-light-mode", "taxora-dark-mode", "light", "dark");
+				body.classList.add("taxora-" + theme + "-mode", theme);
+			} else {
+				var observer = new MutationObserver(function(mutations, obs) {
+					var b = document.body;
+					if (b) {
+						b.classList.remove("taxora-light-mode", "taxora-dark-mode", "light", "dark");
+						b.classList.add("taxora-" + theme + "-mode", theme);
+						obs.disconnect();
+					}
+				});
+				observer.observe(html, { childList: true, subtree: true });
+			}
+		} catch (e) {}
+	})();
+	</script>';
+}
+
+function taxora_topbar_inject_head_theme_script() {
+	if ( ! is_user_logged_in() || wp_doing_ajax() ) {
+		return;
+	}
+	if ( ! taxora_topbar_is_dashboard_request() ) {
+		return;
+	}
+	echo taxora_topbar_get_early_theme_script();
+}
+add_action( 'wp_head', 'taxora_topbar_inject_head_theme_script', 0 );
 
 function taxora_topbar_shortcode_callback() {
 	if ( ! is_user_logged_in() ) {
 		return '';
 	}
 
-	$html = taxora_topbar_get_html();
-	$css  = '<style>' . taxora_topbar_get_inline_css();
+	$early = taxora_topbar_get_early_theme_script();
+	$html  = taxora_topbar_get_html();
+	$css   = '<style>' . taxora_topbar_get_inline_css() . taxora_topbar_get_theme_mode_css();
 
 	// Add frontend dashboard fixed-position override (catches WPFD + inventory templates)
 	if ( taxora_topbar_is_dashboard_request() ) {
@@ -257,7 +385,7 @@ function taxora_topbar_shortcode_callback() {
 	// which prevents wp_enqueue_scripts from properly outputting enqueued script tags.
 	$js = taxora_topbar_get_inline_js();
 
-	return $css . $js . $html;
+	return $early . $css . $js . $html;
 }
 
 /**
@@ -291,7 +419,14 @@ function taxora_topbar_get_inline_js() {
 		$lang_js_content = file_get_contents( $lang_js_file );
 	}
 
-	return '<script>' . $inline_vars . $js_content . $lang_js_content . '</script>';
+	// Load theme-toggle.js too if it exists
+	$theme_js_content = '';
+	$theme_js_file = TAXORA_TOPBAR_PATH . 'assets/js/theme-toggle.js';
+	if ( file_exists( $theme_js_file ) ) {
+		$theme_js_content = file_get_contents( $theme_js_file );
+	}
+
+	return '<script>' . $inline_vars . $js_content . $lang_js_content . $theme_js_content . '</script>';
 }
 
 function taxora_topbar_get_frontend_override_css() {
@@ -572,6 +707,17 @@ add_action( 'wp_head', 'taxora_topbar_frontend_head_css', 1 );
 
 
 // ============================================================
+// THEME MODE CSS HELPER
+// ============================================================
+function taxora_topbar_get_theme_mode_css() {
+	$theme_css_file = TAXORA_TOPBAR_PATH . 'assets/css/theme-mode.css';
+	if ( file_exists( $theme_css_file ) ) {
+		return file_get_contents( $theme_css_file );
+	}
+	return '';
+}
+
+// ============================================================
 // INLINE CSS used by shortcode (frontend standalone)
 // ============================================================
 function taxora_topbar_get_inline_css() {
@@ -706,80 +852,291 @@ function taxora_topbar_get_inline_css() {
 #taxora-topbar-root .taxora-calendar-day:hover { background: rgba(0,0,0,0.05); }
 #taxora-topbar-root .taxora-calendar-day.today { background: #3b82f6; color: #fff; font-weight: 600; }
 
-/* ===== Addon Quick-Access Pills ===== */
-#taxora-topbar-root .taxora-addon-strip {
-	display: flex;
-	align-items: center;
-	gap: 6px;
+/* ===== Redesigned Addon Quick-Access Dropdown (Premium SaaS Layout) ===== */
+#taxora-topbar-root .taxora-addon-dropdown-container {
+	position: relative;
+	display: inline-block;
 	flex: 0 0 auto;
-	padding: 0 4px;
-	border-left: 1px solid rgba(0,0,0,0.07);
-	border-right: 1px solid rgba(0,0,0,0.07);
-	margin: 0 8px;
+	margin: 0 12px;
 }
 
-#taxora-topbar-root .taxora-addon-pill {
+#taxora-topbar-root .taxora-addon-trigger {
 	display: inline-flex;
 	align-items: center;
-	gap: 5px;
-	padding: 5px 11px;
+	gap: 8px;
+	padding: 8px 16px;
 	border-radius: 20px;
-	font-size: 12px;
+	font-size: 13px;
 	font-weight: 600;
-	text-decoration: none;
-	white-space: nowrap;
-	border: 1px solid var(--pill-border, rgba(99,102,241,0.25));
-	background: var(--pill-bg, rgba(99,102,241,0.08));
-	color: var(--pill-color, #6366f1);
-	transition: all 0.2s cubic-bezier(0.4,0,0.2,1);
-	position: relative;
-	overflow: hidden;
-	backdrop-filter: blur(4px);
-	-webkit-backdrop-filter: blur(4px);
+	cursor: pointer;
+	border: 1px solid rgba(226, 232, 240, 0.8);
+	background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 250, 252, 0.9) 100%);
+	color: #1e293b;
+	transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+	box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+	outline: none;
+	user-select: none;
+	transform: translate3d(0, 0, 0);
+	backface-visibility: hidden;
 }
 
-#taxora-topbar-root .taxora-addon-pill::before {
-	content: "";
+#taxora-topbar-root .taxora-addon-trigger:hover {
+	transform: translateY(-1.5px);
+	background: #ffffff;
+	border-color: rgba(99, 102, 241, 0.35);
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.02);
+	color: #000000;
+}
+
+#taxora-topbar-root .taxora-addon-trigger-icon {
+	font-size: 14px;
+	filter: drop-shadow(0 0 4px rgba(234, 179, 8, 0.2));
+	animation: taxora-pulse-bolt 2s infinite ease-in-out;
+}
+
+@keyframes taxora-pulse-bolt {
+	0%, 100% { transform: scale(1); opacity: 1; }
+	50% { transform: scale(1.1); opacity: 0.85; }
+}
+
+#taxora-topbar-root .taxora-addon-trigger-chevron {
+	transition: transform 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+	opacity: 0.6;
+}
+
+#taxora-topbar-root .taxora-addon-trigger.open .taxora-addon-trigger-chevron,
+#taxora-topbar-root .taxora-addon-trigger:hover .taxora-addon-trigger-chevron {
+	transform: rotate(180deg);
+	opacity: 1;
+}
+
+/* Redesigned Apps Dropdown Menu */
+#taxora-topbar-root .taxora-addon-dropdown {
 	position: absolute;
-	inset: 0;
-	background: var(--pill-color, #6366f1);
+	top: calc(100% + 8px);
+	left: 0;
+	background: rgba(255, 255, 255, 0.96);
+	backdrop-filter: blur(20px);
+	-webkit-backdrop-filter: blur(20px);
+	border: 1px solid rgba(226, 232, 240, 0.8);
+	border-radius: 16px;
+	box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.02);
+	min-width: 310px;
+	max-width: 360px;
+	padding: 10px;
 	opacity: 0;
-	transition: opacity 0.2s ease;
-	border-radius: inherit;
+	visibility: hidden;
+	transform: translateY(-8px) scale(0.97);
+	transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+	z-index: 100000;
+	max-height: 400px;
+	overflow-y: auto;
 }
 
-#taxora-topbar-root .taxora-addon-pill:hover {
-	transform: translateY(-2px);
-	box-shadow: 0 4px 12px color-mix(in srgb, var(--pill-color, #6366f1) 30%, transparent);
+#taxora-topbar-root .taxora-addon-dropdown::-webkit-scrollbar {
+	width: 5px;
+}
+#taxora-topbar-root .taxora-addon-dropdown::-webkit-scrollbar-track {
+	background: transparent;
+}
+#taxora-topbar-root .taxora-addon-dropdown::-webkit-scrollbar-thumb {
+	background: rgba(0, 0, 0, 0.08);
+	border-radius: 10px;
+}
+#taxora-topbar-root .taxora-addon-dropdown::-webkit-scrollbar-thumb:hover {
+	background: rgba(0, 0, 0, 0.15);
+}
+
+#taxora-topbar-root .taxora-addon-dropdown.show {
+	opacity: 1;
+	visibility: visible;
+	transform: translateY(0) scale(1);
+}
+
+#taxora-topbar-root .taxora-addon-dropdown-header {
+	padding: 6px 12px 10px;
+	font-size: 11px;
+	font-weight: 700;
+	text-transform: uppercase;
+	color: #64748b;
+	letter-spacing: 0.05em;
+	border-bottom: 1px solid rgba(226, 232, 240, 0.6);
+	margin-bottom: 8px;
+}
+
+#taxora-topbar-root .taxora-addon-dropdown-list {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+}
+
+/* Addon Item Design */
+#taxora-topbar-root .taxora-addon-item {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	padding: 10px 14px;
+	border-radius: 12px;
+	text-decoration: none;
+	transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+	color: #334155;
+	border: 1px solid transparent;
+	transform: translate3d(0, 0, 0);
+	backface-visibility: hidden;
+}
+
+#taxora-topbar-root .taxora-addon-item-icon {
+	width: 38px;
+	height: 38px;
+	border-radius: 10px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	color: var(--addon-color, #6366f1);
+	flex-shrink: 0;
+	transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+	transform: translate3d(0,0,0);
+}
+
+#taxora-topbar-root .taxora-addon-item-content {
+	flex: 1;
+	min-width: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+}
+
+#taxora-topbar-root .taxora-addon-item-title {
+	font-size: 14px;
+	font-weight: 600;
+	color: #0f172a;
+	transition: color 0.2s ease;
+}
+
+#taxora-topbar-root .taxora-addon-item-desc {
+	font-size: 11px;
+	color: #64748b;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	font-weight: 400;
+}
+
+#taxora-topbar-root .taxora-addon-item-indicator {
+	color: var(--addon-color, #6366f1);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	opacity: 0.85;
+	flex-shrink: 0;
+}
+
+/* Hover States */
+#taxora-topbar-root .taxora-addon-item:hover {
+	background: rgba(248, 250, 252, 0.95);
+	border-color: rgba(226, 232, 240, 0.7);
+	transform: translateX(4px);
+}
+
+#taxora-topbar-root .taxora-addon-item:hover .taxora-addon-item-icon {
+	transform: scale(1.05);
+	box-shadow: 0 0 12px color-mix(in srgb, var(--addon-color, #6366f1) 25%, transparent);
 	filter: brightness(1.05);
 }
 
-#taxora-topbar-root .taxora-addon-pill:hover::before { opacity: 0.06; }
-
-#taxora-topbar-root .taxora-addon-pill:active { transform: translateY(-1px); }
-
-#taxora-topbar-root .taxora-addon-pill--active {
-	background: var(--pill-color, #6366f1) !important;
-	color: #fff !important;
-	border-color: transparent !important;
-	box-shadow: 0 4px 14px color-mix(in srgb, var(--pill-color, #6366f1) 40%, transparent);
+#taxora-topbar-root .taxora-addon-item:hover .taxora-addon-item-title {
+	color: var(--addon-color, #6366f1);
 }
 
-#taxora-topbar-root .taxora-addon-pill svg {
-	flex-shrink: 0;
-	opacity: 0.9;
+/* Active Highlight Module */
+#taxora-topbar-root .taxora-addon-item--active {
+	background: rgba(99, 102, 241, 0.05);
+	border-color: rgba(99, 102, 241, 0.12);
 }
 
-#taxora-topbar-root .taxora-addon-pill__label { line-height: 1; }
+#taxora-topbar-root .taxora-addon-item--active .taxora-addon-item-title {
+	color: var(--addon-color, #6366f1);
+	font-weight: 700;
+}
 
-/* Responsive: hide labels on small screens, keep icons */
+/* Responsive & Mobile Support */
 @media (max-width: 768px) {
-	#taxora-topbar-root .taxora-addon-strip { gap: 4px; margin: 0 4px; padding: 0 2px; }
-	#taxora-topbar-root .taxora-addon-pill { padding: 5px 7px; gap: 0; }
-	#taxora-topbar-root .taxora-addon-pill__label { display: none; }
+	#taxora-topbar-root .taxora-addon-dropdown-container {
+		margin: 0 4px;
+	}
+	#taxora-topbar-root .taxora-addon-trigger {
+		padding: 6px 10px;
+		gap: 4px;
+		font-size: 12px;
+		border-radius: 16px;
+	}
+	#taxora-topbar-root .taxora-addon-trigger-label {
+		display: none;
+	}
+	#taxora-topbar-root .taxora-addon-dropdown {
+		position: fixed;
+		top: auto;
+		bottom: 0;
+		left: 0;
+		right: 0;
+		width: 100vw;
+		max-width: 100vw;
+		border-radius: 20px 20px 0 0;
+		border: 1px solid rgba(226, 232, 240, 0.9);
+		border-bottom: none;
+		box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.15);
+		transform: translateY(100%);
+		max-height: 70vh;
+	}
+	#taxora-topbar-root .taxora-addon-dropdown.show {
+		transform: translateY(0);
+	}
 }
-@media (max-width: 480px) {
-	#taxora-topbar-root .taxora-addon-strip { border: none; margin: 0 2px; }
+
+/* Dark Mode Overrides */
+body.taxora-dark-mode #taxora-topbar-root .taxora-addon-trigger {
+	border-color: var(--taxora-border-color, rgba(255,255,255,0.08));
+	background: linear-gradient(135deg, rgba(30, 41, 59, 0.95) 0%, rgba(15, 23, 42, 0.9) 100%);
+	color: var(--taxora-text-primary, #f8fafc);
+}
+
+body.taxora-dark-mode #taxora-topbar-root .taxora-addon-trigger:hover {
+	background: var(--taxora-hover-bg, rgba(255,255,255,0.05));
+	border-color: rgba(99, 102, 241, 0.45);
+	color: #ffffff;
+}
+
+body.taxora-dark-mode #taxora-topbar-root .taxora-addon-dropdown {
+	background: rgba(15, 23, 42, 0.95);
+	border-color: var(--taxora-border-color, rgba(255,255,255,0.08));
+	box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4), 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+body.taxora-dark-mode #taxora-topbar-root .taxora-addon-dropdown-header {
+	border-bottom-color: var(--taxora-border-color, rgba(255,255,255,0.08));
+	color: var(--taxora-text-muted, #94a3b8);
+}
+
+body.taxora-dark-mode #taxora-topbar-root .taxora-addon-item {
+	color: var(--taxora-text-secondary, #cbd5e1);
+}
+
+body.taxora-dark-mode #taxora-topbar-root .taxora-addon-item-title {
+	color: var(--taxora-text-primary, #f8fafc);
+}
+
+body.taxora-dark-mode #taxora-topbar-root .taxora-addon-item-desc {
+	color: var(--taxora-text-muted, #94a3b8);
+}
+
+body.taxora-dark-mode #taxora-topbar-root .taxora-addon-item:hover {
+	background: rgba(30, 41, 59, 0.6);
+	border-color: rgba(255, 255, 255, 0.05);
+}
+
+body.taxora-dark-mode #taxora-topbar-root .taxora-addon-item--active {
+	background: rgba(99, 102, 241, 0.12);
+	border-color: rgba(99, 102, 241, 0.2);
 }
 
 @media (max-width: 1440px) {

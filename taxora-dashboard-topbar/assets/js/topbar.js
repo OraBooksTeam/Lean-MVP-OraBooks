@@ -124,11 +124,16 @@
 	/*  Dropdowns                                                         */
 	/* ------------------------------------------------------------------ */
 	function closeOtherDropdowns(exceptId) {
-		['taxora-language-menu', 'taxora-settings-menu', 'taxora-calendar'].forEach(function (id) {
+		['taxora-language-menu', 'taxora-settings-menu', 'taxora-calendar', 'taxora-addon-dropdown'].forEach(function (id) {
 			if (id === exceptId) return;
 			var el = document.getElementById(id);
 			if (el) el.classList.remove('show');
 		});
+
+		if (exceptId !== 'taxora-addon-dropdown') {
+			var trig = document.getElementById('taxora-addon-trigger');
+			if (trig) trig.setAttribute('aria-expanded', 'false');
+		}
 	}
 
 	T.toggleLanguage = function () {
@@ -366,15 +371,52 @@
 		applyBodyOffset(true);
 		window.addEventListener('resize', function() { applyBodyOffset(false); });
 
+		// Handle Quick Access addon dropdown toggle
+		var trigger = document.getElementById('taxora-addon-trigger');
+		var dropdown = document.getElementById('taxora-addon-dropdown');
+		if (trigger && dropdown) {
+			// Remove existing listeners if any (defensive clean)
+			var oldTrigger = trigger.cloneNode(true);
+			trigger.parentNode.replaceChild(oldTrigger, trigger);
+			trigger = oldTrigger;
+			
+			trigger.addEventListener('click', function (e) {
+				e.stopPropagation();
+				var isExpanded = dropdown.classList.contains('show');
+				closeOtherDropdowns('taxora-addon-dropdown');
+				dropdown.classList.toggle('show');
+				trigger.classList.toggle('open');
+				trigger.setAttribute('aria-expanded', !isExpanded);
+			});
+			
+			// Keyboard Escape close support
+			document.addEventListener('keydown', function (e) {
+				if (e.key === 'Escape' && dropdown.classList.contains('show')) {
+					dropdown.classList.remove('show');
+					trigger.classList.remove('open');
+					trigger.setAttribute('aria-expanded', 'false');
+					trigger.focus();
+				}
+			});
+		}
+
 		document.addEventListener('click', function (e) {
-			var dropdowns = document.querySelectorAll('.taxora-dropdown-menu, .taxora-calendar-dropdown');
+			var dropdowns = document.querySelectorAll('.taxora-dropdown-menu, .taxora-calendar-dropdown, .taxora-addon-dropdown');
 			dropdowns.forEach(function (d) {
 				if (
 					!d.contains(e.target) &&
 					!e.target.closest('.taxora-dropdown-btn') &&
-					!e.target.closest('.taxora-calendar-btn')
+					!e.target.closest('.taxora-calendar-btn') &&
+					!e.target.closest('.taxora-addon-trigger')
 				) {
 					d.classList.remove('show');
+					if (d.id === 'taxora-addon-dropdown') {
+						var trig = document.getElementById('taxora-addon-trigger');
+						if (trig) {
+							trig.setAttribute('aria-expanded', 'false');
+							trig.classList.remove('open');
+						}
+					}
 				}
 			});
 		});

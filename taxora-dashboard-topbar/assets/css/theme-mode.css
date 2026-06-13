@@ -1,0 +1,979 @@
+/**
+ * TaxOra Theme Mode System
+ * Premium Dark/Light Mode with CSS Variables
+ */
+
+/* ============================================
+   ROOT VARIABLES - LIGHT MODE (Default)
+   ============================================ */
+:root,
+.taxora-light-mode {
+    --taxora-bg-primary: #ffffff;
+    --taxora-bg-secondary: #f8fafc;
+    --taxora-bg-tertiary: #f1f5f9;
+    --taxora-text-primary: #0f172a;
+    --taxora-text-secondary: #475569;
+    --taxora-text-muted: #94a3b8;
+    --taxora-border-color: #e2e8f0;
+    --taxora-border-light: #f1f5f9;
+    --taxora-card-bg: #ffffff;
+    --taxora-hover-bg: #f1f5f9;
+    --taxora-active-bg: #e2e8f0;
+    --taxora-table-header: #f8fafc;
+    --taxora-table-row-hover: #f1f5f9;
+    --taxora-input-bg: #ffffff;
+    --taxora-shadow-color: rgba(0, 0, 0, 0.1);
+    --taxora-shadow-sm: rgba(0, 0, 0, 0.05);
+    --taxora-glass-bg: rgba(255, 255, 255, 0.95);
+    --taxora-glass-border: rgba(226, 232, 240, 0.8);
+    --taxora-scrollbar-bg: #f1f5f9;
+    --taxora-scrollbar-thumb: #cbd5e1;
+    --taxora-focus-ring: rgba(99, 102, 241, 0.25);
+    --taxora-accent-primary: #6366f1;
+    --taxora-accent-hover: #4f46e5;
+    --taxora-success: #10b981;
+    --taxora-warning: #f59e0b;
+    --taxora-error: #ef4444;
+    --taxora-info: #3b82f6;
+}
+
+/* ============================================
+   DARK MODE VARIABLES
+   ============================================ */
+.taxora-dark-mode {
+    --taxora-bg-primary: #0f172a;
+    --taxora-bg-secondary: #1e293b;
+    --taxora-bg-tertiary: #334155;
+    --taxora-text-primary: #f8fafc;
+    --taxora-text-secondary: #cbd5e1;
+    --taxora-text-muted: #94a3b8;
+    --taxora-border-color: #334155;
+    --taxora-border-light: #475569;
+    --taxora-card-bg: #1e293b;
+    --taxora-hover-bg: #334155;
+    --taxora-active-bg: #475569;
+    --taxora-table-header: #1e293b;
+    --taxora-table-row-hover: #334155;
+    --taxora-input-bg: #1e293b;
+    --taxora-shadow-color: rgba(0, 0, 0, 0.4);
+    --taxora-shadow-sm: rgba(0, 0, 0, 0.2);
+    --taxora-glass-bg: rgba(15, 23, 42, 0.95);
+    --taxora-glass-border: rgba(51, 65, 85, 0.8);
+    --taxora-scrollbar-bg: #1e293b;
+    --taxora-scrollbar-thumb: #475569;
+    --taxora-focus-ring: rgba(99, 102, 241, 0.3);
+    --taxora-accent-primary: #818cf8;
+    --taxora-accent-hover: #a5b4fc;
+    --taxora-success: #34d399;
+    --taxora-warning: #fbbf24;
+    --taxora-error: #f87171;
+    --taxora-info: #60a5fa;
+}
+
+/* ============================================
+   GLOBAL TRANSITIONS & GPU LAYER PROMOTION
+   ============================================ */
+
+/* Hardware GPU Acceleration Layer Promotion */
+#taxora-topbar-root .taxora-topbar,
+#inventory-sidebar,
+.inventory-sidebar,
+.widget,
+.card,
+.taxora-theme-toggle-icon {
+    transform: translate3d(0, 0, 0);
+    backface-visibility: hidden;
+    perspective: 1000px;
+    will-change: background-color, color, border-color, box-shadow;
+}
+
+/* Restricted Smooth Theme Transitions */
+body:not(.no-transition),
+body:not(.no-transition) *,
+body:not(.no-transition) *::before,
+body:not(.no-transition) *::after {
+    transition: background-color 300ms ease-in-out,
+                color 300ms ease-in-out,
+                border-color 300ms ease-in-out,
+                box-shadow 300ms ease-in-out,
+                fill 300ms ease-in-out,
+                stroke 300ms ease-in-out !important;
+}
+
+/* Prevent initial transitions on page load */
+body.no-transition,
+body.no-transition *,
+body.no-transition *::before,
+body.no-transition *::after {
+    transition: none !important;
+}
+
+/* ============================================
+   ATOMIC TRANSITION SWITCHING LOCK & OVERLAY
+   ============================================ */
+
+/* Freeze layout and disable interactive pointer events during transition */
+body.taxora-theme-switching,
+body.taxora-theme-switching * {
+    pointer-events: none !important;
+    user-select: none !important;
+}
+
+/* Premium full-page blend overlay animation */
+body.taxora-theme-switching::after {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(15, 23, 42, 0.04);
+    z-index: 9999999 !important;
+    pointer-events: none !important;
+    transform: translate3d(0, 0, 0);
+    backface-visibility: hidden;
+    animation: taxora-premium-blend-fade 280ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+@keyframes taxora-premium-blend-fade {
+    0% { opacity: 0; }
+    50% { opacity: 1; }
+    100% { opacity: 0; }
+}
+
+/* ============================================
+   BODY THEME CLASSES
+   ============================================ */
+body.taxora-light-mode {
+    background-color: var(--taxora-bg-primary);
+    color: var(--taxora-text-primary);
+}
+
+body.taxora-dark-mode {
+    background-color: var(--taxora-bg-primary);
+    color: var(--taxora-text-primary);
+}
+
+/* ============================================
+   TOPBAR THEME STYLES
+   ============================================ */
+.taxora-dark-mode #taxora-topbar-root .taxora-topbar {
+    background: linear-gradient(135deg, rgba(15, 23, 42, 0.98) 0%, rgba(30, 41, 59, 0.95) 100%);
+    border-bottom-color: var(--taxora-border-color);
+    box-shadow: 0 4px 6px -1px var(--taxora-shadow-color), 0 2px 4px -1px var(--taxora-shadow-sm);
+}
+
+.taxora-dark-mode #taxora-topbar-root .taxora-topbar:hover {
+    box-shadow: 0 8px 10px -1px var(--taxora-shadow-color), 0 4px 6px -1px var(--taxora-shadow-sm);
+}
+
+.taxora-dark-mode #taxora-topbar-root .taxora-topbar-btn {
+    background: linear-gradient(135deg, rgba(30, 41, 59, 0.9) 0%, rgba(51, 65, 85, 0.8) 100%);
+    border-color: var(--taxora-border-color);
+    color: var(--taxora-text-primary);
+}
+
+.taxora-dark-mode #taxora-topbar-root .taxora-topbar-btn:hover {
+    background: linear-gradient(135deg, rgba(51, 65, 85, 0.95) 0%, rgba(71, 85, 105, 0.9) 100%);
+    border-color: rgba(99, 102, 241, 0.3);
+    color: var(--taxora-text-primary);
+}
+
+.taxora-dark-mode #taxora-topbar-root .taxora-topbar-text {
+    color: var(--taxora-text-primary);
+}
+
+.taxora-dark-mode #taxora-topbar-root .taxora-topbar-text:hover {
+    background: var(--taxora-hover-bg);
+    color: var(--taxora-text-primary);
+}
+
+.taxora-dark-mode #taxora-topbar-root .taxora-topbar-center {
+    color: var(--taxora-text-primary);
+}
+
+.taxora-dark-mode #taxora-topbar-root .taxora-clock {
+    color: var(--taxora-text-primary);
+}
+
+.taxora-dark-mode #taxora-topbar-root .taxora-calendar-btn {
+    color: var(--taxora-text-muted);
+}
+
+.taxora-dark-mode #taxora-topbar-root .taxora-calendar-btn:hover {
+    background: var(--taxora-hover-bg);
+    color: var(--taxora-text-primary);
+}
+
+.taxora-dark-mode #taxora-topbar-root .taxora-date {
+    color: var(--taxora-text-muted);
+}
+
+.taxora-dark-mode #taxora-topbar-root .taxora-dropdown-btn {
+    background: var(--taxora-bg-secondary);
+    border-color: var(--taxora-border-color);
+    color: var(--taxora-text-primary);
+}
+
+.taxora-dark-mode #taxora-topbar-root .taxora-dropdown-btn:hover {
+    background: var(--taxora-hover-bg);
+    border-color: var(--taxora-border-color);
+    color: var(--taxora-text-primary);
+}
+
+.taxora-dark-mode #taxora-topbar-root .taxora-dropdown-menu {
+    background: var(--taxora-glass-bg);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-color: var(--taxora-border-color);
+    box-shadow: 0 10px 25px var(--taxora-shadow-color), 0 4px 10px var(--taxora-shadow-sm);
+}
+
+.taxora-dark-mode #taxora-topbar-root .taxora-dropdown-menu a {
+    color: var(--taxora-text-primary);
+}
+
+.taxora-dark-mode #taxora-topbar-root .taxora-dropdown-menu a:hover {
+    background: var(--taxora-hover-bg);
+    color: var(--taxora-text-primary);
+}
+
+.taxora-dark-mode #taxora-topbar-root .taxora-calendar-dropdown {
+    background: var(--taxora-glass-bg);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-color: var(--taxora-border-color);
+    box-shadow: 0 10px 25px var(--taxora-shadow-color), 0 4px 10px var(--taxora-shadow-sm);
+}
+
+.taxora-dark-mode #taxora-topbar-root .taxora-calendar-header {
+    color: var(--taxora-text-primary);
+}
+
+.taxora-dark-mode #taxora-topbar-root .taxora-calendar-header button {
+    background: var(--taxora-bg-secondary);
+    border-color: var(--taxora-border-color);
+    color: var(--taxora-text-primary);
+}
+
+.taxora-dark-mode #taxora-topbar-root .taxora-calendar-header button:hover {
+    background: var(--taxora-hover-bg);
+}
+
+.taxora-dark-mode #taxora-topbar-root .taxora-calendar-day-header {
+    color: var(--taxora-text-muted);
+}
+
+.taxora-dark-mode #taxora-topbar-root .taxora-calendar-day {
+    color: var(--taxora-text-primary);
+}
+
+.taxora-dark-mode #taxora-topbar-root .taxora-calendar-day:hover {
+    background: var(--taxora-hover-bg);
+}
+
+/* ============================================
+   THEME TOGGLE BUTTON STYLES
+   ============================================ */
+#taxora-topbar-root .taxora-theme-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    background: var(--taxora-bg-secondary, rgba(0,0,0,0.02));
+    border: 1px solid var(--taxora-border-color, rgba(0,0,0,0.08));
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+    min-width: 80px;
+    justify-content: space-between;
+    flex: 0 0 auto;
+}
+
+#taxora-topbar-root .taxora-theme-toggle:hover {
+    background: var(--taxora-hover-bg, rgba(0,0,0,0.05));
+    border-color: var(--taxora-border-color, rgba(0,0,0,0.12));
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px var(--taxora-shadow-sm, rgba(0,0,0,0.08));
+}
+
+#taxora-topbar-root .taxora-theme-toggle:active {
+    transform: translateY(0);
+}
+
+#taxora-topbar-root .taxora-theme-toggle:focus {
+    outline: 2px solid var(--taxora-accent-primary, #6366f1);
+    outline-offset: 2px;
+}
+
+#taxora-topbar-root .taxora-theme-toggle-icon {
+    width: 18px;
+    height: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    color: var(--taxora-text-secondary, #6b7280);
+}
+
+#taxora-topbar-root .taxora-theme-toggle-icon.active {
+    color: var(--taxora-accent-primary, #6366f1);
+    transform: scale(1.1);
+}
+
+#taxora-topbar-root .taxora-theme-toggle-icon svg {
+    width: 16px;
+    height: 16px;
+}
+
+/* Sun icon animation */
+#taxora-topbar-root .taxora-theme-toggle-icon.sun-icon {
+    animation: none;
+}
+
+.taxora-dark-mode #taxora-topbar-root .taxora-theme-toggle-icon.sun-icon {
+    opacity: 0.4;
+    transform: scale(0.9);
+}
+
+/* Moon icon animation */
+#taxora-topbar-root .taxora-theme-toggle-icon.moon-icon {
+    opacity: 0.4;
+    transform: scale(0.9);
+}
+
+.taxora-dark-mode #taxora-topbar-root .taxora-theme-toggle-icon.moon-icon {
+    opacity: 1;
+    transform: scale(1.1);
+}
+
+/* Icon rotation on toggle */
+#taxora-topbar-root .taxora-theme-toggle-icon.rotating {
+    animation: rotateIcon 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes rotateIcon {
+    0% {
+        transform: rotate(0deg) scale(1);
+        opacity: 1;
+    }
+    50% {
+        transform: rotate(180deg) scale(0.8);
+        opacity: 0.5;
+    }
+    100% {
+        transform: rotate(360deg) scale(1);
+        opacity: 1;
+    }
+}
+
+/* Glow effect for active icon */
+#taxora-topbar-root .taxora-theme-toggle-icon.active::after {
+    content: '';
+    position: absolute;
+    width: 24px;
+    height: 24px;
+    background: var(--taxora-accent-primary, #6366f1);
+    border-radius: 50%;
+    opacity: 0.2;
+    filter: blur(8px);
+    z-index: -1;
+    animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 0.2;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.3;
+        transform: scale(1.1);
+    }
+}
+
+/* ============================================
+   GLOBAL COMPONENT THEMING
+   ============================================ */
+
+/* Cards */
+.taxora-dark-mode .taxora-card,
+.taxora-dark-mode .card,
+.taxora-dark-mode [class*="card"] {
+    background-color: var(--taxora-card-bg);
+    border-color: var(--taxora-border-color);
+}
+
+/* Forms & Inputs */
+.taxora-dark-mode input,
+.taxora-dark-mode textarea,
+.taxora-dark-mode select {
+    background-color: var(--taxora-input-bg);
+    border-color: var(--taxora-border-color);
+    color: var(--taxora-text-primary);
+}
+
+.taxora-dark-mode input:focus,
+.taxora-dark-mode textarea:focus,
+.taxora-dark-mode select:focus {
+    border-color: var(--taxora-accent-primary);
+    box-shadow: 0 0 0 3px var(--taxora-focus-ring);
+}
+
+/* Tables */
+.taxora-dark-mode table {
+    background-color: var(--taxora-card-bg);
+    border-color: var(--taxora-border-color);
+}
+
+.taxora-dark-mode th {
+    background-color: var(--taxora-table-header);
+    color: var(--taxora-text-primary);
+    border-color: var(--taxora-border-color);
+}
+
+.taxora-dark-mode td {
+    border-color: var(--taxora-border-color);
+    color: var(--taxora-text-secondary);
+}
+
+.taxora-dark-mode tr:hover td {
+    background-color: var(--taxora-table-row-hover);
+}
+
+/* Buttons */
+.taxora-dark-mode button:not(.taxora-theme-toggle):not(.taxora-calendar-btn):not(.taxora-dropdown-btn):not(.taxora-topbar-btn) {
+    background-color: var(--taxora-bg-secondary);
+    border-color: var(--taxora-border-color);
+    color: var(--taxora-text-primary);
+}
+
+.taxora-dark-mode button:hover:not(.taxora-theme-toggle):not(.taxora-calendar-btn):not(.taxora-dropdown-btn):not(.taxora-topbar-btn) {
+    background-color: var(--taxora-hover-bg);
+}
+
+/* Modals */
+.taxora-dark-mode .modal,
+.taxora-dark-mode [class*="modal"],
+.taxora-dark-mode [class*="dialog"] {
+    background-color: var(--taxora-card-bg);
+    border-color: var(--taxora-border-color);
+}
+
+/* Sidebar */
+.taxora-dark-mode aside,
+.taxora-dark-mode .sidebar,
+.taxora-dark-mode [class*="sidebar"] {
+    background-color: var(--taxora-bg-secondary);
+    border-color: var(--taxora-border-color);
+}
+
+.taxora-dark-mode aside a,
+.taxora-dark-mode .sidebar a,
+.taxora-dark-mode [class*="sidebar"] a {
+    color: var(--taxora-text-secondary);
+}
+
+.taxora-dark-mode aside a:hover,
+.taxora-dark-mode .sidebar a:hover,
+.taxora-dark-mode [class*="sidebar"] a:hover {
+    background-color: var(--taxora-hover-bg);
+    color: var(--taxora-text-primary);
+}
+
+/* Alerts & Notifications */
+.taxora-dark-mode .alert,
+.taxora-dark-mode .notification,
+.taxora-dark-mode [class*="alert"],
+.taxora-dark-mode [class*="notification"] {
+    background-color: var(--taxora-card-bg);
+    border-color: var(--taxora-border-color);
+    color: var(--taxora-text-primary);
+}
+
+/* Pagination */
+.taxora-dark-mode .pagination,
+.taxora-dark-mode [class*="pagination"] a,
+.taxora-dark-mode [class*="pagination"] button {
+    background-color: var(--taxora-card-bg);
+    border-color: var(--taxora-border-color);
+    color: var(--taxora-text-primary);
+}
+
+.taxora-dark-mode .pagination a:hover,
+.taxora-dark-mode .pagination button:hover,
+.taxora-dark-mode [class*="pagination"] a:hover,
+.taxora-dark-mode [class*="pagination"] button:hover {
+    background-color: var(--taxora-hover-bg);
+}
+
+/* Tabs */
+.taxora-dark-mode .tabs,
+.taxora-dark-mode [class*="tab"] {
+    border-color: var(--taxora-border-color);
+}
+
+.taxora-dark-mode .tab-active,
+.taxora-dark-mode [class*="tab"].active {
+    background-color: var(--taxora-card-bg);
+    border-color: var(--taxora-accent-primary);
+    color: var(--taxora-accent-primary);
+}
+
+/* Scrollbar */
+.taxora-dark-mode ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+.taxora-dark-mode ::-webkit-scrollbar-track {
+    background: var(--taxora-scrollbar-bg);
+}
+
+.taxora-dark-mode ::-webkit-scrollbar-thumb {
+    background: var(--taxora-scrollbar-thumb);
+    border-radius: 4px;
+}
+
+.taxora-dark-mode ::-webkit-scrollbar-thumb:hover {
+    background: var(--taxora-border-color);
+}
+
+/* ============================================
+   ADDON PILLS DARK MODE
+   ============================================ */
+.taxora-dark-mode #taxora-topbar-root .taxora-addon-strip {
+    border-left-color: var(--taxora-border-color);
+    border-right-color: var(--taxora-border-color);
+}
+
+.taxora-dark-mode #taxora-topbar-root .taxora-addon-pill {
+    background: color-mix(in srgb, var(--pill-color, #6366f1) 8%, transparent);
+    border-color: color-mix(in srgb, var(--pill-color, #6366f1) 25%, transparent);
+    color: var(--pill-color, #818cf8);
+}
+
+.taxora-dark-mode #taxora-topbar-root .taxora-addon-pill:hover {
+    box-shadow: 0 4px 12px color-mix(in srgb, var(--pill-color, #818cf8) 30%, transparent);
+}
+
+.taxora-dark-mode #taxora-topbar-root .taxora-addon-pill--active {
+    background: var(--pill-color, #818cf8) !important;
+    color: #fff !important;
+    box-shadow: 0 4px 14px color-mix(in srgb, var(--pill-color, #818cf8) 40%, transparent);
+}
+
+/* ============================================
+   RESPONSIVE ADJUSTMENTS
+   ============================================ */
+@media (max-width: 768px) {
+    #taxora-topbar-root .taxora-theme-toggle {
+        min-width: 70px;
+        padding: 5px 10px;
+    }
+
+    #taxora-topbar-root .taxora-theme-toggle-icon {
+        width: 16px;
+        height: 16px;
+    }
+
+    #taxora-topbar-root .taxora-theme-toggle-icon svg {
+        width: 14px;
+        height: 14px;
+    }
+}
+
+/* ============================================
+   ACCESSIBILITY
+   ============================================ */
+#taxora-topbar-root .taxora-theme-toggle[aria-pressed="true"] {
+    background: var(--taxora-active-bg, #e2e8f0);
+}
+
+#taxora-topbar-root .taxora-theme-toggle:focus-visible {
+    outline: 2px solid var(--taxora-accent-primary, #6366f1);
+    outline-offset: 2px;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    #taxora-topbar-root .taxora-theme-toggle {
+        border-width: 2px;
+    }
+
+    #taxora-topbar-root .taxora-theme-toggle-icon {
+        opacity: 1;
+    }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        transition-duration: 0.01ms !important;
+        animation-duration: 0.01ms !important;
+    }
+}
+
+/* ============================================
+   GLOBAL DASHBOARD & PLUGINS DARK MODE OVERRIDES
+   ============================================ */
+
+/* Page Backgrounds */
+body.taxora-dark-mode,
+body.taxora-dark-mode #main-scroller,
+body.taxora-dark-mode #inventory-main-layout,
+body.taxora-dark-mode #accounting-main-layout,
+body.taxora-dark-mode .obn-dashboard-wrapper,
+body.taxora-dark-mode #wpfd-dashboard-main {
+    background-color: var(--taxora-bg-primary) !important;
+    color: var(--taxora-text-primary) !important;
+}
+
+/* Tailwind utility backgrounds mapping */
+body.taxora-dark-mode .bg-white,
+body.taxora-dark-mode .bg-gray-50,
+body.taxora-dark-mode .bg-gray-100,
+body.taxora-dark-mode .bg-gray-200 {
+    background-color: var(--taxora-bg-secondary) !important;
+}
+
+body.taxora-dark-mode .bg-slate-50,
+body.taxora-dark-mode .bg-slate-100,
+body.taxora-dark-mode .bg-slate-200 {
+    background-color: var(--taxora-bg-primary) !important;
+}
+
+body.taxora-dark-mode .bg-slate-800,
+body.taxora-dark-mode .bg-slate-900 {
+    background-color: var(--taxora-bg-secondary) !important;
+}
+
+body.taxora-dark-mode .bg-gray-50.rounded-xl,
+body.taxora-dark-mode .bg-gray-50.rounded-3xl,
+body.taxora-dark-mode .bg-gray-100.rounded-xl,
+body.taxora-dark-mode .bg-gray-100.rounded-3xl {
+    background-color: var(--taxora-bg-tertiary) !important;
+}
+
+/* Specific overrides for WPMU Frontend Basic Inventory templates */
+body.taxora-dark-mode #inventory-sidebar,
+body.taxora-dark-mode #inventory-sidebar.inventory-sidebar {
+    background-color: var(--taxora-bg-secondary) !important;
+    border-right-color: var(--taxora-border-color) !important;
+}
+
+body.taxora-dark-mode .inventory-sidebar-brand {
+    background: var(--taxora-bg-tertiary) !important;
+    border-bottom-color: var(--taxora-border-color) !important;
+}
+
+body.taxora-dark-mode .inventory-sidebar-brand h3 {
+    background: linear-gradient(135deg, #f8fafc 0%, #94a3b8 100%) !important;
+    -webkit-background-clip: text !important;
+    background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+}
+
+body.taxora-dark-mode .inv-nav-link {
+    color: var(--taxora-text-secondary) !important;
+}
+
+body.taxora-dark-mode .inv-nav-link:hover {
+    background-color: var(--taxora-hover-bg) !important;
+    color: var(--taxora-text-primary) !important;
+}
+
+body.taxora-dark-mode .inv-nav-link.active {
+    background: var(--taxora-bg-tertiary) !important;
+    color: var(--taxora-text-primary) !important;
+    border-color: var(--taxora-border-color) !important;
+}
+
+body.taxora-dark-mode .inv-submenu {
+    background-color: var(--taxora-bg-tertiary) !important;
+}
+
+body.taxora-dark-mode .inv-subnav-link {
+    color: var(--taxora-text-muted) !important;
+}
+
+body.taxora-dark-mode .inv-subnav-link:hover {
+    color: var(--taxora-text-primary) !important;
+    background-color: rgba(255, 255, 255, 0.05) !important;
+}
+
+body.taxora-dark-mode .inv-subnav-link.active {
+    color: var(--taxora-text-primary) !important;
+    background-color: var(--taxora-accent-primary) !important;
+}
+
+body.taxora-dark-mode #inventory-mobile-header {
+    background-color: var(--taxora-bg-secondary) !important;
+    border-bottom-color: var(--taxora-border-color) !important;
+}
+
+/* Specific component: WPFD Dashboard Widgets */
+.taxora-dark-mode .widget {
+    background-color: var(--taxora-bg-secondary) !important;
+    border-color: var(--taxora-border-color) !important;
+    box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.4), 0 5px 15px -5px rgba(0, 0, 0, 0.2) !important;
+}
+
+.taxora-dark-mode .widget-header {
+    background-color: var(--taxora-bg-secondary) !important;
+    border-bottom-color: var(--taxora-border-color) !important;
+}
+
+.taxora-dark-mode .widget-header:hover {
+    background-color: var(--taxora-bg-tertiary) !important;
+}
+
+.taxora-dark-mode .widget-title {
+    color: var(--taxora-text-primary) !important;
+}
+
+.taxora-dark-mode .widget-controls button {
+    background-color: var(--taxora-bg-tertiary) !important;
+    color: var(--taxora-text-secondary) !important;
+    border: 1px solid var(--taxora-border-color) !important;
+}
+
+.taxora-dark-mode .widget-controls button:hover {
+    background-color: var(--taxora-accent-primary) !important;
+    color: #ffffff !important;
+}
+
+/* Specific component: Cards inside Widget Content */
+.taxora-dark-mode .widget-content .bg-white {
+    background-color: var(--taxora-bg-tertiary) !important;
+    border-color: var(--taxora-border-color) !important;
+}
+
+.taxora-dark-mode .widget-content .bg-white:hover {
+    background-color: var(--taxora-bg-secondary) !important;
+}
+
+/* Specific component: Mobile Menu Drawer and Desktop aside */
+.taxora-dark-mode aside {
+    background-color: #0b0f19 !important;
+    border-right: 1px solid var(--taxora-border-color) !important;
+}
+
+.taxora-dark-mode #sidebar-content {
+    background-color: #0b0f19 !important;
+}
+
+.taxora-dark-mode aside nav button:not(.active-nav),
+.taxora-dark-mode #sidebar-content nav button:not(.active-nav) {
+    color: var(--taxora-text-muted) !important;
+}
+
+.taxora-dark-mode aside nav button:not(.active-nav):hover,
+.taxora-dark-mode #sidebar-content nav button:not(.active-nav):hover {
+    background-color: rgba(255, 255, 255, 0.05) !important;
+    color: #ffffff !important;
+}
+
+/* Header / Glass layout */
+.taxora-dark-mode header.glass {
+    background: rgba(15, 23, 42, 0.8) !important;
+    border-bottom: 1px solid var(--taxora-border-color) !important;
+}
+
+/* Text Colors */
+.taxora-dark-mode .text-gray-900,
+.taxora-dark-mode .text-gray-800,
+.taxora-dark-mode .text-gray-700,
+.taxora-dark-mode h1,
+.taxora-dark-mode h2,
+.taxora-dark-mode h3,
+.taxora-dark-mode h4,
+.taxora-dark-mode h5,
+.taxora-dark-mode h6,
+.taxora-dark-mode #page-title {
+    color: var(--taxora-text-primary) !important;
+}
+
+.taxora-dark-mode .text-gray-600,
+.taxora-dark-mode .text-gray-500 {
+    color: var(--taxora-text-secondary) !important;
+}
+
+.taxora-dark-mode .text-gray-400 {
+    color: var(--taxora-text-muted) !important;
+}
+
+/* Premium icons inside stats */
+.taxora-dark-mode .bg-blue-50 {
+    background-color: rgba(59, 130, 246, 0.15) !important;
+    color: #60a5fa !important;
+}
+.taxora-dark-mode .bg-purple-50 {
+    background-color: rgba(168, 85, 247, 0.15) !important;
+    color: #c084fc !important;
+}
+.taxora-dark-mode .bg-green-50 {
+    background-color: rgba(34, 197, 94, 0.15) !important;
+    color: #4ade80 !important;
+}
+.taxora-dark-mode .bg-orange-50 {
+    background-color: rgba(249, 115, 22, 0.15) !important;
+    color: #fb923c !important;
+}
+
+.taxora-dark-mode .text-blue-600 { color: #60a5fa !important; }
+.taxora-dark-mode .text-purple-600 { color: #c084fc !important; }
+.taxora-dark-mode .text-green-600 { color: #4ade80 !important; }
+.taxora-dark-mode .text-orange-600 { color: #fb923c !important; }
+
+/* Borders & Dividers */
+.taxora-dark-mode .border-gray-50,
+.taxora-dark-mode .border-gray-100,
+.taxora-dark-mode .border-gray-200,
+.taxora-dark-mode .border-gray-300,
+.taxora-dark-mode .divide-gray-100,
+.taxora-dark-mode .divide-gray-200 {
+    border-color: var(--taxora-border-color) !important;
+    border-top-color: var(--taxora-border-color) !important;
+    border-bottom-color: var(--taxora-border-color) !important;
+    border-left-color: var(--taxora-border-color) !important;
+    border-right-color: var(--taxora-border-color) !important;
+}
+
+.taxora-dark-mode .divide-y > :not([hidden]) ~ :not([hidden]) {
+    border-color: var(--taxora-border-color) !important;
+}
+
+/* Modals & Dialogs */
+.taxora-dark-mode #modal-content {
+    background-color: var(--taxora-bg-secondary) !important;
+    color: var(--taxora-text-primary) !important;
+    border: 1px solid var(--taxora-border-color) !important;
+}
+
+.taxora-dark-mode #modal-content .border-b {
+    border-bottom-color: var(--taxora-border-color) !important;
+}
+
+/* Form inputs & select fields */
+.taxora-dark-mode input:not([type="checkbox"]):not([type="radio"]),
+.taxora-dark-mode select,
+.taxora-dark-mode textarea {
+    background-color: var(--taxora-input-bg) !important;
+    border-color: var(--taxora-border-color) !important;
+    color: var(--taxora-text-primary) !important;
+}
+
+.taxora-dark-mode input::placeholder,
+.taxora-dark-mode textarea::placeholder {
+    color: var(--taxora-text-muted) !important;
+}
+
+/* Select2 Custom Support */
+.taxora-dark-mode .select2-container--default .select2-selection--single {
+    background-color: var(--taxora-input-bg) !important;
+    border-color: var(--taxora-border-color) !important;
+    color: var(--taxora-text-primary) !important;
+}
+
+.taxora-dark-mode .select2-container--default .select2-selection--single .select2-selection__rendered {
+    color: var(--taxora-text-primary) !important;
+}
+
+.taxora-dark-mode .select2-dropdown {
+    background-color: var(--taxora-card-bg) !important;
+    border-color: var(--taxora-border-color) !important;
+    color: var(--taxora-text-primary) !important;
+}
+
+.taxora-dark-mode .select2-container--default .select2-results__option--highlighted[aria-selected] {
+    background-color: var(--taxora-accent-primary) !important;
+}
+
+/* Search Container & Notifications */
+.taxora-dark-mode #search-container .bg-gray-100\/80 {
+    background-color: var(--taxora-input-bg) !important;
+    color: var(--taxora-text-secondary) !important;
+}
+
+.taxora-dark-mode #search-container .border-gray-200 {
+    border-color: var(--taxora-border-color) !important;
+}
+
+.taxora-dark-mode #search-container .bg-white\/50 {
+    background-color: rgba(30, 41, 59, 0.5) !important;
+}
+
+.taxora-dark-mode #search-container:hover {
+    background-color: var(--taxora-hover-bg) !important;
+}
+
+.taxora-dark-mode #notification-btn {
+    color: var(--taxora-text-secondary) !important;
+}
+
+.taxora-dark-mode #notification-btn:hover {
+    background-color: var(--taxora-hover-bg) !important;
+}
+
+.taxora-dark-mode select.bg-gray-50 {
+    background-color: var(--taxora-bg-tertiary) !important;
+    color: var(--taxora-text-primary) !important;
+}
+
+.taxora-dark-mode .hover\:bg-gray-50:hover {
+    background-color: var(--taxora-hover-bg) !important;
+}
+
+.taxora-dark-mode .bg-primary-100 {
+    background-color: rgba(99, 102, 241, 0.15) !important;
+    color: var(--taxora-accent-primary) !important;
+}
+
+.taxora-dark-mode .hover\:bg-gray-100:hover {
+    background-color: var(--taxora-hover-bg) !important;
+}
+
+/* Tables & Grid styling */
+.taxora-dark-mode table,
+.taxora-dark-mode tbody,
+.taxora-dark-mode tr,
+.taxora-dark-mode td {
+    background-color: var(--taxora-card-bg) !important;
+    color: var(--taxora-text-secondary) !important;
+}
+
+.taxora-dark-mode table thead,
+.taxora-dark-mode table thead tr,
+.taxora-dark-mode table thead tr th {
+    background-color: var(--taxora-table-header) !important;
+    background: var(--taxora-table-header) !important;
+    color: var(--taxora-text-primary) !important;
+    border-color: var(--taxora-border-color) !important;
+}
+
+.taxora-dark-mode table tfoot,
+.taxora-dark-mode table tfoot tr,
+.taxora-dark-mode table tfoot tr td {
+    background-color: var(--taxora-bg-secondary) !important;
+    color: var(--taxora-text-primary) !important;
+    border-color: var(--taxora-border-color) !important;
+}
+
+.taxora-dark-mode .export-toolbar button {
+    background-color: var(--taxora-bg-tertiary) !important;
+    border-color: var(--taxora-border-color) !important;
+    color: var(--taxora-text-primary) !important;
+}
+
+.taxora-dark-mode .export-toolbar button:hover {
+    background-color: var(--taxora-hover-bg) !important;
+}
+
+.taxora-dark-mode #sales-table-container {
+    border-color: var(--taxora-border-color) !important;
+}
