@@ -19,6 +19,8 @@ class OraBooks_Session {
 
     private function __construct() {
         $this->init_guest_token();
+        // Defer cookie-setting to 'init' action — runs before output starts, avoids 'headers already sent'
+        add_action('init', [$this, 'set_guest_cookie'], 1);
         add_action('shutdown', [$this, 'save'], 100);
         add_action('wp_login', [$this, 'migrate_on_login'], 10, 2);
     }
@@ -29,7 +31,21 @@ class OraBooks_Session {
             if (!empty($_COOKIE[$cookie_name])) {
                 $this->guest_token = sanitize_key($_COOKIE[$cookie_name]);
             } else {
+                // Generate token now — cookie will be set on the 'init' hook
                 $this->guest_token = wp_generate_password(32, false);
+            }
+        }
+    }
+
+    /**
+     * Set the guest session cookie.
+     * Hooked to 'init' to ensure headers can be sent safely.
+     */
+    public function set_guest_cookie() {
+        if (!is_user_logged_in() && !empty($this->guest_token)) {
+            $cookie_name = 'orabooks_session';
+            $existing = !empty($_COOKIE[$cookie_name]) ? $_COOKIE[$cookie_name] : '';
+            if ($existing !== $this->guest_token) {
                 setcookie($cookie_name, $this->guest_token, time() + DAY_IN_SECONDS, COOKIEPATH, COOKIE_DOMAIN, is_ssl(), true);
             }
         }
