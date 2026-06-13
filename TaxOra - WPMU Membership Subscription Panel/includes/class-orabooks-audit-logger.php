@@ -62,7 +62,7 @@ class OraBooks_Audit_Logger {
     }
     
     /**
-     * Ensure audit table exists
+     * Ensure audit table exists and has all required columns
      */
     private function ensure_audit_table_exists() {
         global $wpdb;
@@ -79,6 +79,26 @@ class OraBooks_Audit_Logger {
         
         if (!$table_exists) {
             $this->create_audit_tables();
+            return;
+        }
+        
+        // Check for and add missing columns if table already exists
+        $required_columns = array(
+            'approval_chain'  => "ALTER TABLE $table_name ADD COLUMN approval_chain longtext DEFAULT NULL",
+            'approval_status' => "ALTER TABLE $table_name ADD COLUMN approval_status varchar(20) DEFAULT 'none'",
+            'approved_by'     => "ALTER TABLE $table_name ADD COLUMN approved_by bigint(20) DEFAULT NULL",
+            'role'            => "ALTER TABLE $table_name ADD COLUMN role varchar(50) DEFAULT NULL",
+            'action'          => "ALTER TABLE $table_name ADD COLUMN action varchar(100) DEFAULT NULL",
+            'result'          => "ALTER TABLE $table_name ADD COLUMN result varchar(50) DEFAULT NULL",
+            'reason'          => "ALTER TABLE $table_name ADD COLUMN reason text DEFAULT NULL",
+        );
+        
+        foreach ($required_columns as $column_name => $alter_sql) {
+            $column_exists = $wpdb->get_var("SHOW COLUMNS FROM $table_name LIKE '$column_name'");
+            if (!$column_exists) {
+                $wpdb->query($alter_sql);
+                error_log("[OraBooks Audit Logger] Added missing column: $column_name to $table_name");
+            }
         }
     }
     
@@ -178,11 +198,26 @@ class OraBooks_Audit_Logger {
             $data['approval_chain'] = json_encode($data['approval_chain']);
         }
         
+        // Build format string dynamically from data keys to match all columns
+        $format = array();
+        foreach ($data as $key => $value) {
+            switch ($key) {
+                case 'user_id':
+                case 'entity_id':
+                case 'approved_by':
+                    $format[] = '%d';
+                    break;
+                default:
+                    $format[] = '%s';
+                    break;
+            }
+        }
+        
         // Insert log entry
         $result = $wpdb->insert(
             $table_name,
             $data,
-            array('%d', '%s', '%s', '%s', '%s', '%d', '%s', '%s', '%s', '%s', '%s', '%s', '%d')
+            $format
         );
         
         if ($result !== false) {

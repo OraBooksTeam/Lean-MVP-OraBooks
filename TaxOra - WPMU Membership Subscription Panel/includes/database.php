@@ -130,8 +130,26 @@ function orabooks_add_build_guide_audit_columns() {
     );
     
     foreach ($tables_to_update as $table) {
-        // Skip audit log table for column updates - it has its own schema
+        // Handle audit log table separately - it has additional audit-specific columns
         if ($table === $wpdb->orabooks_audit_log) {
+            $audit_columns = array(
+                'approval_chain' => "ADD COLUMN approval_chain longtext DEFAULT NULL",
+                'approval_status' => "ADD COLUMN approval_status varchar(20) DEFAULT 'none'",
+                'approved_by' => "ADD COLUMN approved_by bigint(20) DEFAULT NULL",
+                'role' => "ADD COLUMN role varchar(50) DEFAULT NULL",
+                'action' => "ADD COLUMN action varchar(100) DEFAULT NULL",
+                'result' => "ADD COLUMN result varchar(50) DEFAULT NULL",
+                'reason' => "ADD COLUMN reason text DEFAULT NULL",
+            );
+            
+            foreach ($audit_columns as $column_name => $add_sql) {
+                $column_exists = $wpdb->get_var("SHOW COLUMNS FROM $table LIKE '$column_name'");
+                if (!$column_exists) {
+                    $wpdb->query("ALTER TABLE $table $add_sql");
+                    error_log("Build Guide Compliance: Added column $column_name to audit_log table");
+                }
+            }
+            
             continue;
         }
         
@@ -512,23 +530,31 @@ function orabooks_create_tables() {
     // Audit log table (Build Guide Compliant: comprehensive audit trail)
     $sql8 = "CREATE TABLE IF NOT EXISTS {$wpdb->orabooks_audit_log} (
         id bigint(20) NOT NULL AUTO_INCREMENT,
-        user_id bigint(20) DEFAULT NULL,
+        user_id bigint(20) NOT NULL,
         action_type varchar(100) NOT NULL,
-        action_description text NULL,
-        mode varchar(20) DEFAULT 'business',
+        action_description text,
+        mode varchar(20) DEFAULT NULL,
         entity_type varchar(50) DEFAULT NULL,
         entity_id bigint(20) DEFAULT NULL,
-        before_state longtext NULL,
-        after_state longtext NULL,
-        ip_address varchar(45) NULL,
-        user_agent text NULL,
-        created_at datetime DEFAULT CURRENT_TIMESTAMP,
-        PRIMARY KEY (id),
-        KEY idx_user_id (user_id),
-        KEY idx_action_type (action_type),
-        KEY idx_mode (mode),
-        KEY idx_entity (entity_type, entity_id),
-        KEY idx_created_at (created_at)
+        before_state longtext DEFAULT NULL,
+        after_state longtext DEFAULT NULL,
+        ip_address varchar(45) DEFAULT NULL,
+        user_agent text DEFAULT NULL,
+        approval_chain longtext DEFAULT NULL,
+        approval_status varchar(20) DEFAULT 'none',
+        approved_by bigint(20) DEFAULT NULL,
+        role varchar(50) DEFAULT NULL,
+        action varchar(100) DEFAULT NULL,
+        result varchar(50) DEFAULT NULL,
+        reason text DEFAULT NULL,
+        timestamp datetime DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY  (id),
+        KEY user_id (user_id),
+        KEY action_type (action_type),
+        KEY mode (mode),
+        KEY entity (entity_type, entity_id),
+        KEY timestamp (timestamp),
+        KEY retention_cleanup (timestamp)
     ) $charset_collate;";
     dbDelta( $sql8 );
 
