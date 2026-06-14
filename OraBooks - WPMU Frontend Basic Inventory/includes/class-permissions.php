@@ -199,6 +199,43 @@ class Frontend_Inventory_Permissions {
         return $sidebar_ids;
     }
 
+    /**
+     * SL-003 Integration: Check if user has access to inventory via SL-003 RBAC.
+     * Wraps both legacy custom permissions table and new SL-003 RBAC system.
+     *
+     * @param int    $user_id     User ID
+     * @param int    $org_id      Organization ID (optional, from user_meta)
+     * @return bool True if user can access inventory
+     */
+    public static function has_rbac_access($user_id = 0, $org_id = 0) {
+        if (empty($user_id)) {
+            $user_id = get_current_user_id();
+        }
+
+        if (empty($org_id)) {
+            $org_id = (int) get_user_meta($user_id, 'org_id', true);
+        }
+
+        // Use SL-003 RBAC if available
+        // Note: Partner org blocking is handled by requireCustomerOrg() middleware
+        // in the accounting plugin and membership API layer.
+        if (class_exists('OraBooks_RBAC') && !empty($org_id)) {
+            // Check role-based permission
+            return OraBooks_RBAC::get_instance()->require_permission(
+                $user_id,
+                $org_id,
+                'access_inventory'
+            );
+        }
+
+        // Fallback to legacy access check
+        if (user_can($user_id, 'manage_options')) {
+            return true;
+        }
+
+        return false;
+    }
+
     public static function has_view_permission( $view_slug ) {
         // Dashboard is usually always accessible as the landing page
         if ( empty( $view_slug ) || $view_slug === 'dashboard' ) {

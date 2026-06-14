@@ -325,24 +325,32 @@ If you did not create an account, please ignore this email.', 'orabooks'),
         delete_user_meta($user_id, 'email_verification_token');
         delete_user_meta($user_id, 'email_verification_expires_at');
 
-        // Handle partner attribution if customer
+        // Handle partner attribution if customer using the full state machine
         $is_partner = get_user_meta($user_id, 'is_partner', true);
         if (!$is_partner) {
             $pending_partner_code = get_user_meta($user_id, 'pending_partner_code', true);
             if (!empty($pending_partner_code) && class_exists('OraBooks_Partners')) {
-                $partners = OraBooks_Partners::get_instance();                // Validate and create attribution (with email domain fraud check)
-                    $customer_email = get_userdata($user_id)->user_email;
-                    $validation = $partners->validate_partner_code($pending_partner_code, $user_id, $customer_email);
-                    if (!is_wp_error($validation)) {
-                    $partners->create_attribution(
+                $partners = OraBooks_Partners::get_instance();
+                
+                // SL-013 §5.2: Validate partner code with fraud checks
+                $customer_email = get_userdata($user_id)->user_email;
+                $validation = $partners->validate_partner_code($pending_partner_code, $user_id, $customer_email);
+                
+                if (!is_wp_error($validation)) {
+                    // Create attribution (status='pending')
+                    $attribution_result = $partners->create_attribution(
                         $validation['partner_user_id'],
                         $user_id,
-                        get_userdata($user_id)->user_email,
+                        $customer_email,
                         $pending_partner_code
                     );
-                    
-                    // Verify attribution immediately since email is now verified
-                    $partners->verify_attribution($user_id);
+
+                    if (!is_wp_error($attribution_result)) {
+                        // SL-013 §5.2: Verify attribution (pending → verified)
+                        // This also publishes partner_attribution_verified event
+                        // and updates partner_codes.last_attribution_at + resets reminder flags
+                        $partners->verify_attribution($user_id);
+                    }
                 }
                 
                 delete_user_meta($user_id, 'pending_partner_code');
@@ -494,7 +502,15 @@ If you did not create an account, please ignore this email.', 'orabooks'),
     }
 
     /**
-     * SL-013: Handle first login for partners - auto-create partner org
+     * SL-013 §5.7: Handle first login for partners - auto-create partner org
+     *
+     * Per SL-013 spec:
+     * - Disables any previous active partner code for this user
+     * - Creates partner org with status='pending_setup'
+     * - Generates new partner code with partner_type and organization_name
+     * - Issues JWT with org_id and subdomain claim = partner-{user_id}
+     * - Response includes redirect_to: '/partner/onboarding'
+     * - Uses provided organization_name for org name (or "Partner {user_id}" for individuals)
      */
     public static function handle_partner_first_login($user_id) {
         $is_partner = get_user_meta($user_id, 'is_partner', true);
@@ -515,7 +531,7 @@ If you did not create an account, please ignore this email.', 'orabooks'),
             $partner_type = 'individual';
         }
 
-        // Create partner org
+        // Create partner org per SL-013 §5.7 SQL spec
         if (class_exists('OraBooks_Organizations')) {
             $orgs = OraBooks_Organizations::get_instance();
             
@@ -540,19 +556,31 @@ If you did not create an account, please ignore this email.', 'orabooks'),
                     $teams->add_owner($user_id, $org_id);
                 }
 
-                // Generate partner code
+                // Generate partner code per SL-013 §5.7:
+                // 1. Disables any previous active code for this user
+                // 2. Creates new code with pending_review status
+                // 3. Uses partner_type and organization_name from registration
                 if (class_exists('OraBooks_Partners')) {
                     $partners = OraBooks_Partners::get_instance();
                     $partners->create_partner_code($org_id, $user_id, $partner_type, $organization_name);
                 }
 
-                // Audit events
+                // Audit events: partner_org_created, partner_code_generated, partner_onboarding_started
                 do_action('orabooks_security_event', 'partner_org_created', array(
                     'user_id' => $user_id,
                     'org_id' => $org_id,
                 ));
+                do_action('orabooks_security_event', 'partner_code_generated', array(
+                    'user_id' => $user_id,
+                    'org_id' => $org_id,
+                    'partner_type' => $partner_type,
+                ));
+                do_action('orabooks_security_event', 'partner_onboarding_started', array(
+                    'user_id' => $user_id,
+                    'org_id' => $org_id,
+                ));
 
-                // Set transient for onboarding redirect
+                // Set transient for onboarding redirect (SL-013 §5.7: response includes redirect_to: '/partner/onboarding')
                 set_transient('orabooks_partner_onboarding_' . $user_id, true, 600);
             }
         }

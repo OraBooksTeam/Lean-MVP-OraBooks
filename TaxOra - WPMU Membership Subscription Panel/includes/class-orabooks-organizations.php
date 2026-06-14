@@ -875,6 +875,157 @@ class OraBooks_Organizations {
     }
 
     /**
+     * SL-013 §5.14: requireCustomerOrg() middleware.
+     *
+     * Blocks partner orgs from accessing accounting APIs.
+     * Should be used as middleware on all accounting API endpoints.
+     *
+     * Usage in route handlers:
+     *   $org_check = OraBooks_Organizations::get_instance()->requireCustomerOrg($org_id);
+     *   if (is_wp_error($org_check)) { return $org_check; }
+     *
+     * @param int $org_id Organization ID to check
+     * @return true|WP_Error True if customer org, WP_Error if blocked
+     */
+    public function requireCustomerOrg($org_id) {
+        $org = $this->get_organization($org_id);
+        if (!$org) {
+            return new WP_Error(
+                'org_not_found',
+                __('Organization not found.', 'orabooks'),
+                array('status' => 404)
+            );
+        }
+
+        // Partner orgs cannot access accounting
+        if ($org->organization_type === 'partner') {
+            $client_ip = '0.0.0.0';
+            if (class_exists('OraBooks_Rate_Limiter')) {
+                $client_ip = OraBooks_Rate_Limiter::get_client_ip();
+            }
+
+            do_action('orabooks_security_event', 'partner_accounting_access_denied', array(
+                'org_id'       => $org_id,
+                'org_name'     => $org->name,
+                'ip_address'   => $client_ip,
+            ));
+
+            return new WP_Error(
+                'partner_accounting_restricted',
+                __('Partner accounts cannot perform accounting operations.', 'orabooks'),
+                array('status' => 403)
+            );
+        }
+
+        // Check org status is active
+        if ($org->status !== 'active') {
+            return new WP_Error(
+                'org_not_active',
+                __('Organization is not active.', 'orabooks'),
+                array('status' => 403)
+            );
+        }
+
+        return true;
+    }
+
+    /**
+     * SL-013 §5.15: Ingress subdomain blocking for accounting endpoints.
+     *
+     * Checks the current request's subdomain and blocks partner orgs
+     * from accessing accounting API paths.
+     *
+     * Hook into template_redirect or a custom router.
+     *
+     * @return true|WP_Error True if allowed, WP_Error if blocked
+     */
+    public function requireCustomerOrgBySubdomain() {
+        // Extract subdomain from current host
+        $host = isset($_SERVER['HTTP_HOST']) ? sanitize_text_field($_SERVER['HTTP_HOST']) : '';
+        $main_domain = parse_url(home_url(), PHP_URL_HOST);
+
+        if (empty($host) || empty($main_domain)) {
+            return true; // Can't determine, allow through (defensive)
+        }
+
+        // Check if this is a subdomain request
+        if (strpos($host, $main_domain) !== false && $host !== $main_domain) {
+            $subdomain_parts = explode('.', $host);
+            if (count($subdomain_parts) > 2) {
+                $subdomain = $subdomain_parts[0];
+
+                // Look up the org by subdomain
+                $org = $this->get_organization_by_subdomain($subdomain);
+                if ($org && $org->organization_type === 'partner') {
+                    // Check if the request path is an accounting endpoint
+                    $request_path = isset($_SERVER['REQUEST_URI']) ? parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH) : '';
+                    if ($this->is_accounting_path($request_path)) {
+                        $client_ip = '0.0.0.0';
+                        if (class_exists('OraBooks_Rate_Limiter')) {
+                            $client_ip = OraBooks_Rate_Limiter::get_client_ip();
+                        }
+
+                        do_action('orabooks_security_event', 'partner_ingress_accounting_blocked', array(
+                            'subdomain'    => $subdomain,
+                            'org_id'       => $org->id,
+                            'request_path' => $request_path,
+                            'ip_address'   => $client_ip,
+                        ));
+
+                        return new WP_Error(
+                            'partner_accounting_restricted',
+                            __('Partner accounts cannot perform accounting operations.', 'orabooks'),
+                            array('status' => 403)
+                        );
+                    }
+                }
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * SL-013 §5.15: Check if a request path matches accounting endpoints.
+     *
+     * @param string $path Request URI path
+     * @return bool True if this is an accounting endpoint
+     */
+    private function is_accounting_path($path) {
+        $accounting_paths = array(
+            '/accounting',
+            '/accounting/',
+            '/acc/',
+            '/journal',
+            '/ledger',
+            '/trial-balance',
+            '/income-statement',
+            '/balance-sheet',
+            '/invoice',
+            '/bill',
+            '/expense',
+            '/chart-of-accounts',
+            '/coa',
+            '/fiscal-year',
+            '/opening-balance',
+            '/asset',
+            '/deposit',
+            '/money-transfer',
+            '/advance',
+            '/quotation',
+            '/reimbursement',
+        );
+
+        foreach ($accounting_paths as $acc_path) {
+            if (strpos($path, $acc_path) === 0) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
      * SL-004: Get quota for an organization.
      *
      * @param int $org_id Organization ID

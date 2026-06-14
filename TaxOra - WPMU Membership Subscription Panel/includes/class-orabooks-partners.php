@@ -1940,10 +1940,10 @@ class OraBooks_Partners {
                     <div class="stat-value"><?php echo esc_html($attribution_counts['pending']); ?></div>
                     <div class="stat-label"><?php esc_html_e('Pending Attributions', 'orabooks'); ?></div>
                 </div>
-                <div class="stat-card">
+                <div class="stat-card" id="commission-earned-card">
                     <div class="stat-icon">💰</div>
-                    <div class="stat-value">—</div>
-                    <div class="stat-label"><?php esc_html_e('Commission Earned', 'orabooks'); ?></div>
+                    <div class="stat-value" id="commission-earned-value"><?php esc_html_e('Loading...', 'orabooks'); ?></div>
+                    <div class="stat-label"><?php esc_html_e('Commission Earned (Net)', 'orabooks'); ?></div>
                 </div>
             </div>
 
@@ -2001,16 +2001,30 @@ class OraBooks_Partners {
                 </div>
             </div>
 
-            <!-- Commission Summary Placeholder -->
-            <div class="section-card">
+            <!-- Commission Summary (SL-068) -->
+            <div class="section-card" id="commission-summary-section">
                 <div class="section-header">
                     <h2><?php esc_html_e('Commission Summary', 'orabooks'); ?></h2>
-                    <span style="font-size:13px;color:var(--text-muted);"><?php esc_html_e('Coming in SL-068', 'orabooks'); ?></span>
+                    <span style="font-size:13px;color:var(--text-muted);"><?php esc_html_e('SL-068 Active', 'orabooks'); ?></span>
                 </div>
-                <div class="section-body">
-                    <div class="empty-state">
-                        <div class="icon">📊</div>
-                        <p><?php esc_html_e('Commission tracking and payout details will appear here once the commissions system (SL-068) is activated.', 'orabooks'); ?></p>
+                <div class="section-body" id="commission-summary-body">
+                    <div class="empty-state" id="commission-loading">
+                        <div class="icon">⏳</div>
+                        <p><?php esc_html_e('Loading commission data...', 'orabooks'); ?></p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Payout Summary (SL-068) -->
+            <div class="section-card" id="payout-summary-section">
+                <div class="section-header">
+                    <h2><?php esc_html_e('Payout Summary', 'orabooks'); ?></h2>
+                    <span style="font-size:13px;color:var(--text-muted);" id="payout-status"><?php esc_html_e('Checking...', 'orabooks'); ?></span>
+                </div>
+                <div class="section-body" id="payout-summary-body">
+                    <div class="empty-state" id="payout-loading">
+                        <div class="icon">⏳</div>
+                        <p><?php esc_html_e('Loading payout data...', 'orabooks'); ?></p>
                     </div>
                 </div>
             </div>
@@ -2033,6 +2047,7 @@ class OraBooks_Partners {
         var orabooksDash = {
             ajaxUrl: '<?php echo esc_url(admin_url('admin-ajax.php')); ?>',
             nonce: '<?php echo esc_js(wp_create_nonce('orabooks_partner_reactivation')); ?>',
+            commissionNonce: '<?php echo esc_js(wp_create_nonce('orabooks_commission_dashboard')); ?>',
         };
 
         document.addEventListener('DOMContentLoaded', function() {
@@ -2118,6 +2133,186 @@ class OraBooks_Partners {
                         });
                 });
             }
+
+            // ════════════════════════════════════════════════════════════════
+            // SL-068: Load Commission Summary
+            // ════════════════════════════════════════════════════════════════
+            function loadCommissionSummary() {
+                var formData = new FormData();
+                formData.append('action', 'orabooks_commission_summary');
+                formData.append('nonce', orabooksDash.commissionNonce);
+
+                fetch(orabooksDash.ajaxUrl, { method: 'POST', body: formData })
+                    .then(function(r) { return r.json(); })
+                    .then(function(data) {
+                        if (!data.success) {
+                            document.getElementById('commission-summary-body').innerHTML =
+                                '<div class="empty-state"><div class="icon">📊</div><p>' + (data.data.message || 'Unable to load commissions.') + '</p></div>';
+                            return;
+                        }
+
+                        var s = data.data.summary;
+                        var rate = data.data.rate;
+                        var payout = data.data.payout;
+                        var config = data.data.config;
+
+                        // Update commission earned stat card
+                        var earnedEl = document.getElementById('commission-earned-value');
+                        if (earnedEl) {
+                            var totalNet = s.total_qualified_net || 0;
+                            var totalPaid = s.total_paid || 0;
+                            earnedEl.textContent = '$' + (totalNet + totalPaid).toFixed(2);
+                        }
+
+                        // Build commission summary HTML
+                        var html = '';
+                        html += '<div class="card-grid">';
+                        html += '  <div class="stat-card">';
+                        html += '    <div class="stat-icon">⏳</div>';
+                        html += '    <div class="stat-value">' + s.count_pending + '</div>';
+                        html += '    <div class="stat-label">Pending</div>';
+                        html += '  </div>';
+                        html += '  <div class="stat-card">';
+                        html += '    <div class="stat-icon">✅</div>';
+                        html += '    <div class="stat-value">$' + (s.total_qualified_net || 0).toFixed(2) + '</div>';
+                        html += '    <div class="stat-label">Qualified (Net)</div>';
+                        html += '  </div>';
+                        html += '  <div class="stat-card">';
+                        html += '    <div class="stat-icon">💰</div>';
+                        html += '    <div class="stat-value">$' + (s.total_paid || 0).toFixed(2) + '</div>';
+                        html += '    <div class="stat-label">Paid</div>';
+                        html += '  </div>';
+                        html += '</div>';
+
+                        html += '<div style="font-size:13px; color:var(--text-muted); padding:0 24px 16px;">';
+                        html += 'Commission rate: <strong>' + rate.toFixed(1) + '%</strong> | ';
+                        html += 'Payout fee: <strong>' + (config.payout_fee_rate || 2.5).toFixed(1) + '%</strong> | ';
+                        html += 'Min payout: <strong>$' + (config.min_payout_threshold || 25).toFixed(2) + '</strong>';
+                        html += '</div>';
+
+                        // Add recent commission history mini-table
+                        html += '<div style="padding:0 24px 20px;">';
+                        html += '<h3 style="font-size:14px; font-weight:600; margin:0 0 10px;">Recent Commissions</h3>';
+                        html += '<table class="attributions-table">';
+                        html += '<thead><tr><th>Customer</th><th>Gross</th><th>Fee</th><th>Net</th><th>Status</th><th>Date</th></tr></thead>';
+                        html += '<tbody id="commission-history-tbody">';
+                        html += '<tr><td colspan="6" style="text-align:center;color:var(--text-muted);">Loading history...</td></tr>';
+                        html += '</tbody></table>';
+                        html += '</div>';
+
+                        document.getElementById('commission-summary-body').innerHTML = html;
+
+                        // Now load commission history
+                        loadCommissionHistory();
+
+                        // Load payout summary
+                        loadPayoutSummary(payout, config);
+                    })
+                    .catch(function() {
+                        document.getElementById('commission-summary-body').innerHTML =
+                            '<div class="empty-state"><div class="icon">⚠️</div><p>Network error loading commissions.</p></div>';
+                    });
+            }
+
+            function loadCommissionHistory() {
+                var formData = new FormData();
+                formData.append('action', 'orabooks_commission_history');
+                formData.append('nonce', orabooksDash.commissionNonce);
+                formData.append('limit', '10');
+
+                fetch(orabooksDash.ajaxUrl, { method: 'POST', body: formData })
+                    .then(function(r) { return r.json(); })
+                    .then(function(data) {
+                        var tbody = document.getElementById('commission-history-tbody');
+                        if (!tbody) return;
+
+                        if (!data.success || !data.data.commissions || data.data.commissions.length === 0) {
+                            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text-muted);">No commission history yet.</td></tr>';
+                            return;
+                        }
+
+                        var html = '';
+                        data.data.commissions.forEach(function(c) {
+                            html += '<tr>';
+                            html += '<td>' + escHtml(c.customer_name) + '</td>';
+                            html += '<td>' + (c.commission_amount != null ? '$' + c.commission_amount.toFixed(2) : '-') + '</td>';
+                            html += '<td>' + (c.fee_amount != null ? '$' + c.fee_amount.toFixed(2) : '-') + '</td>';
+                            html += '<td>' + (c.net_amount != null ? '$' + c.net_amount.toFixed(2) : '-') + '</td>';
+                            html += '<td><span class="status-badge-sm ' + c.status + '">' + escHtml(c.status_label) + '</span></td>';
+                            html += '<td>' + (c.created_at ? c.created_at.substring(0, 10) : '-') + '</td>';
+                            html += '</tr>';
+                        });
+                        tbody.innerHTML = html;
+                    })
+                    .catch(function() {
+                        var tbody = document.getElementById('commission-history-tbody');
+                        if (tbody) {
+                            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text-muted);">Error loading history.</td></tr>';
+                        }
+                    });
+            }
+
+            function loadPayoutSummary(payout, config) {
+                var statusEl = document.getElementById('payout-status');
+                var bodyEl = document.getElementById('payout-summary-body');
+
+                if (!bodyEl) return;
+
+                var html = '';
+
+                if (payout.count === 0) {
+                    html += '<div class="empty-state">';
+                    html += '  <div class="icon">✅</div>';
+                    html += '  <p>No pending payouts. Commission earnings will appear here once customers qualify.</p>';
+                    html += '</div>';
+                    if (statusEl) statusEl.textContent = 'Ready';
+                } else {
+                    var meetsThreshold = payout.meets_threshold;
+                    html += '<div class="card-grid">';
+                    html += '  <div class="stat-card">';
+                    html += '    <div class="stat-icon">💰</div>';
+                    html += '    <div class="stat-value">$' + payout.total_gross.toFixed(2) + '</div>';
+                    html += '    <div class="stat-label">Gross Commission</div>';
+                    html += '  </div>';
+                    html += '  <div class="stat-card">';
+                    html += '    <div class="stat-icon">💸</div>';
+                    html += '    <div class="stat-value">$' + payout.total_fee.toFixed(2) + '</div>';
+                    html += '    <div class="stat-label">Gateway Fee</div>';
+                    html += '  </div>';
+                    html += '  <div class="stat-card">';
+                    html += '    <div class="stat-icon">🏦</div>';
+                    html += '    <div class="stat-value">$' + payout.total_net.toFixed(2) + '</div>';
+                    html += '    <div class="stat-label">Net Payout</div>';
+                    html += '  </div>';
+                    html += '</div>';
+
+                    if (meetsThreshold) {
+                        html += '<div style="padding:0 24px 20px;display:flex;align-items:center;gap:8px;">';
+                        html += '<span style="color:var(--success);font-size:20px;">✅</span>';
+                        html += '<span style="font-size:14px;color:var(--text-secondary);">Meets minimum payout threshold of $' + (payout.min_threshold || 25).toFixed(2) + '.</span>';
+                        html += '</div>';
+                        if (statusEl) statusEl.textContent = payout.count + ' items ready';
+                    } else {
+                        html += '<div style="padding:0 24px 20px;display:flex;align-items:center;gap:8px;">';
+                        html += '<span style="color:var(--warning);font-size:20px;">⚠️</span>';
+                        html += '<span style="font-size:14px;color:var(--text-secondary);">Below minimum payout threshold of $' + (payout.min_threshold || 25).toFixed(2) + '. Accumulate more commissions to request payout.</span>';
+                        html += '</div>';
+                        if (statusEl) statusEl.textContent = 'Below threshold';
+                    }
+                }
+
+                bodyEl.innerHTML = html;
+            }
+
+            function escHtml(str) {
+                if (!str) return '-';
+                var div = document.createElement('div');
+                div.textContent = str;
+                return div.innerHTML;
+            }
+
+            // ── Load commission data from SL-068 ──
+            loadCommissionSummary();
 
         });
         </script>

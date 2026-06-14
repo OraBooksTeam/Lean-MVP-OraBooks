@@ -77,6 +77,12 @@ function orabooks_handle_multisite_tables() {
         $wpdb->orabooks_usage_log = $prefix . 'orabooks_usage_log';
         $wpdb->orabooks_audit_log = $prefix . 'orabooks_audit_log';
         $wpdb->orabooks_refresh_tokens = $prefix . 'orabooks_refresh_tokens';
+        // ── SL-068: Commissions tables ────────────────────────────────────
+        $wpdb->orabooks_partner_commissions = $prefix . 'orabooks_partner_commissions';
+        $wpdb->orabooks_partner_commission_config = $prefix . 'orabooks_partner_commission_config';
+        $wpdb->orabooks_customer_active_status = $prefix . 'orabooks_customer_active_status';
+        $wpdb->orabooks_commission_escrow_schedule = $prefix . 'orabooks_commission_escrow_schedule';
+        $wpdb->orabooks_commissions_released = $prefix . 'orabooks_commissions_released';
     } else {
         $wpdb->orabooks_levels = $wpdb->prefix . 'orabooks_levels';
         $wpdb->orabooks_orders = $wpdb->prefix . 'orabooks_orders';
@@ -87,6 +93,12 @@ function orabooks_handle_multisite_tables() {
         $wpdb->orabooks_usage_log = $wpdb->prefix . 'orabooks_usage_log';
         $wpdb->orabooks_audit_log = $wpdb->prefix . 'orabooks_audit_log';
         $wpdb->orabooks_refresh_tokens = $wpdb->prefix . 'orabooks_refresh_tokens';
+        // ── SL-068: Commissions tables ────────────────────────────────────
+        $wpdb->orabooks_partner_commissions = $wpdb->prefix . 'orabooks_partner_commissions';
+        $wpdb->orabooks_partner_commission_config = $wpdb->prefix . 'orabooks_partner_commission_config';
+        $wpdb->orabooks_customer_active_status = $wpdb->prefix . 'orabooks_customer_active_status';
+        $wpdb->orabooks_commission_escrow_schedule = $wpdb->prefix . 'orabooks_commission_escrow_schedule';
+        $wpdb->orabooks_commissions_released = $wpdb->prefix . 'orabooks_commissions_released';
     }
 }
 
@@ -579,6 +591,35 @@ function orabooks_create_tables() {
         INDEX idx_user_revoked (user_id, revoked_at)
     ) {$charset_collate};";
     dbDelta($sql_tokens);
+
+    // ── SL-specific table creation ──────────────────────────────
+    // These are created by their respective classes but must be called
+    // during activation to ensure they exist.
+    
+    // SL-004: Organizations tables (orgs, quotas, reactivation reviews)
+    if (class_exists('OraBooks_Organizations')) {
+        OraBooks_Organizations::create_tables();
+    }
+
+    // SL-013: Partner tables (codes, attributions, terms)
+    if (class_exists('OraBooks_Partners')) {
+        OraBooks_Partners::create_tables();
+    }
+
+    // SL-013: JWT refresh tokens (separate from partner tables)
+    if (class_exists('OraBooks_JWT')) {
+        OraBooks_JWT::create_tables();
+    }
+
+    // SL-014: User/Org tables (user_org, org_invites, teams, team_members)
+    if (class_exists('OraBooks_Users_Teams')) {
+        OraBooks_Users_Teams::create_tables();
+    }
+
+    // SL-068: Commission tables (partner_commissions, commission_config, customer_active_status, escrow_schedule)
+    if (class_exists('OraBooks_Commissions')) {
+        OraBooks_Commissions::create_tables();
+    }
 
     // Create default data
     orabooks_create_default_data();
