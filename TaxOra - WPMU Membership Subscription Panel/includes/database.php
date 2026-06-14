@@ -77,6 +77,12 @@ function orabooks_handle_multisite_tables() {
         $wpdb->orabooks_usage_log = $prefix . 'orabooks_usage_log';
         $wpdb->orabooks_audit_log = $prefix . 'orabooks_audit_log';
         $wpdb->orabooks_refresh_tokens = $prefix . 'orabooks_refresh_tokens';
+        // ── SL-021: Invoicing tables ──────────────────────────────────────
+        $wpdb->orabooks_invoices = $prefix . 'orabooks_invoices';
+        $wpdb->orabooks_credit_notes = $prefix . 'orabooks_credit_notes';
+        $wpdb->orabooks_customer_wallet = $prefix . 'orabooks_customer_wallet';
+        $wpdb->orabooks_payment_allocations = $prefix . 'orabooks_payment_allocations';
+        $wpdb->orabooks_wallet_transactions = $prefix . 'orabooks_wallet_transactions';
         // ── SL-068: Commissions tables ────────────────────────────────────
         $wpdb->orabooks_partner_commissions = $prefix . 'orabooks_partner_commissions';
         $wpdb->orabooks_partner_commission_config = $prefix . 'orabooks_partner_commission_config';
@@ -93,6 +99,12 @@ function orabooks_handle_multisite_tables() {
         $wpdb->orabooks_usage_log = $wpdb->prefix . 'orabooks_usage_log';
         $wpdb->orabooks_audit_log = $wpdb->prefix . 'orabooks_audit_log';
         $wpdb->orabooks_refresh_tokens = $wpdb->prefix . 'orabooks_refresh_tokens';
+        // ── SL-021: Invoicing tables ──────────────────────────────────────
+        $wpdb->orabooks_invoices = $wpdb->prefix . 'orabooks_invoices';
+        $wpdb->orabooks_credit_notes = $wpdb->prefix . 'orabooks_credit_notes';
+        $wpdb->orabooks_customer_wallet = $wpdb->prefix . 'orabooks_customer_wallet';
+        $wpdb->orabooks_payment_allocations = $wpdb->prefix . 'orabooks_payment_allocations';
+        $wpdb->orabooks_wallet_transactions = $wpdb->prefix . 'orabooks_wallet_transactions';
         // ── SL-068: Commissions tables ────────────────────────────────────
         $wpdb->orabooks_partner_commissions = $wpdb->prefix . 'orabooks_partner_commissions';
         $wpdb->orabooks_partner_commission_config = $wpdb->prefix . 'orabooks_partner_commission_config';
@@ -614,6 +626,11 @@ function orabooks_create_tables() {
     // SL-014: User/Org tables (user_org, org_invites, teams, team_members)
     if (class_exists('OraBooks_Users_Teams')) {
         OraBooks_Users_Teams::create_tables();
+    }
+
+    // SL-021: Invoice tables (invoices, credit_notes, customer_wallet, payment_allocations)
+    if (class_exists('OraBooks_Invoices')) {
+        OraBooks_Invoices::get_instance()->create_invoice_tables();
     }
 
     // SL-068: Commission tables (partner_commissions, commission_config, customer_active_status, escrow_schedule)
