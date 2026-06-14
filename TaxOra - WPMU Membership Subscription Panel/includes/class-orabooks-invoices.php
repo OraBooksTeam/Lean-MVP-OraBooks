@@ -885,6 +885,183 @@ class OraBooks_Invoices {
     }
 
     // ══════════════════════════════════════════════════════════════════════
+    // PAYMENT RECORDING
+    // ══════════════════════════════════════════════════════════════════════
+
+    /**
+     * Record a payment against an invoice.
+     *
+     * Creates a JE: Dr Cash/Bank (specified account), Cr AR (1100).
+     * Updates invoice paid_amount, balance_due, payment_status.
+     * Records FIFO allocation in orabooks_payment_allocations.
+     * Overpayments go to wallet credit_balance.
+     *
+     * @param array $data Payment data:
+     *   - invoice_id    (int, required) Invoice to pay
+     *   - amount        (float, required) Payment amount
+     *   - payment_date  (string, optional) Payment date, defaults to now
+     *   - payment_method (string, optional) e.g. cash, bank_transfer, stripe
+     *   - gateway_ref   (string, optional) External gateway transaction ID
+     *   - cash_account  (int, optional) CoA code for cash/bank account (default: 1100 — same as AR, or configurable per org)
+     *   - notes         (string, optional) Payment notes
+     *   - created_by    (int, optional) User ID recording payment
+     * @return array|WP_Error { payment_id, allocation_id, je_id } or error
+     */
+    public function record_payment($data) {
+        global $wpdb;
+        $this->register_table_names();
+
+        $defaults = array(
+            'invoice_id'    => 0,
+            'amount'        => 0,
+            'payment_date'  => current_time('mysql'),
+            'payment_method'=> 'manual',
+            'gateway_ref'   => '',
+            'cash_account'  => 0,  // 0 means skip JE, caller provides JE separately
+            'notes'         => '',
+            'created_by'    => get_current_user_id(),
+        );
+        $data = wp_parse_args($data, $defaults);
+
+        // Validate
+        if (empty($data['invoice_id'])) {
+            return new WP_Error('missing_invoice', 'Invoice ID is required');
+        }
+        if ((float) $data['amount'] <= 0) {
+            return new WP_Error('invalid_amount', 'Payment amount must be positive');
+        }
+
+        $invoice = $this->get_invoice($data['invoice_id']);
+        if (!$invoice) {
+            return new WP_Error('invoice_not_found', 'Invoice not found');
+        }
+
+        // Only posted invoices can receive payments
+        if ($invoice->status !== self::STATUS_POSTED) {
+            return new WP_Error('invoice_not_posted', 'Can only record payments against posted invoices');
+        }
+
+        $amount = (float) $data['amount'];
+        $remaining = (float) $invoice->balance_due;
+        $apply = min($amount, $remaining);
+        $new_paid = (float) $invoice->paid_amount + $apply;
+        $new_balance = (float) $invoice->total - $new_paid;
+
+        // Determine new payment status
+        if ($new_balance <= 0.005) {
+            $payment_status = self::PAYMENT_PAID;
+        } elseif ($new_paid > 0) {
+            $payment_status = self::PAYMENT_PARTIAL;
+        } else {
+            $payment_status = self::PAYMENT_UNPAID;
+        }
+        if ($new_paid > (float) $invoice->total) {
+            $payment_status = self::PAYMENT_OVERPAID;
+        }
+
+        // ── 1. Create Journal Entry (Dr Cash, Cr AR) ───────────────────
+        $je_id = null;
+        if ((int) $data['cash_account'] > 0 && class_exists('OraBooks_Journal_Entry')) {
+            $je = OraBooks_Journal_Entry::get_instance();
+            $lines = array();
+
+            // Dr Cash/Bank account
+            $lines[] = array(
+                'account_id'  => (int) $data['cash_account'],
+                'line_type'   => 'debit',
+                'amount'      => $apply,
+                'description' => sprintf('Payment for invoice %s', $invoice->invoice_number),
+            );
+
+            // Cr Accounts Receivable
+            $lines[] = array(
+                'account_id'  => self::COA_ACCOUNTS_RECEIVABLE,
+                'line_type'   => 'credit',
+                'amount'      => $apply,
+                'description' => sprintf('Payment for invoice %s', $invoice->invoice_number),
+            );
+
+            $je_id = $je->create_journal_entry(array(
+                'description' => sprintf(
+                    __('SL-021: Payment recorded for invoice %s', 'orabooks'),
+                    $invoice->invoice_number
+                ),
+                'mode'        => $invoice->mode,
+                'source_type' => 'payment',
+                'source_id'   => $data['invoice_id'],
+                'entry_date'  => $data['payment_date'],
+                'lines'       => $lines,
+                'created_by'  => $data['created_by'],
+            ));
+
+            if (is_wp_error($je_id)) {
+                return $je_id;
+            }
+
+            // Auto-post the payment JE
+            $post_result = $je->post_journal_entry($je_id, $data['created_by']);
+            if (is_wp_error($post_result)) {
+                return $post_result;
+            }
+        }
+
+        // ── 2. Update invoice ──────────────────────────────────────────
+        $inv_table = $wpdb->orabooks_invoices;
+        $wpdb->update(
+            $inv_table,
+            array(
+                'paid_amount'    => $new_paid,
+                'balance_due'    => $new_balance,
+                'payment_status' => $payment_status,
+                'updated_by'     => $data['created_by'],
+            ),
+            array('id' => $data['invoice_id'])
+        );
+
+        // ── 3. Record FIFO allocation ──────────────────────────────────
+        $this->record_allocation(
+            $invoice->org_id,
+            $data['invoice_id'],
+            $apply,
+            'payment'
+        );
+
+        // ── 4. Overpayment goes to wallet credit ───────────────────────
+        if ($apply < $amount) {
+            $this->add_wallet_credit(
+                $invoice->org_id,
+                $invoice->customer_id,
+                $amount - $apply,
+                'invoice',
+                $data['invoice_id']
+            );
+        }
+
+        // ── 5. Refresh wallet ─────────────────────────────────────────
+        $this->refresh_wallet($invoice->org_id, $invoice->customer_id);
+
+        // ── 6. Audit ──────────────────────────────────────────────────
+        do_action('orabooks_security_event', 'payment_recorded', array(
+            'invoice_id'     => $data['invoice_id'],
+            'invoice_number' => $invoice->invoice_number,
+            'amount'         => $apply,
+            'payment_status' => $payment_status,
+            'je_id'          => $je_id,
+            'gateway_ref'    => $data['gateway_ref'],
+            'payment_method' => $data['payment_method'],
+        ));
+
+        return array(
+            'success'         => true,
+            'invoice_id'      => $data['invoice_id'],
+            'amount_applied'  => $apply,
+            'overpayment'     => max(0, $amount - $apply),
+            'payment_status'  => $payment_status,
+            'je_id'           => $je_id,
+        );
+    }
+
+    // ══════════════════════════════════════════════════════════════════════
     // CREDIT NOTES
     // ══════════════════════════════════════════════════════════════════════
 

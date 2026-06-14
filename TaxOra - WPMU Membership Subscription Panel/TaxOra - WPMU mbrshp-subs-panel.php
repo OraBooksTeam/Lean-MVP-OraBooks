@@ -158,6 +158,8 @@ if (taxora_membership_check_core_system()) {
     require_once TAXORA_MEMBERSHIP_DIR . 'includes/class-orabooks-membership-permissions.php';
     require_once TAXORA_MEMBERSHIP_DIR . 'includes/class-orabooks-subscription-plans.php';
     require_once TAXORA_MEMBERSHIP_DIR . 'includes/class-orabooks-feature-access-manager.php';
+    require_once TAXORA_MEMBERSHIP_DIR . 'includes/class-orabooks-invoices.php';
+    require_once TAXORA_MEMBERSHIP_DIR . 'includes/class-orabooks-invoices-rest.php';
     require_once TAXORA_MEMBERSHIP_DIR . 'includes/admin/admin-menu.php';
     require_once TAXORA_MEMBERSHIP_DIR . 'includes/admin/admin-pages.php';
     require_once TAXORA_MEMBERSHIP_DIR . 'includes/admin/admin-ajax.php';
