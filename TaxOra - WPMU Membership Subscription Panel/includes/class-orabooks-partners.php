@@ -70,6 +70,12 @@ class OraBooks_Partners {
 
         // ── SL-139: AJAX – Partner reactivation request ────────────────────
         add_action('wp_ajax_orabooks_partner_reactivation_request', array($this, 'ajax_reactivation_request'));
+
+        // ── SL-139: AJAX – Partner code copy tracking ────────────────────────
+        add_action('wp_ajax_orabooks_partner_code_copied', array($this, 'ajax_code_copied'));
+
+        // ── SL-139: REST API endpoints for partner onboarding & dashboard ─────
+        add_action('rest_api_init', array($this, 'register_rest_routes'));
     }
 
     /**
@@ -451,6 +457,13 @@ class OraBooks_Partners {
             array('%d')
         );
 
+        // Get partner org_id from partner_codes for event payload
+        $partner_code = $wpdb->get_row($wpdb->prepare(
+            "SELECT org_id FROM {$codes_table} WHERE user_id = %d AND status = 'active' LIMIT 1",
+            $attribution->partner_user_id
+        ));
+        $org_id = $partner_code ? (int) $partner_code->org_id : 0;
+
         // Update partner's last_attribution_at and reset reminder flags
         $wpdb->update(
             $codes_table,
@@ -469,6 +482,7 @@ class OraBooks_Partners {
             'attribution_id' => $attribution->id,
             'partner_user_id' => $attribution->partner_user_id,
             'customer_user_id' => $customer_user_id,
+            'org_id' => $org_id,
         ));
 
         // Trigger partner_attribution_verified event for SL-068
@@ -476,6 +490,8 @@ class OraBooks_Partners {
             'attribution_id' => $attribution->id,
             'partner_user_id' => $attribution->partner_user_id,
             'customer_user_id' => $customer_user_id,
+            'verified_at' => current_time('mysql'),
+            'org_id' => $org_id,
             'verified_at' => current_time('mysql'),
         ));
 
@@ -876,6 +892,29 @@ class OraBooks_Partners {
     }
 
     // ================================================================
+    // SL-139: EMAIL MASKING HELPER
+    // ================================================================
+
+    /**
+     * SL-139: Mask a customer email for privacy.
+     * Shows first character + *** + domain (e.g. j***@example.com).
+     *
+     * @param string $email The full email address
+     * @return string Masked email
+     */
+    public static function mask_email($email) {
+        if (empty($email) || !is_email($email)) {
+            return $email ?: '';
+        }
+        $parts = explode('@', $email);
+        $name = $parts[0];
+        $domain = $parts[1];
+        $first_char = mb_substr($name, 0, 1);
+        $masked_name = $first_char . str_repeat('*', max(0, strlen($name) - 1));
+        return $masked_name . '@' . $domain;
+    }
+
+    // ================================================================
     // SL-013 §5.7: Partner Onboarding Page
     // ================================================================
 
@@ -926,6 +965,13 @@ class OraBooks_Partners {
             wp_redirect(home_url('/'));
             exit;
         }
+
+        // SL-139: Fire partner_onboarding_viewed audit event + public action hook
+        do_action('orabooks_partner_onboarding_viewed', $user_id, current_time('mysql'));
+        do_action('orabooks_security_event', 'partner_onboarding_viewed', array(
+            'user_id'   => $user_id,
+            'timestamp' => current_time('mysql'),
+        ));
 
         // Render the onboarding page
         ?><!DOCTYPE html>
@@ -1107,6 +1153,10 @@ class OraBooks_Partners {
         <body>
             <?php echo do_shortcode('[orabooks_partner_onboarding]'); ?>
             <script>
+            var orabooksDash = {
+                ajaxUrl: '<?php echo esc_url(admin_url("admin-ajax.php")); ?>',
+                commissionNonce: '<?php echo esc_js(wp_create_nonce("orabooks_commission_dashboard")); ?>',
+            };
             document.addEventListener('DOMContentLoaded', function() {
                 var copyBtn = document.querySelector('.copy-btn');
                 if (copyBtn) {
@@ -1116,6 +1166,13 @@ class OraBooks_Partners {
                             codeInput.select();
                             codeInput.setSelectionRange(0, 99999);
                             navigator.clipboard.writeText(codeInput.value).then(function() {
+                                // SL-139: Track code copy
+                                var fd = new FormData();
+                                fd.append('action', 'orabooks_partner_code_copied');
+                                fd.append('nonce', orabooksDash.commissionNonce);
+                                fd.append('source', 'onboarding');
+                                fetch(orabooksDash.ajaxUrl, { method: 'POST', body: fd });
+
                                 copyBtn.textContent = '\u2705 Copied!';
                                 copyBtn.classList.add('copied');
                                 setTimeout(function() {
@@ -1287,6 +1344,14 @@ class OraBooks_Partners {
             $limit
         ));
 
+        if ($results) {
+            foreach ($results as $row) {
+                if (!empty($row->user_email)) {
+                    $row->user_email = self::mask_email($row->user_email);
+                }
+            }
+        }
+
         return $results ? $results : array();
     }
 
@@ -1366,6 +1431,13 @@ class OraBooks_Partners {
             wp_redirect(home_url('/'));
             exit;
         }
+
+        // SL-139: Fire partner_dashboard_viewed audit event + public action hook
+        do_action('orabooks_partner_dashboard_viewed', $user_id, current_time('mysql'));
+        do_action('orabooks_security_event', 'partner_dashboard_viewed', array(
+            'user_id'   => $user_id,
+            'timestamp' => current_time('mysql'),
+        ));
 
         ?><!DOCTYPE html>
         <html <?php language_attributes(); ?>>
@@ -2067,6 +2139,13 @@ class OraBooks_Partners {
                     if (codeDisplay) {
                         var code = codeDisplay.textContent || codeDisplay.innerText;
                         navigator.clipboard.writeText(code.trim()).then(function() {
+                            // SL-139: Track code copy
+                            var fd = new FormData();
+                            fd.append('action', 'orabooks_partner_code_copied');
+                            fd.append('nonce', orabooksDash.commissionNonce);
+                            fd.append('source', 'dashboard');
+                            fetch(orabooksDash.ajaxUrl, { method: 'POST', body: fd });
+
                             copyBtn.textContent = '\u2705 Copied!';
                             copyBtn.classList.add('copied');
                             setTimeout(function() {
@@ -2368,4 +2447,253 @@ class OraBooks_Partners {
             wp_send_json_error(array('message' => __('Organizations system not available.', 'orabooks')));
         }
     }
+
+    /**
+     * SL-139: AJAX handler for partner code copy tracking.
+     * POST action: orabooks_partner_code_copied
+     * Fires partner_code_copied audit event.
+     */
+    public function ajax_code_copied() {
+        if (!wp_verify_nonce($_POST['nonce'] ?? '', 'orabooks_commission_dashboard')) {
+            wp_send_json_error(array('message' => __('Security check failed.', 'orabooks')));
+        }
+
+        if (!is_user_logged_in()) {
+            wp_send_json_error(array('message' => __('You must be logged in.', 'orabooks')));
+        }
+
+        $user_id = get_current_user_id();
+        $is_partner = get_user_meta($user_id, 'is_partner', true);
+        if (!$is_partner) {
+            wp_send_json_error(array('message' => __('Partners only.', 'orabooks')));
+        }
+
+        $source = isset($_POST['source']) ? sanitize_text_field($_POST['source']) : 'unknown';
+
+        do_action('orabooks_security_event', 'partner_code_copied', array(
+            'user_id'   => $user_id,
+            'source'    => $source,
+            'timestamp' => current_time('mysql'),
+        ));
+
+        wp_send_json_success(array('message' => __('Code copy tracked.', 'orabooks')));
+    }
+}
+
+    // ================================================================
+    // SL-139: REST API ENDPOINTS
+    // ================================================================
+
+    /**
+     * SL-139: Register REST API routes for partner onboarding and dashboard.
+     * Routes:
+     * - GET /orabooks/v1/partner/onboarding
+     * - GET /orabooks/v1/partner/dashboard
+     */
+    public function register_rest_routes() {
+        register_rest_route('orabooks/v1', '/partner/onboarding', array(
+            'methods'             => 'GET',
+            'callback'            => array($this, 'rest_get_onboarding'),
+            'permission_callback' => array($this, 'rest_check_partner_auth'),
+        ));
+
+        register_rest_route('orabooks/v1', '/partner/dashboard', array(
+            'methods'             => 'GET',
+            'callback'            => array($this, 'rest_get_dashboard'),
+            'permission_callback' => array($this, 'rest_check_partner_auth'),
+        ));
+    }
+
+    /**
+     * SL-139: REST permission callback — must be logged in and have is_partner meta.
+     *
+     * @param WP_REST_Request $request Request object
+     * @return bool|WP_Error
+     */
+    public function rest_check_partner_auth($request) {
+        if (!is_user_logged_in()) {
+            return new WP_Error('rest_not_logged_in', __('You must be logged in.', 'orabooks'), array('status' => 401));
+        }
+
+        $user_id = get_current_user_id();
+        $is_partner = get_user_meta($user_id, 'is_partner', true);
+        if (!$is_partner) {
+            return new WP_Error('rest_not_partner', __('Partners only.', 'orabooks'), array('status' => 403));
+        }
+
+        return true;
+    }
+
+    /**
+     * SL-139: GET /orabooks/v1/partner/onboarding
+     *
+     * Returns partner onboarding data:
+     * - partner_code: The partner's unique code
+     * - partner_type: Type label (Individual, Agency, etc.)
+     * - organization_name: Organization name (if applicable)
+     * - status: Code status (pending_review, active, disabled, etc.)
+     * - status_label: Human-readable status label
+     * - access: Dashboard access flags (for org status checks)
+     *
+     * @param WP_REST_Request $request Request object
+     * @return WP_REST_Response|WP_Error
+     */
+    public function rest_get_onboarding($request) {
+        $user_id = get_current_user_id();
+
+        // Fire audit event
+        do_action('orabooks_partner_onboarding_viewed', $user_id, current_time('mysql'), 'rest_api');
+        do_action('orabooks_security_event', 'partner_onboarding_viewed', array(
+            'user_id'   => $user_id,
+            'timestamp' => current_time('mysql'),
+            'source'    => 'rest_api',
+        ));
+
+        // Get partner code info
+        $partner_code_obj = $this->get_partner_code($user_id);
+        if (!$partner_code_obj) {
+            return new WP_Error('code_not_found', __('Partner code not found. Contact support.', 'orabooks'), array('status' => 404));
+        }
+
+        // Partner type labels
+        $type_labels = array(
+            'individual'         => __('Individual', 'orabooks'),
+            'accountant'         => __('Accountant', 'orabooks'),
+            'agency'             => __('Agency', 'orabooks'),
+            'reseller'           => __('Reseller', 'orabooks'),
+            'strategic_partner'  => __('Strategic Partner', 'orabooks'),
+        );
+
+        $status_labels = array(
+            'pending_review' => __('Awaiting Approval', 'orabooks'),
+            'active'         => __('Active', 'orabooks'),
+            'disabled'       => __('Disabled', 'orabooks'),
+            'expired'        => __('Expired', 'orabooks'),
+            'inactive'       => __('Inactive', 'orabooks'),
+        );
+
+        $access = array();
+        if (class_exists('OraBooks_Commissions')) {
+            $comm = OraBooks_Commissions::get_instance();
+            if (method_exists($comm, 'get_partner_dashboard_access')) {
+                $access = $comm->get_partner_dashboard_access($user_id);
+            }
+        }
+
+        $data = array(
+            'partner_code'      => $partner_code_obj->partner_code,
+            'partner_type'      => $partner_code_obj->partner_type,
+            'partner_type_label' => isset($type_labels[$partner_code_obj->partner_type]) ? $type_labels[$partner_code_obj->partner_type] : $partner_code_obj->partner_type,
+            'organization_name' => $partner_code_obj->organization_name,
+            'status'            => $partner_code_obj->status,
+            'status_label'      => isset($status_labels[$partner_code_obj->status]) ? $status_labels[$partner_code_obj->status] : $partner_code_obj->status,
+            'created_at'        => $partner_code_obj->created_at,
+            'access'            => $access,
+        );
+
+        return new WP_REST_Response(array('success' => true, 'data' => $data), 200);
+    }
+
+    /**
+     * SL-139: GET /orabooks/v1/partner/dashboard
+     *
+     * Returns partner dashboard data including:
+     * - summary: Commission summary (pending/qualified/paid counts + totals)
+     * - payout: Payout summary (items, totals, threshold check)
+     * - recent_commissions: Recent commission history
+     * - attributions: Recent customer attributions with masked emails
+     * - attribution_counts: Counts by status (verified/pending/blocked)
+     * - active_customers: Active customer count
+     * - partner_code: Partner code info
+     * - config: Platform config values
+     * - access: Dashboard access flags
+     *
+     * @param WP_REST_Request $request Request object
+     * @return WP_REST_Response|WP_Error
+     */
+    public function rest_get_dashboard($request) {
+        $user_id = get_current_user_id();
+
+        // SL-139: Check org status-based access control via Commissions class
+        $access = array();
+        if (class_exists('OraBooks_Commissions')) {
+            $comm = OraBooks_Commissions::get_instance();
+            if (method_exists($comm, 'get_partner_dashboard_access')) {
+                $access = $comm->get_partner_dashboard_access($user_id);
+            }
+        }
+
+        if (isset($access['allowed']) && !$access['allowed']) {
+            do_action('orabooks_security_event', 'partner_dashboard_blocked', array(
+                'user_id' => $user_id,
+                'status'  => $access['status'] ?? 'unknown',
+                'reason'  => $access['message'] ?? '',
+                'source'  => 'rest_api',
+            ));
+            return new WP_Error('dashboard_blocked', $access['message'] ?? __('Dashboard access denied.', 'orabooks'), array('status' => 403));
+        }
+
+        // Fire audit event
+        do_action('orabooks_partner_dashboard_viewed', $user_id, current_time('mysql'), 'rest_api');
+        do_action('orabooks_security_event', 'partner_dashboard_viewed', array(
+            'user_id'   => $user_id,
+            'timestamp' => current_time('mysql'),
+            'source'    => 'rest_api',
+        ));
+
+        // Get partner code info
+        $partner_code_obj = $this->get_partner_code($user_id);
+        $active_code = $this->get_active_partner_code($user_id);
+
+        $type_labels = array(
+            'individual'         => __('Individual', 'orabooks'),
+            'accountant'         => __('Accountant', 'orabooks'),
+            'agency'             => __('Agency', 'orabooks'),
+            'reseller'           => __('Reseller', 'orabooks'),
+            'strategic_partner'  => __('Strategic Partner', 'orabooks'),
+        );
+
+        // Collect all data
+        $data = array(
+            'partner_code'   => $partner_code_obj ? $partner_code_obj->partner_code : null,
+            'partner_type'   => $partner_code_obj ? $partner_code_obj->partner_type : null,
+            'partner_type_label' => ($partner_code_obj && isset($type_labels[$partner_code_obj->partner_type])) ? $type_labels[$partner_code_obj->partner_type] : null,
+            'organization_name' => $partner_code_obj ? $partner_code_obj->organization_name : null,
+            'status'         => $partner_code_obj ? $partner_code_obj->status : null,
+            'approved_at'    => ($active_code && !empty($active_code->approved_at)) ? $active_code->approved_at : null,
+            'active_customers' => $this->get_active_customer_count($user_id),
+            'attribution_counts' => $this->get_attribution_counts($user_id),
+            'recent_attributions' => $this->get_recent_attributions($user_id, 10),
+            'access'         => $access,
+        );
+
+        // Add commission data if available
+        if (class_exists('OraBooks_Commissions')) {
+            $comm = OraBooks_Commissions::get_instance();
+
+            $data['commission_summary'] = $comm->get_commission_summary($user_id);
+            $data['payout_summary']     = $comm->get_payout_summary($user_id);
+            $data['recent_commissions'] = $comm->get_recent_commissions($user_id, 10);
+            $data['commission_rate']    = $comm->get_partner_commission_rate($user_id);
+
+            $data['config'] = array(
+                'min_payout_threshold'      => (float) $comm->get_platform_config('min_payout_threshold'),
+                'payout_fee_rate'           => (float) $comm->get_platform_config('payout_fee_rate'),
+                'customer_active_window_days' => (int) $comm->get_platform_config('customer_active_window_days'),
+            );
+
+            // Estimated pending commission value
+            $summary = $data['commission_summary'];
+            $pending_estimated = 0;
+            if ($summary['count_pending'] > 0 && $summary['count_qualified'] > 0) {
+                $avg_qualified = $summary['total_qualified_gross'] / $summary['count_qualified'];
+                $pending_estimated = round($summary['count_pending'] * $avg_qualified, 2);
+            }
+            $data['pending_estimated'] = $pending_estimated;
+            $data['customer_count']    = $comm->get_active_customer_count_for_partner($user_id);
+        }
+
+        return new WP_REST_Response(array('success' => true, 'data' => $data), 200);
+    }
+
 }

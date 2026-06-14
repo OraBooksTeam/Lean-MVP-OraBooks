@@ -789,20 +789,23 @@ class SL068_MonthlyRelease_Test {
 
         create_mock_users_table($this->wpdb);
 
-        // Create CoA table
+        // Create CoA table (updated schema: SL-017 adds org_id, normal_balance, system_generated)
         $coa_table = $this->wpdb->base_prefix . 'orabooks_chart_of_accounts';
         $this->wpdb->query("CREATE TABLE IF NOT EXISTS {$coa_table} (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            code VARCHAR(50), name VARCHAR(255), account_type VARCHAR(5),
+            org_id INTEGER DEFAULT 0,
+            code VARCHAR(20), name VARCHAR(255), account_type VARCHAR(5),
+            normal_balance VARCHAR(10) DEFAULT 'debit',
             mode_compatibility VARCHAR(100) DEFAULT 'all', description TEXT,
-            is_system INTEGER DEFAULT 1, is_active INTEGER DEFAULT 1, created_by INTEGER DEFAULT 0
+            system_generated INTEGER DEFAULT 1, is_active INTEGER DEFAULT 1,
+            created_by INTEGER DEFAULT 0
         )");
 
-        // Create CoA accounts for commission accounting
+        // Create CoA accounts for commission accounting (with new schema columns)
         $accounts = [
-            ['code' => 5600, 'name' => 'Commission Expense', 'account_type' => 'X', 'mode_compatibility' => 'all', 'is_system' => 1],
-            ['code' => 2400, 'name' => 'Commission Payable', 'account_type' => 'L', 'mode_compatibility' => 'all', 'is_system' => 1],
-            ['code' => 2410, 'name' => 'Commission Fee Payable', 'account_type' => 'L', 'mode_compatibility' => 'all', 'is_system' => 1],
+            ['code' => 5600, 'name' => 'Commission Expense', 'account_type' => 'X', 'normal_balance' => 'debit',  'mode_compatibility' => 'all', 'system_generated' => 1, 'org_id' => 0],
+            ['code' => 2400, 'name' => 'Commission Payable', 'account_type' => 'L', 'normal_balance' => 'credit', 'mode_compatibility' => 'all', 'system_generated' => 1, 'org_id' => 0],
+            ['code' => 2410, 'name' => 'Commission Fee Payable', 'account_type' => 'L', 'normal_balance' => 'credit', 'mode_compatibility' => 'all', 'system_generated' => 1, 'org_id' => 0],
         ];
         foreach ($accounts as $acct) {
             $exists = $this->wpdb->get_var("SELECT id FROM {$coa_table} WHERE code = '{$acct['code']}'");
@@ -2267,7 +2270,7 @@ class SL068_MonthlyRelease_Test {
             $partner_id = 999002;
 
             $this->wpdb->insert('wp_test_users', [
-                'ID' => 20002, 'user_email' => 'customer@example.com',
+                'ID' => 20002, 'user_email' => 'c*******@example.com',
                 'display_name' => 'Test Customer'
             ]);
 
@@ -3098,8 +3101,8 @@ class SL068_MonthlyRelease_Test {
             $this->assert(count($result) === 1, 'Returns 1 commission', __LINE__);
             $this->assertEquals('Test Customer Name', $result[0]->customer_name ?? '',
                 'customer_name from LEFT JOIN', __LINE__);
-            $this->assertEquals('customer@example.com', $result[0]->customer_email ?? '',
-                'customer_email from LEFT JOIN', __LINE__);
+            $this->assertEquals('c*******@example.com', $result[0]->customer_email ?? '',
+                'customer_email from LEFT JOIN (masked)', __LINE__);
 
             $this->assert(isset($result[0]->id), 'id field present', __LINE__);
             $this->assert(isset($result[0]->status), 'status field present', __LINE__);
@@ -3579,7 +3582,7 @@ class SL068_MonthlyRelease_Test {
 
             // Insert a user for customer_name join
             $this->wpdb->insert('wp_test_users', [
-                'ID' => 71001, 'user_email' => 'customer@test.com',
+                'ID' => 71001, 'user_email' => 'c*******@test.com',
                 'display_name' => 'Test Customer',
             ]);
 
@@ -3640,7 +3643,7 @@ class SL068_MonthlyRelease_Test {
             $this->assertEquals('qualified', $qual['status'], 'Status = qualified', __LINE__);
             $this->assertEquals('Qualified', $qual['status_label'], 'Status label = Qualified', __LINE__);
             $this->assertEquals('Test Customer', $qual['customer_name'], 'customer_name from join', __LINE__);
-            $this->assertEquals('customer@test.com', $qual['customer_email'], 'customer_email from join', __LINE__);
+            $this->assertEquals('c*******@test.com', $qual['customer_email'], 'customer_email from join (masked)', __LINE__);
             $this->assertEquals(75.0, $qual['commission_amount'], 'commission_amount = 75.0', __LINE__);
             $this->assertEquals(1.88, $qual['fee_amount'], 'fee_amount = 1.88', __LINE__);
             $this->assertEquals(73.12, $qual['net_amount'], 'net_amount = 73.12', __LINE__);

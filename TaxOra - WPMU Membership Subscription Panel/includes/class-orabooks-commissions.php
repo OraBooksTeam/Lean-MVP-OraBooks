@@ -309,25 +309,28 @@ class OraBooks_Commissions {
                 'code'               => self::COA_COMMISSION_EXPENSE,
                 'name'               => 'Commission Expense',
                 'account_type'       => OraBooks_Chart_of_Accounts::TYPE_EXPENSE,
+                'normal_balance'     => 'debit',
                 'description'        => 'SL-068: Partner commission expense recognized monthly upon release',
                 'mode_compatibility' => 'all',
-                'is_system'          => 1,
+                'system_generated'   => 1,
             ),
             array(
                 'code'               => self::COA_COMMISSION_PAYABLE,
                 'name'               => 'Commission Payable',
                 'account_type'       => OraBooks_Chart_of_Accounts::TYPE_LIABILITY,
+                'normal_balance'     => 'credit',
                 'description'        => 'SL-068: Accrued commission liability to partners',
                 'mode_compatibility' => 'all',
-                'is_system'          => 1,
+                'system_generated'   => 1,
             ),
             array(
                 'code'               => self::COA_COMMISSION_FEE_PAYABLE,
                 'name'               => 'Commission Fee Payable',
                 'account_type'       => OraBooks_Chart_of_Accounts::TYPE_LIABILITY,
+                'normal_balance'     => 'credit',
                 'description'        => 'SL-068: Payment gateway fee liability on partner commissions',
                 'mode_compatibility' => 'all',
-                'is_system'          => 1,
+                'system_generated'   => 1,
             ),
         );
 
@@ -343,13 +346,15 @@ class OraBooks_Commissions {
                         'code'               => $acct['code'],
                         'name'               => $acct['name'],
                         'account_type'       => $acct['account_type'],
+                        'normal_balance'     => $acct['normal_balance'],
                         'mode_compatibility' => $acct['mode_compatibility'],
                         'description'        => $acct['description'],
-                        'is_system'          => $acct['is_system'],
+                        'system_generated'   => $acct['system_generated'],
                         'is_active'          => 1,
+                        'org_id'             => 0,
                         'created_by'         => 0,
                     ),
-                    array('%s', '%s', '%s', '%s', '%s', '%d', '%d', '%d')
+                    array('%s', '%s', '%s', '%s', '%s', '%s', '%d', '%d', '%d', '%d')
                 );
             }
         }
@@ -1648,6 +1653,15 @@ class OraBooks_Commissions {
             $limit
         ));
 
+        // SL-139: Mask customer emails for privacy
+        if ($results) {
+            foreach ($results as $row) {
+                if (!empty($row->customer_email)) {
+                    $row->customer_email = self::mask_email($row->customer_email);
+                }
+            }
+        }
+
         return $results ? $results : array();
     }
 
@@ -1717,6 +1731,207 @@ class OraBooks_Commissions {
     }
 
     // ================================================================
+    // SL-139: EMAIL MASKING HELPER
+    // ================================================================
+
+    /**
+     * SL-139: Mask a customer email for privacy.
+     * Shows first character + *** + domain (e.g. j***@example.com).
+     *
+     * @param string $email The full email address
+     * @return string Masked email
+     */
+    public static function mask_email($email) {
+        if (empty($email)) {
+            return '';
+        }
+        $parts = explode('@', $email);
+        if (count($parts) !== 2) {
+            return $email;
+        }
+        $name = $parts[0];
+        $domain = $parts[1];
+        $first_char = mb_substr($name, 0, 1);
+        $masked_name = $first_char . str_repeat('*', max(0, strlen($name) - 1));
+        return $masked_name . '@' . $domain;
+    }
+
+    // ================================================================
+    // PARTNER DASHBOARD ACCESS CONTROL (SL-139 §5.3)
+    // ================================================================
+
+    /**
+     * SL-139 §5.3: Check partner org status and return dashboard access flags.
+     *
+     * Maps org status to access level:
+     * - fraud_freeze  → 403 (access denied)
+     * - suspended     → read-only (can view, no actions)
+     * - payout_hold   → allow with payout_disabled
+     * - inactive      → allow with reactivate flag
+     * - dormant       → allow with info banner
+     * - active        → full access
+     *
+     * @param int $user_id Partner user ID
+     * @return array {
+     *     @type bool   $allowed          Whether to allow dashboard access
+     *     @type bool   $read_only        Read-only mode (no actions)
+     *     @type bool   $payout_disabled  Payouts are on hold
+     *     @type bool   $inactive         Partner is inactive (show reactivate button)
+     *     @type bool   $dormant          Low activity (show info banner)
+     *     @type string $status           Org status code
+     *     @type string $message          User-facing status message
+     * }
+     */
+    public function get_partner_dashboard_access($user_id) {
+        global $wpdb;
+
+        $default = array(
+            'allowed'         => true,
+            'read_only'       => false,
+            'payout_disabled' => false,
+            'inactive'        => false,
+            'dormant'         => false,
+            'status'          => 'active',
+            'message'         => '',
+        );
+
+        // Get partner's org from partner_codes
+        $codes_table = $wpdb->base_prefix . 'orabooks_partner_codes';
+        $partner_code = $wpdb->get_row($wpdb->prepare(
+            "SELECT org_id FROM {$codes_table}
+             WHERE user_id = %d AND status = 'active'
+             ORDER BY created_at DESC LIMIT 1",
+            $user_id
+        ));
+
+        if (!$partner_code || !$partner_code->org_id) {
+            // Partner has no org yet — allow onboarding
+            // But check if a code exists at all (even if not active)
+            $any_code = $wpdb->get_var($wpdb->prepare(
+                "SELECT COUNT(*) FROM {$codes_table} WHERE user_id = %d",
+                $user_id
+            ));
+            if ($any_code) {
+                // Partner has a code but none active (e.g., pending_review, disabled)
+                return array(
+                    'allowed'         => true,
+                    'read_only'       => true,
+                    'payout_disabled' => true,
+                    'inactive'        => false,
+                    'dormant'         => false,
+                    'status'          => 'code_inactive',
+                    'message'         => __('Your partner code is not yet active. Awaiting admin approval.', 'orabooks'),
+                );
+            }
+            return $default;
+        }
+
+        // Get org status
+        $orgs_table = $wpdb->base_prefix . 'orabooks_organizations';
+        $org = $wpdb->get_row($wpdb->prepare(
+            "SELECT status, organization_type FROM {$orgs_table} WHERE id = %d",
+            $partner_code->org_id
+        ));
+
+        if (!$org) {
+            return $default;
+        }
+
+        $status = $org->status;
+
+        switch ($status) {
+            case 'fraud_freeze':
+                return array(
+                    'allowed'         => false,
+                    'read_only'       => false,
+                    'payout_disabled' => true,
+                    'inactive'        => false,
+                    'dormant'         => false,
+                    'status'          => 'fraud_freeze',
+                    'message'         => __('Your partner account has been frozen due to fraud. Contact support.', 'orabooks'),
+                );
+
+            case 'suspended':
+                return array(
+                    'allowed'         => true,
+                    'read_only'       => true,
+                    'payout_disabled' => true,
+                    'inactive'        => false,
+                    'dormant'         => false,
+                    'status'          => 'suspended',
+                    'message'         => __('Your partner account is suspended. You can view your data but cannot perform any actions.', 'orabooks'),
+                );
+
+            case 'payout_hold':
+                return array(
+                    'allowed'         => true,
+                    'read_only'       => false,
+                    'payout_disabled' => true,
+                    'inactive'        => false,
+                    'dormant'         => false,
+                    'status'          => 'payout_hold',
+                    'message'         => __('Your payouts are currently on hold. Contact support for details.', 'orabooks'),
+                );
+
+            case 'inactive':
+                return array(
+                    'allowed'         => true,
+                    'read_only'       => false,
+                    'payout_disabled' => true,
+                    'inactive'        => true,
+                    'dormant'         => false,
+                    'status'          => 'inactive',
+                    'message'         => __('Your partner program is inactive. You have no active customers and no new referral for 12 months. You cannot earn commissions until reactivated.', 'orabooks'),
+                );
+
+            case 'pending_setup':
+                // Partner org not yet approved by admin
+                return array(
+                    'allowed'         => true,
+                    'read_only'       => true,
+                    'payout_disabled' => true,
+                    'inactive'        => false,
+                    'dormant'         => false,
+                    'status'          => 'pending_setup',
+                    'message'         => __('Your partner account is awaiting admin approval. You can view your data but cannot perform actions.', 'orabooks'),
+                );
+
+            default:
+                // Check for dormant state (active org, but no recent attribution)
+                $dormant = false;
+                $attributions_table = $wpdb->base_prefix . 'orabooks_partner_attributions';
+                $last_attribution = $wpdb->get_var($wpdb->prepare(
+                    "SELECT attribution_date FROM {$attributions_table}
+                     WHERE partner_user_id = %d AND status = 'verified'
+                     ORDER BY attribution_date DESC LIMIT 1",
+                    $user_id
+                ));
+
+                if ($last_attribution) {
+                    $months_since = floor((time() - strtotime($last_attribution)) / (30 * DAY_IN_SECONDS));
+                    if ($months_since >= 6) {
+                        $dormant = true;
+                    }
+                } elseif ($status === 'active') {
+                    // No attributions at all and org is active — new partner, not dormant
+                    $dormant = false;
+                }
+
+                return array(
+                    'allowed'         => true,
+                    'read_only'       => false,
+                    'payout_disabled' => false,
+                    'inactive'        => false,
+                    'dormant'         => $dormant,
+                    'status'          => $status,
+                    'message'         => $dormant
+                        ? __('You haven\'t referred any new customer in the last 6 months. Share your code to earn more commissions!', 'orabooks')
+                        : '',
+                );
+        }
+    }
+
+    // ================================================================
     // AJAX ENDPOINTS
     // ================================================================
 
@@ -1737,6 +1952,20 @@ class OraBooks_Commissions {
         $is_partner = get_user_meta($user_id, 'is_partner', true);
         if (!$is_partner) {
             wp_send_json_error(array('message' => __('Partners only.', 'orabooks')));
+        }
+
+        // SL-139: Check org status-based access control
+        $access = $this->get_partner_dashboard_access($user_id);
+        if (!$access['allowed']) {
+            do_action('orabooks_security_event', 'partner_dashboard_blocked', array(
+                'user_id' => $user_id,
+                'status'  => $access['status'],
+                'reason'  => $access['message'],
+            ));
+            wp_send_json_error(array(
+                'message' => $access['message'],
+                'access'  => $access,
+            ));
         }
 
         $summary = $this->get_commission_summary($user_id);
@@ -1762,6 +1991,7 @@ class OraBooks_Commissions {
             'config'             => $config,
             'pending_estimated'  => $pending_estimated,
             'customer_count'     => $this->get_active_customer_count_for_partner($user_id),
+            'access'             => $access,
         ));
     }
 
@@ -1782,6 +2012,20 @@ class OraBooks_Commissions {
         $is_partner = get_user_meta($user_id, 'is_partner', true);
         if (!$is_partner) {
             wp_send_json_error(array('message' => __('Partners only.', 'orabooks')));
+        }
+
+        // SL-139: Check org status-based access control
+        $access = $this->get_partner_dashboard_access($user_id);
+        if (!$access['allowed']) {
+            do_action('orabooks_security_event', 'partner_dashboard_blocked', array(
+                'user_id' => $user_id,
+                'status'  => $access['status'],
+                'reason'  => $access['message'],
+            ));
+            wp_send_json_error(array(
+                'message' => $access['message'],
+                'access'  => $access,
+            ));
         }
 
         $limit = isset($_POST['limit']) ? min((int) $_POST['limit'], 50) : 10;
@@ -1817,6 +2061,7 @@ class OraBooks_Commissions {
 
         wp_send_json_success(array(
             'commissions' => $formatted,
+            'access'      => $access,
         ));
     }
 
@@ -1837,6 +2082,20 @@ class OraBooks_Commissions {
         $is_partner = get_user_meta($user_id, 'is_partner', true);
         if (!$is_partner) {
             wp_send_json_error(array('message' => __('Partners only.', 'orabooks')));
+        }
+
+        // SL-139: Check org status-based access control
+        $access = $this->get_partner_dashboard_access($user_id);
+        if (!$access['allowed']) {
+            do_action('orabooks_security_event', 'partner_dashboard_blocked', array(
+                'user_id' => $user_id,
+                'status'  => $access['status'],
+                'reason'  => $access['message'],
+            ));
+            wp_send_json_error(array(
+                'message' => $access['message'],
+                'access'  => $access,
+            ));
         }
 
         $payout = $this->get_payout_summary($user_id);
@@ -1862,6 +2121,7 @@ class OraBooks_Commissions {
             'count'           => $payout['count'],
             'meets_threshold' => $payout['meets_threshold'],
             'min_threshold'   => $payout['min_threshold'],
+            'access'          => $access,
         ));
     }
 }

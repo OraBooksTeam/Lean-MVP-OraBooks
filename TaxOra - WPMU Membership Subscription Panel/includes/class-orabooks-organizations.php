@@ -27,8 +27,9 @@ class OraBooks_Organizations {
     private static $instance = null;
 
     /**
-     * Cache for organization data
+     * Cache for organization data (with 5-minute TTL)
      */
+    const CACHE_TTL = 300; // 5 minutes
     private $org_cache = array();
 
     /**
@@ -130,6 +131,22 @@ class OraBooks_Organizations {
         ) {$charset_collate};";
         
         dbDelta($sql);
+
+        // SL-004: Add chk_partner_consistency constraint (idempotent)
+        $constraint_check = $wpdb->get_var(
+            "SELECT COUNT(*) FROM information_schema.TABLE_CONSTRAINTS
+             WHERE CONSTRAINT_NAME = 'chk_partner_consistency'
+               AND TABLE_NAME = '{$table_name}'"
+        );
+        if (!$constraint_check) {
+            $wpdb->query(
+                "ALTER TABLE {$table_name} ADD CONSTRAINT chk_partner_consistency
+                 CHECK (
+                   (organization_type = 'partner' AND tier = 'partner') OR
+                   (organization_type = 'customer' AND tier != 'partner')
+                 )"
+            );
+        }
 
         // Quotas table
         $quotas_table = $wpdb->base_prefix . 'orabooks_org_quotas';
@@ -434,9 +451,13 @@ class OraBooks_Organizations {
 
         $subdomain = trim(strtolower($subdomain));
 
-        // Check cache
+        // Check cache (with 5-minute TTL)
         if (isset($this->org_cache[$subdomain])) {
-            return $this->org_cache[$subdomain];
+            $cached = $this->org_cache[$subdomain];
+            if (is_array($cached) && isset($cached['time']) && (time() - $cached['time']) < self::CACHE_TTL) {
+                return $cached['data'];
+            }
+            unset($this->org_cache[$subdomain]); // Expired
         }
 
         $table_name = $wpdb->base_prefix . 'orabooks_organizations';
@@ -446,7 +467,7 @@ class OraBooks_Organizations {
         ));
 
         if ($org) {
-            $this->org_cache[$subdomain] = $org;
+            $this->org_cache[$subdomain] = array('data' => $org, 'time' => time());
         }
 
         return $org;
@@ -720,6 +741,12 @@ class OraBooks_Organizations {
                 array('%s'),
                 array('%d')
             );
+
+            // SL-004: Fire org_reactivated on successful partner reactivation
+            do_action('orabooks_security_event', 'org_reactivated', array(
+                'org_id' => $review->org_id,
+                'organization_type' => 'partner',
+            ));
 
             do_action('orabooks_security_event', 'partner_reactivation_approved', array(
                 'org_id' => $review->org_id,

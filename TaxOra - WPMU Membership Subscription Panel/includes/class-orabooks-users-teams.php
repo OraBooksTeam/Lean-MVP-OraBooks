@@ -328,11 +328,10 @@ class OraBooks_Users_Teams {
         ));
 
         error_log(sprintf(
-            '[OraBooks SL-014] Invite sent: org=%d, email=%s, role=%s, token=%s',
+            '[OraBooks SL-014] Invite sent: org=%d, email=%s, role=%s, token=[REDACTED]',
             $org_id,
             $email,
-            $role,
-            $raw_token
+            $role
         ));
 
         return array(
@@ -391,19 +390,29 @@ class OraBooks_Users_Teams {
             return new WP_Error('already_member', __('You are already a member of this organization.', 'orabooks'));
         }
 
-        // Add membership and mark invite as used
+        // ── Wrap add-user + mark-invite in a transaction for atomicity ──────
+        $wpdb->query('START TRANSACTION');
+
         $result = $this->add_user_to_org($user->ID, $invite->org_id, $invite->role);
         if (is_wp_error($result)) {
+            $wpdb->query('ROLLBACK');
             return $result;
         }
 
-        $wpdb->update(
+        $updated = $wpdb->update(
             $invites_table,
             array('used' => 1, 'accepted_at' => current_time('mysql')),
             array('id' => $invite->id),
             array('%d', '%s'),
             array('%d')
         );
+
+        if ($updated === false) {
+            $wpdb->query('ROLLBACK');
+            return new WP_Error('db_error', $wpdb->last_error);
+        }
+
+        $wpdb->query('COMMIT');
 
         // Audit event
         do_action('orabooks_security_event', 'invite_accepted', array(
