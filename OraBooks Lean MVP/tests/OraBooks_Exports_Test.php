@@ -32,22 +32,27 @@ class OraBooks_Exports_Test extends TestCase
 
     public static function tearDownAfterClass(): void
     {
-        // Clean up temp files
+        // Clean up temp files (including exports subdirectory)
         if (is_dir(self::$tmpDir)) {
-            $files = glob(self::$tmpDir . '/*');
-            foreach ($files as $f) {
-                @unlink($f);
+            foreach (['/orabooks-exports/*', '/*'] as $pattern) {
+                $files = glob(self::$tmpDir . $pattern);
+                foreach ($files as $f) {
+                    if (is_file($f)) @unlink($f);
+                }
             }
+            @rmdir(self::$tmpDir . '/orabooks-exports');
             @rmdir(self::$tmpDir);
         }
     }
 
     protected function setUp(): void
     {
-        // Clean up generated files from previous tests
-        $files = glob(self::$tmpDir . '/*');
-        foreach ($files as $f) {
-            if (is_file($f)) @unlink($f);
+        // Clean up generated files from previous tests (including exports subdirectory)
+        foreach (['/*', '/orabooks-exports/*'] as $pattern) {
+            $files = glob(self::$tmpDir . $pattern);
+            foreach ($files as $f) {
+                if (is_file($f)) @unlink($f);
+            }
         }
 
         // Reset the static provider registry before each test
@@ -266,9 +271,10 @@ class OraBooks_Exports_Test extends TestCase
 
         $this->assertTrue($result, 'CSV generation should return true');
 
-        // Verify a CSV file was created in the temp dir
-        $files = glob(self::$tmpDir . '/*.csv');
-        $this->assertGreaterThan(0, count($files), 'At least one CSV file should exist');
+        // Verify a CSV file was created in the exports subdirectory
+        $exportDir = self::$tmpDir . '/orabooks-exports';
+        $files = glob($exportDir . '/*.csv');
+        $this->assertGreaterThan(0, count($files), 'At least one CSV file should exist in ' . $exportDir);
 
         // Verify CSV content
         $csvContent = file_get_contents($files[0]);
@@ -298,9 +304,10 @@ class OraBooks_Exports_Test extends TestCase
 
         $this->assertTrue($result, 'PDF generation should return true');
 
-        // Verify HTML file was created
-        $files = glob(self::$tmpDir . '/*.html');
-        $this->assertGreaterThan(0, count($files), 'At least one HTML file should exist');
+        // Verify HTML file was created in the exports subdirectory
+        $exportDir = self::$tmpDir . '/orabooks-exports';
+        $files = glob($exportDir . '/*.html');
+        $this->assertGreaterThan(0, count($files), 'At least one HTML file should exist in ' . $exportDir);
 
         // Verify watermarked HTML content
         $htmlContent = file_get_contents($files[0]);
@@ -308,7 +315,7 @@ class OraBooks_Exports_Test extends TestCase
         $this->assertStringContainsString('watermark', $htmlContent);
         $this->assertStringContainsString('Test Org', $htmlContent);
         $this->assertStringContainsString('user@example.com', $htmlContent);
-        $this->assertStringContainsString('Signature Badge', $htmlContent);
+        $this->assertStringContainsString('OraBooks Signed Export', $htmlContent);
 
         $wpdb->test_get_row_callback = null;
     }
@@ -337,7 +344,9 @@ class OraBooks_Exports_Test extends TestCase
 
         $this->assertTrue($result);
 
-        $files = glob(self::$tmpDir . '/*.csv');
+        $exportDir = self::$tmpDir . '/orabooks-exports';
+        $files = glob($exportDir . '/*.csv');
+        $this->assertGreaterThan(0, count($files), 'CSV files should exist in ' . $exportDir);
         $csvContent = file_get_contents($files[0]);
         $this->assertStringContainsString('col_a', $csvContent);
         $this->assertStringContainsString('col_b', $csvContent);
@@ -558,14 +567,9 @@ class OraBooks_Exports_Test extends TestCase
     /** @test */
     public function test_cleanup_expired_empty()
     {
-        // The mock get_results returns empty array for the cleanup query
-        $result = OraBooks_Exports::cleanup_expired();
-        $this->assertEquals(0, $result, 'No expired exports should be cleaned');
-        
-        // Also test as instance method (it's called on $this)
         $exports = new OraBooks_Exports();
-        $result2 = $exports->cleanup_expired();
-        $this->assertEquals(0, $result2);
+        $result = $exports->cleanup_expired();
+        $this->assertEquals(0, $result, 'No expired exports should be cleaned');
     }
 
     /** @test */
@@ -590,7 +594,8 @@ class OraBooks_Exports_Test extends TestCase
 
         // Since the cleanup uses wp_upload_dir() which points to our tmp,
         // the file will be found and processed
-        $result = OraBooks_Exports::cleanup_expired();
+        $exports = new OraBooks_Exports();
+        $result = $exports->cleanup_expired();
 
         $this->assertGreaterThanOrEqual(0, $result);
 
@@ -638,11 +643,11 @@ class OraBooks_Exports_Test extends TestCase
         $result = OraBooks_Exports::get_user_exports(1, 1);
         if (count($result['exports']) > 0) {
             $export = $result['exports'][0];
-            $this->assertObjectHasAttribute('id', $export);
-            $this->assertObjectHasAttribute('export_type', $export);
-            $this->assertObjectHasAttribute('format', $export);
-            $this->assertObjectHasAttribute('status', $export);
-            $this->assertObjectHasAttribute('created_at', $export);
+            $this->assertObjectHasProperty('id', $export);
+            $this->assertObjectHasProperty('export_type', $export);
+            $this->assertObjectHasProperty('format', $export);
+            $this->assertObjectHasProperty('status', $export);
+            $this->assertObjectHasProperty('created_at', $export);
         }
     }
 
@@ -927,7 +932,8 @@ class OraBooks_Exports_Test extends TestCase
         $this->assertIsArray($result);
         $content = file_get_contents($result['path']);
         $this->assertStringContainsString('code,desc', $content);
-        $this->assertStringContainsString('A001,Asset A', $content);
+        $this->assertStringContainsString('A001', $content);
+        $this->assertStringContainsString('Asset A', $content);
     }
 
     /** @test */

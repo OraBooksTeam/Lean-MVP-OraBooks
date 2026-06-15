@@ -15,6 +15,20 @@ if (!defined('ABSPATH')) {
     define('ABSPATH', __DIR__ . '/../');
 }
 
+// Define WordPress constants used by the exports class
+if (!defined('OBJECT')) {
+    define('OBJECT', 'OBJECT');
+}
+if (!defined('OBJECT_K')) {
+    define('OBJECT_K', 'OBJECT_K');
+}
+if (!defined('ARRAY_A')) {
+    define('ARRAY_A', 'ARRAY_A');
+}
+if (!defined('ARRAY_N')) {
+    define('ARRAY_N', 'ARRAY_N');
+}
+
 // ---------------------------------------------------------------------------
 // 1. Stub global $wpdb
 // ---------------------------------------------------------------------------
@@ -85,24 +99,30 @@ if (!class_exists('wpdb', false)) {
             if ($this->test_get_var_callback !== null) {
                 return ($this->test_get_var_callback)($query, $x, $y);
             }
-            // Return mock org_id for user_org lookups
-            if (stripos($this->last_query, 'orabooks_user_org') !== false) {
-                return 1; // org_id = 1
+            // Check most specific patterns first, then fall through to generic ones
+            // 24h range query (most specific)
+            if (stripos($this->last_query, 'INTERVAL 24 HOUR') !== false) {
+                return 3;
             }
-            if (stripos($this->last_query, 'SELECT COUNT') !== false) {
-                return 5; // total exports
-            }
-            if (stripos($this->last_query, 'orabooks_organizations') !== false) {
-                return 'Test Org';
-            }
-            if (stripos($this->last_query, 'orabooks_users') !== false && stripos($this->last_query, 'SELECT email') !== false) {
-                return 'user@example.com';
-            }
+            // SUM(download_count)
             if (stripos($this->last_query, 'SUM(download_count)') !== false) {
                 return 42;
             }
-            if (stripos($this->last_query, 'COUNT(*)') !== false && stripos($this->last_query, 'INTERVAL 24 HOUR') !== false) {
-                return 3;
+            // orabooks_user_org lookups
+            if (stripos($this->last_query, 'orabooks_user_org') !== false) {
+                return 1; // org_id = 1
+            }
+            // Generic SELECT COUNT (covers total exports, user export counts)
+            if (stripos($this->last_query, 'SELECT COUNT') !== false || stripos($this->last_query, 'COUNT(*)') !== false) {
+                return 5;
+            }
+            // Organization name lookup
+            if (stripos($this->last_query, 'orabooks_organizations') !== false) {
+                return 'Test Org';
+            }
+            // User email lookup
+            if (stripos($this->last_query, 'orabooks_users') !== false && stripos($this->last_query, 'SELECT email') !== false) {
+                return 'user@example.com';
             }
             return 0;
         }
@@ -301,15 +321,28 @@ if (!function_exists('wp_send_json')) {
 }
 
 if (!function_exists('get_current_user_id')) {
-    function get_current_user_id() { return 1; }
-}
-
-if (!function_exists('current_user_can')) {
-    function current_user_can($capability) {
-        // Admins can do everything
-        return $capability === 'manage_options' ? true : true;
+    /**
+     * Mock get_current_user_id.
+     * Set $GLOBALS['orabooks_test_current_user_id'] to override the return value.
+     * Default: 1 (authenticated user). Set to 0 to simulate unauthenticated.
+     */
+    function get_current_user_id() {
+        return $GLOBALS['orabooks_test_current_user_id'] ?? 1;
     }
 }
+// Initialize the default
+$GLOBALS['orabooks_test_current_user_id'] = 1;
+
+if (!function_exists('current_user_can')) {
+    /**
+     * Mock current_user_can.
+     * Set $GLOBALS['orabooks_test_current_user_can'] to false to deny all capabilities.
+     */
+    function current_user_can($capability) {
+        return $GLOBALS['orabooks_test_current_user_can'] ?? true;
+    }
+}
+$GLOBALS['orabooks_test_current_user_can'] = true;
 
 if (!function_exists('__')) {
     function __($text, $domain = 'orabooks') { return $text; }
@@ -456,10 +489,15 @@ if (!function_exists('orabooks_get_user_email')) {
 }
 
 if (!function_exists('orabooks_has_permission')) {
+    /**
+     * Mock orabooks_has_permission.
+     * Set $GLOBALS['orabooks_test_has_permission'] to false to deny all permissions.
+     */
     function orabooks_has_permission($user_id, $org_id, $permission) {
-        return true; // Allow all in tests
+        return $GLOBALS['orabooks_test_has_permission'] ?? true;
     }
 }
+$GLOBALS['orabooks_test_has_permission'] = true;
 
 if (!function_exists('orabooks_json_error')) {
     function orabooks_json_error($message, $status_code = 400) {
