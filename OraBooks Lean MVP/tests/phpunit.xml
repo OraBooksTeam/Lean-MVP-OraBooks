@@ -10,5 +10,8 @@
             <file>OraBooks_Exports_Test.php</file>
             <file>OraBooks_Exports_Ajax_Test.php</file>
         </testsuite>
+        <testsuite name="OraBooks SL-013 Auth Tests">
+            <file>OraBooks_Auth_Test.php</file>
+        </testsuite>
     </testsuites>
 </phpunit>
