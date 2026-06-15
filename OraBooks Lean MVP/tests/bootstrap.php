@@ -365,11 +365,44 @@ if (!function_exists('wp_json_encode')) {
 }
 
 if (!function_exists('get_transient')) {
-    function get_transient($key) { return false; }
+    function get_transient($key) {
+        if (!isset($GLOBALS['orabooks_test_transients'])) {
+            $GLOBALS['orabooks_test_transients'] = [];
+        }
+        $entry = $GLOBALS['orabooks_test_transients'][$key] ?? null;
+        if ($entry === null) {
+            return false;
+        }
+        // Check expiry
+        if ($entry['expires_at'] !== null && $entry['expires_at'] < time()) {
+            unset($GLOBALS['orabooks_test_transients'][$key]);
+            return false;
+        }
+        return $entry['value'];
+    }
 }
 
 if (!function_exists('set_transient')) {
-    function set_transient($key, $value, $expiration = 0) { return true; }
+    function set_transient($key, $value, $expiration = 0) {
+        if (!isset($GLOBALS['orabooks_test_transients'])) {
+            $GLOBALS['orabooks_test_transients'] = [];
+        }
+        $GLOBALS['orabooks_test_transients'][$key] = [
+            'value'      => $value,
+            'expires_at' => $expiration > 0 ? time() + $expiration : null,
+        ];
+        return true;
+    }
+}
+
+if (!function_exists('delete_transient')) {
+    function delete_transient($key) {
+        if (!isset($GLOBALS['orabooks_test_transients'])) {
+            $GLOBALS['orabooks_test_transients'] = [];
+        }
+        unset($GLOBALS['orabooks_test_transients'][$key]);
+        return true;
+    }
 }
 
 if (!function_exists('do_action')) {
