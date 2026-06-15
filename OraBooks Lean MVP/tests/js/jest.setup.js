@@ -11,12 +11,14 @@
  */
 
 const $ = require('jquery');
-const fs = require('fs');
-const path = require('path');
+// fs and path imports removed — loadScript helper was unused
 
 // --- Global WordPress-like objects ---
 global.window = global.window || {};
 global.document = global.document || {};
+
+// Set readyState to 'complete' so jQuery ready handlers fire immediately
+Object.defineProperty(document, 'readyState', { value: 'complete', writable: false });
 
 // Provide orabooks_ajax global
 global.window.orabooks_ajax = {
@@ -30,6 +32,10 @@ global.window.orabooks_ajax.current_user_id = 1;
 // Mock alert and confirm
 global.window.alert = jest.fn();
 global.window.confirm = jest.fn(() => true);
+
+// Location is not reliably mockable via defineProperty in jsdom.
+// Test files that need redirect assertions use a helper to reassign window.location.href directly.
+// If href is read-only, tests will use a spy on window.location.assign instead.
 
 // Fake timers
 jest.useFakeTimers();
@@ -81,15 +87,7 @@ global.resolveAjax = function(type = 'post', responseData = {}, responseMessage 
   }
 };
 
-// Helper to reject (fail) the latest AJAX call
-global.failAjax = function(type = 'post') {
-  const calls = ajaxResponses[type];
-  if (calls.length === 0) throw new Error(`No ${type} AJAX calls to fail`);
-  const call = calls.shift();
-  if (call.fail) {
-    call.fail();
-  }
-};
+
 
 // Helper to get the latest AJAX call data without resolving
 global.latestAjax = function(type = 'post') {
@@ -103,15 +101,7 @@ global.clearAjax = function() {
   ajaxResponses.post.length = 0;
 };
 
-// Helper to load a JS file as text and execute it in the jQuery ready context
-global.loadScript = function(relativePath) {
-  const fullPath = path.resolve(__dirname, relativePath);
-  const code = fs.readFileSync(fullPath, 'utf8');
-  // Execute in a context where $ is available
-  const executeInContext = new Function('$', 'jQuery', code);
-  executeInContext($, $);
-  return code;
-};
+
 
 // Reset between tests
 beforeEach(() => {

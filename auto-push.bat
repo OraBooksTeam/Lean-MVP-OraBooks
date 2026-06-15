@@ -1,44 +1,41 @@
 @echo off
-setlocal
+setlocal enabledelayedexpansion
 
 cd /d "%~dp0"
 
 echo === Auto Git Push ===
 
-for /f "delims=" %%i in ('git rev-parse --show-toplevel 2^>nul') do set "GIT_ROOT=%%i"
-if not defined GIT_ROOT (
-    echo [ERROR] Not in a Git repository.
+git rev-parse --is-inside-work-tree >nul 2>&1
+if errorlevel 1 (
+    echo Not in a Git repository.
     pause
     exit /b 1
 )
 
-cd /d "!GIT_ROOT!"
+git rm --cached -f --ignore-unmatch nul
+git add -A 2>nul
 
-git add --ignore-errors -A .
-git rm --cached -f nul 2>nul
+set HAS_CHANGES=0
+for /f "delims=" %%i in ('git status --porcelain 2^>nul') do set HAS_CHANGES=1
 
-set CHANGES=0
-git diff --cached --quiet && git diff --quiet
-if errorlevel 1 set CHANGES=1
-
-if !CHANGES! equ 0 (
-    echo No changes detected. Nothing to push.
-    pause
-    exit /b 0
+if "!HAS_CHANGES!"=="0" (
+    echo No changes to commit.
+    goto PUSH
 )
 
-for /f "delims=" %%i in ('powershell -Command "Get-Date -Format ""yyyy-MM-dd HH:mm:ss"""') do set DATETIME=%%i
-git commit -m "Update: !DATETIME!"
+for /f "delims=" %%i in ('powershell -NoProfile -Command "Get-Date -Format 'yyyy-MM-dd HH:mm:ss'"') do set "DT=%%i"
+git commit -m "Auto commit: !DT!"
 if errorlevel 1 (
-    echo Commit skipped (likely nothing to commit yet).
-) else (
-    echo Committed.
+    echo Commit skipped.
+    goto PUSH
 )
+echo Committed.
 
+:PUSH
 echo Pushing to remote...
 git push
 if errorlevel 1 (
-    echo [ERROR] Push failed. Check remote URL or permissions.
+    echo [ERROR] Push failed.
 ) else (
     echo Push successful.
 )
