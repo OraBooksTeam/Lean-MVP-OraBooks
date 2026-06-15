@@ -12,7 +12,9 @@
         <input type="date" id="audit-filter-from">
         <input type="date" id="audit-filter-to">
         <button class="button" onclick="orabooksLoadAuditLogs()"><?php _e('Filter', 'orabooks'); ?></button>
-        <button class="button" onclick="orabooksExportAuditLogs()"><?php _e('Export CSV', 'orabooks'); ?></button>
+        <button class="button" onclick="orabooksExportAuditLogs()"><?php _e('Export CSV (Direct)', 'orabooks'); ?></button>
+        <button class="button button-primary orabooks-export-trigger" data-export-type="audit_log" data-format="csv"><?php _e('Export CSV (Async)', 'orabooks'); ?></button>
+        <button class="button orabooks-export-trigger" data-export-type="audit_log" data-format="pdf"><?php _e('Export PDF (Async)', 'orabooks'); ?></button>
     </div>
     <table class="wp-list-table widefat fixed striped">
         <thead>

@@ -28,6 +28,8 @@ class OraBooks_Shortcodes {
             add_shortcode('orabooks_notification_preferences', [self::$instance, 'notification_preferences']);
             add_shortcode('orabooks_notification_admin', [self::$instance, 'notification_admin']);
             add_shortcode('orabooks_async_queue_dashboard', [self::$instance, 'async_queue_dashboard']);
+            add_shortcode('orabooks_export_status', [self::$instance, 'export_status']);
+            add_shortcode('orabooks_export_button', [self::$instance, 'export_button']);
         }
         return self::$instance;
     }
@@ -362,6 +364,15 @@ class OraBooks_Shortcodes {
         ob_start();
         ?>
         <div class="orabooks-partner-dashboard">
+            <!-- Export Action Bar -->
+            <div class="orabooks-coa-export-actions" style="margin-bottom:16px;padding:12px 16px;background:#f0f6fc;border:1px solid #c5d9ed;border-radius:6px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+                <span style="font-weight:600;color:#1d2327;font-size:13px;">📊 <?php _e('Export:', 'orabooks'); ?></span>
+                <button class="orabooks-btn orabooks-btn-secondary orabooks-btn-sm orabooks-partner-export-trigger" data-export-type="commission_data" data-format="csv"><?php _e('Export Commissions CSV', 'orabooks'); ?></button>
+                <button class="orabooks-btn orabooks-btn-sm orabooks-partner-export-trigger" data-export-type="commission_data" data-format="pdf"><?php _e('Export Commissions PDF', 'orabooks'); ?></button>
+                <span style="color:#666;font-size:12px;margin-left:4px;">📁 <?php _e('Async — you\'ll get a notification when ready.', 'orabooks'); ?></span>
+            </div>
+            <div id="orabooks-partner-export-msg" class="orabooks-message" style="display:none;"></div>
+
             <!-- Status Banners -->
             <div id="orabooks-status-banners" class="orabooks-status-banners"></div>
             
@@ -516,8 +527,11 @@ class OraBooks_Shortcodes {
                     <a href="<?php echo esc_url(add_query_arg('tab', 'preferences')); ?>" class="orabooks-btn orabooks-btn-secondary orabooks-btn-sm">
                         ⚙️ <?php _e('Preferences', 'orabooks'); ?>
                     </a>
+                    <button class="orabooks-btn orabooks-btn-secondary orabooks-btn-sm orabooks-notif-export-trigger" data-export-type="notification_log" data-format="csv">📊 <?php _e('Export CSV', 'orabooks'); ?></button>
+                    <button class="orabooks-btn orabooks-btn-sm orabooks-notif-export-trigger" data-export-type="notification_log" data-format="pdf">📄 <?php _e('Export PDF', 'orabooks'); ?></button>
                 </div>
             </div>
+            <div id="orabooks-notif-export-msg" class="orabooks-message" style="display:none;"></div>
             
             <!-- Filters -->
             <div class="orabooks-nc-filters">
@@ -756,11 +770,15 @@ class OraBooks_Shortcodes {
         <div class="orabooks-async-queue-dashboard">
             <h2><?php _e('Async Job Queue', 'orabooks'); ?></h2>
             
-            <div class="orabooks-nc-provider-actions">
+            <div class="orabooks-nc-provider-actions" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
                 <button id="orabooks-aq-refresh" class="orabooks-btn orabooks-btn-secondary orabooks-btn-sm">
                     🔄 <?php _e('Refresh Stats', 'orabooks'); ?>
                 </button>
+                <button class="orabooks-btn orabooks-btn-primary orabooks-btn-sm orabooks-aq-export-trigger" data-export-type="async_queue_data" data-format="csv">📊 <?php _e('Export CSV', 'orabooks'); ?></button>
+                <button class="orabooks-btn orabooks-btn-sm orabooks-aq-export-trigger" data-export-type="async_queue_data" data-format="pdf">📄 <?php _e('Export PDF', 'orabooks'); ?></button>
+                <span style="color:#666;font-size:12px;">📁 <?php _e('Async export of queue data.', 'orabooks'); ?></span>
             </div>
+            <div id="orabooks-aq-export-msg" class="orabooks-message" style="display:none;"></div>
             
             <!-- Stats Summary -->
             <div class="orabooks-commission-stats" id="orabooks-aq-stats">
@@ -820,6 +838,100 @@ class OraBooks_Shortcodes {
                 </tbody>
             </table>
         </div>
+        <?php
+        return ob_get_clean();
+    }
+
+    // ================================================================
+    // EXPORT STATUS SHORTCODE (SL-114)
+    // ================================================================
+
+    /**
+     * Export Status Page Shortcode
+     * Shows "My Exports" table with status, download, cancel.
+     */
+    public function export_status() {
+        $user_id = get_current_user_id();
+        if (!$user_id) {
+            return '<p>' . __('Please log in to view your exports.', 'orabooks') . '</p>';
+        }
+        
+        ob_start();
+        ?>
+        <div class="orabooks-export-status">
+            <div class="orabooks-nc-header">
+                <h2><?php _e('My Exports', 'orabooks'); ?></h2>
+                <div class="orabooks-nc-provider-actions">
+                    <button id="orabooks-export-refresh" class="orabooks-btn orabooks-btn-secondary orabooks-btn-sm">
+                        🔄 <?php _e('Refresh', 'orabooks'); ?>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="orabooks-info-banner">
+                📁 <?php _e('Export to CSV/PDF. Large exports may take a few minutes. Download link expires in 7 days. Encrypted and watermarked for security.', 'orabooks'); ?>
+            </div>
+            
+            <!-- Stats summary -->
+            <div class="orabooks-commission-stats" id="orabooks-export-stats-summary">
+                <div class="orabooks-stat-card">
+                    <h3><?php _e('Total Exports', 'orabooks'); ?></h3>
+                    <p class="orabooks-stat-number" id="orabooks-export-total">—</p>
+                </div>
+                <div class="orabooks-stat-card">
+                    <h3><?php _e('Pending', 'orabooks'); ?></h3>
+                    <p class="orabooks-stat-number" id="orabooks-export-pending">—</p>
+                </div>
+                <div class="orabooks-stat-card">
+                    <h3><?php _e('Ready', 'orabooks'); ?></h3>
+                    <p class="orabooks-stat-number" id="orabooks-export-ready">—</p>
+                </div>
+            </div>
+            
+            <!-- Exports Table -->
+            <table class="orabooks-table">
+                <thead>
+                    <tr>
+                        <th><?php _e('Export Type', 'orabooks'); ?></th>
+                        <th><?php _e('Format', 'orabooks'); ?></th>
+                        <th><?php _e('Status', 'orabooks'); ?></th>
+                        <th><?php _e('Size', 'orabooks'); ?></th>
+                        <th><?php _e('Expires', 'orabooks'); ?></th>
+                        <th><?php _e('Downloads', 'orabooks'); ?></th>
+                        <th><?php _e('Actions', 'orabooks'); ?></th>
+                    </tr>
+                </thead>
+                <tbody id="orabooks-export-table-body">
+                    <tr><td colspan="7"><?php _e('Loading exports...', 'orabooks'); ?></td></tr>
+                </tbody>
+            </table>
+            
+            <!-- Pagination -->
+            <div id="orabooks-export-pagination" class="orabooks-pagination"></div>
+        </div>
+        <?php
+        return ob_get_clean();
+    }
+
+    /**
+     * Export Button Shortcode
+     * Renders a simple Export CSV / Export PDF button for use on report pages.
+     */
+    public function export_button($atts = []) {
+        $atts = shortcode_atts([
+            'type'   => 'report',
+            'label'  => __('Export CSV', 'orabooks'),
+            'format' => 'csv',
+            'class'  => 'orabooks-btn orabooks-btn-secondary',
+        ], $atts);
+        
+        ob_start();
+        ?>
+        <button class="orabooks-export-trigger <?php echo esc_attr($atts['class']); ?> orabooks-btn-sm"
+                data-export-type="<?php echo esc_attr($atts['type']); ?>"
+                data-format="<?php echo esc_attr($atts['format']); ?>">
+            <?php echo esc_html($atts['label']); ?>
+        </button>
         <?php
         return ob_get_clean();
     }

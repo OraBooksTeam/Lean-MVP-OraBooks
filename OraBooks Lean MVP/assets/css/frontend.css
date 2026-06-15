@@ -691,3 +691,47 @@
     font-weight: normal;
     cursor: pointer;
 }
+
+/* ============================================= */
+/* EXPORTS (SL-114) */
+/* ============================================= */
+.orabooks-export-status {
+    max-width: 960px;
+    margin: 30px auto;
+    padding: 20px;
+}
+.orabooks-export-status h2 {
+    color: #333;
+    margin: 0;
+}
+.orabooks-export-trigger {
+    transition: all 0.2s;
+}
+.orabooks-export-trigger:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+.orabooks-pagination {
+    margin-top: 16px;
+    display: flex;
+    justify-content: center;
+}
+.orabooks-pagination-inner {
+    display: flex;
+    gap: 4px;
+}
+.orabooks-pagination-inner .orabooks-btn {
+    min-width: 36px;
+    text-align: center;
+}
+
+/* Export button integration styles for report pages */
+.orabooks-export-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 16px;
+    flex-wrap: wrap;
+}
+.orabooks-export-actions .orabooks-export-trigger {
+    font-size: 13px;
+}

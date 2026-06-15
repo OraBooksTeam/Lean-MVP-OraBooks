@@ -30,3 +30,76 @@
 .orabooks-admin .orabooks-section {
     margin-top: 20px;
 }
+
+/* Shortcode button styles (for admin-rendered shortcodes) */
+.orabooks-btn {
+    display: inline-block;
+    padding: 10px 24px;
+    font-size: 14px;
+    font-weight: 600;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: center;
+    text-decoration: none;
+    line-height: 1.4;
+}
+.orabooks-btn-primary {
+    background: #007cba;
+    color: #fff;
+}
+.orabooks-btn-primary:hover {
+    background: #006a9e;
+    color: #fff;
+}
+.orabooks-btn-secondary {
+    background: #f0f0f0;
+    color: #333;
+    border-color: #ddd;
+}
+.orabooks-btn-secondary:hover {
+    background: #e0e0e0;
+}
+.orabooks-btn-sm {
+    padding: 6px 14px;
+    font-size: 12px;
+    width: auto !important;
+}
+
+/* CoA type badges */
+.orabooks-coa-type {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 3px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: lowercase;
+}
+.orabooks-coa-type-asset { background: #e3f2fd; color: #1565c0; }
+.orabooks-coa-type-liability { background: #fce4ec; color: #c62828; }
+.orabooks-coa-type-equity { background: #e8f5e9; color: #2e7d32; }
+.orabooks-coa-type-revenue { background: #fff3e0; color: #e65100; }
+.orabooks-coa-type-expense { background: #f3e5f5; color: #6a1b9a; }
+
+/* Export action bar */
+.orabooks-coa-export-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+.orabooks-message.success {
+    padding: 8px 12px;
+    background: #edf7ed;
+    border-left: 4px solid #2e7d32;
+    color: #1e4620;
+    border-radius: 2px;
+}
+.orabooks-message.error {
+    padding: 8px 12px;
+    background: #fdeded;
+    border-left: 4px solid #c62828;
+    color: #5f2120;
+    border-radius: 2px;
+}

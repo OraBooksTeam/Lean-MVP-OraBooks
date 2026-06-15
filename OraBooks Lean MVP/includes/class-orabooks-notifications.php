@@ -34,6 +34,10 @@ class OraBooks_Notifications {
             add_action('orabooks_partner_reactivation_requested', [self::$instance, 'on_partner_reactivation_requested'], 10, 2);
             add_action('orabooks_partner_reactivation_approved', [self::$instance, 'on_partner_reactivation_approved'], 10, 2);
 
+            // Listen for export events (SL-114 integration)
+            add_action('orabooks_export_ready', [self::$instance, 'on_export_ready'], 10, 2);
+            add_action('orabooks_export_failed', [self::$instance, 'on_export_failed'], 10, 2);
+
             // AJAX: Notification Center
             add_action('wp_ajax_orabooks_notifications_list', [self::$instance, 'ajax_list_notifications']);
             add_action('wp_ajax_orabooks_notifications_mark_read', [self::$instance, 'ajax_mark_read']);
@@ -1426,6 +1430,72 @@ class OraBooks_Notifications {
     // ================================================================
     // STATIC HELPER: send_notification (for external use)
     // ================================================================
+
+    // ================================================================
+    // EXPORT EVENT HANDLERS (SL-114 Integration)
+    // ================================================================
+
+    /**
+     * Handle export_ready event from SL-114.
+     * Notify the requesting user that their export is ready for download.
+     */
+    public function on_export_ready($export_id, $data) {
+        $user_id = !empty($data['user_id']) ? (int)$data['user_id'] : 0;
+        $org_id = !empty($data['org_id']) ? (int)$data['org_id'] : 0;
+        $export_type = !empty($data['export_type']) ? $data['export_type'] : 'report';
+        $format = !empty($data['format']) ? strtoupper($data['format']) : 'CSV';
+        $correlation_id = !empty($data['correlation_id']) ? $data['correlation_id'] : ('export_' . $export_id);
+
+        if (!$user_id) {
+            return;
+        }
+
+        self::send_notification($user_id, 'export_ready', [
+            'title'          => sprintf(__('Export Ready: %s (%s)', 'orabooks'), strtoupper(str_replace('_', ' ', $export_type)), $format),
+            'message'        => sprintf(
+                __('Your %s export (%s) is ready for download. The download link will expire in 7 days.', 'orabooks'),
+                strtoupper(str_replace('_', ' ', $export_type)),
+                $format
+            ),
+            'priority'       => 'normal',
+            'correlation_id' => $correlation_id,
+            'export_id'      => $export_id,
+            'export_type'    => $export_type,
+            'format'         => $format,
+        ], $org_id);
+    }
+
+    /**
+     * Handle export_failed event from SL-114.
+     * Notify the requesting user that their export failed.
+     */
+    public function on_export_failed($export_id, $data) {
+        $user_id = !empty($data['user_id']) ? (int)$data['user_id'] : 0;
+        $org_id = !empty($data['org_id']) ? (int)$data['org_id'] : 0;
+        $export_type = !empty($data['export_type']) ? $data['export_type'] : 'report';
+        $format = !empty($data['format']) ? strtoupper($data['format']) : 'CSV';
+        $error = !empty($data['error']) ? $data['error'] : __('Unknown error', 'orabooks');
+
+        if (!$user_id) {
+            return;
+        }
+
+        self::send_notification($user_id, 'export_failed', [
+            'title'          => __('Export Failed', 'orabooks'),
+            'message'        => sprintf(
+                __('Your %s export (%s) failed to generate. Error: %s. Please try again or contact support.', 'orabooks'),
+                strtoupper(str_replace('_', ' ', $export_type)),
+                $format,
+                $error
+            ),
+            'priority'       => 'high',
+            'correlation_id' => 'export_' . $export_id,
+            'export_id'      => $export_id,
+            'export_type'    => $export_type,
+            'format'         => $format,
+            'error'          => $error,
+        ], $org_id);
+    }
 
     /**
      * Static wrapper for external use (e.g., from commission engine).

@@ -665,6 +665,19 @@ class OraBooks_Database {
         }
 
         // ============================================================
+        // SL-114: Export Tables
+        // ============================================================
+        $export_tables = OraBooks_Exports::get_create_table_sql();
+        foreach ($export_tables as $sql) {
+            dbDelta($sql);
+        }
+
+        // Schedule Export cleanup cron
+        if (!wp_next_scheduled('orabooks_exports_cleanup')) {
+            wp_schedule_event(time(), 'daily', 'orabooks_exports_cleanup');
+        }
+
+        // ============================================================
         // SL-250: Notification Center Tables
         // ============================================================
         $notification_tables = OraBooks_Notifications::get_create_table_sql();

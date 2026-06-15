@@ -902,6 +902,244 @@ jQuery(document).ready(function($) {
         orabooksLoadQueueStats();
     }
     
+    // =============================================
+    // EXPORTS (SL-114)
+    // =============================================
+
+    // Load exports list
+    function orabooksLoadExports(page) {
+        page = page || 1;
+        var $tbody = $('#orabooks-export-table-body');
+        $tbody.html('<tr><td colspan="7">Loading exports...</td></tr>');
+
+        $.get(orabooks_ajax.ajax_url, {
+            action: 'orabooks_exports_list',
+            page: page
+        }, function(response) {
+            if (!response.error && response.data) {
+                var d = response.data;
+
+                // Update summary stats
+                var pending = 0, ready = 0;
+                $('#orabooks-export-total').text(d.total || 0);
+                $.each(d.exports, function(i, exp) {
+                    if (exp.status === 'pending' || exp.status === 'generating') pending++;
+                    if (exp.status === 'ready') ready++;
+                });
+                $('#orabooks-export-pending').text(pending);
+                $('#orabooks-export-ready').text(ready);
+
+                // Build table
+                var html = '';
+                if (d.exports && d.exports.length) {
+                    $.each(d.exports, function(i, exp) {
+                        var statusBadge = '';
+                        var statusLabel = exp.status.charAt(0).toUpperCase() + exp.status.slice(1);
+                        switch (exp.status) {
+                            case 'pending': statusBadge = '<span class="orabooks-badge orabooks-badge-pending">⏳ Pending</span>'; break;
+                            case 'generating': statusBadge = '<span class="orabooks-badge orabooks-badge-processing">⚙️ Generating</span>'; break;
+                            case 'ready': statusBadge = '<span class="orabooks-badge orabooks-badge-paid">✅ Ready</span>'; break;
+                            case 'failed': statusBadge = '<span class="orabooks-badge orabooks-badge-failed">❌ Failed</span>'; break;
+                            case 'expired': statusBadge = '<span class="orabooks-badge orabooks-badge-expired">⌛ Expired</span>'; break;
+                            case 'cancelled': statusBadge = '<span class="orabooks-badge">🚫 Cancelled</span>'; break;
+                            default: statusBadge = '<span class="orabooks-badge">' + statusLabel + '</span>';
+                        }
+
+                        var formatIcon = exp.format === 'pdf' ? '📄' : '📊';
+                        var actionsHtml = '';
+
+                        if (exp.can_download && exp.file_url) {
+                            actionsHtml += '<a href="' + exp.file_url + '" class="orabooks-btn orabooks-btn-sm orabooks-btn-primary" download target="_blank">⬇️ Download</a> ';
+                        }
+                        if (exp.can_cancel) {
+                            actionsHtml += '<button class="orabooks-btn orabooks-btn-sm orabooks-btn-secondary orabooks-export-cancel" data-id="' + exp.id + '">❌ Cancel</button>';
+                        }
+                        if (exp.status === 'ready' && exp.file_hash) {
+                            actionsHtml += '<span class="orabooks-nc-item-correlation" title="SHA-256: ' + exp.file_hash + '">🔒</span>';
+                        }
+
+                        html += '<tr>' +
+                            '<td><strong>' + (exp.export_type || '—') + '</strong></td>' +
+                            '<td>' + formatIcon + ' ' + exp.format.toUpperCase() + '</td>' +
+                            '<td>' + statusBadge + '</td>' +
+                            '<td>' + (exp.file_size || '—') + '</td>' +
+                            '<td>' + (exp.time_remaining || exp.expires_at || '—') + '</td>' +
+                            '<td>' + (exp.download_count || 0) + '</td>' +
+                            '<td>' + (actionsHtml || '—') + '</td>' +
+                        '</tr>';
+                    });
+                } else {
+                    html = '<tr><td colspan="7" class="orabooks-nc-empty">📂 No exports found. Go to a report page and click "Export" to create one.</td></tr>';
+                }
+                $tbody.html(html);
+
+                // Pagination
+                var pagHtml = '';
+                if (d.total_pages > 1) {
+                    pagHtml = '<div class="orabooks-pagination-inner">';
+                    for (var p = 1; p <= d.total_pages; p++) {
+                        pagHtml += '<button class="orabooks-btn orabooks-btn-sm ' + (p === d.page ? 'orabooks-btn-primary' : 'orabooks-btn-secondary') + ' orabooks-export-page" data-page="' + p + '">' + p + '</button> ';
+                    }
+                    pagHtml += '</div>';
+                }
+                $('#orabooks-export-pagination').html(pagHtml);
+            } else {
+                $tbody.html('<tr><td colspan="7">Error loading exports.</td></tr>');
+            }
+        });
+    }
+
+    // Export button click — trigger request
+    $(document).on('click', '.orabooks-export-trigger', function() {
+        var $btn = $(this);
+        var exportType = $btn.data('export-type') || 'report';
+        var format = $btn.data('format') || 'csv';
+
+        $btn.prop('disabled', true).text('⏳ Requesting...');
+
+        $.post(orabooks_ajax.ajax_url, {
+            action: 'orabooks_export_request',
+            export_type: exportType,
+            format: format,
+            parameters: JSON.stringify({})
+        }, function(response) {
+            if (response.error) {
+                alert('Error: ' + response.message);
+                $btn.prop('disabled', false).text('Export ' + format.toUpperCase());
+            } else {
+                $btn.text('✅ Requested').addClass('orabooks-badge-paid');
+                // Refresh exports list if visible
+                if ($('.orabooks-export-status').length) {
+                    orabooksLoadExports(1);
+                }
+                // Show success message
+                var msg = $('<div class="orabooks-message success" style="display:block;margin-top:8px;">✅ Export requested! <a href="?page=orabooks-exports">View status</a></div>');
+                $btn.closest('td, div, p').after(msg);
+                setTimeout(function() { msg.fadeOut(); }, 5000);
+            }
+        }).fail(function() {
+            $btn.prop('disabled', false).text('Export ' + format.toUpperCase());
+            alert('Network error. Please try again.');
+        });
+    });
+
+    // Cancel export
+    $(document).on('click', '.orabooks-export-cancel', function() {
+        var $btn = $(this);
+        var exportId = $btn.data('id');
+
+        if (!confirm('Cancel this export request?')) return;
+
+        $btn.prop('disabled', true).text('Cancelling...');
+
+        $.post(orabooks_ajax.ajax_url, {
+            action: 'orabooks_export_cancel',
+            export_id: exportId
+        }, function(response) {
+            if (response.error) {
+                alert('Error: ' + response.message);
+                $btn.prop('disabled', false).text('❌ Cancel');
+            } else {
+                orabooksLoadExports();
+            }
+        });
+    });
+
+    // Pagination click
+    $(document).on('click', '.orabooks-export-page', function() {
+        orabooksLoadExports($(this).data('page'));
+    });
+
+    // Refresh button
+    $(document).on('click', '#orabooks-export-refresh', function() {
+        orabooksLoadExports();
+    });
+
+    // Initialize export status page
+    if ($('.orabooks-export-status').length) {
+        orabooksLoadExports(1);
+    }
+
+    // =============================================
+    // PARTNER DASHBOARD EXPORT (SL-114) — frontend
+    // =============================================
+    $(document).on('click', '.orabooks-partner-export-trigger', function() {
+        var $btn = $(this);
+        var origText = $btn.text();
+        var exportType = $btn.data('export-type') || 'commission_data';
+        var format = $btn.data('format') || 'csv';
+
+        $btn.prop('disabled', true).text('⏳ Requesting...');
+
+        $.post(orabooks_ajax.ajax_url, {
+            action: 'orabooks_export_request',
+            export_type: exportType,
+            format: format,
+            parameters: JSON.stringify({
+                columns: ['customer', 'release_month', 'amount', 'status', 'expires_at', 'earned_at']
+            })
+        }, function(response) {
+            if (response.error) {
+                alert('Error: ' + response.message);
+                $btn.prop('disabled', false).text(origText);
+            } else {
+                $btn.text('✅ Requested').prop('disabled', true);
+                var $msg = $('#orabooks-partner-export-msg');
+                $msg.removeClass('error').addClass('success')
+                    .html('✅ Export requested! <a href="?page=orabooks-exports">View status</a>')
+                    .css('display', 'block');
+                setTimeout(function() {
+                    $msg.fadeOut();
+                    $btn.text(origText).prop('disabled', false);
+                }, 6000);
+            }
+        }).fail(function() {
+            $btn.prop('disabled', false).text(origText);
+        });
+    });
+
+    // =============================================
+    // NOTIFICATION CENTER EXPORT (SL-114) — frontend
+    // =============================================
+    $(document).on('click', '.orabooks-notif-export-trigger', function() {
+        var $btn = $(this);
+        var origText = $btn.text();
+        var exportType = $btn.data('export-type') || 'notification_log';
+        var format = $btn.data('format') || 'csv';
+
+        var parameters = {
+            event_type: $('#orabooks-nc-filter-event').val() || '',
+            priority: $('#orabooks-nc-filter-priority').val() || '',
+            status: $('#orabooks-nc-filter-status').val() || ''
+        };
+
+        $btn.prop('disabled', true).text('⏳ Requesting...');
+
+        $.post(orabooks_ajax.ajax_url, {
+            action: 'orabooks_export_request',
+            export_type: exportType,
+            format: format,
+            parameters: JSON.stringify(parameters)
+        }, function(response) {
+            if (response.error) {
+                alert('Error: ' + response.message);
+                $btn.prop('disabled', false).text(origText);
+            } else {
+                $btn.text('✅ Requested').prop('disabled', true);
+                var $msg = $('#orabooks-notif-export-msg');
+                $msg.removeClass('error').addClass('success')
+                    .html('✅ Export requested! <a href="?page=orabooks-exports">View status</a>')
+                    .css('display', 'block');
+                setTimeout(function() {
+                    $msg.fadeOut();
+                    $btn.text(origText).prop('disabled', false);
+                }, 6000);
+            }
+        }).fail(function() {
+            $btn.prop('disabled', false).text(origText);
+        });
+    });
+
     // Commission admin config form
     if ($('#orabooks-commission-config-form').length) {
         // Load current config

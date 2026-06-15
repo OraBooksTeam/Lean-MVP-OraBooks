@@ -37,6 +37,7 @@ require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-commission.php';
 require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-notifications.php';
 require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-event-bus.php';
 require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-async-queue.php';
+require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-exports.php';
 require_once ORABOOKS_PLUGIN_DIR . 'includes/helpers.php';
 
 // Initialize plugin
@@ -65,6 +66,70 @@ function orabooks_init() {
     OraBooks_EventBus::register_consumers();
     OraBooks_AsyncQueue::init();
     OraBooks_AsyncQueue::register_default_handlers();
+    OraBooks_Exports::init();
+    OraBooks_Exports::register_report_provider('coa', function($params) {
+        // Reuse OraBooks_COA if available
+        if (class_exists('OraBooks_COA') && method_exists('OraBooks_COA', 'get_accounts')) {
+            $org_id = intval($params['org_id'] ?? 0);
+            if ($org_id) {
+                $accounts = OraBooks_COA::get_accounts($org_id);
+                return is_array($accounts) ? $accounts : null;
+            }
+        }
+        return null;
+    });
+    // Register the generate_export handler with SL-303 async queue
+    // Register notification_log report provider for SL-114 export
+    OraBooks_Exports::register_report_provider('notification_log', function($params) {
+        if (class_exists('OraBooks_Notifications') && method_exists('OraBooks_Notifications', 'get_notifications')) {
+            $user_id = intval($params['user_id'] ?? get_current_user_id());
+            $org_id = intval($params['org_id'] ?? 0);
+            $args = [];
+            if (!empty($params['from_date'])) $args['from_date'] = $params['from_date'];
+            if (!empty($params['to_date'])) $args['to_date'] = $params['to_date'];
+            if (!empty($params['event_type'])) $args['event_type'] = $params['event_type'];
+            if (!empty($params['priority'])) $args['priority'] = $params['priority'];
+            if ($user_id) {
+                return OraBooks_Notifications::get_notifications($user_id, $args);
+            }
+        }
+        return null;
+    });
+    // Register commission_data report provider
+    OraBooks_Exports::register_report_provider('commission_data', function($params) {
+        if (class_exists('OraBooks_Commission') && method_exists('OraBooks_Commission', 'get_earned_commissions')) {
+            $user_id = intval($params['user_id'] ?? get_current_user_id());
+            $org_id = intval($params['org_id'] ?? 0);
+            try {
+                $data = OraBooks_Commission::get_earned_commissions($user_id, $org_id);
+                return is_array($data) ? $data : null;
+            } catch (\Exception $e) {
+                return null;
+            }
+        }
+        return null;
+    });
+    // Register users_data report provider for SL-114 export
+    OraBooks_Exports::register_report_provider('users_data', function($params) {
+        global $wpdb;
+        $table = OraBooks_Database::table('users');
+        $users = $wpdb->get_results("SELECT id, email, is_active, is_email_verified, is_2fa_enabled, auth_provider, org_id, is_partner, created_at FROM {$table} ORDER BY created_at DESC LIMIT 1000");
+        return $users ?: null;
+    });
+    // Register async_queue_data report provider
+    OraBooks_Exports::register_report_provider('async_queue_data', function($params) {
+        if (class_exists('OraBooks_AsyncQueue') && method_exists('OraBooks_AsyncQueue', 'get_queue_stats')) {
+            try {
+                $stats = OraBooks_AsyncQueue::get_queue_stats();
+                return $stats;
+            } catch (\Exception $e) {
+                return null;
+            }
+        }
+        return null;
+    });
+    // Register the generate_export handler with SL-303 async queue
+    OraBooks_AsyncQueue::register_handler('generate_export', ['OraBooks_Exports', 'generate_export_job']);
 }
 
 // Activation hook
@@ -103,6 +168,7 @@ function orabooks_deactivate() {
     wp_clear_scheduled_hook('orabooks_async_queue_process');
     wp_clear_scheduled_hook('orabooks_async_queue_heartbeat');
     wp_clear_scheduled_hook('orabooks_async_queue_monitor');
+    wp_clear_scheduled_hook('orabooks_exports_cleanup');
 }
 
 // Add custom cron schedule for every_minute
@@ -197,6 +263,26 @@ function orabooks_admin_menu() {
         'orabooks-job-queue',
         'orabooks_admin_job_queue'
     );
+
+    // Chart of Accounts page (admin only)
+    add_submenu_page(
+        'orabooks',
+        'Chart of Accounts',
+        'Chart of Accounts',
+        'manage_options',
+        'orabooks-coa',
+        'orabooks_admin_coa'
+    );
+
+    // My Exports page
+    add_submenu_page(
+        'orabooks',
+        'My Exports',
+        'My Exports',
+        'read',
+        'orabooks-exports',
+        'orabooks_admin_exports'
+    );
 }
 
 // Admin page render functions
@@ -208,6 +294,12 @@ function orabooks_admin_notifications() {
 }
 function orabooks_admin_job_queue() {
     echo do_shortcode('[orabooks_async_queue_dashboard]');
+}
+function orabooks_admin_exports() {
+    echo do_shortcode('[orabooks_export_status]');
+}
+function orabooks_admin_coa() {
+    include ORABOOKS_PLUGIN_DIR . 'admin/coa.php';
 }
 function orabooks_admin_dashboard() {
     include ORABOOKS_PLUGIN_DIR . 'admin/dashboard.php';
