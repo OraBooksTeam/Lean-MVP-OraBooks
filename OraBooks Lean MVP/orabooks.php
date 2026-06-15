@@ -169,6 +169,10 @@ function orabooks_activate() {
     require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-database.php';
     OraBooks_Database::install();
     
+    // Flush rewrite rules so OIDC routes (/orabooks-google-login, /orabooks-google-callback) work
+    orabooks_oidc_rewrite_rules();
+    flush_rewrite_rules();
+    
     // Set default options
     add_option('orabooks_db_version', ORABOOKS_DB_VERSION);
     add_option('orabooks_block_same_email_domain', 0);
@@ -350,6 +354,75 @@ function orabooks_admin_audit() {
 
 function orabooks_admin_settings() {
     include ORABOOKS_PLUGIN_DIR . 'admin/settings.php';
+}
+
+// ============================================
+// SL-013: Google OIDC Rewrite Rules
+// ============================================
+add_action('init', 'orabooks_oidc_rewrite_rules');
+function orabooks_oidc_rewrite_rules() {
+    add_rewrite_tag('%orabooks_oidc%', '([^&]+)');
+    add_rewrite_rule('^orabooks-google-login/?$', 'index.php?orabooks_oidc=initiate', 'top');
+    add_rewrite_rule('^orabooks-google-callback/?$', 'index.php?orabooks_oidc=callback', 'top');
+}
+
+add_action('template_redirect', 'orabooks_oidc_route_handler');
+function orabooks_oidc_route_handler() {
+    $action = get_query_var('orabooks_oidc');
+    if (!$action) {
+        return;
+    }
+    
+    if ($action === 'initiate') {
+        // Redirect user to Google OAuth authorization URL
+        $url = OraBooks_Auth::initiate_google_oauth();
+        if (is_wp_error($url)) {
+            wp_die($url->get_error_message());
+        }
+        wp_redirect($url);
+        exit;
+    }
+    
+    if ($action === 'callback') {
+        $code = $_GET['code'] ?? '';
+        $state = $_GET['state'] ?? '';
+        
+        if (empty($code) || empty($state)) {
+            wp_die('Missing authorization code or state parameter.');
+        }
+        
+        $result = OraBooks_Auth::handle_google_callback($code, $state);
+        
+        if (is_wp_error($result)) {
+            wp_die($result->get_error_message());
+        }
+        
+        // Login successful — redirect to dashboard with token in URL fragment
+        $redirect = home_url('/dashboard/');
+        if (!empty($result['needs_tier_selection'])) {
+            $redirect = home_url('/tier-selection/');
+        } elseif (!empty($result['org_id'])) {
+            $org = OraBooks_Organization::get($result['org_id']);
+            if ($org) {
+                $redirect = 'https://' . $org->subdomain . '.orabooks.app/dashboard';
+            }
+        }
+        
+        // Store token in cookie for the frontend to pick up
+        if (!empty($result['token'])) {
+            setcookie('orabooks_token', $result['token'], time() + 900, '/', '', is_ssl(), true);
+        }
+        
+        wp_redirect($redirect);
+        exit;
+    }
+}
+
+// Flush rewrite rules on activation
+add_action('after_switch_theme', 'orabooks_flush_rewrites');
+function orabooks_flush_rewrites() {
+    orabooks_oidc_rewrite_rules();
+    flush_rewrite_rules();
 }
 
 // Enqueue admin assets

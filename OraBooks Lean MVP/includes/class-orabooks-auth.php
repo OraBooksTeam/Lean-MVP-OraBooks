@@ -29,6 +29,12 @@ class OraBooks_Auth {
             add_action('wp_ajax_orabooks_2fa_challenge', [self::$instance, 'ajax_2fa_challenge']);
             add_action('wp_ajax_orabooks_logout', [self::$instance, 'ajax_logout']);
             add_action('wp_ajax_orabooks_select_tier', [self::$instance, 'ajax_select_tier']);
+            // SL-013: Google OIDC endpoints
+            add_action('wp_ajax_nopriv_orabooks_oidc_initiate', [self::$instance, 'ajax_oidc_initiate']);
+            add_action('wp_ajax_nopriv_orabooks_oidc_callback', [self::$instance, 'ajax_oidc_callback']);
+            // SL-013: 501 reserved endpoints for MVP
+            add_action('wp_ajax_orabooks_admin_approve_partner', [self::$instance, 'ajax_not_implemented']);
+            add_action('wp_ajax_orabooks_admin_reject_partner', [self::$instance, 'ajax_not_implemented']);
         }
         return self::$instance;
     }
@@ -232,7 +238,7 @@ class OraBooks_Auth {
     /**
      * Handle login
      */
-    public static function login($email, $password) {
+    public static function login($email, $password, $expected_subdomain = '') {
         global $wpdb;
         
         $table_users = OraBooks_Database::table('users');
@@ -301,6 +307,17 @@ class OraBooks_Auth {
         $org = OraBooks_Organization::get($user->org_id);
         if ($org && $org->status !== 'active') {
             return new WP_Error('org_inactive', 'Your organization is not active. Please contact support.');
+        }
+        
+        // Subdomain mismatch check (if expected_subdomain is provided)
+        if ($org && !empty($expected_subdomain)) {
+            if (strtolower(trim($expected_subdomain)) !== strtolower(trim($org->subdomain))) {
+                orabooks_log_event('login_subdomain_mismatch', "Subdomain mismatch for {$email}: expected {$expected_subdomain}, org has {$org->subdomain}", 'warning', [
+                    'expected' => $expected_subdomain,
+                    'actual' => $org->subdomain
+                ], $user->id, $user->org_id);
+                return new WP_Error('subdomain_mismatch', 'This account does not belong to the specified organization subdomain.');
+            }
         }
         
         $role = $user->org_id ? orabooks_get_user_role($user->id, $user->org_id) : 'viewer';
@@ -701,8 +718,9 @@ class OraBooks_Auth {
     public function ajax_login() {
         $email = sanitize_email($_POST['email'] ?? '');
         $password = $_POST['password'] ?? '';
+        $subdomain = strtolower(trim($_POST['subdomain'] ?? ''));
         
-        $result = self::login($email, $password);
+        $result = self::login($email, $password, $subdomain);
         
         if (is_wp_error($result)) {
             orabooks_json_error($result->get_error_message(), 401);
@@ -974,6 +992,274 @@ class OraBooks_Auth {
         orabooks_json_success([], 'Logged out successfully');
     }
     
+    // ============= OIDC (Google Auth) — SL-013 =============
+
+    /**
+     * Initiate Google OAuth flow
+     * Returns the Google authorization URL for frontend redirect
+     */
+    public static function initiate_google_oauth() {
+        $client_id = OraBooks_Secrets::get('google_oauth_client_id');
+        if (!$client_id) {
+            return new WP_Error('oauth_not_configured', 'Google OAuth is not configured. Contact the administrator.');
+        }
+
+        // Generate state for CSRF protection
+        $state = orabooks_random_string(32);
+        $state_hash = orabooks_hash_token($state);
+
+        // Store state hash with 10-minute expiry
+        set_transient('orabooks_oidc_state_' . $state_hash, 1, 600);
+
+        $redirect_uri = home_url('/orabooks-google-callback');
+        $params = http_build_query([
+            'client_id'     => $client_id,
+            'redirect_uri'  => $redirect_uri,
+            'response_type' => 'code',
+            'scope'         => 'openid email profile',
+            'state'         => $state,
+            'access_type'   => 'online',
+            'prompt'        => 'select_account',
+        ]);
+
+        return 'https://accounts.google.com/o/oauth2/v2/auth?' . $params;
+    }
+
+    /**
+     * Handle Google OIDC callback after user authorizes
+     * Exchanges authorization code for tokens, fetches user info, logs in or registers
+     */
+    public static function handle_google_callback($code, $state) {
+        global $wpdb;
+
+        // Verify state parameter (CSRF protection)
+        $state_hash = orabooks_hash_token($state);
+        $stored_state = get_transient('orabooks_oidc_state_' . $state_hash);
+        if (!$stored_state) {
+            orabooks_log_event('oidc_state_mismatch', 'OIDC state parameter mismatch or expired', 'warning', []);
+            return new WP_Error('invalid_state', 'Invalid or expired OAuth state. Please try again.');
+        }
+        delete_transient('orabooks_oidc_state_' . $state_hash);
+
+        $client_id = OraBooks_Secrets::get('google_oauth_client_id');
+        $client_secret = OraBooks_Secrets::get('google_oauth_client_secret');
+
+        if (!$client_id || !$client_secret) {
+            return new WP_Error('oauth_not_configured', 'Google OAuth is not configured.');
+        }
+
+        // Exchange authorization code for tokens
+        $token_response = wp_remote_post('https://oauth2.googleapis.com/token', [
+            'body' => [
+                'code'          => $code,
+                'client_id'     => $client_id,
+                'client_secret' => $client_secret,
+                'redirect_uri'  => home_url('/orabooks-google-callback'),
+                'grant_type'    => 'authorization_code',
+            ],
+            'timeout' => 15,
+        ]);
+
+        if (is_wp_error($token_response)) {
+            orabooks_log_event('oidc_token_error', 'OIDC token exchange failed: ' . $token_response->get_error_message(), 'error', []);
+            return new WP_Error('token_exchange_failed', 'Failed to authenticate with Google. Please try again.');
+        }
+
+        $token_body = json_decode(wp_remote_retrieve_body($token_response), true);
+        if (empty($token_body['id_token'])) {
+            orabooks_log_event('oidc_no_id_token', 'OIDC response missing id_token', 'error', ['response' => $token_body]);
+            return new WP_Error('no_id_token', 'Failed to get user info from Google.');
+        }
+
+        // Decode id_token JWT to get user info (verify with Google's public keys not needed for MVP)
+        $id_token_parts = explode('.', $token_body['id_token']);
+        if (count($id_token_parts) !== 3) {
+            return new WP_Error('invalid_id_token', 'Invalid ID token from Google.');
+        }
+
+        $userinfo = json_decode(base64_decode(strtr($id_token_parts[1], '-_', '+/')), true);
+        if (!$userinfo || empty($userinfo['email'])) {
+            return new WP_Error('no_email', 'Could not retrieve email from Google.');
+        }
+
+        // Verify audience (aud) matches our client_id — critical security check
+        if (!isset($userinfo['aud']) || $userinfo['aud'] !== $client_id) {
+            orabooks_log_event('oidc_aud_mismatch', 'OIDC id_token audience mismatch', 'critical', [
+                'expected' => $client_id,
+                'actual' => $userinfo['aud'] ?? 'none'
+            ]);
+            return new WP_Error('invalid_token', 'Invalid authentication token from Google.');
+        }
+
+        $google_email = sanitize_email($userinfo['email']);
+        $google_sub = $userinfo['sub'] ?? '';
+        $google_name = $userinfo['name'] ?? $google_email;
+
+        // Check if user already exists by email
+        $table_users = OraBooks_Database::table('users');
+        $existing = $wpdb->get_row($wpdb->prepare(
+            "SELECT * FROM {$table_users} WHERE email = %s",
+            $google_email
+        ));
+
+        if ($existing) {
+            // User exists — log them in
+            $user_id = $existing->id;
+
+            // Update auth_provider to google if was local (link account)
+            if ($existing->auth_provider === 'local') {
+                $wpdb->update(
+                    $table_users,
+                    ['auth_provider' => 'google', 'is_email_verified' => 1],
+                    ['id' => $user_id],
+                    ['%s', '%d'],
+                    ['%d']
+                );
+            }
+
+            // Check account active
+            if (!$existing->is_active) {
+                return new WP_Error('account_disabled', 'Your account has been disabled.');
+            }
+
+            // Ensure email is verified
+            if (!$existing->is_email_verified) {
+                $wpdb->update(
+                    $table_users,
+                    ['is_email_verified' => 1],
+                    ['id' => $user_id],
+                    ['%d'],
+                    ['%d']
+                );
+            }
+        } else {
+            // User doesn't exist — create account via Google
+            $wpdb->insert(
+                $table_users,
+                [
+                    'email' => $google_email,
+                    'password_hash' => '',
+                    'is_active' => 1,
+                    'is_email_verified' => 1,
+                    'auth_provider' => 'google',
+                    'org_id' => null,
+                    'is_partner' => 0
+                ],
+                ['%s', '%s', '%d', '%d', '%s', null, '%d']
+            );
+
+            $user_id = $wpdb->insert_id;
+            if (!$user_id) {
+                return new WP_Error('creation_failed', 'Failed to create account from Google profile.');
+            }
+
+            orabooks_log_event('user_registered_oidc', "User registered via Google: $google_email", 'info', [
+                'auth_provider' => 'google'
+            ], $user_id, null);
+        }
+
+        // Generate JWT and refresh token
+        $org = null;
+        $org_id = null;
+        if ($existing && $existing->org_id) {
+            $org = OraBooks_Organization::get($existing->org_id);
+            $org_id = $existing->org_id;
+        }
+
+        $role = $org_id ? orabooks_get_user_role($user_id, $org_id) : 'viewer';
+        $jwt = OraBooks_Secrets::generate_jwt([
+            'user_id' => $user_id,
+            'email' => $google_email,
+            'org_id' => $org_id,
+            'role' => $role,
+            'subdomain' => $org ? $org->subdomain : '',
+            'is_partner' => ($existing ? $existing->is_partner : 0)
+        ]);
+
+        $refresh_token = orabooks_random_string(32);
+        self::store_refresh_token($user_id, $org_id, $refresh_token);
+
+        orabooks_log_event('login_success_oidc', "User logged in via Google: $google_email", 'info', [], $user_id, $org_id);
+
+        return [
+            'token' => $jwt,
+            'refresh_token' => $refresh_token,
+            'user_id' => $user_id,
+            'org_id' => $org_id,
+            'role' => $role,
+            'subdomain' => $org ? $org->subdomain : '',
+            'is_new' => !$existing,
+            'needs_tier_selection' => $existing && !$existing->is_partner && !$existing->org_id
+        ];
+    }
+
+    /**
+     * AJAX: Initiate Google OAuth — returns the Google auth URL
+     */
+    public function ajax_oidc_initiate() {
+        $url = self::initiate_google_oauth();
+
+        if (is_wp_error($url)) {
+            orabooks_json_error($url->get_error_message(), 400);
+        }
+
+        orabooks_json_success(['auth_url' => $url]);
+    }
+
+    /**
+     * AJAX: Handle Google OAuth callback (exchange code for token, login)
+     */
+    public function ajax_oidc_callback() {
+        $code = $_POST['code'] ?? '';
+        $state = $_POST['state'] ?? '';
+
+        if (empty($code) || empty($state)) {
+            orabooks_json_error('Missing authorization code or state', 400);
+        }
+
+        $result = self::handle_google_callback($code, $state);
+
+        if (is_wp_error($result)) {
+            orabooks_json_error($result->get_error_message(), 401);
+        }
+
+        orabooks_json_success($result, 'Google login successful');
+    }
+
+    /**
+     * 501 placeholder for reserved MVP endpoints
+     */
+    public function ajax_not_implemented() {
+        wp_send_json(['error' => true, 'message' => 'This endpoint is not yet implemented (MVP placeholder).'], 501);
+    }
+
+    /**
+     * requireCustomerOrg middleware — blocks partner orgs from accounting APIs
+     * Returns WP_Error if the user's org is a partner type.
+     * Usage: $check = OraBooks_Auth::require_customer_org($user_id, $org_id);
+     */
+    public static function require_customer_org($user_id, $org_id) {
+        if (!$org_id) {
+            return new WP_Error('no_org', 'No organization found.');
+        }
+
+        $org = OraBooks_Organization::get($org_id);
+        if (!$org) {
+            return new WP_Error('org_not_found', 'Organization not found.');
+        }
+
+        if ($org->organization_type === 'partner') {
+            orabooks_log_event('customer_org_required', "Partner org {$org_id} blocked from accounting endpoint", 'warning', [
+                'user_id' => $user_id,
+                'org_id' => $org_id
+            ], $user_id, $org_id);
+
+            return new WP_Error('accounting_isolation', 'Partner organizations cannot access accounting features.');
+        }
+
+        return true;
+    }
+
     public function ajax_select_tier() {
         $tier = $_POST['tier'] ?? '';
         $subdomain = strtolower(trim($_POST['subdomain'] ?? ''));
