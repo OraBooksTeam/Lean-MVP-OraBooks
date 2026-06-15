@@ -16,6 +16,7 @@ console.log('dashboard.js loaded');
             media: { title: 'Media Library', endpoint: '/media' },
             settings: { title: 'Settings', endpoint: '/site-settings' },
             profile: { title: 'My Profile', endpoint: '/users/me' },
+            security: { title: 'Security', endpoint: '/dashboard/security' },
             upgrade: { title: 'Upgrade Plan', endpoint: '/dashboard/levels' },
             checkout: { title: 'Checkout', endpoint: '/dashboard/checkout' },
             addons: { title: 'Addons', endpoint: '/dashboard/features' }
@@ -364,6 +365,8 @@ console.log('dashboard.js loaded');
                     return this.renderMedia(data);
                 case 'settings':
                     return this.renderSettings(data);
+                case 'security':
+                    return this.renderSecurity(data);
                 case 'profile':
                     return this.renderProfile(data);
                 case 'upgrade':
@@ -1144,6 +1147,136 @@ console.log('dashboard.js loaded');
             `;
 
             return html;
+        },
+
+        renderSecurity: function(data) {
+            // Check if TFA is available
+            if (!data.tfa_available || !data.html) {
+                let statusHtml = '';
+                if (!data.tfa_available) {
+                    statusHtml = `
+                        <div class="text-center py-8">
+                            <div class="w-20 h-20 bg-gray-100 text-gray-400 rounded-3xl flex items-center justify-center mx-auto mb-4">
+                                <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m0 0v2m0-2h2m-2 0H10m9.364-7.364A9 9 0 1112 3a9 9 0 019.364 9.364z"></path>
+                                </svg>
+                            </div>
+                            <h3 class="text-xl font-bold text-gray-900 mb-2">Two-Factor Authentication</h3>
+                            <p class="text-gray-500 max-w-md mx-auto">Two-factor authentication is not available for your account. Please contact your site administrator.</p>
+                        </div>
+                    `;
+                } else if (!data.tfa_enabled_for_user) {
+                    statusHtml = `
+                        <div class="text-center py-8">
+                            <div class="w-20 h-20 bg-yellow-50 text-yellow-600 rounded-3xl flex items-center justify-center mx-auto mb-4">
+                                <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                            </div>
+                            <h3 class="text-xl font-bold text-gray-900 mb-2">Two-Factor Authentication</h3>
+                            <p class="text-gray-500 max-w-md mx-auto">Two-factor authentication is not enabled for your user role. Please contact your site administrator.</p>
+                        </div>
+                    `;
+                }
+                return `
+                    <div class="space-y-6">
+                        <div class="bg-gradient-to-r from-primary-600 to-indigo-700 rounded-3xl p-8 text-white shadow-premium relative overflow-hidden">
+                            <div class="relative z-10">
+                                <h1 class="text-3xl font-bold mb-2">Security Settings</h1>
+                                <p class="text-primary-100 text-lg">Manage your account security and two-factor authentication.</p>
+                            </div>
+                            <div class="absolute -right-10 -bottom-10 w-64 h-64 bg-white/10 rounded-full blur-3xl"></div>
+                        </div>
+                        <div class="bg-white rounded-3xl p-8 shadow-premium border border-gray-100">
+                            ${statusHtml}
+                        </div>
+                    </div>
+                `;
+            }
+
+            // TFA is available and enabled - render the HTML from the shortcode
+            // We need to ensure TFA frontend scripts are loaded
+            setTimeout(() => {
+                this.reinitializeTfaScripts();
+            }, 100);
+
+            return `
+                <div class="space-y-6">
+                    <div class="bg-gradient-to-r from-primary-600 to-indigo-700 rounded-3xl p-8 text-white shadow-premium relative overflow-hidden">
+                        <div class="relative z-10">
+                            <h1 class="text-3xl font-bold mb-2">Security Settings</h1>
+                            <p class="text-primary-100 text-lg">Manage your two-factor authentication settings.</p>
+                        </div>
+                        <div class="absolute -right-10 -bottom-10 w-64 h-64 bg-white/10 rounded-full blur-3xl"></div>
+                    </div>
+                    <div id="tfa-settings-container" class="bg-white rounded-3xl p-6 md:p-8 shadow-premium border border-gray-100 tfa-dashboard-wrapper">
+                        ${data.html}
+                    </div>
+                </div>
+            `;
+        },
+
+        reinitializeTfaScripts: function() {
+            // Re-run TFA script initialization after HTML is injected
+            if (typeof simba_tfa_frontend !== 'undefined' && typeof simba_tfa_frontend.ajax_url !== 'undefined') {
+                console.log('TFA frontend scripts detected, re-initializing...');
+                
+                // Re-bind save button for TFA settings
+                const saveBtn = document.querySelector('.simbatfa_settings_save');
+                if (saveBtn) {
+                    // Clone and replace to remove old event listeners
+                    const newBtn = saveBtn.cloneNode(true);
+                    saveBtn.parentNode.replaceChild(newBtn, saveBtn);
+                    
+                    newBtn.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        const form = this.closest('.tfa_settings_form') || document.querySelector('.tfa_settings_form');
+                        if (form) {
+                            const formData = new FormData(form);
+                            const settings = new URLSearchParams(formData).toString();
+                            
+                            // Show saving indicator
+                            const originalText = this.textContent;
+                            this.textContent = 'Saving...';
+                            this.disabled = true;
+                            
+                            fetch(simba_tfa_frontend.ajax_url, {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/x-www-form-urlencoded',
+                                },
+                                body: new URLSearchParams({
+                                    action: 'tfa_frontend',
+                                    subaction: 'savesettings',
+                                    nonce: simba_tfa_frontend.nonce,
+                                    settings: settings
+                                })
+                            })
+                            .then(response => response.json())
+                            .then(data => {
+                                this.textContent = 'Saved!';
+                                setTimeout(() => {
+                                    this.textContent = originalText;
+                                    this.disabled = false;
+                                }, 2000);
+                                
+                                if (data.qr) {
+                                    const qrImg = document.querySelector('.tfa_qr_code img');
+                                    if (qrImg) qrImg.src = data.qr;
+                                }
+                            })
+                            .catch(error => {
+                                console.error('TFA save error:', error);
+                                this.textContent = 'Error';
+                                setTimeout(() => {
+                                    this.textContent = originalText;
+                                    this.disabled = false;
+                                }, 3000);
+                            });
+                        }
+                    });
+                }
+            }
         },
 
         saveProfile: async function() {

@@ -58,6 +58,15 @@ class Assets {
 
             // Enqueue dashboard styles
             if ($route === 'dashboard') {
+                // Enqueue Simba TFA frontend scripts for 2FA settings within dashboard
+                if (class_exists('Simba_Two_Factor_Authentication_1')) {
+                    global $simba_tfa;
+                    if (isset($simba_tfa) && is_object($simba_tfa)) {
+                        // Load TFA frontend to register actions
+                        $simba_tfa->load_frontend();
+                    }
+                }
+
                 // Preload critical CSS
                 wp_enqueue_style(
                     'wpfd-dashboard',
@@ -81,6 +90,17 @@ class Assets {
                     ['wpfd-dashboard'],
                     '1.0.0'
                 );
+
+                // Enqueue TFA dashboard styles for 2FA settings within dashboard
+                $tfa_css_path = $base_dir . '/assets/css/tfa-dashboard.css';
+                if (file_exists($tfa_css_path)) {
+                    wp_enqueue_style(
+                        'wpfd-tfa-dashboard',
+                        $assets_url . 'css/tfa-dashboard.css',
+                        ['wpfd-dashboard'],
+                        filemtime($tfa_css_path)
+                    );
+                }
                 
 
                 // Only enqueue essential scripts - disabled AJAX navigation scripts

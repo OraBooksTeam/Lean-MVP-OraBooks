@@ -17,6 +17,7 @@ use WPFD\REST\DashboardController;
 use WPFD\REST\TaxonomyController;
 use WPFD\REST\ToolsController;
 use WPFD\REST\DashboardFeaturesController;
+use WPFD\REST\SecurityController;
 use WPFD\Core\AdminMasker;
 use WPFD\Core\TaxOraIntegration;
 
@@ -41,6 +42,7 @@ class Plugin {
             (new TaxonomyController)->register();
             (new ToolsController)->register();
             (new DashboardFeaturesController)->register();
+            (new SecurityController)->register();
         });
 
         (new Assets)->register();
