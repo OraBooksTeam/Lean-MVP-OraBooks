@@ -1,0 +1,27 @@
+{
+    "name": "team-updraft/two-factor-authentication",
+    "description": "This is the 2FA project",
+    "type": "library",
+    "license": "GPL-3.0-only",
+    "authors": [{
+        "name": "Team Updraft",
+        "email": "contact@updraftplus.com"
+    }],
+    "config": {
+        "platform-check": false,
+        "allow-plugins": {
+            "dealerdirect/phpcodesniffer-composer-installer": false
+        }
+    },
+    "require-dev": {
+		"squizlabs/php_codesniffer": "3.6.*",
+        "phpcompatibility/php-compatibility": "9.3.*",
+        "wp-coding-standards/wpcs": "2.3.*",
+        "sirbrillig/phpcs-variable-analysis": "2.11.*",
+        "dealerdirect/phpcodesniffer-composer-installer": "0.7.*"
+    },
+    "require" : {
+       "davidanderson684/simba-plugin-manager-updater": "1.9.*"
+    },   
+    "prefer-stable" : true
+}

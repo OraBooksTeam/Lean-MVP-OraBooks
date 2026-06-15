@@ -1,0 +1,838 @@
+# Translation of Two Factor Authentication in French (France)
+# This file is distributed under the same license as the Two Factor Authentication package.
+msgid ""
+msgstr ""
+"PO-Revision-Date: 2023-05-06 11:28:15+0000\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=n > 1;\n"
+"X-Generator: GlotPress/2.3.1\n"
+"Language: fr\n"
+"Project-Id-Version: Two Factor Authentication\n"
+
+#: premium.php:227
+msgid "Add two-factor settings to the WooCommerce \"My Account\" area"
+msgstr "Ajouter le paramétrage deux facteurs à la page \"Mon compte\" de WooCommerce"
+
+#: premium.php:223
+msgid "Choose whether you want two-factor authentication settings to appear in the WooCommerce account area."
+msgstr "Choisissez si vous voulez afficher les paramètres d’authentification à deux facteurs dans le compte WooCommerce."
+
+#: premium.php:69
+msgid "Two factor settings"
+msgstr "Paramètres de l'authentification à deux facteurs (i.e. 2FA)"
+
+#: includes/admin_settings.php:148
+msgid "The Premium version of this plugin allows you to add a configuration tab for users in the WooCommerce \"My account\" area."
+msgstr ""
+
+#: includes/admin_settings.php:146
+msgid "WooCommerce integration"
+msgstr "Intégration WooCommerce"
+
+#: premium.php:285
+msgid "For these users, hide the option to turn TFA off"
+msgstr "Pour ces utilisateurs, masquer l’option de désactiver 2FA"
+
+#: premium.php:281
+msgid "(If you are setting up for the first time and have pre-existing users, then you should tell them that they need to set up TFA before a certain date, and then turn this feature on at that date)."
+msgstr ""
+
+#: premium.php:158
+msgid "Remove trust"
+msgstr "Supprimer la confiance"
+
+#: premium.php:158
+msgid "User agent %s logged in from IP address %s and is trusted until %s"
+msgstr "Le user agent %s connecté depuis l’adresse IP %s est de confiance jusqu’au %s"
+
+#: premium.php:156
+msgid "(unspecified)"
+msgstr "(non précisé)"
+
+#: premium.php:149
+msgid "(none)"
+msgstr "(aucun)"
+
+#: premium.php:136
+msgid "Trusted devices are devices which have previously logged in with a second factor, belonging to users who have been permitted to mark devices as trusted, and for which the user checked the checkbox on the login form to trust the device."
+msgstr "Les appareils de confiance sont des appareils déjà utilisés pour se connecter avec la double authentification, appartenant à des utilisateurs qui sont autorisés à marquer leurs appareils comme de confiance, et pour lesquels l’utilisateur a coché la case sur le formulaire de connexion pour faire confiance à l’appareil."
+
+#: two-factor-login.php:422
+msgid "(you must enter the current code: %s)"
+msgstr "(vous devez entrer le code %s)"
+
+#: includes/tfa_frontend.php:66
+msgid "The TFA code you entered was incorrect."
+msgstr "Le code 2FA que vous avez entré est incorrect."
+
+#: includes/tfa_frontend.php:58
+msgid "To enable TFA, you must enter the current code."
+msgstr "Pour activer 2FA, vous devez entrer le code courant."
+
+#: includes/class-simba-tfa.php:352
+msgid "The indicated user could not be found."
+msgstr "L’utilisateur indiqué n’a pu être trouvé."
+
+#: premium.php:179
+msgid "When a device is trusted, don't require a two-factor code for another %s days"
+msgstr "Lorsqu’un appareil est de confiance, il ne nécessite pas de code 2FA pendant %s jours"
+
+#: vendor/yahnis-elsts/plugin-update-checker/Puc/v4p6/Plugin/Ui.php:217
+msgid "Could not determine if updates are available for %s."
+msgstr ""
+
+#: two-factor-login.php:1223
+msgid "2FA"
+msgstr "2FA"
+
+#: two-factor-login.php:1092
+msgid "If you activate two-factor authentication, then verify that your two-factor application and this page show the same One-Time Password (within a minute of each other) before you log out."
+msgstr "Avant d'activer l’authentification à deux facteurs (2FA), veuillez vérifier que votre application de code à usage unique (i.e. l’OTP) est bien paramétrée et affiche le même OTP (dans une fenêtre de 60s) que celui affiché ici avant de vous déconnecter."
+
+#: two-factor-login.php:1082 two-factor-login.php:1086
+msgid "The site-wide administration options are here."
+msgstr "Les options d’administration transverses au site sont là."
+
+#: two-factor-login.php:1010 two-factor-login.php:1172
+msgid "(Trusted device)"
+msgstr "(appareil de confiance)"
+
+#: two-factor-login.php:1009 two-factor-login.php:1171
+msgid "Trust this device (allow login without TFA for %d days)"
+msgstr ""
+
+#: two-factor-login.php:895
+msgid "Otherwise, you can type the textual private key (shown below) into your app. Always keep private keys secret."
+msgstr "Sinon, vous pouvez entrez manuellement la clé privée (affichée ci-après) dans votre application. Gardez bien secrète cette clé privée."
+
+#: two-factor-login.php:893
+msgid "For OTP apps that support using a camera to scan a setup code (below), that is the quickest way to set the app up (e.g. with Duo Mobile, Google Authenticator)."
+msgstr "Pour les applications OTP qui proposent le scan de code QR (i.e. Google Authenticator, Duo Mobile), c’est le moyen le plus rapide de la paramétrer."
+
+#: two-factor-login.php:888
+msgid "Setting up"
+msgstr "Mise en oeuvre"
+
+#: two-factor-login.php:885
+msgid "Setting up - either scan the code, or type in the private key"
+msgstr "Mise en oeuvre - scannez le QR code ou renseignez la clé privée"
+
+#: two-factor-login.php:420
+msgid "(Current code: %s)"
+msgstr "(Code actuel: %s)"
+
+#: includes/user_settings.php:58
+msgid "N.B. Getting your TFA app/device to generate the correct code depends upon a) you first setting it up by entering or scanning the code below into it, and b) upon your web-server and your TFA app/device agreeing upon the UTC time (within a minute or so). The current UTC time according to the server when this page loaded: %s, and in the time-zone you have configured in your WordPress settings: %s"
+msgstr "N.B. Paramétrer votre application/appareil 2FA pour qu’il génère correctement votre code dépend de a) si vous l’avez correctement paramétré en tapant le code ou en scannant le QR code ci-dessous, et de b) si le serveur de connexion et votre application/appareil 2FA partagent la même heure UTC (dans une fenêtre de 60s). L’heure courante du serveur lors du chargement de cette page est : %s, et le fuseau horaire configuré dans Wordpress est : %s"
+
+#: includes/admin_settings.php:214
+msgid "allow privileged (or all) users to mark a device as trusted and thereby only needing to supply a TFA code upon login every so-many days (e.g. every 30 days) instead of on each login."
+msgstr "autorise les utilisateurs privilégiés (ou tous) à marquer un appareil comme de confiance et ainsi ne fournir le code 2FA que tous les x jours (par expl. tous les 30 jours) au lieu de à chaque connexion."
+
+#: includes/admin_settings.php:213
+msgid "require your users to set up TFA to be able to log in, after an optional grace period."
+msgstr "nécessite que vos utilisateurs paramètrent le 2FA pour se connecter, après une période de grâce."
+
+#: includes/admin_settings.php:213
+msgid "Make TFA compulsory"
+msgstr "Rendre 2FA obligatoire"
+
+#: includes/admin_settings.php:90
+msgid "Allowing users to mark a device as trusted so that a two-factor code is only needed once in a specified number of days (instead of every login) is a feature of the Premium version of this plugin."
+msgstr "Permettre aux utilisateurs de marquer un appareil comme de confiance afin de que le code 2FA ne soit nécessiare qu’au bout d’un nombre spécifié de jours (plutôt qu’à chaque connexion)  est une fonctionnalité de la version Premium de cette extension."
+
+#: includes/admin_settings.php:87
+msgid "Choose which user roles are permitted to mark devices they login on as trusted. This feature requires browser cookies and an https (i.e. SSL) connection to the website to work."
+msgstr "Choisissez quels rôles utilisateurs sont autorisés à définir des appareils depuis lesquels ils se connectent comme étant de confiance. Cette fonctionnalité requiert l’usage de cookies de navigateur et une connexion HTTPS (i.e. SSL) au site pour fonctionner."
+
+#: includes/admin_settings.php:83 includes/admin_settings.php:214
+#: premium.php:120
+msgid "Trusted devices"
+msgstr "Appareils de confiance"
+
+#: premium.php:830
+msgid "These can only be used once each."
+msgstr "Ils ne peuvent être utilisé qu’une fois chacun."
+
+#: premium.php:549
+msgid "You will need to set up and use two-factor authentication to login in future.</a>"
+msgstr "Vous devrez paramétrer et utiliser l’authentification à deux facteurs pour vous connecter à l’avenir.</a>"
+
+#: premium.php:549
+msgid "Please set up two-factor authentication"
+msgstr "Veuillez paramétrer votre authentification à deux facteurs"
+
+#: premium.php:281
+msgid "Enforce this requirement only for accounts at least %s days old"
+msgstr "Imposer cette obligation uniquement sur les comptes de plus de %s jours"
+
+#: premium.php:251
+msgid "Choose which user roles are required to have two-factor authentication active (remember to also make it available for any chosen roles)."
+msgstr "Choisissez quels rôles utilisateurs doivent impérativement activer l’authentification à deux facteurs (souvenez-vous de toujours le rendre disponible pour ces rôles)."
+
+#: vendor/yahnis-elsts/plugin-update-checker/Puc/v4p6/Plugin/Ui.php:223
+msgid "Unknown update checker status \"%s\""
+msgstr ""
+
+#: vendor/yahnis-elsts/plugin-update-checker/Puc/v4p6/Plugin/Ui.php:215
+msgid "A new version of the %s plugin is available."
+msgstr ""
+
+#: vendor/yahnis-elsts/plugin-update-checker/Puc/v4p6/Plugin/Ui.php:213
+msgid "The %s plugin is up to date."
+msgstr ""
+
+#: vendor/yahnis-elsts/plugin-update-checker/Puc/v4p6/Plugin/Ui.php:77
+msgid "More information about %s"
+msgstr ""
+
+#: vendor/yahnis-elsts/plugin-update-checker/Puc/v4p6/Plugin/Ui.php:54
+msgid "View details"
+msgstr ""
+
+#: vendor/yahnis-elsts/plugin-update-checker/Puc/v4p6/Plugin/Ui.php:128
+msgid "Check for updates"
+msgstr ""
+
+#: vendor/yahnis-elsts/plugin-update-checker/Puc/v4p6/Vcs/PluginUpdateChecker.php:98
+msgid "There is no changelog available."
+msgstr ""
+
+#: vendor/davidanderson684/simba-plugin-manager-updater/class-udm-updater.php:750
+msgid "Automatically update as soon as an update becomes available (N.B. other plugins can over-ride this setting)."
+msgstr ""
+
+#: vendor/davidanderson684/simba-plugin-manager-updater/class-udm-updater.php:661
+msgid "Your email address was not recognised. The connection information will be removed from this site."
+msgstr ""
+
+#: vendor/davidanderson684/simba-plugin-manager-updater/class-udm-updater.php:628
+msgid "When updates to this plugin are available, they will not be automatically installed."
+msgstr ""
+
+#: vendor/davidanderson684/simba-plugin-manager-updater/class-udm-updater.php:626
+msgid "When updates to this plugin are available, they will be automatically installed."
+msgstr ""
+
+#: vendor/davidanderson684/simba-plugin-manager-updater/class-udm-updater.php:420
+msgid "To maintain your access to support, %s."
+msgstr ""
+
+#: vendor/davidanderson684/simba-plugin-manager-updater/class-udm-updater.php:418
+msgid "To regain your access, %s."
+msgstr ""
+
+#: vendor/davidanderson684/simba-plugin-manager-updater/class-udm-updater.php:367
+msgid "please renew"
+msgstr ""
+
+#: two-factor-login.php:898
+msgid "an event based algorithm"
+msgstr "un algorithme bondé sur les événements"
+
+#: two-factor-login.php:898
+msgid "a time based algorithm"
+msgstr "un algorithme fondé sur le temps"
+
+#: two-factor-login.php:898
+msgid "You are currently using %s, %s"
+msgstr "Vous utilisez actuellement %s, %s"
+
+#: two-factor-login.php:414
+msgid "N.B. This site is configured to forbid you to log in if you disable two-factor authentication after your account is %d days old"
+msgstr "N.B. : Ce site est configuré pour vous interdire de vous connecter si vous désactivez l’authentification à deux facteurs passé %d jours après la création du compte."
+
+#: two-factor-login.php:197
+msgid "The Two Factor Authentication plugin requires either the PHP openssl (preferred) or mcrypt module to be installed. Please ask your web hosting company to install one of them."
+msgstr "L’extension d’authentification à deux facteurs nécessite l’installation d’un module OpenSSL PHP (de préférence) ou mcrypt. Veuillez demander à hébergeur d’installer l'un d'eux."
+
+#: two-factor-login.php:197
+msgid "PHP OpenSSL or mcrypt module required"
+msgstr "Module OpenSSL PHP ou mcrypt nécessaire"
+
+#: includes/class-simba-tfa.php:383
+msgid "You are attempting to log in to an account that has two-factor authentication enabled; this requires you to also have two-factor authentication enabled on the account whose credentials you are using."
+msgstr "Vous essayez de vous connecter à un compte pour lequel l’authentification à deux facteurs est activée; cela nécessite que vous ayez également l’authentification à deux facteurs activée sur le compte dont vous utilisez les informations d’identification."
+
+#: includes/class-simba-tfa.php:369
+msgid "The site owner has forbidden you to login without two-factor authentication. Please contact the site owner to re-gain access."
+msgstr "Le propriétaire du site a interdit de vous connecter sans authentification à deux facteurs. Veuillez contacter le propriétaire du site pour récupérer l’accès."
+
+#: includes/class-simba-tfa.php:213
+msgid "There are no emergency codes left. You will need to reset your private key."
+msgstr "Il ne reste plus aucun code de récupération d’urgence. Vous aurez besoin de réinitialiser votre clé privée."
+
+#: includes/admin_settings.php:77
+msgid "Requiring users to use two-factor authentication is a feature of the Premium version of this plugin."
+msgstr "Obliger les utilisateurs à utiliser l’authentification à deux facteurs est une caractéristique de la version Premium de cette extension."
+
+#: includes/admin_settings.php:73
+msgid "Make two factor authentication compulsory"
+msgstr "Rendre l’authentification à deux facteurs obligatoire"
+
+#: includes/admin_settings.php:39
+msgid "Two factor authentication is currently disabled via the TWO_FACTOR_DISABLE constant (which is mostly likely to be defined in your wp-config.php)"
+msgstr "L’authentification à deux facteurs est actuellement désactivée via la constante TWO_FACTOR_DISABLE (qui est surtout susceptible d’être définie dans votre wp-config.php)"
+
+#: includes/admin_settings.php:37
+msgid "Two Factor Authentication currently disabled"
+msgstr "L’authentification à deux facteurs est actuellement désactivée"
+
+#: vendor/davidanderson684/simba-plugin-manager-updater/class-udm-updater.php:548
+#: vendor/davidanderson684/simba-plugin-manager-updater/class-udm-updater.php:578
+#: vendor/davidanderson684/simba-plugin-manager-updater/class-udm-updater.php:740
+msgid "password"
+msgstr ""
+
+#: vendor/davidanderson684/simba-plugin-manager-updater/class-udm-updater.php:739
+msgid "Email"
+msgstr ""
+
+#: vendor/davidanderson684/simba-plugin-manager-updater/class-udm-updater.php:736
+msgid "Please enter your customer login to access updates for %s"
+msgstr ""
+
+#: vendor/davidanderson684/simba-plugin-manager-updater/class-udm-updater.php:729
+msgid "You are connected to receive updates for %s (login: %s)"
+msgstr ""
+
+#: vendor/davidanderson684/simba-plugin-manager-updater/class-udm-updater.php:666
+msgid "You have successfully disconnected access to updates to this plugin."
+msgstr ""
+
+#: vendor/davidanderson684/simba-plugin-manager-updater/class-udm-updater.php:655
+#: vendor/davidanderson684/simba-plugin-manager-updater/class-udm-updater.php:732
+msgid "Disconnect"
+msgstr ""
+
+#: vendor/davidanderson684/simba-plugin-manager-updater/class-udm-updater.php:653
+msgid "Disconnecting..."
+msgstr ""
+
+#: vendor/davidanderson684/simba-plugin-manager-updater/class-udm-updater.php:586
+msgid "Has your licence expired, or have you used all your available licences elsewhere?"
+msgstr ""
+
+#: vendor/davidanderson684/simba-plugin-manager-updater/class-udm-updater.php:586
+msgid "Your login was accepted, but no available entitlement for this plugin was found."
+msgstr ""
+
+#: vendor/davidanderson684/simba-plugin-manager-updater/class-udm-updater.php:583
+msgid "You have successfully connected for access to updates to this plugin."
+msgstr ""
+
+#: vendor/davidanderson684/simba-plugin-manager-updater/class-udm-updater.php:578
+msgid "Your email address and %s were not recognised."
+msgstr ""
+
+#: vendor/davidanderson684/simba-plugin-manager-updater/class-udm-updater.php:571
+#: vendor/davidanderson684/simba-plugin-manager-updater/class-udm-updater.php:590
+#: vendor/davidanderson684/simba-plugin-manager-updater/class-udm-updater.php:595
+#: vendor/davidanderson684/simba-plugin-manager-updater/class-udm-updater.php:631
+#: vendor/davidanderson684/simba-plugin-manager-updater/class-udm-updater.php:636
+#: vendor/davidanderson684/simba-plugin-manager-updater/class-udm-updater.php:671
+#: vendor/davidanderson684/simba-plugin-manager-updater/class-udm-updater.php:676
+msgid "The response from the remote site could not be decoded. (More information is recorded in the browser console)."
+msgstr ""
+
+#: vendor/davidanderson684/simba-plugin-manager-updater/class-udm-updater.php:565
+#: vendor/davidanderson684/simba-plugin-manager-updater/class-udm-updater.php:741
+msgid "Connect"
+msgstr ""
+
+#: vendor/davidanderson684/simba-plugin-manager-updater/class-udm-updater.php:563
+msgid "Connecting..."
+msgstr ""
+
+#: vendor/davidanderson684/simba-plugin-manager-updater/class-udm-updater.php:547
+msgid "You need to enter both an email address and a %s"
+msgstr ""
+
+#: vendor/davidanderson684/simba-plugin-manager-updater/class-udm-updater.php:503
+msgid "Access to plugin updates (%s)"
+msgstr ""
+
+#: vendor/davidanderson684/simba-plugin-manager-updater/class-udm-updater.php:420
+msgid "Your paid access to %s support will soon expire."
+msgstr ""
+
+#: vendor/davidanderson684/simba-plugin-manager-updater/class-udm-updater.php:418
+msgid "Your paid access to %s support has expired."
+msgstr ""
+
+#: vendor/davidanderson684/simba-plugin-manager-updater/class-udm-updater.php:413
+msgid "Your paid access to %s updates for this site will soon expire."
+msgstr ""
+
+#: vendor/davidanderson684/simba-plugin-manager-updater/class-udm-updater.php:411
+#: vendor/davidanderson684/simba-plugin-manager-updater/class-udm-updater.php:413
+msgid "To retain your access, and maintain access to updates (including future features and compatibility with future WordPress releases) and support, %s."
+msgstr ""
+
+#: vendor/davidanderson684/simba-plugin-manager-updater/class-udm-updater.php:411
+msgid "Your paid access to %s updates for %s of the %s add-ons on this site will soon expire."
+msgstr ""
+
+#: vendor/davidanderson684/simba-plugin-manager-updater/class-udm-updater.php:403
+msgid "Your paid access to %s updates for %s add-ons on this site has expired."
+msgstr ""
+
+#: vendor/davidanderson684/simba-plugin-manager-updater/class-udm-updater.php:401
+#: vendor/davidanderson684/simba-plugin-manager-updater/class-udm-updater.php:403
+msgid "To regain access to updates (including future features and compatibility with future WordPress releases) and support, %s."
+msgstr ""
+
+#: vendor/davidanderson684/simba-plugin-manager-updater/class-udm-updater.php:401
+msgid "Your paid access to %s updates for this site has expired. You will no longer receive updates."
+msgstr ""
+
+#: vendor/davidanderson684/simba-plugin-manager-updater/class-udm-updater.php:393
+msgid "You should update to make sure that you have a version that has been tested for compatibility."
+msgstr ""
+
+#: vendor/davidanderson684/simba-plugin-manager-updater/class-udm-updater.php:393
+msgid "It has been tested up to version %s."
+msgstr ""
+
+#: vendor/davidanderson684/simba-plugin-manager-updater/class-udm-updater.php:393
+msgid "The installed version of %s has not been tested on your version of WordPress (%s)."
+msgstr ""
+
+#: vendor/davidanderson684/simba-plugin-manager-updater/class-udm-updater.php:393
+msgid "Warning"
+msgstr ""
+
+#: vendor/davidanderson684/simba-plugin-manager-updater/class-udm-updater.php:354
+msgid "Dismiss from main dashboard (for %s weeks)"
+msgstr ""
+
+#: vendor/davidanderson684/simba-plugin-manager-updater/class-udm-updater.php:251
+#: vendor/davidanderson684/simba-plugin-manager-updater/class-udm-updater.php:254
+#: vendor/davidanderson684/simba-plugin-manager-updater/class-udm-updater.php:300
+#: vendor/davidanderson684/simba-plugin-manager-updater/class-udm-updater.php:303
+msgid "Errors occurred:"
+msgstr ""
+
+#: premium.php:832
+msgid "Your emergency codes are:"
+msgstr "Vos codes de récupération d’urgence sont :"
+
+#: premium.php:830
+msgid "You have three emergency codes that can be used. Keep them in a safe place; if you lose your authentication device, then you can use them to log in."
+msgstr "Vous disposez de trois codes de récupération d’urgence que vous devez conserver. Gardez-les en lieu sûr : si vous perdez votre appareil utilisé pour l’OTP, vous pourrez les utiliser pour vous connecter."
+
+#: premium.php:765
+msgid "You now have %s emergency code(s) remaining."
+msgstr "Il vous reste maintenant %s codes de récupération d’urgence."
+
+#: premium.php:764
+msgid "An emergency code was used to login (username: %s) on this website: "
+msgstr "Un code de récupération d’urgence a été utilisé pour se connecter au site (utilisateur: %s) :"
+
+#: premium.php:763
+msgid "emergency login code used"
+msgstr "code de récupération d’urgence utilisé"
+
+#: premium.php:757
+msgid "Your must now go to the Two Factor Authentication settings to generate some new emergency codes if you wish to use any emergency codes in future."
+msgstr "Vous devez maintenant vous rendre dans les paramètres de l’Authentification à deux facteurs pour générer de nouveaux codes de récupération d’urgence si vous souhaitez pouvoir en utiliser à l’avenir."
+
+#: premium.php:448 premium.php:468 premium.php:503
+msgid "You must first choose a valid user."
+msgstr "Vous devez choisir un utilisateur valide."
+
+#: premium.php:425
+msgid "Activate TFA"
+msgstr "Activer 2FA"
+
+#: premium.php:424
+msgid "De-activate TFA"
+msgstr "Désactiver TFA"
+
+#: premium.php:423
+msgid "Get codes"
+msgstr ""
+
+#: premium.php:420
+msgid "Show codes for a particular user"
+msgstr "Afficher les codes pour un utilisateur donné"
+
+#: premium.php:341
+msgid "Two factor authentication has been de-activated for this user."
+msgstr "L’authentification à deux facteurs a été desactivée pour cet utilisateur."
+
+#: premium.php:339
+msgid "Two factor authentication has been activated for this user."
+msgstr "L’authentification à deux facteurs a été activée pour cet utilisateur."
+
+#: premium.php:306 premium.php:362
+msgid "Two factor authentication is not activated for this user."
+msgstr "L’authentification à deux facteurs n’est pas activée pour cet utilisateur."
+
+#: premium.php:303 premium.php:329 premium.php:359
+msgid "Two factor authentication is not available for this user."
+msgstr "L’authentification à deux facteurs n’est pas disponible pour cet utilisateur."
+
+#: includes/admin_settings.php:225
+msgid "If you translate this plugin, please send the translations .po-file to us so we can include it in future releases - paste a link in the plugin's support forum."
+msgstr ""
+
+#: includes/admin_settings.php:223
+msgid "Translations"
+msgstr "Traductions"
+
+#: includes/admin_settings.php:217
+msgid "access to our personal support desk for 12 months."
+msgstr "accès à notre bureau de support personnel pendant 12 mois."
+
+#: includes/admin_settings.php:217
+msgid "Personal support"
+msgstr "Support personnel"
+
+#: includes/admin_settings.php:216
+msgid "flexible shortcodes allowing you to design your front-end settings page for your users exactly as you wish."
+msgstr "Codes courts flexibles permettant de concevoir votre page de réglages d’interface utilisateur pour vos utilisateurs exactement comme vous le souhaitez."
+
+#: includes/admin_settings.php:216
+msgid "More shortcodes"
+msgstr "Plus de codes courts"
+
+#: includes/admin_settings.php:215
+msgid "enable, disable or see TFA codes for all your users from one central location."
+msgstr "activer, désactiver ou voir des codes 2FA pour tous vos utilisateurs à partir d’un emplacement central."
+
+#: includes/admin_settings.php:215
+msgid "Manage all users centrally"
+msgstr "Gérer centralement tous les utilisateurs"
+
+#: includes/admin_settings.php:212
+msgid "provide your users with one-time codes to use in case they lose their device."
+msgstr "fournir à vos utilisateurs des codes à usage unique à utiliser dans le cas où ils perdent leur terminal."
+
+#: includes/admin_settings.php:208
+msgid "It comes with these extra features:"
+msgstr "Il est livré avec ces fonctionnalités supplémentaires :"
+
+#: includes/admin_settings.php:208
+msgid "If you want to say 'thank you' or help this plugin's development, or get extra features, then please take a look at the premium version of this plugin."
+msgstr "Si vous voulez dire « merci » ou aider au développement de cette extension, ou obtenir des fonctionnalités supplémentaires, alors veuillez jeter un œil à la version premium de cette extension."
+
+#: includes/admin_settings.php:197
+msgid "Change to email"
+msgstr ""
+
+#: includes/admin_settings.php:195
+msgid "Default"
+msgstr ""
+
+#: includes/admin_settings.php:162
+msgid "Another way to do that is by using a user-switching plugin like this one."
+msgstr "Une autre façon de le faire est d’utiliser une extension de commutation d’utilisateur comme celui-ci."
+
+#: includes/admin_settings.php:160
+msgid "The Premium version of this plugin allows you to see and reset the TFA settings of other users."
+msgstr "La version Premium de cette extension vous permet de voir et de réinitialiser les réglages TFA des autres utilisateurs."
+
+#: includes/admin_settings.php:154
+msgid "Users' settings"
+msgstr "Paramètres utilisateurs"
+
+#: includes/admin_settings.php:132
+msgid "Your users can change this in their own settings if they want."
+msgstr "Vos utilisateurs peuvent modifier leurs propres réglages si ils veulent."
+
+#: includes/admin_settings.php:131
+msgid "Default algorithm"
+msgstr "Algorithme par défaut"
+
+#: includes/admin_settings.php:114
+msgid " i.e. XMLRPC requests coming in to WordPress (whether from a legitimate app, or from an attacker) can only be verified using the password - not with a two-factor code. As a result, there not be an ideal option to pick below. You may have to choose between the convenience of using your apps, or the security of two factor authentication."
+msgstr ""
+
+#: includes/admin_settings.php:110
+msgid "Unfortunately, XMLRPC also provides a way for attackers to perform actions on your WordPress site, using only a password (i.e. without a two-factor password). More unfortunately, authors of legitimate programmes using XMLRPC have not yet added two-factor support to their code."
+msgstr "Malheureusement, XMLRPC fournit également un moyen pour les attaquants d’effectuer des actions sur votre site WordPress, en utilisant uniquement un mot de passe (c-à-d sans mot de passe à deux facteurs). Encore plus malheureux, les auteurs de programmes légitimes utilisant XMLRPC n’ont pas encore ajouté de support à deux facteurs à leur code."
+
+#: includes/admin_settings.php:106
+msgid "XMLRPC is a feature within WordPress allowing other computers to talk to your WordPress install. For example, it could be used by an app on your tablet that allows you to blog directly from the app (instead of needing the WordPress dashboard)."
+msgstr "XMLRPC est une fonction au sein de WordPress permettant à d’autres ordinateurs de communiquer avec votre installation WordPress. Par exemple, cela pourrait être utilisé par une application sur votre tablette qui vous permet de bloguer directement depuis l’application (au lieu de nécéssiter le tableau de bord WordPress)."
+
+#: includes/admin_settings.php:102
+msgid "XMLRPC requests"
+msgstr "Requêtes XMLRPC"
+
+#: includes/admin_settings.php:64
+msgid "Choose which user roles will have two factor authentication available."
+msgstr "Choisissez quels rôles d’utilisateur auront l’authentification à deux facteurs disponible."
+
+#: includes/admin_settings.php:63
+msgid "User roles"
+msgstr "Rôles d’utilisateur"
+
+#: includes/admin_settings.php:51
+msgid "N.B. These two-factor settings apply to your entire WordPress network. (i.e. They are not localised to one particular site)."
+msgstr "N.B : ces réglages à deux facteurs sont applicables à votre réseau WordPress entier. (c-à-d qu’ils ne sont pas localisés pour un site particulier)."
+
+#: includes/admin_settings.php:30
+msgid "Lead developer's homepage"
+msgstr "Page du développeur"
+
+#: includes/admin_settings.php:28
+msgid "Twitter"
+msgstr "Twitter"
+
+#: includes/admin_settings.php:27
+msgid "More premium plugins"
+msgstr "Plus d’extensions premium"
+
+#: includes/admin_settings.php:26
+msgid "WordPress backups"
+msgstr "Sauvegardes WordPress"
+
+#: includes/admin_settings.php:25
+msgid "More free plugins"
+msgstr "Plus d’extensions gratuites"
+
+#: includes/admin_settings.php:24
+msgid "Support"
+msgstr "Assistance"
+
+#: includes/admin_settings.php:20 includes/admin_settings.php:206
+msgid "Premium version"
+msgstr "Version premium"
+
+#: includes/admin_settings.php:15
+msgid "Two Factor Authentication (Version: %s) - Admin Settings"
+msgstr "Authentification à deux facteurs (Version %s) - Paramètres Administrateur"
+
+#: includes/user_settings.php:53
+msgid "Activate two factor authentication"
+msgstr "Activer l’authentification à deux facteurs"
+
+#: includes/user_settings.php:41
+msgid "Settings saved."
+msgstr "Réglages enregistrés."
+
+#: includes/user_settings.php:36
+msgid "Settings"
+msgstr "Réglages"
+
+#: includes/tfa_frontend.php:304 premium.php:599 premium.php:612
+#: premium.php:630 premium.php:644 premium.php:656 premium.php:676
+#: premium.php:694 premium.php:745
+msgid "Two factor authentication is not available for your user."
+msgstr "L’authentification à deux facteurs n’est pas disponible pour votre utilisateur."
+
+#: includes/tfa_frontend.php:188
+msgid "Saving..."
+msgstr "Enregistrement…"
+
+#: includes/tfa_frontend.php:170
+msgid "You have unsaved settings."
+msgstr "Vous avez des réglages non enregistrés."
+
+#: includes/tfa_frontend.php:123 includes/tfa_frontend.php:141 premium.php:667
+msgid "Save Settings"
+msgstr "Enregistrer les réglages"
+
+#: includes/class-simba-tfa.php:196 includes/tfa_frontend.php:117
+msgid "No emergency codes left. Sorry."
+msgstr "Aucun code de récupération d’urgence restant. Désolé."
+
+#: two-factor-login.php:1169
+msgid "One Time Password"
+msgstr ""
+
+#: two-factor-login.php:1167
+msgid "Enter One Time Password (if you have one)"
+msgstr ""
+
+#: two-factor-login.php:1092
+msgid "You should also bookmark the FAQs, which explain how to de-activate the plugin even if you cannot log in."
+msgstr "Vous devriez également consulter les FAQs, qui expliquent comment désactiver l’extension même si vous ne pouvez pas vous connecter."
+
+#: two-factor-login.php:1075
+msgid "Nothing you change here will have any effect on other users."
+msgstr "Rien de ce que vous modifiez ici n’aura d’effet sur les autres utilisateurs."
+
+#: two-factor-login.php:1075
+msgid "These are your personal settings."
+msgstr "Ce sont vos réglages personnels."
+
+#: two-factor-login.php:1043
+msgid "Click here and re-scan the QR-Code"
+msgstr "Cliquez ici et scannez à nouveau le QR-Code"
+
+#: two-factor-login.php:1041
+msgid "Please re-sync or you might not be able to log in if you generate more OTPs without logging in."
+msgstr "Veuillez effectuer une nouvelle synchronisation ou vous risquez de ne pas pouvoir vous connecter si vous générez plus d’OTP sans vous connecter."
+
+#: two-factor-login.php:1039
+msgid "You need to resync your device for Two Factor Authentication since the OTP you last used is many steps ahead of the server."
+msgstr "Vous devez resynchroniser votre appareil pour l’authentification à deux facteurs, car l’OTP que vous avez utilisé pour la dernière fois est à plusieurs étapes en avance sur le serveur."
+
+#: two-factor-login.php:1037
+msgid "Two Factor Authentication re-sync needed"
+msgstr "Re-synchronisation de l’authentification à deux facteurs nécessaire"
+
+#: two-factor-login.php:1008 two-factor-login.php:1173
+msgid "(check your OTP app to get this password)"
+msgstr "(Lancez votre application 2FA pour l’obtenir)"
+
+#: two-factor-login.php:1007
+msgid "One Time Password (i.e. 2FA)"
+msgstr "Entrez votre code à usage unique (i.e. OTP)"
+
+#: two-factor-login.php:1006 two-factor-login.php:1168
+msgid "You have to enter a username first."
+msgstr "Vous devez d’abord saisir un nom d’utilisateur."
+
+#: two-factor-login.php:1005
+msgid "Click to enter One Time Password"
+msgstr "Cliquez pour saisir le mot de passe à usage unique"
+
+#: two-factor-login.php:973
+msgid "Your counter on the server is currently on"
+msgstr "Votre compteur sur le serveur est actuellement sur"
+
+#: two-factor-login.php:967
+msgid "Choose which algorithm for One Time Passwords you want to use."
+msgstr "Choisissez quel algorithme vous souhaitez utiliser pour le mot de passe à usage unique."
+
+#: two-factor-login.php:958
+msgid "Advanced settings"
+msgstr "Réglages avancés"
+
+#: two-factor-login.php:943
+msgid "(update)"
+msgstr "(mise à jour)"
+
+#: two-factor-login.php:929
+msgid "One-time emergency codes are a feature of the Premium version of this plugin."
+msgstr "Les codes de récupération d'urgence à usage unique sont une fonctionnalité de la version Premium de cette extension."
+
+#: includes/admin_settings.php:212 two-factor-login.php:927
+msgid "Emergency codes"
+msgstr "Codes de récupération d’urgence"
+
+#: two-factor-login.php:900 premium.php:711
+msgid "Private key: %s (base 32: %s)"
+msgstr "Clé privée : %s (base 32 :%s)"
+
+#: includes/tfa_frontend.php:88
+msgid "an event based"
+msgstr "sur la base d'un événement"
+
+#: includes/tfa_frontend.php:88
+msgid "a time based"
+msgstr "basé sur le temps"
+
+#: two-factor-login.php:857 two-factor-login.php:869
+msgid "Current one-time password"
+msgstr "Mot de passe à usage unique actuel"
+
+#: two-factor-login.php:846
+msgid "Current codes (login: %s)"
+msgstr "Codes actuels (login :%s)"
+
+#: two-factor-login.php:842
+msgid "Current codes"
+msgstr ""
+
+#: two-factor-login.php:776
+msgid "Private key:"
+msgstr "Clé privée :"
+
+#: two-factor-login.php:773
+msgid "Private key (base 32 - used by Google Authenticator and Authy):"
+msgstr "Clé privée (base 32 - utilisé par Google Authenticator et Authy) :"
+
+#: includes/tfa_frontend.php:237 includes/tfa_frontend.php:273
+#: two-factor-login.php:674 two-factor-login.php:696
+msgid "Response:"
+msgstr "Réponse :"
+
+#: two-factor-login.php:661
+msgid "Updating..."
+msgstr "Mise à jour…"
+
+#: two-factor-login.php:637 two-factor-login.php:912
+msgid "Reset private key"
+msgstr "Réinitialiser la clé privée"
+
+#: two-factor-login.php:637
+msgid "Warning: if you reset this key you will have to update your apps with the new one. Are you sure you want this?"
+msgstr "Attention : si vous réinitialisez cette clé, vous devrez mettre à jour vos apps avec la nouvelle. Confirmez-vous vouloir cela ?"
+
+#: two-factor-login.php:583
+msgid "User settings"
+msgstr "Réglages de l’utilisateur"
+
+#: two-factor-login.php:574 two-factor-login.php:578
+msgid "Plugin settings"
+msgstr "Réglages de l'extension"
+
+#: two-factor-login.php:551
+msgid "Two Factor Auth"
+msgstr "Authentification à deux facteurs"
+
+#: includes/user_settings.php:36 two-factor-login.php:551
+#: two-factor-login.php:564 two-factor-login.php:565
+msgid "Two Factor Authentication"
+msgstr "Authentication à deux facteurs"
+
+#: two-factor-login.php:517
+msgid "Do require 2FA over XMLRPC (best option if you do not use XMLRPC or are unsure)"
+msgstr "XMLRPC nécessite 2FA (meilleure option si vous n’utilisez pas XMLRPC ou n'êtes pas sûr)"
+
+#: two-factor-login.php:516
+msgid "Do not require 2FA over XMLRPC (best option if you must use XMLRPC and your client does not support 2FA)"
+msgstr "XMLRPC ne nécessite pas 2FA (meilleure option si vous devez utiliser XMLRPC et votre client ne supporte pas 2FA)"
+
+#: two-factor-login.php:480 premium.php:257
+msgid "Multisite Super Admin"
+msgstr "Super admin multisite"
+
+#: two-factor-login.php:444 two-factor-login.php:504
+msgid "HOTP (event based)"
+msgstr "HOTP (basé sur événement)"
+
+#: two-factor-login.php:444 two-factor-login.php:504
+msgid "TOTP (time based - most common algorithm; used by Google Authenticator)"
+msgstr "TOTP (basé sur le temps - algorithme le plus commun, utilisé par Google Authenticator)"
+
+#: two-factor-login.php:427 two-factor-login.php:1257
+msgid "Disabled"
+msgstr "Désactivée"
+
+#: two-factor-login.php:427
+msgid "Disable two-factor authentication"
+msgstr "Désactiver l’authentification à deux facteurs"
+
+#: two-factor-login.php:417 two-factor-login.php:1253
+msgid "Enabled"
+msgstr "Activé"
+
+#: two-factor-login.php:417
+msgid "Enable two-factor authentication"
+msgstr "Activer l’authentification à deux facteurs"
+
+#: two-factor-login.php:335 two-factor-login.php:1146
+msgid "The one-time password (TFA code) you entered was incorrect."
+msgstr "Le mot de passe à usage unique (Code TFA) que vous avez entré est incorrect."
+
+#: includes/class-simba-tfa.php:352 includes/class-simba-tfa.php:369
+#: includes/class-simba-tfa.php:383 two-factor-login.php:335
+#: two-factor-login.php:1146
+msgid "Error:"
+msgstr "Erreur :"
+
+#: two-factor-login.php:193
+msgid "The Two Factor Authentication plugin requires PHP version %s or higher - your current version is only %s."
+msgstr "L’extension d’authentification à deux facteurs nécessite la version %s de PHP ou plus - votre version actuelle est seulement %s."
+
+#: two-factor-login.php:193
+msgid "Higher PHP version required"
+msgstr "Version PHP supérieure nécessaire"
