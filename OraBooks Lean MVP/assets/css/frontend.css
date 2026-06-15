@@ -165,3 +165,529 @@
 .orabooks-status-badge.active { background: #d4edda; color: #155724; }
 .orabooks-status-badge.disabled,
 .orabooks-status-badge.inactive { background: #f8d7da; color: #721c24; }
+
+/* ============================================= */
+/* COMMISSION DASHBOARD */
+/* ============================================= */
+.orabooks-commission-dashboard {
+    max-width: 960px;
+    margin: 30px auto;
+    padding: 20px;
+}
+.orabooks-commission-dashboard h2 {
+    color: #333;
+    margin-bottom: 24px;
+}
+.orabooks-commission-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+}
+.orabooks-commission-stats .orabooks-stat-card {
+    background: #fff;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 20px;
+    text-align: center;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+.orabooks-commission-stats .orabooks-stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+.orabooks-commission-stats .orabooks-stat-card h3 {
+    font-size: 13px;
+    color: #666;
+    margin: 0 0 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+.orabooks-stat-amount {
+    font-size: 24px;
+    font-weight: 700;
+    color: #007cba;
+    margin: 0;
+}
+.orabooks-info-banner {
+    background: #e3f2fd;
+    border: 1px solid #bbdefb;
+    border-radius: 6px;
+    padding: 12px 16px;
+    margin-bottom: 24px;
+    font-size: 13px;
+    color: #1565c0;
+}
+.orabooks-info-banner p {
+    margin: 4px 0;
+}
+.orabooks-tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 0;
+    border-bottom: 2px solid #e0e0e0;
+    overflow-x: auto;
+}
+.orabooks-tab {
+    padding: 10px 18px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    color: #666;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -2px;
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+.orabooks-tab:hover {
+    color: #007cba;
+}
+.orabooks-tab-active {
+    color: #007cba;
+    border-bottom-color: #007cba;
+}
+.orabooks-tab-content {
+    display: none;
+    padding: 20px 0;
+}
+.orabooks-tab-content-active {
+    display: block;
+}
+.orabooks-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+}
+.orabooks-table th {
+    background: #f5f5f5;
+    padding: 10px 12px;
+    text-align: left;
+    font-weight: 600;
+    color: #555;
+    border-bottom: 2px solid #e0e0e0;
+}
+.orabooks-table td {
+    padding: 10px 12px;
+    border-bottom: 1px solid #eee;
+    color: #333;
+}
+.orabooks-table tr:hover td {
+    background: #f8faff;
+}
+.orabooks-badge {
+    display: inline-block;
+    padding: 3px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: capitalize;
+}
+.orabooks-badge-earned { background: #e3f2fd; color: #1565c0; }
+.orabooks-badge-paid { background: #e8f5e9; color: #2e7d32; }
+.orabooks-badge-expired { background: #fbe9e7; color: #bf360c; }
+.orabooks-badge-initiated { background: #fff3e0; color: #e65100; }
+.orabooks-badge-processing { background: #f3e5f5; color: #6a1b9a; }
+.orabooks-badge-settled { background: #e8f5e9; color: #2e7d32; }
+.orabooks-badge-failed { background: #ffebee; color: #c62828; }
+.orabooks-badge-pending { background: #fff3e0; color: #e65100; }
+.orabooks-progress-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.orabooks-progress-fill {
+    height: 8px;
+    background: #007cba;
+    border-radius: 4px;
+    min-width: 4px;
+    max-width: 120px;
+    transition: width 0.5s ease;
+}
+.orabooks-progress-bar span {
+    font-size: 12px;
+    color: #666;
+}
+
+/* Commission Admin */
+.orabooks-commission-admin {
+    max-width: 600px;
+    margin: 30px auto;
+    padding: 20px;
+}
+.orabooks-commission-admin h2 {
+    color: #333;
+    margin-bottom: 24px;
+}
+
+/* ============================================= */
+/* PARTNER DASHBOARD (SL-139) */
+/* ============================================= */
+.orabooks-partner-dashboard {
+    max-width: 960px;
+    margin: 30px auto;
+    padding: 20px;
+}
+.orabooks-partner-dashboard h2 {
+    color: #333;
+    margin-bottom: 16px;
+}
+.orabooks-partner-header {
+    background: #fff;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 24px;
+    margin-bottom: 24px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+}
+.orabooks-partner-code-box {
+    margin-bottom: 12px;
+}
+.orabooks-partner-code-box label {
+    display: block;
+    font-weight: 600;
+    color: #555;
+    margin-bottom: 6px;
+}
+.orabooks-partner-type-info {
+    color: #666;
+    font-size: 14px;
+}
+.orabooks-partner-type-info p {
+    margin: 4px 0;
+}
+.orabooks-status-banners {
+    margin-bottom: 20px;
+}
+.orabooks-banner {
+    padding: 12px 16px;
+    border-radius: 6px;
+    margin-bottom: 8px;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+.orabooks-banner-warning {
+    background: #fff3cd;
+    border: 1px solid #ffeeba;
+    color: #856404;
+}
+.orabooks-banner-danger {
+    background: #fbe9e7;
+    border: 1px solid #ffccbc;
+    color: #bf360c;
+}
+.orabooks-banner-info {
+    background: #e3f2fd;
+    border: 1px solid #bbdefb;
+    color: #1565c0;
+}
+.orabooks-banner-tooltip {
+    font-size: 12px;
+    opacity: 0.8;
+}
+.orabooks-btn-sm {
+    padding: 6px 14px;
+    font-size: 12px;
+    width: auto !important;
+}
+.orabooks-stats-row {
+    margin-bottom: 24px;
+}
+.orabooks-stats-group-label {
+    font-size: 13px;
+    font-weight: 700;
+    color: #666;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 10px;
+}
+.orabooks-partner-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 12px;
+}
+.orabooks-partner-stats .orabooks-stat-card {
+    background: #fff;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 16px;
+    text-align: center;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+.orabooks-partner-stats .orabooks-stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+.orabooks-partner-stats .orabooks-stat-card h3 {
+    font-size: 12px;
+    color: #888;
+    margin: 0 0 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+.orabooks-partner-stats .orabooks-stat-number {
+    font-size: 28px;
+    font-weight: 700;
+    color: #333;
+    margin: 0;
+}
+.orabooks-partner-stats .orabooks-stat-verified .orabooks-stat-number { color: #2e7d32; }
+.orabooks-partner-stats .orabooks-stat-pending .orabooks-stat-number { color: #e65100; }
+.orabooks-partner-stats .orabooks-stat-paid .orabooks-stat-amount { color: #2e7d32; }
+.orabooks-partner-stats .orabooks-stat-expired .orabooks-stat-amount { color: #bf360c; }
+
+/* Modal */
+.orabooks-modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.5);
+    align-items: center;
+    justify-content: center;
+}
+.orabooks-modal-content {
+    background: #fff;
+    margin: 10% auto;
+    padding: 24px;
+    border-radius: 8px;
+    max-width: 440px;
+    position: relative;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+}
+.orabooks-modal-close {
+    position: absolute;
+    top: 12px;
+    right: 16px;
+    font-size: 24px;
+    cursor: pointer;
+    color: #999;
+}
+.orabooks-modal-close:hover {
+    color: #333;
+}
+.orabooks-modal-content h3 {
+    margin-top: 0;
+    color: #333;
+}
+.orabooks-modal-content textarea {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+    margin: 12px 0;
+    resize: vertical;
+}
+
+/* ============================================= */
+/* NOTIFICATION CENTER (SL-250) */
+/* ============================================= */
+.orabooks-notification-center {
+    max-width: 800px;
+    margin: 30px auto;
+    padding: 20px;
+}
+.orabooks-notification-center h2 {
+    color: #333;
+    margin: 0;
+}
+.orabooks-nc-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+.orabooks-nc-actions {
+    display: flex;
+    gap: 8px;
+}
+.orabooks-nc-filters {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+}
+.orabooks-nc-filters select,
+.orabooks-nc-filters input[type="text"] {
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 13px;
+}
+.orabooks-nc-filters .orabooks-btn {
+    padding: 8px 16px;
+}
+.orabooks-nc-unread-badge {
+    background: #e3f2fd;
+    color: #1565c0;
+    padding: 8px 16px;
+    border-radius: 6px;
+    margin-bottom: 16px;
+    font-size: 14px;
+    display: none;
+}
+.orabooks-nc-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.orabooks-nc-item {
+    background: #fff;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 16px;
+    transition: all 0.2s;
+    cursor: pointer;
+}
+.orabooks-nc-item:hover {
+    border-color: #bbdefb;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+.orabooks-nc-item-unread {
+    border-left: 4px solid #007cba;
+    background: #f8fbff;
+}
+.orabooks-nc-item-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 6px;
+    gap: 12px;
+}
+.orabooks-nc-item-title {
+    font-weight: 600;
+    color: #333;
+    flex: 1;
+}
+.orabooks-nc-item-message {
+    font-size: 14px;
+    color: #555;
+    margin-bottom: 8px;
+    line-height: 1.5;
+}
+.orabooks-nc-item-meta {
+    display: flex;
+    gap: 12px;
+    font-size: 12px;
+    color: #888;
+    flex-wrap: wrap;
+    align-items: center;
+}
+.orabooks-nc-item-correlation {
+    font-family: monospace;
+    font-size: 11px;
+    color: #aaa;
+}
+.orabooks-nc-item-actions {
+    margin-top: 8px;
+    display: flex;
+    gap: 8px;
+}
+.orabooks-nc-item .orabooks-badge {
+    font-size: 11px;
+}
+.orabooks-badge-critical { background: #ffebee; color: #c62828; }
+.orabooks-badge-high { background: #fff3e0; color: #e65100; }
+.orabooks-badge-normal { background: #e3f2fd; color: #1565c0; }
+.orabooks-badge-low { background: #f5f5f5; color: #888; }
+.orabooks-nc-empty {
+    text-align: center;
+    padding: 40px;
+    color: #888;
+    font-size: 15px;
+}
+.orabooks-loading {
+    text-align: center;
+    color: #888;
+}
+.orabooks-proof-content {
+    background: #f5f5f5;
+    padding: 16px;
+    border-radius: 4px;
+    font-size: 12px;
+    overflow-x: auto;
+    white-space: pre-wrap;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+/* Notification Preferences */
+.orabooks-notification-preferences {
+    max-width: 600px;
+    margin: 30px auto;
+    padding: 20px;
+}
+.orabooks-notification-preferences h2 {
+    color: #333;
+    margin-bottom: 24px;
+}
+.orabooks-checkbox-group {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+.orabooks-checkbox-group label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: normal;
+    cursor: pointer;
+}
+.orabooks-checkbox-group input[type="checkbox"] {
+    width: auto;
+}
+.orabooks-time-range {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.orabooks-time-range input[type="time"] {
+    width: auto;
+    padding: 8px;
+}
+.orabooks-time-range span {
+    color: #666;
+}
+
+/* Notification Admin */
+.orabooks-notification-admin {
+    max-width: 800px;
+    margin: 30px auto;
+    padding: 20px;
+}
+.orabooks-notification-admin h2 {
+    color: #333;
+    margin-bottom: 24px;
+}
+.orabooks-nc-provider-actions {
+    margin-bottom: 12px;
+}
+.orabooks-nc-provider-note {
+    font-size: 13px;
+    color: #666;
+    margin-bottom: 12px;
+}
+.orabooks-escalation-chain {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+.orabooks-escalation-chain label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: normal;
+    cursor: pointer;
+}

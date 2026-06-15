@@ -190,4 +190,753 @@ jQuery(document).ready(function($) {
             }
         });
     }
+    
+    // =============================================
+    // COMMISSION DASHBOARD
+    // =============================================
+    
+    // Load commission stats
+    function orabooksLoadCommissionStats(partnerUserId) {
+        $.get(orabooks_ajax.ajax_url, {
+            action: 'orabooks_commission_stats',
+            partner_user_id: partnerUserId
+        }, function(response) {
+            if (!response.error && response.data) {
+                var d = response.data;
+                $('#orabooks-total-earned').text('$' + parseFloat(d.total_earned).toFixed(2));
+                $('#orabooks-pending-payout').text('$' + parseFloat(d.pending_payout).toFixed(2));
+                $('#orabooks-total-paid').text('$' + parseFloat(d.total_paid).toFixed(2));
+                $('#orabooks-total-expired').text('$' + parseFloat(d.total_expired).toFixed(2));
+                $('#orabooks-escrow-remaining').text('$' + parseFloat(d.escrow_remaining).toFixed(2));
+            }
+        });
+    }
+    
+    // Load earned commissions
+    function orabooksLoadEarnedCommissions(partnerUserId) {
+        var $tbody = $('#orabooks-earned-table-body');
+        $tbody.html('<tr><td colspan="6">Loading...</td></tr>');
+        
+        $.get(orabooks_ajax.ajax_url, {
+            action: 'orabooks_commission_earned',
+            partner_user_id: partnerUserId
+        }, function(response) {
+            if (!response.error && response.data) {
+                var html = '';
+                $.each(response.data, function(i, row) {
+                    var statusClass = row.status;
+                    var statusLabel = row.status.charAt(0).toUpperCase() + row.status.slice(1);
+                    html += '<tr>' +
+                        '<td>' + row.customer_email_masked + '</td>' +
+                        '<td>' + row.release_month + '</td>' +
+                        '<td>$' + parseFloat(row.amount).toFixed(2) + '</td>' +
+                        '<td><span class="orabooks-badge orabooks-badge-' + statusClass + '">' + statusLabel + '</span></td>' +
+                        '<td>' + row.expires_at + '</td>' +
+                        '<td>' + row.earned_at + '</td>' +
+                    '</tr>';
+                });
+                $tbody.html(html || '<tr><td colspan="6">No commissions found</td></tr>');
+            }
+        });
+    }
+    
+    // Load payout history
+    function orabooksLoadPayouts(partnerUserId) {
+        var $tbody = $('#orabooks-payouts-table-body');
+        $tbody.html('<tr><td colspan="5">Loading...</td></tr>');
+        
+        $.get(orabooks_ajax.ajax_url, {
+            action: 'orabooks_commission_payouts',
+            partner_user_id: partnerUserId
+        }, function(response) {
+            if (!response.error && response.data) {
+                var html = '';
+                $.each(response.data, function(i, row) {
+                    var statusClass = row.status;
+                    var statusLabel = row.status.charAt(0).toUpperCase() + row.status.slice(1);
+                    html += '<tr>' +
+                        '<td>' + (row.payout_date || row.created_at) + '</td>' +
+                        '<td>$' + parseFloat(row.gross_amount).toFixed(2) + '</td>' +
+                        '<td>$' + parseFloat(row.fee_amount).toFixed(2) + '</td>' +
+                        '<td><strong>$' + parseFloat(row.net_amount).toFixed(2) + '</strong></td>' +
+                        '<td><span class="orabooks-badge orabooks-badge-' + statusClass + '">' + statusLabel + '</span></td>' +
+                    '</tr>';
+                });
+                $tbody.html(html || '<tr><td colspan="5">No payouts found</td></tr>');
+            }
+        });
+    }
+    
+    // Load aging report
+    function orabooksLoadAging(partnerUserId) {
+        var $tbody = $('#orabooks-aging-table-body');
+        $tbody.html('<tr><td colspan="2">Loading...</td></tr>');
+        
+        $.get(orabooks_ajax.ajax_url, {
+            action: 'orabooks_commission_aging',
+            partner_user_id: partnerUserId
+        }, function(response) {
+            if (!response.error && response.data) {
+                var d = response.data;
+                var html = '';
+                var buckets = [
+                    { label: '0-30 Days', value: d.bucket_0_30 },
+                    { label: '31-60 Days', value: d.bucket_31_60 },
+                    { label: '61-90 Days', value: d.bucket_61_90 },
+                    { label: '90+ Days', value: d.bucket_90_plus },
+                    { label: 'Expired', value: d.expired_total }
+                ];
+                $.each(buckets, function(i, b) {
+                    html += '<tr>' +
+                        '<td>' + b.label + '</td>' +
+                        '<td>$' + parseFloat(b.value || 0).toFixed(2) + '</td>' +
+                    '</tr>';
+                });
+                $tbody.html(html);
+            }
+        });
+    }
+    
+    // Load escrow schedule
+    function orabooksLoadEscrow(partnerUserId) {
+        var $tbody = $('#orabooks-escrow-table-body');
+        $tbody.html('<tr><td colspan="6">Loading...</td></tr>');
+        
+        $.get(orabooks_ajax.ajax_url, {
+            action: 'orabooks_commission_escrow_schedule',
+            partner_user_id: partnerUserId
+        }, function(response) {
+            if (!response.error && response.data) {
+                var html = '';
+                $.each(response.data, function(i, row) {
+                    var statusClass = row.remaining_amount_status === 'expired' ? 'expired' : 'pending';
+                    html += '<tr>' +
+                        '<td>' + row.customer_email_masked + '</td>' +
+                        '<td>$' + parseFloat(row.total_amount).toFixed(2) + '</td>' +
+                        '<td>$' + parseFloat(row.released_amount).toFixed(2) + '</td>' +
+                        '<td>$' + parseFloat(row.remaining_amount).toFixed(2) + '</td>' +
+                        '<td><div class="orabooks-progress-bar"><div class="orabooks-progress-fill" style="width:' + row.progress_pct + '%"></div><span>' + row.progress_pct + '%</span></div></td>' +
+                        '<td><span class="orabooks-badge orabooks-badge-' + statusClass + '">' + row.remaining_amount_status + '</span></td>' +
+                    '</tr>';
+                });
+                $tbody.html(html || '<tr><td colspan="6">No escrow schedules found</td></tr>');
+            }
+        });
+    }
+    
+    // Tab switching
+    $(document).on('click', '.orabooks-tab', function() {
+        var tab = $(this).data('tab');
+        $('.orabooks-tab').removeClass('orabooks-tab-active');
+        $(this).addClass('orabooks-tab-active');
+        $('.orabooks-tab-content').removeClass('orabooks-tab-content-active');
+        $('#orabooks-tab-' + tab).addClass('orabooks-tab-content-active');
+    });
+    
+    // Initialize commission dashboard
+    if ($('.orabooks-commission-dashboard').length) {
+        var partnerUserId = orabooks_ajax.current_user_id || 0;
+        orabooksLoadCommissionStats(partnerUserId);
+        orabooksLoadEarnedCommissions(partnerUserId);
+        orabooksLoadPayouts(partnerUserId);
+        orabooksLoadAging(partnerUserId);
+        orabooksLoadEscrow(partnerUserId);
+    }
+    
+    // =============================================
+    // PARTNER DASHBOARD (SL-139)
+    // =============================================
+    
+    // Load full partner dashboard
+    function orabooksLoadPartnerDashboard() {
+        $.get(orabooks_ajax.ajax_url, {
+            action: 'orabooks_partner_dashboard'
+        }, function(response) {
+            if (response.error) {
+                $('#orabooks-partner-dashboard-message').removeClass('success').addClass('error').text(response.message).show();
+                return;
+            }
+            
+            var d = response.data;
+            
+            // Partner code & type
+            $('#orabooks-dash-partner-code').val(d.partner_code);
+            var typeHtml = '<p><strong>Type:</strong> ' + d.partner_type + '</p>';
+            if (d.organization_name) {
+                typeHtml += '<p><strong>Organization:</strong> ' + d.organization_name + '</p>';
+            }
+            typeHtml += '<p><strong>Active Customers:</strong> ' + d.active_customer_count + '</p>';
+            $('#orabooks-partner-type-display').html(typeHtml);
+            
+            // Status Banners
+            var banners = '';
+            if (d.payout_disabled) {
+                banners += '<div class="orabooks-banner orabooks-banner-warning">' +
+                    '⚠️ Payout hold: commissions are being tracked but withdrawal is temporarily disabled. ' +
+                    '<span class="orabooks-banner-tooltip">⏸️ Contact support for resolution.</span></div>';
+            }
+            if (d.read_only) {
+                banners += '<div class="orabooks-banner orabooks-banner-warning">' +
+                    '🔒 Partner program is readonly. Contact support for reactivation.</div>';
+            }
+            if (d.code_status === 'inactive') {
+                banners += '<div class="orabooks-banner orabooks-banner-danger">' +
+                    '⚠️ Your partner program is inactive. You have no active customers and no new referral for 12 months. ' +
+                    'You cannot earn commissions until reactivated. ' +
+                    '<button id="orabooks-show-reactivation" class="orabooks-btn orabooks-btn-secondary orabooks-btn-sm">Request Reactivation</button></div>';
+            }
+            if (d.is_dormant) {
+                banners += '<div class="orabooks-banner orabooks-banner-info">' +
+                    '💡 You have no active customers. Refer new customers to earn commissions!</div>';
+            }
+            $('#orabooks-status-banners').html(banners);
+            
+            // Attribution stats
+            if (d.attribution_stats) {
+                $('#orabooks-attr-total').text(d.attribution_stats.total || 0);
+                $('#orabooks-attr-verified').text(d.attribution_stats.verified || 0);
+                $('#orabooks-attr-pending').text(d.attribution_stats.pending || 0);
+            }
+            
+            // Commission summary
+            if (d.commission_summary) {
+                $('#orabooks-comm-earned').text('$' + parseFloat(d.commission_summary.total_earned || 0).toFixed(2));
+                $('#orabooks-comm-pending').text('$' + parseFloat(d.commission_summary.pending_payout || 0).toFixed(2));
+                $('#orabooks-comm-paid').text('$' + parseFloat(d.commission_summary.paid || 0).toFixed(2));
+                $('#orabooks-comm-expired').text('$' + parseFloat(d.commission_summary.expired || 0).toFixed(2));
+            }
+            
+            // Attribution table
+            var $attrBody = $('#orabooks-attr-table-body');
+            if (d.attributions && d.attributions.length) {
+                var html = '';
+                $.each(d.attributions, function(i, a) {
+                    var attrBadge = a.attribution_status === 'verified' ? 
+                        '<span class="orabooks-badge orabooks-badge-paid">Verified</span>' : 
+                        '<span class="orabooks-badge orabooks-badge-pending">Pending</span>';
+                    var commBadge = '';
+                    if (a.commission_status === 'paid') commBadge = '<span class="orabooks-badge orabooks-badge-paid">Paid</span>';
+                    else if (a.commission_status === 'earned') commBadge = '<span class="orabooks-badge orabooks-badge-earned">Earned</span>';
+                    else if (a.commission_status === 'expired') commBadge = '<span class="orabooks-badge orabooks-badge-expired">Expired</span>';
+                    else if (a.commission_status === 'qualified') commBadge = '<span class="orabooks-badge orabooks-badge-initiated">Qualified</span>';
+                    else commBadge = '<span class="orabooks-badge" style="background:#f5f5f5;color:#999;">—</span>';
+                    
+                    html += '<tr>' +
+                        '<td>' + a.customer_email_masked + '</td>' +
+                        '<td>' + a.attribution_date + '</td>' +
+                        '<td>' + attrBadge + '</td>' +
+                        '<td>' + commBadge + '</td>' +
+                    '</tr>';
+                });
+                $attrBody.html(html);
+            } else {
+                $attrBody.html('<tr><td colspan="4">No attributions yet</td></tr>');
+            }
+            
+            // Payout breakdown table (Gross/Fee/Net)
+            var $payoutBody = $('#orabooks-payout-breakdown-body');
+            if (d.payout_breakdown && d.payout_breakdown.length) {
+                var html = '';
+                $.each(d.payout_breakdown, function(i, p) {
+                    var statusBadge = p.status === 'settled' ? '<span class="orabooks-badge orabooks-badge-paid">Paid</span>' :
+                        p.status === 'initiated' ? '<span class="orabooks-badge orabooks-badge-initiated">Pending</span>' :
+                        '<span class="orabooks-badge">' + p.status + '</span>';
+                    html += '<tr>' +
+                        '<td>' + p.period + '</td>' +
+                        '<td>$' + parseFloat(p.gross).toFixed(2) + '</td>' +
+                        '<td>$' + parseFloat(p.fee).toFixed(2) + '</td>' +
+                        '<td><strong>$' + parseFloat(p.net).toFixed(2) + '</strong></td>' +
+                        '<td>' + statusBadge + '</td>' +
+                    '</tr>';
+                });
+                $payoutBody.html(html);
+            } else {
+                $payoutBody.html('<tr><td colspan="5">No payouts yet</td></tr>');
+            }
+        });
+    }
+    
+    // Copy code with audit tracking
+    $(document).on('click', '#orabooks-dash-copy-code', function() {
+        var codeInput = document.getElementById('orabooks-dash-partner-code');
+        if (codeInput) {
+            codeInput.select();
+            document.execCommand('copy');
+            $(this).text('Copied!');
+            setTimeout($.proxy(function() { $(this).text('Copy Code'); }, this), 2000);
+            
+            // Audit event
+            $.post(orabooks_ajax.ajax_url, {
+                action: 'orabooks_partner_code_copied',
+                source: 'dashboard'
+            });
+        }
+    });
+    
+    // Show reactivation modal
+    $(document).on('click', '#orabooks-show-reactivation', function() {
+        $('#orabooks-reactivation-modal').show();
+    });
+    
+    // Close modal
+    $(document).on('click', '.orabooks-modal-close', function() {
+        $('#orabooks-reactivation-modal').hide();
+    });
+    
+    // Submit reactivation
+    $(document).on('click', '#orabooks-submit-reactivation', function() {
+        var $msg = $('#orabooks-reactivation-message');
+        $msg.hide();
+        
+        $.post(orabooks_ajax.ajax_url, {
+            action: 'orabooks_request_reactivation',
+            org_id: 0,
+            reason: $('#orabooks-reactivation-reason').val()
+        }, function(response) {
+            if (response.error) {
+                $msg.removeClass('success').addClass('error').text(response.message).show();
+            } else {
+                $msg.removeClass('error').addClass('success').text('✅ ' + response.message).show();
+                $('#orabooks-show-reactivation').prop('disabled', true).text('Reactivation Requested');
+                setTimeout(function() {
+                    $('#orabooks-reactivation-modal').hide();
+                }, 2000);
+            }
+        });
+    });
+    
+    // Click outside modal to close
+    $(document).on('click', function(e) {
+        if ($(e.target).hasClass('orabooks-modal')) {
+            $('.orabooks-modal').hide();
+        }
+    });
+    
+    // Initialize partner dashboard
+    if ($('.orabooks-partner-dashboard').length) {
+        orabooksLoadPartnerDashboard();
+    }
+    
+    // =============================================
+    // NOTIFICATION CENTER (SL-250)
+    // =============================================
+    
+    // Load notification list
+    function orabooksLoadNotifications() {
+        var $list = $('#orabooks-nc-list');
+        $list.html('<p class="orabooks-loading">Loading notifications...</p>');
+        
+        var params = {
+            action: 'orabooks_notifications_list',
+            limit: 50
+        };
+        
+        var priority = $('#orabooks-nc-filter-priority').val();
+        var status = $('#orabooks-nc-filter-status').val();
+        var eventType = $('#orabooks-nc-filter-event').val();
+        
+        if (priority) params.priority = priority;
+        if (status) params.status = status;
+        if (eventType) params.event_type = eventType;
+        
+        $.get(orabooks_ajax.ajax_url, params, function(response) {
+            if (!response.error && response.data) {
+                var d = response.data;
+                
+                // Unread badge
+                if (d.unread_count > 0) {
+                    $('#orabooks-nc-unread-badge').text('🔔 ' + d.unread_count + ' unread notification' + (d.unread_count !== 1 ? 's' : '')).show();
+                } else {
+                    $('#orabooks-nc-unread-badge').hide();
+                }
+                
+                // List
+                var html = '';
+                if (d.notifications && d.notifications.length) {
+                    $.each(d.notifications, function(i, n) {
+                        var unreadClass = !n.is_read ? 'orabooks-nc-item-unread' : '';
+                        var priorityLabel = n.priority.charAt(0).toUpperCase() + n.priority.slice(1);
+                        var priorityBadge = '<span class="orabooks-badge orabooks-badge-' + n.priority + '">' + priorityLabel + '</span>';
+                        
+                        html += '<div class="orabooks-nc-item ' + unreadClass + '" data-id="' + n.id + '">' +
+                            '<div class="orabooks-nc-item-header">' +
+                                '<div class="orabooks-nc-item-title">' + (n.title || n.event_type) + '</div>' +
+                                priorityBadge +
+                            '</div>' +
+                            '<div class="orabooks-nc-item-message">' + (n.message || '') + '</div>' +
+                            '<div class="orabooks-nc-item-meta">' +
+                                '<span class="orabooks-nc-item-time">' + n.created_at + '</span>' +
+                                '<span class="orabooks-nc-item-channel">📨 ' + (n.delivery_channel || 'inapp') + '</span>' +
+                                '<span class="orabooks-nc-item-correlation">#' + n.correlation_id.substring(0, 12) + '</span>' +
+                                (n.delivery_proof ? ' <a href="#" class="orabooks-nc-view-proof" data-id="' + n.id + '">View proof</a>' : '') +
+                            '</div>' +
+                        '</div>';
+                    });
+                } else {
+                    html = '<div class="orabooks-nc-empty">✅ No notifications found</div>';
+                }
+                $list.html(html);
+            }
+        });
+    }
+    
+    // Mark notification as read on click
+    $(document).on('click', '.orabooks-nc-item', function() {
+        var $item = $(this);
+        var id = $item.data('id');
+        
+        if (!$item.hasClass('orabooks-nc-item-unread')) return;
+        
+        $item.removeClass('orabooks-nc-item-unread');
+        
+        $.post(orabooks_ajax.ajax_url, {
+            action: 'orabooks_notifications_mark_read',
+            notification_id: id
+        });
+    });
+    
+    // Mark all as read
+    $(document).on('click', '#orabooks-nc-mark-all-read', function() {
+        $.post(orabooks_ajax.ajax_url, {
+            action: 'orabooks_notifications_mark_all_read'
+        }, function(response) {
+            if (!response.error) {
+                $('.orabooks-nc-item').removeClass('orabooks-nc-item-unread');
+                $('#orabooks-nc-unread-badge').hide();
+            }
+        });
+    });
+    
+    // Apply filter
+    $(document).on('click', '#orabooks-nc-filter-apply', function() {
+        orabooksLoadNotifications();
+    });
+    
+    // View delivery proof
+    $(document).on('click', '.orabooks-nc-view-proof', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        var $item = $(this).closest('.orabooks-nc-item');
+        var id = $item.data('id');
+        
+        // Find the notification in the loaded data
+        // For MVP, show a placeholder
+        $('#orabooks-nc-proof-content').text('Loading delivery proof for notification #' + id + '...\n\nProof data available on server side.');
+        $('#orabooks-nc-proof-modal').show();
+    });
+    
+    // Initialize notification center
+    if ($('.orabooks-notification-center').length) {
+        orabooksLoadNotifications();
+    }
+    
+    // =============================================
+    // NOTIFICATION PREFERENCES
+    // =============================================
+    
+    // Load preferences
+    function orabooksLoadPrefs() {
+        $.get(orabooks_ajax.ajax_url, {
+            action: 'orabooks_notification_preferences_get'
+        }, function(response) {
+            if (!response.error && response.data) {
+                var p = response.data;
+                
+                // Channels
+                if (p.channels) {
+                    $('input[name="channels[]"]').each(function() {
+                        $(this).prop('checked', p.channels.indexOf($(this).val()) !== -1);
+                    });
+                }
+                
+                // Quiet hours
+                if (p.quiet_hours_start) $('#prefs-quiet-start').val(p.quiet_hours_start);
+                if (p.quiet_hours_end) $('#prefs-quiet-end').val(p.quiet_hours_end);
+                
+                // Digest
+                if (p.digest) $('#prefs-digest').val(p.digest);
+                
+                // Language
+                if (p.language) $('#prefs-language').val(p.language);
+                
+                // Escalation
+                if (p.escalation_enabled !== undefined) {
+                    $('input[name="escalation_enabled"]').prop('checked', !!p.escalation_enabled);
+                }
+            }
+        });
+    }
+    
+    // Save preferences
+    $(document).on('submit', '#orabooks-nc-prefs-form', function(e) {
+        e.preventDefault();
+        var $msg = $('#orabooks-nc-prefs-message');
+        $msg.hide();
+        
+        var formData = $(this).serializeArray();
+        formData.push({ name: 'action', value: 'orabooks_notification_preferences_save' });
+        
+        $.post(orabooks_ajax.ajax_url, formData, function(response) {
+            if (response.error) {
+                $msg.removeClass('success').addClass('error').text(response.message).show();
+            } else {
+                $msg.removeClass('error').addClass('success').text('✅ ' + response.message).show();
+            }
+        });
+    });
+    
+    // Initialize preferences
+    if ($('.orabooks-notification-preferences').length) {
+        orabooksLoadPrefs();
+    }
+    
+    // =============================================
+    // NOTIFICATION ADMIN
+    // =============================================
+    
+    // Load org policy
+    function orabooksLoadOrgPolicy() {
+        $.get(orabooks_ajax.ajax_url, {
+            action: 'orabooks_notification_admin_policy_get',
+            org_id: 0
+        }, function(response) {
+            if (!response.error && response.data && response.data.org_id) {
+                var p = response.data;
+                $('#policy-monthly-budget').val(p.monthly_budget || '');
+                
+                if (p.mandatory_event_types) {
+                    var mandatory = typeof p.mandatory_event_types === 'string' ? JSON.parse(p.mandatory_event_types) : p.mandatory_event_types;
+                    $('input[name="mandatory_event_types[]"]').each(function() {
+                        $(this).prop('checked', mandatory.indexOf($(this).val()) !== -1);
+                    });
+                }
+                
+                if (p.prohibited_channels) {
+                    var prohibited = typeof p.prohibited_channels === 'string' ? JSON.parse(p.prohibited_channels) : p.prohibited_channels;
+                    $('input[name="prohibited_channels[]"]').each(function() {
+                        $(this).prop('checked', prohibited.indexOf($(this).val()) !== -1);
+                    });
+                }
+                
+                $('#policy-retention').val(p.retention_override_days || '');
+                $('#policy-max-escalation').val(p.max_escalation_attempts || 3);
+                
+                if (p.escalation_fallback_chain) {
+                    var chain = typeof p.escalation_fallback_chain === 'string' ? JSON.parse(p.escalation_fallback_chain) : p.escalation_fallback_chain;
+                    $('input[name="escalation_fallback_chain[]"]').each(function() {
+                        $(this).prop('checked', chain.indexOf($(this).val()) !== -1);
+                    });
+                }
+            }
+        });
+    }
+    
+    // Save org policy
+    $(document).on('submit', '#orabooks-nc-policy-form', function(e) {
+        e.preventDefault();
+        var $msg = $('#orabooks-nc-policy-message');
+        $msg.hide();
+        
+        var formData = $(this).serializeArray();
+        formData.push({ name: 'action', value: 'orabooks_notification_admin_policy_save' });
+        formData.push({ name: 'org_id', value: 0 });
+        
+        $.post(orabooks_ajax.ajax_url, formData, function(response) {
+            if (response.error) {
+                $msg.removeClass('success').addClass('error').text(response.message).show();
+            } else {
+                $msg.removeClass('error').addClass('success').text('✅ Policy saved').show();
+            }
+        });
+    });
+    
+    // Load provider health
+    function orabooksLoadProviderHealth() {
+        var $tbody = $('#orabooks-nc-provider-health-body');
+        $tbody.html('<tr><td colspan="7">Loading...</td></tr>');
+        
+        $.get(orabooks_ajax.ajax_url, {
+            action: 'orabooks_notification_admin_provider_health'
+        }, function(response) {
+            if (!response.error && response.data) {
+                var html = '';
+                $.each(response.data, function(i, r) {
+                    var scoreClass = r.health_score <= 40 ? 'expired' : r.health_score <= 70 ? 'pending' : 'paid';
+                    html += '<tr>' +
+                        '<td>' + r.channel + '</td>' +
+                        '<td>' + r.provider_name + '</td>' +
+                        '<td>' + r.region + '</td>' +
+                        '<td>' + parseFloat(r.success_rate).toFixed(2) + '%</td>' +
+                        '<td>' + r.avg_latency_ms + 'ms</td>' +
+                        '<td><span class="orabooks-badge orabooks-badge-' + scoreClass + '">' + r.health_score + '</span></td>' +
+                        '<td>' + (r.last_outage_at || '—') + '</td>' +
+                    '</tr>';
+                });
+                $tbody.html(html || '<tr><td colspan="7">No provider data yet. Health scoring cron will populate after deliveries.</td></tr>');
+            }
+        });
+    }
+    
+    // Refresh provider health
+    $(document).on('click', '#orabooks-nc-refresh-health', function() {
+        orabooksLoadProviderHealth();
+    });
+    
+    // Export audit bundle
+    $(document).on('submit', '#orabooks-nc-audit-export-form', function(e) {
+        e.preventDefault();
+        var $msg = $('#orabooks-nc-audit-result');
+        $msg.hide();
+        
+        var startDate = $('#audit-start-date').val();
+        var endDate = $('#audit-end-date').val();
+        
+        $.get(orabooks_ajax.ajax_url, {
+            action: 'orabooks_notification_admin_audit_export',
+            org_id: 0,
+            start_date: startDate,
+            end_date: endDate
+        }, function(response) {
+            if (response.error) {
+                $msg.removeClass('success').addClass('error').text(response.message).show();
+            } else {
+                // Download the bundle as JSON file
+                var blob = new Blob([JSON.stringify(response, null, 2)], {type: 'application/json'});
+                var url = URL.createObjectURL(blob);
+                var a = document.createElement('a');
+                a.href = url;
+                a.download = 'notification-audit-bundle-' + startDate + '-to-' + endDate + '.json';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                
+                $msg.removeClass('error').addClass('success').text('✅ Bundle exported. Export event is logged for compliance.').show();
+            }
+        });
+    });
+    
+    // Initialize admin
+    if ($('.orabooks-notification-admin').length) {
+        orabooksLoadOrgPolicy();
+        orabooksLoadProviderHealth();
+    }
+    
+    // =============================================
+    // ASYNC QUEUE DASHBOARD
+    // =============================================
+    
+    function orabooksLoadQueueStats() {
+        var $statsBody = $('#orabooks-aq-failures-body');
+        
+        $.get(orabooks_ajax.ajax_url, {
+            action: 'orabooks_async_queue_stats'
+        }, function(response) {
+            if (!response.error && response.data) {
+                var d = response.data;
+                
+                // Summary counts
+                $('#aq-total').text(d.total || 0);
+                $('#aq-pending').text(d.pending_count || 0);
+                $('#aq-processing').text(d.processing_count || 0);
+                $('#aq-completed').text(d.completed_count || 0);
+                $('#aq-failed').text(d.failed_count || 0);
+                $('#aq-dead').text(d.dead_letter_count || 0);
+                
+                // Performance
+                $('#aq-latency').text(d.avg_latency_seconds ? d.avg_latency_seconds + 's' : '—');
+                $('#aq-failure-rate').text(d.failure_rate_24h ? d.failure_rate_24h + '%' : '—');
+                
+                // Recent failures
+                if (d.recent_failures && d.recent_failures.length) {
+                    var html = '';
+                    $.each(d.recent_failures, function(i, job) {
+                        var statusBadge = job.status === 'dead_letter'
+                            ? '<span class="orabooks-badge orabooks-badge-expired">Dead Letter</span>'
+                            : '<span class="orabooks-badge orabooks-badge-pending">Failed</span>';
+                        html += '<tr>' +
+                            '<td>#' + job.id + '</td>' +
+                            '<td>' + (job.job_type || '—') + '</td>' +
+                            '<td>' + (job.retry_count || 0) + '</td>' +
+                            '<td style="max-width:300px;overflow:hidden;text-overflow:ellipsis;">' + (job.last_error || '—') + '</td>' +
+                            '<td>' + (job.last_attempt_at || job.created_at) + '</td>' +
+                            '<td><button class="orabooks-btn orabooks-btn-secondary orabooks-btn-sm orabooks-aq-retry" data-id="' + job.id + '">⟳ Retry</button></td>' +
+                        '</tr>';
+                    });
+                    $statsBody.html(html);
+                } else {
+                    $statsBody.html('<tr><td colspan="6">✅ No recent failures</td></tr>');
+                }
+            }
+        });
+    }
+    
+    // Retry job
+    $(document).on('click', '.orabooks-aq-retry', function() {
+        var $btn = $(this);
+        var jobId = $btn.data('id');
+        $btn.prop('disabled', true).text('Retrying...');
+        
+        $.post(orabooks_ajax.ajax_url, {
+            action: 'orabooks_async_queue_replay',
+            job_id: jobId
+        }, function(response) {
+            if (response.error) {
+                alert('Error: ' + response.message);
+                $btn.prop('disabled', false).text('⟳ Retry');
+            } else {
+                $btn.text('✅ Retried').removeClass('orabooks-btn-secondary').addClass('orabooks-badge-paid');
+                orabooksLoadQueueStats();
+            }
+        });
+    });
+    
+    // Refresh stats
+    $(document).on('click', '#orabooks-aq-refresh', function() {
+        orabooksLoadQueueStats();
+    });
+    
+    // Initialize queue dashboard
+    if ($('.orabooks-async-queue-dashboard').length) {
+        orabooksLoadQueueStats();
+    }
+    
+    // Commission admin config form
+    if ($('#orabooks-commission-config-form').length) {
+        // Load current config
+        $.get(orabooks_ajax.ajax_url, {
+            action: 'orabooks_commission_config'
+        }, function(response) {
+            if (!response.error && response.data) {
+                var c = response.data;
+                $('#config-base-monthly').val(c.base_monthly_amount);
+                $('#config-max-years').val(c.max_years);
+                $('#config-yearly-pcts').val(JSON.stringify(c.yearly_percentages));
+                $('#config-min-payout').val(c.min_payout_threshold);
+                $('#config-active-window').val(c.customer_active_window_days);
+                $('#config-expiry-action').val(c.expiry_accounting_action);
+                $('#config-fee-type').val(c.payout_fee_type);
+                $('#config-fee-rate').val(c.payout_fee_rate);
+            }
+        });
+        
+        // Handle form submit
+        $('#orabooks-commission-config-form').on('submit', function(e) {
+            e.preventDefault();
+            var $msg = $('#orabooks-commission-config-message');
+            $msg.hide();
+            
+            var formData = $(this).serializeArray();
+            formData.push({ name: 'action', value: 'orabooks_commission_update_config' });
+            
+            $.post(orabooks_ajax.ajax_url, formData, function(response) {
+                if (response.error) {
+                    $msg.removeClass('success').addClass('error').text(response.message).show();
+                } else {
+                    $msg.removeClass('error').addClass('success').text('Configuration updated successfully').show();
+                }
+            });
+        });
+    }
 });

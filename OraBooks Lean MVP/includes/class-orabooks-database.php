@@ -281,12 +281,35 @@ class OraBooks_Database {
         ) {$charset_collate};";
         dbDelta($sql);
         
+        // ============================================================
+        // SL-068: Commission Engine Tables
+        // ============================================================
+        $commission_tables = OraBooks_Commission::get_create_table_sql();
+        foreach ($commission_tables as $sql) {
+            dbDelta($sql);
+        }
+        
+        // Seed default commission config
+        OraBooks_Commission::seed_default_config();
+        
         // Schedule cron jobs
         if (!wp_next_scheduled('orabooks_daily_cleanup')) {
             wp_schedule_event(time(), 'daily', 'orabooks_daily_cleanup');
         }
         if (!wp_next_scheduled('orabooks_partner_activity_check')) {
             wp_schedule_event(time(), 'daily', 'orabooks_partner_activity_check');
+        }
+        if (!wp_next_scheduled('orabooks_monthly_commission_release')) {
+            wp_schedule_event(time(), 'daily', 'orabooks_monthly_commission_release');
+        }
+        if (!wp_next_scheduled('orabooks_monthly_payout_batch')) {
+            wp_schedule_event(time(), 'daily', 'orabooks_monthly_payout_batch');
+        }
+        if (!wp_next_scheduled('orabooks_daily_commission_expiry')) {
+            wp_schedule_event(time(), 'daily', 'orabooks_daily_commission_expiry');
+        }
+        if (!wp_next_scheduled('orabooks_daily_active_status_refresh')) {
+            wp_schedule_event(time(), 'daily', 'orabooks_daily_active_status_refresh');
         }
         
         // ============================================================
@@ -588,6 +611,84 @@ class OraBooks_Database {
         ) {$charset_collate};";
         dbDelta($sql);
         
+        // ============================================================
+        // Add missing columns to outbox_messages table for SL-302 EventBus
+        $outbox_table = $wpdb->prefix . 'orabooks_outbox_messages';
+        $outbox_cols = $wpdb->get_results("SHOW COLUMNS FROM {$outbox_table}");
+        $existing_cols = [];
+        foreach ($outbox_cols as $col) {
+            $existing_cols[] = $col->Field;
+        }
+        if (!in_array('sent_at', $existing_cols)) {
+            $wpdb->query("ALTER TABLE {$outbox_table} ADD COLUMN sent_at TIMESTAMP NULL AFTER status");
+        }
+        if (!in_array('next_retry_at', $existing_cols)) {
+            $wpdb->query("ALTER TABLE {$outbox_table} ADD COLUMN next_retry_at TIMESTAMP NULL AFTER retry_count");
+        }
+        if (!in_array('last_error', $existing_cols)) {
+            $wpdb->query("ALTER TABLE {$outbox_table} ADD COLUMN last_error TEXT NULL AFTER last_attempt_at");
+        }
+        // Extend ENUM to include 'dead_letter' needed by SL-302 EventBus
+        $status_col = $wpdb->get_row("SHOW COLUMNS FROM {$outbox_table} WHERE Field = 'status'");
+        if ($status_col && strpos($status_col->Type, 'dead_letter') === false) {
+            $wpdb->query("ALTER TABLE {$outbox_table} MODIFY COLUMN status ENUM('pending','sent','failed','dead_letter') DEFAULT 'pending'");
+        }
+
+        // ============================================================
+        // SL-302: Event Bus consumer_event_tracking table
+        // ============================================================
+        $eventbus_tables = OraBooks_EventBus::get_create_table_sql();
+        foreach ($eventbus_tables as $sql) {
+            dbDelta($sql);
+        }
+
+        // Schedule EventBus cron jobs
+        if (!wp_next_scheduled('orabooks_eventbus_process_outbox')) {
+            wp_schedule_event(time(), 'every_minute', 'orabooks_eventbus_process_outbox');
+        }
+        if (!wp_next_scheduled('orabooks_eventbus_retry_deadletter')) {
+            wp_schedule_event(time(), 'hourly', 'orabooks_eventbus_retry_deadletter');
+        }
+        if (!wp_next_scheduled('orabooks_eventbus_monitor')) {
+            wp_schedule_event(time(), 'hourly', 'orabooks_eventbus_monitor');
+        }
+
+        // Schedule Async Queue cron jobs
+        if (!wp_next_scheduled('orabooks_async_queue_process')) {
+            wp_schedule_event(time(), 'every_minute', 'orabooks_async_queue_process');
+        }
+        if (!wp_next_scheduled('orabooks_async_queue_heartbeat')) {
+            wp_schedule_event(time(), 'every_5_minutes', 'orabooks_async_queue_heartbeat');
+        }
+        if (!wp_next_scheduled('orabooks_async_queue_monitor')) {
+            wp_schedule_event(time(), 'hourly', 'orabooks_async_queue_monitor');
+        }
+
+        // ============================================================
+        // SL-250: Notification Center Tables
+        // ============================================================
+        $notification_tables = OraBooks_Notifications::get_create_table_sql();
+        foreach ($notification_tables as $sql) {
+            dbDelta($sql);
+        }
+
+        // Seed default notification dependencies
+        OraBooks_Notifications::seed_dependencies();
+
+        // Schedule notification cron jobs
+        if (!wp_next_scheduled('orabooks_notification_provider_health_update')) {
+            wp_schedule_event(time(), 'hourly', 'orabooks_notification_provider_health_update');
+        }
+        if (!wp_next_scheduled('orabooks_notification_sla_check')) {
+            wp_schedule_event(time(), 'daily', 'orabooks_notification_sla_check');
+        }
+        if (!wp_next_scheduled('orabooks_notification_device_cleanup')) {
+            wp_schedule_event(time(), 'daily', 'orabooks_notification_device_cleanup');
+        }
+        if (!wp_next_scheduled('orabooks_notification_delivery_retry')) {
+            wp_schedule_event(time(), 'twicedaily', 'orabooks_notification_delivery_retry');
+        }
+
         update_option('orabooks_db_version', ORABOOKS_DB_VERSION);
     }
     

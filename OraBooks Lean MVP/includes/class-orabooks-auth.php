@@ -487,6 +487,9 @@ class OraBooks_Auth {
                 'attribution_id' => $pending->id,
                 'partner_user_id' => $pending->partner_user_id
             ], $user->id, $user->org_id);
+            
+            // Fire event for SL-068 Commission Engine
+            do_action('orabooks_partner_attribution_verified', $pending->id, $pending);
         }
         
         return true;
@@ -1014,6 +1017,15 @@ class OraBooks_Auth {
             ['%d'],
             ['%d', '%s']
         );
+        
+        // Fire event for SL-068 Commission Engine
+        $pending_attr = $wpdb->get_row($wpdb->prepare(
+            "SELECT * FROM {$table_attributions} WHERE customer_user_id = %d AND status = 'verified' ORDER BY verified_at DESC LIMIT 1",
+            $user_id
+        ));
+        if ($pending_attr) {
+            do_action('orabooks_partner_attribution_verified', $pending_attr->id, $pending_attr);
+        }
         
         $role = 'owner';
         $jwt = OraBooks_Secrets::generate_jwt([

@@ -441,17 +441,28 @@ class OraBooks_Posting {
             'previous_hash' => $previous_hash
         ], ['id' => $journal_id], ['%s', '%d', '%s', '%s', '%s', '%s'], ['%d']);
         
-        // Outbox message
-        $wpdb->insert($table_outbox, [
-            'event_type' => 'journal_posted',
-            'aggregate_id' => $journal_id,
-            'payload' => json_encode([
+        // Publish event via Event Bus (SL-302)
+        if (class_exists('OraBooks_EventBus')) {
+            OraBooks_EventBus::publish('journal_posted', $journal_id, [
                 'journal_id' => $journal_id,
                 'org_id' => $journal->org_id,
                 'journal_number' => $journal_number,
-                'total_amount' => $journal->total_amount
-            ])
-        ], ['%s', '%d', '%s']);
+                'total_amount' => $journal->total_amount,
+                'created_by' => $user_id,
+            ]);
+        } else {
+            // Fallback: direct outbox insert
+            $wpdb->insert($table_outbox, [
+                'event_type' => 'journal_posted',
+                'aggregate_id' => $journal_id,
+                'payload' => json_encode([
+                    'journal_id' => $journal_id,
+                    'org_id' => $journal->org_id,
+                    'journal_number' => $journal_number,
+                    'total_amount' => $journal->total_amount
+                ])
+            ], ['%s', '%d', '%s']);
+        }
         
         self::transition('journal', $journal_id, 'post', $user_id);
         
