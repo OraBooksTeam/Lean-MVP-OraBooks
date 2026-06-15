@@ -20,6 +20,8 @@ const $ = require('jquery');
 const path = require('path');
 const fs = require('fs');
 
+let originalLocation;
+
 // Helper: set up DOM and load frontend.js
 function setupFrontendDom() {
   document.body.innerHTML = `
@@ -168,8 +170,8 @@ function setupFrontendDom() {
       </form>
     </div>
 
-    <!-- Commission Config Form -->
-    <div id="orabooks-commission-config-form">
+    <!-- Commission Config Form — uses <form> so submit events fire correctly -->
+    <form id="orabooks-commission-config-form">
       <input id="config-base-monthly" />
       <input id="config-max-years" />
       <input id="config-yearly-pcts" />
@@ -180,7 +182,7 @@ function setupFrontendDom() {
       <input id="config-fee-rate" />
       <div id="orabooks-commission-config-message"></div>
       <button type="submit">Save Config</button>
-    </div>
+    </form>
 
     <!-- Partner export msg divs -->
     <div id="orabooks-partner-export-msg" style="display:none;"></div>
@@ -219,9 +221,15 @@ beforeEach(() => {
   setupFrontendDom();
   window.confirm.mockReturnValue(true);
   window.alert.mockClear();
-  global.window.location = { href: '' };
+  // Save and restore location.href for redirect tests
+  originalLocation = window.location.href;
   clearAjax();
   loadFrontendJs();
+});
+
+afterEach(() => {
+  // Restore location.href
+  window.location.href = originalLocation;
 });
 
 // ============================================================
@@ -500,7 +508,7 @@ describe('Tab switching', () => {
 // Frontend Export Trigger (orabooks-export-trigger in exports section)
 // ============================================================
 describe('Frontend .orabooks-export-trigger click (exports section)', () => {
-  test('posts export request and shows success message', () => {
+  test('posts export request', () => {
     const $btn = $('.orabooks-export-trigger').first();
     $btn.trigger('click');
 
@@ -514,7 +522,6 @@ describe('Frontend .orabooks-export-trigger click (exports section)', () => {
     $btn.trigger('click');
     resolveAjax('post', { error: false, data: {} });
 
-    // Success message should be present
     expect($btn.text()).toContain('Requested');
   });
 });
@@ -615,8 +622,6 @@ describe('orabooksLoadExports (exports list)', () => {
     const $tbody = $('#orabooks-export-table-body');
     expect($tbody.html()).toContain('Loading exports');
 
-    // The exports section should auto-trigger loadExports
-    // But since there might be multiple triggers, let's check
     clearAjax();
     resolveAjax('get', {
       error: false,
@@ -680,7 +685,6 @@ describe('Export cancel', () => {
 describe('Export pagination', () => {
   test('loads a different page on page click', () => {
     $('.orabooks-export-page').first().trigger('click');
-    // The page click should trigger orabooksLoadExports(2)
     const call = latestAjax('get');
     expect(call.data.page).toBe(2);
   });
@@ -699,7 +703,6 @@ describe('Export refresh button', () => {
 // ============================================================
 describe('Notification center - load notifications', () => {
   test('renders notifications from AJAX', () => {
-    // The notification center auto-loads on init
     clearAjax();
     resolveAjax('get', {
       error: false,
@@ -731,7 +734,6 @@ describe('Notification center - load notifications', () => {
 
 describe('Notification mark as read', () => {
   test('marks notification as read on click', () => {
-    // First populate with an unread notification
     clearAjax();
     resolveAjax('get', {
       error: false,
@@ -785,8 +787,6 @@ describe('Notification preferences save', () => {
 
     const call = latestAjax('post');
     expect(call.data.action).toBe('orabooks_notification_preferences_save');
-    // Should include serialized form data
-    expect(call.data).toHaveProperty('action');
   });
 
   test('shows success message on save', () => {
@@ -815,7 +815,6 @@ describe('Notification admin policy save', () => {
 // ============================================================
 describe('Notification admin audit export', () => {
   test('downloads audit bundle as JSON file', () => {
-    // Mock Blob, URL.createObjectURL, URL.revokeObjectURL
     const mockUrl = 'blob:test-url';
     global.URL.createObjectURL = jest.fn(() => mockUrl);
     global.URL.revokeObjectURL = jest.fn();
@@ -891,17 +890,9 @@ describe('Async queue dashboard - load stats', () => {
 
 describe('Async queue - retry job', () => {
   test('posts retry request for specific job', () => {
-    // Add a retry button to the DOM like loadStats would
     $('.orabooks-aq-retry').first().trigger('click');
-
     const call = latestAjax('post');
     expect(call.data.action).toBe('orabooks_async_queue_replay');
-  });
-
-  test('shows error alert on retry failure', () => {
-    // Simulate resolving the retry POST
-    // We need to first trigger retry, but it might not exist in the DOM
-    // Let's just verify the error handling via the click handler that was registered
   });
 });
 
@@ -919,16 +910,11 @@ describe('Async queue refresh button', () => {
 // ============================================================
 describe('Commission config form submit', () => {
   test('posts serialized config data', () => {
-    $('#orabooks-commission-config-form button[type="submit"]').trigger('click');
-
-    // Need to wait for the get to resolve first
-    // The config form first loads data via GET on init
-    // But submit handler is registered separately
-    // Since there was a GET call from init, clear it
+    // Clear the GET call from on-page-init (config load)
     clearAjax();
 
-    // Now trigger submit
-    $('#orabooks-commission-config-form button[type="submit"]').trigger('click');
+    // Trigger form submit (now using <form> tag, so submit events work)
+    $('#orabooks-commission-config-form').trigger('submit');
 
     const call = latestAjax('post');
     expect(call.data.action).toBe('orabooks_commission_update_config');
@@ -936,7 +922,7 @@ describe('Commission config form submit', () => {
 
   test('shows success message on config save', () => {
     clearAjax();
-    $('#orabooks-commission-config-form button[type="submit"]').trigger('click');
+    $('#orabooks-commission-config-form').trigger('submit');
     resolveAjax('post', { error: false, data: {}, message: 'Configuration updated' });
 
     expect($('#orabooks-commission-config-message').text()).toContain('Configuration updated');
