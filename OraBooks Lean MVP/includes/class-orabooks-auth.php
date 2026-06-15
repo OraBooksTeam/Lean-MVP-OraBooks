@@ -1132,6 +1132,20 @@ class OraBooks_Auth {
                     ['%d']
                 );
             }
+
+            // Check if 2FA is required for this existing user
+            if ($existing->is_2fa_enabled) {
+                $temp_token = OraBooks_Secrets::generate_jwt([
+                    'user_id' => $existing->id,
+                    'purpose' => '2fa_challenge',
+                    'exp' => time() + 300 // 5 min
+                ]);
+                return [
+                    'requires_2fa' => true,
+                    'temp_token' => $temp_token,
+                    'user_id' => $existing->id
+                ];
+            }
         } else {
             // User doesn't exist — create account via Google
             $wpdb->insert(

@@ -512,7 +512,291 @@ if (!function_exists('orabooks_json_success')) {
 }
 
 // ---------------------------------------------------------------------------
-// 5. Load the actual class under test
+// 5. Stub OraBooks_Secrets
+// ---------------------------------------------------------------------------
+if (!class_exists('OraBooks_Secrets', false)) {
+    /**
+     * Minimal OraBooks_Secrets stub for testing.
+     *
+     * Tests control values via $GLOBALS:
+     * - $GLOBALS['orabooks_test_secrets'] - array of config values (e.g. google_oauth_client_id)
+     * - $GLOBALS['orabooks_test_jwt_token'] - token returned by generate_jwt()
+     * - $GLOBALS['orabooks_test_verify_jwt_result'] - payload returned by verify_jwt()
+     * - $GLOBALS['orabooks_test_last_jwt_payload'] - populated with the payload passed to generate_jwt()
+     * - $GLOBALS['orabooks_test_totp_secret'] - secret returned by generate_totp_secret()
+     */
+    class OraBooks_Secrets
+    {
+        public static function get($key) {
+            return $GLOBALS['orabooks_test_secrets'][$key] ?? null;
+        }
+
+        public static function generate_jwt($payload) {
+            $GLOBALS['orabooks_test_last_jwt_payload'] = $payload;
+            return $GLOBALS['orabooks_test_jwt_token'] ?? 'test-jwt-token-' . time();
+        }
+
+        public static function hash_password($password) {
+            $hash = $GLOBALS['orabooks_test_password_hash'] ?? null;
+            if ($hash) {
+                return $hash;
+            }
+            return password_hash($password, PASSWORD_DEFAULT);
+        }
+
+        public static function verify_password($password, $hash) {
+            // If test provided a fixed hash, compare directly
+            if (isset($GLOBALS['orabooks_test_verify_password_result'])) {
+                return $GLOBALS['orabooks_test_verify_password_result'];
+            }
+            return password_verify($password, $hash);
+        }
+
+        public static function generate_totp_secret() {
+            return $GLOBALS['orabooks_test_totp_secret'] ?? 'TESTSECRET123456';
+        }
+
+        public static function get_totp_qr_url($secret, $email) {
+            return 'otpauth://totp/' . urlencode($email) . '?secret=' . $secret . '&issuer=OraBooks';
+        }
+
+        public static function generate_backup_codes() {
+            return ['backup-code-001', 'backup-code-002', 'backup-code-003'];
+        }
+
+        public static function verify_totp($secret, $otp) {
+            if (isset($GLOBALS['orabooks_test_verify_totp_result'])) {
+                return $GLOBALS['orabooks_test_verify_totp_result'];
+            }
+            return $otp === '123456';
+        }
+
+        public static function verify_jwt($token) {
+            return $GLOBALS['orabooks_test_verify_jwt_result'] ?? false;
+        }
+    }
+}
+
+// Initialize defaults
+$GLOBALS['orabooks_test_secrets'] = [];
+$GLOBALS['orabooks_test_last_jwt_payload'] = null;
+
+// ---------------------------------------------------------------------------
+// 6. Stub OraBooks_Organization
+// ---------------------------------------------------------------------------
+if (!class_exists('OraBooks_Organization', false)) {
+    /**
+     * Minimal OraBooks_Organization stub for testing.
+     *
+     * Tests control get() via $GLOBALS['orabooks_test_org_callback'] callback.
+     * Default returns a customer org with status='active'.
+     */
+    class OraBooks_Organization
+    {
+        public static function get($org_id) {
+            if (isset($GLOBALS['orabooks_test_org_callback'])) {
+                return ($GLOBALS['orabooks_test_org_callback'])($org_id);
+            }
+            if (!$org_id) {
+                return null;
+            }
+            return (object)[
+                'id'                => $org_id,
+                'owner_id'          => 1,
+                'organization_type' => 'customer',
+                'tier'              => 'free',
+                'subdomain'         => 'testorg',
+                'status'            => 'active',
+                'name'              => 'Test Customer Org',
+            ];
+        }
+
+        public static function create($data) {
+            return [
+                'org_id'    => rand(100, 999),
+                'subdomain' => $data['subdomain'] ?? 'testorg',
+                'name'      => $data['name'] ?? 'Test Org',
+            ];
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 7. Stub WordPress functions used by OraBooks_Auth
+// ---------------------------------------------------------------------------
+
+if (!function_exists('sanitize_email')) {
+    function sanitize_email($email) {
+        return filter_var(trim($email), FILTER_SANITIZE_EMAIL);
+    }
+}
+
+if (!function_exists('is_email')) {
+    function is_email($email) {
+        return (bool) filter_var($email, FILTER_VALIDATE_EMAIL);
+    }
+}
+
+if (!function_exists('delete_transient')) {
+    function delete_transient($key) {
+        $GLOBALS['orabooks_test_deleted_transients'][] = $key;
+        return true;
+    }
+}
+
+if (!function_exists('wp_remote_post')) {
+    function wp_remote_post($url, $args = []) {
+        if (isset($GLOBALS['orabooks_test_wp_remote_post_callback'])) {
+            return ($GLOBALS['orabooks_test_wp_remote_post_callback'])($url, $args);
+        }
+        // Default: return a mock Google token response
+        $client_id = $GLOBALS['orabooks_test_secrets']['google_oauth_client_id'] ?? 'test-client-id';
+        $id_token_payload = base64_encode(json_encode([
+            'sub'   => 'google-12345',
+            'email' => 'googleuser@example.com',
+            'aud'   => $client_id,
+            'name'  => 'Google User',
+        ]));
+        return [
+            'body'     => json_encode([
+                'id_token'     => 'header.' . $id_token_payload . '.signature',
+                'access_token' => 'ya29.mock-access-token',
+                'expires_in'   => 3600,
+            ]),
+            'response' => ['code' => 200],
+        ];
+    }
+}
+
+if (!function_exists('wp_remote_retrieve_body')) {
+    function wp_remote_retrieve_body($response) {
+        return is_array($response) && isset($response['body']) ? $response['body'] : '';
+    }
+}
+
+if (!function_exists('wp_remote_retrieve_response_code')) {
+    function wp_remote_retrieve_response_code($response) {
+        return is_array($response) && isset($response['response']['code']) ? $response['response']['code'] : 500;
+    }
+}
+
+if (!function_exists('is_user_logged_in')) {
+    function is_user_logged_in() {
+        return ($GLOBALS['orabooks_test_current_user_id'] ?? 1) > 0;
+    }
+}
+
+if (!function_exists('update_user_meta')) {
+    function update_user_meta($user_id, $meta_key, $meta_value) {
+        $GLOBALS['orabooks_test_user_meta'][$user_id][$meta_key] = $meta_value;
+        return true;
+    }
+}
+
+if (!function_exists('get_user_meta')) {
+    function get_user_meta($user_id, $meta_key, $single = true) {
+        $value = $GLOBALS['orabooks_test_user_meta'][$user_id][$meta_key] ?? null;
+        return $single ? $value : [$value];
+    }
+}
+
+if (!function_exists('delete_user_meta')) {
+    function delete_user_meta($user_id, $meta_key) {
+        unset($GLOBALS['orabooks_test_user_meta'][$user_id][$meta_key]);
+        return true;
+    }
+}
+
+if (!function_exists('wp_get_current_user')) {
+    function wp_get_current_user() {
+        static $user;
+        if (!$user) {
+            $user = new stdClass();
+            $user->ID = $GLOBALS['orabooks_test_current_user_id'] ?? 1;
+            $user->user_email = 'admin@example.com';
+        }
+        return $user;
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 8. Stub OraBooks helper functions used by OraBooks_Auth
+// ---------------------------------------------------------------------------
+
+if (!function_exists('orabooks_random_string')) {
+    function orabooks_random_string($length = 32) {
+        return substr(str_shuffle(str_repeat('abcdefghijklmnopqrstuvwxyz0123456789', $length)), 0, $length);
+    }
+}
+
+if (!function_exists('orabooks_hash_token')) {
+    function orabooks_hash_token($token) {
+        return hash('sha256', $token);
+    }
+}
+
+if (!function_exists('orabooks_validate_subdomain')) {
+    function orabooks_validate_subdomain($subdomain) {
+        if (strlen($subdomain) < 3) {
+            return 'Subdomain must be at least 3 characters';
+        }
+        if (strlen($subdomain) > 32) {
+            return 'Subdomain must be at most 32 characters';
+        }
+        if (!preg_match('/^[a-z0-9-]+$/', $subdomain)) {
+            return 'Subdomain can only contain lowercase letters, numbers, and hyphens';
+        }
+        return true;
+    }
+}
+
+if (!function_exists('orabooks_validate_password')) {
+    function orabooks_validate_password($password) {
+        if (strlen($password) < 8) {
+            return 'Password must be at least 8 characters';
+        }
+        if (!preg_match('/[A-Z]/', $password)) {
+            return 'Password must contain an uppercase letter';
+        }
+        if (!preg_match('/[a-z]/', $password)) {
+            return 'Password must contain a lowercase letter';
+        }
+        if (!preg_match('/[0-9]/', $password)) {
+            return 'Password must contain a number';
+        }
+        return true;
+    }
+}
+
+if (!function_exists('orabooks_get_user_role')) {
+    function orabooks_get_user_role($user_id, $org_id) {
+        if (isset($GLOBALS['orabooks_test_get_user_role_callback'])) {
+            return ($GLOBALS['orabooks_test_get_user_role_callback'])($user_id, $org_id);
+        }
+        return 'owner';
+    }
+}
+
+if (!function_exists('orabooks_get_client_ip')) {
+    function orabooks_get_client_ip() {
+        return '127.0.0.1';
+    }
+}
+
+if (!function_exists('orabooks_get_user_agent')) {
+    function orabooks_get_user_agent() {
+        return 'PHPUnit Test/1.0';
+    }
+}
+
+if (!function_exists('orabooks_generate_partner_code')) {
+    function orabooks_generate_partner_code() {
+        return 'PARTNER-' . strtoupper(substr(md5(time()), 0, 8));
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 9. Load the actual classes under test
 // ---------------------------------------------------------------------------
 $exports_file = __DIR__ . '/../includes/class-orabooks-exports.php';
 if (!file_exists($exports_file)) {
@@ -520,3 +804,10 @@ if (!file_exists($exports_file)) {
     exit(1);
 }
 require_once $exports_file;
+
+$auth_file = __DIR__ . '/../includes/class-orabooks-auth.php';
+if (!file_exists($auth_file)) {
+    echo "ERROR: Cannot find class-orabooks-auth.php at {$auth_file}\n";
+    exit(1);
+}
+require_once $auth_file;
