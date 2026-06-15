@@ -289,6 +289,305 @@ class OraBooks_Database {
             wp_schedule_event(time(), 'daily', 'orabooks_partner_activity_check');
         }
         
+        // ============================================================
+        // SL-017: accounts table (Chart of Accounts)
+        // ============================================================
+        $table_accounts = $wpdb->prefix . 'orabooks_accounts';
+        $sql = "CREATE TABLE IF NOT EXISTS {$table_accounts} (
+            id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            org_id BIGINT UNSIGNED NOT NULL,
+            code VARCHAR(20) NOT NULL,
+            name VARCHAR(255) NOT NULL,
+            type ENUM('asset','liability','equity','revenue','expense') NOT NULL,
+            normal_balance ENUM('debit','credit') NOT NULL,
+            system_generated TINYINT(1) DEFAULT 1,
+            is_active TINYINT(1) DEFAULT 1,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            UNIQUE KEY uk_org_code (org_id, code),
+            FOREIGN KEY (org_id) REFERENCES {$table_organizations}(id) ON DELETE CASCADE
+        ) {$charset_collate};";
+        dbDelta($sql);
+        
+        // ============================================================
+        // SL-017: account_balances table
+        // ============================================================
+        $table_balances = $wpdb->prefix . 'orabooks_account_balances';
+        $sql = "CREATE TABLE IF NOT EXISTS {$table_balances} (
+            org_id BIGINT UNSIGNED NOT NULL,
+            account_id BIGINT UNSIGNED NOT NULL,
+            balance DECIMAL(20,2) NOT NULL DEFAULT 0,
+            last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY (org_id, account_id),
+            FOREIGN KEY (account_id) REFERENCES {$table_accounts}(id) ON DELETE CASCADE
+        ) {$charset_collate};";
+        dbDelta($sql);
+        
+        // ============================================================
+        // SL-001: journals table
+        // ============================================================
+        $table_journals = $wpdb->prefix . 'orabooks_journals';
+        $sql = "CREATE TABLE IF NOT EXISTS {$table_journals} (
+            id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            org_id BIGINT UNSIGNED NOT NULL,
+            journal_number VARCHAR(30) UNIQUE NULL,
+            status ENUM('draft','review_pending','approved','posted','locked','reversed') NOT NULL DEFAULT 'draft',
+            transaction_date DATE NOT NULL,
+            idempotency_key VARCHAR(128) NOT NULL,
+            created_by BIGINT UNSIGNED NOT NULL,
+            approved_by BIGINT UNSIGNED NULL,
+            posted_by BIGINT UNSIGNED NULL,
+            approved_at TIMESTAMP NULL,
+            posted_at TIMESTAMP NULL,
+            reversal_of_id BIGINT UNSIGNED NULL,
+            reversal_reason TEXT NULL,
+            source_type VARCHAR(50) NULL,
+            source_id BIGINT UNSIGNED NULL,
+            source_hash VARCHAR(64) NULL,
+            journal_hash VARCHAR(64) NULL,
+            previous_hash VARCHAR(64) NULL,
+            total_amount DECIMAL(20,2) DEFAULT 0,
+            revision_number INT DEFAULT 1,
+            approval_round INT DEFAULT 0,
+            approved_snapshot_hash VARCHAR(64) NULL,
+            approval_stale TINYINT(1) DEFAULT 0,
+            approval_expires_at TIMESTAMP NULL,
+            lock_after_approval TINYINT(1) DEFAULT 1,
+            last_submitted_at TIMESTAMP NULL,
+            last_submitted_by BIGINT UNSIGNED NULL,
+            rejected_reason TEXT NULL,
+            metadata JSON NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            UNIQUE KEY uk_org_idempotency (org_id, idempotency_key),
+            FOREIGN KEY (org_id) REFERENCES {$table_organizations}(id) ON DELETE CASCADE,
+            INDEX idx_org_status (org_id, status)
+        ) {$charset_collate};";
+        dbDelta($sql);
+        
+        // ============================================================
+        // SL-001: journal_lines table
+        // ============================================================
+        $table_jlines = $wpdb->prefix . 'orabooks_journal_lines';
+        $sql = "CREATE TABLE IF NOT EXISTS {$table_jlines} (
+            id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            journal_id BIGINT UNSIGNED NOT NULL,
+            account_id BIGINT UNSIGNED NOT NULL,
+            account_code VARCHAR(20) NOT NULL,
+            debit_amount DECIMAL(20,2) DEFAULT 0,
+            credit_amount DECIMAL(20,2) DEFAULT 0,
+            currency_code CHAR(3) DEFAULT 'USD',
+            exchange_rate DECIMAL(12,6) DEFAULT 1,
+            description TEXT NULL,
+            FOREIGN KEY (journal_id) REFERENCES {$table_journals}(id) ON DELETE CASCADE,
+            FOREIGN KEY (account_id) REFERENCES {$table_accounts}(id),
+            CHECK (debit_amount >= 0 AND credit_amount >= 0)
+        ) {$charset_collate};";
+        dbDelta($sql);
+        
+        // ============================================================
+        // SL-001: ledger_entries table (immutable posting record)
+        // ============================================================
+        $table_ledger = $wpdb->prefix . 'orabooks_ledger_entries';
+        $sql = "CREATE TABLE IF NOT EXISTS {$table_ledger} (
+            id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            org_id BIGINT UNSIGNED NOT NULL,
+            journal_id BIGINT UNSIGNED NOT NULL,
+            account_id BIGINT UNSIGNED NOT NULL,
+            debit_amount DECIMAL(20,2) DEFAULT 0,
+            credit_amount DECIMAL(20,2) DEFAULT 0,
+            posting_batch_id BIGINT UNSIGNED NOT NULL,
+            posted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (org_id) REFERENCES {$table_organizations}(id) ON DELETE CASCADE,
+            INDEX idx_org_account_date (org_id, account_id, posted_at)
+        ) {$charset_collate};";
+        dbDelta($sql);
+        
+        // ============================================================
+        // SL-001: posting_batches table
+        // ============================================================
+        $table_batches = $wpdb->prefix . 'orabooks_posting_batches';
+        $sql = "CREATE TABLE IF NOT EXISTS {$table_batches} (
+            id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            org_id BIGINT UNSIGNED NOT NULL,
+            year INT NOT NULL,
+            batch_number INT NOT NULL,
+            started_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE KEY uk_org_year_batch (org_id, year, batch_number)
+        ) {$charset_collate};";
+        dbDelta($sql);
+        
+        // ============================================================
+        // SL-001: balance_snapshots table
+        // ============================================================
+        $table_snapshots = $wpdb->prefix . 'orabooks_balance_snapshots';
+        $sql = "CREATE TABLE IF NOT EXISTS {$table_snapshots} (
+            org_id BIGINT UNSIGNED NOT NULL,
+            snapshot_date DATE NOT NULL,
+            account_id BIGINT UNSIGNED NOT NULL,
+            balance DECIMAL(20,2) NOT NULL,
+            PRIMARY KEY (org_id, snapshot_date, account_id)
+        ) {$charset_collate};";
+        dbDelta($sql);
+        
+        // ============================================================
+        // SL-001: fiscal_periods table
+        // ============================================================
+        $table_fiscal = $wpdb->prefix . 'orabooks_fiscal_periods';
+        $sql = "CREATE TABLE IF NOT EXISTS {$table_fiscal} (
+            id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            org_id BIGINT UNSIGNED NOT NULL,
+            period_start DATE NOT NULL,
+            period_end DATE NOT NULL,
+            status ENUM('open','soft_closed','hard_closed') DEFAULT 'open',
+            closed_by BIGINT UNSIGNED NULL,
+            closed_at TIMESTAMP NULL,
+            reopened_by BIGINT UNSIGNED NULL,
+            reopened_at TIMESTAMP NULL,
+            reopen_reason TEXT NULL,
+            FOREIGN KEY (org_id) REFERENCES {$table_organizations}(id) ON DELETE CASCADE,
+            UNIQUE KEY uk_org_period (org_id, period_start)
+        ) {$charset_collate};";
+        dbDelta($sql);
+        
+        // ============================================================
+        // SL-001: outbox_messages table (transactional outbox)
+        // ============================================================
+        $table_outbox = $wpdb->prefix . 'orabooks_outbox_messages';
+        $sql = "CREATE TABLE IF NOT EXISTS {$table_outbox} (
+            id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            event_type VARCHAR(100) NOT NULL,
+            aggregate_id BIGINT UNSIGNED NOT NULL,
+            payload JSON NOT NULL,
+            status ENUM('pending','sent','failed') DEFAULT 'pending',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            retry_count INT DEFAULT 0,
+            last_attempt_at TIMESTAMP NULL,
+            INDEX idx_status_created (status, created_at)
+        ) {$charset_collate};";
+        dbDelta($sql);
+        
+        // ============================================================
+        // SL-001: posting_retry_queue table
+        // ============================================================
+        $table_retry = $wpdb->prefix . 'orabooks_posting_retry_queue';
+        $sql = "CREATE TABLE IF NOT EXISTS {$table_retry} (
+            id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            journal_id BIGINT UNSIGNED NOT NULL,
+            error_message TEXT NULL,
+            retry_count INT DEFAULT 0,
+            status ENUM('pending','processing','failed','manual_review') DEFAULT 'pending',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (journal_id) REFERENCES {$table_journals}(id) ON DELETE CASCADE
+        ) {$charset_collate};";
+        dbDelta($sql);
+        
+        // ============================================================
+        // SL-001: read_model_versions table
+        // ============================================================
+        $table_rmv = $wpdb->prefix . 'orabooks_read_model_versions';
+        $sql = "CREATE TABLE IF NOT EXISTS {$table_rmv} (
+            projection_name VARCHAR(100) PRIMARY KEY,
+            version INT NOT NULL DEFAULT 1,
+            last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+        ) {$charset_collate};";
+        dbDelta($sql);
+        
+        // ============================================================
+        // SL-002: journal_approval_history table (append-only)
+        // ============================================================
+        $table_approval = $wpdb->prefix . 'orabooks_journal_approval_history';
+        $sql = "CREATE TABLE IF NOT EXISTS {$table_approval} (
+            id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            journal_id BIGINT UNSIGNED NOT NULL,
+            action ENUM('submit','approve','reject','resubmit','delegate','escalate','invalidate','expire') NOT NULL,
+            performed_by BIGINT UNSIGNED NOT NULL,
+            reason TEXT NULL,
+            snapshot_hash VARCHAR(64) NULL,
+            approval_round INT NOT NULL,
+            revision_number INT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (journal_id) REFERENCES {$table_journals}(id) ON DELETE CASCADE
+        ) {$charset_collate};";
+        dbDelta($sql);
+        
+        // ============================================================
+        // SL-002: approval_delegations table
+        // ============================================================
+        $table_delegations = $wpdb->prefix . 'orabooks_approval_delegations';
+        $sql = "CREATE TABLE IF NOT EXISTS {$table_delegations} (
+            id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            org_id BIGINT UNSIGNED NOT NULL,
+            delegator_user_id BIGINT UNSIGNED NOT NULL,
+            delegate_user_id BIGINT UNSIGNED NOT NULL,
+            starts_at TIMESTAMP NOT NULL,
+            ends_at TIMESTAMP NOT NULL,
+            created_by BIGINT UNSIGNED NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            revoked_at TIMESTAMP NULL,
+            FOREIGN KEY (org_id) REFERENCES {$table_organizations}(id) ON DELETE CASCADE
+        ) {$charset_collate};";
+        dbDelta($sql);
+        
+        // ============================================================
+        // SL-002: approval_policies table
+        // ============================================================
+        $table_policies = $wpdb->prefix . 'orabooks_approval_policies';
+        $sql = "CREATE TABLE IF NOT EXISTS {$table_policies} (
+            org_id BIGINT UNSIGNED PRIMARY KEY,
+            approval_expiry_hours INT DEFAULT 72,
+            reminder_hours_before_expiry INT DEFAULT 24,
+            max_approval_rounds INT DEFAULT 5,
+            maker_checker_required TINYINT(1) DEFAULT 1,
+            mfa_amount_threshold DECIMAL(20,2) DEFAULT 10000.00,
+            escalation_after_hours INT DEFAULT 48,
+            escalation_role ENUM('admin','owner') DEFAULT 'admin'
+        ) {$charset_collate};";
+        dbDelta($sql);
+        
+        // ============================================================
+        // SL-303: async_jobs table
+        // ============================================================
+        $table_jobs = $wpdb->prefix . 'orabooks_async_jobs';
+        $sql = "CREATE TABLE IF NOT EXISTS {$table_jobs} (
+            id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            queue_name VARCHAR(50) DEFAULT 'default',
+            job_type VARCHAR(100) NOT NULL,
+            payload JSON NOT NULL,
+            status ENUM('pending','processing','completed','failed','dead_letter') DEFAULT 'pending',
+            priority INT DEFAULT 5,
+            retry_count INT DEFAULT 0,
+            max_retries INT DEFAULT 5,
+            next_retry_at TIMESTAMP NULL,
+            started_at TIMESTAMP NULL,
+            completed_at TIMESTAMP NULL,
+            last_error TEXT NULL,
+            heartbeat_at TIMESTAMP NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            INDEX idx_status_priority (status, priority, created_at)
+        ) {$charset_collate};";
+        dbDelta($sql);
+        
+        // ============================================================
+        // SL-301: state_machine_transitions table
+        // ============================================================
+        $table_sm = $wpdb->prefix . 'orabooks_state_machine_transitions';
+        $sql = "CREATE TABLE IF NOT EXISTS {$table_sm} (
+            id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            record_type VARCHAR(50) NOT NULL,
+            record_id BIGINT UNSIGNED NOT NULL,
+            from_state VARCHAR(50) NOT NULL,
+            to_state VARCHAR(50) NOT NULL,
+            event VARCHAR(50) NOT NULL,
+            triggered_by BIGINT UNSIGNED NULL,
+            reason TEXT NULL,
+            metadata JSON NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            INDEX idx_record (record_type, record_id),
+            INDEX idx_created (created_at)
+        ) {$charset_collate};";
+        dbDelta($sql);
+        
         update_option('orabooks_db_version', ORABOOKS_DB_VERSION);
     }
     

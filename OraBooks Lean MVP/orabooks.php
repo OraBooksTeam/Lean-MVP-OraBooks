@@ -29,6 +29,8 @@ require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-team.php';
 require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-audit.php';
 require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-partner.php';
 require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-secrets.php';
+require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-coa.php';
+require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-posting.php';
 require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-ajax.php';
 require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-shortcodes.php';
 require_once ORABOOKS_PLUGIN_DIR . 'includes/helpers.php';
@@ -49,6 +51,8 @@ function orabooks_init() {
     OraBooks_Team::init();
     OraBooks_Audit::init();
     OraBooks_Partner::init();
+    OraBooks_COA::init();
+    OraBooks_Posting::init();
     OraBooks_Ajax::init();
     OraBooks_Shortcodes::init();
 }

@@ -1,0 +1,636 @@
+<?php
+/**
+ * OraBooks Journal Entry & Posting Engine (SL-001)
+ * 
+ * Core posting engine with double-entry enforcement, fiscal period checks,
+ * hash chain, immutable ledger, and outbox pattern.
+ */
+
+if (!defined('ABSPATH')) {
+    exit;
+}
+
+class OraBooks_Posting {
+    
+    private static $instance = null;
+    private static $state_machine = [];
+    
+    public static function init() {
+        if (self::$instance === null) {
+            self::$instance = new self();
+            add_action('wp_ajax_orabooks_create_journal', [self::$instance, 'ajax_create_journal']);
+            add_action('wp_ajax_orabooks_submit_journal', [self::$instance, 'ajax_submit_journal']);
+            add_action('wp_ajax_orabooks_approve_journal', [self::$instance, 'ajax_approve_journal']);
+            add_action('wp_ajax_orabooks_reject_journal', [self::$instance, 'ajax_reject_journal']);
+            add_action('wp_ajax_orabooks_post_journal', [self::$instance, 'ajax_post_journal']);
+            add_action('wp_ajax_orabooks_get_journals', [self::$instance, 'ajax_get_journals']);
+            
+            // Initialize state machine config
+            self::init_state_machine();
+        }
+        return self::$instance;
+    }
+    
+    private static function init_state_machine() {
+        self::$state_machine = [
+            'journal' => [
+                'states' => ['draft', 'review_pending', 'approved', 'posted', 'locked', 'reversed'],
+                'transitions' => [
+                    'submit'   => ['from' => 'draft', 'to' => 'review_pending'],
+                    'approve'  => ['from' => 'review_pending', 'to' => 'approved'],
+                    'reject'   => ['from' => 'review_pending', 'to' => 'draft'],
+                    'post'     => ['from' => 'approved', 'to' => 'posted'],
+                    'lock'     => ['from' => 'posted', 'to' => 'locked'],
+                    'reverse'  => ['from' => ['posted', 'locked'], 'to' => 'reversed'],
+                    'edit'     => ['from' => ['draft', 'approved'], 'to' => 'draft'],
+                ]
+            ]
+        ];
+    }
+    
+    public static function transition($record_type, $record_id, $event, $user_id, $reason = null) {
+        global $wpdb;
+        
+        $sm = self::$state_machine[$record_type] ?? null;
+        if (!$sm) {
+            return new WP_Error('invalid_type', 'Unknown record type');
+        }
+        
+        $transition = $sm['transitions'][$event] ?? null;
+        if (!$transition) {
+            return new WP_Error('invalid_event', 'Unknown event for this record type');
+        }
+        
+        // Get current state
+        $table = $record_type === 'journal' ? OraBooks_Database::table('journals') : null;
+        if (!$table) return new WP_Error('invalid_type', 'Unknown table');
+        
+        $record = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$table} WHERE id = %d", $record_id));
+        if (!$record) return new WP_Error('not_found', 'Record not found');
+        
+        $from_states = is_array($transition['from']) ? $transition['from'] : [$transition['from']];
+        if (!in_array($record->status, $from_states)) {
+            return new WP_Error('invalid_state', "Cannot transition from state: {$record->status}");
+        }
+        
+        $to_state = $transition['to'];
+        
+        // Log state transition
+        $table_sm = OraBooks_Database::table('state_machine_transitions');
+        $wpdb->insert($table_sm, [
+            'record_type' => $record_type,
+            'record_id' => $record_id,
+            'from_state' => $record->status,
+            'to_state' => $to_state,
+            'event' => $event,
+            'triggered_by' => $user_id,
+            'reason' => $reason,
+            'metadata' => null
+        ], ['%s', '%d', '%s', '%s', '%s', '%d', '%s', '%s']);
+        
+        return [
+            'from_state' => $record->status,
+            'to_state' => $to_state,
+            'event' => $event
+        ];
+    }
+    
+    /**
+     * Create a draft journal
+     */
+    public static function create_journal($data, $user_id) {
+        global $wpdb;
+        
+        $table = OraBooks_Database::table('journals');
+        $org_id = $data['org_id'];
+        
+        $idempotency_key = $data['idempotency_key'] ?? orabooks_uuid();
+        
+        $wpdb->insert($table, [
+            'org_id' => $org_id,
+            'status' => 'draft',
+            'transaction_date' => $data['transaction_date'] ?? current_time('Y-m-d'),
+            'idempotency_key' => $idempotency_key,
+            'created_by' => $user_id,
+            'source_type' => $data['source_type'] ?? 'manual',
+            'source_id' => $data['source_id'] ?? null,
+            'metadata' => isset($data['metadata']) ? json_encode($data['metadata']) : null,
+            'total_amount' => 0
+        ], ['%d', '%s', '%s', '%s', '%d', '%s', '%d', '%s', '%f']);
+        
+        return $wpdb->insert_id;
+    }
+    
+    /**
+     * Add lines to a journal
+     */
+    public static function add_lines($journal_id, $lines) {
+        global $wpdb;
+        
+        $table_lines = OraBooks_Database::table('journal_lines');
+        $table_journals = OraBooks_Database::table('journals');
+        
+        $journal = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$table_journals} WHERE id = %d", $journal_id));
+        if (!$journal || $journal->status !== 'draft') {
+            return new WP_Error('invalid_status', 'Can only add lines to draft journals');
+        }
+        
+        $total_debit = 0;
+        $total_credit = 0;
+        
+        foreach ($lines as $line) {
+            $account = OraBooks_COA::get_account_by_code($journal->org_id, $line['account_code']);
+            if (!$account) {
+                return new WP_Error('invalid_account', "Account not found: {$line['account_code']}");
+            }
+            
+            $wpdb->insert($table_lines, [
+                'journal_id' => $journal_id,
+                'account_id' => $account->id,
+                'account_code' => $line['account_code'],
+                'debit_amount' => $line['debit'] ?? 0,
+                'credit_amount' => $line['credit'] ?? 0,
+                'description' => $line['description'] ?? ''
+            ], ['%d', '%d', '%s', '%f', '%f', '%s']);
+            
+            $total_debit += $line['debit'] ?? 0;
+            $total_credit += $line['credit'] ?? 0;
+        }
+        
+        // Update journal total
+        $wpdb->update($table_journals, 
+            ['total_amount' => max($total_debit, $total_credit)],
+            ['id' => $journal_id],
+            ['%f'], ['%d']
+        );
+        
+        return true;
+    }
+    
+    /**
+     * Submit journal for approval
+     */
+    public static function submit_journal($journal_id, $user_id) {
+        global $wpdb;
+        
+        $table = OraBooks_Database::table('journals');
+        $journal = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$table} WHERE id = %d FOR UPDATE", $journal_id));
+        
+        if (!$journal || $journal->status !== 'draft') {
+            return new WP_Error('invalid_status', 'Only draft journals can be submitted');
+        }
+        
+        // Check double-entry
+        $table_lines = OraBooks_Database::table('journal_lines');
+        $totals = $wpdb->get_row($wpdb->prepare(
+            "SELECT SUM(debit_amount) as total_debit, SUM(credit_amount) as total_credit FROM {$table_lines} WHERE journal_id = %d",
+            $journal_id
+        ));
+        
+        if (abs($totals->total_debit - $totals->total_credit) > 0.01) {
+            return new WP_Error('unbalanced', 'Journal is unbalanced. Debits must equal credits.');
+        }
+        
+        $new_round = $journal->approval_round + 1;
+        $snapshot_hash = self::compute_snapshot_hash($journal_id);
+        
+        $wpdb->update($table, [
+            'status' => 'review_pending',
+            'approval_round' => $new_round,
+            'last_submitted_at' => current_time('mysql'),
+            'last_submitted_by' => $user_id,
+            'approval_stale' => 0,
+            'approved_snapshot_hash' => $snapshot_hash,
+            'rejected_reason' => null
+        ], ['id' => $journal_id], ['%s', '%d', '%s', '%d', '%d', '%s', null], ['%d']);
+        
+        // Record in approval history
+        self::record_approval_history($journal_id, 'submit', $user_id, $snapshot_hash, $new_round, $journal->revision_number);
+        
+        // Record state transition
+        self::transition('journal', $journal_id, 'submit', $user_id);
+        
+        orabooks_log_event('journal_submitted', "Journal #$journal_id submitted for approval", 'info', [
+            'journal_id' => $journal_id,
+            'org_id' => $journal->org_id,
+            'amount' => $journal->total_amount
+        ], $user_id, $journal->org_id);
+        
+        return true;
+    }
+    
+    /**
+     * Approve journal
+     */
+    public static function approve_journal($journal_id, $user_id) {
+        global $wpdb;
+        
+        $table = OraBooks_Database::table('journals');
+        $journal = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$table} WHERE id = %d FOR UPDATE", $journal_id));
+        
+        if (!$journal || $journal->status !== 'review_pending') {
+            return new WP_Error('invalid_status', 'Journal not in review_pending');
+        }
+        
+        // Maker-checker: creator cannot approve own journal
+        $policy_table = OraBooks_Database::table('approval_policies');
+        $policy = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$policy_table} WHERE org_id = %d", $journal->org_id));
+        if ($policy && $policy->maker_checker_required && $journal->created_by == $user_id) {
+            return new WP_Error('maker_checker', 'Creator cannot approve own journal');
+        }
+        
+        $current_hash = self::compute_snapshot_hash($journal_id);
+        $expires_at = date('Y-m-d H:i:s', time() + (($policy->approval_expiry_hours ?? 72) * 3600));
+        
+        $wpdb->update($table, [
+            'status' => 'approved',
+            'approved_by' => $user_id,
+            'approved_at' => current_time('mysql'),
+            'approved_snapshot_hash' => $current_hash,
+            'approval_expires_at' => $expires_at,
+            'lock_after_approval' => 1
+        ], ['id' => $journal_id], ['%s', '%d', '%s', '%s', '%s', '%d'], ['%d']);
+        
+        self::record_approval_history($journal_id, 'approve', $user_id, $current_hash, $journal->approval_round, $journal->revision_number);
+        self::transition('journal', $journal_id, 'approve', $user_id);
+        
+        orabooks_log_event('journal_approved', "Journal #$journal_id approved by user $user_id", 'info', [
+            'journal_id' => $journal_id
+        ], $user_id, $journal->org_id);
+        
+        return true;
+    }
+    
+    /**
+     * Reject journal (returns to draft)
+     */
+    public static function reject_journal($journal_id, $user_id, $reason) {
+        global $wpdb;
+        
+        if (empty($reason)) {
+            return new WP_Error('reason_required', 'Rejection reason is required');
+        }
+        
+        $table = OraBooks_Database::table('journals');
+        $journal = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$table} WHERE id = %d FOR UPDATE", $journal_id));
+        
+        if (!$journal || $journal->status !== 'review_pending') {
+            return new WP_Error('invalid_status', 'Journal not in review_pending');
+        }
+        
+        $wpdb->update($table, [
+            'status' => 'draft',
+            'rejected_reason' => $reason,
+            'approved_snapshot_hash' => null,
+            'lock_after_approval' => 0,
+            'approval_stale' => 0
+        ], ['id' => $journal_id], ['%s', '%s', null, '%d', '%d'], ['%d']);
+        
+        self::record_approval_history($journal_id, 'reject', $user_id, null, $journal->approval_round, $journal->revision_number, $reason);
+        self::transition('journal', $journal_id, 'reject', $user_id);
+        
+        orabooks_log_event('journal_rejected', "Journal #$journal_id rejected: $reason", 'warning', [
+            'journal_id' => $journal_id,
+            'reason' => $reason
+        ], $user_id, $journal->org_id);
+        
+        return true;
+    }
+    
+    /**
+     * Post journal to ledger (atomic posting)
+     */
+    public static function post_journal($journal_id, $user_id) {
+        global $wpdb;
+        
+        $table_journals = OraBooks_Database::table('journals');
+        $table_lines = OraBooks_Database::table('journal_lines');
+        $table_ledger = OraBooks_Database::table('ledger_entries');
+        $table_batches = OraBooks_Database::table('posting_batches');
+        $table_balances = OraBooks_Database::table('account_balances');
+        $table_accounts = $wpdb->prefix . 'orabooks_accounts';
+        $table_outbox = OraBooks_Database::table('outbox_messages');
+        
+        $journal = $wpdb->get_row($wpdb->prepare(
+            "SELECT * FROM {$table_journals} WHERE id = %d FOR UPDATE", $journal_id
+        ));
+        
+        if (!$journal || $journal->status !== 'approved') {
+            return new WP_Error('invalid_status', 'Journal must be approved before posting');
+        }
+        
+        if ($journal->approval_stale) {
+            return new WP_Error('approval_stale', 'Approval has expired. Please resubmit.');
+        }
+        
+        // Fiscal period check
+        $table_fiscal = OraBooks_Database::table('fiscal_periods');
+        $fiscal = $wpdb->get_row($wpdb->prepare(
+            "SELECT * FROM {$table_fiscal} WHERE org_id = %d AND period_start <= %s AND period_end >= %s",
+            $journal->org_id, $journal->transaction_date, $journal->transaction_date
+        ));
+        
+        if ($fiscal && ($fiscal->status === 'soft_closed' || $fiscal->status === 'hard_closed')) {
+            return new WP_Error('fiscal_closed', 'Fiscal period is closed. Cannot post.');
+        }
+        
+        // Double-entry check
+        $totals = $wpdb->get_row($wpdb->prepare(
+            "SELECT SUM(debit_amount) as total_debit, SUM(credit_amount) as total_credit FROM {$table_lines} WHERE journal_id = %d",
+            $journal_id
+        ));
+        
+        if (abs($totals->total_debit - $totals->total_credit) > 0.01) {
+            return new WP_Error('unbalanced', 'Journal is unbalanced. Cannot post.');
+        }
+        
+        // Get next batch number
+        $year = date('Y', strtotime($journal->transaction_date));
+        $batch = $wpdb->get_row($wpdb->prepare(
+            "SELECT * FROM {$table_batches} WHERE org_id = %d AND year = %d ORDER BY batch_number DESC LIMIT 1",
+            $journal->org_id, $year
+        ));
+        
+        $batch_number = $batch ? $batch->batch_number + 1 : 1;
+        $wpdb->insert($table_batches, [
+            'org_id' => $journal->org_id,
+            'year' => $year,
+            'batch_number' => $batch_number
+        ], ['%d', '%d', '%d']);
+        $batch_id = $wpdb->insert_id;
+        
+        // Generate journal number and hash
+        $journal_number = "JE-{$year}-" . str_pad($batch_number, 6, '0', STR_PAD_LEFT);
+        $previous_hash = $wpdb->get_var($wpdb->prepare(
+            "SELECT journal_hash FROM {$table_journals} WHERE org_id = %d AND status = 'posted' ORDER BY posted_at DESC LIMIT 1",
+            $journal->org_id
+        ));
+        
+        $lines = $wpdb->get_results($wpdb->prepare(
+            "SELECT * FROM {$table_lines} WHERE journal_id = %d ORDER BY id", $journal_id
+        ));
+        
+        // Create ledger entries and update balances
+        foreach ($lines as $line) {
+            $wpdb->insert($table_ledger, [
+                'org_id' => $journal->org_id,
+                'journal_id' => $journal_id,
+                'account_id' => $line->account_id,
+                'debit_amount' => $line->debit_amount,
+                'credit_amount' => $line->credit_amount,
+                'posting_batch_id' => $batch_id
+            ], ['%d', '%d', '%d', '%f', '%f', '%d']);
+            
+            // Update balance using normal_balance
+            $account = $wpdb->get_row($wpdb->prepare(
+                "SELECT normal_balance FROM {$table_accounts} WHERE id = %d", $line->account_id
+            ));
+            
+            if ($account) {
+                $existing = $wpdb->get_row($wpdb->prepare(
+                    "SELECT balance FROM {$table_balances} WHERE org_id = %d AND account_id = %d",
+                    $journal->org_id, $line->account_id
+                ));
+                
+                $delta = 0;
+                if ($account->normal_balance === 'debit') {
+                    $delta = $line->debit_amount - $line->credit_amount;
+                } else {
+                    $delta = $line->credit_amount - $line->debit_amount;
+                }
+                
+                if ($existing) {
+                    $wpdb->query($wpdb->prepare(
+                        "UPDATE {$table_balances} SET balance = balance + %f WHERE org_id = %d AND account_id = %d",
+                        $delta, $journal->org_id, $line->account_id
+                    ));
+                } else {
+                    $wpdb->insert($table_balances, [
+                        'org_id' => $journal->org_id,
+                        'account_id' => $line->account_id,
+                        'balance' => $delta
+                    ], ['%d', '%d', '%f']);
+                }
+            }
+        }
+        
+        // Compute hash chain
+        $canonical = [
+            'org_id' => $journal->org_id,
+            'journal_number' => $journal_number,
+            'transaction_date' => $journal->transaction_date,
+            'lines' => array_map(function($l) {
+                return [
+                    'account_id' => $l->account_id,
+                    'account_code' => $l->account_code,
+                    'debit' => (float)$l->debit_amount,
+                    'credit' => (float)$l->credit_amount
+                ];
+            }, $lines),
+            'previous_hash' => $previous_hash
+        ];
+        $journal_hash = hash('sha256', json_encode($canonical, JSON_UNESCAPED_SLASHES));
+        
+        // Update journal
+        $wpdb->update($table_journals, [
+            'status' => 'posted',
+            'posted_by' => $user_id,
+            'posted_at' => current_time('mysql'),
+            'journal_number' => $journal_number,
+            'journal_hash' => $journal_hash,
+            'previous_hash' => $previous_hash
+        ], ['id' => $journal_id], ['%s', '%d', '%s', '%s', '%s', '%s'], ['%d']);
+        
+        // Outbox message
+        $wpdb->insert($table_outbox, [
+            'event_type' => 'journal_posted',
+            'aggregate_id' => $journal_id,
+            'payload' => json_encode([
+                'journal_id' => $journal_id,
+                'org_id' => $journal->org_id,
+                'journal_number' => $journal_number,
+                'total_amount' => $journal->total_amount
+            ])
+        ], ['%s', '%d', '%s']);
+        
+        self::transition('journal', $journal_id, 'post', $user_id);
+        
+        orabooks_log_event('journal_posted', "Journal #$journal_number posted to ledger", 'info', [
+            'journal_id' => $journal_id,
+            'journal_number' => $journal_number,
+            'org_id' => $journal->org_id
+        ], $user_id, $journal->org_id);
+        
+        return [
+            'journal_number' => $journal_number,
+            'journal_hash' => $journal_hash
+        ];
+    }
+    
+    /**
+     * Compute canonical snapshot hash for approval
+     */
+    private static function compute_snapshot_hash($journal_id) {
+        global $wpdb;
+        
+        $table = OraBooks_Database::table('journals');
+        $table_lines = OraBooks_Database::table('journal_lines');
+        
+        $journal = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$table} WHERE id = %d", $journal_id));
+        $lines = $wpdb->get_results($wpdb->prepare(
+            "SELECT * FROM {$table_lines} WHERE journal_id = %d ORDER BY id", $journal_id
+        ));
+        
+        $data = [
+            'journal_id' => $journal_id,
+            'transaction_date' => $journal->transaction_date,
+            'lines' => array_map(function($l) {
+                return [
+                    'account_id' => $l->account_id,
+                    'debit' => (float)$l->debit_amount,
+                    'credit' => (float)$l->credit_amount,
+                    'description' => $l->description,
+                    'currency' => $l->currency_code
+                ];
+            }, $lines)
+        ];
+        
+        return hash('sha256', json_encode($data, JSON_UNESCAPED_SLASHES));
+    }
+    
+    /**
+     * Record approval history entry
+     */
+    private static function record_approval_history($journal_id, $action, $user_id, $snapshot_hash = null, $round = 0, $revision = 1, $reason = null) {
+        global $wpdb;
+        
+        $table = OraBooks_Database::table('journal_approval_history');
+        $wpdb->insert($table, [
+            'journal_id' => $journal_id,
+            'action' => $action,
+            'performed_by' => $user_id,
+            'snapshot_hash' => $snapshot_hash,
+            'approval_round' => $round,
+            'revision_number' => $revision,
+            'reason' => $reason
+        ], ['%d', '%s', '%d', '%s', '%d', '%d', '%s']);
+    }
+    
+    /**
+     * Get journals for an org
+     */
+    public static function get_journals($org_id, $args = []) {
+        global $wpdb;
+        
+        $table = OraBooks_Database::table('journals');
+        $where = 'org_id = %d';
+        $params = [$org_id];
+        
+        if (!empty($args['status'])) {
+            $where .= ' AND status = %s';
+            $params[] = $args['status'];
+        }
+        if (!empty($args['from_date'])) {
+            $where .= ' AND transaction_date >= %s';
+            $params[] = $args['from_date'];
+        }
+        if (!empty($args['to_date'])) {
+            $where .= ' AND transaction_date <= %s';
+            $params[] = $args['to_date'];
+        }
+        
+        $limit = $args['limit'] ?? 50;
+        $offset = $args['offset'] ?? 0;
+        
+        $sql = "SELECT * FROM {$table} WHERE {$where} ORDER BY created_at DESC LIMIT %d OFFSET %d";
+        $params[] = $limit;
+        $params[] = $offset;
+        
+        return $wpdb->get_results($wpdb->prepare($sql, $params));
+    }
+    
+    // AJAX handlers
+    public function ajax_create_journal() {
+        $user_id = get_current_user_id();
+        $org_id = intval($_POST['org_id'] ?? 0);
+        
+        if (!OraBooks_RBAC::require_permission($user_id, $org_id, 'submit_transaction')) {
+            orabooks_json_error('Permission denied', 403);
+        }
+        
+        $journal_id = self::create_journal($_POST, $user_id);
+        if (is_wp_error($journal_id)) {
+            orabooks_json_error($journal_id->get_error_message(), 400);
+        }
+        
+        // Add lines if provided
+        if (!empty($_POST['lines'])) {
+            $lines = json_decode(stripslashes($_POST['lines']), true);
+            $result = self::add_lines($journal_id, $lines);
+            if (is_wp_error($result)) {
+                orabooks_json_error($result->get_error_message(), 400);
+            }
+        }
+        
+        orabooks_json_success(['journal_id' => $journal_id], 'Journal created');
+    }
+    
+    public function ajax_submit_journal() {
+        $user_id = get_current_user_id();
+        $journal_id = intval($_POST['journal_id'] ?? 0);
+        
+        $result = self::submit_journal($journal_id, $user_id);
+        if (is_wp_error($result)) {
+            orabooks_json_error($result->get_error_message(), 400);
+        }
+        orabooks_json_success([], 'Journal submitted for approval');
+    }
+    
+    public function ajax_approve_journal() {
+        $user_id = get_current_user_id();
+        $journal_id = intval($_POST['journal_id'] ?? 0);
+        
+        $result = self::approve_journal($journal_id, $user_id);
+        if (is_wp_error($result)) {
+            orabooks_json_error($result->get_error_message(), 400);
+        }
+        orabooks_json_success([], 'Journal approved');
+    }
+    
+    public function ajax_reject_journal() {
+        $user_id = get_current_user_id();
+        $journal_id = intval($_POST['journal_id'] ?? 0);
+        $reason = sanitize_textarea_field($_POST['reason'] ?? '');
+        
+        $result = self::reject_journal($journal_id, $user_id, $reason);
+        if (is_wp_error($result)) {
+            orabooks_json_error($result->get_error_message(), 400);
+        }
+        orabooks_json_success([], 'Journal rejected');
+    }
+    
+    public function ajax_post_journal() {
+        $user_id = get_current_user_id();
+        $journal_id = intval($_POST['journal_id'] ?? 0);
+        
+        $result = self::post_journal($journal_id, $user_id);
+        if (is_wp_error($result)) {
+            orabooks_json_error($result->get_error_message(), 400);
+        }
+        orabooks_json_success($result, 'Journal posted to ledger');
+    }
+    
+    public function ajax_get_journals() {
+        $user_id = get_current_user_id();
+        $org_id = intval($_GET['org_id'] ?? 0);
+        
+        $args = [
+            'status' => sanitize_text_field($_GET['status'] ?? ''),
+            'from_date' => sanitize_text_field($_GET['from_date'] ?? ''),
+            'to_date' => sanitize_text_field($_GET['to_date'] ?? ''),
+        ];
+        
+        $journals = self::get_journals($org_id, $args);
+        orabooks_json_success($journals);
+    }
+}
