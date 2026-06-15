@@ -352,6 +352,158 @@ jQuery(document).ready(function($) {
     });
 
     // =============================================
+    // ASYNC QUEUE DASHBOARD EXPORT (SL-114)
+    // =============================================
+    $(document).on('click', '.orabooks-aq-export-trigger', function() {
+        var $btn = $(this);
+        var origText = $btn.text().trim();
+        var exportType = $btn.data('export-type') || 'async_queue_data';
+        var format = $btn.data('format') || 'csv';
+
+        $btn.prop('disabled', true).text('⏳ Requesting...');
+
+        $.post(orabooks_ajax.ajax_url, {
+            action: 'orabooks_export_request',
+            export_type: exportType,
+            format: format,
+            parameters: JSON.stringify({
+                columns: ['status', 'count', 'job_type', 'queue_name', 'priority', 'latency', 'failure_rate']
+            })
+        }, function(response) {
+            if (response.error) {
+                alert('Error: ' + response.message);
+                $btn.prop('disabled', false).text(origText);
+            } else {
+                $btn.text('✅ Requested').prop('disabled', true);
+                var $msg = $('#orabooks-aq-export-msg');
+                $msg.removeClass('error').addClass('success')
+                    .html('✅ Export requested! <a href="admin.php?page=orabooks-exports">View My Exports</a>')
+                    .css('display', 'block');
+                setTimeout(function() {
+                    $msg.fadeOut();
+                    $btn.text(origText).prop('disabled', false);
+                }, 5000);
+            }
+        }).fail(function() {
+            $btn.prop('disabled', false).text(origText);
+        });
+    });
+
+    // =============================================
+    // USERS & TEAMS EXPORT (SL-114)
+    // =============================================
+    $(document).on('click', '.orabooks-users-export-trigger', function() {
+        var $btn = $(this);
+        var origText = $btn.text().trim();
+        var exportType = $btn.data('export-type') || 'users_data';
+        var format = $btn.data('format') || 'csv';
+
+        $btn.prop('disabled', true).text('⏳ Requesting...');
+
+        $.post(orabooks_ajax.ajax_url, {
+            action: 'orabooks_export_request',
+            export_type: exportType,
+            format: format,
+            parameters: JSON.stringify({
+                columns: ['id', 'email', 'is_active', 'is_email_verified', 'is_2fa_enabled', 'auth_provider', 'org_id', 'is_partner', 'created_at']
+            })
+        }, function(response) {
+            if (response.error) {
+                alert('Error: ' + response.message);
+                $btn.prop('disabled', false).text(origText);
+            } else {
+                $btn.text('✅ Requested').prop('disabled', true);
+                var $msg = $('#orabooks-users-export-msg');
+                $msg.removeClass('error').addClass('success')
+                    .html('✅ Export requested! <a href="admin.php?page=orabooks-exports">View My Exports</a>')
+                    .css('display', 'block');
+                setTimeout(function() {
+                    $msg.fadeOut();
+                    $btn.text(origText).prop('disabled', false);
+                }, 5000);
+            }
+        }).fail(function() {
+            $btn.prop('disabled', false).text(origText);
+        });
+    });
+
+    // =============================================
+    // COMMISSION CONFIG EXPORT (SL-114)
+    // =============================================
+    $(document).on('click', '.orabooks-commconfig-export-trigger', function() {
+        var $btn = $(this);
+        var origText = $btn.text().trim();
+        var exportType = $btn.data('export-type') || 'commission_config';
+        var format = $btn.data('format') || 'csv';
+
+        $btn.prop('disabled', true).text('⏳ Requesting...');
+
+        $.post(orabooks_ajax.ajax_url, {
+            action: 'orabooks_export_request',
+            export_type: exportType,
+            format: format,
+            parameters: JSON.stringify({
+                columns: ['base_monthly_amount', 'max_years', 'yearly_percentages', 'min_payout_threshold', 'customer_active_window_days', 'expiry_accounting_action', 'payout_fee_type', 'payout_fee_rate']
+            })
+        }, function(response) {
+            if (response.error) {
+                alert('Error: ' + response.message);
+                $btn.prop('disabled', false).text(origText);
+            } else {
+                $btn.text('✅ Requested').prop('disabled', true);
+                var $msg = $('#orabooks-commconfig-export-msg');
+                $msg.removeClass('error').addClass('success')
+                    .html('✅ Export requested! <a href="admin.php?page=orabooks-exports">View My Exports</a>')
+                    .css('display', 'block');
+                setTimeout(function() {
+                    $msg.fadeOut();
+                    $btn.text(origText).prop('disabled', false);
+                }, 5000);
+            }
+        }).fail(function() {
+            $btn.prop('disabled', false).text(origText);
+        });
+    });
+
+    // =============================================
+    // PARTNER ONBOARDING EXPORT (SL-114)
+    // =============================================
+    $(document).on('click', '.orabooks-onboarding-export-trigger', function() {
+        var $btn = $(this);
+        var origText = $btn.text().trim();
+        var exportType = $btn.data('export-type') || 'partner_onboarding';
+        var format = $btn.data('format') || 'csv';
+
+        $btn.prop('disabled', true).text('⏳ Requesting...');
+
+        $.post(orabooks_ajax.ajax_url, {
+            action: 'orabooks_export_request',
+            export_type: exportType,
+            format: format,
+            parameters: JSON.stringify({
+                columns: ['partner_code', 'partner_type', 'status', 'organization_name', 'active_customers', 'total_attributions', 'user_email', 'created_at']
+            })
+        }, function(response) {
+            if (response.error) {
+                alert('Error: ' + response.message);
+                $btn.prop('disabled', false).text(origText);
+            } else {
+                $btn.text('✅ Requested').prop('disabled', true);
+                var $msg = $('#orabooks-onboarding-export-msg');
+                $msg.removeClass('error').addClass('success')
+                    .html('✅ Export requested! <a href="admin.php?page=orabooks-exports">View My Exports</a>')
+                    .css('display', 'block');
+                setTimeout(function() {
+                    $msg.fadeOut();
+                    $btn.text(origText).prop('disabled', false);
+                }, 5000);
+            }
+        }).fail(function() {
+            $btn.prop('disabled', false).text(origText);
+        });
+    });
+
+    // =============================================
     // FRONTEND EXPORT BUTTON HANDLER (for shortcode pages in admin context)
     // =============================================
     // The frontend.js handles .orabooks-export-trigger for frontend pages.

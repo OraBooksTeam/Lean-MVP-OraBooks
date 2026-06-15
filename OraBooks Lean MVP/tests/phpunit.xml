@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit bootstrap="bootstrap.php"
+         colors="true"
+         verbose="true"
+         failOnWarning="true"
+         failOnRisky="true"
+         cacheResult="false">
+    <testsuites>
+        <testsuite name="OraBooks SL-114 Export Tests">
+            <file>test-class-orabooks-exports.php</file>
+        </testsuite>
+    </testsuites>
+</phpunit>

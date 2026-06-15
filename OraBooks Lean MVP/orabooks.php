@@ -128,6 +128,37 @@ function orabooks_init() {
         }
         return null;
     });
+    // Register commission_config report provider for SL-114 export
+    OraBooks_Exports::register_report_provider('commission_config', function($params) {
+        if (class_exists('OraBooks_Commission') && method_exists('OraBooks_Commission', 'get_config')) {
+            try {
+                $config = OraBooks_Commission::get_config();
+                if (is_object($config)) {
+                    $config = (array) $config;
+                }
+                return is_array($config) ? [$config] : null;
+            } catch (\Exception $e) {
+                return null;
+            }
+        }
+        return null;
+    });
+    // Register partner_onboarding report provider for SL-114 export
+    OraBooks_Exports::register_report_provider('partner_onboarding', function($params) {
+        global $wpdb;
+        $user_id = intval($params['user_id'] ?? get_current_user_id());
+        if (!$user_id) return null;
+        $table = OraBooks_Database::table('partners');
+        $partner = $wpdb->get_row($wpdb->prepare(
+            "SELECT p.id, p.user_id, p.partner_code, p.partner_type, p.status, p.organization_name, 
+                    p.active_customers, p.total_attributions, p.created_at, u.user_email
+             FROM {$table} p
+             LEFT JOIN {$wpdb->users} u ON u.ID = p.user_id
+             WHERE p.user_id = %d LIMIT 1",
+            $user_id
+        ));
+        return $partner ? [$partner] : null;
+    });
     // Register the generate_export handler with SL-303 async queue
     OraBooks_AsyncQueue::register_handler('generate_export', ['OraBooks_Exports', 'generate_export_job']);
 }

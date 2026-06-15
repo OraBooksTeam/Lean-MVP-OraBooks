@@ -138,6 +138,16 @@ class OraBooks_Shortcodes {
         ?>
         <div class="orabooks-form-container">
             <h2><?php _e('Partner Onboarding', 'orabooks'); ?></h2>
+            
+            <!-- SL-114 Export Action Bar -->
+            <div class="orabooks-coa-export-actions" style="margin-bottom:16px;padding:12px 16px;background:#f0f6fc;border:1px solid #c5d9ed;border-radius:6px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+                <span style="font-weight:600;color:#1d2327;font-size:13px;">📊 <?php _e('Export:', 'orabooks'); ?></span>
+                <button class="orabooks-btn orabooks-btn-secondary orabooks-btn-sm orabooks-onboarding-export-trigger" data-export-type="partner_onboarding" data-format="csv"><?php _e('Export Onboarding CSV', 'orabooks'); ?></button>
+                <button class="orabooks-btn orabooks-btn-sm orabooks-onboarding-export-trigger" data-export-type="partner_onboarding" data-format="pdf"><?php _e('Export Onboarding PDF', 'orabooks'); ?></button>
+                <span style="color:#666;font-size:12px;margin-left:4px;">📁 <?php _e('Async — you\'ll get a notification when ready.', 'orabooks'); ?></span>
+            </div>
+            <div id="orabooks-onboarding-export-msg" class="orabooks-message" style="display:none;"></div>
+            
             <div id="orabooks-partner-info">
                 <div class="orabooks-form-group">
                     <label><?php _e('Your Partner Code', 'orabooks'); ?></label>
@@ -945,6 +955,15 @@ class OraBooks_Shortcodes {
         ?>
         <div class="orabooks-commission-admin">
             <h2><?php _e('Commission Platform Configuration', 'orabooks'); ?></h2>
+            
+            <!-- SL-114 Export Action Bar -->
+            <div class="orabooks-coa-export-actions" style="margin-bottom:16px;padding:12px 16px;background:#f0f6fc;border:1px solid #c5d9ed;border-radius:6px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+                <span style="font-weight:600;color:#1d2327;font-size:13px;">📊 <?php _e('Export Config:', 'orabooks'); ?></span>
+                <button class="orabooks-btn orabooks-btn-secondary orabooks-btn-sm orabooks-commconfig-export-trigger" data-export-type="commission_config" data-format="csv"><?php _e('Export Config CSV', 'orabooks'); ?></button>
+                <button class="orabooks-btn orabooks-btn-sm orabooks-commconfig-export-trigger" data-export-type="commission_config" data-format="pdf"><?php _e('Export Config PDF', 'orabooks'); ?></button>
+                <span style="color:#666;font-size:12px;margin-left:4px;">📁 <?php _e('Async — you\'ll get a notification when ready.', 'orabooks'); ?></span>
+            </div>
+            <div id="orabooks-commconfig-export-msg" class="orabooks-message" style="display:none;"></div>
             
             <form id="orabooks-commission-config-form" class="orabooks-form">
                 <div class="orabooks-form-group">
