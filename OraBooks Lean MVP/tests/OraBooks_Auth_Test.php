@@ -8,6 +8,7 @@
  * Run: phpunit --configuration tests/phpunit.xml --testsuite="OraBooks SL-013 Auth Tests"
  */
 
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 class OraBooks_Auth_Test extends TestCase
@@ -84,7 +85,7 @@ class OraBooks_Auth_Test extends TestCase
     // initiate_google_oauth()
     // ================================================================
 
-    /** @test */
+    #[Test]
     public function test_initiate_google_oauth_returns_auth_url()
     {
         $url = OraBooks_Auth::initiate_google_oauth();
@@ -105,7 +106,7 @@ class OraBooks_Auth_Test extends TestCase
         $this->assertEquals('select_account', $params['prompt']);
     }
 
-    /** @test */
+    #[Test]
     public function test_initiate_google_oauth_returns_wp_error_when_not_configured()
     {
         $GLOBALS['orabooks_test_secrets'] = [];
@@ -116,7 +117,7 @@ class OraBooks_Auth_Test extends TestCase
         $this->assertEquals('oauth_not_configured', $result->get_error_code());
     }
 
-    /** @test */
+    #[Test]
     public function test_initiate_google_oauth_stores_state_transient()
     {
         $url = OraBooks_Auth::initiate_google_oauth();
@@ -136,7 +137,7 @@ class OraBooks_Auth_Test extends TestCase
     // handle_google_callback()
     // ================================================================
 
-    /** @test */
+    #[Test]
     public function test_handle_google_callback_invalid_state()
     {
         // No state stored — get_transient returns false
@@ -146,7 +147,7 @@ class OraBooks_Auth_Test extends TestCase
         $this->assertEquals('invalid_state', $result->get_error_code());
     }
 
-    /** @test */
+    #[Test]
     public function test_handle_google_callback_oauth_not_configured()
     {
         $GLOBALS['orabooks_test_secrets'] = [];
@@ -158,7 +159,7 @@ class OraBooks_Auth_Test extends TestCase
         $this->assertEquals('oauth_not_configured', $result->get_error_code());
     }
 
-    /** @test */
+    #[Test]
     public function test_handle_google_callback_token_exchange_failure()
     {
         $this->storeValidOidcState('test-state-456');
@@ -174,7 +175,7 @@ class OraBooks_Auth_Test extends TestCase
         $this->assertEquals('token_exchange_failed', $result->get_error_code());
     }
 
-    /** @test */
+    #[Test]
     public function test_handle_google_callback_missing_id_token()
     {
         $this->storeValidOidcState('test-state-789');
@@ -196,7 +197,7 @@ class OraBooks_Auth_Test extends TestCase
         $this->assertEquals('no_id_token', $result->get_error_code());
     }
 
-    /** @test */
+    #[Test]
     public function test_handle_google_callback_invalid_id_token_format()
     {
         $this->storeValidOidcState('test-state-001');
@@ -217,7 +218,7 @@ class OraBooks_Auth_Test extends TestCase
         $this->assertEquals('invalid_id_token', $result->get_error_code());
     }
 
-    /** @test */
+    #[Test]
     public function test_handle_google_callback_no_email_in_token()
     {
         $this->storeValidOidcState('test-state-002');
@@ -244,7 +245,7 @@ class OraBooks_Auth_Test extends TestCase
         $this->assertEquals('no_email', $result->get_error_code());
     }
 
-    /** @test */
+    #[Test]
     public function test_handle_google_callback_aud_mismatch()
     {
         $this->storeValidOidcState('test-state-003');
@@ -270,7 +271,7 @@ class OraBooks_Auth_Test extends TestCase
         $this->assertEquals('invalid_token', $result->get_error_code());
     }
 
-    /** @test */
+    #[Test]
     public function test_handle_google_callback_new_user_success()
     {
         $this->storeValidOidcState('test-state-new-user');
@@ -304,7 +305,7 @@ class OraBooks_Auth_Test extends TestCase
         $this->assertEquals('googleuser@example.com', $GLOBALS['orabooks_test_last_jwt_payload']['email']);
     }
 
-    /** @test */
+    #[Test]
     public function test_handle_google_callback_new_user_creation_failure()
     {
         $this->storeValidOidcState('test-state-create-fail');
@@ -322,7 +323,7 @@ class OraBooks_Auth_Test extends TestCase
         $this->assertEquals('creation_failed', $result->get_error_code());
     }
 
-    /** @test */
+    #[Test]
     public function test_handle_google_callback_existing_user_success()
     {
         $this->storeValidOidcState('test-state-existing');
@@ -351,7 +352,7 @@ class OraBooks_Auth_Test extends TestCase
         $this->assertEquals(1, $result['org_id']);
     }
 
-    /** @test */
+    #[Test]
     public function test_handle_google_callback_existing_user_inactive()
     {
         $this->storeValidOidcState('test-state-inactive');
@@ -377,7 +378,7 @@ class OraBooks_Auth_Test extends TestCase
         $this->assertEquals('account_disabled', $result->get_error_code());
     }
 
-    /** @test */
+    #[Test]
     public function test_handle_google_callback_existing_user_2fa_required()
     {
         $this->storeValidOidcState('test-state-2fa');
@@ -409,7 +410,7 @@ class OraBooks_Auth_Test extends TestCase
         $this->assertEquals(10, $GLOBALS['orabooks_test_last_jwt_payload']['user_id']);
     }
 
-    /** @test */
+    #[Test]
     public function test_handle_google_callback_local_user_linked_to_google()
     {
         $this->storeValidOidcState('test-state-link');
@@ -452,7 +453,7 @@ class OraBooks_Auth_Test extends TestCase
     // require_customer_org()
     // ================================================================
 
-    /** @test */
+    #[Test]
     public function test_require_customer_org_no_org_id()
     {
         $result = OraBooks_Auth::require_customer_org(1, 0);
@@ -460,7 +461,7 @@ class OraBooks_Auth_Test extends TestCase
         $this->assertEquals('no_org', $result->get_error_code());
     }
 
-    /** @test */
+    #[Test]
     public function test_require_customer_org_null_org_id()
     {
         $result = OraBooks_Auth::require_customer_org(1, null);
@@ -468,7 +469,7 @@ class OraBooks_Auth_Test extends TestCase
         $this->assertEquals('no_org', $result->get_error_code());
     }
 
-    /** @test */
+    #[Test]
     public function test_require_customer_org_org_not_found()
     {
         $GLOBALS['orabooks_test_org_callback'] = function ($org_id) {
@@ -480,7 +481,7 @@ class OraBooks_Auth_Test extends TestCase
         $this->assertEquals('org_not_found', $result->get_error_code());
     }
 
-    /** @test */
+    #[Test]
     public function test_require_customer_org_partner_org_blocked()
     {
         $GLOBALS['orabooks_test_org_callback'] = function ($org_id) {
@@ -499,14 +500,14 @@ class OraBooks_Auth_Test extends TestCase
         $this->assertStringContainsString('Partner organizations cannot access', $result->get_error_message());
     }
 
-    /** @test */
+    #[Test]
     public function test_require_customer_org_customer_org_allowed()
     {
         $result = OraBooks_Auth::require_customer_org(1, 1);
         $this->assertTrue($result);
     }
 
-    /** @test */
+    #[Test]
     public function test_require_customer_org_other_org_type_allowed()
     {
         $GLOBALS['orabooks_test_org_callback'] = function ($org_id) {
@@ -545,7 +546,7 @@ class OraBooks_Auth_Test extends TestCase
         };
     }
 
-    /** @test */
+    #[Test]
     public function test_login_subdomain_mismatch()
     {
         $this->setupLoginUserWithOrg();
@@ -565,7 +566,7 @@ class OraBooks_Auth_Test extends TestCase
         $this->assertEquals('subdomain_mismatch', $result->get_error_code());
     }
 
-    /** @test */
+    #[Test]
     public function test_login_subdomain_match()
     {
         $this->setupLoginUserWithOrg();
@@ -586,7 +587,7 @@ class OraBooks_Auth_Test extends TestCase
         $this->assertEquals(1, $result['org_id']);
     }
 
-    /** @test */
+    #[Test]
     public function test_login_subdomain_case_insensitive()
     {
         $this->setupLoginUserWithOrg();
@@ -606,7 +607,7 @@ class OraBooks_Auth_Test extends TestCase
         $this->assertArrayHasKey('token', $result);
     }
 
-    /** @test */
+    #[Test]
     public function test_login_no_expected_subdomain_still_succeeds()
     {
         $this->setupLoginUserWithOrg();
@@ -631,7 +632,7 @@ class OraBooks_Auth_Test extends TestCase
     // ajax_oidc_initiate()
     // ================================================================
 
-    /** @test */
+    #[Test]
     public function test_ajax_oidc_initiate_success()
     {
         $response = $this->callAjax('ajax_oidc_initiate');
@@ -641,7 +642,7 @@ class OraBooks_Auth_Test extends TestCase
         $this->assertStringStartsWith('https://accounts.google.com/o/oauth2/v2/auth?', $response['data']['auth_url']);
     }
 
-    /** @test */
+    #[Test]
     public function test_ajax_oidc_initiate_not_configured()
     {
         $GLOBALS['orabooks_test_secrets'] = [];
@@ -656,7 +657,7 @@ class OraBooks_Auth_Test extends TestCase
     // ajax_oidc_callback()
     // ================================================================
 
-    /** @test */
+    #[Test]
     public function test_ajax_oidc_callback_missing_code()
     {
         $_POST['state'] = 'some-state';
@@ -667,7 +668,7 @@ class OraBooks_Auth_Test extends TestCase
         $this->assertStringContainsString('Missing authorization code or state', $response['message']);
     }
 
-    /** @test */
+    #[Test]
     public function test_ajax_oidc_callback_missing_state()
     {
         $_POST['code'] = 'some-code';
@@ -678,7 +679,7 @@ class OraBooks_Auth_Test extends TestCase
         $this->assertStringContainsString('Missing authorization code or state', $response['message']);
     }
 
-    /** @test */
+    #[Test]
     public function test_ajax_oidc_callback_invalid_state()
     {
         $_POST['code'] = 'auth-code-123';
@@ -690,7 +691,7 @@ class OraBooks_Auth_Test extends TestCase
         $this->assertStringContainsString('Invalid or expired OAuth state', $response['message']);
     }
 
-    /** @test */
+    #[Test]
     public function test_ajax_oidc_callback_success()
     {
         $this->storeValidOidcState('valid-state-for-ajax');
@@ -716,7 +717,7 @@ class OraBooks_Auth_Test extends TestCase
     // ajax_not_implemented()
     // ================================================================
 
-    /** @test */
+    #[Test]
     public function test_ajax_not_implemented_returns_501()
     {
         $auth = new OraBooks_Auth();
