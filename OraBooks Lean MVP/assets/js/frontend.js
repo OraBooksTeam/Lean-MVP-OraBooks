@@ -1490,4 +1490,139 @@ jQuery(document).ready(function($) {
             });
         });
     }
+
+    // =============================================
+    // INVOICE DEEP LINK — auto-load invoice from ?invoice_id= query param
+    // Used when user navigates to /dashboard/?invoice_id=N from a notification
+    // =============================================
+    (function() {
+        var urlParams = new URLSearchParams(window.location.search);
+        var invoiceId = urlParams.get('invoice_id');
+
+        if (invoiceId && $('.orabooks-dashboard').length) {
+            orabooksLoadInvoiceDetail(parseInt(invoiceId, 10));
+
+            // Clean the invoice_id from the URL without reloading
+            if (window.history.replaceState) {
+                urlParams.delete('invoice_id');
+                var newSearch = urlParams.toString();
+                var cleanUrl = window.location.protocol + '//' +
+                    window.location.host + window.location.pathname +
+                    (newSearch ? '?' + newSearch : '');
+                window.history.replaceState({}, document.title, cleanUrl);
+            }
+        }
+    })();
+
+    /**
+     * Load and display invoice detail in the dashboard area.
+     */
+    function orabooksLoadInvoiceDetail(invoiceId) {
+        var $content = $('#orabooks-dashboard-content');
+        $content.html('<p class="orabooks-loading">⏳ Loading invoice...</p>');
+
+        $.get(orabooks_ajax.ajax_url, {
+            action: 'orabooks_invoice_get',
+            invoice_id: invoiceId
+        }, function(response) {
+            if (response.error) {
+                $content.html(
+                    '<div class="orabooks-invoice-error">' +
+                        '<p>❌ ' + (response.message || 'Failed to load invoice.') + '</p>' +
+                        '<a href="' + window.location.pathname + '" class="orabooks-btn orabooks-btn-secondary">← Back to Dashboard</a>' +
+                    '</div>'
+                );
+                return;
+            }
+
+            var inv = response.data;
+            var total = parseFloat(inv.total_amount || 0).toLocaleString('en-US', {style:'currency', currency: inv.currency || 'USD'});
+            var paid = parseFloat(inv.paid_amount || 0).toLocaleString('en-US', {style:'currency', currency: inv.currency || 'USD'});
+            var balance = parseFloat((inv.total_amount || 0) - (inv.paid_amount || 0)).toLocaleString('en-US', {style:'currency', currency: inv.currency || 'USD'});
+
+            // Status badge HTML
+            var statusMap = {
+                'unpaid': '<span class="orabooks-badge orabooks-badge-pending">Unpaid</span>',
+                'partial': '<span class="orabooks-badge orabooks-badge-initiated">Partial</span>',
+                'paid': '<span class="orabooks-badge orabooks-badge-paid">Paid</span>',
+                'overdue': '<span class="orabooks-badge orabooks-badge-expired">Overdue</span>',
+                'cancelled': '<span class="orabooks-badge">Cancelled</span>'
+            };
+            var statusHtml = statusMap[inv.payment_status] || '<span class="orabooks-badge">' + inv.payment_status + '</span>';
+
+            // Build payments table
+            var paymentsHtml = '';
+            if (inv.payments && inv.payments.length > 0) {
+                paymentsHtml = '<div class="orabooks-invoice-payments">' +
+                    '<h3>Payments</h3>' +
+                    '<table class="orabooks-table">' +
+                        '<thead><tr>' +
+                            '<th>Date</th>' +
+                            '<th>Amount</th>' +
+                            '<th>Method</th>' +
+                            '<th>Reference</th>' +
+                        '</tr></thead>' +
+                        '<tbody>';
+                $.each(inv.payments, function(i, p) {
+                    var pAmt = parseFloat(p.amount || 0).toLocaleString('en-US', {style:'currency', currency: inv.currency || 'USD'});
+                    paymentsHtml += '<tr>' +
+                        '<td>' + p.payment_date + '</td>' +
+                        '<td>' + pAmt + '</td>' +
+                        '<td>' + (p.payment_method || '—') + '</td>' +
+                        '<td>' + (p.reference || '—') + '</td>' +
+                    '</tr>';
+                });
+                paymentsHtml += '</tbody></table></div>';
+            }
+
+            var html = '<div class="orabooks-invoice-detail">' +
+                '<div class="orabooks-invoice-header">' +
+                    '<h2>🧾 Invoice ' + $('<span>').text(inv.invoice_number).html() + '</h2>' +
+                    '<div class="orabooks-invoice-status">' + statusHtml + '</div>' +
+                '</div>' +
+                '<div class="orabooks-invoice-meta">' +
+                    '<div class="orabooks-invoice-meta-item">' +
+                        '<span class="orabooks-invoice-label">Customer</span>' +
+                        '<span class="orabooks-invoice-value">' + $('<span>').text(inv.customer_email || '—').html() + '</span>' +
+                    '</div>' +
+                    '<div class="orabooks-invoice-meta-item">' +
+                        '<span class="orabooks-invoice-label">Date</span>' +
+                        '<span class="orabooks-invoice-value">' + (inv.transaction_date || '—') + '</span>' +
+                    '</div>' +
+                    '<div class="orabooks-invoice-meta-item">' +
+                        '<span class="orabooks-invoice-label">Due Date</span>' +
+                        '<span class="orabooks-invoice-value">' + (inv.due_date || '—') + '</span>' +
+                    '</div>' +
+                '</div>' +
+                '<div class="orabooks-invoice-amounts">' +
+                    '<div class="orabooks-invoice-amount-row">' +
+                        '<span>Total</span>' +
+                        '<span class="orabooks-invoice-amount-total">' + total + '</span>' +
+                    '</div>' +
+                    '<div class="orabooks-invoice-amount-row">' +
+                        '<span>Paid</span>' +
+                        '<span class="orabooks-invoice-amount-paid">' + paid + '</span>' +
+                    '</div>' +
+                    '<div class="orabooks-invoice-amount-row orabooks-invoice-amount-divider">' +
+                        '<span><strong>Balance Due</strong></span>' +
+                        '<span class="orabooks-invoice-amount-balance"><strong>' + balance + '</strong></span>' +
+                    '</div>' +
+                '</div>' +
+                (inv.description ? '<div class="orabooks-invoice-description"><p>' + $('<span>').text(inv.description).html() + '</p></div>' : '') +
+                paymentsHtml +
+                '<div class="orabooks-invoice-actions">' +
+                    '<a href="' + window.location.pathname + '" class="orabooks-btn orabooks-btn-secondary">← Back to Dashboard</a>' +
+                '</div>' +
+            '</div>';
+
+            $content.html(html);
+        }).fail(function() {
+            $content.html(
+                '<div class="orabooks-invoice-error">' +
+                    '<p>❌ Network error. Could not load invoice.</p>' +
+                    '<a href="' + window.location.pathname + '" class="orabooks-btn orabooks-btn-secondary">← Back to Dashboard</a>' +
+                '</div>'
+            );
+        });
+    }
 });
