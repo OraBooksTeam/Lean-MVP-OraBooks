@@ -482,7 +482,7 @@ class OraBooks_Auth {
                     'deactivation_reminder_sent_at' => null,
                     'low_activity_reminder_sent_at' => null
                 ],
-                ['id' => $pending->partner_code_used],
+                ['user_id' => $pending->partner_user_id],
                 ['%s', null, null],
                 ['%d']
             );
