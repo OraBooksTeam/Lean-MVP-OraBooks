@@ -215,6 +215,7 @@
         </div>
         <div class="orabooks-modal-body">
             <form id="orabooks-invoice-form">
+                <input type="hidden" id="inv_org_id" name="org_id" value="0">
                 <table class="form-table">
                     <tr>
                         <th><label for="inv_customer_id"><?php _e('Customer', 'orabooks'); ?> <span class="required">*</span></label></th>
@@ -288,6 +289,7 @@
         <div class="orabooks-modal-body">
             <form id="orabooks-payment-form">
                 <input type="hidden" id="pay_invoice_id" name="invoice_id">
+                <input type="hidden" id="pay_org_id" name="org_id" value="0">
                 <table class="form-table">
                     <tr>
                         <th><label for="pay_invoice_number"><?php _e('Invoice', 'orabooks'); ?></label></th>
