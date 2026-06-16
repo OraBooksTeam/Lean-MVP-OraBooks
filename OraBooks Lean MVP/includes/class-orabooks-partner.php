@@ -39,12 +39,31 @@ class OraBooks_Partner {
     
     /**
      * Get active customer count for a partner
+     * Uses SL-021 customers.is_active as the source of truth
      */
     public static function get_active_customer_count($partner_user_id) {
         global $wpdb;
         
         $table_attributions = OraBooks_Database::table('partner_attributions');
+        $table_customers = OraBooks_Database::table('customers');
         
+        // Check if customers table exists (SL-021)
+        $customers_exists = $wpdb->get_var("SHOW TABLES LIKE '{$table_customers}'");
+        
+        if ($customers_exists) {
+            // SL-021 exists: use customers.is_active as truth source
+            return (int) $wpdb->get_var($wpdb->prepare(
+                "SELECT COUNT(DISTINCT c.user_id)
+                 FROM {$table_attributions} pa
+                 JOIN {$table_customers} c ON pa.customer_user_id = c.user_id
+                 WHERE pa.partner_user_id = %d 
+                   AND pa.status = 'verified'
+                   AND c.is_active = 1",
+                $partner_user_id
+            ));
+        }
+        
+        // Fallback: just count verified attributions (pre-SL-021)
         return (int) $wpdb->get_var($wpdb->prepare(
             "SELECT COUNT(DISTINCT pa.customer_user_id)
              FROM {$table_attributions} pa
