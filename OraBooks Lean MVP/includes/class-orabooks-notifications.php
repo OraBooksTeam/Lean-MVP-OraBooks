@@ -1688,6 +1688,7 @@ class OraBooks_Notifications {
                 'invoice_number' => $inv->invoice_number,
                 'total_amount'   => $inv->total_amount,
                 'due_date'       => $inv->due_date,
+                'view_url'       => home_url('/dashboard/'),
             ], (int)$inv->org_id);
 
             // Track unique orgs for admin notification
