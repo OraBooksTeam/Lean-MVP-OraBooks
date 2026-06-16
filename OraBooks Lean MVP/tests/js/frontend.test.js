@@ -646,6 +646,7 @@ describe('orabooksLoadExports (exports list)', () => {
     expect($tbody.html()).toContain('Loading exports');
 
     clearAjax();
+    window.orabooksLoadExports();
     resolveAjax('get', {
       error: false,
       data: {
@@ -666,6 +667,8 @@ describe('orabooksLoadExports (exports list)', () => {
   });
 
   test('shows empty state when no exports', () => {
+    clearAjax();
+    window.orabooksLoadExports();
     resolveAjax('get', {
       error: false,
       data: { exports: [], total: 0, page: 1, total_pages: 1 }
@@ -676,6 +679,8 @@ describe('orabooksLoadExports (exports list)', () => {
   });
 
   test('renders pagination when multiple pages', () => {
+    clearAjax();
+    window.orabooksLoadExports();
     resolveAjax('get', {
       error: false,
       data: { exports: [], total: 50, page: 1, total_pages: 3 }
@@ -727,6 +732,7 @@ describe('Export refresh button', () => {
 describe('Notification center - load notifications', () => {
   test('renders notifications from AJAX', () => {
     clearAjax();
+    window.orabooksLoadNotifications();
     resolveAjax('get', {
       error: false,
       data: {
@@ -748,6 +754,7 @@ describe('Notification center - load notifications', () => {
 
   test('shows empty state when no notifications', () => {
     clearAjax();
+    window.orabooksLoadNotifications();
     resolveAjax('get', { error: false, data: { unread_count: 0, notifications: [] } });
 
     expect($('#orabooks-nc-list').html()).toContain('No notifications found');
@@ -758,6 +765,7 @@ describe('Notification center - load notifications', () => {
 describe('Notification mark as read', () => {
   test('marks notification as read on click', () => {
     clearAjax();
+    window.orabooksLoadNotifications();
     resolveAjax('get', {
       error: false,
       data: {
@@ -775,8 +783,24 @@ describe('Notification mark as read', () => {
 });
 
 describe('Notification - mark all read', () => {
-  test('posts mark all read and hides badge', () => {
+  test('reloads stats on refresh click', () => {
     clearAjax();
+    window.orabooksLoadQueueStats();
+    resolveAjax('get', {
+      error: false,
+      data: { total: 0, pending_count: 0, processing_count: 0, completed_count: 0, failed_count: 0, dead_letter_count: 0, recent_failures: [] }
+    });
+
+    $('#orabooks-aq-refresh').trigger('click');
+    const call = latestAjax('get');
+    expect(call.data.action).toBe('orabooks_async_queue_stats');
+  });
+});
+
+// ============================================================
+// Invoice Deep Link
+
+    window.orabooksLoadNotifications();
     resolveAjax('get', {
       error: false,
       data: { unread_count: 3, notifications: [
@@ -869,6 +893,7 @@ describe('Notification admin audit export', () => {
 describe('Async queue dashboard - load stats', () => {
   test('renders queue stats from AJAX', () => {
     clearAjax();
+    window.orabooksLoadQueueStats();
     resolveAjax('get', {
       error: false,
       data: {
@@ -902,6 +927,7 @@ describe('Async queue dashboard - load stats', () => {
 
   test('shows no failures message when no failures', () => {
     clearAjax();
+    window.orabooksLoadQueueStats();
     resolveAjax('get', {
       error: false,
       data: { total: 0, pending_count: 0, processing_count: 0, completed_count: 0, failed_count: 0, dead_letter_count: 0, recent_failures: [] }
