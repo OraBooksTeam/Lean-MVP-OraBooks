@@ -510,6 +510,250 @@ jQuery(document).ready(function($) {
     // When these shortcodes are rendered in the admin, admin.js handles them.
     // The admin audit page override already handles .orabooks-export-trigger for audit exports.
 
+    // =============================================
+    // SL-003: PARTNER MANAGEMENT ADMIN
+    // =============================================
+
+    // Tab switching
+    $('.nav-tab').on('click', function(e) {
+        e.preventDefault();
+        var tab = $(this).data('tab');
+        
+        $('.nav-tab').removeClass('nav-tab-active');
+        $(this).addClass('nav-tab-active');
+        
+        $('.orabooks-admin-tab-content').hide();
+        $('#orabooks-tab-' + tab).show();
+    });
+
+    // Load pending partners
+    window.orabooksLoadPendingPartners = function() {
+        var $tbody = $('#orabooks-pending-partners-body');
+        $tbody.html('<tr><td colspan="8">Loading...</td></tr>');
+        
+        $.get(orabooks_ajax.ajax_url, {
+            action: 'orabooks_admin_list_pending_partners'
+        }, function(response) {
+            if (!response.error && response.data) {
+                var html = '';
+                $.each(response.data, function(i, p) {
+                    html += '<tr>' +
+                        '<td>' + p.id + '</td>' +
+                        '<td><strong>' + escHtml(p.partner_code) + '</strong></td>' +
+                        '<td>' + escHtml(p.email) + '</td>' +
+                        '<td>' + escHtml(p.partner_type) + '</td>' +
+                        '<td>' + escHtml(p.org_name || '—') + '</td>' +
+                        '<td>' + escHtml(p.org_status) + '</td>' +
+                        '<td>' + p.created_at + '</td>' +
+                        '<td>' +
+                            '<button class="button button-primary orabooks-approve-btn" data-id="' + p.id + '" style="margin-right:4px;">Approve</button>' +
+                            '<button class="button orabooks-reject-btn" data-id="' + p.id + '">Reject</button>' +
+                        '</td>' +
+                    '</tr>';
+                });
+                
+                var count = response.data.length;
+                $('#orabooks-pending-count').text(count > 0 ? count : '');
+                $tbody.html(html || '<tr><td colspan="8">No pending partner codes to review.</td></tr>');
+            } else {
+                $tbody.html('<tr><td colspan="8">Error loading partners.</td></tr>');
+            }
+        });
+    };
+
+    // Load reactivation requests
+    window.orabooksLoadReactivationRequests = function() {
+        var $tbody = $('#orabooks-reactivation-partners-body');
+        $tbody.html('<tr><td colspan="7">Loading...</td></tr>');
+        
+        $.get(orabooks_ajax.ajax_url, {
+            action: 'orabooks_admin_list_reactivation_requests'
+        }, function(response) {
+            if (!response.error && response.data) {
+                var html = '';
+                $.each(response.data, function(i, r) {
+                    html += '<tr>' +
+                        '<td>' + r.id + '</td>' +
+                        '<td><strong>' + escHtml(r.partner_code || '—') + '</strong></td>' +
+                        '<td>' + escHtml(r.requested_by_email) + '</td>' +
+                        '<td>' + escHtml(r.org_name) + ' (' + escHtml(r.subdomain) + ')</td>' +
+                        '<td>' + escHtml(r.reason) + '</td>' +
+                        '<td>' + r.requested_at + '</td>' +
+                        '<td>' +
+                            '<button class="button button-primary orabooks-reactivation-approve-btn" data-id="' + r.id + '" style="margin-right:4px;">Approve</button>' +
+                            '<button class="button orabooks-reactivation-deny-btn" data-id="' + r.id + '">Deny</button>' +
+                        '</td>' +
+                    '</tr>';
+                });
+                
+                var count = response.data.length;
+                $('#orabooks-reactivation-count').text(count > 0 ? count : '');
+                $tbody.html(html || '<tr><td colspan="7">No pending reactivation requests.</td></tr>');
+            } else {
+                $tbody.html('<tr><td colspan="7">Error loading reactivation requests.</td></tr>');
+            }
+        });
+    };
+
+    // Load active partners
+    window.orabooksLoadActivePartners = function() {
+        var $tbody = $('#orabooks-active-partners-body');
+        $tbody.html('<tr><td colspan="8">Loading...</td></tr>');
+        
+        $.get(orabooks_ajax.ajax_url, {
+            action: 'orabooks_admin_list_active_partners'
+        }, function(response) {
+            if (!response.error && response.data) {
+                var html = '';
+                $.each(response.data, function(i, p) {
+                    html += '<tr>' +
+                        '<td>' + p.id + '</td>' +
+                        '<td><strong>' + escHtml(p.partner_code) + '</strong></td>' +
+                        '<td>' + escHtml(p.email) + '</td>' +
+                        '<td>' + escHtml(p.partner_type) + '</td>' +
+                        '<td>' + escHtml(p.org_name || '—') + '</td>' +
+                        '<td>' + (p.verified_attributions || 0) + '</td>' +
+                        '<td>' + (p.approved_at || '—') + '</td>' +
+                        '<td>' + (p.last_attribution_at || '—') + '</td>' +
+                    '</tr>';
+                });
+                $tbody.html(html || '<tr><td colspan="8">No active partners found.</td></tr>');
+            } else {
+                $tbody.html('<tr><td colspan="8">Error loading partners.</td></tr>');
+            }
+        });
+    };
+
+    // Approve partner code
+    $(document).on('click', '.orabooks-approve-btn', function() {
+        var $btn = $(this);
+        var partnerCodeId = $btn.data('id');
+        
+        if (!confirm('Approve this partner code and activate the organization?')) return;
+        
+        $btn.prop('disabled', true).text('Approving...');
+        
+        $.post(orabooks_ajax.ajax_url, {
+            action: 'orabooks_admin_approve_partner',
+            partner_code_id: partnerCodeId
+        }, function(response) {
+            if (!response.error) {
+                alert('Partner approved successfully.');
+                orabooksLoadPendingPartners();
+                orabooksLoadActivePartners();
+            } else {
+                alert(response.message);
+                $btn.prop('disabled', false).text('Approve');
+            }
+        }).fail(function() {
+            $btn.prop('disabled', false).text('Approve');
+        });
+    });
+
+    // Show reject modal
+    var rejectTargetId = null;
+    $(document).on('click', '.orabooks-reject-btn', function() {
+        rejectTargetId = $(this).data('id');
+        $('#orabooks-reject-reason').val('');
+        $('#orabooks-reject-message').hide();
+        $('#orabooks-reject-modal').show();
+    });
+
+    $('#orabooks-reject-cancel').on('click', function() {
+        $('#orabooks-reject-modal').hide();
+        rejectTargetId = null;
+    });
+
+    $('#orabooks-reject-confirm').on('click', function() {
+        if (!rejectTargetId) return;
+        
+        var $btn = $(this);
+        var reason = $('#orabooks-reject-reason').val();
+        
+        $btn.prop('disabled', true).text('Rejecting...');
+        
+        $.post(orabooks_ajax.ajax_url, {
+            action: 'orabooks_admin_reject_partner',
+            partner_code_id: rejectTargetId,
+            reason: reason
+        }, function(response) {
+            if (!response.error) {
+                alert('Partner code rejected.');
+                $('#orabooks-reject-modal').hide();
+                rejectTargetId = null;
+                orabooksLoadPendingPartners();
+            } else {
+                $('#orabooks-reject-message').addClass('error').text(response.message).show();
+                $btn.prop('disabled', false).text('Confirm Reject');
+            }
+        }).fail(function() {
+            $btn.prop('disabled', false).text('Confirm Reject');
+        });
+    });
+
+    // Approve reactivation
+    $(document).on('click', '.orabooks-reactivation-approve-btn', function() {
+        var $btn = $(this);
+        var reviewId = $btn.data('id');
+        
+        if (!confirm('Approve this reactivation request?')) return;
+        
+        $btn.prop('disabled', true).text('Approving...');
+        
+        $.post(orabooks_ajax.ajax_url, {
+            action: 'orabooks_admin_review_reactivation',
+            review_id: reviewId,
+            decision: 'approved',
+            notes: 'Approved by admin'
+        }, function(response) {
+            if (!response.error) {
+                alert('Reactivation approved.');
+                orabooksLoadReactivationRequests();
+                orabooksLoadActivePartners();
+            } else {
+                alert(response.message);
+                $btn.prop('disabled', false).text('Approve');
+            }
+        }).fail(function() {
+            $btn.prop('disabled', false).text('Approve');
+        });
+    });
+
+    // Deny reactivation
+    $(document).on('click', '.orabooks-reactivation-deny-btn', function() {
+        var $btn = $(this);
+        var reviewId = $btn.data('id');
+        var notes = prompt('Reason for denial:');
+        
+        if (notes === null) return; // Cancelled
+        
+        $btn.prop('disabled', true).text('Denying...');
+        
+        $.post(orabooks_ajax.ajax_url, {
+            action: 'orabooks_admin_review_reactivation',
+            review_id: reviewId,
+            decision: 'denied',
+            notes: notes || 'Denied by admin'
+        }, function(response) {
+            if (!response.error) {
+                alert('Reactivation denied.');
+                orabooksLoadReactivationRequests();
+            } else {
+                alert(response.message);
+                $btn.prop('disabled', false).text('Deny');
+            }
+        }).fail(function() {
+            $btn.prop('disabled', false).text('Deny');
+        });
+    });
+
+    // Auto-load partner tables on page load
+    if ($('#orabooks-pending-partners-body').length) {
+        orabooksLoadPendingPartners();
+        orabooksLoadActivePartners();
+        orabooksLoadReactivationRequests();
+    }
+
     // Auto-load tables on page load
     if ($('#orabooks-orgs-table-body').length) {
         orabooksLoadOrgs();

@@ -269,6 +269,16 @@ function orabooks_admin_menu() {
         'orabooks_admin_settings'
     );
     
+    // Partner Approvals page - admin only
+    add_submenu_page(
+        'orabooks',
+        'Partner Approvals',
+        'Partner Approvals',
+        'manage_options',
+        'orabooks-partners',
+        'orabooks_admin_partners'
+    );
+    
     // Partner Program page - visible to users with partner_commission_access
     add_submenu_page(
         'orabooks',
@@ -338,6 +348,10 @@ function orabooks_admin_coa() {
 }
 function orabooks_admin_dashboard() {
     include ORABOOKS_PLUGIN_DIR . 'admin/dashboard.php';
+}
+
+function orabooks_admin_partners() {
+    include ORABOOKS_PLUGIN_DIR . 'admin/partners.php';
 }
 
 function orabooks_admin_orgs() {

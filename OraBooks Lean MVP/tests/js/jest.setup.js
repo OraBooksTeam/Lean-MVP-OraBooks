@@ -103,11 +103,6 @@ global.clearAjax = function() {
 
 
 
-// Reset between tests
-beforeEach(() => {
-  clearAjax();
-  window.alert.mockClear();
-  window.confirm.mockClear();
-  jest.clearAllTimers();
-  localStorageMock.clear();
-});
+// Reset between tests — moved to each test file's beforeEach()
+// because setupFiles run before the test framework is installed.
+// Each test file should call clearAjax, mockClear, clearAllTimers, etc.

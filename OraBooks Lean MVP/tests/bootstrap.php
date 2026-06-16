@@ -226,11 +226,33 @@ if (!class_exists('wpdb', false)) {
         }
 
         public function insert($table, $data, $format = []) {
+            // Allow tests to set insert_id before calling to control the mock
+            if (isset($GLOBALS['orabooks_test_use_insert_id']) && $GLOBALS['orabooks_test_use_insert_id'] !== null) {
+                $this->insert_id = $GLOBALS['orabooks_test_use_insert_id'];
+                $GLOBALS['orabooks_test_use_insert_id'] = null;
+                return $this->insert_id;
+            }
             $this->insert_id = rand(100, 999);
             return $this->insert_id;
         }
 
         public function update($table, $data, $where, $format = [], $where_format = []) {
+            // Build a representative last_query so tests can inspect column names
+            $set_clauses = [];
+            foreach ($data as $col => $val) {
+                $set_clauses[] = is_null($val) ? "{$col} = NULL" : "{$col} = '" . addslashes((string)$val) . "'";
+            }
+            $where_clauses = [];
+            foreach ($where as $col => $val) {
+                $where_clauses[] = is_null($val) ? "{$col} IS NULL" : "{$col} = '" . addslashes((string)$val) . "'";
+            }
+            $this->last_query = sprintf(
+                "UPDATE %s SET %s WHERE %s",
+                $table,
+                implode(', ', $set_clauses),
+                implode(' AND ', $where_clauses)
+            );
+            $this->last_result = [];
             return 1; // 1 row affected
         }
 

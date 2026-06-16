@@ -2,7 +2,12 @@
  * OraBooks Frontend JavaScript
  */
 jQuery(document).ready(function($) {
-    
+
+    // SL-013 OIDC: Remove inline onclick from Google button to prevent race condition.
+    // The inline onclick starts navigation to /orabooks-google-login before the AJAX
+    // call in our jQuery handler can complete. We override it here at the start of ready().
+    $('.orabooks-btn-google').prop('onclick', null).off('click');
+
     // Toggle partner fields based on user type
     $('#reg-user-type').on('change', function() {
         var isPartner = $(this).val() === 'partner';
@@ -82,9 +87,8 @@ jQuery(document).ready(function($) {
                 $form.find('button').prop('disabled', false).text('Log In');
             } else {
                 if (response.data.requires_2fa) {
-                    // Show 2FA challenge
-                    $msg.removeClass('error').addClass('success').text('Please enter your 2FA code.').show();
-                    // Redirect or show 2FA input
+                    // Show 2FA challenge form (replace login form)
+                    orabooksShow2faChallenge(response.data.temp_token, response.data.user_id);
                 } else if (response.data.needs_tier_selection) {
                     window.location.href = '/tier-selection/';
                 } else if (response.data.redirect_to) {
@@ -103,6 +107,50 @@ jQuery(document).ready(function($) {
         }).fail(function() {
             $msg.removeClass('success').addClass('error').text('An error occurred. Please try again.').show();
             $form.find('button').prop('disabled', false).text('Log In');
+        });
+    });
+
+    // =============================================
+    // GOOGLE OIDC AUTH (SL-013)
+    // =============================================
+
+    /**
+     * Google OAuth button click — AJAX-initiated flow.
+     * Gets auth URL from server, stores state for CSRF, redirects to Google.
+     */
+    $(document).on('click', '.orabooks-btn-google', function(e) {
+        e.preventDefault();
+        var $btn = $(this);
+        var origText = $btn.text();
+
+        $btn.prop('disabled', true).text('⏳ Connecting to Google...');
+
+        $.post(orabooks_ajax.ajax_url, {
+            action: 'orabooks_oidc_initiate'
+        }, function(response) {
+            if (response.error) {
+                $('#orabooks-login-message')
+                    .removeClass('success').addClass('error')
+                    .text(response.message).show();
+                $btn.prop('disabled', false).text(origText);
+            } else {
+                // Extract state from auth URL for client-side verification
+                var authUrl = response.data.auth_url;
+                var queryStart = authUrl.indexOf('?');
+                if (queryStart !== -1) {
+                    var urlParams = new URLSearchParams(authUrl.substring(queryStart));
+                    if (urlParams.get('state')) {
+                        sessionStorage.setItem('orabooks_oidc_state', urlParams.get('state'));
+                    }
+                }
+                // Redirect to Google's consent page
+                window.location.href = authUrl;
+            }
+        }).fail(function() {
+            $('#orabooks-login-message')
+                .removeClass('success').addClass('error')
+                .text('Network error. Please try again.').show();
+            $btn.prop('disabled', false).text(origText);
         });
     });
     
@@ -155,6 +203,195 @@ jQuery(document).ready(function($) {
         });
     });
     
+    // =============================================
+    // OIDC CALLBACK HANDLER — picks up code+state from URL params
+    // after Google redirects back to the login page
+    // =============================================
+    (function() {
+        var urlParams = new URLSearchParams(window.location.search);
+        var oidcCode = urlParams.get('code');
+        var oidcState = urlParams.get('state');
+
+        if (oidcCode && oidcState) {
+            var $msg = $('#orabooks-login-message');
+            if ($msg.length) {
+                $msg.removeClass('error').addClass('success')
+                    .text('⏳ Completing Google authentication...').show();
+            }
+
+            // Verify state matches what we stored client-side
+            var storedState = sessionStorage.getItem('orabooks_oidc_state');
+            if (storedState && storedState !== oidcState) {
+                if ($msg.length) {
+                    $msg.removeClass('success').addClass('error')
+                        .text('OAuth state mismatch. Please try again.').show();
+                }
+                sessionStorage.removeItem('orabooks_oidc_state');
+                return;
+            }
+            sessionStorage.removeItem('orabooks_oidc_state');
+
+            $.post(orabooks_ajax.ajax_url, {
+                action: 'orabooks_oidc_callback',
+                code: oidcCode,
+                state: oidcState
+            }, function(response) {
+                if (response.error) {
+                    if ($msg.length) {
+                        $msg.removeClass('success').addClass('error')
+                            .text(response.message).show();
+                    }
+                } else if (response.data.requires_2fa) {
+                    orabooksShow2faChallenge(response.data.temp_token, response.data.user_id);
+                } else {
+                    if (response.data.token) {
+                        localStorage.setItem('orabooks_token', response.data.token);
+                    }
+                    var redirectTo = response.data.redirect_to || '/dashboard/';
+                    window.location.href = redirectTo;
+                }
+            }).fail(function() {
+                if ($msg.length) {
+                    $msg.removeClass('success').addClass('error')
+                        .text('Network error during Google authentication.').show();
+                }
+            });
+
+            // Clean URL params without page reload
+            if (window.history.replaceState) {
+                var cleanUrl = window.location.protocol + '//' +
+                    window.location.host + window.location.pathname;
+                window.history.replaceState({}, document.title, cleanUrl);
+            }
+        }
+    })();
+
+    // =============================================
+    // URL FRAGMENT TOKEN DETECTOR — picks up #token=... or #error=...
+    // from the server-side OIDC redirect (server processes code, redirects with fragment)
+    // =============================================
+    (function() {
+        if (window.location.hash) {
+            var hash = window.location.hash.substring(1);
+            var hashParams = new URLSearchParams(hash);
+            var token = hashParams.get('token');
+            var error = hashParams.get('error');
+
+            if (token) {
+                localStorage.setItem('orabooks_token', token);
+                // Clean URL
+                if (window.history.replaceState) {
+                    window.history.replaceState({}, document.title,
+                        window.location.pathname + window.location.search);
+                }
+            }
+            if (error) {
+                var $msg = $('#orabooks-login-message');
+                if ($msg.length) {
+                    $msg.removeClass('success').addClass('error')
+                        .text(decodeURIComponent(error)).show();
+                }
+                if (window.history.replaceState) {
+                    window.history.replaceState({}, document.title,
+                        window.location.pathname + window.location.search);
+                }
+            }
+        }
+    })();
+
+    // =============================================
+    // 2FA CHALLENGE UI (SL-013)
+    // =============================================
+
+    /**
+     * Show 2FA challenge form, hiding the login form.
+     * Accepts temp_token and user_id from the requires_2fa response.
+     */
+    function orabooksShow2faChallenge(tempToken, userId) {
+        var $container = $('.orabooks-form-container');
+
+        // Hide login form
+        $container.find('#orabooks-login-form').hide();
+
+        // Create 2FA form if it doesn't exist
+        if (!$('#orabooks-2fa-form').length) {
+            $container.append(
+                '<form id="orabooks-2fa-form" class="orabooks-form" style="margin-top:16px;">' +
+                    '<h3>Two-Factor Authentication</h3>' +
+                    '<p>Enter the 6-digit code from your authenticator app, or use a backup code.</p>' +
+                    '<div class="orabooks-form-group">' +
+                        '<label for="2fa-otp">Authentication Code</label>' +
+                        '<input type="text" id="2fa-otp" name="otp_code" inputmode="numeric" ' +
+                               'pattern="[0-9]*" maxlength="6" placeholder="000000" ' +
+                               'autocomplete="one-time-code" required>' +
+                    '</div>' +
+                    '<div class="orabooks-form-group">' +
+                        '<label>' +
+                            '<input type="checkbox" id="2fa-use-backup"> ' +
+                            'Use a backup code instead' +
+                        '</label>' +
+                    '</div>' +
+                    '<div class="orabooks-form-group" id="orabooks-2fa-backup-group" style="display:none;">' +
+                        '<label for="2fa-backup">Backup Code</label>' +
+                        '<input type="text" id="2fa-backup" name="backup_code" ' +
+                               'placeholder="Enter a backup code from when you set up 2FA">' +
+                    '</div>' +
+                    '<div class="orabooks-form-actions">' +
+                        '<button type="submit" class="orabooks-btn orabooks-btn-primary">Verify Code</button>' +
+                    '</div>' +
+                '</form>' +
+                '<div id="orabooks-2fa-message" class="orabooks-message"></div>'
+            );
+        }
+
+        $('#orabooks-2fa-form').show().data('temp-token', tempToken).data('user-id', userId);
+        $('#orabooks-2fa-message').hide();
+        $('#2fa-otp').val('').focus();
+    }
+
+    // Toggle backup code vs OTP input
+    $(document).on('change', '#2fa-use-backup', function() {
+        var checked = $(this).is(':checked');
+        $('#orabooks-2fa-backup-group').toggle(checked);
+        $('#2fa-otp').prop('required', !checked);
+        $('#2fa-backup').prop('required', checked);
+    });
+
+    // Submit 2FA challenge
+    $(document).on('submit', '#orabooks-2fa-form', function(e) {
+        e.preventDefault();
+        var $form = $(this);
+        var $msg = $('#orabooks-2fa-message');
+        var tempToken = $form.data('temp-token');
+
+        $msg.hide();
+        $form.find('button').prop('disabled', true).text('Verifying...');
+
+        $.post(orabooks_ajax.ajax_url, {
+            action: 'orabooks_2fa_challenge',
+            temp_token: tempToken,
+            otp_code: $('#2fa-otp').val(),
+            backup_code: $('#2fa-backup').val()
+        }, function(response) {
+            if (response.error) {
+                $msg.removeClass('success').addClass('error').text(response.message).show();
+                $form.find('button').prop('disabled', false).text('Verify Code');
+                $('#2fa-otp').val('').focus();
+            } else {
+                $msg.removeClass('error').addClass('success').text('✅ Verified! Redirecting...').show();
+                if (response.data.token) {
+                    localStorage.setItem('orabooks_token', response.data.token);
+                }
+                setTimeout(function() {
+                    window.location.href = '/dashboard/';
+                }, 1000);
+            }
+        }).fail(function() {
+            $msg.removeClass('success').addClass('error').text('Network error. Please try again.').show();
+            $form.find('button').prop('disabled', false).text('Verify Code');
+        });
+    });
+
     // Copy partner code
     $('#orabooks-copy-code').on('click', function() {
         var codeInput = document.getElementById('orabooks-partner-code');

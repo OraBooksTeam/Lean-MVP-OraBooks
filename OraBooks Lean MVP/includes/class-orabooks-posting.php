@@ -565,6 +565,12 @@ class OraBooks_Posting {
         $user_id = get_current_user_id();
         $org_id = intval($_POST['org_id'] ?? 0);
         
+        // SL-013: Enforce customer org isolation on accounting endpoints
+        $isolation = OraBooks_Auth::require_customer_org($user_id, $org_id);
+        if (is_wp_error($isolation)) {
+            orabooks_json_error($isolation->get_error_message(), 403);
+        }
+        
         if (!OraBooks_RBAC::require_permission($user_id, $org_id, 'submit_transaction')) {
             orabooks_json_error('Permission denied', 403);
         }
@@ -590,6 +596,17 @@ class OraBooks_Posting {
         $user_id = get_current_user_id();
         $journal_id = intval($_POST['journal_id'] ?? 0);
         
+        // Fetch journal to get org_id for isolation check
+        global $wpdb;
+        $table = OraBooks_Database::table('journals');
+        $journal = $wpdb->get_row($wpdb->prepare("SELECT org_id FROM {$table} WHERE id = %d", $journal_id));
+        if ($journal) {
+            $isolation = OraBooks_Auth::require_customer_org($user_id, $journal->org_id);
+            if (is_wp_error($isolation)) {
+                orabooks_json_error($isolation->get_error_message(), 403);
+            }
+        }
+        
         $result = self::submit_journal($journal_id, $user_id);
         if (is_wp_error($result)) {
             orabooks_json_error($result->get_error_message(), 400);
@@ -600,6 +617,17 @@ class OraBooks_Posting {
     public function ajax_approve_journal() {
         $user_id = get_current_user_id();
         $journal_id = intval($_POST['journal_id'] ?? 0);
+        
+        // Fetch journal to get org_id for isolation check
+        global $wpdb;
+        $table = OraBooks_Database::table('journals');
+        $journal = $wpdb->get_row($wpdb->prepare("SELECT org_id FROM {$table} WHERE id = %d", $journal_id));
+        if ($journal) {
+            $isolation = OraBooks_Auth::require_customer_org($user_id, $journal->org_id);
+            if (is_wp_error($isolation)) {
+                orabooks_json_error($isolation->get_error_message(), 403);
+            }
+        }
         
         $result = self::approve_journal($journal_id, $user_id);
         if (is_wp_error($result)) {
@@ -613,6 +641,17 @@ class OraBooks_Posting {
         $journal_id = intval($_POST['journal_id'] ?? 0);
         $reason = sanitize_textarea_field($_POST['reason'] ?? '');
         
+        // Fetch journal to get org_id for isolation check
+        global $wpdb;
+        $table = OraBooks_Database::table('journals');
+        $journal = $wpdb->get_row($wpdb->prepare("SELECT org_id FROM {$table} WHERE id = %d", $journal_id));
+        if ($journal) {
+            $isolation = OraBooks_Auth::require_customer_org($user_id, $journal->org_id);
+            if (is_wp_error($isolation)) {
+                orabooks_json_error($isolation->get_error_message(), 403);
+            }
+        }
+        
         $result = self::reject_journal($journal_id, $user_id, $reason);
         if (is_wp_error($result)) {
             orabooks_json_error($result->get_error_message(), 400);
@@ -624,6 +663,17 @@ class OraBooks_Posting {
         $user_id = get_current_user_id();
         $journal_id = intval($_POST['journal_id'] ?? 0);
         
+        // Fetch journal to get org_id for isolation check
+        global $wpdb;
+        $table = OraBooks_Database::table('journals');
+        $journal = $wpdb->get_row($wpdb->prepare("SELECT org_id FROM {$table} WHERE id = %d", $journal_id));
+        if ($journal) {
+            $isolation = OraBooks_Auth::require_customer_org($user_id, $journal->org_id);
+            if (is_wp_error($isolation)) {
+                orabooks_json_error($isolation->get_error_message(), 403);
+            }
+        }
+        
         $result = self::post_journal($journal_id, $user_id);
         if (is_wp_error($result)) {
             orabooks_json_error($result->get_error_message(), 400);
@@ -634,6 +684,12 @@ class OraBooks_Posting {
     public function ajax_get_journals() {
         $user_id = get_current_user_id();
         $org_id = intval($_GET['org_id'] ?? 0);
+        
+        // SL-013: Enforce customer org isolation on accounting endpoints
+        $isolation = OraBooks_Auth::require_customer_org($user_id, $org_id);
+        if (is_wp_error($isolation)) {
+            orabooks_json_error($isolation->get_error_message(), 403);
+        }
         
         $args = [
             'status' => sanitize_text_field($_GET['status'] ?? ''),

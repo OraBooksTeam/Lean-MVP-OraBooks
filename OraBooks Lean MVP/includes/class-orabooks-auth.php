@@ -32,9 +32,7 @@ class OraBooks_Auth {
             // SL-013: Google OIDC endpoints
             add_action('wp_ajax_nopriv_orabooks_oidc_initiate', [self::$instance, 'ajax_oidc_initiate']);
             add_action('wp_ajax_nopriv_orabooks_oidc_callback', [self::$instance, 'ajax_oidc_callback']);
-            // SL-013: 501 reserved endpoints for MVP
-            add_action('wp_ajax_orabooks_admin_approve_partner', [self::$instance, 'ajax_not_implemented']);
-            add_action('wp_ajax_orabooks_admin_reject_partner', [self::$instance, 'ajax_not_implemented']);
+            // SL-003: Admin partner approval endpoints registered in OraBooks_Partner
         }
         return self::$instance;
     }
@@ -718,12 +716,23 @@ class OraBooks_Auth {
     public function ajax_login() {
         $email = sanitize_email($_POST['email'] ?? '');
         $password = $_POST['password'] ?? '';
-        $subdomain = strtolower(trim($_POST['subdomain'] ?? ''));
+        
+        // Auto-detect subdomain from HTTP host (e.g., "mycompany.orabooks.app")
+        // Fall back to explicit POST param if provided by the frontend
+        $subdomain = self::detect_subdomain_from_host();
+        if (empty($subdomain)) {
+            $subdomain = strtolower(trim($_POST['subdomain'] ?? ''));
+        }
         
         $result = self::login($email, $password, $subdomain);
         
         if (is_wp_error($result)) {
             orabooks_json_error($result->get_error_message(), 401);
+        }
+        
+        // Include detected subdomain in response so the frontend can use it
+        if (is_array($result) && !empty($subdomain)) {
+            $result['detected_subdomain'] = $subdomain;
         }
         
         orabooks_json_success($result, 'Login successful');
@@ -1011,7 +1020,7 @@ class OraBooks_Auth {
         // Store state hash with 10-minute expiry
         set_transient('orabooks_oidc_state_' . $state_hash, 1, 600);
 
-        $redirect_uri = home_url('/orabooks-google-callback');
+        $redirect_uri = home_url('/login');
         $params = http_build_query([
             'client_id'     => $client_id,
             'redirect_uri'  => $redirect_uri,
@@ -1054,7 +1063,7 @@ class OraBooks_Auth {
                 'code'          => $code,
                 'client_id'     => $client_id,
                 'client_secret' => $client_secret,
-                'redirect_uri'  => home_url('/orabooks-google-callback'),
+                'redirect_uri'  => home_url('/login'),
                 'grant_type'    => 'authorization_code',
             ],
             'timeout' => 15,
@@ -1248,9 +1257,18 @@ class OraBooks_Auth {
     }
 
     /**
-     * requireCustomerOrg middleware — blocks partner orgs from accounting APIs
-     * Returns WP_Error if the user's org is a partner type.
+     * requireCustomerOrg middleware — blocks partner orgs and inactive orgs from accounting APIs
+     *
+     * Checks:
+     * - Org must exist and have a valid org_id
+     * - Partner orgs are always blocked from accounting endpoints
+     * - Suspended/inactive orgs are blocked
+     *
      * Usage: $check = OraBooks_Auth::require_customer_org($user_id, $org_id);
+     *
+     * @param int      $user_id Current user ID
+     * @param int|null $org_id  Organization ID to check
+     * @return true|WP_Error    True if allowed, WP_Error with descriptive code if blocked
      */
     public static function require_customer_org($user_id, $org_id) {
         if (!$org_id) {
@@ -1262,8 +1280,9 @@ class OraBooks_Auth {
             return new WP_Error('org_not_found', 'Organization not found.');
         }
 
+        // Block partner orgs from accounting features
         if ($org->organization_type === 'partner') {
-            orabooks_log_event('customer_org_required', "Partner org {$org_id} blocked from accounting endpoint", 'warning', [
+            orabooks_log_event('accounting_isolation_blocked', "Partner org {$org_id} blocked from accounting endpoint", 'warning', [
                 'user_id' => $user_id,
                 'org_id' => $org_id
             ], $user_id, $org_id);
@@ -1271,7 +1290,50 @@ class OraBooks_Auth {
             return new WP_Error('accounting_isolation', 'Partner organizations cannot access accounting features.');
         }
 
+        // Block inactive/suspended orgs
+        if ($org->status !== 'active') {
+            orabooks_log_event('accounting_isolation_blocked', "Non-active org {$org_id} blocked from accounting endpoint (status: {$org->status})", 'warning', [
+                'user_id' => $user_id,
+                'org_id' => $org_id,
+                'status' => $org->status
+            ], $user_id, $org_id);
+
+            return new WP_Error('org_inactive', 'Your organization is not active. Please contact support.');
+        }
+
         return true;
+    }
+
+    /**
+     * Detect subdomain from the HTTP host header.
+     *
+     * Extracts the subdomain from the request host (e.g., "mycompany" from "mycompany.orabooks.app").
+     * Returns empty string if no subdomain is detected or if the host is the root domain.
+     *
+     * @return string The detected subdomain, lowercased and trimmed
+     */
+    public static function detect_subdomain_from_host() {
+        $host = $_SERVER['HTTP_HOST'] ?? '';
+        if (empty($host)) {
+            return '';
+        }
+
+        $host = strtolower(trim($host));
+
+        // Check if this is a multi-level host (contains a dot before the main domain)
+        $parts = explode('.', $host);
+
+        // If there are at least 3 parts (e.g., "mycompany.orabooks.app"), the first is the subdomain
+        // If there are exactly 2 parts, it's a root domain (e.g., "localhost" or "example.com")
+        // Ignore common patterns: www, localhost, IP addresses
+        if (count($parts) >= 3) {
+            $possible_subdomain = $parts[0];
+            if ($possible_subdomain !== 'www' && $possible_subdomain !== 'mail' && $possible_subdomain !== 'admin') {
+                return $possible_subdomain;
+            }
+        }
+
+        return '';
     }
 
     public function ajax_select_tier() {

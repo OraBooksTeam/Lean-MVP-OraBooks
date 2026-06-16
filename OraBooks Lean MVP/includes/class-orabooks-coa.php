@@ -214,6 +214,12 @@ class OraBooks_COA {
         $user_id = get_current_user_id();
         $org_id = intval($_GET['org_id'] ?? 0);
         
+        // SL-013: Enforce customer org isolation on accounting endpoints
+        $isolation = OraBooks_Auth::require_customer_org($user_id, $org_id);
+        if (is_wp_error($isolation)) {
+            orabooks_json_error($isolation->get_error_message(), 403);
+        }
+        
         if (!OraBooks_RBAC::require_permission($user_id, $org_id, 'view_coa')) {
             orabooks_json_error('Permission denied', 403);
         }
@@ -225,6 +231,12 @@ class OraBooks_COA {
     public function ajax_export_coa() {
         $user_id = get_current_user_id();
         $org_id = intval($_GET['org_id'] ?? 0);
+        
+        // SL-013: Enforce customer org isolation on accounting endpoints
+        $isolation = OraBooks_Auth::require_customer_org($user_id, $org_id);
+        if (is_wp_error($isolation)) {
+            orabooks_json_error($isolation->get_error_message(), 403);
+        }
         
         if (!OraBooks_RBAC::require_permission($user_id, $org_id, 'view_coa')) {
             orabooks_json_error('Permission denied', 403);

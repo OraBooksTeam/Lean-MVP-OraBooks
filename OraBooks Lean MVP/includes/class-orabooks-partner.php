@@ -25,6 +25,14 @@ class OraBooks_Partner {
             add_action('wp_ajax_orabooks_partner_dashboard', [self::$instance, 'ajax_partner_dashboard']);
             add_action('wp_ajax_orabooks_partner_code_copied', [self::$instance, 'ajax_code_copied']);
             add_action('wp_ajax_orabooks_partner_attributions', [self::$instance, 'ajax_partner_attributions']);
+            
+            // SL-003: Admin partner approval / rejection
+            add_action('wp_ajax_orabooks_admin_approve_partner', [self::$instance, 'ajax_admin_approve_partner']);
+            add_action('wp_ajax_orabooks_admin_reject_partner', [self::$instance, 'ajax_admin_reject_partner']);
+            add_action('wp_ajax_orabooks_admin_list_pending_partners', [self::$instance, 'ajax_admin_list_pending_partners']);
+            add_action('wp_ajax_orabooks_admin_list_active_partners', [self::$instance, 'ajax_admin_list_active_partners']);
+            add_action('wp_ajax_orabooks_admin_list_reactivation_requests', [self::$instance, 'ajax_admin_list_reactivation_requests']);
+            add_action('wp_ajax_orabooks_admin_review_reactivation', [self::$instance, 'ajax_admin_review_reactivation']);
         }
         return self::$instance;
     }
@@ -194,6 +202,239 @@ class OraBooks_Partner {
         $result = OraBooks_Organization::request_partner_reactivation($org_id, $user_id, $reason);
         
         return $result;
+    }
+    
+    // ============================================================
+    // SL-003: ADMIN PARTNER APPROVAL / REJECTION
+    // ============================================================
+    
+    /**
+     * Approve a pending partner code and activate the partner organization.
+     *
+     * Transitions: partner_codes.status: pending_review → active
+     *              organizations.status: pending_setup → active
+     *
+     * @param int $partner_code_id ID of the partner_codes row
+     * @param int $admin_id        Admin user ID performing the action
+     * @return true|WP_Error
+     */
+    public static function approve_partner_code($partner_code_id, $admin_id) {
+        global $wpdb;
+        
+        $table_codes = OraBooks_Database::table('partner_codes');
+        $table_orgs = OraBooks_Database::table('organizations');
+        
+        $code = $wpdb->get_row($wpdb->prepare(
+            "SELECT pc.*, o.status as org_status
+             FROM {$table_codes} pc
+             JOIN {$table_orgs} o ON pc.org_id = o.id
+             WHERE pc.id = %d",
+            $partner_code_id
+        ));
+        
+        if (!$code) {
+            return new WP_Error('not_found', 'Partner code not found.');
+        }
+        
+        if ($code->status !== 'pending_review') {
+            return new WP_Error('invalid_status', 'Partner code is not in pending_review status. Current status: ' . $code->status);
+        }
+        
+        // Only update org status if it's in pending_setup
+        if ($code->org_status === 'pending_setup') {
+            $wpdb->update(
+                $table_orgs,
+                ['status' => 'active'],
+                ['id' => $code->org_id],
+                ['%s'],
+                ['%d']
+            );
+        }
+        
+        // Update partner code to active
+        $wpdb->update(
+            $table_codes,
+            [
+                'status' => 'active',
+                'approved_at' => current_time('mysql'),
+                'approved_by' => $admin_id
+            ],
+            ['id' => $partner_code_id],
+            ['%s', '%s', '%d'],
+            ['%d']
+        );
+        
+        // Audit log
+        orabooks_log_event('partner_code_approved', "Partner code #{$code->partner_code} approved by admin #{$admin_id}", 'info', [
+            'partner_code_id' => $partner_code_id,
+            'partner_code' => $code->partner_code,
+            'user_id' => $code->user_id,
+            'org_id' => $code->org_id,
+            'partner_type' => $code->partner_type
+        ], $admin_id, $code->org_id);
+        
+        // Fire notification event
+        do_action('orabooks_partner_code_approved', $code->org_id, [
+            'partner_code_id' => $partner_code_id,
+            'partner_code' => $code->partner_code,
+            'user_id' => $code->user_id,
+            'partner_type' => $code->partner_type
+        ]);
+        
+        return true;
+    }
+    
+    /**
+     * Reject a pending partner code (disable with reason).
+     *
+     * Transitions: partner_codes.status: pending_review → disabled
+     *
+     * @param int    $partner_code_id ID of the partner_codes row
+     * @param int    $admin_id        Admin user ID performing the action
+     * @param string $reason          Reason for rejection
+     * @return true|WP_Error
+     */
+    public static function reject_partner_code($partner_code_id, $admin_id, $reason = '') {
+        global $wpdb;
+        
+        $table_codes = OraBooks_Database::table('partner_codes');
+        $table_orgs = OraBooks_Database::table('organizations');
+        
+        $code = $wpdb->get_row($wpdb->prepare(
+            "SELECT * FROM {$table_codes} WHERE id = %d",
+            $partner_code_id
+        ));
+        
+        if (!$code) {
+            return new WP_Error('not_found', 'Partner code not found.');
+        }
+        
+        if ($code->status !== 'pending_review') {
+            return new WP_Error('invalid_status', 'Partner code is not in pending_review status. Current status: ' . $code->status);
+        }
+        
+        $wpdb->update(
+            $table_codes,
+            [
+                'status' => 'disabled',
+                'disabled_at' => current_time('mysql'),
+                'disabled_reason' => $reason ?: 'Rejected by administrator'
+            ],
+            ['id' => $partner_code_id],
+            ['%s', '%s', '%s'],
+            ['%d']
+        );
+        
+        $wpdb->update(
+            $table_orgs,
+            ['status' => 'suspended'],
+            ['id' => $code->org_id],
+            ['%s'],
+            ['%d']
+        );
+        
+        // Audit log
+        orabooks_log_event('partner_code_rejected', "Partner code #{$code->partner_code} rejected by admin #{$admin_id}: {$reason}", 'warning', [
+            'partner_code_id' => $partner_code_id,
+            'partner_code' => $code->partner_code,
+            'user_id' => $code->user_id,
+            'org_id' => $code->org_id,
+            'reason' => $reason
+        ], $admin_id, $code->org_id);
+        
+        return true;
+    }
+    
+    /**
+     * Get all pending partner codes (pending_review) for admin display
+     */
+    public static function get_pending_partners($args = []) {
+        global $wpdb;
+        
+        $table_codes = OraBooks_Database::table('partner_codes');
+        $table_users = OraBooks_Database::table('users');
+        $table_orgs = OraBooks_Database::table('organizations');
+        
+        $limit = $args['limit'] ?? 50;
+        $offset = $args['offset'] ?? 0;
+        
+        $results = $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT pc.*, u.email, o.name as org_name, o.subdomain, o.status as org_status
+                 FROM {$table_codes} pc
+                 JOIN {$table_users} u ON pc.user_id = u.id
+                 JOIN {$table_orgs} o ON pc.org_id = o.id
+                 WHERE pc.status = 'pending_review'
+                 ORDER BY pc.created_at DESC
+                 LIMIT %d OFFSET %d",
+                $limit, $offset
+            )
+        );
+        
+        return $results;
+    }
+    
+    /**
+     * Get active partners for admin display
+     */
+    public static function get_active_partners($args = []) {
+        global $wpdb;
+        
+        $table_codes = OraBooks_Database::table('partner_codes');
+        $table_users = OraBooks_Database::table('users');
+        $table_orgs = OraBooks_Database::table('organizations');
+        $table_attributions = OraBooks_Database::table('partner_attributions');
+        
+        $limit = $args['limit'] ?? 50;
+        $offset = $args['offset'] ?? 0;
+        
+        $results = $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT pc.*, u.email, o.name as org_name, o.subdomain, o.status as org_status,
+                        (SELECT COUNT(*) FROM {$table_attributions} WHERE partner_user_id = pc.user_id AND status = 'verified') as verified_attributions
+                 FROM {$table_codes} pc
+                 JOIN {$table_users} u ON pc.user_id = u.id
+                 JOIN {$table_orgs} o ON pc.org_id = o.id
+                 WHERE pc.status = 'active'
+                 ORDER BY pc.created_at DESC
+                 LIMIT %d OFFSET %d",
+                $limit, $offset
+            )
+        );
+        
+        return $results;
+    }
+    
+    /**
+     * Get pending reactivation requests for admin display
+     */
+    public static function get_reactivation_requests($args = []) {
+        global $wpdb;
+        
+        $table_reviews = OraBooks_Database::table('partner_reactivation_reviews');
+        $table_orgs = OraBooks_Database::table('organizations');
+        $table_users = OraBooks_Database::table('users');
+        $table_codes = OraBooks_Database::table('partner_codes');
+        
+        $limit = $args['limit'] ?? 50;
+        $offset = $args['offset'] ?? 0;
+        
+        $results = $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT r.*, o.name as org_name, o.subdomain, u.email as requested_by_email,
+                        pc.partner_code, pc.partner_type, pc.status as code_status
+                 FROM {$table_reviews} r
+                 JOIN {$table_orgs} o ON r.org_id = o.id
+                 JOIN {$table_users} u ON r.requested_by = u.id
+                 LEFT JOIN {$table_codes} pc ON pc.org_id = r.org_id
+                 WHERE r.decision IS NULL
+                 ORDER BY r.requested_at DESC
+                 LIMIT %d OFFSET %d",
+                $limit, $offset
+            )
+        );
+        
+        return $results;
     }
     
     // ============================================================
@@ -575,5 +816,140 @@ class OraBooks_Partner {
         }
         
         orabooks_json_success($attributions);
+    }
+    
+    // ============================================================
+    // SL-003: ADMIN AJAX HANDLERS
+    // ============================================================
+    
+    /**
+     * AJAX: Approve a pending partner code
+     */
+    public function ajax_admin_approve_partner() {
+        if (!current_user_can('manage_options')) {
+            orabooks_json_error('Permission denied', 403);
+        }
+        
+        $partner_code_id = intval($_POST['partner_code_id'] ?? 0);
+        $admin_id = get_current_user_id();
+        
+        if (!$partner_code_id) {
+            orabooks_json_error('Invalid partner code ID', 400);
+        }
+        
+        $result = self::approve_partner_code($partner_code_id, $admin_id);
+        
+        if (is_wp_error($result)) {
+            orabooks_json_error($result->get_error_message(), 400);
+        }
+        
+        orabooks_json_success([], 'Partner code approved and organization activated.');
+    }
+    
+    /**
+     * AJAX: Reject a pending partner code
+     */
+    public function ajax_admin_reject_partner() {
+        if (!current_user_can('manage_options')) {
+            orabooks_json_error('Permission denied', 403);
+        }
+        
+        $partner_code_id = intval($_POST['partner_code_id'] ?? 0);
+        $admin_id = get_current_user_id();
+        $reason = sanitize_textarea_field($_POST['reason'] ?? '');
+        
+        if (!$partner_code_id) {
+            orabooks_json_error('Invalid partner code ID', 400);
+        }
+        
+        $result = self::reject_partner_code($partner_code_id, $admin_id, $reason);
+        
+        if (is_wp_error($result)) {
+            orabooks_json_error($result->get_error_message(), 400);
+        }
+        
+        orabooks_json_success([], 'Partner code rejected.');
+    }
+    
+    /**
+     * AJAX: List pending partner codes for admin
+     */
+    public function ajax_admin_list_pending_partners() {
+        if (!current_user_can('manage_options')) {
+            orabooks_json_error('Permission denied', 403);
+        }
+        
+        $partners = self::get_pending_partners();
+        orabooks_json_success($partners);
+    }
+    
+    /**
+     * AJAX: List active partners for admin
+     */
+    public function ajax_admin_list_active_partners() {
+        if (!current_user_can('manage_options')) {
+            orabooks_json_error('Permission denied', 403);
+        }
+        
+        $partners = self::get_active_partners();
+        orabooks_json_success($partners);
+    }
+    
+    /**
+     * AJAX: List pending reactivation requests for admin
+     */
+    public function ajax_admin_list_reactivation_requests() {
+        if (!current_user_can('manage_options')) {
+            orabooks_json_error('Permission denied', 403);
+        }
+        
+        $requests = self::get_reactivation_requests();
+        orabooks_json_success($requests);
+    }
+    
+    /**
+     * AJAX: Review (approve/deny) a reactivation request
+     */
+    public function ajax_admin_review_reactivation() {
+        if (!current_user_can('manage_options')) {
+            orabooks_json_error('Permission denied', 403);
+        }
+        
+        $review_id = intval($_POST['review_id'] ?? 0);
+        $decision = sanitize_text_field($_POST['decision'] ?? '');
+        $notes = sanitize_textarea_field($_POST['notes'] ?? '');
+        $admin_id = get_current_user_id();
+        
+        if (!$review_id || !in_array($decision, ['approved', 'denied'])) {
+            orabooks_json_error('Invalid request', 400);
+        }
+        
+        // Update the partner code status for reactivation
+        if ($decision === 'approved') {
+            global $wpdb;
+            $table_reviews = OraBooks_Database::table('partner_reactivation_reviews');
+            $review = $wpdb->get_row($wpdb->prepare(
+                "SELECT * FROM {$table_reviews} WHERE id = %d", $review_id
+            ));
+            
+            if ($review) {
+                $table_codes = OraBooks_Database::table('partner_codes');
+                $wpdb->update(
+                    $table_codes,
+                    ['status' => 'active'],
+                    ['org_id' => $review->org_id],
+                    ['%s'],
+                    ['%d']
+                );
+            }
+        }
+        
+        $result = OraBooks_Organization::review_reactivation($review_id, $admin_id, $decision, $notes);
+        
+        if (is_wp_error($result)) {
+            orabooks_json_error($result->get_error_message(), 400);
+        }
+        
+        orabooks_json_success([], 'Reactivation request ' . ($decision === 'approved' ? 'approved.' : 'denied.'));
     }
 }

@@ -304,12 +304,30 @@ describe('Login form submit', () => {
     expect(call.data.email).toBe('user@test.com');
   });
 
-  test('handles 2FA required response', () => {
+  test('handles 2FA required response by showing 2FA challenge form', () => {
     $('#orabooks-login-form').trigger('submit');
-    resolveAjax('post', { error: false, data: { requires_2fa: true } });
+    resolveAjax('post', {
+      error: false,
+      data: {
+        requires_2fa: true,
+        temp_token: 'temp-jwt-for-2fa',
+        user_id: 42
+      }
+    });
 
-    const $msg = $('#orabooks-login-message');
-    expect($msg.text()).toContain('2FA code');
+    // Login form should be hidden
+    expect($('#orabooks-login-form').css('display')).toBe('none');
+    // 2FA form should be created and visible
+    expect($('#orabooks-2fa-form').length).toBe(1);
+    expect($('#orabooks-2fa-form').css('display')).not.toBe('none');
+    // OTP input should exist
+    expect($('#2fa-otp').length).toBe(1);
+    expect($('#2fa-otp').attr('maxlength')).toBe('6');
+    // Backup code checkbox should exist
+    expect($('#2fa-use-backup').length).toBe(1);
+    // Temp token should be stored on form
+    expect($('#orabooks-2fa-form').data('temp-token')).toBe('temp-jwt-for-2fa');
+    expect($('#orabooks-2fa-form').data('user-id')).toBe(42);
   });
 
   test('redirects to tier selection when needs_tier_selection', () => {

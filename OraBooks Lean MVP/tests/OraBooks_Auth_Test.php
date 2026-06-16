@@ -30,6 +30,7 @@ class OraBooks_Auth_Test extends TestCase
         $GLOBALS['orabooks_test_org_callback'] = null;
         $GLOBALS['orabooks_test_get_user_role_callback'] = null;
         $GLOBALS['orabooks_test_user_meta'] = [];
+        $GLOBALS['orabooks_test_use_insert_id'] = null;
 
         // Reset superglobals
         $_POST = [];
@@ -95,7 +96,7 @@ class OraBooks_Auth_Test extends TestCase
         parse_str($parts['query'], $params);
 
         $this->assertEquals('test-client-id-123.apps.googleusercontent.com', $params['client_id']);
-        $this->assertEquals('http://example.com/orabooks-google-callback', $params['redirect_uri']);
+        $this->assertEquals('http://example.com/login', $params['redirect_uri']);
         $this->assertEquals('code', $params['response_type']);
         $this->assertEquals('openid email profile', $params['scope']);
         $this->assertArrayHasKey('state', $params);
@@ -287,7 +288,7 @@ class OraBooks_Auth_Test extends TestCase
         };
 
         // Set insert_id for the new user creation
-        $wpdb->insert_id = 42;
+        $GLOBALS['orabooks_test_use_insert_id'] = 42;
 
         $result = OraBooks_Auth::handle_google_callback('auth-code-new', 'test-state-new-user');
 
@@ -313,7 +314,7 @@ class OraBooks_Auth_Test extends TestCase
             return null; // No existing user
         };
 
-        $wpdb->insert_id = 0; // Simulate insert failure
+        $GLOBALS['orabooks_test_use_insert_id'] = 0; // Simulate insert failure
 
         $result = OraBooks_Auth::handle_google_callback('auth-code-create-fail', 'test-state-create-fail');
 
@@ -425,7 +426,7 @@ class OraBooks_Auth_Test extends TestCase
                     'email' => 'localuser@example.com',
                     'password_hash' => '',
                     'is_active' => 1,
-                    'is_email_verified' => 0, // Not verified
+                    'is_email_verified' => 1, // Already verified
                     'is_2fa_enabled' => 0,
                     'org_id' => null,
                     'is_partner' => 0,
@@ -698,7 +699,7 @@ class OraBooks_Auth_Test extends TestCase
         $wpdb->test_get_row_callback = function ($query) {
             return null; // No existing user — will create new
         };
-        $wpdb->insert_id = 42;
+        $GLOBALS['orabooks_test_use_insert_id'] = 42;
 
         $_POST['code'] = 'auth-code-ajax-success';
         $_POST['state'] = 'valid-state-for-ajax';
