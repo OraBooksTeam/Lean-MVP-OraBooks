@@ -60,7 +60,7 @@ class OraBooks_Exports_Test extends TestCase
         // Reset the static provider registry before each test
         $refl = new ReflectionClass('OraBooks_Exports');
         $providersProp = $refl->getProperty('report_providers');
-        $providersProp->setValue([]);
+        $providersProp->setValue(null, []);
 
         // Reset wpdb test callbacks
         global $wpdb;
@@ -824,7 +824,7 @@ class OraBooks_Exports_Test extends TestCase
         // Reset first
         $providersProp = $refl->getProperty('report_providers');
         $providersProp;
-        $providersProp->setValue([]);
+        $providersProp->setValue(null, []);
 
         $method->invoke(null);
 
