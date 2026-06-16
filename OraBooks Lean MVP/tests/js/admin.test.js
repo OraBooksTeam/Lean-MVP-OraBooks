@@ -100,6 +100,30 @@ function setupAdminDom() {
     <button class="orabooks-users-export-trigger" data-export-type="users_data" data-format="csv">Export Users CSV</button>
     <button class="orabooks-commconfig-export-trigger" data-export-type="commission_config" data-format="csv">Export Config CSV</button>
     <button class="orabooks-onboarding-export-trigger" data-export-type="partner_onboarding" data-format="csv">Export Onboarding CSV</button>
+    <!-- Tab navigation -->
+    <nav class="nav-tab-wrapper">
+      <a class="nav-tab nav-tab-active" data-tab="pending">Pending</a>
+      <a class="nav-tab" data-tab="active">Active</a>
+      <a class="nav-tab" data-tab="reactivation">Reactivation</a>
+    </nav>
+    <div class="orabooks-admin-tab-content" id="orabooks-tab-pending">Pending content</div>
+    <div class="orabooks-admin-tab-content" id="orabooks-tab-active" style="display:none;">Active content</div>
+    <div class="orabooks-admin-tab-content" id="orabooks-tab-reactivation" style="display:none;">Reactivation content</div>
+
+    <!-- Partner Management -->
+    <span id="orabooks-pending-count"></span>
+    <span id="orabooks-reactivation-count"></span>
+    <table><tbody id="orabooks-pending-partners-body"></tbody></table>
+    <table><tbody id="orabooks-active-partners-body"></tbody></table>
+    <table><tbody id="orabooks-reactivation-partners-body"></tbody></table>
+
+    <!-- Reject Modal -->
+    <div id="orabooks-reject-modal" style="display:none;">
+      <textarea id="orabooks-reject-reason"></textarea>
+      <div id="orabooks-reject-message"></div>
+      <button id="orabooks-reject-cancel">Cancel</button>
+      <button id="orabooks-reject-confirm">Confirm Reject</button>
+    </div>
   `;
 }
 
