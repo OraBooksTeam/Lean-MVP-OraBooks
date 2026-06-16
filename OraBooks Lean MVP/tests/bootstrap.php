@@ -892,3 +892,10 @@ if (!file_exists($customers_file)) {
     exit(1);
 }
 require_once $customers_file;
+
+$notifications_file = __DIR__ . '/../includes/class-orabooks-notifications.php';
+if (!file_exists($notifications_file)) {
+    echo "ERROR: Cannot find class-orabooks-notifications.php at {$notifications_file}\n";
+    exit(1);
+}
+require_once $notifications_file;
