@@ -140,7 +140,10 @@ class OraBooks_Auth {
         
         // Handle partner attribution for customer signup with partner code
         if ($user_type === 'customer' && !empty($partner_code)) {
-            self::process_attribution($user_id, $partner_code, $email);
+            $attribution_result = self::process_attribution($user_id, $partner_code, $email);
+            if (is_wp_error($attribution_result)) {
+                return $attribution_result;
+            }
         }
         
         // Generate JWT
