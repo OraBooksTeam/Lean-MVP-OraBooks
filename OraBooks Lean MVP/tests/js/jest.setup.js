@@ -59,35 +59,32 @@ if (origLocation) {
     set href(v) { this._href = String(v); }
   };
 
-  // Use a Proxy on global.window to intercept 'location' property access.
-  // This avoids issues with non-configurable Location prototype in JSDOM.
+  // Define `location` as an own property on the window INSTANCE to shadow
+  // the inherited Location object from Window.prototype. Since `location`
+  // is not an own property of the window (it's inherited), defining a new
+  // own property shadows it without triggering "Cannot redefine property".
+  // This intercepts ALL accesses to `window.location` in the code.
   try {
-    const origWindow = global.window;
-    const windowHandler = {
-      get(target, prop) {
-        if (prop === 'location') {
-          return mockLocation;
+    Object.defineProperty(global.window, 'location', {
+      get() { return mockLocation; },
+      set(v) {
+        if (typeof v === 'string') {
+          mockLocation._href = v;
+        } else if (v && typeof v === 'object') {
+          Object.assign(mockLocation, v);
         }
-        return Reflect.get(target, prop);
       },
-      set(target, prop, value) {
-        if (prop === 'location') {
-          if (typeof value === 'string') {
-            mockLocation._href = value;
-          } else if (value && typeof value === 'object') {
-            Object.assign(mockLocation, value);
-          }
-          return true;
-        }
-        return Reflect.set(target, prop, value);
-      }
-    };
-    global.window = new Proxy(origWindow, windowHandler);
+      configurable: true,
+      enumerable: true
+    });
   } catch (e) {
-    // Proxy not supported (unlikely in modern Node), fall back to stubs
-    origLocation.assign = jest.fn();
-    origLocation.replace = jest.fn();
-    origLocation.reload = jest.fn();
+    // Fallback: window.location was non-configurable
+    // Try to at least stub the navigation methods on the original
+    if (origLocation) {
+      origLocation.assign = jest.fn();
+      origLocation.replace = jest.fn();
+      origLocation.reload = jest.fn();
+    }
   }
 }
 
