@@ -93,7 +93,7 @@ class OraBooks_Exports_Test extends TestCase
     // get_create_table_sql()
     // -----------------------------------------------------------------------
 
-    /** @test */
+    #[Test]
     public function test_get_create_table_sql_returns_array()
     {
         $sql = OraBooks_Exports::get_create_table_sql();
@@ -107,7 +107,7 @@ class OraBooks_Exports_Test extends TestCase
     // Provider Registry
     // -----------------------------------------------------------------------
 
-    /** @test */
+    #[Test]
     public function test_register_report_provider_has_no_return()
     {
         $result = OraBooks_Exports::register_report_provider('my_report', function () {
