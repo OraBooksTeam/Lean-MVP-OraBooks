@@ -71,6 +71,10 @@ if (!class_exists('wpdb', false)) {
             return 'DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci';
         }
 
+        public function esc_like($text) {
+            return addslashes($text);
+        }
+
         public function prepare($query, ...$args) {
             if (strpos($query, '%s') !== false || strpos($query, '%d') !== false || strpos($query, '%f') !== false) {
                 $escaped = [];
@@ -258,6 +262,10 @@ if (!class_exists('wpdb', false)) {
 
         public function query($query) {
             $this->last_query = $query;
+            // Allow test override
+            if ($this->test_query_callback !== null) {
+                return ($this->test_query_callback)($query);
+            }
             // Return 0 for ALTER TABLE (schema changes)
             if (stripos($query, 'ALTER TABLE') !== false) {
                 return 0;
