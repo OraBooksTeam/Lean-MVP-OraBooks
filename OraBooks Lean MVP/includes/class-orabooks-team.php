@@ -118,6 +118,10 @@ class OraBooks_Team {
             return new WP_Error('invalid_invite', 'Invalid or expired invitation');
         }
         
+        if (!self::is_invite_role($invite->role)) {
+            return new WP_Error('invalid_role', 'Invalid invite role');
+        }
+        
         $user = $wpdb->get_row($wpdb->prepare(
             "SELECT * FROM {$table_users} WHERE email = %s", $invite->email
         ));
