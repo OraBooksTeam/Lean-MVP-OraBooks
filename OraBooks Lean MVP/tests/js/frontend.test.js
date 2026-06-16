@@ -1872,3 +1872,320 @@ describe('orabooksLoadPartnerDashboard (partner dashboard)', () => {
     expect($msg.hasClass('error')).toBe(true);
   });
 });
+
+// ============================================================
+// Google OIDC Button Click
+// ============================================================
+describe('Google OIDC button click', () => {
+  test('disables button and posts to initiate OIDC', () => {
+    const $btn = $('.orabooks-btn-google');
+    clearAjax();
+    $btn.trigger('click');
+
+    expect($btn.prop('disabled')).toBe(true);
+    expect($btn.text()).toContain('Connecting to Google');
+
+    const call = latestAjax('post');
+    expect(call.data.action).toBe('orabooks_oidc_initiate');
+  });
+
+  test('stores state from auth URL and redirects on success', () => {
+    const $btn = $('.orabooks-btn-google');
+    clearAjax();
+    $btn.trigger('click');
+
+    resolveAjax('post', {
+      error: false,
+      data: {
+        auth_url: 'https://accounts.google.com/o/oauth2/auth?state=test-oidc-state-123&client_id=abc'
+      }
+    }, 'orabooks_oidc_initiate');
+
+    // State should be stored in sessionStorage
+    expect(window.sessionStorage.setItem).toHaveBeenCalledWith(
+      'orabooks_oidc_state',
+      'test-oidc-state-123'
+    );
+    // Should set location.href (JSDOM mock prevents navigation)
+    expect(window.location.href).toContain('accounts.google.com');
+  });
+
+  test('shows error message on OIDC initiation failure', () => {
+    const $btn = $('.orabooks-btn-google');
+    clearAjax();
+    $btn.trigger('click');
+
+    resolveAjax('post', {
+      error: true,
+      message: 'OIDC configuration missing'
+    }, 'orabooks_oidc_initiate');
+
+    expect($('#orabooks-login-message').text()).toContain('OIDC configuration missing');
+    expect($('#orabooks-login-message').hasClass('error')).toBe(true);
+    expect($btn.prop('disabled')).toBe(false);
+    expect($btn.text()).toContain('Google');
+  });
+
+  test('shows network error on AJAX failure', () => {
+    const $btn = $('.orabooks-btn-google');
+    clearAjax();
+    $btn.trigger('click');
+
+    // Resolve via fail callback
+    const calls = ajaxResponses.post;
+    const lastCall = calls[calls.length - 1];
+    expect(typeof lastCall.failCallback).toBe('function');
+    lastCall.failCallback();
+
+    expect($('#orabooks-login-message').text()).toContain('Network error');
+    expect($('#orabooks-login-message').hasClass('error')).toBe(true);
+    expect($btn.prop('disabled')).toBe(false);
+    expect($btn.text()).toContain('Google');
+  });
+
+  test('does not store state when auth URL has no query params', () => {
+    const $btn = $('.orabooks-btn-google');
+    clearAjax();
+    $btn.trigger('click');
+
+    resolveAjax('post', {
+      error: false,
+      data: {
+        auth_url: 'https://accounts.google.com/o/oauth2/auth'
+      }
+    }, 'orabooks_oidc_initiate');
+
+    // No query params — no state to store
+    expect(window.sessionStorage.setItem).not.toHaveBeenCalled();
+    expect(window.location.href).toContain('accounts.google.com');
+  });
+});
+
+// ============================================================
+// OIDC Callback IIFE (code + state from URL params)
+// ============================================================
+describe('OIDC callback from URL params', () => {
+  let urlSearchGetSpy;
+
+  afterEach(() => {
+    if (urlSearchGetSpy) {
+      urlSearchGetSpy.mockRestore();
+      urlSearchGetSpy = null;
+    }
+    window.sessionStorage.clear();
+  });
+
+  function setupOidcCallback(code, state, storedState) {
+    document.body.innerHTML = `
+      <div class="orabooks-form-container">
+        <form id="orabooks-login-form" style="display:block;">
+          <div id="orabooks-login-message" style="display:none;"></div>
+        </form>
+      </div>
+    `;
+    clearAjax();
+
+    // Mock URLSearchParams.get for code and state
+    urlSearchGetSpy = jest.spyOn(URLSearchParams.prototype, 'get').mockImplementation(function (key) {
+      if (key === 'code') return code || null;
+      if (key === 'state') return state || null;
+      return null;
+    });
+
+    // Set up sessionStorage with previously stored state
+    if (storedState !== undefined) {
+      window.sessionStorage.setItem('orabooks_oidc_state', storedState);
+    }
+
+    loadFrontendJs();
+  }
+
+  test('does nothing when no code or state in URL', () => {
+    setupOidcCallback(null, null);
+
+    const oidcCall = ajaxResponses.post.find(function (c) {
+      return c.data && c.data.action === 'orabooks_oidc_callback';
+    });
+    expect(oidcCall).toBeUndefined();
+  });
+
+  test('posts to orabooks_oidc_callback with code and state', () => {
+    setupOidcCallback('auth-code-xyz', 'valid-state', 'valid-state');
+
+    const call = latestAjax('post');
+    expect(call.data.action).toBe('orabooks_oidc_callback');
+    expect(call.data.code).toBe('auth-code-xyz');
+    expect(call.data.state).toBe('valid-state');
+  });
+
+  test('shows authenticating message while processing', () => {
+    setupOidcCallback('code-123', 'state-456', 'state-456');
+
+    expect($('#orabooks-login-message').text()).toContain('Google authentication');
+    expect($('#orabooks-login-message').hasClass('success')).toBe(true);
+    expect($('#orabooks-login-message').css('display')).not.toBe('none');
+  });
+
+  test('shows error on state mismatch', () => {
+    setupOidcCallback('code-xyz', 'attacker-state', 'real-state');
+
+    // State mismatch — should show error and not make POST call
+    expect($('#orabooks-login-message').text()).toContain('OAuth state mismatch');
+    expect($('#orabooks-login-message').hasClass('error')).toBe(true);
+
+    const oidcCall = ajaxResponses.post.find(function (c) {
+      return c.data && c.data.action === 'orabooks_oidc_callback';
+    });
+    expect(oidcCall).toBeUndefined();
+  });
+
+  test('handles OIDC callback response error', () => {
+    setupOidcCallback('code-err', 'state-ok', 'state-ok');
+
+    resolveAjax('post', { error: true, message: 'Authorization failed' }, 'orabooks_oidc_callback');
+
+    expect($('#orabooks-login-message').text()).toContain('Authorization failed');
+    expect($('#orabooks-login-message').hasClass('error')).toBe(true);
+  });
+
+  test('shows 2FA challenge when callback requires it', () => {
+    setupOidcCallback('code-2fa', 'state-2fa', 'state-2fa');
+
+    resolveAjax('post', {
+      error: false,
+      data: {
+        requires_2fa: true,
+        temp_token: 'oidc-temp-token',
+        user_id: 99
+      }
+    }, 'orabooks_oidc_callback');
+
+    expect($('#orabooks-2fa-form').length).toBe(1);
+    expect($('#orabooks-2fa-form').data('temp-token')).toBe('oidc-temp-token');
+    expect($('#orabooks-2fa-form').data('user-id')).toBe(99);
+  });
+
+  test('stores token and redirects on success', () => {
+    setupOidcCallback('code-success', 'state-success', 'state-success');
+
+    resolveAjax('post', {
+      error: false,
+      data: {
+        token: 'oidc-jwt-token',
+        redirect_to: '/partner/dashboard/'
+      }
+    }, 'orabooks_oidc_callback');
+
+    expect(window.localStorage.setItem).toHaveBeenCalledWith('orabooks_token', 'oidc-jwt-token');
+    expect(window.location.href).toContain('/partner/dashboard/');
+  });
+
+  test('defaults redirect to /dashboard/ when no redirect_to', () => {
+    setupOidcCallback('code-noredir', 'state-noredir', 'state-noredir');
+
+    resolveAjax('post', {
+      error: false,
+      data: { token: 'no-redirect-token' }
+    }, 'orabooks_oidc_callback');
+
+    expect(window.localStorage.setItem).toHaveBeenCalledWith('orabooks_token', 'no-redirect-token');
+    expect(window.location.href).toContain('/dashboard/');
+  });
+
+  test('shows network error on AJAX failure', () => {
+    setupOidcCallback('code-fail', 'state-fail', 'state-fail');
+
+    const calls = ajaxResponses.post;
+    const lastCall = calls[calls.length - 1];
+    expect(typeof lastCall.failCallback).toBe('function');
+    lastCall.failCallback();
+
+    expect($('#orabooks-login-message').text()).toContain('Network error');
+  });
+
+  test('cleans URL params with replaceState after processing', () => {
+    const replaceStateSpy = jest.spyOn(window.history, 'replaceState');
+
+    setupOidcCallback('code-clean', 'state-clean', 'state-clean');
+
+    expect(replaceStateSpy).toHaveBeenCalled();
+    const callArgs = replaceStateSpy.mock.calls[0];
+    const cleanUrl = callArgs[2];
+    // Should not contain query params
+    expect(cleanUrl).not.toContain('code=');
+    expect(cleanUrl).not.toContain('state=');
+
+    replaceStateSpy.mockRestore();
+  });
+});
+
+// ============================================================
+// URL Fragment Token Detector (#token= or #error=)
+// ============================================================
+describe('URL fragment OIDC token/error detection', () => {
+  let originalHash;
+
+  afterEach(() => {
+    // Restore original hash after each test
+    window.location.hash = originalHash || '';
+  });
+
+  function setupFragmentTest(hashValue) {
+    document.body.innerHTML = `
+      <div class="orabooks-form-container">
+        <form id="orabooks-login-form">
+          <div id="orabooks-login-message"></div>
+        </form>
+      </div>
+    `;
+    clearAjax();
+    originalHash = hashValue || '';
+    // Set the hash before loading JS (the detector IIFE runs on ready)
+    window.location.hash = hashValue || '';
+    loadFrontendJs();
+  }
+
+  test('does nothing when no hash fragment', () => {
+    setupFragmentTest('');
+
+    expect(window.localStorage.setItem).not.toHaveBeenCalled();
+    expect($('#orabooks-login-message').text()).toBe('');
+  });
+
+  test('stores token from #token= hash fragment', () => {
+    setupFragmentTest('#token=fragment-jwt-token');
+
+    expect(window.localStorage.setItem).toHaveBeenCalledWith(
+      'orabooks_token',
+      'fragment-jwt-token'
+    );
+  });
+
+  test('shows error from #error= hash fragment', () => {
+    setupFragmentTest('#error=Access%20denied');
+
+    expect($('#orabooks-login-message').text()).toContain('Access denied');
+    expect($('#orabooks-login-message').hasClass('error')).toBe(true);
+  });
+
+  test('handles both token and error in same fragment', () => {
+    setupFragmentTest('#token=my-token&error=Something%20wrong');
+
+    // Both should be processed
+    expect(window.localStorage.setItem).toHaveBeenCalledWith('orabooks_token', 'my-token');
+    expect($('#orabooks-login-message').text()).toContain('Something wrong');
+  });
+
+  test('cleans fragment from URL with replaceState', () => {
+    const replaceStateSpy = jest.spyOn(window.history, 'replaceState');
+
+    setupFragmentTest('#token=cleanup-test');
+
+    expect(replaceStateSpy).toHaveBeenCalled();
+    // Should have stripped the hash
+    const cleanUrl = replaceStateSpy.mock.calls[0][2];
+    expect(cleanUrl).not.toContain('token=');
+
+    replaceStateSpy.mockRestore();
+  });
+});
