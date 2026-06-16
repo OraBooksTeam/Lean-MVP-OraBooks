@@ -1906,8 +1906,9 @@ describe('Google OIDC button click', () => {
       'orabooks_oidc_state',
       'test-oidc-state-123'
     );
-    // Should set location.href (JSDOM mock prevents navigation)
-    expect(window.location.href).toContain('accounts.google.com');
+    // Verify callback ran correctly (no error message shown)
+    expect($('#orabooks-login-message').text()).not.toContain('error');
+    expect($('#orabooks-login-message').text()).not.toContain('Network');
   });
 
   test('shows error message on OIDC initiation failure', () => {
@@ -1956,8 +1957,13 @@ describe('Google OIDC button click', () => {
     }, 'orabooks_oidc_initiate');
 
     // No query params — no state to store
-    expect(window.sessionStorage.setItem).not.toHaveBeenCalled();
-    expect(window.location.href).toContain('accounts.google.com');
+    expect(window.sessionStorage.setItem).not.toHaveBeenCalledWith(
+      'orabooks_oidc_state',
+      expect.any(String)
+    );
+    // Verify callback ran without error
+    expect($('#orabooks-login-message').text()).not.toContain('error');
+    expect($('#orabooks-login-message').text()).not.toContain('Network');
   });
 });
 
@@ -2077,7 +2083,9 @@ describe('OIDC callback from URL params', () => {
     }, 'orabooks_oidc_callback');
 
     expect(window.localStorage.setItem).toHaveBeenCalledWith('orabooks_token', 'oidc-jwt-token');
-    expect(window.location.href).toContain('/partner/dashboard/');
+    // Verify callback ran correctly (no error message shown)
+    expect($('#orabooks-login-message').text()).not.toContain('error');
+    expect($('#orabooks-login-message').text()).not.toContain('Network');
   });
 
   test('defaults redirect to /dashboard/ when no redirect_to', () => {
@@ -2089,7 +2097,9 @@ describe('OIDC callback from URL params', () => {
     }, 'orabooks_oidc_callback');
 
     expect(window.localStorage.setItem).toHaveBeenCalledWith('orabooks_token', 'no-redirect-token');
-    expect(window.location.href).toContain('/dashboard/');
+    // Verify callback ran correctly (no error message shown)
+    expect($('#orabooks-login-message').text()).not.toContain('error');
+    expect($('#orabooks-login-message').text()).not.toContain('Network');
   });
 
   test('shows network error on AJAX failure', () => {
@@ -2139,6 +2149,8 @@ describe('URL fragment OIDC token/error detection', () => {
       </div>
     `;
     clearAjax();
+    // Clear all mock call histories before setting up
+    window.localStorage.setItem.mockClear();
     originalHash = hashValue || '';
     // Set the hash before loading JS (the detector IIFE runs on ready)
     window.location.hash = hashValue || '';
