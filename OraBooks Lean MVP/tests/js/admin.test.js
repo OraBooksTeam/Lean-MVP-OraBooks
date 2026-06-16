@@ -23,14 +23,14 @@ function setupAdminDom() {
 
     <!-- Audit log table -->
     <table><tbody id="orabooks-audit-table-body"></tbody></table>
-    <select id="audit-filter-event"><option value=""></option></select>
-    <select id="audit-filter-user"><option value=""></option></select>
+    <select id="audit-filter-event"><option value="">All</option><option value="login">Login</option><option value="export">Export</option></select>
+    <select id="audit-filter-user"><option value="">All</option><option value="5">User 5</option></select>
     <input id="audit-filter-from" value="" />
     <input id="audit-filter-to" value="" />
 
     <!-- CoA page -->
     <select id="coa-org-select"></select>
-    <select id="coa-filter-type"><option value=""></option></select>
+    <select id="coa-filter-type"><option value="">All</option><option value="asset">Asset</option><option value="liability">Liability</option></select>
     <table><tbody id="orabooks-coa-table-body"></tbody></table>
     <div id="orabooks-coa-export-msg" style="display:none;"></div>
 

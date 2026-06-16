@@ -34,32 +34,54 @@ global.window.confirm = jest.fn(() => true);
 
 // --- Mock window.location to prevent JSDOM navigation errors ---
 // JSDOM throws "Not implemented: navigation (except hash changes)" when
-// tests or code assign to window.location.href. We use Object.setPrototypeOf
-// to insert a custom prototype that overrides href, because JSDOM's Location
-// prototype has non-configurable getters/setters that Object.defineProperty
-// cannot replace.
+// tests or code assign to window.location.href. We define a `location`
+// property directly on the window INSTANCE to shadow the inherited
+// Location object from Window.prototype. This avoids JSDOM's non-configurable
+// Location.prototype getters/setters entirely.
 const origLocation = global.window.location;
 if (origLocation) {
-  origLocation.assign = jest.fn();
-  origLocation.replace = jest.fn();
-  origLocation.reload = jest.fn();
-  // Create a custom prototype that inherits from the real Location prototype
-  // but overrides the href getter/setter with writable data properties
+  // Create a custom location object with mocked navigation methods
+  const mockLocation = {
+    _href: origLocation.href || 'https://example.com/dashboard/',
+    protocol: 'https:',
+    host: 'example.com',
+    hostname: 'example.com',
+    port: '',
+    pathname: '/dashboard/',
+    search: '',
+    hash: '',
+    origin: 'https://example.com',
+    assign: jest.fn(),
+    replace: jest.fn(),
+    reload: jest.fn(),
+    toString() { return this._href; },
+    get href() { return this._href; },
+    set href(v) { this._href = String(v); }
+  };
+
+  // Define `location` as an own property on the window INSTANCE
+  // This shadows the Location object from Window.prototype.
+  // Since window doesn't have an own `location` property (it's inherited),
+  // Object.defineProperty won't throw "Cannot redefine property".
   try {
-    const originalProto = Object.getPrototypeOf(origLocation);
-    const hrefProto = Object.create(originalProto);
-    Object.defineProperty(hrefProto, 'href', {
-      get() { return this._href || 'https://example.com/dashboard/'; },
-      set(v) { this._href = String(v); },
-      configurable: true
+    Object.defineProperty(global.window, 'location', {
+      get() { return mockLocation; },
+      set(v) {
+        if (typeof v === 'string') {
+          mockLocation._href = v;
+        } else if (v && typeof v === 'object') {
+          Object.assign(mockLocation, v);
+        }
+      },
+      configurable: true,
+      enumerable: true
     });
-    // Store initial href value
-    origLocation._href = origLocation.href || 'https://example.com/dashboard/';
-    // Change prototype to our custom one - this works because setPrototypeOf
-    // doesn't require the target object to have configurable properties
-    Object.setPrototypeOf(origLocation, hrefProto);
   } catch (e) {
-    // Some JSDOM versions may block setPrototypeOf for Location objects
+    // Fallback: window.location was non-configurable on this JSDOM version
+    // Try to at least stub navigation methods on the real Location
+    origLocation.assign = jest.fn();
+    origLocation.replace = jest.fn();
+    origLocation.reload = jest.fn();
   }
 }
 
