@@ -159,7 +159,16 @@ class OraBooks_Database {
         dbDelta($sql);
         
         // Add unique constraint for active code per user
-        $wpdb->query("ALTER TABLE {$table_partner_codes} ADD CONSTRAINT uk_user_active_code UNIQUE (user_id, is_active_code)");
+        $existing_constraint = $wpdb->get_var($wpdb->prepare(
+            "SELECT CONSTRAINT_NAME FROM information_schema.TABLE_CONSTRAINTS
+             WHERE TABLE_SCHEMA = DATABASE()
+               AND TABLE_NAME = %s
+               AND CONSTRAINT_NAME = 'uk_user_active_code'",
+            $table_partner_codes
+        ));
+        if (!$existing_constraint) {
+            $wpdb->query("ALTER TABLE {$table_partner_codes} ADD CONSTRAINT uk_user_active_code UNIQUE (user_id, is_active_code)");
+        }
         
         // ============================================================
         // SL-013: partner_attributions table
