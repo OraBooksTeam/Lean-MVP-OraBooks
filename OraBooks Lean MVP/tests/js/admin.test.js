@@ -65,6 +65,9 @@ function loadAdminJs() {
   // Execute with jQuery available
   const fn = new Function('$', 'jQuery', code);
   fn($, $);
+  // jQuery fires ready handlers via setTimeout when doc is complete.
+  // With fake timers that setTimeout never fires, so flush it now.
+  jest.advanceTimersByTime(10);
 }
 
 beforeEach(() => {
