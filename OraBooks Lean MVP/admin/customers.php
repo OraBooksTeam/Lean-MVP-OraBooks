@@ -727,5 +727,37 @@ jQuery(document).ready(function($) {
         $('#orabooks-ar-paid').text(stats.paid_invoices || 0);
         $('#orabooks-ar-overdue').text(stats.overdue_invoices || 0);
     }
+
+    // =============================================
+    // INVOICE DEEP LINK — auto-load invoice from ?invoice_id= query param
+    // Used when admin user navigates to admin.php?page=orabooks-customers&invoice_id=N
+    // =============================================
+    (function() {
+        var urlParams = new URLSearchParams(window.location.search);
+        var invoiceId = urlParams.get('invoice_id');
+
+        if (invoiceId && $('.orabooks-customers').length) {
+            // Switch to invoices tab
+            currentTab = 'invoices';
+            $('#orabooks-cust-tabs .nav-tab').removeClass('nav-tab-active');
+            $('#orabooks-cust-tabs .nav-tab[data-tab="invoices"]').addClass('nav-tab-active');
+            $('.orabooks-tab-content').hide();
+            $('#orabooks-tab-invoices').fadeIn(200);
+
+            // Load invoices list then open the detail panel
+            loadInvoices();
+            showInvoiceDetail(parseInt(invoiceId, 10));
+
+            // Clean the invoice_id from the URL without reloading
+            if (window.history.replaceState) {
+                urlParams.delete('invoice_id');
+                var newSearch = urlParams.toString();
+                var cleanUrl = window.location.protocol + '//' +
+                    window.location.host + window.location.pathname +
+                    (newSearch ? '?' + newSearch : '');
+                window.history.replaceState({}, document.title, cleanUrl);
+            }
+        }
+    })();
 });
 </script>
