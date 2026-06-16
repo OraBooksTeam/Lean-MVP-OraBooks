@@ -994,3 +994,174 @@
 .orabooks-export-actions .orabooks-export-trigger {
     font-size: 13px;
 }
+
+/* ============================================= */
+/* INVOICE DEEP LINK DETAIL (Dashboard)          */
+/* ============================================= */
+.orabooks-invoice-detail {
+    background: #fff;
+    border: 1px solid #e0e0e0;
+    border-radius: 10px;
+    padding: 28px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    animation: orabooks-tab-fade-in 0.3s ease;
+}
+
+.orabooks-invoice-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+    padding-bottom: 16px;
+    border-bottom: 2px solid #f0f0f0;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.orabooks-invoice-header h2 {
+    margin: 0;
+    font-size: 22px;
+    color: #1d2327;
+}
+
+.orabooks-invoice-status .orabooks-badge {
+    font-size: 13px;
+    padding: 5px 14px;
+    border-radius: 20px;
+}
+
+.orabooks-invoice-meta {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.orabooks-invoice-meta-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.orabooks-invoice-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #888;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.orabooks-invoice-value {
+    font-size: 15px;
+    color: #333;
+    font-weight: 500;
+}
+
+.orabooks-invoice-amounts {
+    background: #f8faff;
+    border: 1px solid #e8edf5;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.orabooks-invoice-amount-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 0;
+    font-size: 15px;
+    color: #555;
+}
+
+.orabooks-invoice-amount-total {
+    font-weight: 600;
+    color: #1d2327;
+}
+
+.orabooks-invoice-amount-paid {
+    font-weight: 600;
+    color: #2e7d32;
+}
+
+.orabooks-invoice-amount-divider {
+    border-top: 2px solid #e0e0e0;
+    margin-top: 6px;
+    padding-top: 12px;
+    font-size: 16px;
+}
+
+.orabooks-invoice-amount-balance {
+    color: #d32f2f;
+}
+
+.orabooks-invoice-description {
+    background: #fafafa;
+    border: 1px solid #eee;
+    border-radius: 6px;
+    padding: 14px 16px;
+    margin-bottom: 20px;
+    color: #555;
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.orabooks-invoice-description p {
+    margin: 0;
+}
+
+.orabooks-invoice-payments {
+    margin-bottom: 20px;
+}
+
+.orabooks-invoice-payments h3 {
+    font-size: 16px;
+    color: #333;
+    margin: 0 0 12px;
+}
+
+.orabooks-invoice-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid #f0f0f0;
+}
+
+.orabooks-invoice-actions .orabooks-btn {
+    width: auto;
+}
+
+.orabooks-invoice-error {
+    text-align: center;
+    padding: 40px 20px;
+    color: #c62828;
+    animation: orabooks-tab-fade-in 0.3s ease;
+}
+
+.orabooks-invoice-error p {
+    font-size: 16px;
+    margin-bottom: 20px;
+}
+
+.orabooks-invoice-error .orabooks-btn {
+    width: auto;
+    display: inline-block;
+}
+
+@media screen and (max-width: 600px) {
+    .orabooks-invoice-detail {
+        padding: 16px;
+    }
+    .orabooks-invoice-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    .orabooks-invoice-meta {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+    .orabooks-invoice-amount-row {
+        font-size: 14px;
+    }
+}
