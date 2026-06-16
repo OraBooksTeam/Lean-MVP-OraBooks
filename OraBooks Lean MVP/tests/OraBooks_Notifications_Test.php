@@ -370,9 +370,9 @@ class OraBooks_Notifications_Test extends TestCase
         $this->assertIsArray($payload, 'Notification payload should be a valid JSON object');
         $this->assertArrayHasKey('view_url', $payload, 'Payload should contain a view_url field');
         $this->assertEquals(
-            home_url('/dashboard/'),
+            home_url('/dashboard/') . '?invoice_id=200',
             $payload['view_url'],
-            'Customer overdue notification view_url should point to the dashboard'
+            'Customer overdue notification view_url should point to the dashboard with invoice ID'
         );
     }
 

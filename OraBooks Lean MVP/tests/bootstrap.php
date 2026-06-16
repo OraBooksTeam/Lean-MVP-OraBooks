@@ -467,6 +467,13 @@ if (!function_exists('admin_url')) {
     function admin_url($path = '') { return 'http://example.com/wp-admin/' . $path; }
 }
 
+if (!function_exists('add_query_arg')) {
+    function add_query_arg($key, $value, $url) {
+        $separator = strpos($url, '?') === false ? '?' : '&';
+        return rtrim($url, '/') . $separator . urlencode($key) . '=' . urlencode($value);
+    }
+}
+
 if (!function_exists('wp_create_nonce')) {
     function wp_create_nonce($action) { return md5($action . time()); }
 }
