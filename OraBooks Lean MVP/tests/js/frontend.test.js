@@ -275,7 +275,7 @@ describe('Registration form submit', () => {
   test('shows success message on registration success', () => {
     clearAjax();
     $('#orabooks-register-form').trigger('submit');
-    resolveAjax('post', { error: false, data: { user_id: 1 }, message: 'Verification email sent' }, { action: 'orabooks_register' });
+    resolveAjax('post', { error: false, data: { user_id: 1 }, message: 'Verification email sent' }, 'orabooks_register');
 
     const $msg = $('#orabooks-register-message');
     expect($msg.text()).toContain('Registration successful');
@@ -285,7 +285,7 @@ describe('Registration form submit', () => {
   test('shows error message on registration failure', () => {
     clearAjax();
     $('#orabooks-register-form').trigger('submit');
-    resolveAjax('post', { error: true, message: 'Email already exists' }, { action: 'orabooks_register' });
+    resolveAjax('post', { error: true, message: 'Email already exists' }, 'orabooks_register');
 
     const $msg = $('#orabooks-register-message');
     expect($msg.text()).toContain('Email already exists');
@@ -299,7 +299,7 @@ describe('Registration form submit', () => {
     expect($btn.prop('disabled')).toBe(true);
     expect($btn.text()).toContain('Creating');
 
-    resolveAjax('post', { error: false, data: {} }, { action: 'orabooks_register' });
+    resolveAjax('post', { error: false, data: {} }, 'orabooks_register');
     expect($btn.prop('disabled')).toBe(false);
     expect($btn.text()).toContain('Create Account');
   });
@@ -331,7 +331,7 @@ describe('Login form submit', () => {
         temp_token: 'temp-jwt-for-2fa',
         user_id: 42
       }
-    }, { action: 'orabooks_login' });
+    }, 'orabooks_login');
 
     // Login form should be hidden
     expect($('#orabooks-login-form').css('display')).toBe('none');
@@ -353,7 +353,7 @@ describe('Login form submit', () => {
     $('#orabooks-login-form').trigger('submit');
     // JSDOM blocks navigation, but we verify the handler ran without error
     // The needs_tier_selection branch sets window.location.href without a message
-    resolveAjax('post', { error: false, data: { needs_tier_selection: true } }, { action: 'orabooks_login' });
+    resolveAjax('post', { error: false, data: { needs_tier_selection: true } }, 'orabooks_login');
     // Handler ran successfully — confirm by checking no failure message shown
     expect($('#orabooks-login-message').text()).not.toContain('error');
   });
@@ -362,14 +362,14 @@ describe('Login form submit', () => {
     clearAjax();
     $('#orabooks-login-form').trigger('submit');
     // JSDOM blocks navigation, verify the handler ran correctly
-    resolveAjax('post', { error: false, data: { redirect_to: '/partner/onboarding' } }, { action: 'orabooks_login' });
+    resolveAjax('post', { error: false, data: { redirect_to: '/partner/onboarding' } }, 'orabooks_login');
     expect($('#orabooks-login-message').text()).not.toContain('error');
   });
 
   test('stores token and redirects to dashboard on success', () => {
     clearAjax();
     $('#orabooks-login-form').trigger('submit');
-    resolveAjax('post', { error: false, data: { token: 'jwt-token-123' } }, { action: 'orabooks_login' });
+    resolveAjax('post', { error: false, data: { token: 'jwt-token-123' } }, 'orabooks_login');
 
     expect(window.localStorage.setItem).toHaveBeenCalledWith('orabooks_token', 'jwt-token-123');
 
@@ -381,7 +381,7 @@ describe('Login form submit', () => {
   test('shows error on login failure', () => {
     clearAjax();
     $('#orabooks-login-form').trigger('submit');
-    resolveAjax('post', { error: true, message: 'Invalid credentials' }, { action: 'orabooks_login' });
+    resolveAjax('post', { error: true, message: 'Invalid credentials' }, 'orabooks_login');
 
     const $msg = $('#orabooks-login-message');
     expect($msg.text()).toContain('Invalid credentials');
@@ -406,7 +406,7 @@ describe('Subdomain availability check', () => {
   test('shows available when subdomain is free', () => {
     clearAjax();
     $('#orabooks-check-subdomain').trigger('click');
-    resolveAjax('post', { error: false, data: { available: true, message: 'Available' } }, { action: 'orabooks_check_subdomain' });
+    resolveAjax('post', { error: false, data: { available: true, message: 'Available' } }, 'orabooks_check_subdomain');
 
     expect($('#orabooks-subdomain-status').text()).toContain('Available');
     expect($('#orabooks-subdomain-status').css('color')).toBe('rgb(46, 125, 50)');
@@ -415,7 +415,7 @@ describe('Subdomain availability check', () => {
   test('shows taken when subdomain exists', () => {
     clearAjax();
     $('#orabooks-check-subdomain').trigger('click');
-    resolveAjax('post', { error: false, data: { available: false, message: 'Subdomain already taken' } }, { action: 'orabooks_check_subdomain' });
+    resolveAjax('post', { error: false, data: { available: false, message: 'Subdomain already taken' } }, 'orabooks_check_subdomain');
 
     expect($('#orabooks-subdomain-status').text()).toContain('Subdomain already taken');
     expect($('#orabooks-subdomain-status').css('color')).toBe('rgb(196, 26, 26)');
@@ -449,7 +449,7 @@ describe('Tier selection form submit', () => {
   test('stores token and redirects on success', () => {
     clearAjax();
     $('#orabooks-tier-form').trigger('submit');
-    resolveAjax('post', { error: false, data: { token: 'jwt-tier', redirect_to: 'https://myorg.orabooks.app/dashboard' } }, { action: 'orabooks_select_tier' });
+    resolveAjax('post', { error: false, data: { token: 'jwt-tier', redirect_to: 'https://myorg.orabooks.app/dashboard' } }, 'orabooks_select_tier');
 
     expect(window.localStorage.setItem).toHaveBeenCalledWith('orabooks_token', 'jwt-tier');
     jest.advanceTimersByTime(1500);
@@ -460,7 +460,7 @@ describe('Tier selection form submit', () => {
   test('shows error on failure', () => {
     clearAjax();
     $('#orabooks-tier-form').trigger('submit');
-    resolveAjax('post', { error: true, message: 'Subdomain taken' }, { action: 'orabooks_select_tier' });
+    resolveAjax('post', { error: true, message: 'Subdomain taken' }, 'orabooks_select_tier');
 
     expect($('#orabooks-tier-message').text()).toContain('Subdomain taken');
     expect($('#orabooks-tier-message').hasClass('error')).toBe(true);
@@ -535,7 +535,7 @@ describe('Reactivation modal', () => {
   test('shows success message on reactivation', () => {
     clearAjax();
     $('#orabooks-submit-reactivation').trigger('click');
-    resolveAjax('post', { error: false, data: {}, message: 'Reactivation request submitted' }, { action: 'orabooks_request_reactivation' });
+    resolveAjax('post', { error: false, data: {}, message: 'Reactivation request submitted' }, 'orabooks_request_reactivation');
 
     const $msg = $('#orabooks-reactivation-message');
     expect($msg.text()).toContain('Reactivation request submitted');
@@ -696,7 +696,7 @@ describe('orabooksLoadExports (exports list)', () => {
         page: 1,
         total_pages: 1
       }
-    }, { action: 'orabooks_exports_list' });
+    }, 'orabooks_exports_list');
 
     const html = $tbody.html();
     expect(html).toContain('audit_log');
@@ -709,7 +709,7 @@ describe('orabooksLoadExports (exports list)', () => {
     resolveAjax('get', {
       error: false,
       data: { exports: [], total: 0, page: 1, total_pages: 1 }
-    }, { action: 'orabooks_exports_list' });
+    }, 'orabooks_exports_list');
 
     const html = $('#orabooks-export-table-body').html();
     expect(html).toContain('No exports found');
@@ -719,7 +719,7 @@ describe('orabooksLoadExports (exports list)', () => {
     resolveAjax('get', {
       error: false,
       data: { exports: [], total: 50, page: 1, total_pages: 3 }
-    }, { action: 'orabooks_exports_list' });
+    }, 'orabooks_exports_list');
 
     const pagHtml = $('#orabooks-export-pagination').html();
     expect(pagHtml).toContain('1');
@@ -742,7 +742,7 @@ describe('Export cancel', () => {
   test('shows error alert on cancel failure', () => {
     clearAjax();
     $('.orabooks-export-cancel').first().trigger('click');
-    resolveAjax('post', { error: true, message: 'Cannot cancel' }, { action: 'orabooks_export_cancel' });
+    resolveAjax('post', { error: true, message: 'Cannot cancel' }, 'orabooks_export_cancel');
     expect(window.alert).toHaveBeenCalledWith('Error: Cannot cancel');
   });
 });
@@ -777,7 +777,7 @@ describe('Notification center - load notifications', () => {
           { id: 2, event_type: 'export', title: 'Export Ready', message: 'Your export is ready', priority: 'high', created_at: '2024-01-02', is_read: true, delivery_channel: 'email', correlation_id: 'corr-456' }
         ]
       }
-    }, { action: 'orabooks_notifications_list' });
+    }, 'orabooks_notifications_list');
 
     const html = $('#orabooks-nc-list').html();
     expect(html).toContain('New Login');
@@ -788,7 +788,7 @@ describe('Notification center - load notifications', () => {
   });
 
   test('shows empty state when no notifications', () => {
-    resolveAjax('get', { error: false, data: { unread_count: 0, notifications: [] } }, { action: 'orabooks_notifications_list' });
+    resolveAjax('get', { error: false, data: { unread_count: 0, notifications: [] } }, 'orabooks_notifications_list');
 
     expect($('#orabooks-nc-list').html()).toContain('No notifications found');
     expect($('#orabooks-nc-unread-badge').css('display')).toBe('none');
@@ -803,7 +803,7 @@ describe('Notification mark as read', () => {
         unread_count: 1,
         notifications: [{ id: 5, event_type: 'test', title: 'Test', message: 'Test msg', priority: 'low', created_at: '2024-01-01', is_read: false, delivery_channel: 'inapp', correlation_id: 'corr-789' }]
       }
-    }, { action: 'orabooks_notifications_list' });
+    }, 'orabooks_notifications_list');
 
     const $item = $('.orabooks-nc-item').first();
     expect($item.hasClass('orabooks-nc-item-unread')).toBe(true);
@@ -821,7 +821,7 @@ describe('Notification - mark all read', () => {
         { id: 1, event_type: 'a', title: 'A', priority: 'low', created_at: '2024-01-01', is_read: false, delivery_channel: 'inapp', correlation_id: 'abc' },
         { id: 2, event_type: 'b', title: 'B', priority: 'low', created_at: '2024-01-01', is_read: true, delivery_channel: 'inapp', correlation_id: 'def' }
       ]}
-    }, { action: 'orabooks_notifications_list' });
+    }, 'orabooks_notifications_list');
 
     $('#orabooks-nc-mark-all-read').trigger('click');
 
@@ -922,7 +922,7 @@ describe('Async queue dashboard - load stats', () => {
           { id: 101, job_type: 'generate_export', retry_count: 3, last_error: 'Timeout', last_attempt_at: '2024-01-01', created_at: '2024-01-01', status: 'failed' }
         ]
       }
-    }, { action: 'orabooks_async_queue_stats' });
+    }, 'orabooks_async_queue_stats');
 
     expect($('#aq-total').text()).toBe('150');
     expect($('#aq-pending').text()).toBe('20');
@@ -942,7 +942,7 @@ describe('Async queue dashboard - load stats', () => {
     resolveAjax('get', {
       error: false,
       data: { total: 0, pending_count: 0, processing_count: 0, completed_count: 0, failed_count: 0, dead_letter_count: 0, recent_failures: [] }
-    }, { action: 'orabooks_async_queue_stats' });
+    }, 'orabooks_async_queue_stats');
 
     expect($('#orabooks-aq-failures-body').html()).toContain('No recent failures');
   });
@@ -1052,7 +1052,7 @@ describe('Invoice deep link auto-load from ?invoice_id=', () => {
 
   test('renders error message when invoice load fails', () => {
     setupInvoiceTest(999);
-    resolveAjax('get', { error: true, message: 'Invoice not found' }, { action: 'orabooks_invoice_get' });
+    resolveAjax('get', { error: true, message: 'Invoice not found' }, 'orabooks_invoice_get');
 
     const html = $('#orabooks-dashboard-content').html();
     expect(html).toContain('Invoice not found');
