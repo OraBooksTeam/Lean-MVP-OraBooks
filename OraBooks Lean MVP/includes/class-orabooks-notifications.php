@@ -38,6 +38,11 @@ class OraBooks_Notifications {
             add_action('orabooks_export_ready', [self::$instance, 'on_export_ready'], 10, 2);
             add_action('orabooks_export_failed', [self::$instance, 'on_export_failed'], 10, 2);
 
+            // Listen for invoice events (SL-021 integration)
+            add_action('orabooks_invoice_created', [self::$instance, 'on_invoice_created'], 10, 2);
+            add_action('orabooks_payment_recorded', [self::$instance, 'on_payment_recorded'], 10, 2);
+            add_action('orabooks_invoices_marked_overdue', [self::$instance, 'on_invoices_marked_overdue'], 10, 2);
+
             // AJAX: Notification Center
             add_action('wp_ajax_orabooks_notifications_list', [self::$instance, 'ajax_list_notifications']);
             add_action('wp_ajax_orabooks_notifications_mark_read', [self::$instance, 'ajax_mark_read']);
@@ -1430,6 +1435,130 @@ class OraBooks_Notifications {
     // ================================================================
     // STATIC HELPER: send_notification (for external use)
     // ================================================================
+
+    // ================================================================
+    // INVOICE EVENT HANDLERS (SL-021 Integration)
+    // ================================================================
+
+    /**
+     * Handle invoice_created event from SL-021.
+     * Notify the customer that a new invoice has been issued.
+     */
+    public function on_invoice_created($invoice_id, $data) {
+        $customer_id = !empty($data['customer_id']) ? (int)$data['customer_id'] : 0;
+        $org_id = !empty($data['org_id']) ? (int)$data['org_id'] : 0;
+        $invoice_number = !empty($data['invoice_number']) ? $data['invoice_number'] : '';
+        $total_amount = !empty($data['total_amount']) ? $data['total_amount'] : 0;
+        $due_date = !empty($data['due_date']) ? $data['due_date'] : '';
+
+        if (!$customer_id || !$org_id) {
+            return;
+        }
+
+        // Resolve customer's user_id from the customers table
+        $customer = OraBooks_Customers::get_by_id($customer_id);
+        if (!$customer) {
+            return;
+        }
+
+        self::send_notification($customer->user_id, 'invoice_created', [
+            'title'          => sprintf(__('New Invoice: %s', 'orabooks'), $invoice_number),
+            'message'        => sprintf(
+                __('A new invoice %s for $%s has been issued. Due date: %s.', 'orabooks'),
+                $invoice_number,
+                number_format((float)$total_amount, 2),
+                $due_date ?: __('Not set', 'orabooks')
+            ),
+            'priority'       => 'normal',
+            'correlation_id' => 'invoice_' . $invoice_id,
+            'invoice_id'     => $invoice_id,
+            'invoice_number' => $invoice_number,
+            'total_amount'   => $total_amount,
+            'due_date'       => $due_date,
+        ], $org_id);
+    }
+
+    /**
+     * Handle payment_recorded event from SL-021.
+     * Notify the customer that a payment has been applied.
+     */
+    public function on_payment_recorded($payment_id, $data) {
+        $customer_user_id = !empty($data['customer_user_id']) ? (int)$data['customer_user_id'] : 0;
+        $org_id = !empty($data['org_id']) ? (int)$data['org_id'] : 0;
+        $invoice_number = !empty($data['invoice_number']) ? $data['invoice_number'] : '';
+        $amount = !empty($data['amount']) ? $data['amount'] : 0;
+        $new_status = !empty($data['new_status']) ? $data['new_status'] : '';
+
+        if (!$customer_user_id || !$org_id) {
+            return;
+        }
+
+        $status_label = [
+            'paid'    => __('paid in full', 'orabooks'),
+            'partial' => __('partially paid', 'orabooks'),
+        ];
+
+        self::send_notification($customer_user_id, 'payment_recorded', [
+            'title'          => sprintf(__('Payment Received: $%s', 'orabooks'), number_format((float)$amount, 2)),
+            'message'        => sprintf(
+                __('A payment of $%s has been applied to invoice %s. The invoice is now %s.', 'orabooks'),
+                number_format((float)$amount, 2),
+                $invoice_number,
+                $status_label[$new_status] ?? $new_status
+            ),
+            'priority'       => 'normal',
+            'correlation_id' => 'payment_' . $payment_id,
+            'payment_id'     => $payment_id,
+            'invoice_number' => $invoice_number,
+            'amount'         => $amount,
+            'new_status'     => $new_status,
+        ], $org_id);
+    }
+
+    /**
+     * Handle invoices_marked_overdue event from SL-021 daily cron.
+     * For each overdue invoice, notify the customer.
+     */
+    public function on_invoices_marked_overdue($overdue_count, $data) {
+        global $wpdb;
+
+        if (!$overdue_count) {
+            return;
+        }
+
+        // Fetch recently marked overdue invoices to notify each customer
+        $table_invoices = OraBooks_Database::table('invoices');
+        $table_customers = OraBooks_Database::table('customers');
+
+        $overdue_invoices = $wpdb->get_results(
+            "SELECT i.id, i.invoice_number, i.total_amount, i.due_date, i.org_id, c.user_id as customer_user_id
+             FROM {$table_invoices} i
+             JOIN {$table_customers} c ON i.customer_id = c.id
+             WHERE i.payment_status = 'overdue'
+               AND i.workflow_status IN ('sent', 'posted')
+               AND i.due_date < CURDATE()
+             ORDER BY i.due_date ASC
+             LIMIT 50"
+        );
+
+        foreach ($overdue_invoices as $inv) {
+            self::send_notification($inv->customer_user_id, 'invoice_overdue', [
+                'title'          => sprintf(__('Invoice Overdue: %s', 'orabooks'), $inv->invoice_number),
+                'message'        => sprintf(
+                    __('Invoice %s for $%s was due on %s and is now overdue. Please arrange payment to avoid service interruption.', 'orabooks'),
+                    $inv->invoice_number,
+                    number_format((float)$inv->total_amount, 2),
+                    $inv->due_date
+                ),
+                'priority'       => 'high',
+                'correlation_id' => 'overdue_' . $inv->id,
+                'invoice_id'     => (int)$inv->id,
+                'invoice_number' => $inv->invoice_number,
+                'total_amount'   => $inv->total_amount,
+                'due_date'       => $inv->due_date,
+            ], (int)$inv->org_id);
+        }
+    }
 
     // ================================================================
     // EXPORT EVENT HANDLERS (SL-114 Integration)
