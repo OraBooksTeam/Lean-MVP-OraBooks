@@ -20,6 +20,7 @@ class OraBooks_Ajax {
             add_action('wp_ajax_orabooks_suspend_org', [self::$instance, 'ajax_suspend_org']);
             add_action('wp_ajax_orabooks_activate_org', [self::$instance, 'ajax_activate_org']);
             add_action('wp_ajax_orabooks_list_users', [self::$instance, 'ajax_list_users']);
+            add_action('wp_ajax_orabooks_dashboard_stats', [self::$instance, 'ajax_dashboard_stats']);
             
             // Register settings
             add_action('admin_init', [self::$instance, 'register_settings']);
