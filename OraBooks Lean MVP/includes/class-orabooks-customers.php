@@ -860,6 +860,9 @@ class OraBooks_Customers {
      * @return array|WP_Error|null
      */
     private static function create_payment_journal_entry($org_id, $payment_id, $amount, $payment_date, $invoice_number, $user_id) {
+        // Use system user (0) for auto-posted journals to bypass maker-checker policy.
+        // System journals are self-approved since they are system-initiated, not user-initiated.
+        $system_user = 0;
         if (!class_exists('OraBooks_Posting')) {
             orabooks_log_event('journal_skipped_no_engine',
                 'Payment journal entry skipped: SL-001 posting engine not available',
@@ -890,7 +893,7 @@ class OraBooks_Customers {
             return null;
         }
 
-        // Create draft journal
+        // Create draft journal (use system user for auto-posting)
         $journal_id = OraBooks_Posting::create_journal([
             'org_id'           => $org_id,
             'transaction_date' => $payment_date,
@@ -898,12 +901,13 @@ class OraBooks_Customers {
             'source_id'        => $payment_id,
             'idempotency_key'  => 'payment_' . $payment_id,
             'metadata'         => [
-                'payment_id'     => $payment_id,
-                'invoice_number' => $invoice_number,
-                'amount'         => $amount,
-                'source'         => 'SL-021 invoice payment',
+                'payment_id'       => $payment_id,
+                'invoice_number'   => $invoice_number,
+                'amount'           => $amount,
+                'source'           => 'SL-021 invoice payment',
+                'recorded_by_user' => $user_id,
             ],
-        ], $user_id);
+        ], $system_user);
 
         if (is_wp_error($journal_id)) {
             orabooks_log_event('journal_creation_failed',
@@ -941,8 +945,8 @@ class OraBooks_Customers {
             return $result;
         }
 
-        // Auto-submit, approve, and post (system journal)
-        $submit = OraBooks_Posting::submit_journal($journal_id, $user_id);
+        // Auto-submit, approve, and post (system journal — use system user to bypass maker-checker)
+        $submit = OraBooks_Posting::submit_journal($journal_id, $system_user);
         if (is_wp_error($submit)) {
             orabooks_log_event('journal_submit_failed',
                 'Payment journal submit failed: ' . $submit->get_error_message(),
@@ -950,7 +954,7 @@ class OraBooks_Customers {
             return $submit;
         }
 
-        $approve = OraBooks_Posting::approve_journal($journal_id, $user_id);
+        $approve = OraBooks_Posting::approve_journal($journal_id, $system_user);
         if (is_wp_error($approve)) {
             orabooks_log_event('journal_approve_failed',
                 'Payment journal approval failed: ' . $approve->get_error_message(),
@@ -958,7 +962,7 @@ class OraBooks_Customers {
             return $approve;
         }
 
-        $post = OraBooks_Posting::post_journal($journal_id, $user_id);
+        $post = OraBooks_Posting::post_journal($journal_id, $system_user);
         if (is_wp_error($post)) {
             orabooks_log_event('journal_post_failed',
                 'Payment journal posting failed: ' . $post->get_error_message(),
