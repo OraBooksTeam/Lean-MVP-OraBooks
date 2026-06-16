@@ -15,7 +15,6 @@ global.document = global.document || {};
 Object.defineProperty(global.document, 'readyState', { value: 'complete', writable: false });
 
 const $ = require('jquery');
-// fs and path imports removed — loadScript helper was unused
 
 // --- Global WordPress-like objects ---
 global.window = global.window || {};
@@ -33,9 +32,41 @@ global.window.orabooks_ajax.current_user_id = 1;
 global.window.alert = jest.fn();
 global.window.confirm = jest.fn(() => true);
 
-// Location is not reliably mockable via defineProperty in jsdom.
-// Test files that need redirect assertions use a helper to reassign window.location.href directly.
-// If href is read-only, tests will use a spy on window.location.assign instead.
+// --- Mock window.location to prevent JSDOM navigation errors ---
+// JSDOM throws "Not implemented: navigation (except hash changes)" when
+// tests or code assign to window.location.href. Replace the Location
+// object with a writable plain-object mock instead.
+const locationMock = {
+  href: 'https://example.com/dashboard/',
+  protocol: 'https:',
+  host: 'example.com',
+  hostname: 'example.com',
+  port: '',
+  pathname: '/dashboard/',
+  search: '',
+  hash: '',
+  origin: 'https://example.com',
+  assign: jest.fn(),
+  replace: jest.fn(),
+  reload: jest.fn(),
+  toString: jest.fn(function () { return this.href; })
+};
+Object.defineProperty(global.window, 'location', {
+  configurable: true,
+  enumerable: true,
+  get: () => locationMock,
+  set: (val) => {
+    // Allow full replacement (e.g. `delete window.location; window.location = { href: '' }`)
+    Object.assign(locationMock, val);
+  }
+});
+
+// --- Stub HTMLFormElement.prototype.submit ---
+// JSDOM does not implement form submission. Stub to prevent
+// "Error: Not implemented: HTMLFormElement.prototype.submit"
+if (typeof HTMLFormElement !== 'undefined') {
+  HTMLFormElement.prototype.submit = jest.fn();
+}
 
 // Fake timers
 jest.useFakeTimers();
@@ -64,18 +95,50 @@ const ajaxResponses = {
 global.ajaxResponses = ajaxResponses;
 global.__ajaxResponses = ajaxResponses;
 
-// Spy on $.get and $.post — return a jqXHR-like object
+// ---- jqXHR-like mock for chaining support ----
+// Some code in frontend.js/admin.js chains `.fail()` and `.always()`
+// on $.get / $.post return values. Provide stub methods.
+function createMockJqXHR(url, data, callback, type) {
+  const entry = { url, data, callback };
+  ajaxResponses[type].push(entry);
+  return {
+    url, data, callback, type,
+    fail: jest.fn(function (fn) {
+      if (typeof fn === 'function') {
+        entry.failCallback = fn;
+      }
+      return this;
+    }),
+    always: jest.fn(function (fn) {
+      if (typeof fn === 'function') {
+        entry.alwaysCallback = fn;
+      }
+      return this;
+    }),
+    done: jest.fn(function (fn) {
+      if (typeof fn === 'function') {
+        entry.doneCallback = fn;
+      }
+      return this;
+    }),
+    then: jest.fn(function (fn) {
+      if (typeof fn === 'function') {
+        entry.thenCallback = fn;
+      }
+      return this;
+    })
+  };
+}
+
+// Spy on $.get and $.post — return a jqXHR-like object with chaining support
 jest.spyOn($, 'get').mockImplementation((url, data, callback) => {
   const type = 'get';
-  ajaxResponses.get.push({ url, data, callback });
-  // Store for later resolution in tests
-  return { url, data, callback, type };
+  return createMockJqXHR(url, data, callback, type);
 });
 
 jest.spyOn($, 'post').mockImplementation((url, data, callback) => {
   const type = 'post';
-  ajaxResponses.post.push({ url, data, callback });
-  return { url, data, callback, type };
+  return createMockJqXHR(url, data, callback, type);
 });
 
 // Helper to resolve the latest AJAX call
@@ -85,6 +148,21 @@ global.resolveAjax = function(type = 'post', responseData = {}, responseMessage 
   const call = calls.shift();
   if (call.callback) {
     call.callback(responseData);
+  }
+  // Also fire done/then callbacks if they were registered via chaining
+  if (typeof call.doneCallback === 'function') {
+    call.doneCallback(responseData);
+  }
+  if (typeof call.thenCallback === 'function') {
+    call.thenCallback(responseData);
+  }
+  // Invoke fail callback for error responses
+  if (responseData && responseData.error && typeof call.failCallback === 'function') {
+    call.failCallback(responseData);
+  }
+  // Always invoke always callback
+  if (typeof call.alwaysCallback === 'function') {
+    call.alwaysCallback(responseData);
   }
 };
 
