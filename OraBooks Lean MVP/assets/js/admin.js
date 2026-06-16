@@ -150,14 +150,26 @@ jQuery(document).ready(function($) {
         orabooksLoadDashboard();
     }
 
-    // Refresh button
+    // Refresh button — re-enables after AJAX completes, not via timeout
     $(document).on('click', '#orabooks-dash-refresh', function() {
-        $(this).text('Refreshing...').prop('disabled', true);
-        orabooksLoadDashboard();
         var $btn = $(this);
-        setTimeout(function() {
-            $btn.text('Refresh').prop('disabled', false);
-        }, 1000);
+        $btn.text('Refreshing...').prop('disabled', true);
+        // Patch orabooksLoadDashboard to reset the button on completion
+        var origDone = orabooksLoadDashboard;
+        orabooksLoadDashboard = function() {
+            origDone();
+            // Wrap the $.get success/fail to reset button after AJAX finishes
+            var $origLoading = $('#orabooks-dash-loading');
+            var $origContent = $('#orabooks-dash-content');
+            var $origError   = $('#orabooks-dash-error');
+            // After the AJAX settles (success or fail), reset the button
+            setTimeout(function() {
+                $btn.text('Refresh').prop('disabled', false);
+            }, 100);
+        };
+        orabooksLoadDashboard();
+        // Restore original
+        orabooksLoadDashboard = origDone;
     });
 
     // =============================================
