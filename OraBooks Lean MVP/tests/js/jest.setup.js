@@ -10,15 +10,15 @@
  * - Utility to load JS file content
  */
 
+// Set readyState to 'complete' so jQuery ready handlers fire immediately
+global.document = global.document || {};
+Object.defineProperty(global.document, 'readyState', { value: 'complete', writable: false });
+
 const $ = require('jquery');
 // fs and path imports removed — loadScript helper was unused
 
 // --- Global WordPress-like objects ---
 global.window = global.window || {};
-global.document = global.document || {};
-
-// Set readyState to 'complete' so jQuery ready handlers fire immediately
-Object.defineProperty(document, 'readyState', { value: 'complete', writable: false });
 
 // Provide orabooks_ajax global
 global.window.orabooks_ajax = {
@@ -61,6 +61,7 @@ const ajaxResponses = {
   get: [],
   post: []
 };
+global.ajaxResponses = ajaxResponses;
 global.__ajaxResponses = ajaxResponses;
 
 // Spy on $.get and $.post — return a jqXHR-like object
