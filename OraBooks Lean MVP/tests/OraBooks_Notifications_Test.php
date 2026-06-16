@@ -167,7 +167,6 @@ class OraBooks_Notifications_Test extends TestCase
         // test_on_invoices_marked_overdue_customer_notification_includes_view_url,
         // but here we directly test the helper method's output.
         $ref = new ReflectionMethod(OraBooks_Notifications::class, 'get_customer_dashboard_url');
-        $ref->setAccessible(true);
 
         $this->assertEquals(
             'http://example.com/dashboard/',
