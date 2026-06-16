@@ -176,37 +176,56 @@ jest.spyOn($, 'post').mockImplementation((url, data, callback) => {
 });
 
 // Helper to resolve the latest AJAX call.
-// If filter is provided (e.g. { action: 'orabooks_exports_list' }), finds
-// and resolves the matching call instead of the first one in the queue.
-global.resolveAjax = function(type = 'post', responseData = {}, filter) {
+// If action is provided as 3rd arg, finds and resolves the matching call
+// by filtering on data.action (much more reliable than shift()).
+global.resolveAjax = function(type, responseData, action) {
+  if (typeof type !== 'string') {
+    // Backwards compat: resolveAjax(responseData) — infer type from action
+    action = responseData;
+    responseData = type;
+    type = 'post';
+  }
+  responseData = responseData || {};
   const calls = ajaxResponses[type];
   let call;
-  if (filter && typeof filter === 'object' && Object.keys(filter).length > 0) {
-    const idx = calls.findIndex(function(c) {
-      return Object.keys(filter).every(function(key) {
-        return c.data && c.data[key] === filter[key];
-      });
-    });
-    if (idx === -1) {
-      throw new Error('No ' + type + ' AJAX call matching ' + JSON.stringify(filter));
+  if (action && typeof action === 'string') {
+    var foundIdx = -1;
+    for (var i = 0; i < calls.length; i++) {
+      if (calls[i].data && calls[i].data.action === action) {
+        foundIdx = i;
+        break;
+      }
     }
-    call = calls.splice(idx, 1)[0];
+    if (foundIdx === -1) throw new Error('No ' + type + ' AJAX call with action=' + action);
+    call = calls.splice(foundIdx, 1)[0];
+  } else if (action && typeof action === 'object') {
+    // Fallback: filter by key-value match
+    var keys = Object.keys(action);
+    var foundIdx = -1;
+    for (var i = 0; i < calls.length; i++) {
+      var match = true;
+      for (var k = 0; k < keys.length; k++) {
+        var key = keys[k];
+        if (!calls[i].data || calls[i].data[key] !== action[key]) {
+          match = false;
+          break;
+        }
+      }
+      if (match) {
+        foundIdx = i;
+        break;
+      }
+    }
+    if (foundIdx === -1) throw new Error('No ' + type + ' AJAX call matching ' + JSON.stringify(action));
+    call = calls.splice(foundIdx, 1)[0];
   } else {
     if (calls.length === 0) throw new Error('No ' + type + ' AJAX calls to resolve');
     call = calls.shift();
   }
-  if (call.callback) {
-    call.callback(responseData);
-  }
-  if (typeof call.doneCallback === 'function') {
-    call.doneCallback(responseData);
-  }
-  if (typeof call.thenCallback === 'function') {
-    call.thenCallback(responseData);
-  }
-  if (typeof call.alwaysCallback === 'function') {
-    call.alwaysCallback(responseData);
-  }
+  if (call.callback) call.callback(responseData);
+  if (typeof call.doneCallback === 'function') call.doneCallback(responseData);
+  if (typeof call.thenCallback === 'function') call.thenCallback(responseData);
+  if (typeof call.alwaysCallback === 'function') call.alwaysCallback(responseData);
 };
 
 
