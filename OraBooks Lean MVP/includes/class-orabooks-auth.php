@@ -458,11 +458,11 @@ class OraBooks_Auth {
         global $wpdb;
         
         $table_users = OraBooks_Database::table('users');
-        $token_hash = orabooks_hash_token($token);
         
+        // Token is stored in plaintext in the database (not hashed), per spec
         $user = $wpdb->get_row($wpdb->prepare(
             "SELECT * FROM {$table_users} WHERE email_verification_token = %s AND email_verification_expires_at > NOW()",
-            $token_hash
+            $token
         ));
         
         if (!$user) {
