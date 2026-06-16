@@ -165,6 +165,76 @@ function orabooks_init() {
     OraBooks_AsyncQueue::register_handler('generate_export', ['OraBooks_Exports', 'generate_export_job']);
 }
 
+/**
+ * Create a WordPress page with shortcode content if it doesn't already exist
+ */
+function orabooks_create_page($slug, $title, $shortcode, $parent_slug = '') {
+    $existing = get_page_by_path($slug, OBJECT, 'page');
+    if ($existing) {
+        return $existing->ID;
+    }
+    
+    $page_data = [
+        'post_title'    => $title,
+        'post_content'  => '<!-- wp:shortcode -->' . $shortcode . '<!-- /wp:shortcode -->',
+        'post_status'   => 'publish',
+        'post_type'     => 'page',
+        'post_name'     => $slug,
+        'comment_status' => 'closed',
+        'ping_status'   => 'closed',
+    ];
+    
+    if (!empty($parent_slug)) {
+        $parent = get_page_by_path($parent_slug, OBJECT, 'page');
+        if ($parent) {
+            $page_data['post_parent'] = $parent->ID;
+        }
+    }
+    
+    return wp_insert_post($page_data);
+}
+
+/**
+ * Create all required OraBooks frontend pages on activation
+ */
+function orabooks_create_required_pages() {
+    $pages = [
+        // Main auth pages
+        'login'               => ['Login', '[orabooks_login]'],
+        'register'            => ['Register', '[orabooks_register]'],
+        'verify-email'        => ['Verify Email', '[orabooks_verify_email]'],
+        'reset-password'      => ['Reset Password', '[orabooks_reset_password]'],
+        'tier-selection'      => ['Choose Your Plan', '[orabooks_tier_selection]'],
+        
+        // Partner pages
+        'partner-onboarding'  => ['Partner Onboarding', '[orabooks_partner_onboarding]'],
+        'partner-program'     => ['Partner Program', '[orabooks_partner_dashboard]'],
+        
+        // Dashboard
+        'dashboard'           => ['Dashboard', '[orabooks_dashboard]'],
+        
+        // Notification pages
+        'notifications'       => ['Notifications', '[orabooks_notification_center]'],
+        'notification-preferences' => ['Notification Preferences', '[orabooks_notification_preferences]'],
+        
+        // Exports
+        'my-exports'          => ['My Exports', '[orabooks_export_status]'],
+    ];
+    
+    // Create a parent page "OraBooks" if needed (optional)
+    $created_ids = [];
+    
+    foreach ($pages as $slug => $config) {
+        $page_id = orabooks_create_page($slug, $config[0], $config[1]);
+        $created_ids[$slug] = $page_id;
+    }
+    
+    // Store created page IDs in options for reference
+    update_option('orabooks_pages', $created_ids);
+    
+    return $created_ids;
+}
+
 // Activation hook
 register_activation_hook(__FILE__, 'orabooks_activate');
 function orabooks_activate() {
@@ -174,6 +244,9 @@ function orabooks_activate() {
     // Flush rewrite rules so OIDC routes (/orabooks-google-login, /orabooks-google-callback) work
     orabooks_oidc_rewrite_rules();
     flush_rewrite_rules();
+    
+    // Create required frontend pages with shortcodes
+    orabooks_create_required_pages();
     
     // Set default options
     add_option('orabooks_db_version', ORABOOKS_DB_VERSION);
