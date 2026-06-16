@@ -854,19 +854,25 @@ class OraBooks_Customers {
     }
 
     /**
-     * Get a single customer.
+     * Get a single customer. Accepts either customer_id (customers.id)
+     * or user_id (users table ID).
      */
     public function ajax_customer_get() {
         if (!current_user_can('manage_options')) {
             orabooks_json_error('Permission denied', 403);
         }
 
+        $customer_id = intval($_GET['customer_id'] ?? 0);
         $user_id = intval($_GET['user_id'] ?? 0);
-        if (!$user_id) {
-            orabooks_json_error('User ID required', 400);
+
+        if ($customer_id) {
+            $customer = self::get_by_id($customer_id);
+        } elseif ($user_id) {
+            $customer = self::get_by_user_id($user_id);
+        } else {
+            orabooks_json_error('customer_id or user_id required', 400);
         }
 
-        $customer = self::get_by_user_id($user_id);
         if (!$customer) {
             orabooks_json_error('Customer not found', 404);
         }
