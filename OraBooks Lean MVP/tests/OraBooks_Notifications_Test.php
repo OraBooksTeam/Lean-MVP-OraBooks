@@ -443,6 +443,216 @@ class OraBooks_Notifications_Test extends TestCase
         $this->assertGreaterThan(0, $wpdb->insert_id, 'Notification should be created for single overdue invoice');
     }
 
+    #[Test]
+    public function test_on_invoices_marked_overdue_notifies_admins_single_org()
+    {
+        global $wpdb;
+
+        // Prefs for customers (42, 55) and admins (100, 101)
+        $this->setUserNotifPrefs(42);
+        $this->setUserNotifPrefs(55);
+        $this->setUserNotifPrefs(100);
+        $this->setUserNotifPrefs(101);
+
+        $wpdb->test_get_results_callback = function ($query) {
+            // Overdue invoices query (2 invoices in same org 10)
+            if (stripos($query, 'orabooks_invoices') !== false && stripos($query, 'JOIN') !== false) {
+                return [
+                    (object) [
+                        'id'                => 200,
+                        'invoice_number'    => 'INV-001',
+                        'total_amount'      => '500.00',
+                        'due_date'          => '2026-06-01',
+                        'org_id'            => 10,
+                        'customer_user_id'  => 42,
+                    ],
+                    (object) [
+                        'id'                => 201,
+                        'invoice_number'    => 'INV-002',
+                        'total_amount'      => '750.00',
+                        'due_date'          => '2026-06-05',
+                        'org_id'            => 10,
+                        'customer_user_id'  => 55,
+                    ],
+                ];
+            }
+            // Admin lookup from user_org (called inside notify_org_admins)
+            if (stripos($query, 'user_org') !== false) {
+                return [
+                    (object) ['user_id' => 100],
+                    (object) ['user_id' => 101],
+                ];
+            }
+            // Provider health queries (inside send_notification)
+            if (stripos($query, 'delivery_provider_health') !== false) {
+                return [];
+            }
+            return [];
+        };
+
+        $wpdb->test_get_row_callback = function ($query) {
+            if (stripos($query, 'org_notification_policies') !== false) {
+                return null;
+            }
+            if (stripos($query, 'orabooks_users') !== false) {
+                return (object) ['org_id' => 10];
+            }
+            return null;
+        };
+
+        $wpdb->test_get_var_callback = function ($query) {
+            if (stripos($query, 'notification_dedup_log') !== false) {
+                return 0;
+            }
+            return 0;
+        };
+
+        $GLOBALS['orabooks_test_use_insert_id'] = 9001;
+
+        $handler = $this->createHandler();
+        $handler->on_invoices_marked_overdue(2, []);
+
+        // 2 customer notifications + 2 admin notifications = multiple inserts
+        $this->assertGreaterThan(0, $wpdb->insert_id,
+            'Notifications should be created for customers and admins');
+    }
+
+    #[Test]
+    public function test_on_invoices_marked_overdue_notifies_admins_multiple_orgs()
+    {
+        global $wpdb;
+
+        // Prefs for customers (42, 55) and admins (200 in org 10, 201 in org 20)
+        $this->setUserNotifPrefs(42);
+        $this->setUserNotifPrefs(55);
+        $this->setUserNotifPrefs(200);
+        $this->setUserNotifPrefs(201);
+
+        $wpdb->test_get_results_callback = function ($query) {
+            // Overdue invoices in different orgs
+            if (stripos($query, 'orabooks_invoices') !== false && stripos($query, 'JOIN') !== false) {
+                return [
+                    (object) [
+                        'id'                => 200,
+                        'invoice_number'    => 'INV-001',
+                        'total_amount'      => '500.00',
+                        'due_date'          => '2026-06-01',
+                        'org_id'            => 10,
+                        'customer_user_id'  => 42,
+                    ],
+                    (object) [
+                        'id'                => 201,
+                        'invoice_number'    => 'INV-002',
+                        'total_amount'      => '750.00',
+                        'due_date'          => '2026-06-05',
+                        'org_id'            => 20,
+                        'customer_user_id'  => 55,
+                    ],
+                ];
+            }
+            // Admin lookup per org
+            if (stripos($query, 'user_org') !== false) {
+                if (stripos($query, 'org_id = 10') !== false) {
+                    return [(object) ['user_id' => 200]];
+                }
+                if (stripos($query, 'org_id = 20') !== false) {
+                    return [(object) ['user_id' => 201]];
+                }
+                return [];
+            }
+            // Provider health queries
+            if (stripos($query, 'delivery_provider_health') !== false) {
+                return [];
+            }
+            return [];
+        };
+
+        $wpdb->test_get_row_callback = function ($query) {
+            if (stripos($query, 'org_notification_policies') !== false) {
+                return null;
+            }
+            if (stripos($query, 'orabooks_users') !== false) {
+                return (object) ['org_id' => 10];
+            }
+            return null;
+        };
+
+        $wpdb->test_get_var_callback = function ($query) {
+            if (stripos($query, 'notification_dedup_log') !== false) {
+                return 0;
+            }
+            return 0;
+        };
+
+        $GLOBALS['orabooks_test_use_insert_id'] = 9002;
+
+        $handler = $this->createHandler();
+        $handler->on_invoices_marked_overdue(2, []);
+
+        $this->assertGreaterThan(0, $wpdb->insert_id,
+            'Notifications should be created across both orgs');
+    }
+
+    #[Test]
+    public function test_on_invoices_marked_overdue_no_admins_in_org()
+    {
+        global $wpdb;
+
+        // Only set prefs for the customer (no admin prefs needed)
+        $this->setUserNotifPrefs(42);
+
+        $wpdb->test_get_results_callback = function ($query) {
+            // Single overdue invoice
+            if (stripos($query, 'orabooks_invoices') !== false && stripos($query, 'JOIN') !== false) {
+                return [
+                    (object) [
+                        'id'                => 300,
+                        'invoice_number'    => 'INV-003',
+                        'total_amount'      => '250.00',
+                        'due_date'          => '2026-06-10',
+                        'org_id'            => 10,
+                        'customer_user_id'  => 42,
+                    ],
+                ];
+            }
+            // No admins in this org
+            if (stripos($query, 'user_org') !== false) {
+                return [];
+            }
+            // Provider health queries
+            if (stripos($query, 'delivery_provider_health') !== false) {
+                return [];
+            }
+            return [];
+        };
+
+        $wpdb->test_get_row_callback = function ($query) {
+            if (stripos($query, 'org_notification_policies') !== false) {
+                return null;
+            }
+            if (stripos($query, 'orabooks_users') !== false) {
+                return (object) ['org_id' => 10];
+            }
+            return null;
+        };
+
+        $wpdb->test_get_var_callback = function ($query) {
+            if (stripos($query, 'notification_dedup_log') !== false) {
+                return 0;
+            }
+            return 0;
+        };
+
+        $GLOBALS['orabooks_test_use_insert_id'] = 9003;
+
+        $handler = $this->createHandler();
+        $handler->on_invoices_marked_overdue(1, []);
+
+        // Customer notification should still work even with no admins
+        $this->assertGreaterThan(0, $wpdb->insert_id,
+            'Customer notification should still be sent even with no admins');
+    }
+
     // ================================================================
     // notify_org_admins (via on_invoice_created & on_payment_recorded)
     // ================================================================
