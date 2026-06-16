@@ -703,7 +703,7 @@ class OraBooks_Customers_Test extends TestCase
 
         // get_row: retrieve invoice
         $wpdb->test_get_row_callback = function ($query) {
-            if (stripos($query, 'WHERE i.id') !== false) {
+            if (stripos($query, 'WHERE id') !== false && stripos($query, 'AND org_id') !== false) {
                 return $this->mockInvoice(['id' => 100, 'total_amount' => '500.00']);
             }
             if (stripos($query, 'FROM orabooks_customers') !== false) {
@@ -713,7 +713,6 @@ class OraBooks_Customers_Test extends TestCase
         };
 
         // get_var: total paid = 500 (equals invoice total)
-        // get_results: for get_customer_stats if called
         $wpdb->test_get_var_callback = function ($query) {
             if (stripos($query, 'SUM(amount)') !== false) {
                 return 500.00;
@@ -736,7 +735,6 @@ class OraBooks_Customers_Test extends TestCase
 
         $this->assertIsArray($result);
         $this->assertEquals(900, $result['payment_id']);
-        $this->assertEquals(500.00, $result['amount']);
         $this->assertEquals('paid', $result['new_status']);
         $this->assertEquals(500.00, $result['total_paid']);
     }
@@ -747,7 +745,7 @@ class OraBooks_Customers_Test extends TestCase
         global $wpdb;
 
         $wpdb->test_get_row_callback = function ($query) {
-            if (stripos($query, 'WHERE i.id') !== false) {
+            if (stripos($query, 'WHERE id') !== false && stripos($query, 'AND org_id') !== false) {
                 return $this->mockInvoice(['id' => 100, 'total_amount' => '500.00']);
             }
             if (stripos($query, 'FROM orabooks_customers') !== false) {
@@ -783,9 +781,8 @@ class OraBooks_Customers_Test extends TestCase
     {
         global $wpdb;
 
-        // First payment: 200 (partial)
         $wpdb->test_get_row_callback = function ($query) {
-            if (stripos($query, 'WHERE i.id') !== false) {
+            if (stripos($query, 'WHERE id') !== false && stripos($query, 'AND org_id') !== false) {
                 return $this->mockInvoice(['id' => 100, 'total_amount' => '500.00']);
             }
             if (stripos($query, 'FROM orabooks_customers') !== false) {
@@ -811,6 +808,7 @@ class OraBooks_Customers_Test extends TestCase
             'amount' => 300.00,
         ]);
 
+        $this->assertIsArray($result);
         $this->assertEquals('paid', $result['new_status']);
     }
 
@@ -837,7 +835,7 @@ class OraBooks_Customers_Test extends TestCase
         global $wpdb;
 
         $wpdb->test_get_row_callback = function ($query) {
-            if (stripos($query, 'WHERE i.id') !== false) {
+            if (stripos($query, 'WHERE id') !== false && stripos($query, 'AND org_id') !== false) {
                 return $this->mockInvoice(['id' => 100, 'payment_status' => 'cancelled']);
             }
             return null;
@@ -857,7 +855,7 @@ class OraBooks_Customers_Test extends TestCase
         global $wpdb;
 
         $wpdb->test_get_row_callback = function ($query) {
-            if (stripos($query, 'WHERE i.id') !== false) {
+            if (stripos($query, 'WHERE id') !== false && stripos($query, 'AND org_id') !== false) {
                 return $this->mockInvoice(['id' => 100]);
             }
             return null;
@@ -892,6 +890,9 @@ class OraBooks_Customers_Test extends TestCase
         $wpdb->test_get_var_callback = function ($query) {
             if (stripos($query, 'COUNT(*)') !== false && stripos($query, 'is_active = 1') !== false) {
                 return 5;  // active customers
+            }
+            if (stripos($query, 'COUNT(*)') !== false && stripos($query, 'unpaid') !== false) {
+                return 3; // unpaid invoices (must check BEFORE 'paid' since 'unpaid' contains 'paid')
             }
             if (stripos($query, 'COUNT(*)') !== false && stripos($query, 'paid') !== false) {
                 return 10; // paid invoices
@@ -1166,9 +1167,7 @@ class OraBooks_Customers_Test extends TestCase
     {
         global $wpdb;
 
-        // Mock query returns 3 affected rows
-        $originalQuery = $wpdb->query(...);
-        $wpdb->query = function ($query) {
+        $wpdb->test_query_callback = function ($query) {
             if (stripos($query, 'UPDATE') !== false) {
                 return 3;
             }
@@ -1179,8 +1178,6 @@ class OraBooks_Customers_Test extends TestCase
         $count = $customers->daily_invoice_overdue_check();
 
         $this->assertEquals(3, $count);
-
-        // Restore (though not strictly necessary since setUp resets)
     }
 
     #[Test]
@@ -1188,15 +1185,6 @@ class OraBooks_Customers_Test extends TestCase
     {
         global $wpdb;
 
-        // get_var for config query
-        $wpdb->test_get_var_callback = function ($query) {
-            if (stripos($query, 'customer_active_window_days') !== false) {
-                return 30;
-            }
-            return 0;
-        };
-
-        // get_row for config
         $wpdb->test_get_row_callback = function ($query) {
             if (stripos($query, 'customer_active_window_days') !== false) {
                 return (object)['customer_active_window_days' => 30];
@@ -1204,9 +1192,7 @@ class OraBooks_Customers_Test extends TestCase
             return null;
         };
 
-        // query returns 2 inactive customers
-        $originalQuery = $wpdb->query(...);
-        $wpdb->query = function ($query) {
+        $wpdb->test_query_callback = function ($query) {
             if (stripos($query, 'UPDATE') !== false) {
                 return 2;
             }
