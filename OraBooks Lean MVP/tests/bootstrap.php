@@ -470,7 +470,7 @@ if (!function_exists('admin_url')) {
 if (!function_exists('add_query_arg')) {
     function add_query_arg($key, $value, $url) {
         $separator = strpos($url, '?') === false ? '?' : '&';
-        return rtrim($url, '/') . $separator . urlencode($key) . '=' . urlencode($value);
+        return $url . $separator . urlencode($key) . '=' . urlencode($value);
     }
 }
 
