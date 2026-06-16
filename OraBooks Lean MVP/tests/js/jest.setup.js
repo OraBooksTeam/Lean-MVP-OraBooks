@@ -42,30 +42,20 @@ if (origLocation) {
   origLocation.assign = jest.fn();
   origLocation.replace = jest.fn();
   origLocation.reload = jest.fn();
-  // Override Location.prototype href getter/setter to prevent JSDOM navigation
-  // Instance-level Object.defineProperty doesn't work in JSDOM's Location
-  // because the prototype getter/setter takes precedence via internal machinery.
+  // Override Location.prototype href getter/setter unconditionally to prevent
+  // JSDOM navigation errors. JSDOM's Location uses a prototype getter/setter
+  // that can't be shadowed by instance data properties.
   try {
     const locProto = Object.getPrototypeOf(origLocation);
-    const desc = Object.getOwnPropertyDescriptor(locProto, 'href');
-    if (desc && desc.get) {
-      Object.defineProperty(locProto, 'href', {
-        get() { return this._href || 'https://example.com/dashboard/'; },
-        set(v) { this._href = String(v); },
-        configurable: true
-      });
-    }
+    // Set an initial _href so the getter has a default
+    origLocation._href = 'https://example.com/dashboard/';
+    Object.defineProperty(locProto, 'href', {
+      get() { return this._href || 'https://example.com/dashboard/'; },
+      set(v) { this._href = String(v); },
+      configurable: true
+    });
   } catch (e) {
-    // Fallback: try instance-level override
-    try {
-      Object.defineProperty(origLocation, 'href', {
-        writable: true,
-        value: origLocation.href || 'https://example.com/dashboard/',
-        configurable: true
-      });
-    } catch (e2) {
-      // Some JSDOM versions may block everything — ignore
-    }
+    // Some JSDOM versions may block prototype manipulation — ignore
   }
 }
 
