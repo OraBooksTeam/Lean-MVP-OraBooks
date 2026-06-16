@@ -38,6 +38,7 @@ require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-notifications.php';
 require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-event-bus.php';
 require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-async-queue.php';
 require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-exports.php';
+require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-customers.php';
 require_once ORABOOKS_PLUGIN_DIR . 'includes/helpers.php';
 
 // Initialize plugin
@@ -67,6 +68,7 @@ function orabooks_init() {
     OraBooks_AsyncQueue::init();
     OraBooks_AsyncQueue::register_default_handlers();
     OraBooks_Exports::init();
+    OraBooks_Customers::init();
     OraBooks_Exports::register_report_provider('coa', function($params) {
         // Reuse OraBooks_COA if available
         if (class_exists('OraBooks_COA') && method_exists('OraBooks_COA', 'get_accounts')) {
@@ -204,6 +206,8 @@ function orabooks_deactivate() {
     wp_clear_scheduled_hook('orabooks_async_queue_heartbeat');
     wp_clear_scheduled_hook('orabooks_async_queue_monitor');
     wp_clear_scheduled_hook('orabooks_exports_cleanup');
+    wp_clear_scheduled_hook('orabooks_daily_customer_status_check');
+    wp_clear_scheduled_hook('orabooks_daily_invoice_overdue_check');
 }
 
 // Add custom cron schedule for every_minute
@@ -319,6 +323,16 @@ function orabooks_admin_menu() {
         'orabooks_admin_coa'
     );
 
+    // Customers & Invoices page (admin only)
+    add_submenu_page(
+        'orabooks',
+        'Customers & Invoices',
+        'Customers & Invoices',
+        'manage_options',
+        'orabooks-customers',
+        'orabooks_admin_customers'
+    );
+
     // My Exports page
     add_submenu_page(
         'orabooks',
@@ -345,6 +359,10 @@ function orabooks_admin_exports() {
 }
 function orabooks_admin_coa() {
     include ORABOOKS_PLUGIN_DIR . 'admin/coa.php';
+}
+
+function orabooks_admin_customers() {
+    include ORABOOKS_PLUGIN_DIR . 'admin/customers.php';
 }
 function orabooks_admin_dashboard() {
     include ORABOOKS_PLUGIN_DIR . 'admin/dashboard.php';

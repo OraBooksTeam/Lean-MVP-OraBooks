@@ -247,43 +247,55 @@ class OraBooks_Commission {
 
     /**
      * Refresh active status for a single customer
-     * Uses SL-021 invoices table if available, otherwise marks as active
-     * (Invoices dependency: when SL-021 is built, this checks paid invoices)
+     * Uses SL-021 customers.is_active as the authoritative truth source.
+     * Falls back to SL-021 invoices table if customers table not yet seeded,
+     * then to optimistic active if neither is available.
      */
     public static function refresh_customer_active_status($customer_id) {
         global $wpdb;
         
         $table_active = OraBooks_Database::table('customer_active_status');
+        $table_customers = OraBooks_Database::table('customers');
+        $table_invoices = OraBooks_Database::table('invoices');
         $config = self::get_config();
         $window_days = $config ? $config->customer_active_window_days : 30;
-        
-        // Check if SL-021 invoices table exists
-        $invoices_table = $wpdb->prefix . 'orabooks_invoices';
-        $table_exists = $wpdb->get_var("SHOW TABLES LIKE '{$invoices_table}'");
         
         $is_active = 0;
         $last_paid_date = null;
         
-        if ($table_exists) {
-            // SL-021 exists: check for recent paid invoices
-            $invoice = $wpdb->get_row($wpdb->prepare(
-                "SELECT MAX(transaction_date) as last_paid
-                 FROM {$invoices_table} 
-                 WHERE customer_id = %d 
-                   AND payment_status IN ('paid', 'partial') 
-                   AND workflow_status = 'posted'
-                   AND transaction_date >= DATE_SUB(CURDATE(), INTERVAL %d DAY)",
-                $customer_id,
-                $window_days
+        // Check if SL-021 customers table exists
+        $customers_exists = $wpdb->get_var("SHOW TABLES LIKE '{$table_customers}'");
+        
+        if ($customers_exists) {
+            // SL-021 exists: use customers.is_active as truth source
+            $customer = $wpdb->get_row($wpdb->prepare(
+                "SELECT is_active, last_paid_invoice_date FROM {$table_customers} WHERE id = %d",
+                $customer_id
             ));
             
-            if ($invoice && $invoice->last_paid) {
-                $is_active = 1;
-                $last_paid_date = $invoice->last_paid;
+            if ($customer) {
+                $is_active = (int) $customer->is_active;
+                $last_paid_date = $customer->last_paid_invoice_date;
+            } else {
+                // Customer not yet in SL-021 customers table — check invoices directly
+                $invoice = $wpdb->get_row($wpdb->prepare(
+                    "SELECT MAX(transaction_date) as last_paid
+                     FROM {$table_invoices} 
+                     WHERE customer_id = %d 
+                       AND payment_status IN ('paid', 'partial') 
+                       AND workflow_status = 'posted'
+                       AND transaction_date >= DATE_SUB(CURDATE(), INTERVAL %d DAY)",
+                    $customer_id,
+                    $window_days
+                ));
+                
+                if ($invoice && $invoice->last_paid) {
+                    $is_active = 1;
+                    $last_paid_date = $invoice->last_paid;
+                }
             }
         } else {
-            // SL-021 not yet built: treat as active (optimistic)
-            // Partner can earn commission; will be refined when SL-021 exists
+            // SL-021 not yet installed: treat as active (optimistic)
             $is_active = 1;
         }
         

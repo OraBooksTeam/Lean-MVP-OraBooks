@@ -678,6 +678,25 @@ class OraBooks_Database {
         }
 
         // ============================================================
+        // SL-021: Customers / Invoices / AR Module
+        // ============================================================
+        $customer_tables = OraBooks_Customers::get_create_table_sql();
+        foreach ($customer_tables as $sql) {
+            dbDelta($sql);
+        }
+
+        // Seed customer records for existing users in partner_attributions
+        OraBooks_Customers::seed_default_customers();
+
+        // Schedule SL-021 cron jobs
+        if (!wp_next_scheduled('orabooks_daily_customer_status_check')) {
+            wp_schedule_event(time(), 'daily', 'orabooks_daily_customer_status_check');
+        }
+        if (!wp_next_scheduled('orabooks_daily_invoice_overdue_check')) {
+            wp_schedule_event(time(), 'daily', 'orabooks_daily_invoice_overdue_check');
+        }
+
+        // ============================================================
         // SL-250: Notification Center Tables
         // ============================================================
         $notification_tables = OraBooks_Notifications::get_create_table_sql();
