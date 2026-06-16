@@ -222,7 +222,23 @@ class OraBooks_Customers {
     }
 
     /**
-     * List customers for an organization with optional filters.
+     * Get customer by customers table ID.
+     */
+    public static function get_by_id($customer_id) {
+        global $wpdb;
+        $table = OraBooks_Database::table('customers');
+        return $wpdb->get_row($wpdb->prepare(
+            "SELECT c.*, u.email, u.is_email_verified, u.created_at as user_created_at
+             FROM {$table} c
+             JOIN {$wpdb->prefix}orabooks_users u ON c.user_id = u.id
+             WHERE c.id = %d",
+            $customer_id
+        ));
+    }
+
+    /**
+     * List customers with optional filters.
+     * Pass org_id = 0 for global admin view (all orgs).
      */
     public static function get_list($org_id, $args = []) {
         global $wpdb;
@@ -230,9 +246,15 @@ class OraBooks_Customers {
         $table = OraBooks_Database::table('customers');
         $table_users = OraBooks_Database::table('users');
         $table_invoices = OraBooks_Database::table('invoices');
+        $table_orgs = OraBooks_Database::table('organizations');
 
-        $where = 'c.org_id = %d';
-        $params = [$org_id];
+        $where = '1=1';
+        $params = [];
+
+        if ($org_id > 0) {
+            $where = 'c.org_id = %d';
+            $params[] = $org_id;
+        }
 
         if (isset($args['is_active'])) {
             $where .= ' AND c.is_active = %d';
@@ -249,11 +271,12 @@ class OraBooks_Customers {
         $limit = $args['limit'] ?? 50;
         $offset = $args['offset'] ?? 0;
 
-        $sql = "SELECT c.*, u.email,
+        $sql = "SELECT c.*, u.email, o.name as org_name,
                        (SELECT COUNT(*) FROM {$table_invoices} WHERE customer_id = c.id) as invoice_count,
                        (SELECT COALESCE(SUM(total_amount), 0) FROM {$table_invoices} WHERE customer_id = c.id AND payment_status IN ('paid', 'partial')) as total_paid
                 FROM {$table} c
                 JOIN {$table_users} u ON c.user_id = u.id
+                LEFT JOIN {$table_orgs} o ON c.org_id = o.id
                 WHERE {$where}
                 ORDER BY c.updated_at DESC
                 LIMIT %d OFFSET %d";
@@ -263,8 +286,11 @@ class OraBooks_Customers {
         $results = $wpdb->get_results($wpdb->prepare($sql, $params));
 
         // Get total count
-        $count_sql = "SELECT COUNT(*) FROM {$table} c JOIN {$table_users} u ON c.user_id = u.id WHERE {$where}";
-        $total = (int) $wpdb->get_var($wpdb->prepare($count_sql, array_slice($params, 0, count($params) - 2)));
+        $count_params = $params;
+        array_pop($count_params); // remove limit
+        array_pop($count_params); // remove offset
+        $count_sql = "SELECT COUNT(*) FROM {$table} c JOIN {$table_users} u ON c.user_id = u.id LEFT JOIN {$table_orgs} o ON c.org_id = o.id WHERE {$where}";
+        $total = (int) $wpdb->get_var($wpdb->prepare($count_sql, $count_params));
 
         return [
             'customers' => $results,
@@ -435,7 +461,8 @@ class OraBooks_Customers {
     }
 
     /**
-     * List invoices for an organization with filters.
+     * List invoices with filters.
+     * Pass org_id = 0 for global admin view (all orgs).
      */
     public static function get_invoices_list($org_id, $args = []) {
         global $wpdb;
@@ -443,9 +470,15 @@ class OraBooks_Customers {
         $table = OraBooks_Database::table('invoices');
         $table_customers = OraBooks_Database::table('customers');
         $table_users = OraBooks_Database::table('users');
+        $table_orgs = OraBooks_Database::table('organizations');
 
-        $where = 'i.org_id = %d';
-        $params = [$org_id];
+        $where = '1=1';
+        $params = [];
+
+        if ($org_id > 0) {
+            $where = 'i.org_id = %d';
+            $params[] = $org_id;
+        }
 
         if (!empty($args['customer_id'])) {
             $where .= ' AND i.customer_id = %d';
@@ -475,11 +508,12 @@ class OraBooks_Customers {
         $limit = $args['limit'] ?? 50;
         $offset = $args['offset'] ?? 0;
 
-        $sql = "SELECT i.*, u.email as customer_email,
+        $sql = "SELECT i.*, u.email as customer_email, o.name as org_name,
                        (SELECT COALESCE(SUM(amount), 0) FROM {$wpdb->prefix}orabooks_payments WHERE invoice_id = i.id) as total_paid_amount
                 FROM {$table} i
                 JOIN {$table_customers} c ON i.customer_id = c.id
                 JOIN {$table_users} u ON c.user_id = u.id
+                LEFT JOIN {$table_orgs} o ON i.org_id = o.id
                 WHERE {$where}
                 ORDER BY i.transaction_date DESC
                 LIMIT %d OFFSET %d";
