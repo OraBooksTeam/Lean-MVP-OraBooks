@@ -93,6 +93,7 @@ class OraBooks_Customers {
             last_payment_date DATE NULL,
             metadata JSON NULL,
             idempotency_key VARCHAR(128),
+            overdue_notified_at TIMESTAMP NULL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
             FOREIGN KEY (org_id) REFERENCES {$wpdb->prefix}orabooks_organizations(id) ON DELETE CASCADE,
@@ -102,7 +103,8 @@ class OraBooks_Customers {
             INDEX idx_payment_status (payment_status),
             INDEX idx_workflow (workflow_status),
             INDEX idx_due_date (due_date),
-            INDEX idx_transaction_date (transaction_date)
+            INDEX idx_transaction_date (transaction_date),
+            INDEX idx_overdue_notified (payment_status, overdue_notified_at)
         ) {$charset_collate};";
 
         // SL-021: payments table
@@ -819,10 +821,12 @@ class OraBooks_Customers {
 
         $overdue_count = $wpdb->query(
             "UPDATE {$table}
-             SET payment_status = 'overdue'
+             SET payment_status = 'overdue',
+                 overdue_notified_at = NOW()
              WHERE payment_status IN ('unpaid', 'partial')
                AND workflow_status IN ('sent', 'posted')
-               AND due_date < CURDATE()"
+               AND due_date < CURDATE()
+               AND overdue_notified_at IS NULL"
         );
 
         if ($overdue_count > 0) {

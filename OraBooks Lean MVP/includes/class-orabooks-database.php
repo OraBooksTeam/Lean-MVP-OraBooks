@@ -706,6 +706,17 @@ class OraBooks_Database {
         if (!wp_next_scheduled('orabooks_daily_customer_status_check')) {
             wp_schedule_event(time(), 'daily', 'orabooks_daily_customer_status_check');
         }
+        // Migration: add overdue_notified_at column for existing invoices (prevents duplicate overdue reminders)
+        $table_invoices = $wpdb->prefix . 'orabooks_invoices';
+        $invoice_cols = $wpdb->get_results("SHOW COLUMNS FROM {$table_invoices}");
+        $existing_invoice_cols = [];
+        foreach ($invoice_cols as $col) {
+            $existing_invoice_cols[] = $col->Field;
+        }
+        if (!in_array('overdue_notified_at', $existing_invoice_cols)) {
+            $wpdb->query("ALTER TABLE {$table_invoices} ADD COLUMN overdue_notified_at TIMESTAMP NULL AFTER paid_at");
+        }
+
         if (!wp_next_scheduled('orabooks_daily_invoice_overdue_check')) {
             wp_schedule_event(time(), 'daily', 'orabooks_daily_invoice_overdue_check');
         }

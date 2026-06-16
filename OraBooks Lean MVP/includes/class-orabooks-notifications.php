@@ -1531,12 +1531,13 @@ class OraBooks_Notifications {
         $table_customers = OraBooks_Database::table('customers');
 
         $overdue_invoices = $wpdb->get_results(
-            "SELECT i.id, i.invoice_number, i.total_amount, i.due_date, i.org_id, c.user_id as customer_user_id
+            "SELECT i.id, i.invoice_number, i.total_amount, i.due_date, i.org_id, i.overdue_notified_at, c.user_id as customer_user_id
              FROM {$table_invoices} i
              JOIN {$table_customers} c ON i.customer_id = c.id
              WHERE i.payment_status = 'overdue'
                AND i.workflow_status IN ('sent', 'posted')
                AND i.due_date < CURDATE()
+               AND i.overdue_notified_at IS NULL
              ORDER BY i.due_date ASC
              LIMIT 50"
         );
