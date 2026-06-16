@@ -1418,10 +1418,15 @@ class OraBooks_Notifications {
 
     /**
      * Get the customer-facing dashboard URL for view links in notifications.
+     * Optionally include an invoice ID for deep linking.
      */
-    private static function get_customer_dashboard_url(): string
+    private static function get_customer_dashboard_url(int $invoice_id = 0): string
     {
-        return home_url('/dashboard/');
+        $url = home_url('/dashboard/');
+        if ($invoice_id > 0) {
+            $url = add_query_arg('invoice_id', $invoice_id, $url);
+        }
+        return $url;
     }
 
     /**
@@ -1704,7 +1709,7 @@ class OraBooks_Notifications {
                 'invoice_number' => $inv->invoice_number,
                 'total_amount'   => $inv->total_amount,
                 'due_date'       => $inv->due_date,
-                'view_url'       => self::get_customer_dashboard_url(),
+                'view_url'       => self::get_customer_dashboard_url((int)$inv->id),
             ], (int)$inv->org_id);
 
             // Track unique orgs for admin notification
