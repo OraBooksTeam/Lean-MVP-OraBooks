@@ -783,23 +783,8 @@ describe('Notification mark as read', () => {
 });
 
 describe('Notification - mark all read', () => {
-  test('reloads stats on refresh click', () => {
+  test('posts mark all read and hides badge', () => {
     clearAjax();
-    window.orabooksLoadQueueStats();
-    resolveAjax('get', {
-      error: false,
-      data: { total: 0, pending_count: 0, processing_count: 0, completed_count: 0, failed_count: 0, dead_letter_count: 0, recent_failures: [] }
-    });
-
-    $('#orabooks-aq-refresh').trigger('click');
-    const call = latestAjax('get');
-    expect(call.data.action).toBe('orabooks_async_queue_stats');
-  });
-});
-
-// ============================================================
-// Invoice Deep Link
-
     window.orabooksLoadNotifications();
     resolveAjax('get', {
       error: false,
