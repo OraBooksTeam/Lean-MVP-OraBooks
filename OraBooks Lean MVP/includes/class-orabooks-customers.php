@@ -961,8 +961,18 @@ class OraBooks_Customers {
      * Create an invoice.
      */
     public function ajax_invoice_create() {
+        global $wpdb;
         $user_id = get_current_user_id();
         $org_id = intval($_POST['org_id'] ?? 0);
+
+        // Admin global mode: resolve org_id from the customer
+        if (!$org_id && !empty($_POST['customer_id'])) {
+            $table_customers = OraBooks_Database::table('customers');
+            $org_id = (int) $wpdb->get_var($wpdb->prepare(
+                "SELECT org_id FROM {$table_customers} WHERE id = %d",
+                intval($_POST['customer_id'])
+            ));
+        }
 
         if (!current_user_can('manage_options') && !OraBooks_RBAC::require_permission($user_id, $org_id, 'create_invoices')) {
             orabooks_json_error('Permission denied', 403);
@@ -1026,8 +1036,18 @@ class OraBooks_Customers {
      * Record a payment against an invoice.
      */
     public function ajax_record_payment() {
+        global $wpdb;
         $user_id = get_current_user_id();
         $org_id = intval($_POST['org_id'] ?? 0);
+
+        // Admin global mode: resolve org_id from the invoice
+        if (!$org_id && !empty($_POST['invoice_id'])) {
+            $table_invoices = OraBooks_Database::table('invoices');
+            $org_id = (int) $wpdb->get_var($wpdb->prepare(
+                "SELECT org_id FROM {$table_invoices} WHERE id = %d",
+                intval($_POST['invoice_id'])
+            ));
+        }
 
         if (!current_user_can('manage_options') && !OraBooks_RBAC::require_permission($user_id, $org_id, 'create_invoices')) {
             orabooks_json_error('Permission denied', 403);
