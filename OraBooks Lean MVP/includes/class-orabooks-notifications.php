@@ -1582,7 +1582,7 @@ class OraBooks_Notifications {
             'invoice_number' => $invoice_number,
             'total_amount'   => $total_amount,
             'due_date'       => $due_date,
-            'view_url'       => self::get_customer_dashboard_url(),
+            'view_url'       => self::get_customer_dashboard_url($invoice_id),
         ], $org_id);
 
         // Notify org admins/owners about the new invoice
