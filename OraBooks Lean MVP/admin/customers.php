@@ -476,7 +476,7 @@ jQuery(document).ready(function($) {
     function showCustomerDetail(customerId) {
         $.get(orabooks_ajax.ajax_url, {
             action: 'orabooks_customer_get',
-            user_id: customerId
+            customer_id: customerId
         }, function(r) {
             if (r.error !== false && r.error !== true) return;
             var c = r.data;
@@ -605,7 +605,8 @@ jQuery(document).ready(function($) {
     $(document).on('submit', '#orabooks-invoice-form', function(e) {
         e.preventDefault();
         var data = $(this).serialize();
-        data += '&action=orabooks_invoice_create&org_id=' + (currentOrgId || 0);
+        var orgId = $('#inv_org_id').val() || 0;
+        data += '&action=orabooks_invoice_create&org_id=' + orgId;
 
         $.post(orabooks_ajax.ajax_url, data, function(r) {
             if (r.error !== false && r.error !== true) return;
@@ -683,7 +684,8 @@ jQuery(document).ready(function($) {
     $(document).on('submit', '#orabooks-payment-form', function(e) {
         e.preventDefault();
         var data = $(this).serialize();
-        data += '&action=orabooks_invoice_record_payment&org_id=' + (currentOrgId || 0);
+        var orgId = $('#pay_org_id').val() || 0;
+        data += '&action=orabooks_invoice_record_payment&org_id=' + orgId;
 
         $.post(orabooks_ajax.ajax_url, data, function(r) {
             if (r.error !== false && r.error !== true) return;
