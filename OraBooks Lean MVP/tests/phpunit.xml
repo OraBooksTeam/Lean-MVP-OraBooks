@@ -17,5 +17,8 @@
         <testsuite name="OraBooks SL-021 Customers Tests">
             <file>OraBooks_Customers_Test.php</file>
         </testsuite>
+        <testsuite name="OraBooks SL-250 Notification Tests">
+            <file>OraBooks_Notifications_Test.php</file>
+        </testsuite>
     </testsuites>
 </phpunit>
