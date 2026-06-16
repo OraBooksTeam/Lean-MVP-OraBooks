@@ -692,6 +692,83 @@ class OraBooks_Customers {
         return $stats;
     }
 
+    // ================================================================
+    // CRON JOBS
+    // ================================================================
+
+    /**
+     * Daily check: mark customers as inactive if they have no paid
+     * invoices within the active window. Also recalc lifetime_value.
+     */
+    public function daily_customer_status_check() {
+        global $wpdb;
+
+        $table_customers = OraBooks_Database::table('customers');
+        $table_invoices = OraBooks_Database::table('invoices');
+        $config_table = OraBooks_Database::table('partner_commission_config');
+
+        $config = $wpdb->get_row("SELECT customer_active_window_days FROM {$config_table} WHERE id = 1");
+        $window_days = $config ? (int) $config->customer_active_window_days : 30;
+
+        // Find customers whose last_paid_invoice_date is outside the window
+        $inactive_count = $wpdb->query($wpdb->prepare(
+            "UPDATE {$table_customers}
+             SET is_active = 0
+             WHERE is_active = 1
+               AND (last_paid_invoice_date IS NULL
+                    OR last_paid_invoice_date < DATE_SUB(CURDATE(), INTERVAL %d DAY))",
+            $window_days
+        ));
+
+        // Recalculate lifetime_value for all customers
+        $wpdb->query(
+            "UPDATE {$table_customers} c
+             JOIN (
+                 SELECT customer_id, COALESCE(SUM(total_amount), 0) as total
+                 FROM {$table_invoices}
+                 WHERE payment_status IN ('paid', 'partial')
+                 GROUP BY customer_id
+             ) i ON c.id = i.customer_id
+             SET c.lifetime_value = i.total"
+        );
+
+        orabooks_log_event('customer_status_check',
+            "Daily customer status check: {$inactive_count} customers marked inactive",
+            'info', ['inactivated' => $inactive_count], null, null);
+
+        // Sync with commission engine read model
+        if (class_exists('OraBooks_Commission') && method_exists('OraBooks_Commission', 'refresh_all_customer_active_status')) {
+            OraBooks_Commission::refresh_all_customer_active_status();
+        }
+
+        return $inactive_count;
+    }
+
+    /**
+     * Daily check: mark invoices as overdue if past due_date and unpaid/partial.
+     */
+    public function daily_invoice_overdue_check() {
+        global $wpdb;
+
+        $table = OraBooks_Database::table('invoices');
+
+        $overdue_count = $wpdb->query(
+            "UPDATE {$table}
+             SET payment_status = 'overdue'
+             WHERE payment_status IN ('unpaid', 'partial')
+               AND workflow_status IN ('sent', 'posted')
+               AND due_date < CURDATE()"
+        );
+
+        if ($overdue_count > 0) {
+            orabooks_log_event('invoice_overdue_check',
+                "Daily overdue check: {$overdue_count} invoices marked overdue",
+                'info', ['marked_overdue' => $overdue_count], null, null);
+        }
+
+        return $overdue_count;
+    }
+
     /**
      * Generate a unique invoice number for an organization.
      */
