@@ -1585,6 +1585,8 @@ class OraBooks_Notifications {
              LIMIT 50"
         );
 
+        $notified_orgs = [];
+
         foreach ($overdue_invoices as $inv) {
             self::send_notification($inv->customer_user_id, 'invoice_overdue', [
                 'title'          => sprintf(__('Invoice Overdue: %s', 'orabooks'), $inv->invoice_number),
@@ -1602,6 +1604,17 @@ class OraBooks_Notifications {
                 'due_date'       => $inv->due_date,
             ], (int)$inv->org_id);
 
+            // Track unique orgs for admin notification
+            $org_id = (int)$inv->org_id;
+            if (!isset($notified_orgs[$org_id])) {
+                $notified_orgs[$org_id] = [
+                    'count' => 0,
+                    'total' => 0,
+                ];
+            }
+            $notified_orgs[$org_id]['count']++;
+            $notified_orgs[$org_id]['total'] += (float)$inv->total_amount;
+
             // Mark as notified so we never send a duplicate overdue reminder
             $wpdb->update(
                 $table_invoices,
@@ -1610,6 +1623,23 @@ class OraBooks_Notifications {
                 ['%s'],
                 ['%d']
             );
+        }
+
+        // Notify org admins/owners about the batch of overdue invoices
+        foreach ($notified_orgs as $org_id => $agg) {
+            self::notify_org_admins($org_id, 'invoices_overdue', [
+                'title'          => sprintf(__('%d Invoice(s) Overdue', 'orabooks'), $agg['count']),
+                'message'        => sprintf(
+                    __('%d invoice(s) totaling $%s are now overdue and require attention.', 'orabooks'),
+                    $agg['count'],
+                    number_format($agg['total'], 2)
+                ),
+                'priority'       => 'high',
+                'correlation_id' => 'overdue_batch_' . $org_id . '_' . current_time('Ymd'),
+                'overdue_count'  => $agg['count'],
+                'total_amount'   => $agg['total'],
+                'view_url'       => admin_url('admin.php?page=orabooks-customers'),
+            ]);
         }
     }
 
