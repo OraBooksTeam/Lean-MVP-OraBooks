@@ -1106,6 +1106,12 @@ class OraBooks_Auth {
             return new WP_Error('invalid_state', 'Invalid or expired OAuth state. Please try again.');
         }
         delete_transient('orabooks_oidc_state_' . $state_hash);
+        $state_data = self::decode_oidc_state_data($state);
+        $user_type = $state_data['user_type'] ?? 'customer';
+        $partner_type = $state_data['partner_type'] ?? 'individual';
+        $organization_name = $state_data['organization_name'] ?? '';
+        $accept_terms = !empty($state_data['accept_terms']);
+        $terms_version = $state_data['terms_version'] ?? '1.0';
 
         $client_id = OraBooks_Secrets::get('google_oauth_client_id');
         $client_secret = OraBooks_Secrets::get('google_oauth_client_secret');
