@@ -255,15 +255,16 @@ class OraBooks_Auth {
         
         // Rate limit: 5 failures per 15 min per IP+email
         $rate_key = 'login_' . $ip . '_' . $email;
-        if (!orabooks_check_rate_limit($rate_key, 5, 900)) {
-            return new WP_Error('rate_limit', 'Too many failed login attempts. Try again after 15 minutes.');
-        }
         
         $user = $wpdb->get_row($wpdb->prepare(
             "SELECT * FROM {$table_users} WHERE email = %s", $email
         ));
         
         if (!$user || !OraBooks_Secrets::verify_password($password, $user->password_hash)) {
+            if (!orabooks_check_rate_limit($rate_key, 5, 900)) {
+                orabooks_log_event('login_failure', "Failed login attempt for $email", 'warning', [], null, null);
+                return new WP_Error('rate_limit', 'Too many failed login attempts. Try again after 15 minutes.');
+            }
             orabooks_log_event('login_failure', "Failed login attempt for $email", 'warning', [], null, null);
             return new WP_Error('invalid_credentials', 'Invalid email or password');
         }
