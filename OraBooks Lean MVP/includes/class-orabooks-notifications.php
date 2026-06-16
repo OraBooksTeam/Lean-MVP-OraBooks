@@ -1431,10 +1431,15 @@ class OraBooks_Notifications {
 
     /**
      * Get the admin invoices page URL for view links in notifications.
+     * Optionally include an invoice ID for deep linking.
      */
-    private static function get_admin_invoices_url(): string
+    private static function get_admin_invoices_url(int $invoice_id = 0): string
     {
-        return admin_url('admin.php?page=orabooks-customers');
+        $url = admin_url('admin.php?page=orabooks-customers');
+        if ($invoice_id > 0) {
+            $url = add_query_arg('invoice_id', $invoice_id, $url);
+        }
+        return $url;
     }
 
     /**
@@ -1493,14 +1498,17 @@ class OraBooks_Notifications {
             $org_id = (int)$inv->org_id;
             if (!isset($orgs[$org_id])) {
                 $orgs[$org_id] = [
-                    'count'  => 0,
-                    'total'  => 0,
-                    'oldest' => $inv->due_date,
-                    'newest' => $inv->due_date,
+                    'count'          => 0,
+                    'total'          => 0,
+                    'oldest'         => $inv->due_date,
+                    'newest'         => $inv->due_date,
+                    'first_invoice_id' => (int)$inv->id,
+                    'invoice_ids'    => [],
                 ];
             }
             $orgs[$org_id]['count']++;
             $orgs[$org_id]['total'] += (float)$inv->total_amount;
+            $orgs[$org_id]['invoice_ids'][] = (int)$inv->id;
             if ($inv->due_date < $orgs[$org_id]['oldest']) {
                 $orgs[$org_id]['oldest'] = $inv->due_date;
             }
@@ -1531,7 +1539,8 @@ class OraBooks_Notifications {
                 'overdue_count'  => $agg['count'],
                 'total_amount'   => $agg['total'],
                 'date_range'     => $date_range,
-                'view_url'       => self::get_admin_invoices_url(),
+                'view_url'       => self::get_admin_invoices_url($agg['first_invoice_id']),
+                'invoice_ids'    => $agg['invoice_ids'],
             ]);
         }
 
