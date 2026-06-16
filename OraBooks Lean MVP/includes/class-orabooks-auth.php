@@ -1178,6 +1178,10 @@ class OraBooks_Auth {
             // User exists — log them in
             $user_id = $existing->id;
 
+            if ($state_data && $existing->auth_provider === 'local') {
+                return new WP_Error('oidc_email_conflict', 'This email is already registered with a password. Please log in with password.');
+            }
+
             // Update auth_provider to google if was local (link account)
             if ($existing->auth_provider === 'local') {
                 $wpdb->update(
