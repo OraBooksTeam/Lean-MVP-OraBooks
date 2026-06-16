@@ -421,6 +421,16 @@ class OraBooks_Auth {
         ));
         
         $code = orabooks_generate_partner_code();
+        for ($i = 0; $i < 10; $i++) {
+            $exists = $wpdb->get_var($wpdb->prepare(
+                "SELECT id FROM {$table_codes} WHERE partner_code = %s",
+                $code
+            ));
+            if (!$exists) {
+                break;
+            }
+            $code = orabooks_generate_partner_code();
+        }
         
         $wpdb->insert(
             $table_codes,
