@@ -307,6 +307,10 @@ if (!function_exists('sanitize_text_field')) {
     function sanitize_text_field($str) { return is_string($str) ? trim($str) : ''; }
 }
 
+if (!function_exists('sanitize_textarea_field')) {
+    function sanitize_textarea_field($str) { return is_string($str) ? trim($str) : ''; }
+}
+
 if (!function_exists('sanitize_file_name')) {
     function sanitize_file_name($name) {
         return preg_replace('/[^a-zA-Z0-9\-_\.]/', '_', $name);
@@ -866,3 +870,10 @@ if (!file_exists($auth_file)) {
     exit(1);
 }
 require_once $auth_file;
+
+$customers_file = __DIR__ . '/../includes/class-orabooks-customers.php';
+if (!file_exists($customers_file)) {
+    echo "ERROR: Cannot find class-orabooks-customers.php at {$customers_file}\n";
+    exit(1);
+}
+require_once $customers_file;
