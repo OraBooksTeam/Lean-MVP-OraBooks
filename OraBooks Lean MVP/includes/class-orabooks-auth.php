@@ -1398,7 +1398,8 @@ class OraBooks_Auth {
         $result = self::handle_google_callback($code, $state);
 
         if (is_wp_error($result)) {
-            orabooks_json_error($result->get_error_message(), 401);
+            $status_code = ($result->get_error_code() === 'oidc_email_conflict') ? 409 : 401;
+            orabooks_json_error($result->get_error_message(), $status_code);
         }
 
         orabooks_json_success($result, 'Google login successful');
