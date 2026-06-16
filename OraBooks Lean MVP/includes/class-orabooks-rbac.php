@@ -75,13 +75,65 @@ class OraBooks_RBAC {
     
     /**
      * Middleware: require a specific permission
-     * Returns true if allowed, exits with 403 if denied
+     * Returns true if allowed, false if denied.
      */
-    public static function require_permission($user_id, $org_id, $permission) {
+    public static function require_permission($user_id, $org_id, $permission, $options = []) {
+        $org_id = intval($org_id);
+        $user_id = intval($user_id);
+        
+        if (!$user_id || !$org_id) {
+            orabooks_log_event('permission_denied_missing_context', 'Permission check missing user or org context', 'warning', [
+                'permission' => $permission,
+                'user_id' => $user_id,
+                'org_id' => $org_id
+            ], $user_id ?: null, $org_id ?: null);
+            return false;
+        }
+        
+        $org = OraBooks_Organization::get($org_id);
+        if (!$org) {
+            orabooks_log_event('permission_denied_missing_context', 'Permission check organization not found', 'warning', [
+                'permission' => $permission,
+                'user_id' => $user_id,
+                'org_id' => $org_id
+            ], $user_id, $org_id);
+            return false;
+        }
+        
+        if ($org->status !== 'active') {
+            orabooks_log_event('permission_denied', "Organization is not active: {$org->status}", 'warning', [
+                'permission' => $permission,
+                'user_id' => $user_id,
+                'org_id' => $org_id,
+                'org_status' => $org->status
+            ], $user_id, $org_id);
+            return false;
+        }
+        
+        $accounting_permissions = [
+            'view_reports',
+            'submit_transaction',
+            'approve_journal',
+            'view_coa',
+            'create_invoice',
+            'view_invoices',
+            'manage_billing',
+        ];
+        
+        if ($org->organization_type === 'partner' && in_array($permission, $accounting_permissions, true)) {
+            orabooks_log_event('permission_denied', "Partner org accounting permission denied: $permission", 'warning', [
+                'permission' => $permission,
+                'user_id' => $user_id,
+                'org_id' => $org_id,
+                'organization_type' => $org->organization_type
+            ], $user_id, $org_id);
+            return false;
+        }
+        
         $role = orabooks_get_user_role($user_id, $org_id);
         
         if (!$role) {
-            orabooks_log_event('permission_denied', "No role found for user $user_id in org $org_id", 'warning', [
+            orabooks_log_event('permission_denied_missing_context', "No role found for user $user_id in org $org_id", 'warning', [
                 'permission' => $permission,
                 'user_id' => $user_id,
                 'org_id' => $org_id
@@ -95,7 +147,9 @@ class OraBooks_RBAC {
                 'permission' => $permission,
                 'role' => $role,
                 'user_id' => $user_id,
-                'org_id' => $org_id
+                'org_id' => $org_id,
+                'ip_address' => orabooks_get_client_ip(),
+                'user_agent' => orabooks_get_user_agent()
             ], $user_id, $org_id);
             
             return false;
