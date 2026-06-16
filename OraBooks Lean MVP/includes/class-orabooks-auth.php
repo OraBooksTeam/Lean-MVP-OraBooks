@@ -440,7 +440,7 @@ class OraBooks_Auth {
         
         $user = $wpdb->get_row($wpdb->prepare(
             "SELECT * FROM {$table_users} WHERE email_verification_token = %s AND email_verification_expires_at > NOW()",
-            $token
+            $token_hash
         ));
         
         if (!$user) {
