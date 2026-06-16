@@ -1526,7 +1526,7 @@ class OraBooks_Notifications {
                 'overdue_count'  => $agg['count'],
                 'total_amount'   => $agg['total'],
                 'date_range'     => $date_range,
-                'view_url'       => admin_url('admin.php?page=orabooks-customers'),
+                'view_url'       => self::get_admin_invoices_url(),
             ]);
         }
 
