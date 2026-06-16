@@ -1068,9 +1068,7 @@ describe('Partner reactivation deny', () => {
     global.prompt = originalPrompt;
   });
 
-  afterEach(() => {
-    jest.restoreAllMocks();
-  });
+
 
   test('prompts for reason and posts denial', () => {
     global.prompt = jest.fn(() => 'Suspicious activity');
