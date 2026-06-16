@@ -7,6 +7,40 @@
  * - orabooksLoadCoAOrgs, orabooksLoadCoA
  * - All export click handlers (CoA, Audit, Partner, Notif, AQ, Users, CommConfig, Onboarding)
  * - escHtml utility
+ *
+ * ── Test Pattern: clearAjax before function call ────────────────────
+ *
+ * admin.js's ready handler makes up to 3 GET calls on page load:
+ *   orabooksLoadOrgs()     — action: orabooks_list_orgs
+ *   orabooksLoadAuditLogs() — action: orabooks_get_audit_logs
+ *   orabooksLoadCoAOrgs()   — action: orabooks_list_orgs
+ *
+ * When a test calls a function that makes its own AJAX call (e.g.
+ * orabooksLoadCoA() which calls orabooks_get_coa), the queue already
+ * has entries from the ready handler. Using plain resolveAjax('get',
+ * data) with calls.shift() would resolve the wrong call.
+ *
+ * The fix: always call clearAjax() BEFORE invoking the target function
+ * (not after loadAdminJs), so the function's AJAX call is the only one
+ * in the queue when resolveAjax is called.
+ *
+ *   clearAjax();
+ *   window.orabooksLoadCoA();
+ *   resolveAjax('get', { error: false, data: [...] });
+ *
+ * For click-handler tests (export triggers, approve/reject buttons,
+ * etc.) the POST queue is always clean because the ready handler only
+ * makes GET calls. resolveAjax('post', data) with no filter works fine.
+ *
+ * ── resolveAjax action filter (3rd arg) ─────────────────────────────
+ *
+ * When multiple POST calls could be in the queue (e.g. form submit
+ * tests where the ready handler might trigger an initial POST), pass
+ * the action name as the 3rd argument:
+ *
+ *   resolveAjax('post', data, 'orabooks_register');
+ *
+ * This searches calls[i].data.action for a matching string.
  */
 
 const $ = require('jquery');
