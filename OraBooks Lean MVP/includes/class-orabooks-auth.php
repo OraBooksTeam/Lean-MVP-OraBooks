@@ -1016,18 +1016,21 @@ class OraBooks_Auth {
      * Initiate Google OAuth flow
      * Returns the Google authorization URL for frontend redirect
      */
-    public static function initiate_google_oauth() {
+    public static function initiate_google_oauth($state_data = []) {
         $client_id = OraBooks_Secrets::get('google_oauth_client_id');
         if (!$client_id) {
             return new WP_Error('oauth_not_configured', 'Google OAuth is not configured. Contact the administrator.');
         }
 
-        // Generate state for CSRF protection
         $state = orabooks_random_string(32);
         $state_hash = orabooks_hash_token($state);
+        $encoded_state_data = self::encode_oidc_state_data(self::sanitize_oidc_state_data($state_data));
 
-        // Store state hash with 10-minute expiry
+        // Generate state for CSRF protection
         set_transient('orabooks_oidc_state_' . $state_hash, 1, 600);
+        if ($encoded_state_data !== '') {
+            set_transient('orabooks_oidc_state_data_' . $state_hash, $encoded_state_data, 600);
+        }
 
         $redirect_uri = home_url('/login');
         $params = http_build_query([
@@ -1040,7 +1043,52 @@ class OraBooks_Auth {
             'prompt'        => 'select_account',
         ]);
 
+        if ($encoded_state_data !== '') {
+            $params .= '&state_data=' . rawurlencode($encoded_state_data);
+        }
+
         return 'https://accounts.google.com/o/oauth2/v2/auth?' . $params;
+    }
+
+    private static function sanitize_oidc_state_data($data) {
+        if (!is_array($data)) {
+            return [];
+        }
+
+        $user_type = ($data['user_type'] ?? 'customer') === 'partner' ? 'partner' : 'customer';
+        $partner_type = $data['partner_type'] ?? 'individual';
+        if (!in_array($partner_type, ['individual', 'accountant', 'agency', 'reseller', 'strategic_partner'], true)) {
+            $partner_type = 'individual';
+        }
+
+        $organization_name = isset($data['organization_name']) ? sanitize_text_field($data['organization_name']) : '';
+
+        return [
+            'user_type'      => $user_type,
+            'partner_code'   => isset($data['partner_code']) ? strtoupper(trim(sanitize_text_field($data['partner_code']))) : '',
+            'accept_terms'   => !empty($data['accept_terms']),
+            'terms_version'  => isset($data['terms_version']) ? sanitize_text_field($data['terms_version']) : '1.0',
+            'partner_type'   => $partner_type,
+            'organization_name' => $organization_name,
+        ];
+    }
+
+    private static function encode_oidc_state_data($data) {
+        if (empty($data)) {
+            return '';
+        }
+
+        return rtrim(strtr(base64_encode(wp_json_encode($data)), '+/', '-_'), '=');
+    }
+
+    private static function decode_oidc_state_data($state) {
+        $stored = get_transient('orabooks_oidc_state_data_' . orabooks_hash_token($state));
+        if (!$stored) {
+            return [];
+        }
+
+        $decoded = json_decode(base64_decode(strtr($stored, '-_', '+/')), true);
+        return is_array($decoded) ? $decoded : [];
     }
 
     /**
