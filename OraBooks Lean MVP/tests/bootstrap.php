@@ -62,6 +62,7 @@ if (!class_exists('wpdb', false)) {
     public $test_get_row_callback     = null;
     public $test_get_results_callback = null;
     public $test_query_callback       = null;
+    public $test_insert_callback      = null;
 
     /** Register SHOW COLUMNS results so dbDelta calls don't crash */
     private $show_columns_cache = [];
@@ -237,6 +238,10 @@ if (!class_exists('wpdb', false)) {
         }
 
         public function insert($table, $data, $format = []) {
+            // Allow test override via callback
+            if ($this->test_insert_callback !== null) {
+                ($this->test_insert_callback)($table, $data, $format);
+            }
             // Allow tests to set insert_id before calling to control the mock
             if (isset($GLOBALS['orabooks_test_use_insert_id']) && $GLOBALS['orabooks_test_use_insert_id'] !== null) {
                 $this->insert_id = $GLOBALS['orabooks_test_use_insert_id'];
