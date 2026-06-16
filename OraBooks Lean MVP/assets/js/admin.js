@@ -145,6 +145,126 @@ jQuery(document).ready(function($) {
         });
     };
 
+    // Return the jqXHR promise so callers (e.g. refresh button) can chain off it
+    window.orabooksLoadDashboard = function() {
+        var $loading = $('#orabooks-dash-loading');
+        var $content = $('#orabooks-dash-content');
+        var $error   = $('#orabooks-dash-error');
+        var $updated = $('#orabooks-last-updated');
+
+        $loading.show();
+        $content.hide();
+        $error.hide();
+
+        return $.get(orabooks_ajax.ajax_url, {
+            action: 'orabooks_dashboard_stats'
+        }, function(response) {
+            if (response.error) {
+                $loading.hide();
+                $error.show();
+                return;
+            }
+
+            var d = response.data;
+
+            // --- Primary Stat Cards ---
+            $('#orabooks-stat-orgs-total').text(d.organizations.total);
+            $('#orabooks-stat-orgs-breakdown').html(
+                '<span class="orabooks-stat-footer-item">' +
+                '<span class="orabooks-dot orabooks-dot-blue"></span> Customer: ' + d.organizations.customer +
+                '</span>' +
+                '<span class="orabooks-stat-footer-item">' +
+                '<span class="orabooks-dot orabooks-dot-purple"></span> Partner: ' + d.organizations.partner +
+                '</span>'
+            );
+            $('#orabooks-stat-partners-active').text(d.partners.active);
+            $('#orabooks-stat-partners-breakdown').html(
+                '<span class="orabooks-stat-footer-item">' +
+                '<span class="orabooks-dot orabooks-dot-orange"></span> Pending: ' + d.partners.pending +
+                '</span>' +
+                '<span class="orabooks-stat-footer-item">' +
+                '<span class="orabooks-dot orabooks-dot-red"></span> Inactive: ' + d.partners.inactive +
+                '</span>'
+            );
+            $('#orabooks-stat-users-total').text(d.users.total);
+            $('#orabooks-stat-users-breakdown').html(
+                '<span class="orabooks-stat-footer-item">' +
+                '<span class="orabooks-dot orabooks-dot-green"></span> Verified: ' + d.users.verified +
+                '</span>' +
+                '<span class="orabooks-stat-footer-item">' +
+                '<span class="orabooks-dot orabooks-dot-blue"></span> 2FA: ' + d.users['2fa_enabled'] +
+                '</span>'
+            );
+            $('#orabooks-stat-attributions-verified').text(d.attributions.verified);
+            $('#orabooks-stat-attributions-breakdown').html(
+                '<span class="orabooks-stat-footer-item">' +
+                '<span class="orabooks-dot orabooks-dot-orange"></span> Pending: ' + d.attributions.pending +
+                '</span>' +
+                '<span class="orabooks-stat-footer-item">' +
+                '<span class="orabooks-dot orabooks-dot-red"></span> Blocked: ' + d.attributions.blocked +
+                '</span>'
+            );
+
+            // --- Detail Panels ---
+            if (d.organizations) {
+                $('#orabooks-stat-orgs-customer').text(d.organizations.customer);
+                $('#orabooks-stat-orgs-partner').text(d.organizations.partner);
+                $('#orabooks-stat-orgs-active').text(d.organizations.active);
+                $('#orabooks-stat-orgs-pending').text(d.organizations.pending);
+                $('#orabooks-stat-orgs-suspended').text(d.organizations.suspended);
+            }
+            if (d.partners) {
+                $('#orabooks-stat-partners-active-detail').text(d.partners.active);
+                $('#orabooks-stat-partners-pending').text(d.partners.pending);
+                $('#orabooks-stat-partners-inactive').text(d.partners.inactive);
+                $('#orabooks-stat-partners-disabled').text(d.partners.disabled);
+            }
+            if (d.users) {
+                $('#orabooks-stat-users-customer').text(d.users.customer);
+                $('#orabooks-stat-users-partner').text(d.users.partner);
+                $('#orabooks-stat-users-verified').text(d.users.verified);
+                $('#orabooks-stat-users-2fa').text(d.users['2fa_enabled']);
+            }
+            if (d.attributions) {
+                $('#orabooks-stat-attributions-total').text(d.attributions.total);
+                $('#orabooks-stat-attributions-verified-detail').text(d.attributions.verified);
+                $('#orabooks-stat-attributions-pending').text(d.attributions.pending);
+                $('#orabooks-stat-attributions-blocked').text(d.attributions.blocked);
+            }
+
+            // Recent activity
+            if (d.organizations && d.users && d.attributions) {
+                $('#orabooks-stat-recent-orgs').text(d.organizations.recent_7d);
+                $('#orabooks-stat-recent-users').text(d.users.recent_7d);
+                $('#orabooks-stat-recent-attributions').text(d.attributions.recent_7d);
+            }
+
+            // Quick action badges
+            if (d.partners) {
+                $('#orabooks-qa-pending-partners').text(
+                    d.partners.pending > 0 ? d.partners.pending : ''
+                );
+            }
+            if (d.organizations) {
+                $('#orabooks-qa-pending-orgs').text(
+                    d.organizations.pending > 0 ? d.organizations.pending : ''
+                );
+            }
+
+            // Last-updated timestamp
+            if (d.timestamp) {
+                $updated.text('Last updated: ' + d.timestamp);
+            }
+
+            // Animate transition
+            $loading.hide();
+            $content.fadeIn(300);
+        }).fail(function() {
+            $loading.hide();
+            $error.show();
+        });
+    };
+
     // Auto-load dashboard on page load
     if ($('#orabooks-dash-loading').length) {
         orabooksLoadDashboard();
