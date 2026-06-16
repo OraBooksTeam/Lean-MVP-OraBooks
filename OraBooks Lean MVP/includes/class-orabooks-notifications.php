@@ -1476,6 +1476,25 @@ class OraBooks_Notifications {
             'total_amount'   => $total_amount,
             'due_date'       => $due_date,
         ], $org_id);
+
+        // Notify org admins/owners about the new invoice
+        self::notify_org_admins($org_id, 'invoice_created', [
+            'title'          => sprintf(__('New Invoice Created: %s', 'orabooks'), $invoice_number),
+            'message'        => sprintf(
+                __('Invoice %s for $%s has been issued to customer #%d. Due date: %s.', 'orabooks'),
+                $invoice_number,
+                number_format((float)$total_amount, 2),
+                $customer_id,
+                $due_date ?: __('Not set', 'orabooks')
+            ),
+            'priority'       => 'high',
+            'correlation_id' => 'invoice_' . $invoice_id,
+            'invoice_id'     => $invoice_id,
+            'invoice_number' => $invoice_number,
+            'total_amount'   => $total_amount,
+            'customer_id'    => $customer_id,
+            'due_date'       => $due_date,
+        ]);
     }
 
     /**
@@ -1513,6 +1532,26 @@ class OraBooks_Notifications {
             'amount'         => $amount,
             'new_status'     => $new_status,
         ], $org_id);
+
+        // Notify org admins/owners about the payment
+        $status_desc = $status_label[$new_status] ?? $new_status;
+        self::notify_org_admins($org_id, 'payment_recorded', [
+            'title'          => sprintf(__('Payment Recorded: $%s', 'orabooks'), number_format((float)$amount, 2)),
+            'message'        => sprintf(
+                __('A payment of $%s has been recorded for invoice %s (status: %s) by customer #%d.', 'orabooks'),
+                number_format((float)$amount, 2),
+                $invoice_number,
+                $status_desc,
+                $customer_user_id
+            ),
+            'priority'       => 'high',
+            'correlation_id' => 'payment_' . $payment_id,
+            'payment_id'     => $payment_id,
+            'invoice_number' => $invoice_number,
+            'amount'         => $amount,
+            'new_status'     => $new_status,
+            'customer_id'    => $customer_user_id,
+        ]);
     }
 
     /**

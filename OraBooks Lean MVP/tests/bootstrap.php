@@ -899,3 +899,61 @@ if (!file_exists($notifications_file)) {
     exit(1);
 }
 require_once $notifications_file;
+
+// Stub OraBooks_Partner
+if (!class_exists('OraBooks_Partner', false)) {
+    class OraBooks_Partner {
+        public static function init() { return new self(); }
+    }
+}
+
+// Stub OraBooks_RBAC
+if (!class_exists('OraBooks_RBAC', false)) {
+    class OraBooks_RBAC {
+        public static function require_permission($user_id, $org_id, $permission) {
+            return true;
+        }
+        public static function check_permission($role, $permission, $org_id) {
+            return true;
+        }
+    }
+}
+
+// Stub OraBooks_Audit
+if (!class_exists('OraBooks_Audit', false)) {
+    class OraBooks_Audit {
+        public static function log_event($event_type, $description, $severity = 'info', $metadata = null, $user_id = null, $org_id = null) {
+            return true;
+        }
+    }
+}
+
+// Stub OraBooks_Commission
+if (!class_exists('OraBooks_Commission', false)) {
+    class OraBooks_Commission {
+        public static function init() { return new self(); }
+        public static function get_config() { return (object)['min_payout_threshold' => 25.00, 'customer_active_window_days' => 30, 'base_monthly_amount' => 10.00, 'max_years' => 6, 'yearly_percentages' => [20, 15, 10, 5, 2.5, 1], 'currency' => 'USD']; }
+        public static function get_commission_stats($partner_user_id) { return ['total_earned' => 0, 'pending_payout' => 0, 'total_paid' => 0, 'total_expired' => 0]; }
+        public static function get_payouts($partner_user_id, $args = []) { return []; }
+        public static function refresh_customer_active_status($customer_id) { return true; }
+    }
+}
+
+// Stub OraBooks_COA
+if (!class_exists('OraBooks_COA', false)) {
+    class OraBooks_COA {
+        public static function init() { return new self(); }
+        public static function load_chart_of_accounts($org_id, $tier, $org_type) { return true; }
+        public static function get_account_by_code($org_id, $code) { return null; }
+    }
+}
+
+// Stub OraBooks_Posting
+if (!class_exists('OraBooks_Posting', false)) {
+    class OraBooks_Posting {
+        public static function create_journal($data, $user_id) { return 1; }
+        public static function add_lines($journal_id, $lines) { return true; }
+        public static function approve_journal($journal_id, $user_id) { return true; }
+        public static function post_journal($journal_id, $user_id) { return true; }
+    }
+}
