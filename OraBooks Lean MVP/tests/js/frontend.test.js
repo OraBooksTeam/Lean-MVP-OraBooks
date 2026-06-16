@@ -1683,7 +1683,7 @@ describe('orabooksLoadPartnerDashboard (partner dashboard)', () => {
     resolveAjax('get', resp, 'orabooks_partner_dashboard');
 
     const banners = $('#orabooks-status-banners').html();
-    expect(banners).toContain('payout');
+    expect(banners).toContain('Payout hold');
     expect(banners).toContain('disabled');
     expect(banners).toContain('orabooks-banner-warning');
   });
@@ -1715,7 +1715,7 @@ describe('orabooksLoadPartnerDashboard (partner dashboard)', () => {
     resolveAjax('get', resp, 'orabooks_partner_dashboard');
 
     const banners = $('#orabooks-status-banners').html();
-    expect(banners).toContain('dormant');
+    expect(banners).toContain('no active customers');
     expect(banners).toContain('orabooks-banner-info');
   });
 
@@ -1728,10 +1728,10 @@ describe('orabooksLoadPartnerDashboard (partner dashboard)', () => {
     resolveAjax('get', resp, 'orabooks_partner_dashboard');
 
     const banners = $('#orabooks-status-banners').html();
-    expect(banners).toContain('payout');
+    expect(banners).toContain('Payout hold');
     expect(banners).toContain('readonly');
     expect(banners).toContain('inactive');
-    expect(banners).toContain('dormant');
+    expect(banners).toContain('no active customers');
     // All 4 banners should be rendered
     expect(banners.match(/orabooks-banner/g).length).toBe(4);
   });
@@ -1821,8 +1821,10 @@ describe('orabooksLoadPartnerDashboard (partner dashboard)', () => {
     resolveAjax('get', resp, 'orabooks_partner_dashboard');
 
     const html = $('#orabooks-attr-table-body').html();
-    // Unknown status gets a generic badge
-    expect(html).toContain('unknown_status');
+    // Unknown commission status gets a fallback gray badge with em dash
+    expect(html).toContain('—');
+    expect(html).not.toContain('orabooks-badge-paid');
+    expect(html).not.toContain('orabooks-badge-earned');
   });
 
   test('shows empty message when no attributions', () => {
