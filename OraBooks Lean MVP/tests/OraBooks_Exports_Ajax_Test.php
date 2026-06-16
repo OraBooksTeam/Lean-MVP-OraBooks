@@ -40,7 +40,7 @@ class OraBooks_Exports_Ajax_Test extends TestCase
         // Reset provider registry
         $refl = new ReflectionClass('OraBooks_Exports');
         $providersProp = $refl->getProperty('report_providers');
-        $providersProp->setValue([]);
+        $providersProp->setValue(null, []);
     }
 
     // ================================================================

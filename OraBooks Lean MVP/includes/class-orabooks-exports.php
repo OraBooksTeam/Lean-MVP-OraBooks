@@ -519,10 +519,10 @@ class OraBooks_Exports {
 
         // Write header row
         if (!empty($columns)) {
-            fputcsv($fh, $columns);
+            fputcsv($fh, $columns, ',', '"', '\\');
         } else {
             // Fallback: write event_type,timestamp,description columns
-            fputcsv($fh, ['event_type', 'timestamp', 'description', 'details']);
+            fputcsv($fh, ['event_type', 'timestamp', 'description', 'details'], ',', '"', '\\');
         }
 
         // Write data rows
@@ -537,9 +537,9 @@ class OraBooks_Exports {
                     foreach ($columns as $col) {
                         $ordered[] = $row[$col] ?? '';
                     }
-                    fputcsv($fh, $ordered);
+                    fputcsv($fh, $ordered, ',', '"', '\\');
                 } else {
-                    fputcsv($fh, [$row]);
+                    fputcsv($fh, [$row], ',', '"', '\\');
                 }
             }
         }
