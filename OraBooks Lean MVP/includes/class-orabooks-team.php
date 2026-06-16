@@ -28,6 +28,14 @@ class OraBooks_Team {
         return self::$instance;
     }
     
+    private static function is_invite_role($role) {
+        return in_array($role, ['admin', 'approver', 'staff', 'viewer'], true);
+    }
+    
+    private static function is_member_role($role) {
+        return in_array($role, ['owner', 'admin', 'approver', 'staff', 'viewer'], true);
+    }
+    
     public static function invite_user($org_id, $email, $role, $invited_by) {
         global $wpdb;
         
