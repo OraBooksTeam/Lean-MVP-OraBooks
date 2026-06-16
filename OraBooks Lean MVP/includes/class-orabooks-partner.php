@@ -534,19 +534,24 @@ class OraBooks_Partner {
         }
         
         // Active customer count (using SL-021 customers.is_active as source of truth)
-        $active_customer_count = (int) $wpdb->get_var($wpdb->prepare(
-            "SELECT COUNT(DISTINCT pa.customer_user_id)
-             FROM {$table_attributions} pa
-             JOIN {$table_customers} c ON pa.customer_user_id = c.user_id
-             WHERE pa.partner_user_id = %d
-               AND pa.status = 'verified'
-               AND c.is_active = 1",
-            $user_id
-        ));
+        $table_customers = OraBooks_Database::table('customers');
+        $customers_table_exists = $wpdb->get_var("SHOW TABLES LIKE '{$table_customers}'");
+        
+        $active_customer_count = 0;
+        if ($customers_table_exists) {
+            $active_customer_count = (int) $wpdb->get_var($wpdb->prepare(
+                "SELECT COUNT(DISTINCT pa.customer_user_id)
+                 FROM {$table_attributions} pa
+                 JOIN {$table_customers} c ON pa.customer_user_id = c.user_id
+                 WHERE pa.partner_user_id = %d
+                   AND pa.status = 'verified'
+                   AND c.is_active = 1",
+                $user_id
+            ));
+        }
         
         // Fallback if customers table doesn't exist or no active customers found
         if ($active_customer_count === 0) {
-            $customers_table_exists = $wpdb->get_var("SHOW TABLES LIKE '{$table_customers}'");
             if (!$customers_table_exists) {
                 // Pre-SL-021: fallback to verified attribution count
                 $active_customer_count = (int) $wpdb->get_var($wpdb->prepare(
