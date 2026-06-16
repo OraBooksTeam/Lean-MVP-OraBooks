@@ -505,6 +505,12 @@ class OraBooks_Auth {
             
             // Fire event for SL-068 Commission Engine
             do_action('orabooks_partner_attribution_verified', $pending->id, $pending);
+            orabooks_publish_event('partner_attribution_verified', $pending->id, [
+                'attribution_id' => $pending->id,
+                'partner_user_id' => $pending->partner_user_id,
+                'customer_user_id' => $pending->customer_user_id,
+                'verified_at' => $pending->verified_at,
+            ]);
         }
         
         return true;
