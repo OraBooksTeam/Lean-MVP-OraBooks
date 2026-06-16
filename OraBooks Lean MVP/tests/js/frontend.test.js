@@ -1618,3 +1618,253 @@ describe('orabooksLoadEscrow (escrow schedule)', () => {
     expect($('#orabooks-escrow-table-body').html()).toContain('No escrow schedules found');
   });
 });
+
+// ============================================================
+// Partner Dashboard — orabooksLoadPartnerDashboard
+// ============================================================
+describe('orabooksLoadPartnerDashboard (partner dashboard)', () => {
+  const baseResponse = {
+    error: false,
+    data: {
+      partner_code: 'CODE-123',
+      partner_type: 'individual',
+      organization_name: 'My Company',
+      active_customer_count: 15,
+      payout_disabled: false,
+      read_only: false,
+      code_status: 'active',
+      is_dormant: false,
+      attribution_stats: { total: 100, verified: 80, pending: 20 },
+      commission_summary: {
+        total_earned: 5000.00,
+        pending_payout: 1500.00,
+        paid: 3000.00,
+        expired: 500.00
+      },
+      attributions: [
+        {
+          customer_email_masked: 'a***@example.com',
+          attribution_date: '2026-01-15',
+          attribution_status: 'verified',
+          commission_status: 'paid'
+        },
+        {
+          customer_email_masked: 'b***@example.com',
+          attribution_date: '2026-02-20',
+          attribution_status: 'pending',
+          commission_status: 'earned'
+        }
+      ],
+      payout_breakdown: [
+        { period: '2026-Q1', gross: 2000.00, fee: 100.00, net: 1900.00, status: 'settled' },
+        { period: '2026-Q2', gross: 1500.00, fee: 75.00, net: 1425.00, status: 'initiated' }
+      ]
+    }
+  };
+
+  test('populates partner code and type information', () => {
+    resolveAjax('get', baseResponse, 'orabooks_partner_dashboard');
+
+    expect($('#orabooks-dash-partner-code').val()).toBe('CODE-123');
+    expect($('#orabooks-partner-type-display').html()).toContain('individual');
+    expect($('#orabooks-partner-type-display').html()).toContain('My Company');
+    expect($('#orabooks-partner-type-display').html()).toContain('15');
+  });
+
+  test('renders no banners when all statuses are normal', () => {
+    resolveAjax('get', baseResponse, 'orabooks_partner_dashboard');
+
+    expect($('#orabooks-status-banners').html()).toBe('');
+  });
+
+  test('renders payout disabled banner', () => {
+    const resp = JSON.parse(JSON.stringify(baseResponse));
+    resp.data.payout_disabled = true;
+    resolveAjax('get', resp, 'orabooks_partner_dashboard');
+
+    const banners = $('#orabooks-status-banners').html();
+    expect(banners).toContain('payout');
+    expect(banners).toContain('disabled');
+    expect(banners).toContain('orabooks-banner-warning');
+  });
+
+  test('renders read-only banner', () => {
+    const resp = JSON.parse(JSON.stringify(baseResponse));
+    resp.data.read_only = true;
+    resolveAjax('get', resp, 'orabooks_partner_dashboard');
+
+    const banners = $('#orabooks-status-banners').html();
+    expect(banners).toContain('readonly');
+    expect(banners).toContain('orabooks-banner-warning');
+  });
+
+  test('renders inactive code banner with reactivation button', () => {
+    const resp = JSON.parse(JSON.stringify(baseResponse));
+    resp.data.code_status = 'inactive';
+    resolveAjax('get', resp, 'orabooks_partner_dashboard');
+
+    const banners = $('#orabooks-status-banners').html();
+    expect(banners).toContain('inactive');
+    expect(banners).toContain('orabooks-banner-danger');
+    expect(banners).toContain('Request Reactivation');
+  });
+
+  test('renders dormant banner', () => {
+    const resp = JSON.parse(JSON.stringify(baseResponse));
+    resp.data.is_dormant = true;
+    resolveAjax('get', resp, 'orabooks_partner_dashboard');
+
+    const banners = $('#orabooks-status-banners').html();
+    expect(banners).toContain('dormant');
+    expect(banners).toContain('orabooks-banner-info');
+  });
+
+  test('renders multiple status banners simultaneously', () => {
+    const resp = JSON.parse(JSON.stringify(baseResponse));
+    resp.data.payout_disabled = true;
+    resp.data.read_only = true;
+    resp.data.code_status = 'inactive';
+    resp.data.is_dormant = true;
+    resolveAjax('get', resp, 'orabooks_partner_dashboard');
+
+    const banners = $('#orabooks-status-banners').html();
+    expect(banners).toContain('payout');
+    expect(banners).toContain('readonly');
+    expect(banners).toContain('inactive');
+    expect(banners).toContain('dormant');
+    // All 4 banners should be rendered
+    expect(banners.match(/orabooks-banner/g).length).toBe(4);
+  });
+
+  test('populates attribution stats', () => {
+    resolveAjax('get', baseResponse, 'orabooks_partner_dashboard');
+
+    expect($('#orabooks-attr-total').text()).toBe('100');
+    expect($('#orabooks-attr-verified').text()).toBe('80');
+    expect($('#orabooks-attr-pending').text()).toBe('20');
+  });
+
+  test('populates commission summary', () => {
+    resolveAjax('get', baseResponse, 'orabooks_partner_dashboard');
+
+    expect($('#orabooks-comm-earned').text()).toBe('$5000.00');
+    expect($('#orabooks-comm-pending').text()).toBe('$1500.00');
+    expect($('#orabooks-comm-paid').text()).toBe('$3000.00');
+    expect($('#orabooks-comm-expired').text()).toBe('$500.00');
+  });
+
+  test('handles zero commission values', () => {
+    const resp = JSON.parse(JSON.stringify(baseResponse));
+    resp.data.commission_summary = {
+      total_earned: 0,
+      pending_payout: 0,
+      paid: 0,
+      expired: 0
+    };
+    resolveAjax('get', resp, 'orabooks_partner_dashboard');
+
+    expect($('#orabooks-comm-earned').text()).toBe('$0.00');
+    expect($('#orabooks-comm-pending').text()).toBe('$0.00');
+    expect($('#orabooks-comm-paid').text()).toBe('$0.00');
+    expect($('#orabooks-comm-expired').text()).toBe('$0.00');
+  });
+
+  test('renders attribution table with verified and pending badges', () => {
+    resolveAjax('get', baseResponse, 'orabooks_partner_dashboard');
+
+    const html = $('#orabooks-attr-table-body').html();
+    expect(html).toContain('a***@example.com');
+    expect(html).toContain('b***@example.com');
+    expect(html).toContain('2026-01-15');
+    expect(html).toContain('2026-02-20');
+    expect(html).toContain('Verified');
+    expect(html).toContain('Pending');
+    expect(html).toContain('orabooks-badge-paid');
+    expect(html).toContain('orabooks-badge-earned');
+  });
+
+  test('renders attribution table with expired and qualified badges', () => {
+    const resp = JSON.parse(JSON.stringify(baseResponse));
+    resp.data.attributions = [
+      {
+        customer_email_masked: 'c***@example.com',
+        attribution_date: '2026-03-10',
+        attribution_status: 'verified',
+        commission_status: 'expired'
+      },
+      {
+        customer_email_masked: 'd***@example.com',
+        attribution_date: '2026-04-05',
+        attribution_status: 'verified',
+        commission_status: 'qualified'
+      }
+    ];
+    resolveAjax('get', resp, 'orabooks_partner_dashboard');
+
+    const html = $('#orabooks-attr-table-body').html();
+    expect(html).toContain('Expired');
+    expect(html).toContain('Qualified');
+    expect(html).toContain('orabooks-badge-expired');
+    expect(html).toContain('orabooks-badge-initiated');
+  });
+
+  test('renders attribution table with fallback badge for unknown status', () => {
+    const resp = JSON.parse(JSON.stringify(baseResponse));
+    resp.data.attributions = [
+      {
+        customer_email_masked: 'e***@example.com',
+        attribution_date: '2026-05-01',
+        attribution_status: 'verified',
+        commission_status: 'unknown_status'
+      }
+    ];
+    resolveAjax('get', resp, 'orabooks_partner_dashboard');
+
+    const html = $('#orabooks-attr-table-body').html();
+    // Unknown status gets a generic badge
+    expect(html).toContain('unknown_status');
+  });
+
+  test('shows empty message when no attributions', () => {
+    const resp = JSON.parse(JSON.stringify(baseResponse));
+    resp.data.attributions = [];
+    resolveAjax('get', resp, 'orabooks_partner_dashboard');
+
+    expect($('#orabooks-attr-table-body').html()).toContain('No attributions yet');
+  });
+
+  test('renders payout breakdown table with settled and initiated statuses', () => {
+    resolveAjax('get', baseResponse, 'orabooks_partner_dashboard');
+
+    const html = $('#orabooks-payout-breakdown-body').html();
+    expect(html).toContain('2026-Q1');
+    expect(html).toContain('2026-Q2');
+    expect(html).toContain('$2000.00');
+    expect(html).toContain('$100.00');
+    expect(html).toContain('$1900.00');
+    expect(html).toContain('$1500.00');
+    expect(html).toContain('$75.00');
+    expect(html).toContain('$1425.00');
+    // Status badges capitalize first letter
+    expect(html).toContain('Paid');
+    expect(html).toContain('Pending');
+    expect(html).toContain('orabooks-badge-paid');
+    expect(html).toContain('orabooks-badge-initiated');
+  });
+
+  test('shows empty message when no payout breakdowns', () => {
+    const resp = JSON.parse(JSON.stringify(baseResponse));
+    resp.data.payout_breakdown = [];
+    resolveAjax('get', resp, 'orabooks_partner_dashboard');
+
+    expect($('#orabooks-payout-breakdown-body').html()).toContain('No payouts yet');
+  });
+
+  test('shows error message on dashboard failure', () => {
+    resolveAjax('get', { error: true, message: 'Dashboard unavailable' }, 'orabooks_partner_dashboard');
+
+    const $msg = $('#orabooks-partner-dashboard-message');
+    expect($msg.text()).toContain('Dashboard unavailable');
+    expect($msg.hasClass('error')).toBe(true);
+  });
+});
