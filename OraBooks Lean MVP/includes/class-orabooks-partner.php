@@ -533,7 +533,7 @@ class OraBooks_Partner {
             $can_reactivate = true;
         }
         
-        // Active customer count (using SL-068's customer_active_status read model)
+        // Active customer count (using SL-021 customers.is_active as source of truth)
         $active_customer_count = (int) $wpdb->get_var($wpdb->prepare(
             "SELECT COUNT(DISTINCT pa.customer_user_id)
              FROM {$table_attributions} pa
@@ -544,15 +544,19 @@ class OraBooks_Partner {
             $user_id
         ));
         
-        // Fallback if customer_active_status table is empty
+        // Fallback if customers table doesn't exist or no active customers found
         if ($active_customer_count === 0) {
-            $active_customer_count = (int) $wpdb->get_var($wpdb->prepare(
-                "SELECT COUNT(DISTINCT pa.customer_user_id)
-                 FROM {$table_attributions} pa
-                 WHERE pa.partner_user_id = %d
-                   AND pa.status = 'verified'",
-                $user_id
-            ));
+            $customers_table_exists = $wpdb->get_var("SHOW TABLES LIKE '{$table_customers}'");
+            if (!$customers_table_exists) {
+                // Pre-SL-021: fallback to verified attribution count
+                $active_customer_count = (int) $wpdb->get_var($wpdb->prepare(
+                    "SELECT COUNT(DISTINCT pa.customer_user_id)
+                     FROM {$table_attributions} pa
+                     WHERE pa.partner_user_id = %d
+                       AND pa.status = 'verified'",
+                    $user_id
+                ));
+            }
         }
         
         // Compute dormant flag (single definition per spec)
