@@ -560,6 +560,7 @@ class OraBooks_Partner {
         }
         
         // Compute dormant flag (single definition per spec)
+        // Dormant = no active customers, but had attribution within 6-12 months ago
         $last_attr_ts = $partner->last_attribution_at ? strtotime($partner->last_attribution_at) : 0;
         $six_months_ago = time() - (6 * 30 * 86400);
         $twelve_months_ago = time() - (12 * 30 * 86400);
@@ -567,8 +568,8 @@ class OraBooks_Partner {
         $is_dormant = (
             $active_customer_count == 0 
             && $last_attr_ts > 0
-            && $last_attr_ts >= $six_months_ago 
-            && $last_attr_ts < $twelve_months_ago
+            && $last_attr_ts < $six_months_ago
+            && $last_attr_ts >= $twelve_months_ago
         );
         
         // ATTRIBUTION STATS
