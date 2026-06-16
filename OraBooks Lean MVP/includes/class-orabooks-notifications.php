@@ -73,6 +73,7 @@ class OraBooks_Notifications {
         add_action('orabooks_notification_sla_check', [self::$instance, 'cron_sla_compliance_check']);
         add_action('orabooks_notification_device_cleanup', [self::$instance, 'cron_deactivate_stale_devices']);
         add_action('orabooks_notification_delivery_retry', [self::$instance, 'cron_retry_deliveries']);
+        add_action('orabooks_daily_overdue_digest', [self::$instance, 'cron_send_overdue_digest']);
     }
 
     // ================================================================
@@ -1435,6 +1436,91 @@ class OraBooks_Notifications {
     // ================================================================
     // STATIC HELPER: send_notification (for external use)
     // ================================================================
+
+    /**
+     * Cron: Send daily overdue invoice digest to org admins.
+     *
+     * Queries ALL currently-overdue invoices (regardless of when they were
+     * first marked overdue) and sends a consolidated digest per org
+     * via notify_org_admins().
+     */
+    public function cron_send_overdue_digest() {
+        global $wpdb;
+
+        $table_invoices = OraBooks_Database::table('invoices');
+        $table_customers = OraBooks_Database::table('customers');
+
+        // Fetch all currently overdue invoices with org context
+        $overdue_invoices = $wpdb->get_results(
+            "SELECT i.id, i.invoice_number, i.total_amount, i.due_date, i.org_id,
+                    i.overdue_notified_at, c.user_id as customer_user_id
+             FROM {$table_invoices} i
+             JOIN {$table_customers} c ON i.customer_id = c.id
+             WHERE i.payment_status = 'overdue'
+               AND i.workflow_status IN ('sent', 'posted')
+               AND i.due_date < CURDATE()
+             ORDER BY i.org_id ASC, i.due_date ASC"
+        );
+
+        if (empty($overdue_invoices)) {
+            return;
+        }
+
+        // Group by org
+        $orgs = [];
+        foreach ($overdue_invoices as $inv) {
+            $org_id = (int)$inv->org_id;
+            if (!isset($orgs[$org_id])) {
+                $orgs[$org_id] = [
+                    'count'  => 0,
+                    'total'  => 0,
+                    'oldest' => $inv->due_date,
+                    'newest' => $inv->due_date,
+                ];
+            }
+            $orgs[$org_id]['count']++;
+            $orgs[$org_id]['total'] += (float)$inv->total_amount;
+            if ($inv->due_date < $orgs[$org_id]['oldest']) {
+                $orgs[$org_id]['oldest'] = $inv->due_date;
+            }
+            if ($inv->due_date > $orgs[$org_id]['newest']) {
+                $orgs[$org_id]['newest'] = $inv->due_date;
+            }
+        }
+
+        // Send digest per org
+        foreach ($orgs as $org_id => $agg) {
+            $date_range = $agg['oldest'] === $agg['newest']
+                ? $agg['oldest']
+                : sprintf(__('%s to %s', 'orabooks'), $agg['oldest'], $agg['newest']);
+
+            self::notify_org_admins($org_id, 'overdue_digest', [
+                'title'          => sprintf(
+                    __('Overdue Invoice Digest: %d invoice(s)', 'orabooks'),
+                    $agg['count']
+                ),
+                'message'        => sprintf(
+                    __('Daily digest — %d overdue invoice(s) totaling $%s. Due date range: %s.', 'orabooks'),
+                    $agg['count'],
+                    number_format($agg['total'], 2),
+                    $date_range
+                ),
+                'priority'       => 'high',
+                'correlation_id' => 'overdue_digest_' . $org_id . '_' . current_time('Ymd'),
+                'overdue_count'  => $agg['count'],
+                'total_amount'   => $agg['total'],
+                'date_range'     => $date_range,
+                'view_url'       => admin_url('admin.php?page=orabooks-customers'),
+            ]);
+        }
+
+        orabooks_log_event('overdue_digest_sent', sprintf(
+            'Daily overdue digest sent to %d org(s)', count($orgs)
+        ), 'info', [
+            'org_count' => count($orgs),
+            'total_invoices' => count($overdue_invoices),
+        ]);
+    }
 
     // ================================================================
     // INVOICE EVENT HANDLERS (SL-021 Integration)
