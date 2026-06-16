@@ -1732,8 +1732,8 @@ describe('orabooksLoadPartnerDashboard (partner dashboard)', () => {
     expect(banners).toContain('readonly');
     expect(banners).toContain('inactive');
     expect(banners).toContain('no active customers');
-    // All 4 banners should be rendered
-    expect(banners.match(/orabooks-banner/g).length).toBe(4);
+    // All 4 banners should be rendered (count by elements, not substring matches)
+    expect($('#orabooks-status-banners .orabooks-banner').length).toBe(4);
   });
 
   test('populates attribution stats', () => {
@@ -1821,10 +1821,11 @@ describe('orabooksLoadPartnerDashboard (partner dashboard)', () => {
     resolveAjax('get', resp, 'orabooks_partner_dashboard');
 
     const html = $('#orabooks-attr-table-body').html();
-    // Unknown commission status gets a fallback gray badge with em dash
+    // The commission_status badge uses the fallback gray badge (em dash)
+    // while the attribution_status badge still uses 'orabooks-badge-paid' for 'verified'
     expect(html).toContain('—');
-    expect(html).not.toContain('orabooks-badge-paid');
-    expect(html).not.toContain('orabooks-badge-earned');
+    // Fallback badge has a specific inline style, not a status class
+    expect(html).toContain('style="background:#f5f5f5;color:#999;"');
   });
 
   test('shows empty message when no attributions', () => {
