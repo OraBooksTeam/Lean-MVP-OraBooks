@@ -220,8 +220,6 @@ function loadFrontendJs() {
   const code = fs.readFileSync(path.resolve(__dirname, '..', '..', 'assets', 'js', 'frontend.js'), 'utf8');
   const fn = new Function('$', 'jQuery', code);
   fn($, $);
-  // Clear initial GET calls from the ready handler so tests start clean.
-  clearAjax();
 }
 
 beforeEach(() => {
