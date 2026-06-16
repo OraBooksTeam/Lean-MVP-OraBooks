@@ -1,7 +1,7 @@
 <div class="wrap orabooks-admin orabooks-dashboard">
     <h1><?php _e('OraBooks Dashboard', 'orabooks'); ?>
         <span class="orabooks-last-updated" id="orabooks-last-updated"></span>
-        <button id="orabooks-dash-refresh" class="page-title-action"><?php _e('Refresh', 'orabooks'); ?></button>
+        <button id="orabooks-dash-refresh" class="page-title-action"><?php _e('⟳ Refresh', 'orabooks'); ?></button>
     </h1>
 
     <!-- Loading skeleton -->
