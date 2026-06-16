@@ -95,6 +95,7 @@ function setupFrontendDom() {
         <div id="orabooks-login-message"></div>
         <button type="submit">Log In</button>
       </form>
+      <button class="orabooks-btn-google">Sign in with Google</button>
     </div>
 
     <!-- Subdomain check -->
