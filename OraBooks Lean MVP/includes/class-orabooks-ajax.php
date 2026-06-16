@@ -237,3 +237,4 @@ class OraBooks_Ajax {
         
         orabooks_json_success($stats);
     }
+}
