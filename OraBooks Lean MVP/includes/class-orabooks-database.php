@@ -745,6 +745,9 @@ class OraBooks_Database {
         if (!wp_next_scheduled('orabooks_notification_delivery_retry')) {
             wp_schedule_event(time(), 'twicedaily', 'orabooks_notification_delivery_retry');
         }
+        if (!wp_next_scheduled('orabooks_daily_overdue_digest')) {
+            wp_schedule_event(time(), 'daily', 'orabooks_daily_overdue_digest');
+        }
 
         update_option('orabooks_db_version', ORABOOKS_DB_VERSION);
     }

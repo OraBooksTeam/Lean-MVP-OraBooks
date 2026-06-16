@@ -208,6 +208,7 @@ function orabooks_deactivate() {
     wp_clear_scheduled_hook('orabooks_exports_cleanup');
     wp_clear_scheduled_hook('orabooks_daily_customer_status_check');
     wp_clear_scheduled_hook('orabooks_daily_invoice_overdue_check');
+    wp_clear_scheduled_hook('orabooks_daily_overdue_digest');
 }
 
 // Add custom cron schedule for every_minute
