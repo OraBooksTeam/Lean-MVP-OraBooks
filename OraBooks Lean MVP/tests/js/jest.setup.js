@@ -60,6 +60,19 @@ if (typeof HTMLFormElement !== 'undefined') {
   HTMLFormElement.prototype.submit = jest.fn();
 }
 
+// --- Override jQuery ready to fire synchronously ---
+// jQuery schedules ready handlers via setTimeout(fn,1) when
+// document.readyState === 'complete'. With jest.useFakeTimers(),
+// that timeout would never fire. Override to call immediately.
+if ($.fn && $.fn.ready) {
+  $.fn.ready = function (fn) {
+    if (typeof fn === 'function') {
+      fn.call(document, $);
+    }
+    return this;
+  };
+}
+
 // Fake timers
 jest.useFakeTimers();
 
