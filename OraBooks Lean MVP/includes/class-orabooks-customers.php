@@ -424,6 +424,15 @@ class OraBooks_Customers {
             'org_id'         => $org_id,
         ], get_current_user_id(), $org_id);
 
+        // Fire event for SL-250 notification system
+        do_action('orabooks_invoice_created', $invoice_id, [
+            'customer_id'    => (int) $data['customer_id'],
+            'invoice_number' => $data['invoice_number'],
+            'total_amount'   => $data['total_amount'],
+            'due_date'       => $data['due_date'] ?? date('Y-m-d', strtotime($invoice_date . " +{$due_days} days")),
+            'org_id'         => $org_id,
+        ]);
+
         return self::get_invoice($invoice_id);
     }
 
@@ -642,6 +651,18 @@ class OraBooks_Customers {
         // Publish event for partner commission engine
         do_action('orabooks_customer_active_status_changed', $customer->user_id ?? 0, true, $org_id);
 
+        // Fire event for SL-250 notification system
+        do_action('orabooks_payment_recorded', $payment_id, [
+            'invoice_id'     => $invoice_id,
+            'invoice_number' => $invoice->invoice_number,
+            'customer_id'    => $invoice->customer_id,
+            'customer_user_id' => $customer->user_id ?? 0,
+            'amount'         => $payment_amount,
+            'new_status'     => $new_status,
+            'payment_date'   => $payment_date,
+            'org_id'         => $org_id,
+        ]);
+
         orabooks_log_event('payment_recorded', "Payment of {$payment_amount} recorded for invoice #{$invoice->invoice_number}", 'info', [
             'payment_id'    => $payment_id,
             'invoice_id'    => $invoice_id,
@@ -798,6 +819,9 @@ class OraBooks_Customers {
             orabooks_log_event('invoice_overdue_check',
                 "Daily overdue check: {$overdue_count} invoices marked overdue",
                 'info', ['marked_overdue' => $overdue_count], null, null);
+
+            // Fire event for SL-250 notification system
+            do_action('orabooks_invoices_marked_overdue', $overdue_count, []);
         }
 
         return $overdue_count;
