@@ -645,8 +645,6 @@ describe('orabooksLoadExports (exports list)', () => {
     const $tbody = $('#orabooks-export-table-body');
     expect($tbody.html()).toContain('Loading exports');
 
-    clearAjax();
-    window.orabooksLoadExports();
     resolveAjax('get', {
       error: false,
       data: {
@@ -657,7 +655,7 @@ describe('orabooksLoadExports (exports list)', () => {
         page: 1,
         total_pages: 1
       }
-    });
+    }, { action: 'orabooks_exports_list' });
 
     const html = $tbody.html();
     expect(html).toContain('audit_log');
@@ -667,24 +665,20 @@ describe('orabooksLoadExports (exports list)', () => {
   });
 
   test('shows empty state when no exports', () => {
-    clearAjax();
-    window.orabooksLoadExports();
     resolveAjax('get', {
       error: false,
       data: { exports: [], total: 0, page: 1, total_pages: 1 }
-    });
+    }, { action: 'orabooks_exports_list' });
 
     const html = $('#orabooks-export-table-body').html();
     expect(html).toContain('No exports found');
   });
 
   test('renders pagination when multiple pages', () => {
-    clearAjax();
-    window.orabooksLoadExports();
     resolveAjax('get', {
       error: false,
       data: { exports: [], total: 50, page: 1, total_pages: 3 }
-    });
+    }, { action: 'orabooks_exports_list' });
 
     const pagHtml = $('#orabooks-export-pagination').html();
     expect(pagHtml).toContain('1');
@@ -731,8 +725,6 @@ describe('Export refresh button', () => {
 // ============================================================
 describe('Notification center - load notifications', () => {
   test('renders notifications from AJAX', () => {
-    clearAjax();
-    window.orabooksLoadNotifications();
     resolveAjax('get', {
       error: false,
       data: {
@@ -742,7 +734,7 @@ describe('Notification center - load notifications', () => {
           { id: 2, event_type: 'export', title: 'Export Ready', message: 'Your export is ready', priority: 'high', created_at: '2024-01-02', is_read: true, delivery_channel: 'email', correlation_id: 'corr-456' }
         ]
       }
-    });
+    }, { action: 'orabooks_notifications_list' });
 
     const html = $('#orabooks-nc-list').html();
     expect(html).toContain('New Login');
@@ -753,9 +745,7 @@ describe('Notification center - load notifications', () => {
   });
 
   test('shows empty state when no notifications', () => {
-    clearAjax();
-    window.orabooksLoadNotifications();
-    resolveAjax('get', { error: false, data: { unread_count: 0, notifications: [] } });
+    resolveAjax('get', { error: false, data: { unread_count: 0, notifications: [] } }, { action: 'orabooks_notifications_list' });
 
     expect($('#orabooks-nc-list').html()).toContain('No notifications found');
     expect($('#orabooks-nc-unread-badge').css('display')).toBe('none');
@@ -764,15 +754,13 @@ describe('Notification center - load notifications', () => {
 
 describe('Notification mark as read', () => {
   test('marks notification as read on click', () => {
-    clearAjax();
-    window.orabooksLoadNotifications();
     resolveAjax('get', {
       error: false,
       data: {
         unread_count: 1,
         notifications: [{ id: 5, event_type: 'test', title: 'Test', message: 'Test msg', priority: 'low', created_at: '2024-01-01', is_read: false, delivery_channel: 'inapp', correlation_id: 'corr-789' }]
       }
-    });
+    }, { action: 'orabooks_notifications_list' });
 
     const $item = $('.orabooks-nc-item').first();
     expect($item.hasClass('orabooks-nc-item-unread')).toBe(true);
@@ -784,15 +772,13 @@ describe('Notification mark as read', () => {
 
 describe('Notification - mark all read', () => {
   test('posts mark all read and hides badge', () => {
-    clearAjax();
-    window.orabooksLoadNotifications();
     resolveAjax('get', {
       error: false,
       data: { unread_count: 3, notifications: [
         { id: 1, event_type: 'a', title: 'A', priority: 'low', created_at: '2024-01-01', is_read: false, delivery_channel: 'inapp', correlation_id: 'abc' },
         { id: 2, event_type: 'b', title: 'B', priority: 'low', created_at: '2024-01-01', is_read: true, delivery_channel: 'inapp', correlation_id: 'def' }
       ]}
-    });
+    }, { action: 'orabooks_notifications_list' });
 
     $('#orabooks-nc-mark-all-read').trigger('click');
 
@@ -818,7 +804,8 @@ describe('Notification preferences save', () => {
     $('#orabooks-nc-prefs-form').trigger('submit');
 
     const call = latestAjax('post');
-    expect(call.data.action).toBe('orabooks_notification_preferences_save');
+    // Form data is serialized as an array (via .serializeArray())
+    expect(call.data.find(function(d) { return d.name === 'action'; }).value).toBe('orabooks_notification_preferences_save');
   });
 
   test('shows success message on save', () => {
@@ -837,8 +824,8 @@ describe('Notification admin policy save', () => {
     $('#orabooks-nc-policy-form').trigger('submit');
 
     const call = latestAjax('post');
-    expect(call.data.action).toBe('orabooks_notification_admin_policy_save');
-    expect(call.data.org_id).toBe(0);
+    expect(call.data.find(function(d) { return d.name === 'action'; }).value).toBe('orabooks_notification_admin_policy_save');
+    expect(call.data.find(function(d) { return d.name === 'org_id'; }).value).toBe(0);
   });
 });
 
@@ -877,8 +864,6 @@ describe('Notification admin audit export', () => {
 // ============================================================
 describe('Async queue dashboard - load stats', () => {
   test('renders queue stats from AJAX', () => {
-    clearAjax();
-    window.orabooksLoadQueueStats();
     resolveAjax('get', {
       error: false,
       data: {
@@ -894,7 +879,7 @@ describe('Async queue dashboard - load stats', () => {
           { id: 101, job_type: 'generate_export', retry_count: 3, last_error: 'Timeout', last_attempt_at: '2024-01-01', created_at: '2024-01-01', status: 'failed' }
         ]
       }
-    });
+    }, { action: 'orabooks_async_queue_stats' });
 
     expect($('#aq-total').text()).toBe('150');
     expect($('#aq-pending').text()).toBe('20');
@@ -911,12 +896,10 @@ describe('Async queue dashboard - load stats', () => {
   });
 
   test('shows no failures message when no failures', () => {
-    clearAjax();
-    window.orabooksLoadQueueStats();
     resolveAjax('get', {
       error: false,
       data: { total: 0, pending_count: 0, processing_count: 0, completed_count: 0, failed_count: 0, dead_letter_count: 0, recent_failures: [] }
-    });
+    }, { action: 'orabooks_async_queue_stats' });
 
     expect($('#orabooks-aq-failures-body').html()).toContain('No recent failures');
   });
@@ -1224,18 +1207,13 @@ describe('Invoice deep link auto-load from ?invoice_id=', () => {
 // ============================================================
 describe('Commission config form submit', () => {
   test('posts serialized config data', () => {
-    // Clear the GET call from on-page-init (config load)
-    clearAjax();
-
-    // Trigger form submit (now using <form> tag, so submit events work)
     $('#orabooks-commission-config-form').trigger('submit');
 
     const call = latestAjax('post');
-    expect(call.data.action).toBe('orabooks_commission_update_config');
+    expect(call.data.find(function(d) { return d.name === 'action'; }).value).toBe('orabooks_commission_update_config');
   });
 
   test('shows success message on config save', () => {
-    clearAjax();
     $('#orabooks-commission-config-form').trigger('submit');
     resolveAjax('post', { error: false, data: {}, message: 'Configuration updated' });
 
