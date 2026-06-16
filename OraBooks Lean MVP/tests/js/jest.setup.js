@@ -59,26 +59,32 @@ if (origLocation) {
     set href(v) { this._href = String(v); }
   };
 
-  // Define `location` as an own property on the window INSTANCE
-  // This shadows the Location object from Window.prototype.
-  // Since window doesn't have an own `location` property (it's inherited),
-  // Object.defineProperty won't throw "Cannot redefine property".
+  // Use a Proxy on global.window to intercept 'location' property access.
+  // This avoids issues with non-configurable Location prototype in JSDOM.
   try {
-    Object.defineProperty(global.window, 'location', {
-      get() { return mockLocation; },
-      set(v) {
-        if (typeof v === 'string') {
-          mockLocation._href = v;
-        } else if (v && typeof v === 'object') {
-          Object.assign(mockLocation, v);
+    const origWindow = global.window;
+    const windowHandler = {
+      get(target, prop) {
+        if (prop === 'location') {
+          return mockLocation;
         }
+        return Reflect.get(target, prop);
       },
-      configurable: true,
-      enumerable: true
-    });
+      set(target, prop, value) {
+        if (prop === 'location') {
+          if (typeof value === 'string') {
+            mockLocation._href = value;
+          } else if (value && typeof value === 'object') {
+            Object.assign(mockLocation, value);
+          }
+          return true;
+        }
+        return Reflect.set(target, prop, value);
+      }
+    };
+    global.window = new Proxy(origWindow, windowHandler);
   } catch (e) {
-    // Fallback: window.location was non-configurable on this JSDOM version
-    // Try to at least stub navigation methods on the real Location
+    // Proxy not supported (unlikely in modern Node), fall back to stubs
     origLocation.assign = jest.fn();
     origLocation.replace = jest.fn();
     origLocation.reload = jest.fn();
@@ -178,22 +184,35 @@ jest.spyOn($, 'post').mockImplementation((url, data, callback) => {
   return createMockJqXHR(url, data, callback, type);
 });
 
-// Helper to resolve the latest AJAX call
-global.resolveAjax = function(type = 'post', responseData = {}, responseMessage = '') {
+// Helper to resolve the latest AJAX call.
+// If filter is provided (e.g. { action: 'orabooks_exports_list' }), finds
+// and resolves the matching call instead of the first one in the queue.
+global.resolveAjax = function(type = 'post', responseData = {}, filter) {
   const calls = ajaxResponses[type];
-  if (calls.length === 0) throw new Error(`No ${type} AJAX calls to resolve`);
-  const call = calls.shift();
+  let call;
+  if (filter && typeof filter === 'object' && Object.keys(filter).length > 0) {
+    const idx = calls.findIndex(function(c) {
+      return Object.keys(filter).every(function(key) {
+        return c.data && c.data[key] === filter[key];
+      });
+    });
+    if (idx === -1) {
+      throw new Error('No ' + type + ' AJAX call matching ' + JSON.stringify(filter));
+    }
+    call = calls.splice(idx, 1)[0];
+  } else {
+    if (calls.length === 0) throw new Error('No ' + type + ' AJAX calls to resolve');
+    call = calls.shift();
+  }
   if (call.callback) {
     call.callback(responseData);
   }
-  // Also fire done/then callbacks if they were registered via chaining
   if (typeof call.doneCallback === 'function') {
     call.doneCallback(responseData);
   }
   if (typeof call.thenCallback === 'function') {
     call.thenCallback(responseData);
   }
-  // Always invoke always callback
   if (typeof call.alwaysCallback === 'function') {
     call.alwaysCallback(responseData);
   }
