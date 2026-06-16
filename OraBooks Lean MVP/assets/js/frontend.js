@@ -939,6 +939,74 @@ jQuery(document).ready(function($) {
         $('#orabooks-nc-proof-modal').show();
     });
     
+    /**
+     * Highlight and scroll to a specific notification by ID.
+     * Adds an attention-grabbing highlight that fades out over time.
+     */
+    function orabooksHighlightNotification(notificationId) {
+        var $target = $('.orabooks-nc-item[data-id="' + notificationId + '"]');
+        if (!$target.length) {
+            return;
+        }
+
+        // Scroll the notification into view
+        $('html, body').animate({
+            scrollTop: $target.offset().top - 80
+        }, 400);
+
+        // Add highlight class (removes after animation completes)
+        $target.addClass('orabooks-nc-highlight');
+        setTimeout(function() {
+            $target.removeClass('orabooks-nc-highlight');
+        }, 3000);
+
+        // Auto-mark as read if unread
+        if ($target.hasClass('orabooks-nc-item-unread')) {
+            $target.removeClass('orabooks-nc-item-unread');
+            $.post(orabooks_ajax.ajax_url, {
+                action: 'orabooks_notifications_mark_read',
+                notification_id: notificationId
+            });
+        }
+    }
+
+    // =============================================
+    // NOTIFICATION DEEP LINK — auto-load a specific notification from ?notification_id= query param
+    // Used when user navigates to /notifications/?notification_id=N from a notification email/link
+    // =============================================
+    (function() {
+        var urlParams = new URLSearchParams(window.location.search);
+        var notifId = urlParams.get('notification_id');
+
+        if (notifId && $('.orabooks-notification-center').length) {
+            // Override the standard init: load notifications, then highlight the target
+            var originalLoad = orabooksLoadNotifications;
+            // We can't easily intercept the callback, so we poll for the element
+            var checkInterval = setInterval(function() {
+                var $target = $('.orabooks-nc-item[data-id="' + notifId + '"]');
+                if ($target.length) {
+                    clearInterval(checkInterval);
+                    orabooksHighlightNotification(parseInt(notifId, 10));
+                }
+            }, 200);
+
+            // Stop polling after 15 seconds (safety net)
+            setTimeout(function() {
+                clearInterval(checkInterval);
+            }, 15000);
+
+            // Clean the notification_id from the URL without reloading
+            if (window.history.replaceState) {
+                urlParams.delete('notification_id');
+                var newSearch = urlParams.toString();
+                var cleanUrl = window.location.protocol + '//' +
+                    window.location.host + window.location.pathname +
+                    (newSearch ? '?' + newSearch : '');
+                window.history.replaceState({}, document.title, cleanUrl);
+            }
+        }
+    })();
+
     // Initialize notification center
     if ($('.orabooks-notification-center').length) {
         orabooksLoadNotifications();
