@@ -1521,8 +1521,15 @@ class OraBooks_Auth {
             orabooks_json_error($org_result->get_error_message(), 400);
         }
         
-        // Update attribution org_id if pending
+        // Update attribution org_id if pending or already verified before tier selection
         $table_attributions = OraBooks_Database::table('partner_attributions');
+        $wpdb->update(
+            $table_attributions,
+            ['org_id' => $org_result['org_id']],
+            ['customer_user_id' => $user_id, 'status' => 'pending'],
+            ['%d'],
+            ['%d', '%s']
+        );
         $wpdb->update(
             $table_attributions,
             ['org_id' => $org_result['org_id']],
