@@ -331,7 +331,7 @@ describe('.orabooks-coa-export-trigger click', () => {
     const $btn = $('.orabooks-coa-export-trigger').first();
     $btn.trigger('click');
 
-    resolveAjax('post', { error: false, data: {}, message: 'Queued' }, { action: 'orabooks_export_request' });
+    resolveAjax('post', { error: false, data: {}, message: 'Queued' }, 'orabooks_export_request');
 
     expect($btn.text()).toContain('Requested');
     expect($('#orabooks-coa-export-msg').css('display')).toBe('block');
@@ -382,7 +382,7 @@ describe('.orabooks-export-trigger click (audit)', () => {
     const $btn = $('.orabooks-export-trigger').first();
     $btn.trigger('click');
 
-    resolveAjax('post', { error: false, data: {}, message: 'Queued' }, { action: 'orabooks_export_request' });
+    resolveAjax('post', { error: false, data: {}, message: 'Queued' }, 'orabooks_export_request');
 
     // Should add a notice div after .orabooks-filters
     expect($('.notice-success').length).toBe(1);
@@ -413,7 +413,7 @@ describe('.orabooks-partner-export-trigger click', () => {
   test('shows success in message div', () => {
     const $btn = $('.orabooks-partner-export-trigger').first();
     $btn.trigger('click');
-    resolveAjax('post', { error: false, data: {} }, { action: 'orabooks_export_request' });
+    resolveAjax('post', { error: false, data: {} }, 'orabooks_export_request');
 
     expect($('#orabooks-partner-export-msg').css('display')).toBe('block');
     expect($('#orabooks-partner-export-msg').html()).toContain('View My Exports');
