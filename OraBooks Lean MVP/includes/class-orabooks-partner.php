@@ -200,6 +200,21 @@ class OraBooks_Partner {
         
         // Create reactivation review
         $result = OraBooks_Organization::request_partner_reactivation($org_id, $user_id, $reason);
+        if (is_wp_error($result)) {
+            return $result;
+        }
+        
+        $wpdb->update(
+            $table_codes,
+            [
+                'status' => 'pending_review',
+                'disabled_at' => null,
+                'disabled_reason' => null
+            ],
+            ['id' => $code->id],
+            ['%s', null, null],
+            ['%d']
+        );
         
         return $result;
     }
