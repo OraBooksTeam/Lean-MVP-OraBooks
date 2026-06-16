@@ -196,9 +196,9 @@ class OraBooks_Auth {
         // Same email domain check (if enabled)
         if (get_option('orabooks_block_same_email_domain', 0)) {
             $partner_email = orabooks_get_user_email($code->user_id);
-            $partner_domain = substr(strrchr($partner_email, '@'), 1);
-            $customer_domain = substr(strrchr($customer_email, '@'), 1);
-            if (strtolower($partner_domain) === strtolower($customer_domain)) {
+            $partner_domain = self::get_email_domain($partner_email);
+            $customer_domain = self::get_email_domain($customer_email);
+            if ($partner_domain && $customer_domain && strtolower($partner_domain) === strtolower($customer_domain)) {
                 return new WP_Error('same_domain', 'Same email domain not allowed for partner attribution');
             }
         }
