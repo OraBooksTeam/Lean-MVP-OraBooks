@@ -65,9 +65,9 @@ function loadAdminJs() {
   // Execute with jQuery available
   const fn = new Function('$', 'jQuery', code);
   fn($, $);
-  // jQuery fires ready handlers via setTimeout when doc is complete.
-  // With fake timers that setTimeout never fires, so flush it now.
-  jest.advanceTimersByTime(10);
+  // Clear initial GET calls from the ready handler (orabooksLoadOrgs,
+  // orabooksLoadAuditLogs, orabooksLoadCoAOrgs) so tests start clean.
+  clearAjax();
 }
 
 beforeEach(() => {
@@ -86,6 +86,9 @@ describe('orabooksLoadOrgs()', () => {
     const $tbody = $('#orabooks-orgs-table-body');
     expect($tbody.html()).toContain('Loading...');
 
+    // Trigger a fresh GET call (ready handler's calls were cleared in loadAdminJs)
+    window.orabooksLoadOrgs();
+
     resolveAjax('get', {
       error: false,
       data: [
@@ -101,6 +104,7 @@ describe('orabooksLoadOrgs()', () => {
   });
 
   test('shows empty message when no orgs returned', () => {
+    window.orabooksLoadOrgs();
     resolveAjax('get', { error: false, data: [] });
     expect($('#orabooks-orgs-table-body').html()).toContain('No organizations found');
   });
@@ -108,9 +112,8 @@ describe('orabooksLoadOrgs()', () => {
   test('renders filter values in GET params', () => {
     $('#org-filter-type').val('customer');
     $('#org-filter-status').val('active');
-    // Re-trigger load
+
     window.orabooksLoadOrgs();
-    clearAjax(); // Clear previous calls
 
     const call = latestAjax('get');
     expect(call).not.toBeNull();
@@ -125,6 +128,9 @@ describe('orabooksLoadAuditLogs()', () => {
     const $tbody = $('#orabooks-audit-table-body');
     expect($tbody.html()).toContain('Loading...');
 
+    // Trigger a fresh GET call
+    window.orabooksLoadAuditLogs();
+
     resolveAjax('get', {
       error: false,
       data: [
@@ -138,6 +144,7 @@ describe('orabooksLoadAuditLogs()', () => {
   });
 
   test('shows empty message when no logs', () => {
+    window.orabooksLoadAuditLogs();
     resolveAjax('get', { error: false, data: [] });
     expect($('#orabooks-audit-table-body').html()).toContain('No logs found');
   });
@@ -145,11 +152,12 @@ describe('orabooksLoadAuditLogs()', () => {
   test('passes filter values', () => {
     $('#audit-filter-event').val('login');
     $('#audit-filter-user').val('5');
+
     window.orabooksLoadAuditLogs();
-    clearAjax();
 
     const call = latestAjax('get');
     expect(call).not.toBeNull();
+    expect(call.data.event_type).toBe('login');
   });
 });
 
