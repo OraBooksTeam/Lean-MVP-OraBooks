@@ -537,10 +537,10 @@ class OraBooks_Partner {
         $active_customer_count = (int) $wpdb->get_var($wpdb->prepare(
             "SELECT COUNT(DISTINCT pa.customer_user_id)
              FROM {$table_attributions} pa
-             JOIN {$table_active} cas ON cas.customer_id = pa.customer_user_id
+             JOIN {$table_customers} c ON pa.customer_user_id = c.user_id
              WHERE pa.partner_user_id = %d
                AND pa.status = 'verified'
-               AND cas.is_active = 1",
+               AND c.is_active = 1",
             $user_id
         ));
         
