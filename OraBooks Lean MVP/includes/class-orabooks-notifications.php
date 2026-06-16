@@ -1475,6 +1475,7 @@ class OraBooks_Notifications {
             'invoice_number' => $invoice_number,
             'total_amount'   => $total_amount,
             'due_date'       => $due_date,
+            'view_url'       => home_url('/dashboard/'),
         ], $org_id);
 
         // Notify org admins/owners about the new invoice
@@ -1494,6 +1495,7 @@ class OraBooks_Notifications {
             'total_amount'   => $total_amount,
             'customer_id'    => $customer_id,
             'due_date'       => $due_date,
+            'view_url'       => admin_url('admin.php?page=orabooks-customers'),
         ]);
     }
 
@@ -1531,6 +1533,7 @@ class OraBooks_Notifications {
             'invoice_number' => $invoice_number,
             'amount'         => $amount,
             'new_status'     => $new_status,
+            'view_url'       => home_url('/dashboard/'),
         ], $org_id);
 
         // Notify org admins/owners about the payment
@@ -1551,6 +1554,7 @@ class OraBooks_Notifications {
             'amount'         => $amount,
             'new_status'     => $new_status,
             'customer_id'    => $customer_user_id,
+            'view_url'       => admin_url('admin.php?page=orabooks-customers'),
         ]);
     }
 
