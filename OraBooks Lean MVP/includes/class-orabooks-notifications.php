@@ -1417,6 +1417,22 @@ class OraBooks_Notifications {
     }
 
     /**
+     * Get the customer-facing dashboard URL for view links in notifications.
+     */
+    private static function get_customer_dashboard_url(): string
+    {
+        return home_url('/dashboard/');
+    }
+
+    /**
+     * Get the admin invoices page URL for view links in notifications.
+     */
+    private static function get_admin_invoices_url(): string
+    {
+        return admin_url('admin.php?page=orabooks-customers');
+    }
+
+    /**
      * Notify all org admins/owners about an event.
      */
     private static function notify_org_admins($org_id, $event_type, $payload) {
@@ -1561,7 +1577,7 @@ class OraBooks_Notifications {
             'invoice_number' => $invoice_number,
             'total_amount'   => $total_amount,
             'due_date'       => $due_date,
-            'view_url'       => home_url('/dashboard/'),
+            'view_url'       => self::get_customer_dashboard_url(),
         ], $org_id);
 
         // Notify org admins/owners about the new invoice
@@ -1581,7 +1597,7 @@ class OraBooks_Notifications {
             'total_amount'   => $total_amount,
             'customer_id'    => $customer_id,
             'due_date'       => $due_date,
-            'view_url'       => admin_url('admin.php?page=orabooks-customers'),
+            'view_url'       => self::get_admin_invoices_url(),
         ]);
     }
 
@@ -1619,7 +1635,7 @@ class OraBooks_Notifications {
             'invoice_number' => $invoice_number,
             'amount'         => $amount,
             'new_status'     => $new_status,
-            'view_url'       => home_url('/dashboard/'),
+            'view_url'       => self::get_customer_dashboard_url(),
         ], $org_id);
 
         // Notify org admins/owners about the payment
@@ -1640,7 +1656,7 @@ class OraBooks_Notifications {
             'amount'         => $amount,
             'new_status'     => $new_status,
             'customer_id'    => $customer_user_id,
-            'view_url'       => admin_url('admin.php?page=orabooks-customers'),
+            'view_url'       => self::get_admin_invoices_url(),
         ]);
     }
 
@@ -1688,7 +1704,7 @@ class OraBooks_Notifications {
                 'invoice_number' => $inv->invoice_number,
                 'total_amount'   => $inv->total_amount,
                 'due_date'       => $inv->due_date,
-                'view_url'       => home_url('/dashboard/'),
+                'view_url'       => self::get_customer_dashboard_url(),
             ], (int)$inv->org_id);
 
             // Track unique orgs for admin notification
@@ -1725,7 +1741,7 @@ class OraBooks_Notifications {
                 'correlation_id' => 'overdue_batch_' . $org_id . '_' . current_time('Ymd'),
                 'overdue_count'  => $agg['count'],
                 'total_amount'   => $agg['total'],
-                'view_url'       => admin_url('admin.php?page=orabooks-customers'),
+                'view_url'       => self::get_admin_invoices_url(),
             ]);
         }
     }
