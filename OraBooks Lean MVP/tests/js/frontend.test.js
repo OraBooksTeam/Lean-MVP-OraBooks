@@ -14,6 +14,54 @@
  * - Commission dashboard: tab switching
  * - Commission config form load + submit
  * - Async queue dashboard: load stats, retry job
+ *
+ * ── Test Pattern: clearAjax before function call ────────────────────
+ *
+ * frontend.js's ready handler may make initial AJAX calls on page load
+ * (e.g., partner info POST if an element with id="orabooks-partner-info"
+ * exists, or a GET call for commission config). These calls accumulate
+ * in the same queue that tests use with resolveAjax.
+ *
+ * Before triggering code that makes its own AJAX call, call clearAjax()
+ * to flush any initial calls so that resolveAjax picks up only the call
+ * under test.
+ *
+ *   clearAjax();
+ *   $('#orabooks-register-form').trigger('submit');
+ *   resolveAjax('post', { error: false, data: {} }, 'orabooks_register');
+ *
+ * ── resolveAjax action filter (3rd arg) ─────────────────────────────
+ *
+ * When multiple calls of the same type could be queued, pass the action
+ * name as the 3rd argument to resolve only the matching call:
+ *
+ *   resolveAjax('post', data, 'orabooks_register');
+ *   resolveAjax('get', data, 'orabooks_exports_list');
+ *
+ * You can also pass an object filter for multi-key matching:
+ *
+ *   resolveAjax('post', data, { action: 'orabooks_export_request' });
+ *
+ * ── Form data with .serializeArray() ────────────────────────────────
+ *
+ * Some forms (notification preferences, policy, commission config) use
+ * $(this).serializeArray() which produces an array of {name, value}
+ * objects rather than a plain object. In these cases, check array
+ * entries instead of direct property access:
+ *
+ *   const call = latestAjax('post');
+ *   const actionEntry = call.data.find(d => d.name === 'action');
+ *   expect(actionEntry.value).toBe('orabooks_notification_preferences_save');
+ *
+ * ── JSDOM & HTML entity normalization ───────────────────────────────
+ *
+ * When testing HTML escaping (escHtml), JSDOM's innerHTML serialization
+ * normalizes &quot; back to " in text content (unlike &amp; and &lt;
+ * which must remain entity-encoded). Test for the decoded character
+ * rather than the entity:
+ *
+ *   expect(html).toContain('"');    // not .toContain('&quot;')
+ *   expect(html).toContain('&amp;'); // stays as-is
  */
 
 const $ = require('jquery');
