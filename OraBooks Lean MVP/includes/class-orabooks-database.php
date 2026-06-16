@@ -50,6 +50,11 @@ class OraBooks_Database {
         ) {$charset_collate};";
         dbDelta($sql);
         
+        $existing_partner_check = $wpdb->get_var("SELECT CONSTRAINT_NAME FROM information_schema.TABLE_CONSTRAINTS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = '{$table_organizations}' AND CONSTRAINT_NAME = 'chk_partner_consistency'");
+        if (!$existing_partner_check) {
+            $wpdb->query("ALTER TABLE {$table_organizations} ADD CONSTRAINT chk_partner_consistency CHECK ((organization_type = 'partner' AND tier = 'partner') OR (organization_type = 'customer' AND tier != 'partner'))");
+        }
+        
         // ============================================================
         // SL-004: org_quotas table
         // ============================================================
