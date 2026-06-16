@@ -466,16 +466,16 @@
    MODAL OVERLAY
    ============================================= */
 .orabooks-admin .orabooks-modal {
-    animation: orabooks-fade-in 0.2s ease;
+    animation: orabooks-admin-fade-in 0.2s ease;
 }
-@keyframes orabooks-fade-in {
+@keyframes orabooks-admin-fade-in {
     from { opacity: 0; }
     to   { opacity: 1; }
 }
 .orabooks-admin .orabooks-modal-content {
-    animation: orabooks-slide-up 0.25s ease;
+    animation: orabooks-admin-slide-up 0.25s ease;
 }
-@keyframes orabooks-slide-up {
+@keyframes orabooks-admin-slide-up {
     from { transform: translateY(16px); opacity: 0; }
     to   { transform: translateY(0);    opacity: 1; }
 }
