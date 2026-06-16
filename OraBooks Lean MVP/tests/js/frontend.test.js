@@ -1311,3 +1311,304 @@ describe('Commission config form submit', () => {
     expect($('#orabooks-commission-config-message').hasClass('success')).toBe(true);
   });
 });
+
+// ============================================================
+// Commission Dashboard — orabooksLoadCommissionStats
+// ============================================================
+describe('orabooksLoadCommissionStats (summary)', () => {
+  test('populates summary stats from response', () => {
+    resolveAjax('get', {
+      error: false,
+      data: {
+        total_earned: 15000.50,
+        pending_payout: 2500.75,
+        total_paid: 10000.00,
+        total_expired: 500.25,
+        escrow_remaining: 2500.50
+      }
+    }, 'orabooks_commission_stats');
+
+    expect($('#orabooks-total-earned').text()).toBe('$15000.50');
+    expect($('#orabooks-pending-payout').text()).toBe('$2500.75');
+    expect($('#orabooks-total-paid').text()).toBe('$10000.00');
+    expect($('#orabooks-total-expired').text()).toBe('$500.25');
+    expect($('#orabooks-escrow-remaining').text()).toBe('$2500.50');
+  });
+
+  test('handles zero values', () => {
+    resolveAjax('get', {
+      error: false,
+      data: {
+        total_earned: 0,
+        pending_payout: 0,
+        total_paid: 0,
+        total_expired: 0,
+        escrow_remaining: 0
+      }
+    }, 'orabooks_commission_stats');
+
+    expect($('#orabooks-total-earned').text()).toBe('$0.00');
+    expect($('#orabooks-pending-payout').text()).toBe('$0.00');
+    expect($('#orabooks-total-paid').text()).toBe('$0.00');
+    expect($('#orabooks-total-expired').text()).toBe('$0.00');
+    expect($('#orabooks-escrow-remaining').text()).toBe('$0.00');
+  });
+
+  test('handles decimal edge cases', () => {
+    resolveAjax('get', {
+      error: false,
+      data: {
+        total_earned: 99.9,
+        pending_payout: 100,
+        total_paid: 0.01,
+        total_expired: 999999.99,
+        escrow_remaining: 1234.5
+      }
+    }, 'orabooks_commission_stats');
+
+    expect($('#orabooks-total-earned').text()).toBe('$99.90');
+    expect($('#orabooks-pending-payout').text()).toBe('$100.00');
+    expect($('#orabooks-total-paid').text()).toBe('$0.01');
+    expect($('#orabooks-total-expired').text()).toBe('$999999.99');
+    expect($('#orabooks-escrow-remaining').text()).toBe('$1234.50');
+  });
+});
+
+// ============================================================
+// Commission Dashboard — orabooksLoadEarnedCommissions
+// ============================================================
+describe('orabooksLoadEarnedCommissions (earned table)', () => {
+  test('renders loading state then populates earned commissions table', () => {
+    const $tbody = $('#orabooks-earned-table-body');
+    expect($tbody.html()).toContain('Loading...');
+
+    resolveAjax('get', {
+      error: false,
+      data: [
+        {
+          customer_email_masked: 'c***@example.com',
+          release_month: '2026-05',
+          amount: 500.00,
+          status: 'earned',
+          expires_at: '2027-05-01',
+          earned_at: '2026-05-15'
+        },
+        {
+          customer_email_masked: 'd***@example.com',
+          release_month: '2026-04',
+          amount: 250.50,
+          status: 'paid',
+          expires_at: '2027-04-01',
+          earned_at: '2026-04-15'
+        }
+      ]
+    }, 'orabooks_commission_earned');
+
+    const html = $tbody.html();
+    expect(html).toContain('c***@example.com');
+    expect(html).toContain('2026-05');
+    expect(html).toContain('$500.00');
+    expect(html).toContain('Earned');
+    expect(html).toContain('d***@example.com');
+    expect(html).toContain('$250.50');
+    expect(html).toContain('Paid');
+    expect(html).toContain('orabooks-badge-earned');
+    expect(html).toContain('orabooks-badge-paid');
+  });
+
+  test('shows empty state when no earned commissions', () => {
+    resolveAjax('get', { error: false, data: [] }, 'orabooks_commission_earned');
+    expect($('#orabooks-earned-table-body').html()).toContain('No commissions found');
+  });
+
+  test('handles error response gracefully', () => {
+    // Error responses just leave the table as-is (no error rendering)
+    resolveAjax('get', { error: true, data: null }, 'orabooks_commission_earned');
+    const html = $('#orabooks-earned-table-body').html();
+    // Loading state should be replaced with nothing (callback doesn't execute)
+    expect(html).not.toContain('Loading...');
+  });
+});
+
+// ============================================================
+// Commission Dashboard — orabooksLoadPayouts
+// ============================================================
+describe('orabooksLoadPayouts (payout table)', () => {
+  test('renders loading state then populates payout history table', () => {
+    const $tbody = $('#orabooks-payouts-table-body');
+    expect($tbody.html()).toContain('Loading...');
+
+    resolveAjax('get', {
+      error: false,
+      data: [
+        {
+          payout_date: '2026-06-01',
+          gross_amount: 1000.00,
+          fee_amount: 50.00,
+          net_amount: 950.00,
+          status: 'settled'
+        }
+      ]
+    }, 'orabooks_commission_payouts');
+
+    const html = $tbody.html();
+    expect(html).toContain('2026-06-01');
+    expect(html).toContain('$1000.00');
+    expect(html).toContain('$50.00');
+    expect(html).toContain('$950.00');
+    expect(html).toContain('Paid');
+    expect(html).toContain('orabooks-badge-paid');
+  });
+
+  test('falls back to created_at when payout_date is missing', () => {
+    resolveAjax('get', {
+      error: false,
+      data: [
+        {
+          created_at: '2026-05-15',
+          gross_amount: 500.00,
+          fee_amount: 25.00,
+          net_amount: 475.00,
+          status: 'initiated'
+        }
+      ]
+    }, 'orabooks_commission_payouts');
+
+    const html = $('#orabooks-payouts-table-body').html();
+    expect(html).toContain('2026-05-15');
+    expect(html).toContain('Pending');
+  });
+
+  test('shows empty state when no payouts', () => {
+    resolveAjax('get', { error: false, data: [] }, 'orabooks_commission_payouts');
+    expect($('#orabooks-payouts-table-body').html()).toContain('No payouts found');
+  });
+});
+
+// ============================================================
+// Commission Dashboard — orabooksLoadAging
+// ============================================================
+describe('orabooksLoadAging (aging report)', () => {
+  test('renders loading state then populates aging buckets', () => {
+    const $tbody = $('#orabooks-aging-table-body');
+    expect($tbody.html()).toContain('Loading...');
+
+    resolveAjax('get', {
+      error: false,
+      data: {
+        bucket_0_30: 5000.00,
+        bucket_31_60: 3000.00,
+        bucket_61_90: 1000.00,
+        bucket_90_plus: 500.00,
+        expired_total: 200.00
+      }
+    }, 'orabooks_commission_aging');
+
+    const html = $tbody.html();
+    expect(html).toContain('0-30 Days');
+    expect(html).toContain('$5,000.00');
+    expect(html).toContain('31-60 Days');
+    expect(html).toContain('$3,000.00');
+    expect(html).toContain('61-90 Days');
+    expect(html).toContain('$1,000.00');
+    expect(html).toContain('90+ Days');
+    expect(html).toContain('$500.00');
+    expect(html).toContain('Expired');
+    expect(html).toContain('$200.00');
+  });
+
+  test('handles zero values in aging buckets', () => {
+    resolveAjax('get', {
+      error: false,
+      data: {
+        bucket_0_30: 0,
+        bucket_31_60: 0,
+        bucket_61_90: 0,
+        bucket_90_plus: 0,
+        expired_total: 0
+      }
+    }, 'orabooks_commission_aging');
+
+    const html = $('#orabooks-aging-table-body').html();
+    expect(html).toContain('$0.00');
+    // All 5 rows rendered
+    expect(html.match(/<tr>/g).length).toBe(5);
+  });
+
+  test('handles null/undefined buckets', () => {
+    resolveAjax('get', {
+      error: false,
+      data: {
+        bucket_0_30: null,
+        bucket_31_60: undefined,
+        bucket_61_90: 1000,
+        bucket_90_plus: 0,
+        expired_total: null
+      }
+    }, 'orabooks_commission_aging');
+
+    const html = $('#orabooks-aging-table-body').html();
+    // Null/undefined should be rendered as $0.00
+    expect(html).toContain('$0.00');
+    expect(html).toContain('$1,000.00');
+  });
+});
+
+// ============================================================
+// Commission Dashboard — orabooksLoadEscrow
+// ============================================================
+describe('orabooksLoadEscrow (escrow schedule)', () => {
+  test('renders loading state then populates escrow table', () => {
+    const $tbody = $('#orabooks-escrow-table-body');
+    expect($tbody.html()).toContain('Loading...');
+
+    resolveAjax('get', {
+      error: false,
+      data: [
+        {
+          customer_email_masked: 'e***@example.com',
+          total_amount: 2000.00,
+          released_amount: 500.00,
+          remaining_amount: 1500.00,
+          progress_pct: 25,
+          remaining_amount_status: 'pending'
+        }
+      ]
+    }, 'orabooks_commission_escrow_schedule');
+
+    const html = $tbody.html();
+    expect(html).toContain('e***@example.com');
+    expect(html).toContain('$2,000.00');
+    expect(html).toContain('$500.00');
+    expect(html).toContain('$1,500.00');
+    expect(html).toContain('25%');
+    expect(html).toContain('pending');
+    expect(html).toContain('orabooks-progress-bar');
+    expect(html).toContain('orabooks-progress-fill');
+  });
+
+  test('shows expired status badge for expired escrow', () => {
+    resolveAjax('get', {
+      error: false,
+      data: [
+        {
+          customer_email_masked: 'f***@example.com',
+          total_amount: 1000.00,
+          released_amount: 1000.00,
+          remaining_amount: 0,
+          progress_pct: 100,
+          remaining_amount_status: 'expired'
+        }
+      ]
+    }, 'orabooks_commission_escrow_schedule');
+
+    const html = $('#orabooks-escrow-table-body').html();
+    expect(html).toContain('expired');
+    expect(html).toContain('orabooks-badge-expired');
+  });
+
+  test('shows empty state when no escrow schedules', () => {
+    resolveAjax('get', { error: false, data: [] }, 'orabooks_commission_escrow_schedule');
+    expect($('#orabooks-escrow-table-body').html()).toContain('No escrow schedules found');
+  });
+});
