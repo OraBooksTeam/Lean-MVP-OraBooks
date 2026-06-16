@@ -83,7 +83,7 @@ describe('orabooksLoadOrgs()', () => {
     const $tbody = $('#orabooks-orgs-table-body');
     expect($tbody.html()).toContain('Loading...');
 
-    // Trigger a fresh GET call (ready handler's calls were cleared in loadAdminJs)
+    clearAjax(); // Clear initial calls from ready handler
     window.orabooksLoadOrgs();
 
     resolveAjax('get', {
@@ -101,6 +101,7 @@ describe('orabooksLoadOrgs()', () => {
   });
 
   test('shows empty message when no orgs returned', () => {
+    clearAjax();
     window.orabooksLoadOrgs();
     resolveAjax('get', { error: false, data: [] });
     expect($('#orabooks-orgs-table-body').html()).toContain('No organizations found');
@@ -125,7 +126,7 @@ describe('orabooksLoadAuditLogs()', () => {
     const $tbody = $('#orabooks-audit-table-body');
     expect($tbody.html()).toContain('Loading...');
 
-    // Trigger a fresh GET call
+    clearAjax();
     window.orabooksLoadAuditLogs();
 
     resolveAjax('get', {
@@ -141,6 +142,7 @@ describe('orabooksLoadAuditLogs()', () => {
   });
 
   test('shows empty message when no logs', () => {
+    clearAjax();
     window.orabooksLoadAuditLogs();
     resolveAjax('get', { error: false, data: [] });
     expect($('#orabooks-audit-table-body').html()).toContain('No logs found');
@@ -214,6 +216,7 @@ describe('orabooksLoadCoAOrgs()', () => {
     const $select = $('#coa-org-select');
     expect($select.children().length).toBe(0);
 
+    clearAjax();
     window.orabooksLoadCoAOrgs();
     resolveAjax('get', {
       error: false,
@@ -243,6 +246,7 @@ describe('orabooksLoadCoA()', () => {
   test('loads and renders accounts for selected org', () => {
     $('#coa-org-select').html('<option value="1">Alpha</option>').val('1');
 
+    clearAjax();
     window.orabooksLoadCoA();
     expect($('#orabooks-coa-table-body').html()).toContain('Loading...');
 
@@ -263,6 +267,7 @@ describe('orabooksLoadCoA()', () => {
     $('#coa-org-select').html('<option value="1">Alpha</option>').val('1');
     $('#coa-filter-type').val('liability');
 
+    clearAjax();
     window.orabooksLoadCoA();
     resolveAjax('get', {
       error: false,
@@ -280,6 +285,7 @@ describe('orabooksLoadCoA()', () => {
 
   test('shows error message on failure', () => {
     $('#coa-org-select').html('<option value="1">Alpha</option>').val('1');
+    clearAjax();
     window.orabooksLoadCoA();
     resolveAjax('get', { error: true, data: null });
     expect($('#orabooks-coa-table-body').html()).toContain('Error loading accounts');
@@ -559,6 +565,7 @@ describe('escHtml()', () => {
     // Since it's not exported, we test that the CoA table uses escaped values
     $('#coa-org-select').html('<option value="1">Org</option>').val('1');
 
+    clearAjax();
     window.orabooksLoadCoA();
     resolveAjax('get', {
       error: false,
@@ -579,6 +586,7 @@ describe('escHtml()', () => {
   test('returns empty string for null/undefined', () => {
     // Test via CoA rendering with null name
     $('#coa-org-select').html('<option value="1">Org</option>').val('1');
+    clearAjax();
     window.orabooksLoadCoA();
     resolveAjax('get', {
       error: false,
