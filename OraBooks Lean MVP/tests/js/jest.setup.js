@@ -34,30 +34,48 @@ global.window.confirm = jest.fn(() => true);
 
 // --- Mock window.location to prevent JSDOM navigation errors ---
 // JSDOM throws "Not implemented: navigation (except hash changes)" when
-// tests or code assign to window.location.href. Replace the Location
-// object with a writable plain-object mock instead.
-const locationMock = {
-  href: 'https://example.com/dashboard/',
-  protocol: 'https:',
-  host: 'example.com',
-  hostname: 'example.com',
-  port: '',
-  pathname: '/dashboard/',
-  search: '',
-  hash: '',
-  origin: 'https://example.com',
-  assign: jest.fn(),
-  replace: jest.fn(),
-  reload: jest.fn(),
-  toString: jest.fn(function () { return this.href; })
-};
-// JSDOM's Location object is not configurable, so we must delete and replace it.
-try {
-  delete global.window.location;
-} catch (e) {
-  // Some JSDOM versions throw on delete — ignore
+// tests or code assign to window.location.href. Instead of replacing the
+// Location object (which is non-configurable), we override its navigation
+// methods and the href setter on its prototype.
+const origLocation = global.window.location;
+if (origLocation) {
+  // Stub navigation methods directly on the instance
+  origLocation.assign = jest.fn();
+  origLocation.replace = jest.fn();
+  origLocation.reload = jest.fn();
+  // Store initial href value and set pathname/search for URL construction
+  origLocation._href = origLocation.href || 'https://example.com/dashboard/';
+  origLocation._pathname = origLocation.pathname || '/dashboard/';
+  origLocation._search = origLocation.search || '';
+  origLocation._protocol = origLocation.protocol || 'https:';
+  origLocation._host = origLocation.host || 'example.com';
+  origLocation._hostname = origLocation.hostname || 'example.com';
+  origLocation._origin = origLocation.origin || 'https://example.com';
+
+  // Override the href setter on the Location prototype to prevent navigation
+  try {
+    const locationProto = Object.getPrototypeOf(origLocation) || origLocation;
+    const hrefDescriptor = Object.getOwnPropertyDescriptor(locationProto, 'href');
+    if (hrefDescriptor && hrefDescriptor.set) {
+      Object.defineProperty(locationProto, 'href', {
+        get: function () { return this._href || ''; },
+        set: function (val) { this._href = String(val); },
+        configurable: true
+      });
+    }
+  } catch (e) {
+    // If prototype override fails, define href directly on instance
+    try {
+      Object.defineProperty(origLocation, 'href', {
+        writable: true,
+        value: origLocation.href || 'https://example.com/dashboard/',
+        configurable: true
+      });
+    } catch (e2) {
+      // Last resort — do nothing
+    }
+  }
 }
-global.window.location = locationMock;
 
 // --- Stub HTMLFormElement.prototype.submit ---
 // JSDOM does not implement form submission. Stub to prevent
