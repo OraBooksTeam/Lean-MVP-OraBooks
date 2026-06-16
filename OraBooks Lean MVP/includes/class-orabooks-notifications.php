@@ -1613,6 +1613,7 @@ class OraBooks_Notifications {
     public function on_payment_recorded($payment_id, $data) {
         $customer_user_id = !empty($data['customer_user_id']) ? (int)$data['customer_user_id'] : 0;
         $org_id = !empty($data['org_id']) ? (int)$data['org_id'] : 0;
+        $invoice_id = !empty($data['invoice_id']) ? (int)$data['invoice_id'] : 0;
         $invoice_number = !empty($data['invoice_number']) ? $data['invoice_number'] : '';
         $amount = !empty($data['amount']) ? $data['amount'] : 0;
         $new_status = !empty($data['new_status']) ? $data['new_status'] : '';
@@ -1640,7 +1641,7 @@ class OraBooks_Notifications {
             'invoice_number' => $invoice_number,
             'amount'         => $amount,
             'new_status'     => $new_status,
-            'view_url'       => self::get_customer_dashboard_url(),
+            'view_url'       => self::get_customer_dashboard_url($invoice_id),
         ], $org_id);
 
         // Notify org admins/owners about the payment
