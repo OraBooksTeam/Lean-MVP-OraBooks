@@ -34,28 +34,32 @@ global.window.confirm = jest.fn(() => true);
 
 // --- Mock window.location to prevent JSDOM navigation errors ---
 // JSDOM throws "Not implemented: navigation (except hash changes)" when
-// tests or code assign to window.location.href. We shadow the prototype's
-// getter/setter by defining `href` as a writable data property directly
-// on the existing Location instance.
+// tests or code assign to window.location.href. We use Object.setPrototypeOf
+// to insert a custom prototype that overrides href, because JSDOM's Location
+// prototype has non-configurable getters/setters that Object.defineProperty
+// cannot replace.
 const origLocation = global.window.location;
 if (origLocation) {
   origLocation.assign = jest.fn();
   origLocation.replace = jest.fn();
   origLocation.reload = jest.fn();
-  // Override Location.prototype href getter/setter unconditionally to prevent
-  // JSDOM navigation errors. JSDOM's Location uses a prototype getter/setter
-  // that can't be shadowed by instance data properties.
+  // Create a custom prototype that inherits from the real Location prototype
+  // but overrides the href getter/setter with writable data properties
   try {
-    const locProto = Object.getPrototypeOf(origLocation);
-    // Set an initial _href so the getter has a default
-    origLocation._href = 'https://example.com/dashboard/';
-    Object.defineProperty(locProto, 'href', {
+    const originalProto = Object.getPrototypeOf(origLocation);
+    const hrefProto = Object.create(originalProto);
+    Object.defineProperty(hrefProto, 'href', {
       get() { return this._href || 'https://example.com/dashboard/'; },
       set(v) { this._href = String(v); },
       configurable: true
     });
+    // Store initial href value
+    origLocation._href = origLocation.href || 'https://example.com/dashboard/';
+    // Change prototype to our custom one - this works because setPrototypeOf
+    // doesn't require the target object to have configurable properties
+    Object.setPrototypeOf(origLocation, hrefProto);
   } catch (e) {
-    // Some JSDOM versions may block prototype manipulation — ignore
+    // Some JSDOM versions may block setPrototypeOf for Location objects
   }
 }
 
