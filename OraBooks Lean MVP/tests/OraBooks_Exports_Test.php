@@ -8,7 +8,9 @@
  * Run: phpunit --configuration tests/phpunit.xml
  */
 
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+
 
 class OraBooks_Exports_Test extends TestCase
 {
@@ -58,7 +60,6 @@ class OraBooks_Exports_Test extends TestCase
         // Reset the static provider registry before each test
         $refl = new ReflectionClass('OraBooks_Exports');
         $providersProp = $refl->getProperty('report_providers');
-        $providersProp->setAccessible(true);
         $providersProp->setValue([]);
 
         // Reset wpdb test callbacks
