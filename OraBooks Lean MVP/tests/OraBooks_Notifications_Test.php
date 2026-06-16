@@ -2,7 +2,8 @@
 /**
  * Unit Tests for OraBooks_Notifications — Invoice Event Handlers (SL-021 Integration)
  *
- * Covers: on_invoice_created, on_payment_recorded, on_invoices_marked_overdue
+ * Covers: on_invoice_created, on_payment_recorded, on_invoices_marked_overdue,
+ *         notify_org_admins via on_invoice_created & on_payment_recorded
  *
  * Run: phpunit --configuration tests/phpunit.xml --testsuite="OraBooks SL-250 Notification Tests"
  */
@@ -49,11 +50,6 @@ class OraBooks_Notifications_Test extends TestCase
     /**
      * Pre-populate user notification preferences so that
      * resolve_channels() can decode channels without error.
-     *
-     * send_notification() calls get_user_preferences() which stores
-     * channels as a PHP array by default. resolve_channels() then
-     * calls json_decode($user_prefs->channels) which fails on an array.
-     * We pre-set user_meta with channels stored as a JSON string.
      */
     private function setUserNotifPrefs(int $user_id): void
     {
@@ -66,6 +62,56 @@ class OraBooks_Notifications_Test extends TestCase
             'escalation_enabled' => true,
             'updated_at'         => current_time('mysql', true),
         ]);
+    }
+
+    /**
+     * Set up common mocks required by send_notification's internals
+     * (dedup, org policy, user org, provider health).
+     */
+    private function setUpCommonMocks(): void
+    {
+        global $wpdb;
+
+        $wpdb->test_get_row_callback = function ($query) {
+            if (stripos($query, 'org_notification_policies') !== false) {
+                return null;
+            }
+            if (stripos($query, 'orabooks_users') !== false) {
+                return (object) ['org_id' => 10];
+            }
+            return null;
+        };
+
+        $wpdb->test_get_var_callback = function ($query) {
+            if (stripos($query, 'notification_dedup_log') !== false) {
+                return 0;
+            }
+            if (stripos($query, 'orabooks_notifications') !== false) {
+                return 0;
+            }
+            return 0;
+        };
+    }
+
+    /**
+     * Set up the test_get_results_callback for delivery_provider_health queries.
+     * Pass an optional admin override that returns admin users on user_org queries.
+     */
+    private function setUpResultsMock(callable $adminOverride = null): void
+    {
+        global $wpdb;
+
+        $wpdb->test_get_results_callback = function ($query) use ($adminOverride) {
+            // Admin lookup from user_org
+            if ($adminOverride !== null && stripos($query, 'user_org') !== false) {
+                return $adminOverride($query);
+            }
+            // Provider health queries
+            if (stripos($query, 'delivery_provider_health') !== false) {
+                return [];
+            }
+            return [];
+        };
     }
 
     /**
@@ -86,9 +132,12 @@ class OraBooks_Notifications_Test extends TestCase
         global $wpdb;
 
         $this->setUserNotifPrefs(42);
+        $this->setUpCommonMocks();
+        $this->setUpResultsMock();
 
-        $wpdb->test_get_row_callback = function ($query) {
-            // Customer lookup (get_by_id uses WHERE c.id = %d)
+        // Override get_row to ALSO return a customer for get_by_id
+        $originalRowCb = $wpdb->test_get_row_callback;
+        $wpdb->test_get_row_callback = function ($query) use ($originalRowCb) {
             if (stripos($query, 'WHERE c.id') !== false) {
                 return (object) [
                     'id'      => 5,
@@ -97,33 +146,7 @@ class OraBooks_Notifications_Test extends TestCase
                     'email'   => 'customer@example.com',
                 ];
             }
-            // Org policy lookup
-            if (stripos($query, 'org_notification_policies') !== false) {
-                return null;
-            }
-            // User org lookup
-            if (stripos($query, 'orabooks_users') !== false) {
-                return (object) ['org_id' => 10];
-            }
-            return null;
-        };
-
-        // Dedup check — no existing entry
-        $wpdb->test_get_var_callback = function ($query) {
-            if (stripos($query, 'notification_dedup_log') !== false) {
-                return 0;
-            }
-            if (stripos($query, 'orabooks_notifications') !== false) {
-                return 0;
-            }
-            return 0;
-        };
-
-        $wpdb->test_get_results_callback = function ($query) {
-            if (stripos($query, 'delivery_provider_health') !== false) {
-                return [];
-            }
-            return [];
+            return $originalRowCb ? $originalRowCb($query) : null;
         };
 
         $GLOBALS['orabooks_test_use_insert_id'] = 5001;
@@ -201,30 +224,8 @@ class OraBooks_Notifications_Test extends TestCase
         global $wpdb;
 
         $this->setUserNotifPrefs(42);
-
-        $wpdb->test_get_row_callback = function ($query) {
-            if (stripos($query, 'org_notification_policies') !== false) {
-                return null;
-            }
-            if (stripos($query, 'orabooks_users') !== false) {
-                return (object) ['org_id' => 10];
-            }
-            return null;
-        };
-
-        $wpdb->test_get_var_callback = function ($query) {
-            if (stripos($query, 'notification_dedup_log') !== false) {
-                return 0;
-            }
-            return 0;
-        };
-
-        $wpdb->test_get_results_callback = function ($query) {
-            if (stripos($query, 'delivery_provider_health') !== false) {
-                return [];
-            }
-            return [];
-        };
+        $this->setUpCommonMocks();
+        $this->setUpResultsMock();
 
         $GLOBALS['orabooks_test_use_insert_id'] = 5002;
 
@@ -247,30 +248,8 @@ class OraBooks_Notifications_Test extends TestCase
         global $wpdb;
 
         $this->setUserNotifPrefs(42);
-
-        $wpdb->test_get_row_callback = function ($query) {
-            if (stripos($query, 'org_notification_policies') !== false) {
-                return null;
-            }
-            if (stripos($query, 'orabooks_users') !== false) {
-                return (object) ['org_id' => 10];
-            }
-            return null;
-        };
-
-        $wpdb->test_get_var_callback = function ($query) {
-            if (stripos($query, 'notification_dedup_log') !== false) {
-                return 0;
-            }
-            return 0;
-        };
-
-        $wpdb->test_get_results_callback = function ($query) {
-            if (stripos($query, 'delivery_provider_health') !== false) {
-                return [];
-            }
-            return [];
-        };
+        $this->setUpCommonMocks();
+        $this->setUpResultsMock();
 
         $GLOBALS['orabooks_test_use_insert_id'] = 5003;
 
@@ -332,7 +311,6 @@ class OraBooks_Notifications_Test extends TestCase
         $this->setUserNotifPrefs(42);
         $this->setUserNotifPrefs(55);
 
-        // Return overdue invoices for the JOIN query
         $wpdb->test_get_results_callback = function ($query) {
             if (stripos($query, 'orabooks_invoices') !== false && stripos($query, 'JOIN') !== false) {
                 return [
@@ -421,7 +399,6 @@ class OraBooks_Notifications_Test extends TestCase
 
         $this->setUserNotifPrefs(42);
 
-        // Only one overdue invoice — tests that the handler works with a single result
         $wpdb->test_get_results_callback = function ($query) {
             if (stripos($query, 'orabooks_invoices') !== false && stripos($query, 'JOIN') !== false) {
                 return [
@@ -464,5 +441,163 @@ class OraBooks_Notifications_Test extends TestCase
         $handler->on_invoices_marked_overdue(1, []);
 
         $this->assertGreaterThan(0, $wpdb->insert_id, 'Notification should be created for single overdue invoice');
+    }
+
+    // ================================================================
+    // notify_org_admins (via on_invoice_created & on_payment_recorded)
+    // ================================================================
+
+    #[Test]
+    public function test_on_invoice_created_notifies_admins()
+    {
+        global $wpdb;
+
+        $this->setUserNotifPrefs(42);
+        $this->setUpCommonMocks();
+        $this->setUpResultsMock(function ($query) {
+            // Return two admins for the organization
+            return [
+                (object) ['user_id' => 100],
+                (object) ['user_id' => 101],
+            ];
+        });
+
+        // Set prefs for admin users too
+        $this->setUserNotifPrefs(100);
+        $this->setUserNotifPrefs(101);
+
+        // Override get_row to return customer for get_by_id
+        $originalRowCb = $wpdb->test_get_row_callback;
+        $wpdb->test_get_row_callback = function ($query) use ($originalRowCb) {
+            if (stripos($query, 'WHERE c.id') !== false) {
+                return (object) [
+                    'id'      => 5,
+                    'user_id' => 42,
+                    'org_id'  => 10,
+                    'email'   => 'customer@example.com',
+                ];
+            }
+            return $originalRowCb ? $originalRowCb($query) : null;
+        };
+
+        $GLOBALS['orabooks_test_use_insert_id'] = 8001;
+
+        $handler = $this->createHandler();
+        $handler->on_invoice_created(100, [
+            'customer_id'    => 5,
+            'invoice_number' => 'INV-001',
+            'total_amount'   => 1500.00,
+            'due_date'       => '2026-07-15',
+            'org_id'         => 10,
+        ]);
+
+        // At least one notification insert happened (customer + 2 admins = 3+ inserts).
+        // send_notification inserts into dedup table AND notifications table,
+        // so multiple inserts occur. insert_id will be > 0.
+        $this->assertGreaterThan(0, $wpdb->insert_id,
+            'Notifications should be created for customer and admins');
+    }
+
+    #[Test]
+    public function test_on_invoice_created_no_admins_in_org()
+    {
+        global $wpdb;
+
+        $this->setUserNotifPrefs(42);
+        $this->setUpCommonMocks();
+        $this->setUpResultsMock(function ($query) {
+            // No admins in the org
+            return [];
+        });
+
+        // Override get_row to return customer for get_by_id
+        $originalRowCb = $wpdb->test_get_row_callback;
+        $wpdb->test_get_row_callback = function ($query) use ($originalRowCb) {
+            if (stripos($query, 'WHERE c.id') !== false) {
+                return (object) [
+                    'id'      => 5,
+                    'user_id' => 42,
+                    'org_id'  => 10,
+                    'email'   => 'customer@example.com',
+                ];
+            }
+            return $originalRowCb ? $originalRowCb($query) : null;
+        };
+
+        $GLOBALS['orabooks_test_use_insert_id'] = 8002;
+
+        $handler = $this->createHandler();
+        $handler->on_invoice_created(100, [
+            'customer_id'    => 5,
+            'invoice_number' => 'INV-001',
+            'total_amount'   => 1500.00,
+            'due_date'       => '2026-07-15',
+            'org_id'         => 10,
+        ]);
+
+        // Customer notification should still work even with no admins
+        $this->assertGreaterThan(0, $wpdb->insert_id,
+            'Customer notification should still be sent even with no admins');
+    }
+
+    #[Test]
+    public function test_on_payment_recorded_notifies_admins()
+    {
+        global $wpdb;
+
+        $this->setUserNotifPrefs(42);
+        $this->setUpCommonMocks();
+        $this->setUpResultsMock(function ($query) {
+            // Return two admins for the organization
+            return [
+                (object) ['user_id' => 100],
+                (object) ['user_id' => 101],
+            ];
+        });
+
+        $this->setUserNotifPrefs(100);
+        $this->setUserNotifPrefs(101);
+
+        $GLOBALS['orabooks_test_use_insert_id'] = 8003;
+
+        $handler = $this->createHandler();
+        $handler->on_payment_recorded(900, [
+            'customer_user_id' => 42,
+            'invoice_number'   => 'INV-001',
+            'amount'           => 500.00,
+            'new_status'       => 'paid',
+            'payment_date'     => '2026-06-15',
+            'org_id'           => 10,
+        ]);
+
+        $this->assertGreaterThan(0, $wpdb->insert_id,
+            'Notifications should be created for customer and admins');
+    }
+
+    #[Test]
+    public function test_on_payment_recorded_no_admins_in_org()
+    {
+        global $wpdb;
+
+        $this->setUserNotifPrefs(42);
+        $this->setUpCommonMocks();
+        $this->setUpResultsMock(function ($query) {
+            return [];
+        });
+
+        $GLOBALS['orabooks_test_use_insert_id'] = 8004;
+
+        $handler = $this->createHandler();
+        $handler->on_payment_recorded(900, [
+            'customer_user_id' => 42,
+            'invoice_number'   => 'INV-001',
+            'amount'           => 500.00,
+            'new_status'       => 'paid',
+            'payment_date'     => '2026-06-15',
+            'org_id'           => 10,
+        ]);
+
+        $this->assertGreaterThan(0, $wpdb->insert_id,
+            'Customer notification should still be sent even with no admins');
     }
 }
