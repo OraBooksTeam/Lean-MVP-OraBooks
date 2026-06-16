@@ -951,9 +951,13 @@ class OraBooks_Partner {
                 $table_codes = OraBooks_Database::table('partner_codes');
                 $wpdb->update(
                     $table_codes,
-                    ['status' => 'active'],
+                    [
+                        'status' => 'active',
+                        'approved_at' => current_time('mysql'),
+                        'approved_by' => $admin_id
+                    ],
                     ['org_id' => $review->org_id],
-                    ['%s'],
+                    ['%s', '%s', '%d'],
                     ['%d']
                 );
             }
