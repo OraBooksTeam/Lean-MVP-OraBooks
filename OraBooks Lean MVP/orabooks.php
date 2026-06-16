@@ -426,6 +426,9 @@ function orabooks_oidc_route_handler() {
         $result = OraBooks_Auth::handle_google_callback($code, $state);
         
         if (is_wp_error($result)) {
+            if ($result->get_error_code() === 'oidc_email_conflict') {
+                wp_die($result->get_error_message(), '', ['response' => 409]);
+            }
             wp_die($result->get_error_message());
         }
         
