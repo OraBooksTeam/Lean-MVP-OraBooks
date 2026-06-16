@@ -326,13 +326,6 @@
 /* =============================================
    COMMON ELEMENTS
    ============================================= */
-.orabooks-admin .orabooks-filters {
-    margin: 20px 0;
-    display: flex;
-    gap: 10px;
-    align-items: center;
-    flex-wrap: wrap;
-}
 .orabooks-admin .orabooks-section {
     margin-top: 20px;
 }
@@ -633,13 +626,7 @@
 .orabooks-coa-type-revenue { background: #fff3e0; color: #e65100; }
 .orabooks-coa-type-expense { background: #f3e5f5; color: #6a1b9a; }
 
-/* Export action bar */
-.orabooks-coa-export-actions {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex-wrap: wrap;
-}
+/* Message boxes */
 .orabooks-message.success {
     padding: 8px 12px;
     background: #edf7ed;
