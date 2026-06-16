@@ -34,46 +34,22 @@ global.window.confirm = jest.fn(() => true);
 
 // --- Mock window.location to prevent JSDOM navigation errors ---
 // JSDOM throws "Not implemented: navigation (except hash changes)" when
-// tests or code assign to window.location.href. Instead of replacing the
-// Location object (which is non-configurable), we override its navigation
-// methods and the href setter on its prototype.
+// tests or code assign to window.location.href. We shadow the prototype's
+// getter/setter by defining `href` as a writable data property directly
+// on the existing Location instance.
 const origLocation = global.window.location;
 if (origLocation) {
-  // Stub navigation methods directly on the instance
   origLocation.assign = jest.fn();
   origLocation.replace = jest.fn();
   origLocation.reload = jest.fn();
-  // Store initial href value and set pathname/search for URL construction
-  origLocation._href = origLocation.href || 'https://example.com/dashboard/';
-  origLocation._pathname = origLocation.pathname || '/dashboard/';
-  origLocation._search = origLocation.search || '';
-  origLocation._protocol = origLocation.protocol || 'https:';
-  origLocation._host = origLocation.host || 'example.com';
-  origLocation._hostname = origLocation.hostname || 'example.com';
-  origLocation._origin = origLocation.origin || 'https://example.com';
-
-  // Override the href setter on the Location prototype to prevent navigation
   try {
-    const locationProto = Object.getPrototypeOf(origLocation) || origLocation;
-    const hrefDescriptor = Object.getOwnPropertyDescriptor(locationProto, 'href');
-    if (hrefDescriptor && hrefDescriptor.set) {
-      Object.defineProperty(locationProto, 'href', {
-        get: function () { return this._href || ''; },
-        set: function (val) { this._href = String(val); },
-        configurable: true
-      });
-    }
+    Object.defineProperty(origLocation, 'href', {
+      writable: true,
+      value: origLocation.href || 'https://example.com/dashboard/',
+      configurable: true
+    });
   } catch (e) {
-    // If prototype override fails, define href directly on instance
-    try {
-      Object.defineProperty(origLocation, 'href', {
-        writable: true,
-        value: origLocation.href || 'https://example.com/dashboard/',
-        configurable: true
-      });
-    } catch (e2) {
-      // Last resort — do nothing
-    }
+    // Some JSDOM versions may block this — ignore
   }
 }
 
