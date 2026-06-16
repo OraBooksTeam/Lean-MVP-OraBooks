@@ -127,6 +127,61 @@ class OraBooks_Notifications_Test extends TestCase
     // on_invoice_created
     // ================================================================
 
+    // ================================================================
+    // add_query_arg stub (bootstrap integration)
+    // ================================================================
+
+    #[Test]
+    public function test_add_query_arg_appends_to_url_with_trailing_slash()
+    {
+        $result = add_query_arg('invoice_id', '123', 'http://example.com/dashboard/');
+        $this->assertEquals('http://example.com/dashboard/?invoice_id=123', $result);
+    }
+
+    #[Test]
+    public function test_add_query_arg_appends_to_url_without_trailing_slash()
+    {
+        $result = add_query_arg('id', '42', 'http://example.com/dashboard');
+        $this->assertEquals('http://example.com/dashboard?id=42', $result);
+    }
+
+    #[Test]
+    public function test_add_query_arg_uses_ampersand_when_url_has_existing_query()
+    {
+        $result = add_query_arg('page', '2', 'http://example.com/list?sort=asc');
+        $this->assertEquals('http://example.com/list?sort=asc&page=2', $result);
+    }
+
+    #[Test]
+    public function test_add_query_arg_encodes_special_characters()
+    {
+        $result = add_query_arg('q', 'hello world & more', 'http://example.com/search');
+        $this->assertEquals('http://example.com/search?q=hello+world+%26+more', $result);
+    }
+
+    #[Test]
+    public function test_add_query_arg_integration_with_get_customer_dashboard_url()
+    {
+        // Verify the full flow: get_customer_dashboard_url uses add_query_arg
+        // We test this indirectly via OraBooks_Notifications::init() and the existing
+        // test_on_invoices_marked_overdue_customer_notification_includes_view_url,
+        // but here we directly test the helper method's output.
+        $ref = new ReflectionMethod(OraBooks_Notifications::class, 'get_customer_dashboard_url');
+        $ref->setAccessible(true);
+
+        $this->assertEquals(
+            'http://example.com/dashboard/',
+            $ref->invoke(null, 0),
+            'get_customer_dashboard_url with no invoice_id returns plain dashboard URL'
+        );
+
+        $this->assertEquals(
+            'http://example.com/dashboard/?invoice_id=200',
+            $ref->invoke(null, 200),
+            'get_customer_dashboard_url with invoice_id appends query parameter'
+        );
+    }
+
     #[Test]
     public function test_on_invoice_created_sends_notification()
     {
