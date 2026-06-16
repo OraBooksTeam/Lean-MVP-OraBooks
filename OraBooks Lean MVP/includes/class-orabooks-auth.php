@@ -1363,7 +1363,15 @@ class OraBooks_Auth {
      * AJAX: Initiate Google OAuth — returns the Google auth URL
      */
     public function ajax_oidc_initiate() {
-        $url = self::initiate_google_oauth();
+        $state_data = [];
+        if (!empty($_POST['state_data'])) {
+            $decoded = json_decode(base64_decode(strtr($_POST['state_data'], '-_', '+/')), true);
+            if (is_array($decoded)) {
+                $state_data = $decoded;
+            }
+        }
+
+        $url = self::initiate_google_oauth($state_data);
 
         if (is_wp_error($url)) {
             orabooks_json_error($url->get_error_message(), 400);
