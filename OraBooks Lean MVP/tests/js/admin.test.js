@@ -1058,6 +1058,20 @@ describe('Partner reactivation approve', () => {
 });
 
 describe('Partner reactivation deny', () => {
+  let originalPrompt;
+
+  beforeAll(() => {
+    originalPrompt = global.prompt;
+  });
+
+  afterAll(() => {
+    global.prompt = originalPrompt;
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   test('prompts for reason and posts denial', () => {
     global.prompt = jest.fn(() => 'Suspicious activity');
 
@@ -1191,17 +1205,6 @@ describe('orabooksLoadDashboard()', () => {
     clearAjax();
     loadAdminJs();
   }
-
-  // Mock dashboard response data
-expect.extend({
-  toBeWithinRange(received, floor, ceiling) {
-    const pass = Number(received) >= floor && Number(received) <= ceiling;
-    return {
-      message: () => `expected ${received} to be within range ${floor} - ${ceiling}`,
-      pass
-    };
-  }
-});
 
   test('shows loading state and populates stat cards from response', () => {
     setupDashboardDom();
