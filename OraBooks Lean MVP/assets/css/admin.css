@@ -337,11 +337,234 @@
     margin-top: 20px;
 }
 
-/* Responsive adjustments */
+/* =============================================
+   TABLE STYLING (wp-list-table)
+   ============================================= */
+.orabooks-admin table.wp-list-table {
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    border: 1px solid #e0e0e0;
+}
+.orabooks-admin table.wp-list-table thead th {
+    background: #f8f9fa;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #555d66;
+    padding: 12px 14px;
+    border-bottom: 2px solid #e0e0e0;
+    white-space: nowrap;
+}
+.orabooks-admin table.wp-list-table tbody td {
+    padding: 10px 14px;
+    font-size: 13px;
+    color: #333;
+    vertical-align: middle;
+}
+.orabooks-admin table.wp-list-table tbody tr:hover td {
+    background: #f0f6fc;
+}
+.orabooks-admin table.wp-list-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+/* =============================================
+   FILTER BARS
+   ============================================= */
+.orabooks-admin .orabooks-filters {
+    margin: 20px 0;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+    padding: 14px 16px;
+    background: #f8f9fa;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+}
+.orabooks-admin .orabooks-filters select,
+.orabooks-admin .orabooks-filters input[type="text"],
+.orabooks-admin .orabooks-filters input[type="date"] {
+    padding: 6px 10px;
+    border: 1px solid #d0d0d0;
+    border-radius: 4px;
+    font-size: 13px;
+    background: #fff;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+.orabooks-admin .orabooks-filters select:focus,
+.orabooks-admin .orabooks-filters input:focus {
+    border-color: #007cba;
+    box-shadow: 0 0 0 1px #007cba;
+    outline: none;
+}
+.orabooks-admin .orabooks-filters .button,
+.orabooks-admin .orabooks-filters .page-title-action {
+    margin: 0;
+}
+
+/* =============================================
+   EXPORT ACTION BARS
+   ============================================= */
+.orabooks-admin .orabooks-coa-export-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    padding: 12px 16px !important;
+    background: #f0f6fc;
+    border: 1px solid #c5d9ed;
+    border-radius: 8px;
+}
+
+/* =============================================
+   TAB NAVIGATION
+   ============================================= */
+.orabooks-admin .nav-tab-wrapper {
+    margin-bottom: 0;
+    border-bottom: 1px solid #ccd0d4;
+}
+.orabooks-admin .nav-tab {
+    font-size: 13px;
+    font-weight: 600;
+    color: #555d66;
+    padding: 10px 18px;
+    background: transparent;
+    border: none;
+    border-bottom: 3px solid transparent;
+    margin-bottom: -1px;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+.orabooks-admin .nav-tab:hover {
+    color: #007cba;
+    background: #f8f9fa;
+}
+.orabooks-admin .nav-tab-active,
+.orabooks-admin .nav-tab-active:hover,
+.orabooks-admin .nav-tab-active:focus {
+    color: #007cba;
+    border-bottom-color: #007cba;
+    background: transparent;
+}
+.orabooks-admin .nav-tab .awaiting-mod {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    background: #c62828;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    border-radius: 9px;
+    line-height: 1;
+    vertical-align: middle;
+}
+
+/* =============================================
+   MODAL OVERLAY
+   ============================================= */
+.orabooks-admin .orabooks-modal {
+    animation: orabooks-fade-in 0.2s ease;
+}
+@keyframes orabooks-fade-in {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+.orabooks-admin .orabooks-modal-content {
+    animation: orabooks-slide-up 0.25s ease;
+}
+@keyframes orabooks-slide-up {
+    from { transform: translateY(16px); opacity: 0; }
+    to   { transform: translateY(0);    opacity: 1; }
+}
+
+/* =============================================
+   SETTINGS FORM TABLE
+   ============================================= */
+.orabooks-admin .form-table th {
+    font-size: 13px;
+    font-weight: 600;
+    color: #1d2327;
+    padding: 20px 10px 20px 0;
+}
+.orabooks-admin .form-table td {
+    padding: 15px 10px;
+}
+.orabooks-admin .form-table input[type="number"],
+.orabooks-admin .form-table input[type="text"],
+.orabooks-admin .form-table select {
+    border: 1px solid #d0d0d0;
+    border-radius: 4px;
+    padding: 6px 10px;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+.orabooks-admin .form-table input:focus,
+.orabooks-admin .form-table select:focus {
+    border-color: #007cba;
+    box-shadow: 0 0 0 1px #007cba;
+    outline: none;
+}
+.orabooks-admin .form-table .description {
+    font-size: 12px;
+    color: #888;
+    margin-top: 4px;
+}
+
+/* =============================================
+   SECTION HEADERS & DESCRIPTIONS
+   ============================================= */
+.orabooks-admin .orabooks-section h2 {
+    font-size: 18px;
+    font-weight: 600;
+    color: #1d2327;
+    margin: 0 0 12px;
+}
+.orabooks-admin p.description {
+    font-size: 13px;
+    color: #757575;
+    margin: 12px 0 16px;
+    line-height: 1.5;
+}
+
+/* =============================================
+   GENERAL ADMIN PAGE REFINEMENTS
+   ============================================= */
+.orabooks-admin.wrap {
+    margin: 20px 20px 0 2px;
+}
+.orabooks-admin h1 {
+    font-size: 23px;
+    font-weight: 400;
+    color: #1d2327;
+    margin: 0 0 16px;
+}
+
+/* =============================================
+   RESPONSIVE ADJUSTMENTS
+   ============================================= */
 @media screen and (max-width: 1200px) {
     .orabooks-admin .orabooks-stats-grid,
     .orabooks-detail-row {
         grid-template-columns: repeat(2, 1fr);
+    }
+}
+@media screen and (max-width: 960px) {
+    .orabooks-admin .orabooks-filters {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .orabooks-admin .orabooks-filters select,
+    .orabooks-admin .orabooks-filters input {
+        width: 100%;
     }
 }
 @media screen and (max-width: 782px) {
@@ -349,6 +572,13 @@
     .orabooks-detail-row,
     .orabooks-bottom-row {
         grid-template-columns: 1fr;
+    }
+    .orabooks-admin table.wp-list-table thead th {
+        font-size: 11px;
+        padding: 10px 8px;
+    }
+    .orabooks-admin table.wp-list-table tbody td {
+        padding: 8px;
     }
 }
 
