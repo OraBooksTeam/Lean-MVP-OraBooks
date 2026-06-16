@@ -413,7 +413,9 @@ function orabooks_oidc_route_handler() {
         
         // Login successful — redirect to dashboard with token in URL fragment
         $redirect = home_url('/dashboard/');
-        if (!empty($result['needs_tier_selection'])) {
+        if (!empty($result['redirect_to'])) {
+            $redirect = home_url(ltrim($result['redirect_to'], '/'));
+        } elseif (!empty($result['needs_tier_selection'])) {
             $redirect = home_url('/tier-selection/');
         } elseif (!empty($result['org_id'])) {
             $org = OraBooks_Organization::get($result['org_id']);
