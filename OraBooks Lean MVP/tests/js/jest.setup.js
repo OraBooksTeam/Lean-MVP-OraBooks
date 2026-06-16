@@ -1,13 +1,77 @@
 /**
  * Jest Setup for OraBooks JS Tests
  *
- * Provides:
- * - window.orabooks_ajax mock
- * - Global alert/confirm mocks
- * - Fake timers for setTimeout tests
- * - localStorage mock
- * - jQuery loaded from node_modules
- * - Utility to load JS file content
+ * This file sets up the JSDOM test environment for testing admin.js and
+ * frontend.js. The OraBooks JS files use jQuery's document.ready() and
+ * make AJAX calls via $.get()/$.post() that need to be intercepted and
+ * controlled in tests.
+ *
+ * ── Key Test Patterns ───────────────────────────────────────────────
+ *
+ * 1.  $.fn.ready fires synchronously
+ *     jQuery schedules ready handlers with setTimeout(fn, 1) when
+ *     document.readyState === 'complete'. Since jest.useFakeTimers()
+ *     blocks that timeout, we override $.fn.ready to invoke the handler
+ *     immediately instead.
+ *
+ * 2.  window.location mock
+ *     JSDOM throws "Not implemented: navigation" on location.href
+ *     assignment. We replace the inherited Location (which has
+ *     non-configurable getters/setters on Window.prototype) with a
+ *     plain data property on global that has a getter/setter for .href
+ *     and stubs for .assign, .replace, .reload. Tests can read/write
+ *     .href without triggering navigation errors.
+ *
+ * 3.  AJAX mock — $.get and $.post are intercepted
+ *     Both shorthands are spied on via jest.spyOn. Instead of making
+ *     real HTTP requests, they push an entry to ajaxResponses.get or
+ *     ajaxResponses.post and return a jqXHR-like object with chainable
+ *     .fail(), .always(), .done(), .then() stubs.
+ *
+ *     Helpers exposed globally:
+ *
+ *       resolveAjax(type, responseData, [action])
+ *         Finds an AJAX entry by type ('get'|'post'), fires its
+ *         callback with the supplied responseData, then fires any
+ *         chained callbacks (done, then, always). If `action` is a
+ *         string, it filters by data.action — otherwise takes the
+ *         first entry (shift). Throws if no matching call is found.
+ *
+ *       latestAjax(type = 'post')
+ *         Returns the last AJAX entry of the given type without
+ *         consuming it. Use for checking request params.
+ *
+ *       clearAjax()
+ *         Empties both queues. Call before triggering code that may
+ *         make AJAX calls to start with a clean slate.
+ *
+ * 4.  Fake timers
+ *     jest.useFakeTimers() is enabled globally. Tests that need to
+ *     fire setTimeout callbacks must call jest.advanceTimersByTime().
+ *     Be careful with jQuery animation methods like fadeOut() — they
+ *     use setInterval internally and may hang under fake timers.
+ *
+ * 5.  HTMLFormElement.prototype.submit stubbed
+ *     JSDOM doesn't implement form submission natively. The stub
+ *     prevents "Not implemented" errors.
+ *
+ * 6.  localStorage mock
+ *     Simple key-value store with jest.fn() methods.
+ *
+ * ── Writing Tests ───────────────────────────────────────────────────
+ *
+ *   beforeEach(() => {
+ *     setupDom();
+ *     clearAjax();           // empty any stale calls
+ *     loadFileJs();          // runs via new Function — fires ready handler
+ *   });
+ *
+ *   test('does something', () => {
+ *     clearAjax();           // clear init calls from ready handler
+ *     window.functionName(); // trigger the code under test
+ *     resolveAjax('get', { error: false, data: [...] });
+ *     expect(domElement).toContain('Expected output');
+ *   });
  */
 
 // Set readyState to 'complete' so jQuery ready handlers fire immediately
