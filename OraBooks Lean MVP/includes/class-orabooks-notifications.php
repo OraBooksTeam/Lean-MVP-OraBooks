@@ -1558,6 +1558,15 @@ class OraBooks_Notifications {
                 'total_amount'   => $inv->total_amount,
                 'due_date'       => $inv->due_date,
             ], (int)$inv->org_id);
+
+            // Mark as notified so we never send a duplicate overdue reminder
+            $wpdb->update(
+                $table_invoices,
+                ['overdue_notified_at' => current_time('mysql', true)],
+                ['id' => (int)$inv->id],
+                ['%s'],
+                ['%d']
+            );
         }
     }
 
