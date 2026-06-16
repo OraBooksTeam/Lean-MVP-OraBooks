@@ -1946,6 +1946,8 @@ describe('Google OIDC button click', () => {
 
   test('does not store state when auth URL has no query params', () => {
     const $btn = $('.orabooks-btn-google');
+    // Explicitly clear sessionStorage mock to ensure clean state
+    window.sessionStorage.setItem.mockClear();
     clearAjax();
     $btn.trigger('click');
 
