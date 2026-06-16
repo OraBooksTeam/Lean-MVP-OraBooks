@@ -76,6 +76,10 @@ if (!class_exists('wpdb', false)) {
         }
 
         public function prepare($query, ...$args) {
+            // Flatten if a single array is passed (wpdb::prepare accepts array of params)
+            if (count($args) === 1 && is_array($args[0])) {
+                $args = $args[0];
+            }
             if (strpos($query, '%s') !== false || strpos($query, '%d') !== false || strpos($query, '%f') !== false) {
                 $escaped = [];
                 foreach ($args as $arg) {
@@ -83,6 +87,8 @@ if (!class_exists('wpdb', false)) {
                         $escaped[] = $arg;
                     } elseif ($arg === null) {
                         $escaped[] = "''";
+                    } elseif (is_array($arg)) {
+                        $escaped[] = "'" . addslashes(implode(',', $arg)) . "'";
                     } else {
                         $escaped[] = "'" . addslashes((string)$arg) . "'";
                     }
