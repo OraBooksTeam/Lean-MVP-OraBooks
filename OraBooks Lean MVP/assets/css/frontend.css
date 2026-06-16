@@ -995,6 +995,45 @@
     font-size: 13px;
 }
 
+.orabooks-nc-highlight {
+    animation: orabooks-nc-highlight-pulse 3s ease;
+    border-color: #007cba !important;
+    box-shadow: 0 0 0 3px rgba(0,124,186,0.15), 0 4px 16px rgba(0,124,186,0.12) !important;
+    position: relative;
+}
+
+.orabooks-nc-highlight::before {
+    content: '👁️';
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    font-size: 14px;
+    background: #007cba;
+    color: #fff;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+    animation: orabooks-nc-highlight-bounce 0.5s ease 2;
+}
+
+@keyframes orabooks-nc-highlight-pulse {
+    0%   { background: #e3f2fd; transform: scale(1); }
+    15%  { background: #bbdefb; transform: scale(1.02); }
+    30%  { background: #e3f2fd; transform: scale(1); }
+    50%  { background: #f0f7ff; }
+    100% { background: #fff; }
+}
+
+@keyframes orabooks-nc-highlight-bounce {
+    0%   { transform: scale(0); }
+    50%  { transform: scale(1.2); }
+    100% { transform: scale(1); }
+}
+
 /* ============================================= */
 /* INVOICE DEEP LINK DETAIL (Dashboard)          */
 /* ============================================= */
