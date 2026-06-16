@@ -35,6 +35,10 @@ class OraBooks_Customers {
             add_action('wp_ajax_orabooks_invoice_get', [self::$instance, 'ajax_invoice_get']);
             add_action('wp_ajax_orabooks_invoice_record_payment', [self::$instance, 'ajax_record_payment']);
             add_action('wp_ajax_orabooks_customer_stats', [self::$instance, 'ajax_customer_stats']);
+
+            // Cron jobs
+            add_action('orabooks_daily_customer_status_check', [self::$instance, 'daily_customer_status_check']);
+            add_action('orabooks_daily_invoice_overdue_check', [self::$instance, 'daily_invoice_overdue_check']);
         }
         return self::$instance;
     }
