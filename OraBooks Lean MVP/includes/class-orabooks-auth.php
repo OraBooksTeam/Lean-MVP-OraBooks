@@ -1331,13 +1331,14 @@ class OraBooks_Auth {
         }
 
         $role = $org_id ? orabooks_get_user_role($user_id, $org_id) : 'viewer';
+        $is_partner = $existing ? (int) $existing->is_partner : (($user_type === 'partner') ? 1 : 0);
         $jwt = OraBooks_Secrets::generate_jwt([
             'user_id' => $user_id,
             'email' => $google_email,
             'org_id' => $org_id,
             'role' => $role,
             'subdomain' => $org ? $org->subdomain : '',
-            'is_partner' => ($existing ? $existing->is_partner : 0)
+            'is_partner' => $is_partner
         ]);
 
         $refresh_token = orabooks_random_string(32);
@@ -1352,8 +1353,9 @@ class OraBooks_Auth {
             'org_id' => $org_id,
             'role' => $role,
             'subdomain' => $org ? $org->subdomain : '',
+            'is_partner' => $is_partner,
             'is_new' => !$existing,
-            'needs_tier_selection' => $existing && !$existing->is_partner && !$existing->org_id
+            'needs_tier_selection' => (!$existing && $user_type === 'customer') || ($existing && !$existing->is_partner && !$existing->org_id)
         ];
     }
 
