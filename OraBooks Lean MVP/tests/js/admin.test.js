@@ -163,9 +163,6 @@ describe('orabooksExportAuditLogs()', () => {
     $('#audit-filter-from').val('2024-01-01');
     $('#audit-filter-to').val('2024-01-31');
 
-    delete global.window.location;
-    global.window.location = { href: '' };
-
     window.orabooksExportAuditLogs();
 
     expect(window.location.href).toContain('action=orabooks_export_audit_logs');
