@@ -51,15 +51,13 @@ const locationMock = {
   reload: jest.fn(),
   toString: jest.fn(function () { return this.href; })
 };
-Object.defineProperty(global.window, 'location', {
-  configurable: true,
-  enumerable: true,
-  get: () => locationMock,
-  set: (val) => {
-    // Allow full replacement (e.g. `delete window.location; window.location = { href: '' }`)
-    Object.assign(locationMock, val);
-  }
-});
+// JSDOM's Location object is not configurable, so we must delete and replace it.
+try {
+  delete global.window.location;
+} catch (e) {
+  // Some JSDOM versions throw on delete — ignore
+}
+global.window.location = locationMock;
 
 // --- Stub HTMLFormElement.prototype.submit ---
 // JSDOM does not implement form submission. Stub to prevent
@@ -155,10 +153,6 @@ global.resolveAjax = function(type = 'post', responseData = {}, responseMessage 
   }
   if (typeof call.thenCallback === 'function') {
     call.thenCallback(responseData);
-  }
-  // Invoke fail callback for error responses
-  if (responseData && responseData.error && typeof call.failCallback === 'function') {
-    call.failCallback(responseData);
   }
   // Always invoke always callback
   if (typeof call.alwaysCallback === 'function') {
