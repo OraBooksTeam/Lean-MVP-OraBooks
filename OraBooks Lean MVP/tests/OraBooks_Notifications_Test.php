@@ -35,6 +35,7 @@ class OraBooks_Notifications_Test extends TestCase
         $wpdb->test_get_row_callback     = null;
         $wpdb->test_get_results_callback = null;
         $wpdb->test_query_callback       = null;
+        $wpdb->test_insert_callback      = null;
         $wpdb->insert_id = 0;
         $wpdb->last_query = '';
         $wpdb->last_result = [];
@@ -302,6 +303,78 @@ class OraBooks_Notifications_Test extends TestCase
     // ================================================================
     // on_invoices_marked_overdue
     // ================================================================
+
+    #[Test]
+    public function test_on_invoices_marked_overdue_customer_notification_includes_view_url()
+    {
+        global $wpdb;
+
+        $this->setUserNotifPrefs(42);
+
+        $wpdb->test_get_results_callback = function ($query) {
+            if (stripos($query, 'orabooks_invoices') !== false && stripos($query, 'JOIN') !== false) {
+                return [
+                    (object) [
+                        'id'                => 200,
+                        'invoice_number'    => 'INV-001',
+                        'total_amount'      => '500.00',
+                        'due_date'          => '2026-06-01',
+                        'org_id'            => 10,
+                        'customer_user_id'  => 42,
+                    ],
+                ];
+            }
+            if (stripos($query, 'delivery_provider_health') !== false) {
+                return [];
+            }
+            return [];
+        };
+
+        $wpdb->test_get_row_callback = function ($query) {
+            if (stripos($query, 'org_notification_policies') !== false) {
+                return null;
+            }
+            if (stripos($query, 'orabooks_users') !== false) {
+                return (object) ['org_id' => 10];
+            }
+            return null;
+        };
+
+        $wpdb->test_get_var_callback = function ($query) {
+            if (stripos($query, 'notification_dedup_log') !== false) {
+                return 0;
+            }
+            return 0;
+        };
+
+        // Capture the notifications table insert data to inspect the payload
+        $captured = null;
+        $wpdb->test_insert_callback = function ($table, $data, $format) use (&$captured) {
+            if (
+                stripos($table, 'orabooks_notifications') !== false
+                && isset($data['event_type'])
+                && $data['event_type'] === 'invoice_overdue'
+            ) {
+                $captured = $data;
+            }
+        };
+
+        $GLOBALS['orabooks_test_use_insert_id'] = 6001;
+
+        $handler = $this->createHandler();
+        $handler->on_invoices_marked_overdue(1, []);
+
+        $this->assertNotNull($captured, 'An invoice_overdue notification should have been inserted into the notifications table');
+
+        $payload = json_decode($captured['payload'], true);
+        $this->assertIsArray($payload, 'Notification payload should be a valid JSON object');
+        $this->assertArrayHasKey('view_url', $payload, 'Payload should contain a view_url field');
+        $this->assertEquals(
+            home_url('/dashboard/'),
+            $payload['view_url'],
+            'Customer overdue notification view_url should point to the dashboard'
+        );
+    }
 
     #[Test]
     public function test_on_invoices_marked_overdue_sends_notifications()
