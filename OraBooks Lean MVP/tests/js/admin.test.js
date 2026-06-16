@@ -57,6 +57,15 @@ function setupAdminDom() {
 
     <!-- Filter container for audit export success msg -->
     <div class="orabooks-filters"><button class="orabooks-export-trigger" data-export-type="audit_log" data-format="csv">Export CSV (Async)</button></div>
+
+    <!-- Export trigger buttons for admin click tests -->
+    <button class="orabooks-coa-export-trigger" data-export-type="coa" data-format="csv">Export CSV (Async)</button>
+    <button class="orabooks-partner-export-trigger" data-export-type="commission_data" data-format="csv">Export Commissions CSV</button>
+    <button class="orabooks-notif-export-trigger" data-export-type="notification_log" data-format="csv">Export CSV</button>
+    <button class="orabooks-aq-export-trigger" data-export-type="async_queue_data" data-format="csv">Export CSV</button>
+    <button class="orabooks-users-export-trigger" data-export-type="users_data" data-format="csv">Export Users CSV</button>
+    <button class="orabooks-commconfig-export-trigger" data-export-type="commission_config" data-format="csv">Export Config CSV</button>
+    <button class="orabooks-onboarding-export-trigger" data-export-type="partner_onboarding" data-format="csv">Export Onboarding CSV</button>
   `;
 }
 
