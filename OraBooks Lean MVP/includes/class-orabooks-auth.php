@@ -236,6 +236,14 @@ class OraBooks_Auth {
         return true;
     }
     
+    private static function get_email_domain($email) {
+        if (!is_string($email) || strpos($email, '@') === false) {
+            return '';
+        }
+
+        return strtolower(trim(substr(strrchr($email, '@'), 1)));
+    }
+    
     /**
      * Handle login
      */
