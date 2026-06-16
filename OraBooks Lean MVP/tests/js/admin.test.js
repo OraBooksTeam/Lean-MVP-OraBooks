@@ -65,9 +65,6 @@ function loadAdminJs() {
   // Execute with jQuery available
   const fn = new Function('$', 'jQuery', code);
   fn($, $);
-  // Clear initial GET calls from the ready handler (orabooksLoadOrgs,
-  // orabooksLoadAuditLogs, orabooksLoadCoAOrgs) so tests start clean.
-  clearAjax();
 }
 
 beforeEach(() => {
