@@ -966,45 +966,6 @@ describe('Invoice deep link auto-load from ?invoice_id=', () => {
     loadFrontendJs();
   }
 
-  /**
-   * Like setupInvoiceTest but also mocks toString so the URL-cleaning
-   * replaceState logic works. Required for tests that assert on the
-   * cleaned URL (replaceState tests).
-   */
-  function setupInvoiceTestWithToString(invoiceId, otherParams) {
-    document.body.innerHTML = `
-      <div class="orabooks-dashboard">
-        <div id="orabooks-dashboard-content"><p>Loading...</p></div>
-      </div>
-    `;
-    clearAjax();
-
-    var params = otherParams || {};
-    urlSearchGetSpy = jest.spyOn(URLSearchParams.prototype, 'get').mockImplementation(function (key) {
-      if (key === 'invoice_id') return String(invoiceId);
-      if (params[key]) return params[key];
-      return null;
-    });
-    // Mock delete to remove invoice_id from params
-    jest.spyOn(URLSearchParams.prototype, 'delete').mockImplementation(function (key) {
-      if (key === 'invoice_id') {
-        // no-op: just track that it was called
-      }
-    });
-    // Mock toString to return all params except invoice_id
-    jest.spyOn(URLSearchParams.prototype, 'toString').mockImplementation(function () {
-      var parts = [];
-      Object.keys(params).forEach(function (k) {
-        if (k !== 'invoice_id') {
-          parts.push(k + '=' + params[k]);
-        }
-      });
-      return parts.join('&');
-    });
-
-    loadFrontendJs();
-  }
-
   test('does nothing when URL has no invoice_id on dashboard', () => {
     // The outer beforeEach already ran with no invoice_id in URL — IIFE shouldn't fire
     const invoiceCall = ajaxResponses.get.find(function (c) {
