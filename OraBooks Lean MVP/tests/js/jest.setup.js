@@ -59,27 +59,21 @@ if (origLocation) {
     set href(v) { this._href = String(v); }
   };
 
-  // Define `location` as an own property on the window INSTANCE to shadow
-  // the inherited Location object from Window.prototype. Since `location`
-  // is not an own property of the window (it's inherited), defining a new
-  // own property shadows it without triggering "Cannot redefine property".
-  // This intercepts ALL accesses to `window.location` in the code.
+  // Define `location` as a plain DATA property on the global scope.
+  // In JSDOM, `location` is inherited from Window.prototype as a
+  // non-configurable getter/setter. By defining it as an own data property
+  // (value, not get/set), we completely replace the Location object with
+  // our mock. This works because we're creating a new own property that
+  // shadows the inherited one, without trying to reconfigure the inherited one.
   try {
-    Object.defineProperty(global.window, 'location', {
-      get() { return mockLocation; },
-      set(v) {
-        if (typeof v === 'string') {
-          mockLocation._href = v;
-        } else if (v && typeof v === 'object') {
-          Object.assign(mockLocation, v);
-        }
-      },
+    Object.defineProperty(global, 'location', {
+      value: mockLocation,
+      writable: true,
       configurable: true,
       enumerable: true
     });
   } catch (e) {
-    // Fallback: window.location was non-configurable
-    // Try to at least stub the navigation methods on the original
+    // Fallback: location was non-configurable on this JSDOM version
     if (origLocation) {
       origLocation.assign = jest.fn();
       origLocation.replace = jest.fn();
