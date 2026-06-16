@@ -39,6 +39,17 @@ class OraBooks_Team {
     public static function invite_user($org_id, $email, $role, $invited_by) {
         global $wpdb;
         
+        $email = sanitize_email($email);
+        $role = sanitize_text_field($role);
+        
+        if (!is_email($email)) {
+            return new WP_Error('invalid_email', 'Invalid email address');
+        }
+        
+        if (!self::is_invite_role($role)) {
+            return new WP_Error('invalid_role', 'Invalid invite role');
+        }
+        
         $table_invites = OraBooks_Database::table('org_invites');
         $table_users = OraBooks_Database::table('users');
         $table_user_org = OraBooks_Database::table('user_org');
