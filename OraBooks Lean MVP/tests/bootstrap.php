@@ -58,9 +58,10 @@ if (!class_exists('wpdb', false)) {
      *
      * @var callable|null
      */
-    public $test_get_var_callback    = null;
-    public $test_get_row_callback    = null;
+    public $test_get_var_callback     = null;
+    public $test_get_row_callback     = null;
     public $test_get_results_callback = null;
+    public $test_query_callback       = null;
 
     /** Register SHOW COLUMNS results so dbDelta calls don't crash */
     private $show_columns_cache = [];
