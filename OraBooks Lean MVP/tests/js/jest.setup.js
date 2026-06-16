@@ -181,6 +181,18 @@ const localStorageMock = (() => {
 })();
 Object.defineProperty(global.window, 'localStorage', { value: localStorageMock });
 
+// Mock sessionStorage (used by OIDC flow)
+const sessionStorageMock = (() => {
+  let store = {};
+  return {
+    getItem: jest.fn((key) => store[key] || null),
+    setItem: jest.fn((key, value) => { store[key] = String(value); }),
+    removeItem: jest.fn((key) => { delete store[key]; }),
+    clear: jest.fn(() => { store = {}; })
+  };
+})();
+Object.defineProperty(global.window, 'sessionStorage', { value: sessionStorageMock });
+
 // Expose jQuery as global
 global.window.jQuery = $;
 global.window.$ = $;
