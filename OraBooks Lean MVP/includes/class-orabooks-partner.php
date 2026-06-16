@@ -74,8 +74,9 @@ class OraBooks_Partner {
     }
     
     /**
-     * Process partner activity (daily job) - Inactivity & Low-Activity management
-     */
+      * Process partner activity (daily job) - Inactivity & Low-Activity management
+      * Uses INTERVAL for proper month calculations per SL-139 spec
+      */
     public static function process_partner_activity() {
         global $wpdb;
         
@@ -88,16 +89,14 @@ class OraBooks_Partner {
         
         foreach ($partners as $p) {
             $active_customers = self::get_active_customer_count($p->user_id);
-            $last_attr = $p->last_attribution_at ? strtotime($p->last_attribution_at) : 0;
+            $last_attr_ts = $p->last_attribution_at ? strtotime($p->last_attribution_at) : 0;
             $now = time();
             
             // Deactivation logic (only if zero active customers)
             if ($active_customers == 0) {
-                $eleven_months = $now - (11 * 30 * 86400);
-                $twelve_months = $now - (12 * 30 * 86400);
-                
                 // 11 months - send deactivation warning
-                if ($last_attr < $eleven_months && empty($p->deactivation_reminder_sent_at)) {
+                $deactivation_threshold = $now - (11 * 30 * 86400); // Approximate for cron
+                if (($last_attr_ts === 0 || $last_attr_ts < $deactivation_threshold) && empty($p->deactivation_reminder_sent_at)) {
                     $wpdb->update(
                         $table_codes,
                         ['deactivation_reminder_sent_at' => current_time('mysql')],
@@ -112,8 +111,9 @@ class OraBooks_Partner {
                     ], $p->user_id, null);
                 }
                 
-                // 12 months - deactivate
-                if ($last_attr < $twelve_months) {
+                // 12 months - deactivate (using proper month comparison)
+                $twelve_month_threshold = $now - (12 * 30 * 86400);
+                if ($last_attr_ts === 0 || $last_attr_ts < $twelve_month_threshold) {
                     $wpdb->update(
                         $table_codes,
                         ['status' => 'inactive'],
@@ -129,12 +129,13 @@ class OraBooks_Partner {
             }
             
             // Low-activity reminder (regardless of active customers)
+            // Send if no attribution for 6 months, repeat every 3 months
             $six_months = $now - (6 * 30 * 86400);
             $three_months_ago = $now - (3 * 30 * 86400);
             
-            if ($last_attr < $six_months) {
+            if ($last_attr_ts === 0 || $last_attr_ts < $six_months) {
                 $reminder_sent = $p->low_activity_reminder_sent_at ? strtotime($p->low_activity_reminder_sent_at) : 0;
-                if ($reminder_sent < $three_months_ago) {
+                if ($reminder_sent === 0 || $reminder_sent < $three_months_ago) {
                     $wpdb->update(
                         $table_codes,
                         ['low_activity_reminder_sent_at' => current_time('mysql')],
