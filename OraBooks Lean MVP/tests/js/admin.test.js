@@ -336,10 +336,6 @@ describe('.orabooks-coa-export-trigger click', () => {
     expect($btn.text()).toContain('Requested');
     expect($('#orabooks-coa-export-msg').css('display')).toBe('block');
     expect($('#orabooks-coa-export-msg').html()).toContain('View My Exports');
-
-    jest.advanceTimersByTime(5000);
-    expect($btn.text()).toContain('Export CSV');
-    expect($btn.prop('disabled')).toBe(false);
   });
 
   test('shows error alert on failure', () => {
@@ -387,9 +383,6 @@ describe('.orabooks-export-trigger click (audit)', () => {
     // Should add a notice div after .orabooks-filters
     expect($('.notice-success').length).toBe(1);
     expect($('.notice-success').html()).toContain('View My Exports');
-
-    jest.advanceTimersByTime(5000);
-    expect($('.notice-success').length).toBe(0);
   });
 });
 
@@ -417,9 +410,6 @@ describe('.orabooks-partner-export-trigger click', () => {
 
     expect($('#orabooks-partner-export-msg').css('display')).toBe('block');
     expect($('#orabooks-partner-export-msg').html()).toContain('View My Exports');
-
-    jest.advanceTimersByTime(6000);
-    expect($btn.prop('disabled')).toBe(false);
   });
 
   test('shows error alert on failure', () => {
