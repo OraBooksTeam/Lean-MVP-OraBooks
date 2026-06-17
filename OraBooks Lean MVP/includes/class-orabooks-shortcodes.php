@@ -233,10 +233,9 @@ class OraBooks_Shortcodes {
     public function dashboard() {
         ob_start();
         ?>
-        <div class="orabooks-dashboard">
-            <h2><?php _e('Dashboard', 'orabooks'); ?></h2>
-            <div id="orabooks-dashboard-content">
-                <p><?php _e('Loading...', 'orabooks'); ?></p>
+        <div class="orabooks-react-page">
+            <div id="orabooks-app-root">
+                <p><?php _e('Loading OraBooks dashboard...', 'orabooks'); ?></p>
             </div>
         </div>
         <?php
