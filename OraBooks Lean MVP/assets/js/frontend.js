@@ -210,6 +210,40 @@ jQuery(document).ready(function($) {
         });
     });
     
+    // Reset password form
+    $('#orabooks-reset-password-form').on('submit', function(e) {
+        e.preventDefault();
+        var $form = $(this);
+        var $msg = $('#orabooks-reset-password-message');
+        var password = $('#reset-password').val();
+        var confirmPassword = $('#reset-confirm-password').val();
+        
+        if (password !== confirmPassword) {
+            $msg.removeClass('success').addClass('error').text('Passwords do not match').show();
+            return;
+        }
+        
+        $msg.hide();
+        $form.find('button').prop('disabled', true).text('Resetting...');
+        
+        $.post(orabooks_ajax.ajax_url, {
+            action: 'orabooks_reset_password',
+            token: $('#reset-token').val(),
+            password: password
+        }, function(response) {
+            if (response.error) {
+                $msg.removeClass('success').addClass('error').text(response.message).show();
+                $form.find('button').prop('disabled', false).text('Reset Password');
+            } else {
+                $msg.removeClass('error').addClass('success').html('Password reset successfully. <a href="/login/">Log in</a>').show();
+                $form.hide();
+            }
+        }).fail(function() {
+            $msg.removeClass('success').addClass('error').text('An error occurred. Please try again.').show();
+            $form.find('button').prop('disabled', false).text('Reset Password');
+        });
+    });
+    
     // =============================================
     // OIDC CALLBACK HANDLER — picks up code+state from URL params
     // after Google redirects back to the login page
