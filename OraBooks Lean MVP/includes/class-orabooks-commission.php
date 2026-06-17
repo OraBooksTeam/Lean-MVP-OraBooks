@@ -221,7 +221,21 @@ class OraBooks_Commission {
         if ($config === false) {
             $config = $wpdb->get_row("SELECT * FROM {$table} WHERE id = 1");
             if ($config) {
-                $config->yearly_percentages = json_decode($config->yearly_percentages, true);
+                $config->base_monthly_amount = isset($config->base_monthly_amount) ? (float) $config->base_monthly_amount : 10.00;
+                $config->max_years = isset($config->max_years) ? (int) $config->max_years : 6;
+                $config->currency = $config->currency ?? 'USD';
+                $config->min_payout_threshold = isset($config->min_payout_threshold) ? (float) $config->min_payout_threshold : 25.00;
+                $config->customer_active_window_days = isset($config->customer_active_window_days) ? (int) $config->customer_active_window_days : 30;
+                $config->expiry_accounting_action = $config->expiry_accounting_action ?? 'reverse_expense';
+                $config->payout_fee_type = $config->payout_fee_type ?? 'percentage';
+                $config->payout_fee_rate = isset($config->payout_fee_rate) ? (float) $config->payout_fee_rate : 2.5;
+
+                if (isset($config->yearly_percentages) && is_string($config->yearly_percentages)) {
+                    $decoded = json_decode($config->yearly_percentages, true);
+                    $config->yearly_percentages = is_array($decoded) ? $decoded : [20, 15, 10, 5, 2.5, 1];
+                } elseif (!isset($config->yearly_percentages) || !is_array($config->yearly_percentages)) {
+                    $config->yearly_percentages = [20, 15, 10, 5, 2.5, 1];
+                }
                 wp_cache_set('orabooks_commission_config', $config, 'orabooks', 300);
             }
         }
