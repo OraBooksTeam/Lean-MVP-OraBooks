@@ -95,43 +95,25 @@ class OraBooks_Observability_Test extends TestCase
     }
 
     #[Test]
-    public function test_evaluate_thresholds_sends_platform_alert()
+    public function test_evaluate_thresholds_identifies_backlog()
     {
-        global $wpdb;
+        $snapshots = [
+            'eventbus' => ['pending' => 500, 'dead_letter' => 15, 'status' => 'critical'],
+            'async_queue' => [
+                'pending' => 300,
+                'dead_letter' => 25,
+                'failure_rate_24h' => 12,
+                'avg_latency_seconds' => 4,
+                'status' => 'critical',
+            ],
+            'notifications' => ['pending' => 10, 'dead_letter' => 30, 'status' => 'critical'],
+            'exports' => ['pending' => 5, 'failed_24h' => 20, 'status' => 'critical'],
+        ];
 
-        $this->setUserNotifPrefs(1);
-
-        $wpdb->test_get_var_callback = function ($query) {
-            if (stripos($query, 'dead_letter') !== false) {
-                return 50;
-            }
-            return 250;
-        };
-        $wpdb->test_get_results_callback = function ($query) {
-            if (stripos($query, 'GROUP BY status') !== false) {
-                return [(object) ['status' => 'pending', 'count' => 250]];
-            }
-            return [];
-        };
-        $wpdb->test_get_row_callback = function ($query) {
-            if (stripos($query, 'org_notification_policies') !== false) {
-                return null;
-            }
-            if (stripos($query, 'orabooks_users') !== false) {
-                return (object) ['org_id' => 0];
-            }
-            return null;
-        };
-        $wpdb->test_insert_callback = function () {
-            return true;
-        };
-
-        $GLOBALS['orabooks_test_use_insert_id'] = 900;
-
-        OraBooks_Notifications::init();
-        $result = OraBooks_Observability::evaluate_thresholds();
+        $result = OraBooks_Observability::evaluate_thresholds($snapshots);
 
         $this->assertGreaterThan(0, $result['alerts_sent']);
+        $this->assertNotEmpty($result['alerts']);
     }
 
     #[Test]
