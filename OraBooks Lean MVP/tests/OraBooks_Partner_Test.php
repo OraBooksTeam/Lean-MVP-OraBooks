@@ -1228,9 +1228,11 @@ class OraBooks_Partner_Test extends TestCase
         $applicationResponse = $this->callAjax('ajax_partner_application');
 
         $this->assertTrue($paymentResponse['error']);
-        $this->assertEquals(501, $paymentResponse['status']);
+        $this->assertStringContainsString('not implemented in MVP', $paymentResponse['message']);
+        $this->assertStringContainsString('SL-140', $paymentResponse['message']);
         $this->assertTrue($applicationResponse['error']);
-        $this->assertEquals(501, $applicationResponse['status']);
+        $this->assertStringContainsString('not implemented in MVP', $applicationResponse['message']);
+        $this->assertStringContainsString('SL-140', $applicationResponse['message']);
     }
 
     // ================================================================
