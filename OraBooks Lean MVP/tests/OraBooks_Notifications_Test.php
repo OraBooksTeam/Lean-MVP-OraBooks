@@ -937,4 +937,75 @@ class OraBooks_Notifications_Test extends TestCase
         $this->assertGreaterThan(0, $wpdb->insert_id,
             'Customer notification should still be sent even with no admins');
     }
+
+    #[Test]
+    public function test_on_inventory_low_stock_alert_notifies_admins()
+    {
+        global $wpdb;
+
+        $this->setUserNotifPrefs(100);
+        $this->setUpCommonMocks();
+        $this->setUpResultsMock(function ($query) {
+            return [(object) ['user_id' => 100]];
+        });
+
+        $captured = null;
+        $wpdb->test_insert_callback = function ($table, $data) use (&$captured) {
+            if (
+                stripos($table, 'orabooks_notifications') !== false
+                && isset($data['event_type'])
+                && $data['event_type'] === 'inventory_low_stock_alert'
+            ) {
+                $captured = $data;
+            }
+        };
+
+        $GLOBALS['orabooks_test_use_insert_id'] = 9101;
+
+        $handler = $this->createHandler();
+        $handler->on_inventory_low_stock_alert(55, [
+            'org_id' => 10,
+            'sku' => 'LP-01',
+            'product_name' => 'Laptop',
+            'priority' => 'high',
+        ]);
+
+        $this->assertNotNull($captured, 'Low stock alert notification should be inserted');
+        $this->assertEquals('high', $captured['priority']);
+    }
+
+    #[Test]
+    public function test_on_projection_integrity_failed_notifies_admins()
+    {
+        global $wpdb;
+
+        $this->setUserNotifPrefs(100);
+        $this->setUpCommonMocks();
+        $this->setUpResultsMock(function ($query) {
+            return [(object) ['user_id' => 100]];
+        });
+
+        $captured = null;
+        $wpdb->test_insert_callback = function ($table, $data) use (&$captured) {
+            if (
+                stripos($table, 'orabooks_notifications') !== false
+                && isset($data['event_type'])
+                && $data['event_type'] === 'projection_integrity_failed'
+            ) {
+                $captured = $data;
+            }
+        };
+
+        $GLOBALS['orabooks_test_use_insert_id'] = 9102;
+
+        $handler = $this->createHandler();
+        $handler->on_projection_integrity_failed(10, [
+            'org_id' => 10,
+            'difference' => 12.50,
+            'priority' => 'critical',
+        ]);
+
+        $this->assertNotNull($captured, 'Projection integrity notification should be inserted');
+        $this->assertEquals('critical', $captured['priority']);
+    }
 }
