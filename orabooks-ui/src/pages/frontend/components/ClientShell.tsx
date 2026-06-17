@@ -54,6 +54,7 @@ export default function ClientShell({
 }: ClientShellProps) {
   const location = useLocation();
   const nav = isPartner ? partnerNav : customerNav;
+  const logoutUrl = (window as any).orabooks_ajax?.logout_url || '/wp-login.php?action=logout';
 
   return (
     <div className="min-h-screen brand-page-bg">
@@ -97,7 +98,7 @@ export default function ClientShell({
         </nav>
 
         <a
-          href="/wp-login.php?action=logout"
+          href={logoutUrl}
           className="absolute bottom-5 left-5 right-5 flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-white/70 hover:bg-white/10 hover:text-white"
         >
           <LogOut className="h-4 w-4" />
