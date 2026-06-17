@@ -67,7 +67,7 @@ export default function NotificationsPage() {
           {notifications.map((n) => (
             <div
               key={n.id}
-              className={`glass-panel p-5 transition-all duration-200 ${!n.is_read ? 'border-l-4 border-l-primary bg-sky-50/40' : ''}`}
+              className={`glass-panel p-5 transition-all duration-200 ${!n.is_read ? 'border-l-4 border-l-success bg-success/5' : ''}`}
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="space-y-1">
@@ -98,7 +98,7 @@ function Badge({ priority }: { priority?: string }) {
   const map: Record<string, string> = {
     critical: 'bg-red-50 text-red-700 border-red-200',
     high: 'bg-amber-50 text-amber-700 border-amber-200',
-    normal: 'bg-sky-50 text-sky-700 border-sky-200',
+    normal: 'bg-primary/10 text-primary border-primary/20',
     low: 'bg-slate-100 text-slate-600 border-slate-200',
   };
   const cls = map[priority || 'normal'] || map.normal;

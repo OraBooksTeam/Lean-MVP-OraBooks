@@ -47,7 +47,7 @@ export default function ProfilePage() {
                 <ProfileRow label="Email Verified" value={context?.user?.is_email_verified ? 'Yes' : 'No'} />
                 <ProfileRow label="2FA Enabled" value={context?.user?.is_2fa_enabled ? 'Yes' : 'No'} />
               </div>
-              <p className="mt-4 rounded-xl border border-sky-200 bg-sky-50 p-3 text-sm font-medium text-sky-800">
+              <p className="mt-4 rounded-xl border border-primary/20 bg-primary/10 p-3 text-sm font-medium text-primary-dark">
                 Contact organization owner to change your role.
               </p>
             </section>
