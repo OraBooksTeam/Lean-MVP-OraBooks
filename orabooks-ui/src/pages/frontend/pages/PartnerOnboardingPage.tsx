@@ -74,7 +74,7 @@ export default function PartnerOnboardingPage() {
 function StatusBadge({ status }: { status?: string }) {
   const map: Record<string, string> = {
     pending_review: 'bg-amber-50 text-amber-700 border-amber-200',
-    active: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+    active: 'bg-success/10 text-success border-success/20',
     disabled: 'bg-red-50 text-red-700 border-red-200',
     inactive: 'bg-slate-100 text-slate-600 border-slate-200',
   };
