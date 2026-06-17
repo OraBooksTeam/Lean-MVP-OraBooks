@@ -4,9 +4,9 @@ const ORABOOKS_USER_ID = (window as any).orabooks_ajax?.current_user_id ?? null;
 
 type Json = Record<string, any> | any[] | null;
 type ApiResult<T = Json> =
-  | { data?: never; error?: string; success?: never; ...T }
-  | { data: T; error?: never; success?: never; ...T }
-  | { data?: never; error?: never; success: true; ...T };
+  | { data: T; error?: never; success?: never }
+  | { data?: never; error: string; success?: never }
+  | { data?: never; error?: never; success: true };
 
 async function request<T = any>(
   payload: Record<string, any>,
