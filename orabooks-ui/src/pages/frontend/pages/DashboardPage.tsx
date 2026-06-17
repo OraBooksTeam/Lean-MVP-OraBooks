@@ -76,7 +76,7 @@ export default function DashboardPage() {
 
     const ctx = await api.frontendContext();
     if (ctx.error) {
-      setError((ctx as any).message || 'Please log in to view your dashboard.');
+      setError(ctx.error || 'Please log in to view your dashboard.');
       setLoading(false);
       return;
     }
@@ -87,7 +87,7 @@ export default function DashboardPage() {
     const isPartner = nextContext.organization?.organization_type === 'partner' || nextContext.user?.is_partner;
     const res = isPartner ? await api.partnerDashboard() : await api.customerDashboard();
     if (res.error) {
-      setError((res as any).message || 'Failed to load dashboard.');
+      setError(res.error || 'Failed to load dashboard.');
     } else if (isPartner) {
       setPartnerData((res as any).data);
     } else {

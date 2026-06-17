@@ -948,6 +948,13 @@ if (!file_exists($vendors_file)) {
 }
 require_once $vendors_file;
 
+$inventory_file = __DIR__ . '/../includes/class-orabooks-inventory.php';
+if (!file_exists($inventory_file)) {
+    echo "ERROR: Cannot find class-orabooks-inventory.php at {$inventory_file}\n";
+    exit(1);
+}
+require_once $inventory_file;
+
 // orabooks_mask_email — used by OraBooks_Partner::get_dashboard_data
 if (!function_exists('orabooks_mask_email')) {
     function orabooks_mask_email($email) {

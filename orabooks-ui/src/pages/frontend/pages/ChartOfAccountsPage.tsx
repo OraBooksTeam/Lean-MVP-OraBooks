@@ -15,7 +15,7 @@ export default function ChartOfAccountsPage() {
     setError('');
     const ctx = await api.frontendContext();
     if (ctx.error) {
-      setError((ctx as any).message || 'Unable to load account context.');
+      setError(ctx.error || 'Unable to load account context.');
       setLoading(false);
       return;
     }
@@ -30,7 +30,7 @@ export default function ChartOfAccountsPage() {
     }
 
     const res = await api.coaGet(orgId);
-    if (res.error) setError((res as any).message || 'Unable to load chart of accounts.');
+    if (res.error) setError(res.error || 'Unable to load chart of accounts.');
     else setAccounts((res as any).data || []);
     setLoading(false);
   };
