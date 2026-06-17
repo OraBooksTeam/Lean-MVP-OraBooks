@@ -889,11 +889,11 @@ class OraBooks_Commission {
      * MONTHLY PAYOUT BATCH JOB
      * ============================================================
      */
-    public static function process_payout_batch() {
+    public static function process_payout_batch($force = false) {
         global $wpdb;
         
         // Only run on the 1st day of the month (spec: "Monthly payout batch job (1st of month)")
-        if (date('j') != 1) {
+        if (!$force && date('j') != 1) {
             return ['batches_created' => 0, 'skipped_not_first_day' => 1, 'skipped_payout_hold' => 0, 'skipped_below_threshold' => 0];
         }
         
@@ -908,7 +908,7 @@ class OraBooks_Commission {
             return new WP_Error('no_config', 'Commission config not found');
         }
         
-        $min_threshold = $config->min_payout_threshold;
+        $min_threshold = (float) $config->min_payout_threshold;
         
         // Group earned commissions by partner
         $earned_summary = $wpdb->get_results(
@@ -917,7 +917,6 @@ class OraBooks_Commission {
              WHERE status = 'earned'
                AND expires_at > NOW()
              GROUP BY partner_user_id
-             HAVING total_pending >= {$min_threshold}"
         );
         
         $batches_created = 0;
@@ -926,7 +925,19 @@ class OraBooks_Commission {
         
         foreach ($earned_summary as $summary) {
             $partner_user_id = $summary->partner_user_id;
-            $total_pending = $summary->total_pending;
+            $total_pending = (float) $summary->total_pending;
+            
+            if ($total_pending < $min_threshold) {
+                orabooks_log_event('commission_payout_skipped_threshold',
+                    "Payout skipped: partner #{$partner_user_id} pending total {$total_pending} below threshold {$min_threshold}",
+                    'info', [
+                        'partner_user_id' => $partner_user_id,
+                        'pending_total' => $total_pending,
+                        'min_threshold' => $min_threshold
+                    ], $partner_user_id, null);
+                $skipped_below_threshold++;
+                continue;
+            }
             
             // Check partner org status
             $partner = $wpdb->get_row($wpdb->prepare(
@@ -939,12 +950,13 @@ class OraBooks_Commission {
             
             // Block payout if org is on hold, fraud_freeze, or suspended (per SL-004 spec)
             $blocked_statuses = ['payout_hold', 'fraud_freeze', 'suspended'];
-            if (!$partner || in_array($partner->org_status, $blocked_statuses)) {
+            $partner_org_status = $partner ? $partner->org_status : 'no_org';
+            if (!$partner || in_array($partner_org_status, $blocked_statuses)) {
                 orabooks_log_event('commission_payout_skipped_hold', 
-                    "Payout skipped: partner #{$partner_user_id} status={$partner->org_status}", 
+                    "Payout skipped: partner #{$partner_user_id} status={$partner_org_status}", 
                     'info', [
                         'partner_user_id' => $partner_user_id,
-                        'org_status' => $partner ? $partner->org_status : 'no_org'
+                        'org_status' => $partner_org_status
                     ], $partner_user_id, $partner ? $partner->org_id : null);
                 $skipped_payout_hold++;
                 continue;
