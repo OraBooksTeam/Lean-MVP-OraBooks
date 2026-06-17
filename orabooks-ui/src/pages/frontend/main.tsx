@@ -33,5 +33,6 @@ const router = createHashRouter([
 ]);
 
 if (root) {
+  window.orabooksReactMounted = true;
   ReactDOM.createRoot(root).render(<RouterProvider router={router} />);
 }
