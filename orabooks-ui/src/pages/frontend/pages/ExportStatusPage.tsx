@@ -37,7 +37,7 @@ export default function ExportStatusPage() {
       organization={context?.organization}
       isPartner={context?.organization?.organization_type === 'partner' || context?.user?.is_partner}
     >
-      <div className="mx-auto max-w-5xl space-y-6">
+      <div className="space-y-6">
         <div className="flex items-center justify-between">
           <button onClick={load} className="flex items-center gap-1.5 rounded-lg border border-border bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50">
             <RefreshCw className="h-4 w-4" /> Refresh

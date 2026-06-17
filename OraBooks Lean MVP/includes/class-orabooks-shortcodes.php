@@ -97,6 +97,7 @@ class OraBooks_Shortcodes {
         $token = sanitize_text_field($_GET['token'] ?? '');
         ob_start();
         ?>
+        <div class="orabooks-auth-shell">
         <div class="orabooks-form-container">
             <h2><?php esc_html_e('Reset Password', 'orabooks'); ?></h2>
             <?php if (empty($token)) : ?>
@@ -132,6 +133,7 @@ class OraBooks_Shortcodes {
                 </form>
                 <div id="orabooks-reset-password-message" class="orabooks-message"></div>
             <?php endif; ?>
+        </div>
         </div>
         <?php
         return ob_get_clean();
@@ -297,26 +299,8 @@ class OraBooks_Shortcodes {
      * payout breakdown (Gross/Fee/Net), attribution table, and reactivation.
      */
     public function partner_dashboard() {
-        ob_start();
-        ?>
-        <div class="orabooks-partner-dashboard">
-            <!-- Export Action Bar -->
-            <div class="orabooks-coa-export-actions" style="margin-bottom:16px;padding:12px 16px;background:#f0f6fc;border:1px solid #c5d9ed;border-radius:6px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-                <span style="font-weight:600;color:#1d2327;font-size:13px;">📊 <?php _e('Export:', 'orabooks'); ?></span>
-                <button class="orabooks-btn orabooks-btn-secondary orabooks-btn-sm orabooks-partner-export-trigger" data-export-type="commission_data" data-format="csv"><?php _e('Export Commissions CSV', 'orabooks'); ?></button>
-                <button class="orabooks-btn orabooks-btn-sm orabooks-partner-export-trigger" data-export-type="commission_data" data-format="pdf"><?php _e('Export Commissions PDF', 'orabooks'); ?></button>
-                <span style="color:#666;font-size:12px;margin-left:4px;">📁 <?php _e('Async — you\'ll get a notification when ready.', 'orabooks'); ?></span>
-            </div>
-            <div id="orabooks-partner-export-msg" class="orabooks-message" style="display:none;"></div>
-
-            <!-- Status Banners -->
-            <div id="orabooks-status-banners" class="orabooks-status-banners"></div>
-            
-            <!-- Partner Info Header -->
-            <div class="orabooks-partner-header">
-                <div class="orabooks-partner-code-section">
-                    <h2><?php _e('Partner Program', 'orabooks'); ?></h2>
-                    <div class="orabooks-partner-code-box">
+        return $this->react_app('/dashboard', 'Loading partner program...');
+    }
                         <label><?php _e('Your Partner Code', 'orabooks'); ?></label>
                         <div class="orabooks-code-display">
                             <input type="text" id="orabooks-dash-partner-code" readonly class="orabooks-code-input">

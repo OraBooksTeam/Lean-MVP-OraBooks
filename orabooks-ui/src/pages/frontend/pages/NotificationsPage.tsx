@@ -37,7 +37,7 @@ export default function NotificationsPage() {
       organization={context?.organization}
       isPartner={context?.organization?.organization_type === 'partner' || context?.user?.is_partner}
     >
-      <div className="mx-auto max-w-4xl space-y-6">
+      <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="rounded-xl bg-primary/10 p-2.5 text-primary">
