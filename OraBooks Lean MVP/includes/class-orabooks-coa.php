@@ -63,6 +63,7 @@ class OraBooks_COA {
         if (self::$instance === null) {
             self::$instance = new self();
             add_action('wp_ajax_orabooks_get_coa', [self::$instance, 'ajax_get_coa']);
+            add_action('wp_ajax_nopriv_orabooks_get_coa', [self::$instance, 'ajax_get_coa']);
             add_action('wp_ajax_orabooks_export_coa', [self::$instance, 'ajax_export_coa']);
         }
         return self::$instance;
@@ -211,7 +212,7 @@ class OraBooks_COA {
     
     // AJAX handlers
     public function ajax_get_coa() {
-        $user_id = get_current_user_id();
+        $user_id = orabooks_get_current_user_id();
         $org_id = intval($_GET['org_id'] ?? 0);
         
         // SL-013: Enforce customer org isolation on accounting endpoints

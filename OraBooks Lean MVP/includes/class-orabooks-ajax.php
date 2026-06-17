@@ -23,6 +23,8 @@ class OraBooks_Ajax {
             add_action('wp_ajax_orabooks_dashboard_stats', [self::$instance, 'ajax_dashboard_stats']);
             add_action('wp_ajax_orabooks_frontend_context', [self::$instance, 'ajax_frontend_context']);
             add_action('wp_ajax_orabooks_customer_dashboard', [self::$instance, 'ajax_customer_dashboard']);
+            add_action('wp_ajax_nopriv_orabooks_frontend_context', [self::$instance, 'ajax_frontend_context']);
+            add_action('wp_ajax_nopriv_orabooks_customer_dashboard', [self::$instance, 'ajax_customer_dashboard']);
             
             // Register settings
             add_action('admin_init', [self::$instance, 'register_settings']);
@@ -41,7 +43,7 @@ class OraBooks_Ajax {
     private function get_current_orabooks_context() {
         global $wpdb;
 
-        $user_id = get_current_user_id();
+        $user_id = orabooks_get_current_user_id();
         if (!$user_id) {
             return new WP_Error('not_logged_in', 'Please log in to continue.');
         }
