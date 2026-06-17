@@ -406,6 +406,10 @@ if (!function_exists('esc_url')) {
     function esc_url($url) { return $url; }
 }
 
+if (!function_exists('esc_url_raw')) {
+    function esc_url_raw($url) { return $url; }
+}
+
 if (!function_exists('wp_json_encode')) {
     function wp_json_encode($data) { return json_encode($data); }
 }
@@ -926,6 +930,13 @@ if (!file_exists($partner_file)) {
     exit(1);
 }
 require_once $partner_file;
+
+$tax_file = __DIR__ . '/../includes/class-orabooks-tax.php';
+if (!file_exists($tax_file)) {
+    echo "ERROR: Cannot find class-orabooks-tax.php at {$tax_file}\n";
+    exit(1);
+}
+require_once $tax_file;
 
 // orabooks_mask_email — used by OraBooks_Partner::get_dashboard_data
 if (!function_exists('orabooks_mask_email')) {
