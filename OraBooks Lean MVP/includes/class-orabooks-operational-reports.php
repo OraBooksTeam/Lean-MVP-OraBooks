@@ -647,8 +647,9 @@ class OraBooks_Operational_Reports {
                 'reorder_level' => (float) $row->reorder_level,
             ], null, intval($row->org_id));
 
-            if (class_exists('OraBooks_Notifications') && method_exists('OraBooks_Notifications', 'notify_org_admins')) {
-                OraBooks_Notifications::notify_org_admins(intval($row->org_id), 'inventory_low_stock_alert', [
+            if (function_exists('orabooks_publish_event')) {
+                orabooks_publish_event('inventory_low_stock_alert', intval($row->product_id), [
+                    'org_id' => intval($row->org_id),
                     'product_id' => intval($row->product_id),
                     'sku' => $row->sku,
                     'product_name' => $row->product_name,
