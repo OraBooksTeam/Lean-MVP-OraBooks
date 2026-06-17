@@ -1885,10 +1885,11 @@ describe('Invoice create modal', () => {
     $('#inv_total_amount').val('250.00');
     $('#inv_description').val('Test invoice');
 
-    // Submit form
-    $('#orabooks-invoice-form').trigger('submit');
+    // Click the submit button (triggers delegated submit handler)
+    $('#orabooks-invoice-form').find('[type="submit"]').first().trigger('click');
 
     const call = latestAjax('post');
+    // The action includes org_id query param appended by the handler
     expect(call.data.action).toContain('orabooks_invoice_create');
     expect(call.data.customer_id).toBe('1');
     expect(call.data.total_amount).toBe('250.00');
@@ -1902,6 +1903,7 @@ describe('Invoice create modal', () => {
     }, 'orabooks_customers_list');
 
     $('.orabooks-modal-close').first().trigger('click');
+    // With $.fx.off = true, fadeOut completes instantly
     expect($('#orabooks-invoice-modal').css('display')).toBe('none');
   });
 });
