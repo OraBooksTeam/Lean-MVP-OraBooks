@@ -4,8 +4,28 @@ import Input from '@/components/Input';
 import { api } from '../api';
 import { Flame } from 'lucide-react';
 
-function goToFrontendRoute(route: string) {
+function goToFrontendRoute(route = '/dashboard') {
   window.location.hash = route;
+}
+
+function redirectAfterLogin(data: any) {
+  if (data?.needs_tier_selection) {
+    goToFrontendRoute('/tier-selection');
+    return;
+  }
+
+  const redirectTo = String(data?.redirect_to || '');
+  if (redirectTo.includes('/partner/onboarding') || redirectTo.includes('/partner-onboarding')) {
+    goToFrontendRoute('/partner-onboarding');
+    return;
+  }
+
+  if (redirectTo.startsWith('http')) {
+    window.location.href = redirectTo;
+    return;
+  }
+
+  goToFrontendRoute('/dashboard');
 }
 
 export default function LoginPage() {
@@ -27,7 +47,7 @@ export default function LoginPage() {
         else if ((res as any).data?.requires_2fa) {
           setShow2fa(true);
           setTempToken((res as any).data.temp_token);
-        } else if ((res as any).data?.redirect_to) goToFrontendRoute('/dashboard');
+        } else redirectAfterLogin((res as any).data);
       });
     }
   }, []);
@@ -42,8 +62,7 @@ export default function LoginPage() {
       else if ((res as any).data?.requires_2fa) {
         setShow2fa(true);
         setTempToken((res as any).data.temp_token);
-      } else if ((res as any).data?.redirect_to) goToFrontendRoute('/dashboard');
-      else goToFrontendRoute('/dashboard');
+      } else redirectAfterLogin((res as any).data);
     } finally {
       setLoading(false);
     }
@@ -55,7 +74,7 @@ export default function LoginPage() {
     try {
       const res = await api.twoFactorChallenge(tempToken, otp);
       if (res.error) setError(typeof res.error === 'string' ? res.error : '2FA failed');
-      else goToFrontendRoute('/dashboard');
+      else redirectAfterLogin((res as any).data);
     } finally {
       setLoading(false);
     }
