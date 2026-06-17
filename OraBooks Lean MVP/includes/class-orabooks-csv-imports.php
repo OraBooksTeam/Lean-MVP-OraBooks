@@ -353,12 +353,13 @@ class OraBooks_Csv_Imports {
         $mapping = [];
 
         foreach ($headers as $index => $header) {
-            $normalized = strtolower(preg_replace('/[^a-z0-9]+/', '_', $header));
+            $normalized = strtolower(preg_replace('/[^a-z0-9]+/', '_', trim($header)));
+            $segments = array_filter(explode('_', $normalized));
             $field = null;
 
             foreach ($aliases as $field_name => $patterns) {
                 foreach ($patterns as $pattern) {
-                    if ($normalized === $pattern || strpos($normalized, $pattern) !== false) {
+                    if ($normalized === $pattern || in_array($pattern, $segments, true)) {
                         $field = $field_name;
                         break 2;
                     }
