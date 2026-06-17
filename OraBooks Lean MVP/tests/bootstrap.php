@@ -347,6 +347,29 @@ if (!function_exists('current_time')) {
     }
 }
 
+if (!function_exists('wp_cache_get')) {
+    function wp_cache_get($key, $group = '') {
+        $cache_key = $group . ':' . $key;
+        return $GLOBALS['orabooks_test_cache'][$cache_key] ?? false;
+    }
+}
+
+if (!function_exists('wp_cache_set')) {
+    function wp_cache_set($key, $data, $group = '', $expire = 0) {
+        $cache_key = $group . ':' . $key;
+        $GLOBALS['orabooks_test_cache'][$cache_key] = $data;
+        return true;
+    }
+}
+
+if (!function_exists('wp_cache_delete')) {
+    function wp_cache_delete($key, $group = '') {
+        $cache_key = $group . ':' . $key;
+        unset($GLOBALS['orabooks_test_cache'][$cache_key]);
+        return true;
+    }
+}
+
 if (!function_exists('sanitize_text_field')) {
     function sanitize_text_field($str) { return is_string($str) ? trim($str) : ''; }
 }
