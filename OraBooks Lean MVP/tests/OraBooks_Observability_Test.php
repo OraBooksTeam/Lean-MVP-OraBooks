@@ -124,17 +124,4 @@ class OraBooks_Observability_Test extends TestCase
 
         $this->assertEquals('critical', $status);
     }
-
-    private function setUserNotifPrefs(int $user_id): void
-    {
-        update_user_meta($user_id, 'orabooks_notification_prefs', [
-            'channels'           => ['email', 'inapp'],
-            'quiet_hours_start'  => '',
-            'quiet_hours_end'    => '',
-            'digest'             => 'none',
-            'language'           => 'en',
-            'escalation_enabled' => true,
-            'updated_at'         => current_time('mysql', true),
-        ]);
-    }
 }

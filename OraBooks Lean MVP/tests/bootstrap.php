@@ -1048,7 +1048,7 @@ require_once $observability_file;
 
 if (!function_exists('get_users')) {
     function get_users($args = []) {
-        return [(object) ['ID' => 1]];
+        return [];
     }
 }
 
