@@ -34,8 +34,10 @@ export default function TierSelectionPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 py-12" style={{ background: 'linear-gradient(135deg, #f8fafc 0%, #e0f2fe 50%, #f1f5f9 100%)' }}>
-      <div className="glass-panel w-full max-w-2xl p-8">
+    <div className="brand-auth-bg flex min-h-screen items-center justify-center px-4 py-12">
+      <div className="glass-panel w-full max-w-2xl overflow-hidden">
+        <div className="brand-accent-bar h-1.5" />
+        <div className="p-8">
         <h2 className="text-center text-2xl font-bold text-ink">Choose Your Plan</h2>
         <p className="mt-2 text-center text-sm text-slate-600">Select a tier and set up your organization subdomain.</p>
         <form onSubmit={submit} className="mt-8 space-y-6">
@@ -76,6 +78,7 @@ export default function TierSelectionPage() {
           {msg && !available && <p className="text-sm text-danger">{msg}</p>}
           <Button type="submit" loading={loading} className="w-full">Continue</Button>
         </form>
+        </div>
       </div>
     </div>
   );
@@ -85,7 +88,7 @@ function cn_tier(active: boolean) {
   return [
     'rounded-xl border-2 p-4 text-center transition-all duration-200',
     active
-      ? 'border-primary bg-primary/5 shadow-md'
+      ? 'border-primary bg-primary text-white shadow-md'
       : 'border-border bg-white hover:border-slate-300 hover:shadow-sm',
   ].join(' ');
 }
