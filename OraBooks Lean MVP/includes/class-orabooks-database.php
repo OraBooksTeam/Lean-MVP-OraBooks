@@ -726,6 +726,18 @@ class OraBooks_Database {
         if (!in_array('overdue_notified_at', $existing_invoice_cols)) {
             $wpdb->query("ALTER TABLE {$table_invoices} ADD COLUMN overdue_notified_at TIMESTAMP NULL AFTER paid_at");
         }
+        if (!in_array('tax_rate', $existing_invoice_cols)) {
+            $wpdb->query("ALTER TABLE {$table_invoices} ADD COLUMN tax_rate DECIMAL(8,4) DEFAULT 0 AFTER tax_amount");
+        }
+        if (!in_array('tax_override_reason', $existing_invoice_cols)) {
+            $wpdb->query("ALTER TABLE {$table_invoices} ADD COLUMN tax_override_reason VARCHAR(64) NULL AFTER tax_rate");
+        }
+        if (!in_array('tax_override_by', $existing_invoice_cols)) {
+            $wpdb->query("ALTER TABLE {$table_invoices} ADD COLUMN tax_override_by BIGINT UNSIGNED NULL AFTER tax_override_reason");
+        }
+        if (!in_array('tax_override_at', $existing_invoice_cols)) {
+            $wpdb->query("ALTER TABLE {$table_invoices} ADD COLUMN tax_override_at TIMESTAMP NULL AFTER tax_override_by");
+        }
 
         if (!wp_next_scheduled('orabooks_daily_invoice_overdue_check')) {
             wp_schedule_event(time(), 'daily', 'orabooks_daily_invoice_overdue_check');
