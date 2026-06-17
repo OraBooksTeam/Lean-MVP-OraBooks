@@ -767,6 +767,125 @@ class OraBooks_Financial_Reports {
         return function_exists('orabooks_uuid') ? orabooks_uuid() : bin2hex(random_bytes(16));
     }
 
+    /**
+     * Resolve report data for SL-114 CSV/PDF export.
+     *
+     * @param array $params org_id, report_type (or export_type financial_*), period_start, period_end.
+     * @return array|null { columns, rows } or null on failure.
+     */
+    public static function export_report_data($params) {
+        $org_id = intval($params['org_id'] ?? 0);
+        $report_type = sanitize_text_field($params['report_type'] ?? '');
+
+        if (!$report_type && !empty($params['export_type']) && strpos($params['export_type'], 'financial_') === 0) {
+            $report_type = substr($params['export_type'], strlen('financial_'));
+        }
+
+        if ($org_id <= 0 || !self::valid_report_type($report_type)) {
+            return null;
+        }
+
+        $period_start = sanitize_text_field($params['period_start'] ?? date('Y-m-01'));
+        $period_end = sanitize_text_field($params['period_end'] ?? date('Y-m-d'));
+
+        $result = self::generate_report($org_id, $report_type, $period_start, $period_end, $params);
+        if (is_wp_error($result)) {
+            return null;
+        }
+
+        return self::flatten_for_export($result);
+    }
+
+    /**
+     * Flatten a financial report snapshot into tabular export rows.
+     */
+    public static function flatten_for_export($result) {
+        $report = $result['report'] ?? $result;
+        $report_type = $report['report_type'] ?? ($result['report_type'] ?? '');
+        $rows = [];
+
+        switch ($report_type) {
+            case 'profit_loss':
+                foreach (['revenue' => 'Revenue', 'expenses' => 'Expense'] as $key => $section) {
+                    foreach ($report[$key] ?? [] as $item) {
+                        $rows[] = array_merge(['section' => $section], $item);
+                    }
+                }
+                $rows[] = [
+                    'section' => 'Summary',
+                    'code' => '',
+                    'name' => 'Net Income',
+                    'type' => '',
+                    'amount' => $report['net_income'] ?? 0,
+                ];
+                return [
+                    'columns' => ['section', 'code', 'name', 'type', 'amount'],
+                    'rows' => $rows,
+                ];
+
+            case 'balance_sheet':
+                foreach (['assets' => 'Assets', 'liabilities' => 'Liabilities', 'equity' => 'Equity'] as $key => $section) {
+                    foreach ($report[$key] ?? [] as $item) {
+                        $rows[] = array_merge(['section' => $section], $item);
+                    }
+                }
+                return [
+                    'columns' => ['section', 'code', 'name', 'type', 'amount'],
+                    'rows' => $rows,
+                ];
+
+            case 'cash_flow':
+                foreach (['operating' => 'Operating', 'investing' => 'Investing', 'financing' => 'Financing'] as $key => $section) {
+                    foreach ($report[$key] ?? [] as $item) {
+                        $rows[] = array_merge(['section' => $section], $item);
+                    }
+                }
+                $rows[] = [
+                    'section' => 'Summary',
+                    'code' => '',
+                    'name' => 'Net Cash Flow',
+                    'type' => '',
+                    'amount' => $report['net_cash_flow'] ?? 0,
+                ];
+                return [
+                    'columns' => ['section', 'code', 'name', 'type', 'amount'],
+                    'rows' => $rows,
+                ];
+
+            case 'trial_balance':
+                foreach ($report['accounts'] ?? [] as $item) {
+                    $rows[] = $item;
+                }
+                return [
+                    'columns' => ['code', 'name', 'type', 'debit', 'credit'],
+                    'rows' => $rows,
+                ];
+
+            case 'changes_equity':
+                foreach ($report['equity_accounts'] ?? [] as $item) {
+                    $rows[] = $item;
+                }
+                $rows[] = [
+                    'code' => '',
+                    'name' => 'Net Income',
+                    'type' => 'summary',
+                    'amount' => $report['net_income'] ?? 0,
+                ];
+                $rows[] = [
+                    'code' => '',
+                    'name' => 'Ending Equity',
+                    'type' => 'summary',
+                    'amount' => $report['ending_equity'] ?? 0,
+                ];
+                return [
+                    'columns' => ['code', 'name', 'type', 'amount'],
+                    'rows' => $rows,
+                ];
+        }
+
+        return null;
+    }
+
     public function ajax_generate_report() {
         $user_id = get_current_user_id();
         $org_id = intval($_REQUEST['org_id'] ?? 0);
@@ -791,6 +910,36 @@ class OraBooks_Financial_Reports {
         }
 
         orabooks_json_success($result);
+    }
+
+    public function ajax_request_export() {
+        $user_id = get_current_user_id();
+        $org_id = intval($_POST['org_id'] ?? 0);
+        if (!OraBooks_RBAC::require_permission($user_id, $org_id, 'export_reports')) {
+            orabooks_json_error('Permission denied', 403);
+        }
+
+        $report_type = sanitize_text_field($_POST['report_type'] ?? '');
+        orabooks_log_event('financial_report_export_requested', 'Financial report export requested', 'info', [
+            'report_type' => $report_type,
+            'format' => sanitize_text_field($_POST['format'] ?? 'csv'),
+        ], $user_id, $org_id);
+
+        if (class_exists('OraBooks_Exports') && method_exists('OraBooks_Exports', 'request_export')) {
+            $result = OraBooks_Exports::request_export(
+                $org_id,
+                $user_id,
+                'financial_' . $report_type,
+                sanitize_text_field($_POST['format'] ?? 'csv'),
+                $_POST
+            );
+            if (is_wp_error($result)) {
+                orabooks_json_error($result->get_error_message(), 400);
+            }
+            orabooks_json_success($result);
+        }
+
+        orabooks_json_error('Export service unavailable.', 501);
     }
 
     public function ajax_sign_report() {

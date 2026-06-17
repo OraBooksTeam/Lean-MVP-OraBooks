@@ -676,6 +676,98 @@ class OraBooks_Operational_Reports {
         return function_exists('orabooks_uuid') ? orabooks_uuid() : bin2hex(random_bytes(16));
     }
 
+    /**
+     * Resolve operational report data for SL-114 CSV/PDF export.
+     *
+     * @param array $params org_id, report_type (or export_type operational_*).
+     * @return array|null { columns, rows } or null on failure.
+     */
+    public static function export_report_data($params) {
+        $org_id = intval($params['org_id'] ?? 0);
+        $report_type = sanitize_text_field($params['report_type'] ?? '');
+
+        if (!$report_type && !empty($params['export_type']) && strpos($params['export_type'], 'operational_') === 0) {
+            $report_type = substr($params['export_type'], strlen('operational_'));
+        }
+
+        if ($org_id <= 0 || !self::valid_report_type($report_type)) {
+            return null;
+        }
+
+        $result = self::generate_report($org_id, $report_type, $params);
+        if (is_wp_error($result)) {
+            return null;
+        }
+
+        return self::flatten_for_export($result);
+    }
+
+    /**
+     * Flatten an operational report into tabular export rows.
+     */
+    public static function flatten_for_export($result) {
+        $report_type = $result['report_type'] ?? '';
+        $data = $result['data'] ?? $result;
+
+        switch ($report_type) {
+            case 'ar_aging':
+                $rows = is_array($data) ? array_values($data) : [];
+                return [
+                    'columns' => ['customer_id', 'current', '30', '60', '90_plus', 'total_due'],
+                    'rows' => $rows,
+                ];
+
+            case 'ap_aging':
+                $rows = is_array($data) && isset($data['rows']) ? $data['rows'] : (is_array($data) ? array_values($data) : []);
+                return [
+                    'columns' => ['vendor_id', 'current', '30', '60', '90_plus', 'total_due'],
+                    'rows' => $rows,
+                ];
+
+            case 'inventory_status':
+                $rows = [];
+                foreach ($data['products'] ?? [] as $product) {
+                    $rows[] = is_object($product) ? (array) $product : $product;
+                }
+                if (empty($rows)) {
+                    return null;
+                }
+                return [
+                    'columns' => array_keys($rows[0]),
+                    'rows' => $rows,
+                ];
+
+            case 'bank_reconciliation':
+                $rows = [];
+                foreach (is_array($data) ? $data : [] as $row) {
+                    $rows[] = is_object($row) ? (array) $row : $row;
+                }
+                if (empty($rows)) {
+                    return null;
+                }
+                return [
+                    'columns' => array_keys($rows[0]),
+                    'rows' => $rows,
+                ];
+
+            case 'sales_summary':
+            case 'purchase_summary':
+                $rows = [];
+                foreach (is_array($data) ? $data : [] as $row) {
+                    $rows[] = is_object($row) ? (array) $row : $row;
+                }
+                if (empty($rows)) {
+                    return null;
+                }
+                return [
+                    'columns' => array_keys($rows[0]),
+                    'rows' => $rows,
+                ];
+        }
+
+        return null;
+    }
+
     public function ajax_generate_report() {
         $user_id = get_current_user_id();
         $org_id = intval($_REQUEST['org_id'] ?? 0);
