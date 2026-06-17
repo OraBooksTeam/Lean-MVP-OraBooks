@@ -764,6 +764,14 @@ class OraBooks_Database {
         }
 
         // ============================================================
+        // SL-031: Bank Feeds / Rules / Reconcile
+        // ============================================================
+        $bank_tables = OraBooks_Bank_Reconciliation::get_create_table_sql();
+        foreach ($bank_tables as $sql) {
+            dbDelta($sql);
+        }
+
+        // ============================================================
         // SL-250: Notification Center Tables
         // ============================================================
         $notification_tables = OraBooks_Notifications::get_create_table_sql();
