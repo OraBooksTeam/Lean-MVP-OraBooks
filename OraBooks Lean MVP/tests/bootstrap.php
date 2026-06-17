@@ -954,6 +954,13 @@ if (!file_exists($notifications_file)) {
 }
 require_once $notifications_file;
 
+$commission_file = __DIR__ . '/../includes/class-orabooks-commission.php';
+if (!file_exists($commission_file)) {
+    echo "ERROR: Cannot find class-orabooks-commission.php at {$commission_file}\n";
+    exit(1);
+}
+require_once $commission_file;
+
 $partner_file = __DIR__ . '/../includes/class-orabooks-partner.php';
 if (!file_exists($partner_file)) {
     echo "ERROR: Cannot find class-orabooks-partner.php at {$partner_file}\n";
