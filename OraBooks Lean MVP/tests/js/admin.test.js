@@ -1890,9 +1890,10 @@ describe('Invoice create modal', () => {
 
     const call = latestAjax('post');
     if (call) {
-      expect(call.data.action).toContain('orabooks_invoice_create');
-      expect(call.data.customer_id).toBe('1');
-      expect(call.data.total_amount).toBe('250.00');
+      // serialize() returns a URL-encoded string, not an object
+      expect(call.data).toContain('action%3Dorabooks_invoice_create');
+      expect(call.data).toContain('customer_id=1');
+      expect(call.data).toContain('total_amount=250.00');
     } else {
       // Fallback: verify form serialization produces correct params
       var serialized = $('#orabooks-invoice-form').serialize();
@@ -2088,9 +2089,10 @@ describe('Invoice payment modal', () => {
 
     const call = latestAjax('post');
     if (call) {
-      expect(call.data.action).toContain('orabooks_invoice_record_payment');
-      expect(call.data.invoice_id).toBe('88');
-      expect(call.data.amount).toBe('500.00');
+      // serialize() returns a URL-encoded string, not an object
+      expect(call.data).toContain('action%3Dorabooks_invoice_record_payment');
+      expect(call.data).toContain('invoice_id=88');
+      expect(call.data).toContain('amount=500.00');
     } else {
       // Fallback: verify form serialization produces correct params
       var serialized = $('#orabooks-payment-form').serialize();

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import Button from '@/components/Button';
-import { api } from './api';
+import { api } from '@/pages/frontend/api';
 import { Download, RefreshCw } from 'lucide-react';
 
 export default function ExportStatusPage() {
