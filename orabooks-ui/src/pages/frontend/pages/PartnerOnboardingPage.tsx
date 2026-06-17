@@ -65,7 +65,7 @@ export default function PartnerOnboardingPage() {
               <StatusBadge status={info?.status} />
             </div>
 
-            <Button onClick={() => (window.location.href = '/dashboard')} className="w-full">Continue to Dashboard</Button>
+            <Button onClick={() => (window.location.hash = '/dashboard')} className="w-full">Continue to Dashboard</Button>
           </div>
           </div>
         </div>
