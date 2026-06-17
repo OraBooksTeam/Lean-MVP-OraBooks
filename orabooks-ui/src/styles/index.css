@@ -1,22 +1,24 @@
 @import "tailwindcss";
 
 @theme {
-  --color-primary: #065986;
-  --color-primary-dark: #044a6e;
-  --color-midnight: #0f172a;
+  --color-primary: #1A69B4;
+  --color-primary-dark: #145694;
+  --color-accent: #3AB54A;
+  --color-accent-dark: #2f963c;
+  --color-midnight: #102f52;
   --color-surface: #ffffff;
-  --color-muted: #f8fafc;
-  --color-ink: #0f172a;
-  --color-ink-secondary: #475569;
-  --color-border: #e2e8f0;
+  --color-muted: #f4f8fc;
+  --color-ink: #102f52;
+  --color-ink-secondary: #42627f;
+  --color-border: #d8e6f3;
   --color-danger: #dc2626;
   --color-warning: #d97706;
-  --color-success: #16a34a;
+  --color-success: #3AB54A;
 }
 
 @layer base {
   :root {
-    background: #f1f5f9;
+    background: #f4f8fc;
     color: theme(colors.ink);
     font-family: theme(fontFamily.sans);
   }
@@ -31,24 +33,22 @@
 
 @layer components {
   .glass-panel {
-    background: rgba(255, 255, 255, 0.85);
-    backdrop-filter: saturate(140%) blur(14px);
+    background: #ffffff;
     border: 1px solid theme(colors.border);
     border-radius: 1rem;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02), 0 10px 30px rgba(0, 0, 0, 0.04);
+    box-shadow: 0 14px 40px rgba(26, 105, 180, 0.08);
   }
   .stat-card {
-    background: rgba(255, 255, 255, 0.85);
-    backdrop-filter: saturate(140%) blur(14px);
+    background: #ffffff;
     border: 1px solid theme(colors.border);
     border-radius: 1rem;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02), 0 10px 30px rgba(0, 0, 0, 0.04);
+    box-shadow: 0 14px 40px rgba(26, 105, 180, 0.08);
     padding: 1.25rem;
     transition: transform 0.2s, box-shadow 0.2s;
   }
   .stat-card:hover {
     transform: translateY(-2px);
-    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+    box-shadow: 0 18px 44px rgba(26, 105, 180, 0.14);
   }
   .badge {
     display: inline-flex;
@@ -58,5 +58,22 @@
     font-size: 12px;
     font-weight: 600;
     line-height: 1.6;
+  }
+  .brand-page-bg {
+    background: #f4f8fc;
+  }
+  .brand-auth-bg {
+    background: #1A69B4;
+  }
+  .brand-accent-bar {
+    background: #3AB54A;
+  }
+  .brand-soft-blue {
+    background: #e9f2fb;
+    color: #1A69B4;
+  }
+  .brand-soft-green {
+    background: #eaf8ec;
+    color: #2f963c;
   }
 }
