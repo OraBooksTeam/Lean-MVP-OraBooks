@@ -1,22 +1,27 @@
 import { useEffect, useState } from 'react';
 import Button from '@/components/Button';
 import { api } from '@/pages/frontend/api';
+import ClientShell from '../components/ClientShell';
 import { Download, RefreshCw } from 'lucide-react';
 
 export default function ExportStatusPage() {
   const [loading, setLoading] = useState(true);
+  const [context, setContext] = useState<any>(null);
   const [exports, setExports] = useState<any[]>([]);
   const [stats, setStats] = useState({ total: 0, pending: 0, ready: 0 });
 
   const load = () => {
     setLoading(true);
-    api.get('orabooks_export_status', { user_id: 0 }).then((res: any) => {
+    api.frontendContext().then((res) => {
+      if (!res.error) setContext((res as any).data);
+    });
+    api.get('orabooks_exports_list', { page: 1 }).then((res: any) => {
       if (!res.error && res.data) {
         setExports(res.data.exports || []);
         setStats({
           total: res.data.total || 0,
           pending: (res.data.exports || []).filter((e: any) => e.status === 'pending').length,
-          ready: (res.data.exports || []).filter((e: any) => e.status === 'completed').length,
+          ready: (res.data.exports || []).filter((e: any) => e.status === 'ready').length,
         });
       }
       setLoading(false);
@@ -26,10 +31,14 @@ export default function ExportStatusPage() {
   useEffect(() => { load(); }, []);
 
   return (
-    <div className="min-h-screen bg-slate-50 p-6">
+    <ClientShell
+      title="My Exports"
+      eyebrow="Generated files"
+      organization={context?.organization}
+      isPartner={context?.organization?.organization_type === 'partner' || context?.user?.is_partner}
+    >
       <div className="mx-auto max-w-5xl space-y-6">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-ink">My Exports</h1>
           <button onClick={load} className="flex items-center gap-1.5 rounded-lg border border-border bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50">
             <RefreshCw className="h-4 w-4" /> Refresh
           </button>
@@ -75,8 +84,8 @@ export default function ExportStatusPage() {
                   <td className="px-5 py-3 text-slate-600">{ex.expires_at || '—'}</td>
                   <td className="px-5 py-3 text-slate-600">{ex.download_count ?? 0}</td>
                   <td className="px-5 py-3">
-                    {ex.status === 'completed' && ex.download_url ? (
-                      <a href={ex.download_url} className="inline-flex items-center gap-1 text-primary hover:text-primary-dark">
+                    {ex.can_download && ex.file_url ? (
+                      <a href={ex.file_url} className="inline-flex items-center gap-1 text-primary hover:text-primary-dark">
                         <Download className="h-4 w-4" /> Download
                       </a>
                     ) : (
@@ -89,7 +98,7 @@ export default function ExportStatusPage() {
           </table>
         </div>
       </div>
-    </div>
+    </ClientShell>
   );
 }
 
@@ -97,7 +106,7 @@ function StatusBadge({ status }: { status?: string }) {
   const map: Record<string, string> = {
     pending: 'bg-amber-50 text-amber-700 border-amber-200',
     processing: 'bg-sky-50 text-sky-700 border-sky-200',
-    completed: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+    ready: 'bg-emerald-50 text-emerald-700 border-emerald-200',
     failed: 'bg-red-50 text-red-700 border-red-200',
   };
   const cls = map[status || ''] || 'bg-slate-100 text-slate-600 border-slate-200';
