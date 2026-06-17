@@ -2077,7 +2077,8 @@ describe('Invoice payment modal', () => {
     $('#pay_amount').val('500.00');
     $('#pay_method').val('bank_transfer');
 
-    $('#orabooks-payment-form').trigger('submit');
+    // Click the submit button (triggers delegated submit handler)
+    $('#orabooks-payment-form').find('[type="submit"]').first().trigger('click');
 
     const call = latestAjax('post');
     expect(call.data.action).toContain('orabooks_invoice_record_payment');
@@ -2107,7 +2108,10 @@ describe('Invoice payment modal', () => {
     }, 'orabooks_invoices_list');
 
     $('.orabooks-inv-pay').first().trigger('click');
+    expect($('#orabooks-payment-modal').css('display')).not.toBe('none');
+
     $('.orabooks-modal-cancel').first().trigger('click');
+    // With $.fx.off = true, fadeOut completes instantly
     expect($('#orabooks-payment-modal').css('display')).toBe('none');
   });
 });
