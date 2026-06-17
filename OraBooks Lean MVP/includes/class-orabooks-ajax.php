@@ -21,6 +21,8 @@ class OraBooks_Ajax {
             add_action('wp_ajax_orabooks_activate_org', [self::$instance, 'ajax_activate_org']);
             add_action('wp_ajax_orabooks_list_users', [self::$instance, 'ajax_list_users']);
             add_action('wp_ajax_orabooks_dashboard_stats', [self::$instance, 'ajax_dashboard_stats']);
+            add_action('wp_ajax_orabooks_frontend_context', [self::$instance, 'ajax_frontend_context']);
+            add_action('wp_ajax_orabooks_customer_dashboard', [self::$instance, 'ajax_customer_dashboard']);
             
             // Register settings
             add_action('admin_init', [self::$instance, 'register_settings']);
@@ -34,6 +36,156 @@ class OraBooks_Ajax {
         register_setting('orabooks_settings', 'orabooks_audit_retention_days');
         register_setting('orabooks_settings', 'orabooks_jwt_expiry');
         register_setting('orabooks_settings', 'orabooks_refresh_token_expiry');
+    }
+
+    private function get_current_orabooks_context() {
+        global $wpdb;
+
+        $user_id = get_current_user_id();
+        if (!$user_id) {
+            return new WP_Error('not_logged_in', 'Please log in to continue.');
+        }
+
+        $table_users = OraBooks_Database::table('users');
+        $table_user_org = OraBooks_Database::table('user_org');
+        $table_orgs = OraBooks_Database::table('organizations');
+
+        $user = $wpdb->get_row($wpdb->prepare(
+            "SELECT id, email, is_partner, is_email_verified, is_2fa_enabled, org_id
+             FROM {$table_users}
+             WHERE id = %d",
+            $user_id
+        ));
+
+        if (!$user) {
+            return new WP_Error('user_not_found', 'OraBooks user record was not found.');
+        }
+
+        $org_id = (int) $user->org_id;
+        if (!$org_id) {
+            $org_id = (int) $wpdb->get_var($wpdb->prepare(
+                "SELECT org_id FROM {$table_user_org} WHERE user_id = %d ORDER BY created_at ASC LIMIT 1",
+                $user_id
+            ));
+        }
+
+        $org = $org_id ? $wpdb->get_row($wpdb->prepare(
+            "SELECT id, name, tier, subdomain, region, status, organization_type, owner_id
+             FROM {$table_orgs}
+             WHERE id = %d",
+            $org_id
+        )) : null;
+
+        $role = $org ? orabooks_get_user_role($user_id, (int) $org->id) : null;
+        $permissions = [];
+        if ($role && class_exists('OraBooks_RBAC')) {
+            $permissions = OraBooks_RBAC::get_role_permissions($role);
+        }
+
+        return [
+            'user_id' => $user_id,
+            'user' => [
+                'id' => (int) $user->id,
+                'email' => $user->email,
+                'is_partner' => (bool) $user->is_partner,
+                'is_email_verified' => (bool) $user->is_email_verified,
+                'is_2fa_enabled' => (bool) $user->is_2fa_enabled,
+            ],
+            'organization' => $org ? [
+                'id' => (int) $org->id,
+                'name' => $org->name,
+                'tier' => $org->tier,
+                'subdomain' => $org->subdomain,
+                'region' => $org->region,
+                'status' => $org->status,
+                'organization_type' => $org->organization_type,
+                'owner_id' => (int) $org->owner_id,
+            ] : null,
+            'role' => $role,
+            'permissions' => $permissions,
+            'is_admin' => current_user_can('manage_options'),
+        ];
+    }
+
+    public function ajax_frontend_context() {
+        $context = $this->get_current_orabooks_context();
+        if (is_wp_error($context)) {
+            orabooks_json_error($context->get_error_message(), 401);
+        }
+
+        orabooks_json_success($context);
+    }
+
+    public function ajax_customer_dashboard() {
+        global $wpdb;
+
+        $context = $this->get_current_orabooks_context();
+        if (is_wp_error($context)) {
+            orabooks_json_error($context->get_error_message(), 401);
+        }
+
+        $org = $context['organization'];
+        $org_id = $org ? (int) $org['id'] : 0;
+        if (!$org_id) {
+            orabooks_json_error('Organization is not set up yet.', 400);
+        }
+
+        if (($org['organization_type'] ?? '') === 'partner') {
+            orabooks_json_error('Partner accounts cannot perform accounting operations.', 403);
+        }
+
+        if (!current_user_can('manage_options') && !OraBooks_RBAC::require_permission($context['user_id'], $org_id, 'view_reports')) {
+            orabooks_json_error('Permission denied', 403);
+        }
+
+        $stats = class_exists('OraBooks_Customers') ? OraBooks_Customers::get_customer_stats($org_id) : [];
+        $accounts_table = OraBooks_Database::table('accounts');
+        $journals_table = OraBooks_Database::table('journals');
+        $invoices_table = OraBooks_Database::table('invoices');
+
+        $accounts_summary = $wpdb->get_results($wpdb->prepare(
+            "SELECT type, COUNT(*) AS total
+             FROM {$accounts_table}
+             WHERE org_id = %d AND is_active = 1
+             GROUP BY type",
+            $org_id
+        ));
+
+        $journal_statuses = $wpdb->get_results($wpdb->prepare(
+            "SELECT status, COUNT(*) AS total
+             FROM {$journals_table}
+             WHERE org_id = %d
+             GROUP BY status",
+            $org_id
+        ));
+
+        $recent_journals = $wpdb->get_results($wpdb->prepare(
+            "SELECT id, journal_number, status, transaction_date, total_amount, source_type, created_at
+             FROM {$journals_table}
+             WHERE org_id = %d
+             ORDER BY created_at DESC
+             LIMIT 8",
+            $org_id
+        ));
+
+        $recent_invoices = $wpdb->get_results($wpdb->prepare(
+            "SELECT id, invoice_number, customer_id, invoice_date, due_date, total_amount, paid_amount, payment_status, workflow_status, currency
+             FROM {$invoices_table}
+             WHERE org_id = %d
+             ORDER BY created_at DESC
+             LIMIT 8",
+            $org_id
+        ));
+
+        orabooks_json_success([
+            'context' => $context,
+            'stats' => $stats,
+            'accounts_summary' => $accounts_summary ?: [],
+            'journal_statuses' => $journal_statuses ?: [],
+            'recent_journals' => $recent_journals ?: [],
+            'recent_invoices' => $recent_invoices ?: [],
+            'timestamp' => current_time('mysql'),
+        ]);
     }
     
     public function ajax_list_orgs() {
