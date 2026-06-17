@@ -905,6 +905,425 @@ jQuery(document).ready(function($) {
         orabooksLoadReactivationRequests();
     }
 
+    // =============================================
+    // SL-021: CUSTOMERS & INVOICES ADMIN
+    // =============================================
+
+    var custCurrentTab = 'customers';
+
+    // Init: load stats on page load
+    if ($('#orabooks-customers-tbody').length) {
+        $.get(orabooks_ajax.ajax_url, {
+            action: 'orabooks_customer_stats',
+            org_id: 0
+        }, function(r) {
+            if (r.success !== false) {
+                orabooksLoadCustomers();
+                orabooksLoadReports(r.data);
+            }
+        });
+    }
+
+    // Tab switching
+    $(document).on('click', '#orabooks-cust-tabs .nav-tab', function(e) {
+        e.preventDefault();
+        var tab = $(this).data('tab');
+        custCurrentTab = tab;
+
+        $('#orabooks-cust-tabs .nav-tab').removeClass('nav-tab-active');
+        $(this).addClass('nav-tab-active');
+
+        $('.orabooks-tab-content').hide();
+        $('#orabooks-tab-' + tab).fadeIn(200);
+
+        if (tab === 'invoices') orabooksLoadInvoices();
+        if (tab === 'reports') orabooksLoadReports();
+    });
+
+    // ==================== CUSTOMERS ====================
+    window.orabooksLoadCustomers = function() {
+        var $loading = $('#orabooks-cust-loading').show();
+        var $content = $('#orabooks-customers-content').hide();
+
+        $.get(orabooks_ajax.ajax_url, {
+            action: 'orabooks_customer_stats',
+            org_id: 0
+        }, function(r) {
+            $('#orabooks-cust-updated').text(new Date().toLocaleTimeString());
+            $loading.hide();
+            $content.fadeIn(200);
+
+            if (r.data) {
+                window.orabooksRenderCustomerStats(r.data);
+            }
+        });
+
+        orabooksLoadCustomerList();
+    };
+
+    window.orabooksRenderCustomerStats = function(stats) {
+        $('#orabooks-cust-total .orabooks-stat-number').text(stats.total_customers || 0);
+        $('#orabooks-cust-active .orabooks-stat-number').text(stats.active_customers || 0);
+        $('#orabooks-cust-inactive .orabooks-stat-number').text(stats.inactive_customers || 0);
+        $('#orabooks-cust-revenue .orabooks-stat-number').text('$' + (parseFloat(stats.total_revenue || 0)).toLocaleString('en-US', {minimumFractionDigits: 2}));
+    };
+
+    window.orabooksLoadCustomerList = function() {
+        var isActive = $('#orabooks-cust-filter-active').val();
+        var search = $('#orabooks-cust-search').val();
+
+        $.get(orabooks_ajax.ajax_url, {
+            action: 'orabooks_customers_list',
+            org_id: 0,
+            is_active: isActive || null,
+            search: search,
+            limit: 100,
+            offset: 0
+        }, function(r) {
+            var tbody = $('#orabooks-customers-tbody');
+            tbody.empty();
+
+            if (!r.data || !r.data.customers || r.data.customers.length === 0) {
+                tbody.html('<tr><td colspan="7">No customers found.</td></tr>');
+                return;
+            }
+
+            $.each(r.data.customers, function(i, c) {
+                var statusBadge = c.is_active == 1
+                    ? '<span class="orabooks-badge orabooks-badge-active">Active</span>'
+                    : '<span class="orabooks-badge orabooks-badge-inactive">Inactive</span>';
+
+                var totalPaid = parseFloat(c.total_paid || 0).toLocaleString('en-US', {style:'currency', currency:'USD'});
+
+                tbody.append('<tr>' +
+                    '<td>' + c.id + '</td>' +
+                    '<td><a href="#" class="orabooks-cust-view" data-id="' + c.id + '">' + $('<span>').text(c.email).html() + '</a></td>' +
+                    '<td>' + statusBadge + '</td>' +
+                    '<td>' + (c.invoice_count || 0) + '</td>' +
+                    '<td>' + totalPaid + '</td>' +
+                    '<td>' + (c.last_paid_invoice_date || '—') + '</td>' +
+                    '<td>' +
+                        '<button class="button button-small orabooks-cust-toggle-active" data-id="' + c.id + '" data-active="' + c.is_active + '">' +
+                            (c.is_active == 1 ? 'Deactivate' : 'Activate') +
+                        '</button> ' +
+                        '<button class="button button-small orabooks-cust-view" data-id="' + c.id + '">View</button>' +
+                    '</td>' +
+                    '</tr>');
+            });
+        });
+    };
+
+    // Filter customers
+    $(document).on('change', '#orabooks-cust-filter-active', function() { orabooksLoadCustomerList(); });
+    $(document).on('click', '#orabooks-cust-refresh-btn', function() { orabooksLoadCustomerList(); });
+
+    // Search on enter
+    $(document).on('keydown', '#orabooks-cust-search', function(e) {
+        if (e.keyCode === 13) orabooksLoadCustomerList();
+    });
+
+    // Toggle active status
+    $(document).on('click', '.orabooks-cust-toggle-active', function() {
+        var $btn = $(this);
+        var customerId = $btn.data('id');
+        var isActive = $btn.data('active') == 1 ? 0 : 1;
+
+        $.post(orabooks_ajax.ajax_url, {
+            action: 'orabooks_customer_update',
+            customer_id: customerId,
+            is_active: isActive
+        }, function(r) {
+            if (r.error !== false && r.error !== true) return;
+            orabooksLoadCustomerList();
+        });
+    });
+
+    // View customer detail
+    $(document).on('click', '.orabooks-cust-view', function(e) {
+        e.preventDefault();
+        var customerId = $(this).data('id');
+        window.orabooksShowCustomerDetail(customerId);
+    });
+
+    window.orabooksShowCustomerDetail = function(customerId) {
+        $.get(orabooks_ajax.ajax_url, {
+            action: 'orabooks_customer_get',
+            customer_id: customerId
+        }, function(r) {
+            if (r.error !== false && r.error !== true) return;
+            var c = r.data;
+            var html = '<table class="form-table">' +
+                '<tr><th>ID</th><td>' + c.id + '</td></tr>' +
+                '<tr><th>Email</th><td>' + $('<span>').text(c.email).html() + '</td></tr>' +
+                '<tr><th>Status</th><td>' + (c.is_active == 1 ? '<span class="orabooks-badge orabooks-badge-active">Active</span>' : '<span class="orabooks-badge orabooks-badge-inactive">Inactive</span>') + '</td></tr>' +
+                '<tr><th>Last Payment</th><td>' + (c.last_paid_invoice_date || '—') + '</td></tr>' +
+                '<tr><th>Lifetime Value</th><td>' + parseFloat(c.lifetime_value || 0).toLocaleString('en-US', {style:'currency', currency:'USD'}) + '</td></tr>' +
+                '<tr><th>Verified</th><td>' + (c.is_email_verified == 1 ? 'Yes' : 'No') + '</td></tr>' +
+                '<tr><th>Notes</th><td><textarea id="orabooks-cust-notes" rows="3" style="width:100%;">' + (c.notes || '') + '</textarea>' +
+                '<p><button class="button orabooks-cust-save-notes" data-id="' + c.id + '">Save Notes</button></p></td></tr>' +
+                '</table>';
+
+            $('#orabooks-cust-detail-title').text('Customer: ' + c.email);
+            $('#orabooks-cust-detail-body').html(html);
+            $('#orabooks-customer-detail').fadeIn(200);
+        });
+    };
+
+    $(document).on('click', '#orabooks-cust-detail-close', function() {
+        $('#orabooks-customer-detail').fadeOut(200);
+    });
+
+    $(document).on('click', '.orabooks-cust-save-notes', function() {
+        var customerId = $(this).data('id');
+        var notes = $('#orabooks-cust-notes').val();
+
+        $.post(orabooks_ajax.ajax_url, {
+            action: 'orabooks_customer_update',
+            customer_id: customerId,
+            notes: notes
+        }, function(r) {
+            alert('Notes saved.');
+        });
+    });
+
+    // ==================== INVOICES ====================
+    window.orabooksLoadInvoices = function() {
+        var status = $('#orabooks-inv-filter-status').val();
+        var workflow = $('#orabooks-inv-filter-workflow').val();
+        var from = $('#orabooks-inv-filter-from').val();
+        var to = $('#orabooks-inv-filter-to').val();
+
+        $.get(orabooks_ajax.ajax_url, {
+            action: 'orabooks_invoices_list',
+            org_id: 0,
+            payment_status: status,
+            workflow_status: workflow,
+            from_date: from,
+            to_date: to,
+            limit: 100,
+            offset: 0
+        }, function(r) {
+            var tbody = $('#orabooks-invoices-tbody');
+            tbody.empty();
+
+            if (!r.data || !r.data.invoices || r.data.invoices.length === 0) {
+                tbody.html('<tr><td colspan="8">No invoices found.</td></tr>');
+                return;
+            }
+
+            $.each(r.data.invoices, function(i, inv) {
+                var pct = inv.total_amount > 0 ? Math.round((inv.total_paid_amount / inv.total_amount) * 100) : 0;
+                var statusHtml = window.orabooksGetInvoiceStatusHtml(inv.payment_status);
+                var total = parseFloat(inv.total_amount || 0).toLocaleString('en-US', {style:'currency', currency:'USD'});
+                var paid = parseFloat(inv.total_paid_amount || 0).toLocaleString('en-US', {style:'currency', currency:'USD'});
+
+                tbody.append('<tr>' +
+                    '<td><a href="#" class="orabooks-inv-view" data-id="' + inv.id + '">' + $('<span>').text(inv.invoice_number).html() + '</a></td>' +
+                    '<td>' + $('<span>').text(inv.customer_email).html() + '</td>' +
+                    '<td>' + inv.transaction_date + '</td>' +
+                    '<td>' + inv.due_date + '</td>' +
+                    '<td>' + total + '</td>' +
+                    '<td>' + paid + ' <span class="orabooks-inv-progress">(' + pct + '%)</span></td>' +
+                    '<td>' + statusHtml + '</td>' +
+                    '<td>' +
+                        (inv.payment_status !== 'paid' && inv.payment_status !== 'cancelled'
+                            ? '<button class="button button-small orabooks-inv-pay" data-id="' + inv.id + '" data-number="' + $('<span>').text(inv.invoice_number).html() + '">Pay</button> '
+                            : '') +
+                        '<button class="button button-small orabooks-inv-view" data-id="' + inv.id + '">View</button>' +
+                    '</td>' +
+                    '</tr>');
+            });
+        });
+    };
+
+    window.orabooksGetInvoiceStatusHtml = function(status) {
+        var map = {
+            'unpaid': ['orabooks-badge-warning', 'Unpaid'],
+            'partial': ['orabooks-badge-info', 'Partial'],
+            'paid': ['orabooks-badge-active', 'Paid'],
+            'overdue': ['orabooks-badge-danger', 'Overdue'],
+            'cancelled': ['orabooks-badge-inactive', 'Cancelled']
+        };
+        var m = map[status] || ['orabooks-badge-warning', status];
+        return '<span class="orabooks-badge ' + m[0] + '">' + m[1] + '</span>';
+    };
+
+    // Invoice filters
+    $(document).on('click', '#orabooks-inv-filter-btn', function() { orabooksLoadInvoices(); });
+
+    // Create Invoice Modal
+    $(document).on('click', '#orabooks-inv-create-btn', function() {
+        $.get(orabooks_ajax.ajax_url, {
+            action: 'orabooks_customers_list',
+            org_id: 0,
+            limit: 500,
+            offset: 0
+        }, function(r) {
+            var sel = $('#inv_customer_id');
+            sel.empty().append('<option value="">Select customer...</option>');
+            if (r.data && r.data.customers) {
+                $.each(r.data.customers, function(i, c) {
+                    sel.append('<option value="' + c.id + '">' + $('<span>').text(c.email).html() + '</option>');
+                });
+            }
+        });
+
+        $('#inv_invoice_date').val(new Date().toISOString().slice(0, 10));
+        $('#orabooks-invoice-modal').fadeIn(200);
+    });
+
+    // Submit create invoice
+    $(document).on('submit', '#orabooks-invoice-form', function(e) {
+        e.preventDefault();
+        var data = $(this).serialize();
+        var orgId = $('#inv_org_id').val() || 0;
+        data += '&action=orabooks_invoice_create&org_id=' + orgId;
+
+        $.post(orabooks_ajax.ajax_url, data, function(r) {
+            if (r.error !== false && r.error !== true) return;
+
+            $('#orabooks-invoice-modal').fadeOut(200);
+            $('#orabooks-invoice-form')[0].reset();
+            orabooksLoadInvoices();
+            alert('Invoice created successfully!');
+        }).fail(function() {
+            alert('Failed to create invoice.');
+        });
+    });
+
+    // View Invoice Detail
+    $(document).on('click', '.orabooks-inv-view', function(e) {
+        e.preventDefault();
+        var invoiceId = $(this).data('id');
+        window.orabooksShowInvoiceDetail(invoiceId);
+    });
+
+    window.orabooksShowInvoiceDetail = function(invoiceId) {
+        $.get(orabooks_ajax.ajax_url, {
+            action: 'orabooks_invoice_get',
+            invoice_id: invoiceId
+        }, function(r) {
+            if (r.error !== false && r.error !== true) return;
+            var inv = r.data;
+            var total = parseFloat(inv.total_amount || 0).toLocaleString('en-US', {style:'currency', currency:'USD'});
+            var paid = parseFloat(inv.paid_amount || 0).toLocaleString('en-US', {style:'currency', currency:'USD'});
+
+            var paymentsHtml = '';
+            if (inv.payments && inv.payments.length > 0) {
+                paymentsHtml = '<h4>Payments</h4><table class="wp-list-table widefat fixed striped"><thead><tr><th>Date</th><th>Amount</th><th>Method</th><th>Reference</th></tr></thead><tbody>';
+                $.each(inv.payments, function(i, p) {
+                    paymentsHtml += '<tr><td>' + p.payment_date + '</td><td>' + parseFloat(p.amount).toLocaleString('en-US', {style:'currency', currency:'USD'}) + '</td><td>' + p.payment_method + '</td><td>' + (p.reference || '—') + '</td></tr>';
+                });
+                paymentsHtml += '</tbody></table>';
+            }
+
+            var html = '<table class="form-table">' +
+                '<tr><th>Invoice #</th><td><strong>' + $('<span>').text(inv.invoice_number).html() + '</strong></td></tr>' +
+                '<tr><th>Customer</th><td>' + $('<span>').text(inv.customer_email).html() + '</td></tr>' +
+                '<tr><th>Date</th><td>' + inv.transaction_date + '</td></tr>' +
+                '<tr><th>Due Date</th><td>' + inv.due_date + '</td></tr>' +
+                '<tr><th>Total</th><td><strong>' + total + '</strong></td></tr>' +
+                '<tr><th>Paid</th><td>' + paid + '</td></tr>' +
+                '<tr><th>Balance Due</th><td><strong>' + parseFloat(inv.total_amount - inv.paid_amount).toLocaleString('en-US', {style:'currency', currency:'USD'}) + '</strong></td></tr>' +
+                '<tr><th>Status</th><td>' + window.orabooksGetInvoiceStatusHtml(inv.payment_status) + '</td></tr>' +
+                '<tr><th>Description</th><td>' + (inv.description || '—') + '</td></tr>' +
+                '</table>' +
+                paymentsHtml;
+
+            $('#orabooks-inv-detail-title').text('Invoice: ' + inv.invoice_number);
+            $('#orabooks-inv-detail-body').html(html);
+            $('#orabooks-invoice-detail').fadeIn(200);
+        });
+    };
+
+    $(document).on('click', '#orabooks-inv-detail-close', function() {
+        $('#orabooks-invoice-detail').fadeOut(200);
+    });
+
+    // Record Payment Modal
+    $(document).on('click', '.orabooks-inv-pay', function() {
+        var invoiceId = $(this).data('id');
+        var invoiceNumber = $(this).data('number');
+        $('#pay_invoice_id').val(invoiceId);
+        $('#pay_invoice_number').text(invoiceNumber);
+        $('#pay_date').val(new Date().toISOString().slice(0, 10));
+        $('#orabooks-payment-modal').fadeIn(200);
+    });
+
+    // Submit payment
+    $(document).on('submit', '#orabooks-payment-form', function(e) {
+        e.preventDefault();
+        var data = $(this).serialize();
+        var orgId = $('#pay_org_id').val() || 0;
+        data += '&action=orabooks_invoice_record_payment&org_id=' + orgId;
+
+        $.post(orabooks_ajax.ajax_url, data, function(r) {
+            if (r.error !== false && r.error !== true) return;
+
+            $('#orabooks-payment-modal').fadeOut(200);
+            $('#orabooks-payment-form')[0].reset();
+            var invoiceId = $('#pay_invoice_id').val();
+            window.orabooksShowInvoiceDetail(invoiceId);
+            alert('Payment recorded!');
+        }).fail(function() {
+            alert('Failed to record payment.');
+        });
+    });
+
+    // ==================== MODAL HELPERS ====================
+    $(document).on('click', '.orabooks-modal-close, .orabooks-modal-cancel, .orabooks-modal-backdrop', function() {
+        $(this).closest('.orabooks-modal').fadeOut(200);
+    });
+
+    // ==================== REPORTS ====================
+    window.orabooksLoadReports = function(data) {
+        if (data) {
+            window.orabooksRenderReports(data);
+            return;
+        }
+        $.get(orabooks_ajax.ajax_url, {
+            action: 'orabooks_customer_stats',
+            org_id: 0
+        }, function(r) {
+            if (r.data) window.orabooksRenderReports(r.data);
+        });
+    };
+
+    window.orabooksRenderReports = function(stats) {
+        $('#orabooks-ar-revenue').text('$' + parseFloat(stats.total_revenue || 0).toLocaleString('en-US', {minimumFractionDigits: 2}));
+        $('#orabooks-ar-outstanding').text('$' + parseFloat(stats.outstanding_ar || 0).toLocaleString('en-US', {minimumFractionDigits: 2}));
+        $('#orabooks-ar-paid').text(stats.paid_invoices || 0);
+        $('#orabooks-ar-overdue').text(stats.overdue_invoices || 0);
+    };
+
+    // =============================================
+    // INVOICE DEEP LINK — auto-load invoice from ?invoice_id= query param
+    // =============================================
+    (function() {
+        var urlParams = new URLSearchParams(window.location.search);
+        var invoiceId = urlParams.get('invoice_id');
+
+        if (invoiceId && $('.orabooks-customers').length) {
+            custCurrentTab = 'invoices';
+            $('#orabooks-cust-tabs .nav-tab').removeClass('nav-tab-active');
+            $('#orabooks-cust-tabs .nav-tab[data-tab="invoices"]').addClass('nav-tab-active');
+            $('.orabooks-tab-content').hide();
+            $('#orabooks-tab-invoices').fadeIn(200);
+
+            orabooksLoadInvoices();
+            window.orabooksShowInvoiceDetail(parseInt(invoiceId, 10));
+
+            if (window.history.replaceState) {
+                urlParams.delete('invoice_id');
+                var newSearch = urlParams.toString();
+                var cleanUrl = window.location.protocol + '//' +
+                    window.location.host + window.location.pathname +
+                    (newSearch ? '?' + newSearch : '');
+                window.history.replaceState({}, document.title, cleanUrl);
+            }
+        }
+    })();
+
     // Auto-load tables on page load
     if ($('#orabooks-orgs-table-body').length) {
         orabooksLoadOrgs();
