@@ -313,6 +313,10 @@ function orabooks_cron_schedules($schedules) {
         'interval' => 300,
         'display'  => __('Every 5 Minutes', 'orabooks'),
     ];
+    $schedules['monthly'] = [
+        'interval' => 30 * DAY_IN_SECONDS,
+        'display'  => __('Monthly', 'orabooks'),
+    ];
     return $schedules;
 }
 
