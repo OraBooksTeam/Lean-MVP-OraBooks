@@ -379,6 +379,12 @@ if (!function_exists('get_current_user_id')) {
         return $GLOBALS['orabooks_test_current_user_id'] ?? 1;
     }
 }
+
+if (!function_exists('orabooks_get_current_user_id')) {
+    function orabooks_get_current_user_id() {
+        return get_current_user_id();
+    }
+}
 // Initialize the default
 $GLOBALS['orabooks_test_current_user_id'] = 1;
 
