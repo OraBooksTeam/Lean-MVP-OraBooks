@@ -1,0 +1,585 @@
+<?php
+/**
+ * OraBooks Inventory Lite (SL-034)
+ *
+ * Product/SKU management, weighted-average costing, stock movements,
+ * negative stock prevention, and COGS posting hooks.
+ */
+
+if (!defined('ABSPATH')) {
+    exit;
+}
+
+class OraBooks_Inventory {
+
+    private static $instance = null;
+
+    const INVENTORY_ASSET_ACCOUNT = '1200';
+    const COGS_ACCOUNT = '5100';
+
+    public static function init() {
+        if (self::$instance === null) {
+            self::$instance = new self();
+
+            add_action('wp_ajax_orabooks_inventory_products_list', [self::$instance, 'ajax_products_list']);
+            add_action('wp_ajax_orabooks_inventory_product_create', [self::$instance, 'ajax_product_create']);
+            add_action('wp_ajax_orabooks_inventory_product_adjust', [self::$instance, 'ajax_adjust_stock']);
+            add_action('wp_ajax_orabooks_inventory_movements', [self::$instance, 'ajax_movements']);
+
+            add_action('orabooks_vendor_bill_posted', [self::$instance, 'on_vendor_bill_posted'], 10, 2);
+            add_action('orabooks_invoice_posted', [self::$instance, 'on_invoice_posted'], 10, 2);
+        }
+        return self::$instance;
+    }
+
+    public static function get_create_table_sql() {
+        global $wpdb;
+
+        $charset_collate = $wpdb->get_charset_collate();
+        $table_products = OraBooks_Database::table('products');
+        $table_movements = OraBooks_Database::table('inventory_movements');
+
+        return [
+            "CREATE TABLE IF NOT EXISTS {$table_products} (
+                id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                org_id BIGINT UNSIGNED NOT NULL,
+                sku VARCHAR(100) NOT NULL,
+                name VARCHAR(255) NOT NULL,
+                unit VARCHAR(50) DEFAULT 'piece',
+                current_stock DECIMAL(20,4) NOT NULL DEFAULT 0,
+                average_cost DECIMAL(20,6) NOT NULL DEFAULT 0,
+                low_stock_threshold DECIMAL(20,4) NULL,
+                is_active TINYINT(1) DEFAULT 1,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                UNIQUE KEY uk_org_sku (org_id, sku),
+                INDEX idx_org_active (org_id, is_active),
+                INDEX idx_sku (sku)
+            ) {$charset_collate};",
+            "CREATE TABLE IF NOT EXISTS {$table_movements} (
+                id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                org_id BIGINT UNSIGNED NOT NULL,
+                product_id BIGINT UNSIGNED NOT NULL,
+                quantity_change DECIMAL(20,4) NOT NULL,
+                stock_before DECIMAL(20,4) NOT NULL,
+                stock_after DECIMAL(20,4) NOT NULL,
+                unit_cost DECIMAL(20,6) NOT NULL DEFAULT 0,
+                movement_value DECIMAL(20,2) NOT NULL DEFAULT 0,
+                reference_type ENUM('opening','purchase','sale','adjustment') NOT NULL,
+                reference_id BIGINT UNSIGNED NULL,
+                reason TEXT NULL,
+                note TEXT NULL,
+                journal_id BIGINT UNSIGNED NULL,
+                created_by BIGINT UNSIGNED NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (product_id) REFERENCES {$table_products}(id) ON DELETE CASCADE,
+                INDEX idx_org_product (org_id, product_id),
+                INDEX idx_reference (reference_type, reference_id),
+                INDEX idx_created (created_at)
+            ) {$charset_collate};",
+        ];
+    }
+
+    public static function create_product($org_id, $data) {
+        global $wpdb;
+
+        $org_id = intval($org_id);
+        $sku = strtoupper(sanitize_text_field($data['sku'] ?? ''));
+        $name = sanitize_text_field($data['name'] ?? '');
+        $initial_stock = round(floatval($data['initial_stock'] ?? 0), 4);
+        $initial_cost = round(floatval($data['initial_cost'] ?? 0), 6);
+
+        if ($org_id <= 0 || $sku === '' || $name === '') {
+            return new WP_Error('missing_field', 'Organization, SKU, and name are required');
+        }
+
+        if ($initial_stock < 0) {
+            return new WP_Error('invalid_stock', 'Initial stock cannot be negative');
+        }
+
+        if ($initial_cost < 0) {
+            return new WP_Error('invalid_cost', 'Initial cost cannot be negative');
+        }
+
+        $table = OraBooks_Database::table('products');
+        $existing = $wpdb->get_var($wpdb->prepare(
+            "SELECT id FROM {$table} WHERE org_id = %d AND sku = %s",
+            $org_id,
+            $sku
+        ));
+
+        if ($existing) {
+            return new WP_Error('duplicate_sku', 'SKU already exists for this organization');
+        }
+
+        $wpdb->insert(
+            $table,
+            [
+                'org_id' => $org_id,
+                'sku' => $sku,
+                'name' => $name,
+                'unit' => sanitize_text_field($data['unit'] ?? 'piece'),
+                'current_stock' => $initial_stock,
+                'average_cost' => $initial_cost,
+                'low_stock_threshold' => isset($data['low_stock_threshold']) ? floatval($data['low_stock_threshold']) : null,
+                'is_active' => 1,
+            ],
+            ['%d', '%s', '%s', '%s', '%f', '%f', '%f', '%d']
+        );
+
+        $product_id = intval($wpdb->insert_id);
+
+        if ($initial_stock > 0) {
+            self::insert_movement([
+                'org_id' => $org_id,
+                'product_id' => $product_id,
+                'quantity_change' => $initial_stock,
+                'stock_before' => 0,
+                'stock_after' => $initial_stock,
+                'unit_cost' => $initial_cost,
+                'movement_value' => round($initial_stock * $initial_cost, 2),
+                'reference_type' => 'opening',
+                'reference_id' => null,
+                'reason' => 'Opening balance',
+                'note' => null,
+                'journal_id' => null,
+                'created_by' => get_current_user_id(),
+            ]);
+        }
+
+        orabooks_log_event('inventory_product_created', "Product created: {$sku}", 'info', [
+            'product_id' => $product_id,
+            'sku' => $sku,
+            'initial_stock' => $initial_stock,
+        ], get_current_user_id(), $org_id);
+
+        return self::get_product($product_id, $org_id);
+    }
+
+    public static function get_product($product_id, $org_id) {
+        global $wpdb;
+
+        $table = OraBooks_Database::table('products');
+        return $wpdb->get_row($wpdb->prepare(
+            "SELECT * FROM {$table} WHERE id = %d AND org_id = %d",
+            intval($product_id),
+            intval($org_id)
+        ));
+    }
+
+    public static function get_product_by_sku($org_id, $sku) {
+        global $wpdb;
+
+        $table = OraBooks_Database::table('products');
+        return $wpdb->get_row($wpdb->prepare(
+            "SELECT * FROM {$table} WHERE org_id = %d AND sku = %s",
+            intval($org_id),
+            strtoupper(sanitize_text_field($sku))
+        ));
+    }
+
+    public static function get_products_list($org_id, $args = []) {
+        global $wpdb;
+
+        $table = OraBooks_Database::table('products');
+        $where = 'org_id = %d';
+        $params = [intval($org_id)];
+
+        if (!empty($args['search'])) {
+            $where .= ' AND (sku LIKE %s OR name LIKE %s)';
+            $search = '%' . $wpdb->esc_like($args['search']) . '%';
+            $params[] = $search;
+            $params[] = $search;
+        }
+
+        if (isset($args['is_active'])) {
+            $where .= ' AND is_active = %d';
+            $params[] = intval($args['is_active']);
+        }
+
+        $limit = intval($args['limit'] ?? 50);
+        $offset = intval($args['offset'] ?? 0);
+        $params[] = $limit;
+        $params[] = $offset;
+
+        $products = $wpdb->get_results($wpdb->prepare(
+            "SELECT * FROM {$table} WHERE {$where} ORDER BY sku ASC LIMIT %d OFFSET %d",
+            $params
+        ));
+
+        return [
+            'products' => $products,
+            'total' => count($products),
+            'page' => ($limit > 0) ? floor($offset / $limit) + 1 : 1,
+            'per_page' => $limit,
+        ];
+    }
+
+    public static function receive_purchase($org_id, $product_id, $quantity, $unit_cost, $reference_id = null, $user_id = null) {
+        global $wpdb;
+
+        $quantity = round(floatval($quantity), 4);
+        $unit_cost = round(floatval($unit_cost), 6);
+        $product = self::get_product($product_id, $org_id);
+
+        if (!$product) {
+            return new WP_Error('not_found', 'Product not found');
+        }
+
+        if ($quantity <= 0 || $unit_cost < 0) {
+            return new WP_Error('invalid_purchase', 'Purchase quantity must be positive and cost cannot be negative');
+        }
+
+        $stock_before = round(floatval($product->current_stock), 4);
+        $stock_after = round($stock_before + $quantity, 4);
+        $old_value = $stock_before * floatval($product->average_cost);
+        $purchase_value = $quantity * $unit_cost;
+        $new_average_cost = $stock_after > 0 ? round(($old_value + $purchase_value) / $stock_after, 6) : 0;
+
+        $wpdb->update(
+            OraBooks_Database::table('products'),
+            [
+                'current_stock' => $stock_after,
+                'average_cost' => $new_average_cost,
+            ],
+            ['id' => intval($product_id), 'org_id' => intval($org_id)],
+            ['%f', '%f'],
+            ['%d', '%d']
+        );
+
+        $movement_id = self::insert_movement([
+            'org_id' => intval($org_id),
+            'product_id' => intval($product_id),
+            'quantity_change' => $quantity,
+            'stock_before' => $stock_before,
+            'stock_after' => $stock_after,
+            'unit_cost' => $unit_cost,
+            'movement_value' => round($purchase_value, 2),
+            'reference_type' => 'purchase',
+            'reference_id' => $reference_id ? intval($reference_id) : null,
+            'reason' => 'Purchase receipt',
+            'note' => null,
+            'journal_id' => null,
+            'created_by' => $user_id ? intval($user_id) : get_current_user_id(),
+        ]);
+
+        orabooks_log_event('inventory_purchase_received', 'Inventory purchase received', 'info', [
+            'product_id' => intval($product_id),
+            'quantity' => $quantity,
+            'average_cost' => $new_average_cost,
+            'movement_id' => $movement_id,
+        ], $user_id ?: get_current_user_id(), intval($org_id));
+
+        return [
+            'product_id' => intval($product_id),
+            'movement_id' => $movement_id,
+            'stock_before' => $stock_before,
+            'stock_after' => $stock_after,
+            'average_cost' => $new_average_cost,
+        ];
+    }
+
+    public static function record_sale($org_id, $product_id, $quantity, $reference_id = null, $user_id = null) {
+        global $wpdb;
+
+        $quantity = round(floatval($quantity), 4);
+        $product = self::get_product($product_id, $org_id);
+
+        if (!$product) {
+            return new WP_Error('not_found', 'Product not found');
+        }
+
+        if ($quantity <= 0) {
+            return new WP_Error('invalid_sale', 'Sale quantity must be positive');
+        }
+
+        $stock_before = round(floatval($product->current_stock), 4);
+        if ($stock_before - $quantity < 0) {
+            return new WP_Error('negative_stock', 'Insufficient stock for this sale');
+        }
+
+        $stock_after = round($stock_before - $quantity, 4);
+        $average_cost = round(floatval($product->average_cost), 6);
+        $cogs_amount = round($quantity * $average_cost, 2);
+        $journal_id = self::create_cogs_journal($org_id, $product, $quantity, $cogs_amount, $reference_id, $user_id);
+
+        $wpdb->update(
+            OraBooks_Database::table('products'),
+            ['current_stock' => $stock_after],
+            ['id' => intval($product_id), 'org_id' => intval($org_id)],
+            ['%f'],
+            ['%d', '%d']
+        );
+
+        $movement_id = self::insert_movement([
+            'org_id' => intval($org_id),
+            'product_id' => intval($product_id),
+            'quantity_change' => -$quantity,
+            'stock_before' => $stock_before,
+            'stock_after' => $stock_after,
+            'unit_cost' => $average_cost,
+            'movement_value' => $cogs_amount,
+            'reference_type' => 'sale',
+            'reference_id' => $reference_id ? intval($reference_id) : null,
+            'reason' => 'Sale',
+            'note' => null,
+            'journal_id' => is_wp_error($journal_id) ? null : $journal_id,
+            'created_by' => $user_id ? intval($user_id) : get_current_user_id(),
+        ]);
+
+        orabooks_log_event('inventory_sale_recorded', 'Inventory sale recorded', 'info', [
+            'product_id' => intval($product_id),
+            'quantity' => $quantity,
+            'cogs_amount' => $cogs_amount,
+            'movement_id' => $movement_id,
+            'journal_id' => is_wp_error($journal_id) ? null : $journal_id,
+        ], $user_id ?: get_current_user_id(), intval($org_id));
+
+        return [
+            'product_id' => intval($product_id),
+            'movement_id' => $movement_id,
+            'stock_before' => $stock_before,
+            'stock_after' => $stock_after,
+            'cogs_amount' => $cogs_amount,
+            'journal_id' => is_wp_error($journal_id) ? null : $journal_id,
+        ];
+    }
+
+    public static function adjust_stock($org_id, $product_id, $quantity_change, $reason, $user_id = null, $note = '') {
+        global $wpdb;
+
+        $quantity_change = round(floatval($quantity_change), 4);
+        $reason = sanitize_text_field($reason);
+        $product = self::get_product($product_id, $org_id);
+
+        if (!$product) {
+            return new WP_Error('not_found', 'Product not found');
+        }
+
+        if ($quantity_change == 0.0) {
+            return new WP_Error('invalid_adjustment', 'Adjustment quantity cannot be zero');
+        }
+
+        if ($reason === '') {
+            return new WP_Error('reason_required', 'Adjustment reason is required');
+        }
+
+        $stock_before = round(floatval($product->current_stock), 4);
+        $stock_after = round($stock_before + $quantity_change, 4);
+        if ($stock_after < 0) {
+            return new WP_Error('negative_stock', 'Adjustment cannot make stock negative');
+        }
+
+        $unit_cost = round(floatval($product->average_cost), 6);
+        $movement_value = round(abs($quantity_change) * $unit_cost, 2);
+
+        $wpdb->update(
+            OraBooks_Database::table('products'),
+            ['current_stock' => $stock_after],
+            ['id' => intval($product_id), 'org_id' => intval($org_id)],
+            ['%f'],
+            ['%d', '%d']
+        );
+
+        $movement_id = self::insert_movement([
+            'org_id' => intval($org_id),
+            'product_id' => intval($product_id),
+            'quantity_change' => $quantity_change,
+            'stock_before' => $stock_before,
+            'stock_after' => $stock_after,
+            'unit_cost' => $unit_cost,
+            'movement_value' => $movement_value,
+            'reference_type' => 'adjustment',
+            'reference_id' => null,
+            'reason' => $reason,
+            'note' => sanitize_textarea_field($note),
+            'journal_id' => null,
+            'created_by' => $user_id ? intval($user_id) : get_current_user_id(),
+        ]);
+
+        orabooks_log_event('inventory_adjusted', 'Inventory stock adjusted', 'warning', [
+            'product_id' => intval($product_id),
+            'quantity_change' => $quantity_change,
+            'stock_before' => $stock_before,
+            'stock_after' => $stock_after,
+            'reason' => $reason,
+            'movement_id' => $movement_id,
+        ], $user_id ?: get_current_user_id(), intval($org_id));
+
+        return [
+            'product_id' => intval($product_id),
+            'movement_id' => $movement_id,
+            'stock_before' => $stock_before,
+            'stock_after' => $stock_after,
+        ];
+    }
+
+    public static function get_movements($org_id, $product_id, $args = []) {
+        global $wpdb;
+
+        $table = OraBooks_Database::table('inventory_movements');
+        $limit = intval($args['limit'] ?? 100);
+        $offset = intval($args['offset'] ?? 0);
+
+        return $wpdb->get_results($wpdb->prepare(
+            "SELECT * FROM {$table}
+             WHERE org_id = %d AND product_id = %d
+             ORDER BY created_at DESC, id DESC
+             LIMIT %d OFFSET %d",
+            intval($org_id),
+            intval($product_id),
+            $limit,
+            $offset
+        ));
+    }
+
+    public function on_vendor_bill_posted($bill_id, $payload = []) {
+        $org_id = intval($payload['org_id'] ?? 0);
+        $items = $payload['inventory_items'] ?? [];
+        foreach ($items as $item) {
+            $product_id = intval($item['product_id'] ?? 0);
+            if ($org_id && $product_id) {
+                self::receive_purchase(
+                    $org_id,
+                    $product_id,
+                    floatval($item['quantity'] ?? 0),
+                    floatval($item['unit_cost'] ?? 0),
+                    intval($bill_id)
+                );
+            }
+        }
+    }
+
+    public function on_invoice_posted($invoice_id, $payload = []) {
+        $org_id = intval($payload['org_id'] ?? 0);
+        $items = $payload['inventory_items'] ?? [];
+        foreach ($items as $item) {
+            $product_id = intval($item['product_id'] ?? 0);
+            if ($org_id && $product_id) {
+                self::record_sale(
+                    $org_id,
+                    $product_id,
+                    floatval($item['quantity'] ?? 0),
+                    intval($invoice_id)
+                );
+            }
+        }
+    }
+
+    private static function insert_movement($data) {
+        global $wpdb;
+
+        $wpdb->insert(
+            OraBooks_Database::table('inventory_movements'),
+            [
+                'org_id' => intval($data['org_id']),
+                'product_id' => intval($data['product_id']),
+                'quantity_change' => floatval($data['quantity_change']),
+                'stock_before' => floatval($data['stock_before']),
+                'stock_after' => floatval($data['stock_after']),
+                'unit_cost' => floatval($data['unit_cost']),
+                'movement_value' => floatval($data['movement_value']),
+                'reference_type' => sanitize_text_field($data['reference_type']),
+                'reference_id' => isset($data['reference_id']) ? intval($data['reference_id']) : null,
+                'reason' => isset($data['reason']) ? sanitize_text_field($data['reason']) : null,
+                'note' => isset($data['note']) ? sanitize_textarea_field($data['note']) : null,
+                'journal_id' => isset($data['journal_id']) ? intval($data['journal_id']) : null,
+                'created_by' => isset($data['created_by']) ? intval($data['created_by']) : null,
+            ],
+            ['%d', '%d', '%f', '%f', '%f', '%f', '%f', '%s', '%d', '%s', '%s', '%d', '%d']
+        );
+
+        return intval($wpdb->insert_id);
+    }
+
+    private static function create_cogs_journal($org_id, $product, $quantity, $cogs_amount, $reference_id, $user_id) {
+        if (!class_exists('OraBooks_Posting') || $cogs_amount <= 0) {
+            return null;
+        }
+
+        $journal_id = OraBooks_Posting::create_journal([
+            'org_id' => intval($org_id),
+            'transaction_date' => current_time('Y-m-d'),
+            'source_type' => 'inventory_sale',
+            'source_id' => $reference_id ? intval($reference_id) : null,
+            'metadata' => [
+                'product_id' => intval($product->id),
+                'sku' => $product->sku,
+                'quantity' => floatval($quantity),
+            ],
+        ], $user_id ?: get_current_user_id());
+
+        if (is_wp_error($journal_id)) {
+            return $journal_id;
+        }
+
+        OraBooks_Posting::add_lines($journal_id, [
+            [
+                'account_code' => self::COGS_ACCOUNT,
+                'debit' => $cogs_amount,
+                'credit' => 0,
+                'description' => 'COGS for SKU ' . $product->sku,
+            ],
+            [
+                'account_code' => self::INVENTORY_ASSET_ACCOUNT,
+                'debit' => 0,
+                'credit' => $cogs_amount,
+                'description' => 'Inventory reduction for SKU ' . $product->sku,
+            ],
+        ]);
+
+        return $journal_id;
+    }
+
+    public function ajax_products_list() {
+        check_ajax_referer('orabooks_nonce', 'nonce');
+        $org_id = intval($_GET['org_id'] ?? 0);
+        if (!OraBooks_RBAC::require_permission(get_current_user_id(), $org_id, 'view_reports')) {
+            orabooks_json_error('Permission denied', 403);
+        }
+        orabooks_json_success(self::get_products_list($org_id, $_GET));
+    }
+
+    public function ajax_product_create() {
+        check_ajax_referer('orabooks_nonce', 'nonce');
+        $org_id = intval($_POST['org_id'] ?? 0);
+        if (!OraBooks_RBAC::require_permission(get_current_user_id(), $org_id, 'manage_org_settings')) {
+            orabooks_json_error('Permission denied', 403);
+        }
+        $result = self::create_product($org_id, $_POST);
+        if (is_wp_error($result)) {
+            orabooks_json_error($result->get_error_message(), 400);
+        }
+        orabooks_json_success(['product' => $result]);
+    }
+
+    public function ajax_adjust_stock() {
+        check_ajax_referer('orabooks_nonce', 'nonce');
+        $org_id = intval($_POST['org_id'] ?? 0);
+        if (!OraBooks_RBAC::require_permission(get_current_user_id(), $org_id, 'manage_org_settings')) {
+            orabooks_json_error('Permission denied', 403);
+        }
+        $result = self::adjust_stock(
+            $org_id,
+            intval($_POST['product_id'] ?? 0),
+            floatval($_POST['quantity_change'] ?? 0),
+            sanitize_text_field($_POST['reason'] ?? ''),
+            get_current_user_id(),
+            sanitize_textarea_field($_POST['note'] ?? '')
+        );
+        if (is_wp_error($result)) {
+            orabooks_json_error($result->get_error_message(), 400);
+        }
+        orabooks_json_success($result);
+    }
+
+    public function ajax_movements() {
+        check_ajax_referer('orabooks_nonce', 'nonce');
+        $org_id = intval($_GET['org_id'] ?? 0);
+        if (!OraBooks_RBAC::require_permission(get_current_user_id(), $org_id, 'view_reports')) {
+            orabooks_json_error('Permission denied', 403);
+        }
+        $movements = self::get_movements($org_id, intval($_GET['product_id'] ?? 0), $_GET);
+        orabooks_json_success(['movements' => $movements]);
+    }
+}
