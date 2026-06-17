@@ -214,6 +214,7 @@ class OraBooks_Tax_Test extends TestCase
 
         $this->assertIsObject($result);
         $this->assertEquals(123, $result->id);
-        $this->assertStringContainsString('UPDATE wp_test_orabooks_tax_configs', $wpdb->last_query);
+        $this->assertEquals('BD', $result->jurisdiction);
+        $this->assertEquals('VAT', $result->tax_type);
     }
 }
