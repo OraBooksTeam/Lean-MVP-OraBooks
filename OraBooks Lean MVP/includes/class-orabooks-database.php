@@ -127,6 +127,7 @@ class OraBooks_Database {
             device_metadata TEXT NULL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (user_id) REFERENCES {$table_users}(id) ON DELETE CASCADE,
+            FOREIGN KEY (org_id) REFERENCES {$table_organizations}(id) ON DELETE SET NULL,
             INDEX idx_user (user_id),
             INDEX idx_token (token_hash)
         ) {$charset_collate};";
@@ -157,6 +158,7 @@ class OraBooks_Database {
             deactivation_reminder_sent_at TIMESTAMP NULL,
             low_activity_reminder_sent_at TIMESTAMP NULL,
             FOREIGN KEY (org_id) REFERENCES {$table_organizations}(id) ON DELETE CASCADE,
+            FOREIGN KEY (user_id) REFERENCES {$table_users}(id) ON DELETE CASCADE,
             INDEX idx_code (partner_code_normalized),
             INDEX idx_user (user_id),
             INDEX idx_inactive (status, last_attribution_at)
@@ -193,7 +195,9 @@ class OraBooks_Database {
             blocked_at TIMESTAMP NULL,
             blocked_reason TEXT NULL,
             idempotency_key VARCHAR(128) UNIQUE,
+            FOREIGN KEY (org_id) REFERENCES {$table_organizations}(id) ON DELETE SET NULL,
             FOREIGN KEY (partner_user_id) REFERENCES {$table_users}(id) ON DELETE CASCADE,
+            FOREIGN KEY (customer_user_id) REFERENCES {$table_users}(id) ON DELETE CASCADE,
             INDEX idx_partner (partner_user_id),
             INDEX idx_customer (customer_user_id),
             INDEX idx_status (status)
@@ -366,6 +370,7 @@ class OraBooks_Database {
             balance DECIMAL(20,2) NOT NULL DEFAULT 0,
             last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
             PRIMARY KEY (org_id, account_id),
+            FOREIGN KEY (org_id) REFERENCES {$table_organizations}(id) ON DELETE CASCADE,
             FOREIGN KEY (account_id) REFERENCES {$table_accounts}(id) ON DELETE CASCADE
         ) {$charset_collate};";
         dbDelta($sql);
@@ -446,6 +451,8 @@ class OraBooks_Database {
             posting_batch_id BIGINT UNSIGNED NOT NULL,
             posted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (org_id) REFERENCES {$table_organizations}(id) ON DELETE CASCADE,
+            FOREIGN KEY (journal_id) REFERENCES {$table_journals}(id) ON DELETE CASCADE,
+            FOREIGN KEY (account_id) REFERENCES {$table_accounts}(id),
             INDEX idx_org_account_date (org_id, account_id, posted_at)
         ) {$charset_collate};";
         dbDelta($sql);
@@ -460,6 +467,7 @@ class OraBooks_Database {
             year INT NOT NULL,
             batch_number INT NOT NULL,
             started_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (org_id) REFERENCES {$table_organizations}(id) ON DELETE CASCADE,
             UNIQUE KEY uk_org_year_batch (org_id, year, batch_number)
         ) {$charset_collate};";
         dbDelta($sql);
@@ -473,7 +481,9 @@ class OraBooks_Database {
             snapshot_date DATE NOT NULL,
             account_id BIGINT UNSIGNED NOT NULL,
             balance DECIMAL(20,2) NOT NULL,
-            PRIMARY KEY (org_id, snapshot_date, account_id)
+            PRIMARY KEY (org_id, snapshot_date, account_id),
+            FOREIGN KEY (org_id) REFERENCES {$table_organizations}(id) ON DELETE CASCADE,
+            FOREIGN KEY (account_id) REFERENCES {$table_accounts}(id) ON DELETE CASCADE
         ) {$charset_collate};";
         dbDelta($sql);
         
@@ -588,7 +598,8 @@ class OraBooks_Database {
             maker_checker_required TINYINT(1) DEFAULT 1,
             mfa_amount_threshold DECIMAL(20,2) DEFAULT 10000.00,
             escalation_after_hours INT DEFAULT 48,
-            escalation_role ENUM('admin','owner') DEFAULT 'admin'
+            escalation_role ENUM('admin','owner') DEFAULT 'admin',
+            FOREIGN KEY (org_id) REFERENCES {$table_organizations}(id) ON DELETE CASCADE
         ) {$charset_collate};";
         dbDelta($sql);
         
