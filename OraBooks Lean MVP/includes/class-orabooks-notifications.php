@@ -38,6 +38,10 @@ class OraBooks_Notifications {
             add_action('orabooks_export_ready', [self::$instance, 'on_export_ready'], 10, 2);
             add_action('orabooks_export_failed', [self::$instance, 'on_export_failed'], 10, 2);
 
+            // Operational / projection alerts (SL-075, SL-074 integration)
+            add_action('orabooks_inventory_low_stock_alert', [self::$instance, 'on_inventory_low_stock_alert'], 10, 2);
+            add_action('orabooks_projection_integrity_failed', [self::$instance, 'on_projection_integrity_failed'], 10, 2);
+
             // Listen for invoice events (SL-021 integration)
             add_action('orabooks_invoice_created', [self::$instance, 'on_invoice_created'], 10, 2);
             add_action('orabooks_payment_recorded', [self::$instance, 'on_payment_recorded'], 10, 2);
@@ -1769,6 +1773,58 @@ class OraBooks_Notifications {
                 'view_url'       => self::get_admin_invoices_url(),
             ]);
         }
+    }
+
+    /**
+     * Handle inventory_low_stock_alert from SL-075.
+     * Notifies org admins about low stock products.
+     */
+    public function on_inventory_low_stock_alert($product_id, $data) {
+        $org_id = !empty($data['org_id']) ? (int) $data['org_id'] : 0;
+        $sku = !empty($data['sku']) ? $data['sku'] : '';
+        $product_name = !empty($data['product_name']) ? $data['product_name'] : $sku;
+
+        if (!$org_id) {
+            return;
+        }
+
+        self::notify_org_admins($org_id, 'inventory_low_stock_alert', [
+            'title'          => sprintf(__('Low Stock: %s', 'orabooks'), $product_name),
+            'message'        => sprintf(
+                __('Product %s (%s) is below reorder level and requires restocking.', 'orabooks'),
+                $product_name,
+                $sku ?: ('#' . (int) $product_id)
+            ),
+            'priority'       => $data['priority'] ?? 'high',
+            'correlation_id' => 'low_stock_' . $org_id . '_' . (int) $product_id,
+            'product_id'     => (int) $product_id,
+            'sku'            => $sku,
+            'product_name'   => $product_name,
+        ]);
+    }
+
+    /**
+     * Handle projection_integrity_failed from SL-074.
+     * Notifies org admins when ledger projections drift from source.
+     */
+    public function on_projection_integrity_failed($org_id, $data) {
+        $org_id = (int) ($data['org_id'] ?? $org_id);
+        $difference = !empty($data['difference']) ? (float) $data['difference'] : 0;
+
+        if (!$org_id) {
+            return;
+        }
+
+        self::notify_org_admins($org_id, 'projection_integrity_failed', [
+            'title'          => __('Projection Integrity Alert', 'orabooks'),
+            'message'        => sprintf(
+                __('Financial projection integrity check failed with a difference of $%s. Review ledger projections.', 'orabooks'),
+                number_format(abs($difference), 2)
+            ),
+            'priority'       => $data['priority'] ?? 'critical',
+            'correlation_id' => 'projection_integrity_' . $org_id . '_' . current_time('Ymd'),
+            'difference'     => $difference,
+        ]);
     }
 
     // ================================================================

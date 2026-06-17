@@ -173,6 +173,26 @@ function orabooks_init() {
         ));
         return $partner ? [$partner] : null;
     });
+    // SL-074 financial report export providers
+    foreach (['profit_loss', 'balance_sheet', 'cash_flow', 'trial_balance', 'changes_equity'] as $financial_type) {
+        OraBooks_Exports::register_report_provider('financial_' . $financial_type, function($params) use ($financial_type) {
+            if (!class_exists('OraBooks_Financial_Reports')) {
+                return null;
+            }
+            $params['report_type'] = $financial_type;
+            return OraBooks_Financial_Reports::export_report_data($params);
+        });
+    }
+    // SL-075 operational report export providers
+    foreach (['ar_aging', 'ap_aging', 'inventory_status', 'bank_reconciliation', 'sales_summary', 'purchase_summary'] as $operational_type) {
+        OraBooks_Exports::register_report_provider('operational_' . $operational_type, function($params) use ($operational_type) {
+            if (!class_exists('OraBooks_Operational_Reports')) {
+                return null;
+            }
+            $params['report_type'] = $operational_type;
+            return OraBooks_Operational_Reports::export_report_data($params);
+        });
+    }
     // Register the generate_export handler with SL-303 async queue
     OraBooks_AsyncQueue::register_handler('generate_export', ['OraBooks_Exports', 'generate_export_job']);
 }

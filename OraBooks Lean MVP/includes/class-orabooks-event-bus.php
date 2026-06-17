@@ -101,6 +101,30 @@ class OraBooks_EventBus {
             }
             return true;
         });
+
+        // export_ready / export_failed → SL-250 notification
+        self::register_consumer('export_ready', function($event, $payload) {
+            do_action('orabooks_export_ready', $event->aggregate_id, $payload);
+            return true;
+        });
+
+        self::register_consumer('export_failed', function($event, $payload) {
+            do_action('orabooks_export_failed', $event->aggregate_id, $payload);
+            return true;
+        });
+
+        // inventory_low_stock_alert → SL-250 notification (SL-075)
+        self::register_consumer('inventory_low_stock_alert', function($event, $payload) {
+            do_action('orabooks_inventory_low_stock_alert', $event->aggregate_id, $payload);
+            return true;
+        });
+
+        // projection_integrity_failed → SL-250 notification (SL-074)
+        self::register_consumer('projection_integrity_failed', function($event, $payload) {
+            $org_id = intval($payload['org_id'] ?? $event->aggregate_id);
+            do_action('orabooks_projection_integrity_failed', $org_id, $payload);
+            return true;
+        });
     }
 
     /**
