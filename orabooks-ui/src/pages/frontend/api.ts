@@ -41,6 +41,11 @@ function normalizeResponse<T = any>(json: any): ApiResult<T> {
     return { data: json.data as T };
   }
 
+  if (json?.error === false && Object.prototype.hasOwnProperty.call(json, 'data')) {
+    persistTokens(json.data);
+    return { data: json.data as T };
+  }
+
   if (json?.error) {
     return { error: extractError(json.error, 'OraBooks request failed.') };
   }
