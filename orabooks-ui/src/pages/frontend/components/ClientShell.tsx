@@ -55,23 +55,23 @@ export default function ClientShell({
   const nav = isPartner ? partnerNav : customerNav;
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <aside className="fixed inset-y-0 left-0 hidden w-72 border-r border-border bg-white/90 p-5 shadow-sm backdrop-blur lg:block">
+    <div className="min-h-screen brand-page-bg">
+      <aside className="fixed inset-y-0 left-0 hidden w-72 bg-primary p-5 text-white shadow-xl shadow-primary/20 lg:block">
         <div className="flex items-center gap-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary text-base font-black text-white">
+          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-base font-black text-primary">
             OB
           </div>
           <div>
-            <p className="text-sm font-bold text-ink">OraBooks</p>
-            <p className="text-xs text-slate-500">{isPartner ? 'Partner Account' : 'Client Workspace'}</p>
+            <p className="text-sm font-bold text-white">OraBooks</p>
+            <p className="text-xs text-white/70">{isPartner ? 'Partner Account' : 'Client Workspace'}</p>
           </div>
         </div>
 
-        <div className="mt-6 rounded-2xl border border-border bg-slate-50 p-4">
-          <p className="truncate text-sm font-semibold text-ink">{organization?.name || 'Workspace setup'}</p>
+        <div className="mt-6 rounded-2xl border border-white/15 bg-white/10 p-4">
+          <p className="truncate text-sm font-semibold text-white">{organization?.name || 'Workspace setup'}</p>
           <div className="mt-2 flex flex-wrap gap-2">
-            {organization?.tier && <span className="badge bg-primary/10 text-primary">{organization.tier}</span>}
-            {organization?.status && <span className="badge bg-slate-200 text-slate-700">{organization.status}</span>}
+            {organization?.tier && <span className="badge bg-white text-primary">{organization.tier}</span>}
+            {organization?.status && <span className="badge bg-accent text-white">{organization.status}</span>}
           </div>
         </div>
 
@@ -85,7 +85,7 @@ export default function ClientShell({
                 to={item.href}
                 className={cn(
                   'flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition',
-                  active ? 'bg-primary text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100 hover:text-ink'
+                  active ? 'bg-accent text-white shadow-sm' : 'text-white/75 hover:bg-white/10 hover:text-white'
                 )}
               >
                 <Icon className="h-4 w-4" />
@@ -97,7 +97,7 @@ export default function ClientShell({
 
         <a
           href="/wp-login.php?action=logout"
-          className="absolute bottom-5 left-5 right-5 flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-slate-500 hover:bg-slate-100 hover:text-ink"
+          className="absolute bottom-5 left-5 right-5 flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-white/70 hover:bg-white/10 hover:text-white"
         >
           <LogOut className="h-4 w-4" />
           Log out
@@ -106,7 +106,9 @@ export default function ClientShell({
 
       <main className="lg:pl-72">
         <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-          <header className="mb-6 flex flex-col gap-3 rounded-3xl border border-border bg-white p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+          <header className="mb-6 overflow-hidden rounded-3xl border border-border bg-white shadow-sm shadow-primary/5">
+            <div className="brand-accent-bar h-1.5" />
+            <div className="flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between">
             <div>
               {eyebrow && <p className="text-xs font-bold uppercase tracking-wide text-primary">{eyebrow}</p>}
               <h1 className="mt-1 text-2xl font-bold text-ink">{title}</h1>
@@ -116,6 +118,7 @@ export default function ClientShell({
                 {organization.organization_type === 'partner' ? 'Partner Account (Commission)' : 'Customer Account'}
               </span>
             )}
+            </div>
           </header>
           {children}
         </div>
