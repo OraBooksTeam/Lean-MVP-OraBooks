@@ -23,6 +23,9 @@
         <testsuite name="OraBooks SL-034 Inventory Tests">
             <file>OraBooks_Inventory_Test.php</file>
         </testsuite>
+        <testsuite name="OraBooks SL-031 Bank Reconciliation Tests">
+            <file>OraBooks_Bank_Reconciliation_Test.php</file>
+        </testsuite>
         <testsuite name="OraBooks SL-081 Manual Tax Tests">
             <file>OraBooks_Manual_Tax_Test.php</file>
         </testsuite>
