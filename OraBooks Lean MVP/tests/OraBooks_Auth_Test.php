@@ -152,6 +152,64 @@ class OraBooks_Auth_Test extends TestCase
         $this->assertEquals(1, $stored);
     }
 
+    #[Test]
+    public function test_initiate_google_oauth_with_partner_state_data()
+    {
+        $state_data = [
+            'user_type'         => 'partner',
+            'accept_terms'      => true,
+            'partner_type'      => 'agency',
+            'organization_name' => 'My Agency',
+            'terms_version'     => '2.0',
+        ];
+
+        $url = OraBooks_Auth::initiate_google_oauth($state_data);
+
+        $parts = parse_url($url);
+        parse_str($parts['query'], $params);
+
+        // Verify state_data parameter is present in the URL
+        $this->assertArrayHasKey('state_data', $params);
+        $this->assertNotEmpty($params['state_data']);
+
+        // Decode and verify the encoded state_data matches what we passed
+        $decoded = json_decode(base64_decode(strtr($params['state_data'], '-_', '+/')), true);
+        $this->assertIsArray($decoded);
+        $this->assertEquals('partner', $decoded['user_type']);
+        $this->assertTrue($decoded['accept_terms']);
+        $this->assertEquals('agency', $decoded['partner_type']);
+        $this->assertEquals('My Agency', $decoded['organization_name']);
+        $this->assertEquals('2.0', $decoded['terms_version']);
+
+        // Verify the state_data transient was stored
+        $state_hash = hash('sha256', $params['state']);
+        $stored = get_transient('orabooks_oidc_state_data_' . $state_hash);
+        $this->assertNotEmpty($stored, 'State data transient should be stored');
+
+        // Verify stored transient decodes correctly
+        $stored_decoded = json_decode(base64_decode(strtr($stored, '-_', '+/')), true);
+        $this->assertEquals('partner', $stored_decoded['user_type']);
+        $this->assertEquals('agency', $stored_decoded['partner_type']);
+    }
+
+    #[Test]
+    public function test_initiate_google_oauth_sanitizes_invalid_partner_type()
+    {
+        $state_data = [
+            'user_type'    => 'partner',
+            'partner_type' => 'nonexistent_type',
+        ];
+
+        $url = OraBooks_Auth::initiate_google_oauth($state_data);
+
+        $parts = parse_url($url);
+        parse_str($parts['query'], $params);
+
+        $this->assertArrayHasKey('state_data', $params);
+        $decoded = json_decode(base64_decode(strtr($params['state_data'], '-_', '+/')), true);
+        $this->assertEquals('individual', $decoded['partner_type'], 'Invalid partner_type should default to individual');
+    }
+
     // ================================================================
     // handle_google_callback()
     // ================================================================
@@ -1719,6 +1777,53 @@ class OraBooks_Auth_Test extends TestCase
     // ================================================================
     // PARTNER LOGIN OIDC — partner via OIDC
     // ================================================================
+
+    #[Test]
+    public function test_handle_google_callback_existing_partner_first_login()
+    {
+        $this->storeValidOidcState('test-state-existing-fl');
+        $this->storeOidcStateData('test-state-existing-fl', [
+            'user_type'      => 'partner',
+            'accept_terms'   => true,
+            'partner_type'   => 'accountant',
+            'organization_name' => 'My Accounting Firm',
+            'terms_version'  => '1.0',
+        ]);
+
+        global $wpdb;
+        $wpdb->test_get_row_callback = function ($query) {
+            return (object)[
+                'id'                => 30,
+                'email'             => 'existing-partner@example.com',
+                'password_hash'     => '',
+                'is_active'         => 1,
+                'is_email_verified' => 1,
+                'is_2fa_enabled'    => 0,
+                'org_id'            => null,   // No org yet — first login
+                'is_partner'        => 1,      // Already a partner user
+                'auth_provider'     => 'google', // Already Google-linked
+            ];
+        };
+
+        $result = OraBooks_Auth::handle_google_callback('auth-code-fl-partner', 'test-state-existing-fl');
+
+        // Should not be an error
+        $this->assertNotInstanceOf(WP_Error::class, $result);
+
+        // Should have the partner first login response shape
+        $this->assertArrayHasKey('token', $result);
+        $this->assertArrayHasKey('refresh_token', $result);
+        $this->assertEquals(30, $result['user_id']);
+        $this->assertArrayHasKey('org_id', $result);
+        $this->assertNotNull($result['org_id']);
+        $this->assertEquals('owner', $result['role']);
+        $this->assertEquals(1, $result['is_partner']);
+        $this->assertEquals('/partner/onboarding', $result['redirect_to']);
+
+        // Verify session was populated from OIDC state data
+        $this->assertEquals('accountant', $_SESSION['orabooks_partner_type']);
+        $this->assertEquals('My Accounting Firm', $_SESSION['orabooks_partner_org_name']);
+    }
 
     #[Test]
     public function test_handle_google_callback_existing_partner_2fa()
