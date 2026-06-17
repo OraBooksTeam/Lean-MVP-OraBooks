@@ -24,16 +24,18 @@ export default function PartnerOnboardingPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+      <div className="brand-page-bg flex min-h-screen items-center justify-center">
         <div className="glass-panel p-6 text-sm text-slate-500">Loading…</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 p-6">
+    <div className="brand-page-bg min-h-screen p-6">
       <div className="mx-auto max-w-2xl space-y-6">
-        <div className="glass-panel p-8">
+        <div className="glass-panel overflow-hidden">
+          <div className="brand-accent-bar h-1.5" />
+          <div className="p-8">
           <h2 className="text-2xl font-bold text-ink">Partner Onboarding</h2>
           <div className="mt-6 space-y-4">
             <div>
@@ -64,6 +66,7 @@ export default function PartnerOnboardingPage() {
             </div>
 
             <Button onClick={() => (window.location.href = '/dashboard')} className="w-full">Continue to Dashboard</Button>
+          </div>
           </div>
         </div>
       </div>
