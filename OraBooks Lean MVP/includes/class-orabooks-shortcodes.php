@@ -98,9 +98,19 @@ class OraBooks_Shortcodes {
         <div class="orabooks-form-container">
             <h2><?php esc_html_e('Reset Password', 'orabooks'); ?></h2>
             <?php if (empty($token)) : ?>
-                <div class="orabooks-message error" style="display:block;">
-                    <?php esc_html_e('Invalid or missing reset token.', 'orabooks'); ?>
-                </div>
+                <p><?php esc_html_e('Enter your email address and we will send you a password reset link.', 'orabooks'); ?></p>
+                <form id="orabooks-forgot-password-form" class="orabooks-form">
+                    <div class="orabooks-form-group">
+                        <label for="forgot-email"><?php esc_html_e('Email', 'orabooks'); ?></label>
+                        <input type="email" id="forgot-email" required autocomplete="email">
+                    </div>
+                    <div class="orabooks-form-actions">
+                        <button type="submit" class="orabooks-btn orabooks-btn-primary">
+                            <?php esc_html_e('Send Reset Link', 'orabooks'); ?>
+                        </button>
+                    </div>
+                </form>
+                <div id="orabooks-forgot-password-message" class="orabooks-message"></div>
             <?php else : ?>
                 <form id="orabooks-reset-password-form" class="orabooks-form">
                     <input type="hidden" id="reset-token" value="<?php echo esc_attr($token); ?>">
