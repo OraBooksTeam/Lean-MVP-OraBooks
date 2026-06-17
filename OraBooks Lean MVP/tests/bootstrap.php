@@ -1026,6 +1026,13 @@ if (!file_exists($financial_reports_file)) {
 }
 require_once $financial_reports_file;
 
+$operational_reports_file = __DIR__ . '/../includes/class-orabooks-operational-reports.php';
+if (!file_exists($operational_reports_file)) {
+    echo "ERROR: Cannot find class-orabooks-operational-reports.php at {$operational_reports_file}\n";
+    exit(1);
+}
+require_once $operational_reports_file;
+
 // orabooks_mask_email — used by OraBooks_Partner::get_dashboard_data
 if (!function_exists('orabooks_mask_email')) {
     function orabooks_mask_email($email) {
