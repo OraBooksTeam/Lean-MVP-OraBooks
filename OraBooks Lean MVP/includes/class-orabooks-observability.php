@@ -396,9 +396,9 @@ class OraBooks_Observability {
             orabooks_json_error('Permission denied', 403);
         }
 
-        $service = sanitize_text_field($_GET['service'] ?? '');
-        $metric = sanitize_text_field($_GET['metric_name'] ?? '');
-        $hours = intval($_GET['hours'] ?? 24);
+        $service = sanitize_text_field($_REQUEST['service'] ?? '');
+        $metric = sanitize_text_field($_REQUEST['metric_name'] ?? '');
+        $hours = intval($_REQUEST['hours'] ?? 24);
 
         if ($service === '' || $metric === '') {
             orabooks_json_error('service and metric_name are required', 400);
