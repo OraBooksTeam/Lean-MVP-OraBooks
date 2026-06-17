@@ -240,6 +240,27 @@ if (!class_exists('wpdb', false)) {
             return [];
         }
 
+        public function get_col($query = null, $x = 0) {
+            if ($query !== null) {
+                $this->last_query = $query;
+            }
+            if ($this->test_get_results_callback !== null) {
+                $rows = ($this->test_get_results_callback)($query, OBJECT);
+                return array_map(function ($row) {
+                    if (is_object($row)) {
+                        $values = array_values(get_object_vars($row));
+                        return $values[0] ?? null;
+                    }
+                    if (is_array($row)) {
+                        $values = array_values($row);
+                        return $values[0] ?? null;
+                    }
+                    return $row;
+                }, is_array($rows) ? $rows : []);
+            }
+            return [];
+        }
+
         public function insert($table, $data, $format = []) {
             // Allow test override via callback
             if ($this->test_insert_callback !== null) {
