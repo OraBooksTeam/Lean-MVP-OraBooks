@@ -755,6 +755,9 @@ class OraBooks_Partner {
             ];
         }
         
+        $is_inactive = ($code_status === 'inactive');
+        $status_banner = self::get_dashboard_status_banner($org_status, $code_status, $is_dormant);
+
         return [
             'partner_code' => $partner->partner_code,
             'partner_type' => $partner->partner_type,
@@ -766,15 +769,42 @@ class OraBooks_Partner {
             'last_attribution_at' => $partner->last_attribution_at,
             'active_customer_count' => $active_customer_count,
             'is_dormant' => $is_dormant,
+            'is_inactive' => $is_inactive,
             'is_blocked' => $is_blocked,
             'read_only' => $read_only,
             'payout_disabled' => $payout_disabled,
             'can_reactivate' => $can_reactivate,
+            'new_attribution_blocked' => $is_inactive || $is_blocked,
+            'status_banner' => $status_banner,
             'attribution_stats' => $attribution_stats,
             'commission_summary' => $commission_summary,
             'payout_breakdown' => $payout_breakdown,
             'attributions' => $attr_with_commission
         ];
+    }
+
+    private static function get_dashboard_status_banner($org_status, $code_status, $is_dormant) {
+        if ($org_status === 'fraud_freeze') {
+            return ['type' => 'blocked', 'message' => 'Partner program disabled.'];
+        }
+
+        if ($org_status === 'payout_hold') {
+            return ['type' => 'warning', 'message' => 'Payout hold: commissions are being tracked but withdrawal is temporarily disabled.'];
+        }
+
+        if ($org_status === 'suspended') {
+            return ['type' => 'readonly', 'message' => 'Partner program is readonly. Contact support for reactivation.'];
+        }
+
+        if ($code_status === 'inactive') {
+            return ['type' => 'inactive', 'message' => 'Your partner program is inactive. You have no active customers and no new partner-code customer for 12 months. You cannot earn commissions until reactivated.'];
+        }
+
+        if ($is_dormant) {
+            return ['type' => 'info', 'message' => 'You have no active customers. Share your partner code with new customers to earn commissions.'];
+        }
+
+        return null;
     }
     
     // ============================================================
