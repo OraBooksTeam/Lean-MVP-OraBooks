@@ -1,13 +1,18 @@
 import { useEffect, useState } from 'react';
 import { api } from '../api';
+import ClientShell from '../components/ClientShell';
 import { Bell, Mail, Smartphone, Monitor } from 'lucide-react';
 
 export default function NotificationsPage() {
   const [loading, setLoading] = useState(true);
+  const [context, setContext] = useState<any>(null);
   const [notifications, setNotifications] = useState<any[]>([]);
   const [unread, setUnread] = useState(0);
 
   useEffect(() => {
+    api.frontendContext().then((res) => {
+      if (!res.error) setContext((res as any).data);
+    });
     api.notificationsList({ limit: 50 }).then((res) => {
       if (!res.error) {
         const data = (res as any).data;
@@ -26,7 +31,12 @@ export default function NotificationsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 p-6">
+    <ClientShell
+      title="Notifications"
+      eyebrow="Activity center"
+      organization={context?.organization}
+      isPartner={context?.organization?.organization_type === 'partner' || context?.user?.is_partner}
+    >
       <div className="mx-auto max-w-4xl space-y-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -80,7 +90,7 @@ export default function NotificationsPage() {
           ))}
         </div>
       </div>
-    </div>
+    </ClientShell>
   );
 }
 
