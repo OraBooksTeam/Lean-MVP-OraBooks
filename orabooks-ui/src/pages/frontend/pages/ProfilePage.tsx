@@ -13,7 +13,7 @@ export default function ProfilePage() {
     setLoading(true);
     setError('');
     const res = await api.frontendContext();
-    if (res.error) setError((res as any).message || 'Unable to load profile.');
+    if (res.error) setError(res.error || 'Unable to load profile.');
     else setContext((res as any).data);
     setLoading(false);
   };
