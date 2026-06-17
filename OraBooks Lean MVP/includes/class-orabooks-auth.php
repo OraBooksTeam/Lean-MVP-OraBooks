@@ -27,6 +27,7 @@ class OraBooks_Auth {
             add_action('wp_ajax_orabooks_setup_2fa', [self::$instance, 'ajax_setup_2fa']);
             add_action('wp_ajax_orabooks_verify_2fa_setup', [self::$instance, 'ajax_verify_2fa_setup']);
             add_action('wp_ajax_orabooks_2fa_challenge', [self::$instance, 'ajax_2fa_challenge']);
+            add_action('wp_ajax_nopriv_orabooks_2fa_challenge', [self::$instance, 'ajax_2fa_challenge']);
             add_action('wp_ajax_orabooks_logout', [self::$instance, 'ajax_logout']);
             add_action('wp_ajax_orabooks_select_tier', [self::$instance, 'ajax_select_tier']);
             add_action('wp_ajax_nopriv_orabooks_select_tier', [self::$instance, 'ajax_select_tier']);
