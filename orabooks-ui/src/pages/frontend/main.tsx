@@ -2,7 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { RouterProvider, createHashRouter } from 'react-router-dom';
 import FrontendRoutes from './App';
-import './styles/index.css';
+import '@/styles/index.css';
 
 const router = createHashRouter([
   {
