@@ -29,6 +29,7 @@ class OraBooks_Auth {
             add_action('wp_ajax_orabooks_2fa_challenge', [self::$instance, 'ajax_2fa_challenge']);
             add_action('wp_ajax_orabooks_logout', [self::$instance, 'ajax_logout']);
             add_action('wp_ajax_orabooks_select_tier', [self::$instance, 'ajax_select_tier']);
+            add_action('wp_ajax_nopriv_orabooks_select_tier', [self::$instance, 'ajax_select_tier']);
             // SL-013: Google OIDC endpoints
             add_action('wp_ajax_nopriv_orabooks_oidc_initiate', [self::$instance, 'ajax_oidc_initiate']);
             add_action('wp_ajax_nopriv_orabooks_oidc_callback', [self::$instance, 'ajax_oidc_callback']);
@@ -865,7 +866,10 @@ class OraBooks_Auth {
             orabooks_json_error('Not authenticated', 401);
         }
         
-        $user_id = get_current_user_id();
+        $user_id = orabooks_get_current_user_id();
+        if (!$user_id) {
+            orabooks_json_error('Authentication required', 401);
+        }
         $secret = OraBooks_Secrets::generate_totp_secret();
         
         // Store secret temporarily
@@ -1589,7 +1593,7 @@ class OraBooks_Auth {
             'refresh_token' => $refresh_token,
             'org_id' => $org_result['org_id'],
             'subdomain' => $org_result['subdomain'],
-            'redirect_to' => 'https://' . $org_result['subdomain'] . '.orabooks.app/dashboard'
+            'redirect_to' => '#/dashboard'
         ], 'Organization created successfully');
     }
 }
