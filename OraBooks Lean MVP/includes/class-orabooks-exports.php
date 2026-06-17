@@ -44,12 +44,16 @@ class OraBooks_Exports {
 
             // AJAX: request export
             add_action('wp_ajax_orabooks_export_request', [self::$instance, 'ajax_request_export']);
+            add_action('wp_ajax_nopriv_orabooks_export_request', [self::$instance, 'ajax_request_export']);
             // AJAX: list user exports
             add_action('wp_ajax_orabooks_exports_list', [self::$instance, 'ajax_exports_list']);
+            add_action('wp_ajax_nopriv_orabooks_exports_list', [self::$instance, 'ajax_exports_list']);
             // AJAX: download export
             add_action('wp_ajax_orabooks_export_download', [self::$instance, 'ajax_download_export']);
+            add_action('wp_ajax_nopriv_orabooks_export_download', [self::$instance, 'ajax_download_export']);
             // AJAX: cancel export
             add_action('wp_ajax_orabooks_export_cancel', [self::$instance, 'ajax_cancel_export']);
+            add_action('wp_ajax_nopriv_orabooks_export_cancel', [self::$instance, 'ajax_cancel_export']);
             // AJAX: export stats
             add_action('wp_ajax_orabooks_exports_stats', [self::$instance, 'ajax_exports_stats']);
 
@@ -1059,7 +1063,7 @@ HTML;
      * Expects: export_type, format, [parameters]
      */
     public function ajax_request_export() {
-        $user_id = get_current_user_id();
+        $user_id = orabooks_get_current_user_id();
         if (!$user_id) {
             orabooks_json_error('Authentication required', 401);
         }
@@ -1095,7 +1099,7 @@ HTML;
      * AJAX: List exports for current user.
      */
     public function ajax_exports_list() {
-        $user_id = get_current_user_id();
+        $user_id = orabooks_get_current_user_id();
         if (!$user_id) {
             orabooks_json_error('Authentication required', 401);
         }
@@ -1144,7 +1148,7 @@ HTML;
      * AJAX: Download an export.
      */
     public function ajax_download_export() {
-        $user_id = get_current_user_id();
+        $user_id = orabooks_get_current_user_id();
         if (!$user_id) {
             orabooks_json_error('Authentication required', 401);
         }
@@ -1171,7 +1175,7 @@ HTML;
      * AJAX: Cancel an export.
      */
     public function ajax_cancel_export() {
-        $user_id = get_current_user_id();
+        $user_id = orabooks_get_current_user_id();
         if (!$user_id) {
             orabooks_json_error('Authentication required', 401);
         }
