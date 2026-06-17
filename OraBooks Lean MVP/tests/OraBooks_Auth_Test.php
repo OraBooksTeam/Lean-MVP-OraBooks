@@ -11,6 +11,13 @@
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
+// Stub for get_option used by process_attribution()
+if (!function_exists('get_option')) {
+    function get_option($option, $default = false) {
+        return $default;
+    }
+}
+
 class OraBooks_Auth_Test extends TestCase
 {
     // -----------------------------------------------------------------------
@@ -80,6 +87,17 @@ class OraBooks_Auth_Test extends TestCase
     {
         $state_hash = hash('sha256', $state);
         set_transient('orabooks_oidc_state_' . $state_hash, 1, 600);
+    }
+
+    /**
+     * Store OIDC state data transient for handle_google_callback.
+     * Encodes data using the same base64url scheme as encode_oidc_state_data().
+     */
+    private function storeOidcStateData(string $state, array $data): void
+    {
+        $state_hash = hash('sha256', $state);
+        $encoded = rtrim(strtr(base64_encode(wp_json_encode($data)), '+/', '-_'), '=');
+        set_transient('orabooks_oidc_state_data_' . $state_hash, $encoded, 600);
     }
 
     // ================================================================
@@ -1343,9 +1361,10 @@ class OraBooks_Auth_Test extends TestCase
         $this->assertFalse($response['error']);
         $this->assertStringContainsString('2FA enabled', $response['message']);
 
-        // Verify backup codes were stored in DB
-        global $wpdb;
-        $this->assertStringContainsString('orabooks_2fa_backup_codes', $wpdb->last_query);
+        // Verify permanent secret was stored and temp secret was cleaned up
+        $this->assertArrayHasKey('orabooks_2fa_secret', $GLOBALS['orabooks_test_user_meta'][1]);
+        $this->assertArrayNotHasKey('orabooks_2fa_temp_secret', $GLOBALS['orabooks_test_user_meta'][1]);
+        $this->assertArrayNotHasKey('orabooks_2fa_temp_backup_codes', $GLOBALS['orabooks_test_user_meta'][1]);
     }
 
     #[Test]
@@ -1508,6 +1527,12 @@ class OraBooks_Auth_Test extends TestCase
     public function test_handle_google_callback_new_partner_success()
     {
         $this->storeValidOidcState('test-state-partner');
+        $this->storeOidcStateData('test-state-partner', [
+            'user_type'      => 'partner',
+            'accept_terms'   => true,
+            'partner_type'   => 'individual',
+            'terms_version'  => '1.0',
+        ]);
 
         global $wpdb;
         $wpdb->test_get_row_callback = function ($query) {
@@ -1519,14 +1544,6 @@ class OraBooks_Auth_Test extends TestCase
             return null;
         };
         $GLOBALS['orabooks_test_use_insert_id'] = 100;
-
-        // Set state data for partner registration
-        $_SESSION['orabooks_oidc_state_data'] = [
-            'user_type'      => 'partner',
-            'accept_terms'   => true,
-            'partner_type'   => 'individual',
-            'terms_version'  => '1.0',
-        ];
 
         $result = OraBooks_Auth::handle_google_callback('auth-code-partner', 'test-state-partner');
 
@@ -1541,6 +1558,10 @@ class OraBooks_Auth_Test extends TestCase
     public function test_handle_google_callback_existing_user_email_conflict()
     {
         $this->storeValidOidcState('test-state-conflict');
+        // State data must be present to trigger the conflict check (if ($state_data && ...))
+        $this->storeOidcStateData('test-state-conflict', [
+            'user_type' => 'customer',
+        ]);
 
         global $wpdb;
         $wpdb->test_get_row_callback = function ($query) {
