@@ -598,6 +598,12 @@ function orabooks_frontend_enqueue() {
             'nonce' => wp_create_nonce('orabooks_nonce'),
             'current_user_id' => get_current_user_id()
         ]);
+
+        wp_add_inline_script(
+            'orabooks-react-frontend',
+            'window.setTimeout(function(){var root=document.getElementById("orabooks-app-root");if(root&&!window.orabooksReactMounted){root.innerHTML="<div style=\"max-width:720px;margin:48px auto;padding:24px;border:1px solid #d8e6f3;border-radius:16px;background:#fff;color:#102f52;box-shadow:0 14px 40px rgba(26,105,180,.08);font-family:Arial,sans-serif;\"><h2 style=\"margin:0 0 8px;color:#1A69B4;\">OraBooks frontend did not load</h2><p style=\"margin:0 0 12px;\">The React bundle was not executed. Check browser Console/Network for blocked or missing JavaScript.</p><p style=\"margin:0;font-size:13px;\"><strong>Expected file:</strong> ' . esc_js(ORABOOKS_PLUGIN_URL . 'assets/react/frontend.js') . '</p></div>";}},3500);',
+            'before'
+        );
     }
 }
 
