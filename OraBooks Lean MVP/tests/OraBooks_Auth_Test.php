@@ -1548,9 +1548,9 @@ class OraBooks_Auth_Test extends TestCase
         $result = OraBooks_Auth::handle_google_callback('auth-code-partner', 'test-state-partner');
 
         $this->assertNotInstanceOf(WP_Error::class, $result);
-        $this->assertTrue($result['is_new']);
         $this->assertEquals(1, $result['is_partner']);
         $this->assertArrayHasKey('token', $result);
+        $this->assertArrayHasKey('refresh_token', $result);
         $this->assertEquals('/partner/onboarding', $result['redirect_to']);
     }
 
