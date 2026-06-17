@@ -37,7 +37,7 @@ class OraBooks_Commission_Test extends TestCase
             'id' => 1,
             'base_monthly_amount' => 10.00,
             'max_years' => 6,
-            'yearly_percentages' => [20, 15, 10, 5, 2.5, 1],
+            'yearly_percentages' => json_encode([20, 15, 10, 5, 2.5, 1]),
             'currency' => 'USD',
             'min_payout_threshold' => 25.00,
             'customer_active_window_days' => 30,
