@@ -1885,11 +1885,11 @@ describe('Invoice create modal', () => {
     $('#inv_total_amount').val('250.00');
     $('#inv_description').val('Test invoice');
 
-    // Click the submit button (triggers delegated submit handler)
-    $('#orabooks-invoice-form').find('[type="submit"]').first().trigger('click');
+    // Dispatching a native submit event so the delegated handler fires
+    var form = document.getElementById('orabooks-invoice-form');
+    form.dispatchEvent(new Event('submit', { bubbles: true }));
 
     const call = latestAjax('post');
-    // The action includes org_id query param appended by the handler
     expect(call.data.action).toContain('orabooks_invoice_create');
     expect(call.data.customer_id).toBe('1');
     expect(call.data.total_amount).toBe('250.00');
@@ -2077,8 +2077,9 @@ describe('Invoice payment modal', () => {
     $('#pay_amount').val('500.00');
     $('#pay_method').val('bank_transfer');
 
-    // Click the submit button (triggers delegated submit handler)
-    $('#orabooks-payment-form').find('[type="submit"]').first().trigger('click');
+    // Dispatching a native submit event so the delegated handler fires
+    var form = document.getElementById('orabooks-payment-form');
+    form.dispatchEvent(new Event('submit', { bubbles: true }));
 
     const call = latestAjax('post');
     expect(call.data.action).toContain('orabooks_invoice_record_payment');
@@ -2110,8 +2111,9 @@ describe('Invoice payment modal', () => {
     $('.orabooks-inv-pay').first().trigger('click');
     expect($('#orabooks-payment-modal').css('display')).not.toBe('none');
 
-    $('.orabooks-modal-cancel').first().trigger('click');
-    // With $.fx.off = true, fadeOut completes instantly
+    // Target the cancel button inside the payment modal (not the invoice modal's)
+    $('#orabooks-payment-modal').find('.orabooks-modal-cancel').trigger('click');
+    jest.advanceTimersByTime(500);
     expect($('#orabooks-payment-modal').css('display')).toBe('none');
   });
 });
@@ -2169,8 +2171,12 @@ describe('Invoice deep link from URL', () => {
   });
 
   test('deep link loads invoice and switches to invoices tab', () => {
-    global.location.search = '?page=orabooks-customers&invoice_id=123';
-    global.location._href = 'https://example.com/admin.php?page=orabooks-customers&invoice_id=123';
+    // Modify window.location.search directly (not global.location which differs)
+    Object.defineProperty(global.window.location, 'search', {
+      value: '?page=orabooks-customers&invoice_id=123',
+      configurable: true,
+      writable: true
+    });
 
     setupCustomerDom();
 
@@ -2193,8 +2199,12 @@ describe('Invoice deep link from URL', () => {
   });
 
   test('deep link does not fire when no invoice_id in URL', () => {
-    global.location.search = '?page=orabooks-customers';
-    global.location._href = 'https://example.com/admin.php?page=orabooks-customers';
+    // Use clean search (no invoice_id)
+    Object.defineProperty(global.window.location, 'search', {
+      value: '?page=orabooks-customers',
+      configurable: true,
+      writable: true
+    });
 
     window.history.replaceState = jest.fn();
 
@@ -2236,7 +2246,9 @@ describe('Shared modal close handlers', () => {
     $('#orabooks-payment-modal').show();
     expect($('#orabooks-payment-modal').css('display')).not.toBe('none');
 
-    $('.orabooks-modal-backdrop').first().trigger('click');
+    // Target the backdrop inside the payment modal specifically
+    $('#orabooks-payment-modal').find('.orabooks-modal-backdrop').trigger('click');
+    jest.advanceTimersByTime(500);
     expect($('#orabooks-payment-modal').css('display')).toBe('none');
   });
 });
