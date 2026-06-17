@@ -208,6 +208,58 @@ class OraBooks_Partner {
             'verified_attributions' => $verified_attributions
         ];
     }
+
+    public static function get_onboarding_info($user_id) {
+        global $wpdb;
+
+        $table_codes = OraBooks_Database::table('partner_codes');
+        $table_orgs = OraBooks_Database::table('organizations');
+
+        $code = $wpdb->get_row($wpdb->prepare(
+            "SELECT pc.partner_code, pc.status as code_status, pc.partner_type, pc.organization_name,
+                    pc.created_at, o.status as org_status, o.name as org_name
+             FROM {$table_codes} pc
+             JOIN {$table_orgs} o ON pc.org_id = o.id
+             WHERE pc.user_id = %d
+             ORDER BY pc.created_at DESC
+             LIMIT 1",
+            $user_id
+        ));
+
+        if (!$code) {
+            return null;
+        }
+
+        return [
+            'partner_code' => $code->partner_code,
+            'code_status' => $code->code_status,
+            'partner_type' => $code->partner_type,
+            'organization_name' => $code->organization_name,
+            'org_status' => $code->org_status,
+            'org_name' => $code->org_name,
+            'created_at' => $code->created_at,
+            'status_message' => self::get_onboarding_status_message($code->code_status, $code->org_status),
+            'bank_info_required' => false,
+            'payment_settings_available' => false,
+        ];
+    }
+
+    private static function get_onboarding_status_message($code_status, $org_status) {
+        if ($org_status === 'suspended' || $code_status === 'disabled') {
+            return 'Your partner code has been disabled. Contact support.';
+        }
+
+        switch ($code_status) {
+            case 'pending_review':
+                return 'Awaiting admin approval. Your code is not yet active.';
+            case 'active':
+                return 'Your code is active. Share it to earn commissions.';
+            case 'inactive':
+                return "Your partner code is inactive because you have no active customers and haven't brought any new customer in the last 12 months. Request reactivation from dashboard.";
+            default:
+                return 'Partner code status: ' . $code_status;
+        }
+    }
     
     /**
      * Request reactivation for inactive partner
@@ -731,6 +783,9 @@ class OraBooks_Partner {
     
     public function ajax_get_partner_info() {
         $user_id = orabooks_get_current_user_id();
+        if (!$user_id) {
+            orabooks_json_error('Not authenticated', 401);
+        }
         
         // Rate limit: 60 per minute
         if (!orabooks_check_rate_limit('partner_info_' . $user_id, 60, 60)) {
@@ -779,7 +834,10 @@ class OraBooks_Partner {
      * SL-139: Full partner dashboard data endpoint
      */
     public function ajax_partner_dashboard() {
-        $user_id = get_current_user_id();
+        $user_id = orabooks_get_current_user_id();
+        if (!$user_id) {
+            orabooks_json_error('Not authenticated', 401);
+        }
         
         // Rate limit: 60 per minute
         if (!orabooks_check_rate_limit('partner_dash_' . $user_id, 60, 60)) {
@@ -831,7 +889,10 @@ class OraBooks_Partner {
      * Track partner code copy (audit event)
      */
     public function ajax_code_copied() {
-        $user_id = get_current_user_id();
+        $user_id = orabooks_get_current_user_id();
+        if (!$user_id) {
+            orabooks_json_error('Not authenticated', 401);
+        }
         $source = sanitize_text_field($_POST['source'] ?? 'dashboard');
         
         orabooks_log_event('partner_code_copied', 'Partner copied their code', 'info', [
