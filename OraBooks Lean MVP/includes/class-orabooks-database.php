@@ -732,6 +732,18 @@ class OraBooks_Database {
         }
 
         // ============================================================
+        // SL-027: Vendors / Bills / AP Module
+        // ============================================================
+        $vendor_tables = OraBooks_Vendors::get_create_table_sql();
+        foreach ($vendor_tables as $sql) {
+            dbDelta($sql);
+        }
+
+        if (!wp_next_scheduled('orabooks_daily_ap_aging_snapshot')) {
+            wp_schedule_event(time(), 'daily', 'orabooks_daily_ap_aging_snapshot');
+        }
+
+        // ============================================================
         // SL-250: Notification Center Tables
         // ============================================================
         $notification_tables = OraBooks_Notifications::get_create_table_sql();
