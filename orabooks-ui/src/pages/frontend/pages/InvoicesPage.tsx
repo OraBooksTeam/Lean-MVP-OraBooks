@@ -13,7 +13,7 @@ export default function InvoicesPage() {
     setLoading(true);
     setError('');
     const res = await api.customerDashboard();
-    if (res.error) setError((res as any).message || 'Unable to load invoices.');
+    if (res.error) setError(res.error || 'Unable to load invoices.');
     else setData((res as any).data);
     setLoading(false);
   };
