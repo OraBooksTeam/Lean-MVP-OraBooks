@@ -278,6 +278,7 @@ class OraBooks_Csv_Imports {
             }
 
             $parsed_data = self::apply_mapping($raw, $mapping, $import->resource_type);
+            $parsed_data = self::normalize_parsed_row($parsed_data, $import->resource_type);
             $confidence = self::compute_row_confidence($parsed_data, $import->resource_type);
 
             $wpdb->insert($rows_table, [
@@ -537,6 +538,7 @@ class OraBooks_Csv_Imports {
             if (!empty($overrides['rows'][$row->row_index]) && is_array($overrides['rows'][$row->row_index])) {
                 $parsed = array_merge($parsed, $overrides['rows'][$row->row_index]);
             }
+            $parsed = self::normalize_parsed_row($parsed, $import->resource_type);
 
             $confidence = self::compute_row_confidence($parsed, $import->resource_type);
             $wpdb->update($rows_table, [
@@ -844,22 +846,7 @@ class OraBooks_Csv_Imports {
         ));
     }
 
-    public static function format_import($import) {
-        return [
-            'id'              => (int) $import->id,
-            'org_id'          => (int) $import->org_id,
-            'user_id'         => (int) $import->user_id,
-            'resource_type'   => $import->resource_type,
-            'original_filename' => $import->original_filename,
-            'status'          => $import->status,
-            'total_rows'      => (int) $import->total_rows,
-            'processed_rows'  => (int) $import->processed_rows,
-            'header_mapping'  => json_decode($import->header_mapping ?: '{}', true),
-            'created_at'      => $import->created_at,
-        ];
-    }
-
-    private static function format_row($row) {
+    private static function get_required_fields($resource_type) {
         return [
             'id'              => (int) $row->id,
             'row_index'       => (int) $row->row_index,
