@@ -134,6 +134,8 @@ class OraBooks_Vendors {
             amount DECIMAL(20,2) NOT NULL,
             allocation_method ENUM('FIFO','manual','auto_credit') DEFAULT 'FIFO',
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (org_id) REFERENCES {$wpdb->prefix}orabooks_organizations(id) ON DELETE CASCADE,
+            FOREIGN KEY (vendor_id) REFERENCES {$table_vendors}(id) ON DELETE CASCADE,
             FOREIGN KEY (payment_id) REFERENCES {$table_payments}(id) ON DELETE CASCADE,
             FOREIGN KEY (bill_id) REFERENCES {$table_bills}(id) ON DELETE CASCADE,
             INDEX idx_bill (bill_id),
@@ -157,6 +159,9 @@ class OraBooks_Vendors {
             approved_by BIGINT UNSIGNED NULL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            FOREIGN KEY (org_id) REFERENCES {$wpdb->prefix}orabooks_organizations(id) ON DELETE CASCADE,
+            FOREIGN KEY (vendor_id) REFERENCES {$table_vendors}(id) ON DELETE CASCADE,
+            FOREIGN KEY (bill_id) REFERENCES {$table_bills}(id) ON DELETE SET NULL,
             UNIQUE KEY uk_org_credit_note (org_id, credit_note_number),
             INDEX idx_vendor (vendor_id),
             INDEX idx_bill (bill_id),
@@ -183,6 +188,8 @@ class OraBooks_Vendors {
             credit_balance DECIMAL(20,2) NOT NULL DEFAULT 0,
             aging_json JSON NULL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (org_id) REFERENCES {$wpdb->prefix}orabooks_organizations(id) ON DELETE CASCADE,
+            FOREIGN KEY (vendor_id) REFERENCES {$table_vendors}(id) ON DELETE CASCADE,
             UNIQUE KEY uk_vendor_month (vendor_id, statement_month),
             INDEX idx_org_month (org_id, statement_month)
         ) {$charset_collate};";
