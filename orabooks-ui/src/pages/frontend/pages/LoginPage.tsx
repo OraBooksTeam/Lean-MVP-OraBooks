@@ -2,7 +2,7 @@ import { useState, useEffect, type FormEvent } from 'react';
 import Button from '@/components/Button';
 import Input from '@/components/Input';
 import { api } from '../api';
-import { Flame2 } from 'lucide-react';
+import { Flame } from 'lucide-react';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -68,7 +68,7 @@ export default function LoginPage() {
       <div className="min-h-screen flex items-center justify-center px-4 py-12" style={{ background: 'linear-gradient(135deg, #f8fafc 0%, #e0f2fe 50%, #f1f5f9 100%)' }}>
         <div className="glass-panel w-full max-w-md p-8">
           <div className="mx-auto mb-6 flex h-12 w-12 items-center justify-center rounded-xl bg-orange-500/10">
-            <Flame2 className="h-6 w-6 text-orange-600" />
+            <Flame className="h-6 w-6 text-orange-600" />
           </div>
           <h2 className="text-center text-xl font-bold text-ink">Two-Factor Authentication</h2>
           <p className="mt-2 text-center text-sm text-slate-600">Enter the 6‑digit code from your authenticator app, or use a backup code.</p>
