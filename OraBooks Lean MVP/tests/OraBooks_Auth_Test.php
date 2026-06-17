@@ -1119,13 +1119,20 @@ class OraBooks_Auth_Test extends TestCase
     public function test_verify_email_valid_token()
     {
         global $wpdb;
-        $wpdb->test_get_row_callback = function ($query) {
-            return (object)[
-                'id'                => 1,
-                'email'             => 'user@example.com',
-                'org_id'            => null,
-                'is_email_verified' => 0,
-            ];
+        $getRowCalls = 0;
+        $wpdb->test_get_row_callback = function ($query) use (&$getRowCalls) {
+            $getRowCalls++;
+            if ($getRowCalls === 1) {
+                // First call: find user by token
+                return (object)[
+                    'id'                => 1,
+                    'email'             => 'user@example.com',
+                    'org_id'            => null,
+                    'is_email_verified' => 0,
+                ];
+            }
+            // Second call: attribution fetch — return null (no pending attribution)
+            return null;
         };
         // get_var for pending attribution check — returns 0 (no pending)
         $wpdb->test_get_var_callback = function ($query) {
@@ -1180,6 +1187,7 @@ class OraBooks_Auth_Test extends TestCase
                     'customer_user_id' => 1,
                     'customer_email'  => 'customer@example.com',
                     'status'          => 'pending',
+                    'verified_at'     => null,
                 ];
             }
             return null;
@@ -1397,6 +1405,8 @@ class OraBooks_Auth_Test extends TestCase
     #[Test]
     public function test_ajax_2fa_challenge_valid_otp()
     {
+        global $wpdb;
+
         $GLOBALS['orabooks_test_verify_jwt_result'] = [
             'purpose' => '2fa_challenge',
             'user_id' => 1,
@@ -1405,6 +1415,16 @@ class OraBooks_Auth_Test extends TestCase
         $GLOBALS['orabooks_test_user_meta'][1]['orabooks_2fa_secret'] = 'TESTSECRET123456';
         $_POST['temp_token'] = 'valid-temp-token';
         $_POST['otp_code']   = '123456';
+
+        // Mock user fetch after challenge verification — returns a proper user object with all properties
+        $wpdb->test_get_row_callback = function ($query) {
+            return (object)[
+                'id'         => 1,
+                'email'      => 'admin@example.com',
+                'org_id'     => null,
+                'is_partner' => 0,
+            ];
+        };
 
         $response = $this->callAjax('ajax_2fa_challenge');
 
@@ -1486,6 +1506,16 @@ class OraBooks_Auth_Test extends TestCase
                 ]];
             }
             return [];
+        };
+
+        // Mock user fetch after challenge verification — returns a proper user object with all properties
+        $wpdb->test_get_row_callback = function ($query) {
+            return (object)[
+                'id'         => 1,
+                'email'      => 'admin@example.com',
+                'org_id'     => null,
+                'is_partner' => 0,
+            ];
         };
 
         $response = $this->callAjax('ajax_2fa_challenge');
