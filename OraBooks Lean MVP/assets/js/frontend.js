@@ -188,7 +188,8 @@ jQuery(document).ready(function($) {
         $.post(orabooks_ajax.ajax_url, {
             action: 'orabooks_select_tier',
             tier: $('input[name="tier"]:checked').val(),
-            subdomain: $('#tier-subdomain').val()
+            subdomain: $('#tier-subdomain').val(),
+            orabooks_token: localStorage.getItem('orabooks_token') || ''
         }, function(response) {
             if (response.error) {
                 $msg.removeClass('success').addClass('error').text(response.message).show();
@@ -196,6 +197,9 @@ jQuery(document).ready(function($) {
                 $msg.removeClass('error').addClass('success').text('Organization created! Redirecting...').show();
                 if (response.data.token) {
                     localStorage.setItem('orabooks_token', response.data.token);
+                }
+                if (response.data.refresh_token) {
+                    localStorage.setItem('orabooks_refresh_token', response.data.refresh_token);
                 }
                 if (response.data.redirect_to) {
                     setTimeout(function() {
