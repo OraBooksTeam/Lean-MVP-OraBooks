@@ -32,6 +32,9 @@
         <testsuite name="OraBooks SL-074 Financial Reports Tests">
             <file>OraBooks_Financial_Reports_Test.php</file>
         </testsuite>
+        <testsuite name="OraBooks SL-075 Operational Reports Tests">
+            <file>OraBooks_Operational_Reports_Test.php</file>
+        </testsuite>
         <testsuite name="OraBooks SL-081 Manual Tax Tests">
             <file>OraBooks_Manual_Tax_Test.php</file>
         </testsuite>
