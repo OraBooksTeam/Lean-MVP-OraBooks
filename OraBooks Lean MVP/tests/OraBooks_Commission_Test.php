@@ -25,6 +25,7 @@ class OraBooks_Commission_Test extends TestCase
         $GLOBALS['orabooks_test_current_user_can'] = true;
         $GLOBALS['orabooks_test_use_insert_id'] = null;
         $GLOBALS['orabooks_test_transients'] = [];
+        $GLOBALS['orabooks_test_cache'] = [];
 
         $_GET = [];
         $_POST = [];
