@@ -28,6 +28,9 @@ if (!defined('ARRAY_A')) {
 if (!defined('ARRAY_N')) {
     define('ARRAY_N', 'ARRAY_N');
 }
+if (!defined('DAY_IN_SECONDS')) {
+    define('DAY_IN_SECONDS', 86400);
+}
 
 // ---------------------------------------------------------------------------
 // 1. Stub global $wpdb
@@ -937,6 +940,13 @@ if (!file_exists($tax_file)) {
     exit(1);
 }
 require_once $tax_file;
+
+$vendors_file = __DIR__ . '/../includes/class-orabooks-vendors.php';
+if (!file_exists($vendors_file)) {
+    echo "ERROR: Cannot find class-orabooks-vendors.php at {$vendors_file}\n";
+    exit(1);
+}
+require_once $vendors_file;
 
 // orabooks_mask_email — used by OraBooks_Partner::get_dashboard_data
 if (!function_exists('orabooks_mask_email')) {
