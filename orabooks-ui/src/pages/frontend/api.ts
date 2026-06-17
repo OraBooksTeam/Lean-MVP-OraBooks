@@ -8,6 +8,29 @@ type ApiResult<T = Json> =
   | { data?: never; error: string; success?: never }
   | { data?: never; error?: never; success: true };
 
+function extractError(data: any, fallback: string) {
+  if (typeof data === 'string') return data;
+  if (data?.message) return String(data.message);
+  if (data?.error) return String(data.error);
+  return fallback;
+}
+
+function normalizeResponse<T = any>(json: any): ApiResult<T> {
+  if (json?.success === false) {
+    return { error: extractError(json.data, 'OraBooks request failed.') };
+  }
+
+  if (json?.success === true && Object.prototype.hasOwnProperty.call(json, 'data')) {
+    return { data: json.data as T };
+  }
+
+  if (json?.error) {
+    return { error: extractError(json.error, 'OraBooks request failed.') };
+  }
+
+  return json as ApiResult<T>;
+}
+
 async function request<T = any>(
   payload: Record<string, any>,
   method = 'POST'
@@ -22,14 +45,22 @@ async function request<T = any>(
     else body.set(k, String(v ?? ''));
   });
 
-  const res = await fetch(ORABOOKS_URL, {
-    method,
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=utf-8' },
-    body,
-  });
+  try {
+    const res = await fetch(ORABOOKS_URL, {
+      method,
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=utf-8' },
+      body,
+    });
 
-  const json = (await res.json()) as ApiResult<T>;
-  return json;
+    if (!res.ok) {
+      return { error: `OraBooks request failed with HTTP ${res.status}.` };
+    }
+
+    const json = await res.json();
+    return normalizeResponse<T>(json);
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : 'OraBooks request failed.' };
+  }
 }
 
 export const api = {
@@ -44,8 +75,15 @@ export const api = {
     });
 
     return fetch(`${ORABOOKS_URL}?${qs.toString()}`)
-      .then((r) => r.json())
-      .then((j) => j as ApiResult<T>);
+      .then((r) => {
+        if (!r.ok) {
+          return { error: `OraBooks request failed with HTTP ${r.status}.` } as ApiResult<T>;
+        }
+        return r.json().then((j) => normalizeResponse<T>(j));
+      })
+      .catch((error) => ({
+        error: error instanceof Error ? error.message : 'OraBooks request failed.',
+      }));
   },
 
   post<T = any>(action: string, params: Record<string, any> = {}): Promise<ApiResult<T>> {
