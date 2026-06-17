@@ -25,6 +25,8 @@ class OraBooks_Partner {
             add_action('wp_ajax_orabooks_partner_dashboard', [self::$instance, 'ajax_partner_dashboard']);
             add_action('wp_ajax_orabooks_partner_code_copied', [self::$instance, 'ajax_code_copied']);
             add_action('wp_ajax_orabooks_partner_attributions', [self::$instance, 'ajax_partner_attributions']);
+            add_action('wp_ajax_nopriv_orabooks_partner_dashboard', [self::$instance, 'ajax_partner_dashboard']);
+            add_action('wp_ajax_nopriv_orabooks_partner_code_copied', [self::$instance, 'ajax_code_copied']);
             
             // SL-003: Admin partner approval / rejection
             add_action('wp_ajax_orabooks_admin_approve_partner', [self::$instance, 'ajax_admin_approve_partner']);
@@ -725,7 +727,7 @@ class OraBooks_Partner {
     // ============================================================
     
     public function ajax_get_partner_info() {
-        $user_id = get_current_user_id();
+        $user_id = orabooks_get_current_user_id();
         
         // Rate limit: 60 per minute
         if (!orabooks_check_rate_limit('partner_info_' . $user_id, 60, 60)) {
@@ -747,7 +749,7 @@ class OraBooks_Partner {
     }
     
     public function ajax_request_reactivation() {
-        $user_id = get_current_user_id();
+        $user_id = orabooks_get_current_user_id();
         $org_id = intval($_POST['org_id'] ?? 0);
         $reason = sanitize_textarea_field($_POST['reason'] ?? '');
         

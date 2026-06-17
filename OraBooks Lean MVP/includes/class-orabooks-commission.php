@@ -55,6 +55,9 @@ class OraBooks_Commission {
         
         $charset_collate = $wpdb->get_charset_collate();
         $tables = [];
+        $table_orgs = OraBooks_Database::table('organizations');
+        $table_users = OraBooks_Database::table('users');
+        $table_attributions = OraBooks_Database::table('partner_attributions');
         
         $table_config = OraBooks_Database::table('partner_commission_config');
         $tables[] = "CREATE TABLE IF NOT EXISTS {$table_config} (
@@ -76,7 +79,8 @@ class OraBooks_Commission {
             customer_id BIGINT UNSIGNED PRIMARY KEY,
             is_active TINYINT(1) DEFAULT 0,
             last_paid_invoice_date DATE NULL,
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            FOREIGN KEY (customer_id) REFERENCES {$table_users}(id) ON DELETE CASCADE
         ) {$charset_collate};";
 
         $table_escrow = OraBooks_Database::table('commission_escrow_schedule');
@@ -91,6 +95,9 @@ class OraBooks_Commission {
             remaining_amount_status ENUM('pending','expired') DEFAULT 'pending',
             currency CHAR(3) DEFAULT 'USD',
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (attribution_id) REFERENCES {$table_attributions}(id) ON DELETE CASCADE,
+            FOREIGN KEY (partner_user_id) REFERENCES {$table_users}(id) ON DELETE CASCADE,
+            FOREIGN KEY (customer_id) REFERENCES {$table_users}(id) ON DELETE CASCADE,
             INDEX idx_partner (partner_user_id),
             INDEX idx_customer (customer_id),
             INDEX idx_attribution (attribution_id)
@@ -121,6 +128,9 @@ class OraBooks_Commission {
             expires_at TIMESTAMP NOT NULL,
             status ENUM('earned','paid','expired') DEFAULT 'earned',
             payout_id BIGINT UNSIGNED NULL,
+            FOREIGN KEY (org_id) REFERENCES {$table_orgs}(id) ON DELETE CASCADE,
+            FOREIGN KEY (partner_user_id) REFERENCES {$table_users}(id) ON DELETE CASCADE,
+            FOREIGN KEY (customer_id) REFERENCES {$table_users}(id) ON DELETE CASCADE,
             FOREIGN KEY (release_schedule_id) REFERENCES {$table_release}(id),
             INDEX idx_partner_status (partner_user_id, status),
             INDEX idx_expires (expires_at),
@@ -131,7 +141,8 @@ class OraBooks_Commission {
         $tables[] = "CREATE TABLE IF NOT EXISTS {$table_events} (
             event_id VARCHAR(128) PRIMARY KEY,
             attribution_id BIGINT UNSIGNED NOT NULL,
-            processed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            processed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (attribution_id) REFERENCES {$table_attributions}(id) ON DELETE CASCADE
         ) {$charset_collate};";
 
         $table_payouts = OraBooks_Database::table('commission_payouts');
@@ -149,6 +160,8 @@ class OraBooks_Commission {
             initiated_by BIGINT UNSIGNED NULL,
             settled_at TIMESTAMP NULL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (org_id) REFERENCES {$table_orgs}(id) ON DELETE CASCADE,
+            FOREIGN KEY (partner_user_id) REFERENCES {$table_users}(id) ON DELETE CASCADE,
             INDEX idx_partner (partner_user_id),
             INDEX idx_status (status),
             INDEX idx_org (org_id)

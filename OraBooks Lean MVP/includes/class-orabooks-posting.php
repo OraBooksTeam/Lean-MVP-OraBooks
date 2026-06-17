@@ -24,6 +24,7 @@ class OraBooks_Posting {
             add_action('wp_ajax_orabooks_reject_journal', [self::$instance, 'ajax_reject_journal']);
             add_action('wp_ajax_orabooks_post_journal', [self::$instance, 'ajax_post_journal']);
             add_action('wp_ajax_orabooks_get_journals', [self::$instance, 'ajax_get_journals']);
+            add_action('wp_ajax_nopriv_orabooks_get_journals', [self::$instance, 'ajax_get_journals']);
             
             // Initialize state machine config
             self::init_state_machine();
@@ -562,7 +563,7 @@ class OraBooks_Posting {
     
     // AJAX handlers
     public function ajax_create_journal() {
-        $user_id = get_current_user_id();
+        $user_id = orabooks_get_current_user_id();
         $org_id = intval($_POST['org_id'] ?? 0);
         
         // SL-013: Enforce customer org isolation on accounting endpoints
