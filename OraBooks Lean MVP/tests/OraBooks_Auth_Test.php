@@ -36,6 +36,7 @@ class OraBooks_Auth_Test extends TestCase
         // Reset superglobals
         $_POST = [];
         $_GET  = [];
+        $_SESSION = [];
 
         // Reset wpdb callbacks
         global $wpdb;
@@ -731,5 +732,968 @@ class OraBooks_Auth_Test extends TestCase
             $this->assertEquals(501, $response['status_code'] ?? 501);
             $this->assertStringContainsString('not yet implemented', $response['message']);
         }
+    }
+
+    // ================================================================
+    // REGISTRATION — register()
+    // ================================================================
+
+    #[Test]
+    public function test_register_customer_success()
+    {
+        global $wpdb;
+        $wpdb->test_get_var_callback = function ($query) {
+            return 0; // No existing email
+        };
+        $GLOBALS['orabooks_test_use_insert_id'] = 42;
+
+        $result = OraBooks_Auth::register([
+            'email'    => 'newuser@example.com',
+            'password' => 'Password1',
+        ]);
+
+        $this->assertIsArray($result);
+        $this->assertEquals(42, $result['user_id']);
+        $this->assertEquals('newuser@example.com', $result['email']);
+        $this->assertArrayHasKey('token', $result);
+        $this->assertEquals(0, $result['is_partner']);
+        $this->assertStringContainsString('Verification', $result['message']);
+    }
+
+    #[Test]
+    public function test_register_partner_with_terms_success()
+    {
+        global $wpdb;
+        $wpdb->test_get_var_callback = function ($query) {
+            return 0;
+        };
+        $GLOBALS['orabooks_test_use_insert_id'] = 50;
+
+        $result = OraBooks_Auth::register([
+            'email'       => 'partner@example.com',
+            'password'    => 'Password1',
+            'user_type'   => 'partner',
+            'accept_terms' => true,
+            'terms_version' => '2.0',
+        ]);
+
+        $this->assertIsArray($result);
+        $this->assertEquals(50, $result['user_id']);
+        $this->assertEquals(1, $result['is_partner']);
+        $this->assertArrayHasKey('token', $result);
+    }
+
+    #[Test]
+    public function test_register_invalid_email()
+    {
+        $result = OraBooks_Auth::register([
+            'email'    => 'not-an-email',
+            'password' => 'Password1',
+        ]);
+
+        $this->assertInstanceOf(WP_Error::class, $result);
+        $this->assertEquals('invalid_email', $result->get_error_code());
+    }
+
+    #[Test]
+    public function test_register_weak_password()
+    {
+        $result = OraBooks_Auth::register([
+            'email'    => 'test@example.com',
+            'password' => 'short',
+        ]);
+
+        $this->assertInstanceOf(WP_Error::class, $result);
+        $this->assertEquals('weak_password', $result->get_error_code());
+    }
+
+    #[Test]
+    public function test_register_duplicate_email()
+    {
+        global $wpdb;
+        $wpdb->test_get_var_callback = function ($query) {
+            if (stripos($query, 'WHERE email') !== false) {
+                return 5; // Existing email found
+            }
+            return 0;
+        };
+
+        $result = OraBooks_Auth::register([
+            'email'    => 'existing@example.com',
+            'password' => 'Password1',
+        ]);
+
+        $this->assertInstanceOf(WP_Error::class, $result);
+        $this->assertEquals('email_exists', $result->get_error_code());
+    }
+
+    #[Test]
+    public function test_register_partner_no_terms()
+    {
+        $result = OraBooks_Auth::register([
+            'email'      => 'partner@example.com',
+            'password'   => 'Password1',
+            'user_type'  => 'partner',
+            'accept_terms' => false,
+        ]);
+
+        $this->assertInstanceOf(WP_Error::class, $result);
+        $this->assertEquals('terms_required', $result->get_error_code());
+    }
+
+    #[Test]
+    public function test_register_partner_agency_no_org_name()
+    {
+        $result = OraBooks_Auth::register([
+            'email'        => 'agency@example.com',
+            'password'     => 'Password1',
+            'user_type'    => 'partner',
+            'accept_terms' => true,
+            'partner_type' => 'agency',
+            'organization_name' => '',
+        ]);
+
+        $this->assertInstanceOf(WP_Error::class, $result);
+        $this->assertEquals('org_name_required', $result->get_error_code());
+    }
+
+    #[Test]
+    public function test_register_partner_invalid_type_defaults_to_individual()
+    {
+        global $wpdb;
+        $wpdb->test_get_var_callback = function ($query) {
+            return 0;
+        };
+        $GLOBALS['orabooks_test_use_insert_id'] = 60;
+
+        $result = OraBooks_Auth::register([
+            'email'        => 'unknown@example.com',
+            'password'     => 'Password1',
+            'user_type'    => 'partner',
+            'accept_terms' => true,
+            'partner_type' => 'nonexistent_type',
+        ]);
+
+        $this->assertIsArray($result);
+        $this->assertEquals(60, $result['user_id']);
+        $this->assertEquals(1, $result['is_partner']);
+        // Session should default to 'individual'
+        $this->assertEquals('individual', $_SESSION['orabooks_partner_type']);
+    }
+
+    #[Test]
+    public function test_register_customer_with_valid_partner_code()
+    {
+        global $wpdb;
+
+        $getVarCalls = 0;
+        $wpdb->test_get_var_callback = function ($query) use (&$getVarCalls) {
+            $getVarCalls++;
+            return 0; // Email not taken, no duplicate attribution
+        };
+
+        $wpdb->test_get_row_callback = function ($query) {
+            // Return active partner code for attribution
+            return (object)[
+                'user_id'     => 5,
+                'partner_code' => 'PARTNER-TEST',
+                'status'       => 'active',
+            ];
+        };
+
+        $GLOBALS['orabooks_test_use_insert_id'] = 70;
+
+        $result = OraBooks_Auth::register([
+            'email'       => 'customer@example.com',
+            'password'    => 'Password1',
+            'user_type'   => 'customer',
+            'partner_code' => 'PARTNER-TEST',
+        ]);
+
+        $this->assertIsArray($result);
+        $this->assertEquals(70, $result['user_id']);
+        $this->assertEquals(0, $result['is_partner']);
+        $this->assertArrayHasKey('token', $result);
+    }
+
+    #[Test]
+    public function test_register_customer_invalid_partner_code()
+    {
+        global $wpdb;
+
+        $wpdb->test_get_var_callback = function ($query) {
+            return 0;
+        };
+
+        $wpdb->test_get_row_callback = function ($query) {
+            return null; // Partner code not found
+        };
+
+        $GLOBALS['orabooks_test_use_insert_id'] = 80;
+
+        $result = OraBooks_Auth::register([
+            'email'       => 'customer@example.com',
+            'password'    => 'Password1',
+            'user_type'   => 'customer',
+            'partner_code' => 'INVALID-CODE',
+        ]);
+
+        $this->assertInstanceOf(WP_Error::class, $result);
+        $this->assertEquals('invalid_code', $result->get_error_code());
+    }
+
+    // ================================================================
+    // LOGIN — login()
+    // ================================================================
+
+    private function makeLoginUser(array $overrides = []): object
+    {
+        return (object) array_merge([
+            'id'                => 1,
+            'email'             => 'user@example.com',
+            'password_hash'     => password_hash('Password1', PASSWORD_DEFAULT),
+            'is_email_verified' => 1,
+            'is_active'         => 1,
+            'is_2fa_enabled'    => 0,
+            'org_id'            => 1,
+            'is_partner'        => 0,
+            'auth_provider'     => 'local',
+        ], $overrides);
+    }
+
+    #[Test]
+    public function test_login_invalid_credentials()
+    {
+        global $wpdb;
+        $wpdb->test_get_row_callback = function ($query) {
+            return $this->makeLoginUser();
+        };
+
+        $result = OraBooks_Auth::login('user@example.com', 'WrongPassword99');
+
+        $this->assertInstanceOf(WP_Error::class, $result);
+        $this->assertEquals('invalid_credentials', $result->get_error_code());
+    }
+
+    #[Test]
+    public function test_login_email_not_verified()
+    {
+        global $wpdb;
+        $wpdb->test_get_row_callback = function ($query) {
+            return $this->makeLoginUser(['is_email_verified' => 0]);
+        };
+
+        $result = OraBooks_Auth::login('user@example.com', 'Password1');
+
+        $this->assertInstanceOf(WP_Error::class, $result);
+        $this->assertEquals('email_not_verified', $result->get_error_code());
+    }
+
+    #[Test]
+    public function test_login_account_disabled()
+    {
+        global $wpdb;
+        $wpdb->test_get_row_callback = function ($query) {
+            return $this->makeLoginUser(['is_active' => 0]);
+        };
+
+        $result = OraBooks_Auth::login('user@example.com', 'Password1');
+
+        $this->assertInstanceOf(WP_Error::class, $result);
+        $this->assertEquals('account_disabled', $result->get_error_code());
+    }
+
+    #[Test]
+    public function test_login_2fa_required()
+    {
+        global $wpdb;
+        $wpdb->test_get_row_callback = function ($query) {
+            return $this->makeLoginUser(['is_2fa_enabled' => 1]);
+        };
+
+        $result = OraBooks_Auth::login('user@example.com', 'Password1');
+
+        $this->assertNotInstanceOf(WP_Error::class, $result);
+        $this->assertTrue($result['requires_2fa']);
+        $this->assertArrayHasKey('temp_token', $result);
+        $this->assertEquals(1, $result['user_id']);
+    }
+
+    #[Test]
+    public function test_login_partner_first_login()
+    {
+        global $wpdb;
+
+        $getRowCalls = 0;
+        $wpdb->test_get_row_callback = function ($query) use (&$getRowCalls) {
+            $getRowCalls++;
+            if ($getRowCalls === 1) {
+                // First call: authenticate user
+                return $this->makeLoginUser([
+                    'is_partner' => 1,
+                    'org_id'     => null,
+                ]);
+            }
+            return null; // Subsequent calls
+        };
+
+        $_SESSION['orabooks_partner_type'] = 'individual';
+        $_SESSION['orabooks_partner_org_name'] = 'My Partner Firm';
+
+        $result = OraBooks_Auth::login('partner@example.com', 'Password1');
+
+        $this->assertNotInstanceOf(WP_Error::class, $result);
+        $this->assertArrayHasKey('token', $result);
+        $this->assertArrayHasKey('refresh_token', $result);
+        $this->assertEquals(1, $result['user_id']);
+        $this->assertEquals('owner', $result['role']);
+        $this->assertEquals(1, $result['is_partner']);
+        $this->assertEquals('/partner/onboarding', $result['redirect_to']);
+    }
+
+    #[Test]
+    public function test_login_customer_needs_tier_selection()
+    {
+        global $wpdb;
+        $wpdb->test_get_row_callback = function ($query) {
+            return $this->makeLoginUser([
+                'is_partner' => 0,
+                'org_id'     => null,
+            ]);
+        };
+
+        $result = OraBooks_Auth::login('customer@example.com', 'Password1');
+
+        $this->assertNotInstanceOf(WP_Error::class, $result);
+        $this->assertTrue($result['needs_tier_selection']);
+        $this->assertArrayHasKey('token', $result);
+    }
+
+    #[Test]
+    public function test_login_success_with_org()
+    {
+        global $wpdb;
+        $wpdb->test_get_row_callback = function ($query) {
+            return $this->makeLoginUser();
+        };
+
+        $GLOBALS['orabooks_test_get_user_role_callback'] = function () {
+            return 'admin';
+        };
+
+        $result = OraBooks_Auth::login('user@example.com', 'Password1');
+
+        $this->assertNotInstanceOf(WP_Error::class, $result);
+        $this->assertArrayHasKey('token', $result);
+        $this->assertArrayHasKey('refresh_token', $result);
+        $this->assertEquals(1, $result['user_id']);
+        $this->assertEquals(1, $result['org_id']);
+        $this->assertEquals('admin', $result['role']);
+        $this->assertEquals('testorg', $result['subdomain']);
+        $this->assertEquals(0, $result['is_partner']);
+    }
+
+    // ================================================================
+    // EMAIL VERIFICATION — verify_email()
+    // ================================================================
+
+    #[Test]
+    public function test_verify_email_valid_token()
+    {
+        global $wpdb;
+        $wpdb->test_get_row_callback = function ($query) {
+            return (object)[
+                'id'                => 1,
+                'email'             => 'user@example.com',
+                'org_id'            => null,
+                'is_email_verified' => 0,
+            ];
+        };
+        // get_var for pending attribution check — returns 0 (no pending)
+        $wpdb->test_get_var_callback = function ($query) {
+            return 0;
+        };
+        // get_results for attribution query — returns empty
+        $wpdb->test_get_results_callback = function ($query) {
+            return [];
+        };
+
+        $result = OraBooks_Auth::verify_email('valid-token-123');
+
+        $this->assertTrue($result);
+    }
+
+    #[Test]
+    public function test_verify_email_invalid_token()
+    {
+        global $wpdb;
+        $wpdb->test_get_row_callback = function ($query) {
+            return null; // No user with that token
+        };
+
+        $result = OraBooks_Auth::verify_email('invalid-token');
+
+        $this->assertInstanceOf(WP_Error::class, $result);
+        $this->assertEquals('invalid_token', $result->get_error_code());
+    }
+
+    #[Test]
+    public function test_verify_email_with_pending_attribution()
+    {
+        global $wpdb;
+
+        $getRowCalls = 0;
+        $wpdb->test_get_row_callback = function ($query) use (&$getRowCalls) {
+            $getRowCalls++;
+            if ($getRowCalls === 1) {
+                // First call: find user by token
+                return (object)[
+                    'id'                => 1,
+                    'email'             => 'customer@example.com',
+                    'org_id'            => null,
+                    'is_email_verified' => 0,
+                ];
+            }
+            if ($getRowCalls === 2) {
+                // Second call: find pending attribution
+                return (object)[
+                    'id'              => 100,
+                    'partner_user_id' => 5,
+                    'customer_user_id' => 1,
+                    'customer_email'  => 'customer@example.com',
+                    'status'          => 'pending',
+                ];
+            }
+            return null;
+        };
+
+        $wpdb->test_get_var_callback = function ($query) {
+            return 0;
+        };
+        $wpdb->test_get_results_callback = function ($query) {
+            return [];
+        };
+
+        $result = OraBooks_Auth::verify_email('valid-token');
+
+        $this->assertTrue($result);
+    }
+
+    // ================================================================
+    // PASSWORD RESET — forgot_password() / reset_password()
+    // ================================================================
+
+    #[Test]
+    public function test_forgot_password_success()
+    {
+        global $wpdb;
+        $wpdb->test_get_row_callback = function ($query) {
+            return (object)['id' => 1, 'email' => 'user@example.com'];
+        };
+
+        $result = OraBooks_Auth::forgot_password('user@example.com');
+
+        $this->assertTrue($result);
+    }
+
+    #[Test]
+    public function test_forgot_password_nonexistent_email()
+    {
+        global $wpdb;
+        $wpdb->test_get_row_callback = function ($query) {
+            return null; // Email doesn't exist
+        };
+
+        // Should still return true to avoid leaking email existence
+        $result = OraBooks_Auth::forgot_password('ghost@example.com');
+
+        $this->assertTrue($result);
+    }
+
+    #[Test]
+    public function test_reset_password_success()
+    {
+        global $wpdb;
+        $wpdb->test_get_row_callback = function ($query) {
+            return (object)[
+                'id'     => 1,
+                'email'  => 'user@example.com',
+                'org_id' => 1,
+            ];
+        };
+
+        $result = OraBooks_Auth::reset_password('valid-reset-token', 'NewPassword1');
+
+        $this->assertTrue($result);
+    }
+
+    #[Test]
+    public function test_reset_password_invalid_token()
+    {
+        global $wpdb;
+        $wpdb->test_get_row_callback = function ($query) {
+            return null; // No user with that token
+        };
+
+        $result = OraBooks_Auth::reset_password('bad-token', 'NewPassword1');
+
+        $this->assertInstanceOf(WP_Error::class, $result);
+        $this->assertEquals('invalid_token', $result->get_error_code());
+    }
+
+    #[Test]
+    public function test_reset_password_weak_new_password()
+    {
+        global $wpdb;
+        $wpdb->test_get_row_callback = function ($query) {
+            return (object)[
+                'id'     => 1,
+                'email'  => 'user@example.com',
+                'org_id' => 1,
+            ];
+        };
+
+        $result = OraBooks_Auth::reset_password('valid-token', 'weak');
+
+        $this->assertInstanceOf(WP_Error::class, $result);
+        $this->assertEquals('weak_password', $result->get_error_code());
+    }
+
+    // ================================================================
+    // SUBDOMAIN DETECTION — detect_subdomain_from_host()
+    // ================================================================
+
+    #[Test]
+    public function test_detect_subdomain_from_host_valid()
+    {
+        $_SERVER['HTTP_HOST'] = 'mycompany.orabooks.app';
+        $this->assertEquals('mycompany', OraBooks_Auth::detect_subdomain_from_host());
+    }
+
+    #[Test]
+    public function test_detect_subdomain_from_host_root_domain()
+    {
+        $_SERVER['HTTP_HOST'] = 'orabooks.app';
+        $this->assertEquals('', OraBooks_Auth::detect_subdomain_from_host());
+    }
+
+    #[Test]
+    public function test_detect_subdomain_from_host_www()
+    {
+        $_SERVER['HTTP_HOST'] = 'www.orabooks.app';
+        $this->assertEquals('', OraBooks_Auth::detect_subdomain_from_host());
+    }
+
+    #[Test]
+    public function test_detect_subdomain_from_host_localhost()
+    {
+        $_SERVER['HTTP_HOST'] = 'localhost';
+        $this->assertEquals('', OraBooks_Auth::detect_subdomain_from_host());
+    }
+
+    #[Test]
+    public function test_detect_subdomain_from_host_empty()
+    {
+        $_SERVER['HTTP_HOST'] = '';
+        $this->assertEquals('', OraBooks_Auth::detect_subdomain_from_host());
+    }
+
+    // ================================================================
+    // 2FA AJAX — ajax_setup_2fa()
+    // ================================================================
+
+    #[Test]
+    public function test_ajax_setup_2fa_success()
+    {
+        $response = $this->callAjax('ajax_setup_2fa');
+
+        $this->assertFalse($response['error']);
+        $this->assertArrayHasKey('secret', $response['data']);
+        $this->assertArrayHasKey('qr_code_url', $response['data']);
+        $this->assertArrayHasKey('backup_codes', $response['data']);
+        $this->assertStringContainsString('otpauth://', $response['data']['qr_code_url']);
+        $this->assertCount(3, $response['data']['backup_codes']);
+    }
+
+    #[Test]
+    public function test_ajax_setup_2fa_unauthenticated()
+    {
+        $GLOBALS['orabooks_test_current_user_id'] = 0;
+
+        $response = $this->callAjax('ajax_setup_2fa');
+
+        $this->assertTrue($response['error']);
+        $this->assertStringContainsString('Not authenticated', $response['message']);
+    }
+
+    // ================================================================
+    // 2FA AJAX — ajax_verify_2fa_setup()
+    // ================================================================
+
+    #[Test]
+    public function test_ajax_verify_2fa_setup_success()
+    {
+        // Set up temp secret and backup codes
+        $GLOBALS['orabooks_test_user_meta'][1]['orabooks_2fa_temp_secret'] = 'TESTSECRET123456';
+        $GLOBALS['orabooks_test_user_meta'][1]['orabooks_2fa_temp_backup_codes'] = ['bc1', 'bc2', 'bc3'];
+        $_POST['otp_code'] = '123456';
+
+        $response = $this->callAjax('ajax_verify_2fa_setup');
+
+        $this->assertFalse($response['error']);
+        $this->assertStringContainsString('2FA enabled', $response['message']);
+
+        // Verify backup codes were stored in DB
+        global $wpdb;
+        $this->assertStringContainsString('orabooks_2fa_backup_codes', $wpdb->last_query);
+    }
+
+    #[Test]
+    public function test_ajax_verify_2fa_setup_invalid_otp()
+    {
+        $GLOBALS['orabooks_test_user_meta'][1]['orabooks_2fa_temp_secret'] = 'TESTSECRET123456';
+        $_POST['otp_code'] = 'wrong-otp';
+
+        $response = $this->callAjax('ajax_verify_2fa_setup');
+
+        $this->assertTrue($response['error']);
+        $this->assertStringContainsString('Invalid OTP', $response['message']);
+    }
+
+    #[Test]
+    public function test_ajax_verify_2fa_setup_not_initiated()
+    {
+        $_POST['otp_code'] = '123456';
+
+        $response = $this->callAjax('ajax_verify_2fa_setup');
+
+        $this->assertTrue($response['error']);
+        $this->assertStringContainsString('2FA setup not initiated', $response['message']);
+    }
+
+    // ================================================================
+    // 2FA AJAX — ajax_2fa_challenge()
+    // ================================================================
+
+    #[Test]
+    public function test_ajax_2fa_challenge_valid_otp()
+    {
+        $GLOBALS['orabooks_test_verify_jwt_result'] = [
+            'purpose' => '2fa_challenge',
+            'user_id' => 1,
+            'exp'     => time() + 300,
+        ];
+        $GLOBALS['orabooks_test_user_meta'][1]['orabooks_2fa_secret'] = 'TESTSECRET123456';
+        $_POST['temp_token'] = 'valid-temp-token';
+        $_POST['otp_code']   = '123456';
+
+        $response = $this->callAjax('ajax_2fa_challenge');
+
+        $this->assertFalse($response['error']);
+        $this->assertArrayHasKey('token', $response['data']);
+        $this->assertArrayHasKey('refresh_token', $response['data']);
+        $this->assertEquals(1, $response['data']['user_id']);
+    }
+
+    #[Test]
+    public function test_ajax_2fa_challenge_invalid_otp()
+    {
+        $GLOBALS['orabooks_test_verify_jwt_result'] = [
+            'purpose' => '2fa_challenge',
+            'user_id' => 1,
+            'exp'     => time() + 300,
+        ];
+        $GLOBALS['orabooks_test_user_meta'][1]['orabooks_2fa_secret'] = 'TESTSECRET123456';
+        $_POST['temp_token'] = 'valid-temp-token';
+        $_POST['otp_code']   = 'wrong-otp';
+
+        $response = $this->callAjax('ajax_2fa_challenge');
+
+        $this->assertTrue($response['error']);
+        $this->assertStringContainsString('Invalid verification code', $response['message']);
+    }
+
+    #[Test]
+    public function test_ajax_2fa_challenge_invalid_temp_token()
+    {
+        $GLOBALS['orabooks_test_verify_jwt_result'] = false; // Invalid token
+        $_POST['temp_token'] = 'expired-token';
+        $_POST['otp_code']   = '123456';
+
+        $response = $this->callAjax('ajax_2fa_challenge');
+
+        $this->assertTrue($response['error']);
+        $this->assertStringContainsString('Invalid or expired challenge token', $response['message']);
+    }
+
+    #[Test]
+    public function test_ajax_2fa_challenge_wrong_purpose()
+    {
+        $GLOBALS['orabooks_test_verify_jwt_result'] = [
+            'purpose' => 'email_verification', // Wrong purpose
+            'user_id' => 1,
+        ];
+        $_POST['temp_token'] = 'wrong-purpose-token';
+        $_POST['otp_code']   = '123456';
+
+        $response = $this->callAjax('ajax_2fa_challenge');
+
+        $this->assertTrue($response['error']);
+        $this->assertStringContainsString('Invalid or expired challenge token', $response['message']);
+    }
+
+    #[Test]
+    public function test_ajax_2fa_challenge_valid_backup_code()
+    {
+        global $wpdb;
+
+        $GLOBALS['orabooks_test_verify_jwt_result'] = [
+            'purpose' => '2fa_challenge',
+            'user_id' => 1,
+            'exp'     => time() + 300,
+        ];
+        $GLOBALS['orabooks_test_user_meta'][1]['orabooks_2fa_secret'] = 'TESTSECRET123456';
+        $_POST['temp_token']  = 'valid-temp-token';
+        $_POST['backup_code'] = 'valid-backup-001';
+        $_POST['otp_code']    = ''; // No OTP — using backup code
+
+        // Mock get_results to return a stored backup code
+        $wpdb->test_get_results_callback = function ($query) {
+            if (stripos($query, 'orabooks_2fa_backup_codes') !== false) {
+                return [(object)[
+                    'id'        => 1,
+                    'code_hash' => password_hash('valid-backup-001', PASSWORD_DEFAULT),
+                    'used'      => 0,
+                ]];
+            }
+            return [];
+        };
+
+        $response = $this->callAjax('ajax_2fa_challenge');
+
+        $this->assertFalse($response['error']);
+        $this->assertArrayHasKey('token', $response['data']);
+        $this->assertEquals(1, $response['data']['user_id']);
+    }
+
+    // ================================================================
+    // LOGOUT — ajax_logout()
+    // ================================================================
+
+    #[Test]
+    public function test_ajax_logout_success()
+    {
+        $response = $this->callAjax('ajax_logout');
+
+        $this->assertFalse($response['error']);
+        $this->assertStringContainsString('Logged out', $response['message']);
+    }
+
+    #[Test]
+    public function test_ajax_logout_unauthenticated()
+    {
+        $GLOBALS['orabooks_test_current_user_id'] = 0;
+
+        $response = $this->callAjax('ajax_logout');
+
+        $this->assertFalse($response['error']);
+        $this->assertStringContainsString('Logged out', $response['message']);
+    }
+
+    // ================================================================
+    // OIDC EDGE CASES — handle_google_callback() extensions
+    // ================================================================
+
+    #[Test]
+    public function test_handle_google_callback_new_partner_success()
+    {
+        $this->storeValidOidcState('test-state-partner');
+
+        global $wpdb;
+        $wpdb->test_get_row_callback = function ($query) {
+            // First call: no existing user (will create new)
+            if (stripos($query, 'WHERE email') !== false) {
+                return null;
+            }
+            // Subsequent calls (partner code, etc.)
+            return null;
+        };
+        $GLOBALS['orabooks_test_use_insert_id'] = 100;
+
+        // Set state data for partner registration
+        $_SESSION['orabooks_oidc_state_data'] = [
+            'user_type'      => 'partner',
+            'accept_terms'   => true,
+            'partner_type'   => 'individual',
+            'terms_version'  => '1.0',
+        ];
+
+        $result = OraBooks_Auth::handle_google_callback('auth-code-partner', 'test-state-partner');
+
+        $this->assertNotInstanceOf(WP_Error::class, $result);
+        $this->assertTrue($result['is_new']);
+        $this->assertEquals(1, $result['is_partner']);
+        $this->assertArrayHasKey('token', $result);
+        $this->assertEquals('/partner/onboarding', $result['redirect_to']);
+    }
+
+    #[Test]
+    public function test_handle_google_callback_existing_user_email_conflict()
+    {
+        $this->storeValidOidcState('test-state-conflict');
+
+        global $wpdb;
+        $wpdb->test_get_row_callback = function ($query) {
+            return (object)[
+                'id'                => 5,
+                'email'             => 'localuser@example.com',
+                'password_hash'     => '',
+                'is_active'         => 1,
+                'is_email_verified' => 1,
+                'is_2fa_enabled'    => 0,
+                'org_id'            => null,
+                'is_partner'        => 0,
+                'auth_provider'     => 'local', // Local user — conflict
+            ];
+        };
+
+        $result = OraBooks_Auth::handle_google_callback('auth-code-conflict', 'test-state-conflict');
+
+        $this->assertInstanceOf(WP_Error::class, $result);
+        $this->assertEquals('oidc_email_conflict', $result->get_error_code());
+    }
+
+    // ================================================================
+    // require_customer_org() extensions
+    // ================================================================
+
+    #[Test]
+    public function test_require_customer_org_inactive_org_blocked()
+    {
+        $GLOBALS['orabooks_test_org_callback'] = function ($org_id) {
+            return (object)[
+                'id'                => $org_id,
+                'organization_type' => 'customer',
+                'subdomain'         => 'inactive-org',
+                'status'            => 'suspended',
+            ];
+        };
+
+        $result = OraBooks_Auth::require_customer_org(1, 10);
+
+        $this->assertInstanceOf(WP_Error::class, $result);
+        $this->assertEquals('org_inactive', $result->get_error_code());
+    }
+
+    // ================================================================
+    // LOGIN — subdomain mismatch extensions (via detect_subdomain_from_host)
+    // ================================================================
+
+    #[Test]
+    public function test_login_inactive_org_blocked()
+    {
+        global $wpdb;
+        $wpdb->test_get_row_callback = function ($query) {
+            return $this->makeLoginUser();
+        };
+
+        $GLOBALS['orabooks_test_org_callback'] = function ($org_id) {
+            return (object)[
+                'id'                => $org_id,
+                'organization_type' => 'customer',
+                'subdomain'         => 'testorg',
+                'status'            => 'suspended',
+            ];
+        };
+
+        $result = OraBooks_Auth::login('user@example.com', 'Password1');
+
+        $this->assertInstanceOf(WP_Error::class, $result);
+        $this->assertEquals('org_inactive', $result->get_error_code());
+    }
+
+    // ================================================================
+    // REFRESH TOKEN — refresh_token()
+    // ================================================================
+
+    #[Test]
+    public function test_refresh_token_success()
+    {
+        global $wpdb;
+
+        $getRowCalls = 0;
+        $wpdb->test_get_row_callback = function ($query) use (&$getRowCalls) {
+            $getRowCalls++;
+            if ($getRowCalls === 1) {
+                // First call: find refresh token
+                return (object)[
+                    'id'      => 1,
+                    'user_id' => 1,
+                    'org_id'  => 1,
+                ];
+            }
+            if ($getRowCalls === 2) {
+                // Second call: find user by id
+                return (object)[
+                    'id'         => 1,
+                    'email'      => 'user@example.com',
+                    'org_id'     => 1,
+                    'is_partner' => 0,
+                ];
+            }
+            return null;
+        };
+
+        $result = OraBooks_Auth::refresh_token('valid-refresh-token');
+
+        $this->assertIsArray($result);
+        $this->assertArrayHasKey('token', $result);
+        $this->assertArrayHasKey('refresh_token', $result);
+    }
+
+    #[Test]
+    public function test_refresh_token_invalid()
+    {
+        global $wpdb;
+        $wpdb->test_get_row_callback = function ($query) {
+            return null; // Token not found
+        };
+
+        $result = OraBooks_Auth::refresh_token('invalid-token');
+
+        $this->assertInstanceOf(WP_Error::class, $result);
+        $this->assertEquals('invalid_token', $result->get_error_code());
+    }
+
+    // ================================================================
+    // PARTNER LOGIN OIDC — partner via OIDC
+    // ================================================================
+
+    #[Test]
+    public function test_handle_google_callback_existing_partner_2fa()
+    {
+        $this->storeValidOidcState('test-state-partner-2fa');
+
+        global $wpdb;
+        $wpdb->test_get_row_callback = function ($query) {
+            return (object)[
+                'id'                => 20,
+                'email'             => 'partner@example.com',
+                'password_hash'     => '',
+                'is_active'         => 1,
+                'is_email_verified' => 1,
+                'is_2fa_enabled'    => 1, // Has 2FA
+                'org_id'            => 10,
+                'is_partner'        => 1,
+                'auth_provider'     => 'google',
+            ];
+        };
+
+        $result = OraBooks_Auth::handle_google_callback('auth-code-p2fa', 'test-state-partner-2fa');
+
+        $this->assertNotInstanceOf(WP_Error::class, $result);
+        $this->assertTrue($result['requires_2fa']);
+        $this->assertEquals(20, $result['user_id']);
+        $this->assertArrayHasKey('temp_token', $result);
     }
 }
