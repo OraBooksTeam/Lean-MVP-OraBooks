@@ -65,10 +65,12 @@ export default function LoginPage() {
 
   if (show2fa) {
     return (
-      <div className="min-h-screen flex items-center justify-center px-4 py-12" style={{ background: 'linear-gradient(135deg, #f8fafc 0%, #e0f2fe 50%, #f1f5f9 100%)' }}>
-        <div className="glass-panel w-full max-w-md p-8">
-          <div className="mx-auto mb-6 flex h-12 w-12 items-center justify-center rounded-xl bg-orange-500/10">
-            <Flame className="h-6 w-6 text-orange-600" />
+      <div className="brand-auth-bg flex min-h-screen items-center justify-center px-4 py-12">
+        <div className="glass-panel w-full max-w-md overflow-hidden">
+          <div className="brand-accent-bar h-1.5" />
+          <div className="p-8">
+          <div className="mx-auto mb-6 flex h-12 w-12 items-center justify-center rounded-xl bg-primary">
+            <Flame className="h-6 w-6 text-white" />
           </div>
           <h2 className="text-center text-xl font-bold text-ink">Two-Factor Authentication</h2>
           <p className="mt-2 text-center text-sm text-slate-600">Enter the 6‑digit code from your authenticator app, or use a backup code.</p>
@@ -77,16 +79,19 @@ export default function LoginPage() {
             {error && <p className="text-sm text-danger">{error}</p>}
             <Button type="submit" loading={loading} className="w-full">Verify Code</Button>
           </form>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 py-12" style={{ background: 'linear-gradient(135deg, #f8fafc 0%, #e0f2fe 50%, #f1f5f9 100%)' }}>
-      <div className="glass-panel w-full max-w-md p-8">
-        <div className="mx-auto mb-6 flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
-          <span className="text-2xl font-black text-primary">OB</span>
+    <div className="brand-auth-bg flex min-h-screen items-center justify-center px-4 py-12">
+      <div className="glass-panel w-full max-w-md overflow-hidden">
+        <div className="brand-accent-bar h-1.5" />
+        <div className="p-8">
+        <div className="mx-auto mb-6 flex h-12 w-12 items-center justify-center rounded-xl bg-primary">
+          <span className="text-2xl font-black text-white">OB</span>
         </div>
         <h2 className="text-center text-2xl font-bold text-ink">Log In</h2>
         <p className="mt-2 text-center text-sm text-slate-600">Welcome back. Sign in to your account.</p>
@@ -117,6 +122,7 @@ export default function LoginPage() {
           </svg>
           Continue with Google
         </button>
+        </div>
       </div>
     </div>
   );
