@@ -916,7 +916,7 @@ class OraBooks_Commission {
              FROM {$table_earned}
              WHERE status = 'earned'
                AND expires_at > NOW()
-             GROUP BY partner_user_id
+             GROUP BY partner_user_id"
         );
         
         $batches_created = 0;
