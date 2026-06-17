@@ -41,10 +41,12 @@ export default function RegisterPage() {
   const needsOrg = ['agency', 'reseller', 'strategic_partner'].includes(partnerType);
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 py-12" style={{ background: 'linear-gradient(135deg, #f8fafc 0%, #e0f2fe 50%, #f1f5f9 100%)' }}>
-      <div className="glass-panel w-full max-w-lg p-8">
-        <div className="mx-auto mb-6 flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
-          <UserPlus className="h-6 w-6 text-primary" />
+    <div className="brand-auth-bg flex min-h-screen items-center justify-center px-4 py-12">
+      <div className="glass-panel w-full max-w-lg overflow-hidden">
+        <div className="brand-accent-bar h-1.5" />
+        <div className="p-8">
+        <div className="mx-auto mb-6 flex h-12 w-12 items-center justify-center rounded-xl bg-primary">
+          <UserPlus className="h-6 w-6 text-white" />
         </div>
         <h2 className="text-center text-2xl font-bold text-ink">Create Account</h2>
         <p className="mt-2 text-center text-sm text-slate-600">Start your OraBooks journey.</p>
@@ -105,6 +107,7 @@ export default function RegisterPage() {
         <p className="mt-6 text-center text-sm text-slate-600">
           Already have an account? <a href="/login" className="font-semibold text-primary hover:text-primary-dark">Sign in</a>
         </p>
+        </div>
       </div>
     </div>
   );
