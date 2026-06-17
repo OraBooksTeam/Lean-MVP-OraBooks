@@ -1,12 +1,14 @@
-import { lazy, Suspense, useLocation } from 'react-router-dom';
+import { lazy, Suspense } from 'react';
+import { useLocation } from 'react-router-dom';
 import type { ReactNode } from 'react';
+import Sidebar from '@/components/Sidebar';
 
-const AdminDashboard = lazy(() => import('@pages/admin/AdminDashboard'));
-const AdminOrganizations = lazy(() => import('@pages/admin/AdminOrganizations'));
-const AdminUsers = lazy(() => import('@pages/admin/AdminUsers'));
-const AdminPartners = lazy(() => import('@pages/admin/AdminPartners'));
-const AdminCoA = lazy(() => import('@pages/admin/AdminCoA'));
-const AdminAudit = lazy(() => import('@pages/admin/AdminAudit'));
+const AdminDashboard = lazy(() => import('@/pages/admin/AdminDashboard'));
+const AdminOrganizations = lazy(() => import('@/pages/admin/AdminOrganizations'));
+const AdminUsers = lazy(() => import('@/pages/admin/AdminUsers'));
+const AdminPartners = lazy(() => import('@/pages/admin/AdminPartners'));
+const AdminCoA = lazy(() => import('@/pages/admin/AdminCoA'));
+const AdminAudit = lazy(() => import('@/pages/admin/AdminAudit'));
 
 function Fallback() {
   return <div className="p-8 text-center text-sm text-slate-500">Loading…</div>;
