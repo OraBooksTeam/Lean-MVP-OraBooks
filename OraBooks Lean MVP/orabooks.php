@@ -331,6 +331,7 @@ function orabooks_deactivate() {
     wp_clear_scheduled_hook('orabooks_observability_collect');
     wp_clear_scheduled_hook('orabooks_observability_evaluate');
     wp_clear_scheduled_hook('orabooks_observability_purge');
+    wp_clear_scheduled_hook('orabooks_csv_imports_purge');
 }
 
 // Add custom cron schedule for every_minute
