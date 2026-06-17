@@ -837,6 +837,24 @@ class OraBooks_Database {
             wp_schedule_event(time(), 'daily', 'orabooks_daily_overdue_digest');
         }
 
+        // ============================================================
+        // SL-093: Observability & Monitoring
+        // ============================================================
+        $observability_tables = OraBooks_Observability::get_create_table_sql();
+        foreach ($observability_tables as $sql) {
+            dbDelta($sql);
+        }
+
+        if (!wp_next_scheduled('orabooks_observability_collect')) {
+            wp_schedule_event(time(), 'hourly', 'orabooks_observability_collect');
+        }
+        if (!wp_next_scheduled('orabooks_observability_evaluate')) {
+            wp_schedule_event(time(), 'hourly', 'orabooks_observability_evaluate');
+        }
+        if (!wp_next_scheduled('orabooks_observability_purge')) {
+            wp_schedule_event(time(), 'daily', 'orabooks_observability_purge');
+        }
+
         update_option('orabooks_db_version', ORABOOKS_DB_VERSION);
     }
     

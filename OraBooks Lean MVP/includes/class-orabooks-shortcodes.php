@@ -30,6 +30,7 @@ class OraBooks_Shortcodes {
             add_shortcode('orabooks_notification_preferences', [self::$instance, 'notification_preferences']);
             add_shortcode('orabooks_notification_admin', [self::$instance, 'notification_admin']);
             add_shortcode('orabooks_async_queue_dashboard', [self::$instance, 'async_queue_dashboard']);
+            add_shortcode('orabooks_observability_dashboard', [self::$instance, 'observability_dashboard']);
             add_shortcode('orabooks_export_status', [self::$instance, 'export_status']);
             add_shortcode('orabooks_export_button', [self::$instance, 'export_button']);
             add_shortcode('orabooks_customers', [self::$instance, 'customers_page']);
