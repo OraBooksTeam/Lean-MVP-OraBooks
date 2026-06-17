@@ -506,6 +506,22 @@ class OraBooks_Database {
             UNIQUE KEY uk_org_period (org_id, period_start)
         ) {$charset_collate};";
         dbDelta($sql);
+
+        // ============================================================
+        // SL-074: Core Financial Statements / Reporting Read Models
+        // ============================================================
+        $report_tables = OraBooks_Financial_Reports::get_create_table_sql();
+        foreach ($report_tables as $sql) {
+            dbDelta($sql);
+        }
+        OraBooks_Financial_Reports::seed_projection_dependencies();
+
+        if (!wp_next_scheduled('orabooks_monthly_report_snapshot_archive')) {
+            wp_schedule_event(time(), 'monthly', 'orabooks_monthly_report_snapshot_archive');
+        }
+        if (!wp_next_scheduled('orabooks_daily_projection_integrity_check')) {
+            wp_schedule_event(time(), 'daily', 'orabooks_daily_projection_integrity_check');
+        }
         
         // ============================================================
         // SL-001: outbox_messages table (transactional outbox)
