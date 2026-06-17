@@ -99,6 +99,10 @@ export default function ClientShell({
 
         <a
           href={logoutUrl}
+          onClick={() => {
+            window.localStorage.removeItem('orabooks_token');
+            window.localStorage.removeItem('orabooks_refresh_token');
+          }}
           className="absolute bottom-5 left-5 right-5 flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-white/70 hover:bg-white/10 hover:text-white"
         >
           <LogOut className="h-4 w-4" />

@@ -835,6 +835,27 @@ class OraBooks_Partner {
         
         orabooks_json_success($info);
     }
+
+    public function ajax_partner_onboarding() {
+        $user_id = orabooks_get_current_user_id();
+
+        if (!orabooks_check_rate_limit('partner_onboarding_' . $user_id, 60, 60)) {
+            orabooks_json_error('Too many requests', 429);
+        }
+
+        $info = self::get_onboarding_info($user_id);
+
+        if (!$info) {
+            orabooks_json_error('No partner onboarding info found', 404);
+        }
+
+        orabooks_log_event('partner_onboarding_viewed', 'Partner viewed onboarding page', 'info', [
+            'partner_user_id' => $user_id,
+            'code_status' => $info['code_status']
+        ], $user_id, null);
+
+        orabooks_json_success($info);
+    }
     
     public function ajax_request_reactivation() {
         $user_id = orabooks_get_current_user_id();
@@ -960,6 +981,14 @@ class OraBooks_Partner {
         }
         
         orabooks_json_success($attributions);
+    }
+
+    public function ajax_payment_settings() {
+        orabooks_json_error('Partner payment settings are not implemented in MVP. This is reserved for SL-140.', 501);
+    }
+
+    public function ajax_partner_application() {
+        orabooks_json_error('Partner applications for existing customers are not implemented in MVP. This is reserved for SL-140.', 501);
     }
     
     // ============================================================
