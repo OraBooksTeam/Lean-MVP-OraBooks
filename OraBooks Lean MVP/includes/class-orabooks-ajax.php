@@ -177,6 +177,10 @@ class OraBooks_Ajax {
             $org_id
         ));
 
+        $recent_customers = class_exists('OraBooks_Customers')
+            ? OraBooks_Customers::get_list($org_id, ['limit' => 25, 'offset' => 0])
+            : ['customers' => [], 'total' => 0, 'page' => 1, 'per_page' => 25];
+
         orabooks_json_success([
             'context' => $context,
             'stats' => $stats,
@@ -184,6 +188,7 @@ class OraBooks_Ajax {
             'journal_statuses' => $journal_statuses ?: [],
             'recent_journals' => $recent_journals ?: [],
             'recent_invoices' => $recent_invoices ?: [],
+            'recent_customers' => $recent_customers,
             'timestamp' => current_time('mysql'),
         ]);
     }
