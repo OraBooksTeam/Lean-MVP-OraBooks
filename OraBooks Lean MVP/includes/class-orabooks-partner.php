@@ -19,8 +19,10 @@ class OraBooks_Partner {
             self::$instance = new self();
             add_action('orabooks_partner_activity_check', [self::$instance, 'process_partner_activity']);
             add_action('wp_ajax_orabooks_get_partner_info', [self::$instance, 'ajax_get_partner_info']);
+            add_action('wp_ajax_nopriv_orabooks_get_partner_info', [self::$instance, 'ajax_get_partner_info']);
             add_action('wp_ajax_orabooks_partner_onboarding', [self::$instance, 'ajax_partner_onboarding']);
             add_action('wp_ajax_orabooks_request_reactivation', [self::$instance, 'ajax_request_reactivation']);
+            add_action('wp_ajax_nopriv_orabooks_request_reactivation', [self::$instance, 'ajax_request_reactivation']);
             
             // SL-139: Partner Dashboard endpoints
             add_action('wp_ajax_orabooks_partner_dashboard', [self::$instance, 'ajax_partner_dashboard']);

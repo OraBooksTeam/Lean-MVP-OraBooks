@@ -1196,6 +1196,43 @@ class OraBooks_Partner_Test extends TestCase
         $this->assertEquals('R1', $response['data'][0]['partner_code']);
     }
 
+    #[Test]
+    public function test_ajax_partner_onboarding_success()
+    {
+        global $wpdb;
+
+        $wpdb->test_get_row_callback = function ($query) {
+            return (object) [
+                'partner_code'      => 'PARTNER-ONBOARD',
+                'code_status'       => 'active',
+                'partner_type'      => 'individual',
+                'organization_name' => null,
+                'org_status'        => 'active',
+                'org_name'          => 'Partner Org',
+                'created_at'        => '2026-06-01 10:00:00',
+            ];
+        };
+
+        $response = $this->callAjax('ajax_partner_onboarding');
+
+        $this->assertFalse($response['error']);
+        $this->assertEquals('PARTNER-ONBOARD', $response['data']['partner_code']);
+        $this->assertEquals('active', $response['data']['code_status']);
+        $this->assertFalse($response['data']['bank_info_required']);
+    }
+
+    #[Test]
+    public function test_future_partner_endpoints_return_501()
+    {
+        $paymentResponse = $this->callAjax('ajax_payment_settings');
+        $applicationResponse = $this->callAjax('ajax_partner_application');
+
+        $this->assertTrue($paymentResponse['error']);
+        $this->assertEquals(501, $paymentResponse['status']);
+        $this->assertTrue($applicationResponse['error']);
+        $this->assertEquals(501, $applicationResponse['status']);
+    }
+
     // ================================================================
     // get_dashboard_data — commission summary from OraBooks_Commission stub
     // ================================================================
