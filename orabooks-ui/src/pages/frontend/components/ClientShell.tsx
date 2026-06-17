@@ -1,4 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
+import type { ReactNode } from 'react';
 import {
   Bell,
   BookOpen,
@@ -13,7 +14,7 @@ import { cn } from '@/lib/utils';
 interface ClientShellProps {
   title: string;
   eyebrow?: string;
-  children: React.ReactNode;
+  children: ReactNode;
   organization?: {
     name?: string;
     tier?: string;
