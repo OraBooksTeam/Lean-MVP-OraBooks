@@ -861,6 +861,9 @@ class OraBooks_Partner {
     
     public function ajax_request_reactivation() {
         $user_id = orabooks_get_current_user_id();
+        if (!$user_id) {
+            orabooks_json_error('Not authenticated', 401);
+        }
         $org_id = intval($_POST['org_id'] ?? 0);
         $reason = sanitize_textarea_field($_POST['reason'] ?? '');
         
