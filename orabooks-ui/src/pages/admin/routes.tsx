@@ -1,4 +1,4 @@
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, useLocation } from 'react-router-dom';
 import type { ReactNode } from 'react';
 
 const AdminDashboard = lazy(() => import('@pages/admin/AdminDashboard'));
@@ -12,26 +12,24 @@ function Fallback() {
   return <div className="p-8 text-center text-sm text-slate-500">Loading…</div>;
 }
 
-export default function AdminRoutes() {
-  const path = window.location.pathname;
+const routeComponents: Record<string, ReactNode> = {
+  '/admin/organizations': <AdminOrganizations />,
+  '/admin/users': <AdminUsers />,
+  '/admin/partners': <AdminPartners />,
+  '/admin/coa': <AdminCoA />,
+  '/admin/audit': <AdminAudit />,
+};
 
-  const Component = (() => {
-    if (path.endsWith('/organizations')) return AdminOrganizations;
-    if (path.endsWith('/users')) return AdminUsers;
-    if (path.endsWith('/partners')) return AdminPartners;
-    if (path.endsWith('/coa')) return AdminCoA;
-    if (path.endsWith('/audit')) return AdminAudit;
-    return AdminDashboard;
-  })();
+export default function AdminRoutes() {
+  const { pathname } = useLocation();
+  const component = pathname in routeComponents ? routeComponents[pathname] : <AdminDashboard />;
 
   return (
     <div className="flex min-h-screen bg-slate-50 text-ink">
       <Sidebar />
       <main className="flex-1 overflow-y-auto p-6">
         <div className="mx-auto max-w-7xl">
-          <Suspense fallback={<Fallback />}>
-            <Component />
-          </Suspense>
+          <Suspense fallback={<Fallback />}>{component}</Suspense>
         </div>
       </main>
     </div>
