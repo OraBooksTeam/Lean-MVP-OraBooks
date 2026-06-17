@@ -522,6 +522,17 @@ class OraBooks_Database {
         if (!wp_next_scheduled('orabooks_daily_projection_integrity_check')) {
             wp_schedule_event(time(), 'daily', 'orabooks_daily_projection_integrity_check');
         }
+
+        // ============================================================
+        // SL-075: Operational Reports Read Models
+        // ============================================================
+        $operational_report_tables = OraBooks_Operational_Reports::get_create_table_sql();
+        foreach ($operational_report_tables as $sql) {
+            dbDelta($sql);
+        }
+        if (!wp_next_scheduled('orabooks_daily_low_stock_check')) {
+            wp_schedule_event(time(), 'daily', 'orabooks_daily_low_stock_check');
+        }
         
         // ============================================================
         // SL-001: outbox_messages table (transactional outbox)
