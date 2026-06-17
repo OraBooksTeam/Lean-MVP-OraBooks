@@ -31,6 +31,22 @@ function normalizeResponse<T = any>(json: any): ApiResult<T> {
   return json as ApiResult<T>;
 }
 
+async function parseResponse<T = any>(res: Response): Promise<ApiResult<T>> {
+  const text = await res.text();
+
+  if (!res.ok) {
+    return { error: `OraBooks request failed with HTTP ${res.status}.` };
+  }
+
+  try {
+    return normalizeResponse<T>(JSON.parse(text));
+  } catch {
+    const trimmed = text.trim();
+    const preview = trimmed ? trimmed.slice(0, 160) : 'Empty response';
+    return { error: `OraBooks returned an invalid AJAX response: ${preview}` };
+  }
+}
+
 async function request<T = any>(
   payload: Record<string, any>,
   method = 'POST'
@@ -52,12 +68,7 @@ async function request<T = any>(
       body,
     });
 
-    if (!res.ok) {
-      return { error: `OraBooks request failed with HTTP ${res.status}.` };
-    }
-
-    const json = await res.json();
-    return normalizeResponse<T>(json);
+    return parseResponse<T>(res);
   } catch (error) {
     return { error: error instanceof Error ? error.message : 'OraBooks request failed.' };
   }
@@ -75,12 +86,7 @@ export const api = {
     });
 
     return fetch(`${ORABOOKS_URL}?${qs.toString()}`)
-      .then((r) => {
-        if (!r.ok) {
-          return { error: `OraBooks request failed with HTTP ${r.status}.` } as ApiResult<T>;
-        }
-        return r.json().then((j) => normalizeResponse<T>(j));
-      })
+      .then((r) => parseResponse<T>(r))
       .catch((error) => ({
         error: error instanceof Error ? error.message : 'OraBooks request failed.',
       }));
