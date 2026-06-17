@@ -1,6 +1,8 @@
 const ORABOOKS_NONCE = (window as any).orabooks_ajax?.nonce || '';
 const ORABOOKS_URL = (window as any).orabooks_ajax?.ajax_url || '/wp-admin/admin-ajax.php';
 const ORABOOKS_USER_ID = (window as any).orabooks_ajax?.current_user_id ?? null;
+const TOKEN_KEY = 'orabooks_token';
+const REFRESH_TOKEN_KEY = 'orabooks_refresh_token';
 
 type Json = Record<string, any> | any[] | null;
 type ApiResult<T = Json> =
@@ -15,12 +17,27 @@ function extractError(data: any, fallback: string) {
   return fallback;
 }
 
+function getStoredToken() {
+  return window.localStorage.getItem(TOKEN_KEY) || '';
+}
+
+function persistTokens(data: any) {
+  if (data?.token) {
+    window.localStorage.setItem(TOKEN_KEY, String(data.token));
+  }
+
+  if (data?.refresh_token) {
+    window.localStorage.setItem(REFRESH_TOKEN_KEY, String(data.refresh_token));
+  }
+}
+
 function normalizeResponse<T = any>(json: any): ApiResult<T> {
   if (json?.success === false) {
     return { error: extractError(json.data, 'OraBooks request failed.') };
   }
 
   if (json?.success === true && Object.prototype.hasOwnProperty.call(json, 'data')) {
+    persistTokens(json.data);
     return { data: json.data as T };
   }
 
@@ -52,8 +69,10 @@ async function request<T = any>(
   method = 'POST'
 ): Promise<ApiResult<T>> {
   const body = new URLSearchParams();
+  const token = getStoredToken();
   body.set('action', payload.action);
   body.set('_ajax_nonce', ORABOOKS_NONCE);
+  if (token) body.set('orabooks_token', token);
   if (ORABOOKS_USER_ID) body.set('current_user_id', String(ORABOOKS_USER_ID));
   Object.entries(payload).forEach(([k, v]) => {
     if (k === 'action' || k === '_ajax_nonce' || k === 'current_user_id') return;
@@ -64,7 +83,10 @@ async function request<T = any>(
   try {
     const res = await fetch(ORABOOKS_URL, {
       method,
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=utf-8' },
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded; charset=utf-8',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
       body,
     });
 
@@ -77,15 +99,19 @@ async function request<T = any>(
 export const api = {
   get<T = any>(action: string, params: Record<string, any> = {}): Promise<ApiResult<T>> {
     const qs = new URLSearchParams();
+    const token = getStoredToken();
     qs.set('action', action);
     qs.set('_ajax_nonce', ORABOOKS_NONCE);
+    if (token) qs.set('orabooks_token', token);
     if (ORABOOKS_USER_ID) qs.set('current_user_id', String(ORABOOKS_USER_ID));
     Object.entries(params).forEach(([k, v]) => {
       if (typeof v === 'object') qs.set(k, JSON.stringify(v));
       else if (v !== undefined && v !== null && v !== '') qs.set(k, String(v));
     });
 
-    return fetch(`${ORABOOKS_URL}?${qs.toString()}`)
+    return fetch(`${ORABOOKS_URL}?${qs.toString()}`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    })
       .then((r) => parseResponse<T>(r))
       .catch((error) => ({
         error: error instanceof Error ? error.message : 'OraBooks request failed.',

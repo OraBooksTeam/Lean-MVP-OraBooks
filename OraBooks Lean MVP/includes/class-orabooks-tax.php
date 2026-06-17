@@ -40,6 +40,7 @@ class OraBooks_Tax {
         $table_configs = OraBooks_Database::table('tax_configs');
         $table_jurisdictions = OraBooks_Database::table('tax_jurisdictions');
         $table_snapshots = OraBooks_Database::table('tax_snapshots');
+        $table_orgs = OraBooks_Database::table('organizations');
 
         $tables[] = "CREATE TABLE IF NOT EXISTS {$table_configs} (
             id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -53,6 +54,7 @@ class OraBooks_Tax {
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
             UNIQUE KEY uk_org_jurisdiction (org_id, jurisdiction),
+            FOREIGN KEY (org_id) REFERENCES {$table_orgs}(id) ON DELETE CASCADE,
             INDEX idx_org_active (org_id, is_active)
         ) {$charset_collate};";
 
@@ -64,6 +66,7 @@ class OraBooks_Tax {
             tax_rules JSON NULL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            FOREIGN KEY (parent_id) REFERENCES {$table_jurisdictions}(id) ON DELETE SET NULL,
             INDEX idx_parent (parent_id)
         ) {$charset_collate};";
 
@@ -84,6 +87,7 @@ class OraBooks_Tax {
             metadata JSON NULL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             UNIQUE KEY uk_transaction (org_id, transaction_type, transaction_id),
+            FOREIGN KEY (org_id) REFERENCES {$table_orgs}(id) ON DELETE CASCADE,
             INDEX idx_org_created (org_id, created_at),
             INDEX idx_jurisdiction (jurisdiction)
         ) {$charset_collate};";
