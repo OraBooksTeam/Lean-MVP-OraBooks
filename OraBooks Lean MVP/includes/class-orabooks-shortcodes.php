@@ -373,61 +373,7 @@ class OraBooks_Shortcodes {
         if (!get_current_user_id()) {
             return '<p>' . __('Please log in to view notifications.', 'orabooks') . '</p>';
         }
-        ob_start();
-        ?>
-        <div class="orabooks-notification-center">
-            <div class="orabooks-nc-header">
-                <h2><?php _e('Notifications', 'orabooks'); ?></h2>
-                <div class="orabooks-nc-actions">
-                    <button id="orabooks-nc-mark-all-read" class="orabooks-btn orabooks-btn-secondary orabooks-btn-sm">
-                        <?php _e('Mark All Read', 'orabooks'); ?>
-                    </button>
-                    <a href="<?php echo esc_url(add_query_arg('tab', 'preferences')); ?>" class="orabooks-btn orabooks-btn-secondary orabooks-btn-sm">
-                        ⚙️ <?php _e('Preferences', 'orabooks'); ?>
-                    </a>
-                    <button class="orabooks-btn orabooks-btn-secondary orabooks-btn-sm orabooks-notif-export-trigger" data-export-type="notification_log" data-format="csv">📊 <?php _e('Export CSV', 'orabooks'); ?></button>
-                    <button class="orabooks-btn orabooks-btn-sm orabooks-notif-export-trigger" data-export-type="notification_log" data-format="pdf">📄 <?php _e('Export PDF', 'orabooks'); ?></button>
-                </div>
-            </div>
-            <div id="orabooks-notif-export-msg" class="orabooks-message" style="display:none;"></div>
-            
-            <!-- Filters -->
-            <div class="orabooks-nc-filters">
-                <select id="orabooks-nc-filter-priority">
-                    <option value=""><?php _e('All Priorities', 'orabooks'); ?></option>
-                    <option value="critical">🔴 <?php _e('Critical', 'orabooks'); ?></option>
-                    <option value="high">🟠 <?php _e('High', 'orabooks'); ?></option>
-                    <option value="normal">🔵 <?php _e('Normal', 'orabooks'); ?></option>
-                    <option value="low">⚪ <?php _e('Low', 'orabooks'); ?></option>
-                </select>
-                <select id="orabooks-nc-filter-status">
-                    <option value=""><?php _e('All Status', 'orabooks'); ?></option>
-                    <option value="unread"><?php _e('Unread', 'orabooks'); ?></option>
-                    <option value="delivered"><?php _e('Read', 'orabooks'); ?></option>
-                </select>
-                <input type="text" id="orabooks-nc-filter-event" placeholder="<?php esc_attr_e('Event type...', 'orabooks'); ?>">
-                <button id="orabooks-nc-filter-apply" class="orabooks-btn orabooks-btn-sm"><?php _e('Filter', 'orabooks'); ?></button>
-            </div>
-            
-            <!-- Unread Badge -->
-            <div id="orabooks-nc-unread-badge" class="orabooks-nc-unread-badge"></div>
-            
-            <!-- Notification List -->
-            <div id="orabooks-nc-list" class="orabooks-nc-list">
-                <p class="orabooks-loading"><?php _e('Loading notifications...', 'orabooks'); ?></p>
-            </div>
-            
-            <!-- Delivery proof modal -->
-            <div id="orabooks-nc-proof-modal" class="orabooks-modal" style="display:none;">
-                <div class="orabooks-modal-content">
-                    <span class="orabooks-modal-close">&times;</span>
-                    <h3><?php _e('Delivery Proof', 'orabooks'); ?></h3>
-                    <pre id="orabooks-nc-proof-content" class="orabooks-proof-content"></pre>
-                </div>
-            </div>
-        </div>
-        <?php
-        return ob_get_clean();
+        return $this->react_app('/notifications', 'Loading notifications...');
     }
 
     /**
@@ -713,62 +659,7 @@ class OraBooks_Shortcodes {
         if (!$user_id) {
             return '<p>' . __('Please log in to view your exports.', 'orabooks') . '</p>';
         }
-        
-        ob_start();
-        ?>
-        <div class="orabooks-export-status">
-            <div class="orabooks-nc-header">
-                <h2><?php _e('My Exports', 'orabooks'); ?></h2>
-                <div class="orabooks-nc-provider-actions">
-                    <button id="orabooks-export-refresh" class="orabooks-btn orabooks-btn-secondary orabooks-btn-sm">
-                        🔄 <?php _e('Refresh', 'orabooks'); ?>
-                    </button>
-                </div>
-            </div>
-            
-            <div class="orabooks-info-banner">
-                📁 <?php _e('Export to CSV/PDF. Large exports may take a few minutes. Download link expires in 7 days. Encrypted and watermarked for security.', 'orabooks'); ?>
-            </div>
-            
-            <!-- Stats summary -->
-            <div class="orabooks-commission-stats" id="orabooks-export-stats-summary">
-                <div class="orabooks-stat-card">
-                    <h3><?php _e('Total Exports', 'orabooks'); ?></h3>
-                    <p class="orabooks-stat-number" id="orabooks-export-total">—</p>
-                </div>
-                <div class="orabooks-stat-card">
-                    <h3><?php _e('Pending', 'orabooks'); ?></h3>
-                    <p class="orabooks-stat-number" id="orabooks-export-pending">—</p>
-                </div>
-                <div class="orabooks-stat-card">
-                    <h3><?php _e('Ready', 'orabooks'); ?></h3>
-                    <p class="orabooks-stat-number" id="orabooks-export-ready">—</p>
-                </div>
-            </div>
-            
-            <!-- Exports Table -->
-            <table class="orabooks-table">
-                <thead>
-                    <tr>
-                        <th><?php _e('Export Type', 'orabooks'); ?></th>
-                        <th><?php _e('Format', 'orabooks'); ?></th>
-                        <th><?php _e('Status', 'orabooks'); ?></th>
-                        <th><?php _e('Size', 'orabooks'); ?></th>
-                        <th><?php _e('Expires', 'orabooks'); ?></th>
-                        <th><?php _e('Downloads', 'orabooks'); ?></th>
-                        <th><?php _e('Actions', 'orabooks'); ?></th>
-                    </tr>
-                </thead>
-                <tbody id="orabooks-export-table-body">
-                    <tr><td colspan="7"><?php _e('Loading exports...', 'orabooks'); ?></td></tr>
-                </tbody>
-            </table>
-            
-            <!-- Pagination -->
-            <div id="orabooks-export-pagination" class="orabooks-pagination"></div>
-        </div>
-        <?php
-        return ob_get_clean();
+        return $this->react_app('/my-exports', 'Loading exports...');
     }
 
     /**
