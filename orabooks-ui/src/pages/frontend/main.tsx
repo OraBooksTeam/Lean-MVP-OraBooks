@@ -4,6 +4,12 @@ import { RouterProvider, createHashRouter } from 'react-router-dom';
 import FrontendRoutes from './App';
 import '@/styles/index.css';
 
+const root = document.getElementById('orabooks-app-root');
+const initialRoute = root?.dataset.initialRoute;
+if (initialRoute && !window.location.hash) {
+  window.location.hash = initialRoute;
+}
+
 const router = createHashRouter([
   {
     path: '/',
@@ -26,4 +32,6 @@ const router = createHashRouter([
   },
 ]);
 
-ReactDOM.createRoot(document.getElementById('orabooks-app-root')!).render(<RouterProvider router={router} />);
+if (root) {
+  ReactDOM.createRoot(root).render(<RouterProvider router={router} />);
+}
