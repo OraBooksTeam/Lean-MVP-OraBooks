@@ -258,7 +258,7 @@ class OraBooks_Auth {
         if (function_exists('get_bloginfo')) {
             $name = get_bloginfo('name');
             if (!empty($name)) {
-                return wp_specialchars_decode($name, ENT_QUOTES);
+                return function_exists('wp_specialchars_decode') ? wp_specialchars_decode($name, ENT_QUOTES) : html_entity_decode($name, ENT_QUOTES);
             }
         }
         
