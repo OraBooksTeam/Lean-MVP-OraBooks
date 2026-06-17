@@ -1429,7 +1429,9 @@ describe('orabooksLoadCustomerList()', () => {
     window.orabooksLoadCustomerList();
 
     const $tbody = $('#orabooks-customers-tbody');
-    expect($tbody.children().length).toBe(0); // empty() was called
+    // Initial state: the "No customers found" row is still present
+    // (empty() is called inside the AJAX callback, which hasn't fired yet)
+    expect($tbody.children().length).toBe(1);
 
     resolveAjax('get', {
       data: {
