@@ -1147,6 +1147,1121 @@ describe('Partner reactivation deny', () => {
 });
 
 // ============================================================
+// CUSTOMERS & INVOICES — setup function
+// ============================================================
+
+function setupCustomerDom() {
+  document.body.innerHTML = `
+    <!-- Customers & Invoices page wrapper -->
+    <div class="wrap orabooks-admin orabooks-customers">
+      <h1>Customers & Invoices
+        <span class="orabooks-last-updated" id="orabooks-cust-updated"></span>
+      </h1>
+
+      <div class="orabooks-tab-nav" id="orabooks-cust-tabs">
+        <a href="#" class="nav-tab nav-tab-active" data-tab="customers">Customers</a>
+        <a href="#" class="nav-tab" data-tab="invoices">Invoices</a>
+        <a href="#" class="nav-tab" data-tab="reports">Reports</a>
+      </div>
+
+      <!-- TAB: Customers -->
+      <div id="orabooks-tab-customers" class="orabooks-tab-content" style="display:block;">
+        <div class="orabooks-dash-loading" id="orabooks-cust-loading">
+          <div class="orabooks-stats-grid">
+            <div class="orabooks-skeleton-card"><div class="orabooks-skeleton-pulse orabooks-skeleton-h3"></div></div>
+            <div class="orabooks-skeleton-card"><div class="orabooks-skeleton-pulse orabooks-skeleton-h3"></div></div>
+            <div class="orabooks-skeleton-card"><div class="orabooks-skeleton-pulse orabooks-skeleton-h3"></div></div>
+            <div class="orabooks-skeleton-card"><div class="orabooks-skeleton-pulse orabooks-skeleton-h3"></div></div>
+          </div>
+        </div>
+
+        <div id="orabooks-customers-content" style="display:none;">
+          <div class="orabooks-stats-grid" id="orabooks-customer-stats">
+            <div class="orabooks-stat-card" id="orabooks-cust-total">
+              <h3>Total Customers</h3>
+              <p class="orabooks-stat-number">0</p>
+            </div>
+            <div class="orabooks-stat-card" id="orabooks-cust-active">
+              <h3>Active</h3>
+              <p class="orabooks-stat-number">0</p>
+            </div>
+            <div class="orabooks-stat-card" id="orabooks-cust-inactive">
+              <h3>Inactive</h3>
+              <p class="orabooks-stat-number">0</p>
+            </div>
+            <div class="orabooks-stat-card" id="orabooks-cust-revenue">
+              <h3>Total Revenue</h3>
+              <p class="orabooks-stat-number">$0</p>
+            </div>
+          </div>
+
+          <div class="orabooks-filters">
+            <select id="orabooks-cust-filter-active">
+              <option value="">All Statuses</option>
+              <option value="1">Active Only</option>
+              <option value="0">Inactive Only</option>
+            </select>
+            <input type="text" id="orabooks-cust-search" placeholder="Search...">
+            <button class="button button-primary" id="orabooks-cust-refresh-btn">Refresh</button>
+          </div>
+
+          <table class="wp-list-table widefat fixed striped" id="orabooks-customers-table">
+            <thead>
+              <tr>
+                <th>ID</th><th>Email</th><th>Status</th><th>Invoices</th><th>Total Paid</th><th>Last Payment</th><th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="orabooks-customers-tbody">
+              <tr><td colspan="7">No customers found.</td></tr>
+            </tbody>
+          </table>
+
+          <div id="orabooks-customer-detail" class="orabooks-detail-panel" style="display:none;">
+            <div class="orabooks-detail-header">
+              <h3 id="orabooks-cust-detail-title">Customer Detail</h3>
+              <button class="button orabooks-detail-close" id="orabooks-cust-detail-close">&times;</button>
+            </div>
+            <div id="orabooks-cust-detail-body"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB: Invoices -->
+      <div id="orabooks-tab-invoices" class="orabooks-tab-content" style="display:none;">
+        <div class="orabooks-export-actions">
+          <button class="button button-primary" id="orabooks-inv-create-btn">New Invoice</button>
+          <select id="orabooks-inv-filter-status">
+            <option value="">All Payment Statuses</option>
+            <option value="unpaid">Unpaid</option>
+            <option value="paid">Paid</option>
+            <option value="overdue">Overdue</option>
+            <option value="cancelled">Cancelled</option>
+          </select>
+          <select id="orabooks-inv-filter-workflow">
+            <option value="">All Workflow</option>
+            <option value="draft">Draft</option>
+            <option value="posted">Posted</option>
+          </select>
+          <input type="date" id="orabooks-inv-filter-from">
+          <input type="date" id="orabooks-inv-filter-to">
+          <button class="button" id="orabooks-inv-filter-btn">Filter</button>
+        </div>
+
+        <table class="wp-list-table widefat fixed striped" id="orabooks-invoices-table">
+          <thead>
+            <tr>
+              <th>Invoice #</th><th>Customer</th><th>Date</th><th>Due Date</th><th>Total</th><th>Paid</th><th>Status</th><th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="orabooks-invoices-tbody">
+            <tr><td colspan="8">No invoices found.</td></tr>
+          </tbody>
+        </table>
+
+        <div id="orabooks-invoice-detail" class="orabooks-detail-panel" style="display:none;">
+          <div class="orabooks-detail-header">
+            <h3 id="orabooks-inv-detail-title">Invoice Detail</h3>
+            <button class="button orabooks-detail-close" id="orabooks-inv-detail-close">&times;</button>
+          </div>
+          <div id="orabooks-inv-detail-body"></div>
+        </div>
+      </div>
+
+      <!-- TAB: Reports -->
+      <div id="orabooks-tab-reports" class="orabooks-tab-content" style="display:none;">
+        <div class="orabooks-stats-grid" id="orabooks-ar-stats">
+          <div class="orabooks-stat-card">
+            <h3>Total Revenue</h3>
+            <p class="orabooks-stat-number" id="orabooks-ar-revenue">$0</p>
+          </div>
+          <div class="orabooks-stat-card">
+            <h3>Outstanding AR</h3>
+            <p class="orabooks-stat-number" id="orabooks-ar-outstanding">$0</p>
+          </div>
+          <div class="orabooks-stat-card">
+            <h3>Paid Invoices</h3>
+            <p class="orabooks-stat-number" id="orabooks-ar-paid">0</p>
+          </div>
+          <div class="orabooks-stat-card">
+            <h3>Overdue</h3>
+            <p class="orabooks-stat-number" id="orabooks-ar-overdue">0</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: Create Invoice -->
+    <div id="orabooks-invoice-modal" class="orabooks-modal" style="display:none;">
+      <div class="orabooks-modal-backdrop"></div>
+      <div class="orabooks-modal-content">
+        <div class="orabooks-modal-header">
+          <h3>Create Invoice</h3>
+          <button class="orabooks-modal-close">&times;</button>
+        </div>
+        <div class="orabooks-modal-body">
+          <form id="orabooks-invoice-form">
+            <input type="hidden" id="inv_org_id" name="org_id" value="0">
+            <table class="form-table">
+              <tr><th><label for="inv_customer_id">Customer</label></th><td><select id="inv_customer_id" name="customer_id"><option value="">Select customer...</option></select></td></tr>
+              <tr><th><label for="inv_invoice_number">Invoice #</label></th><td><input type="text" id="inv_invoice_number" name="invoice_number"></td></tr>
+              <tr><th><label for="inv_invoice_date">Invoice Date</label></th><td><input type="date" id="inv_invoice_date" name="invoice_date"></td></tr>
+              <tr><th><label for="inv_due_days">Due In (days)</label></th><td><input type="number" id="inv_due_days" name="due_days" value="30"></td></tr>
+              <tr><th><label for="inv_total_amount">Total Amount</label></th><td><input type="number" id="inv_total_amount" name="total_amount" step="0.01" required></td></tr>
+              <tr><th><label for="inv_tax_amount">Tax Amount</label></th><td><input type="number" id="inv_tax_amount" name="tax_amount" step="0.01" value="0"></td></tr>
+              <tr><th><label for="inv_currency">Currency</label></th><td><select id="inv_currency" name="currency"><option value="USD">USD</option></select></td></tr>
+              <tr><th><label for="inv_description">Description</label></th><td><textarea id="inv_description" name="description" rows="3"></textarea></td></tr>
+            </table>
+            <p class="submit">
+              <button type="submit" class="button button-primary">Create Invoice</button>
+              <button type="button" class="button orabooks-modal-cancel">Cancel</button>
+            </p>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: Record Payment -->
+    <div id="orabooks-payment-modal" class="orabooks-modal" style="display:none;">
+      <div class="orabooks-modal-backdrop"></div>
+      <div class="orabooks-modal-content">
+        <div class="orabooks-modal-header">
+          <h3>Record Payment</h3>
+          <button class="orabooks-modal-close">&times;</button>
+        </div>
+        <div class="orabooks-modal-body">
+          <form id="orabooks-payment-form">
+            <input type="hidden" id="pay_invoice_id" name="invoice_id">
+            <input type="hidden" id="pay_org_id" name="org_id" value="0">
+            <table class="form-table">
+              <tr><th>Invoice</th><td><strong id="pay_invoice_number">\u2014</strong></td></tr>
+              <tr><th><label for="pay_amount">Payment Amount</label></th><td><input type="number" id="pay_amount" name="amount" step="0.01" required></td></tr>
+              <tr><th><label for="pay_date">Payment Date</label></th><td><input type="date" id="pay_date" name="payment_date"></td></tr>
+              <tr><th><label for="pay_method">Method</label></th><td><select id="pay_method" name="payment_method"><option value="bank_transfer">Bank Transfer</option></select></td></tr>
+              <tr><th><label for="pay_reference">Reference</label></th><td><input type="text" id="pay_reference" name="reference"></td></tr>
+              <tr><th><label for="pay_notes">Notes</label></th><td><textarea id="pay_notes" name="notes" rows="2"></textarea></td></tr>
+            </table>
+            <p class="submit">
+              <button type="submit" class="button button-primary">Record Payment</button>
+              <button type="button" class="button orabooks-modal-cancel">Cancel</button>
+            </p>
+          </form>
+        </div>
+      </div>
+    </div>
+  `;
+  window.confirm.mockReturnValue(true);
+  window.alert.mockClear();
+  clearAjax();
+  loadAdminJs();
+}
+
+// ============================================================
+// CUSTOMERS & INVOICES — Tab Switching
+// ============================================================
+describe('Customers/Invoices tab switching', () => {
+  beforeEach(setupCustomerDom);
+
+  test('starts on customers tab by default', () => {
+    expect($('.nav-tab[data-tab="customers"]').hasClass('nav-tab-active')).toBe(true);
+    expect($('.nav-tab[data-tab="invoices"]').hasClass('nav-tab-active')).toBe(false);
+    expect($('#orabooks-tab-customers').css('display')).toBe('block');
+    expect($('#orabooks-tab-invoices').css('display')).toBe('none');
+  });
+
+  test('switches to invoices tab on click', () => {
+    $('.nav-tab[data-tab="invoices"]').trigger('click');
+
+    expect($('.nav-tab[data-tab="invoices"]').hasClass('nav-tab-active')).toBe(true);
+    expect($('.nav-tab[data-tab="customers"]').hasClass('nav-tab-active')).toBe(false);
+    expect($('#orabooks-tab-invoices').css('display')).not.toBe('none');
+    expect($('#orabooks-tab-customers').css('display')).toBe('none');
+  });
+
+  test('switches to reports tab on click', () => {
+    $('.nav-tab[data-tab="reports"]').trigger('click');
+
+    expect($('.nav-tab[data-tab="reports"]').hasClass('nav-tab-active')).toBe(true);
+    expect($('#orabooks-tab-reports').css('display')).not.toBe('none');
+    expect($('#orabooks-tab-customers').css('display')).toBe('none');
+  });
+});
+
+// ============================================================
+// CUSTOMERS & INVOICES — orabooksRenderCustomerStats
+// ============================================================
+describe('orabooksRenderCustomerStats()', () => {
+  beforeEach(setupCustomerDom);
+
+  test('renders all stat cards with formatted values', () => {
+    clearAjax();
+    window.orabooksRenderCustomerStats({
+      total_customers: 42,
+      active_customers: 30,
+      inactive_customers: 12,
+      total_revenue: 15000.50
+    });
+
+    expect($('#orabooks-cust-total .orabooks-stat-number').text()).toBe('42');
+    expect($('#orabooks-cust-active .orabooks-stat-number').text()).toBe('30');
+    expect($('#orabooks-cust-inactive .orabooks-stat-number').text()).toBe('12');
+    expect($('#orabooks-cust-revenue .orabooks-stat-number').text()).toBe('$15,000.50');
+  });
+
+  test('defaults undefined values to zero', () => {
+    clearAjax();
+    window.orabooksRenderCustomerStats({});
+
+    expect($('#orabooks-cust-total .orabooks-stat-number').text()).toBe('0');
+    expect($('#orabooks-cust-active .orabooks-stat-number').text()).toBe('0');
+    expect($('#orabooks-cust-inactive .orabooks-stat-number').text()).toBe('0');
+    expect($('#orabooks-cust-revenue .orabooks-stat-number').text()).toBe('$0.00');
+  });
+});
+
+// ============================================================
+// CUSTOMERS & INVOICES — orabooksLoadCustomerList
+// ============================================================
+describe('orabooksLoadCustomerList()', () => {
+  beforeEach(setupCustomerDom);
+
+  test('renders loading state then populates customer table', () => {
+    clearAjax(); // Clear the ready handler auto-load calls
+    window.orabooksLoadCustomerList();
+
+    const $tbody = $('#orabooks-customers-tbody');
+    expect($tbody.children().length).toBe(0); // empty() was called
+
+    resolveAjax('get', {
+      data: {
+        customers: [
+          { id: 1, email: 'alice@test.com', is_active: 1, invoice_count: 5, total_paid: 1200.00, last_paid_invoice_date: '2024-06-01' },
+          { id: 2, email: 'bob@test.com', is_active: 0, invoice_count: 0, total_paid: 0, last_paid_invoice_date: null }
+        ]
+      }
+    }, 'orabooks_customers_list');
+
+    const html = $tbody.html();
+    expect(html).toContain('alice@test.com');
+    expect(html).toContain('bob@test.com');
+    expect(html).toContain('$1,200.00');
+    expect(html).toContain('Active');
+    expect(html).toContain('Inactive');
+    expect(html).toContain('orabooks-cust-toggle-active');
+    expect(html).toContain('orabooks-cust-view');
+  });
+
+  test('shows empty message when no customers', () => {
+    clearAjax();
+    window.orabooksLoadCustomerList();
+
+    resolveAjax('get', {
+      data: { customers: [] }
+    }, 'orabooks_customers_list');
+
+    expect($('#orabooks-customers-tbody').html()).toContain('No customers found');
+  });
+
+  test('shows empty message when no data.customers', () => {
+    clearAjax();
+    window.orabooksLoadCustomerList();
+
+    resolveAjax('get', {
+      data: {}
+    }, 'orabooks_customers_list');
+
+    expect($('#orabooks-customers-tbody').html()).toContain('No customers found');
+  });
+
+  test('escapes HTML in email field', () => {
+    clearAjax();
+    window.orabooksLoadCustomerList();
+
+    resolveAjax('get', {
+      data: {
+        customers: [
+          { id: 3, email: '<script>alert(1)</script>', is_active: 1, invoice_count: 0, total_paid: 0, last_paid_invoice_date: null }
+        ]
+      }
+    }, 'orabooks_customers_list');
+
+    const html = $('#orabooks-customers-tbody').html();
+    expect(html).not.toContain('<script>alert(1)</script>');
+  });
+});
+
+// ============================================================
+// CUSTOMERS & INVOICES — Customer Filters & Search
+// ============================================================
+describe('Customer filters', () => {
+  beforeEach(setupCustomerDom);
+
+  test('change filter triggers reload', () => {
+    clearAjax();
+    $('#orabooks-cust-filter-active').trigger('change');
+
+    const call = latestAjax('get');
+    expect(call).not.toBeNull();
+    expect(call.data.action).toBe('orabooks_customers_list');
+  });
+
+  test('refresh button triggers reload', () => {
+    clearAjax();
+    $('#orabooks-cust-refresh-btn').trigger('click');
+
+    const call = latestAjax('get');
+    expect(call).not.toBeNull();
+    expect(call.data.action).toBe('orabooks_customers_list');
+  });
+
+  test('search enter key triggers reload', () => {
+    clearAjax();
+    const e = $.Event('keydown');
+    e.keyCode = 13;
+    $('#orabooks-cust-search').trigger(e);
+
+    const call = latestAjax('get');
+    expect(call).not.toBeNull();
+    expect(call.data.action).toBe('orabooks_customers_list');
+  });
+
+  test('search non-enter key does not trigger reload', () => {
+    clearAjax();
+    const e = $.Event('keydown');
+    e.keyCode = 65; // 'a' key
+    $('#orabooks-cust-search').trigger(e);
+
+    expect(ajaxResponses.get.length).toBe(0);
+  });
+});
+
+// ============================================================
+// CUSTOMERS & INVOICES — Toggle Active Status
+// ============================================================
+describe('Customer toggle active', () => {
+  beforeEach(setupCustomerDom);
+
+  test('toggles active to inactive', () => {
+    // Populate table with a customer
+    clearAjax();
+    window.orabooksLoadCustomerList();
+    resolveAjax('get', {
+      data: {
+        customers: [
+          { id: 10, email: 'toggle@test.com', is_active: 1, invoice_count: 0, total_paid: 0, last_paid_invoice_date: null }
+        ]
+      }
+    }, 'orabooks_customers_list');
+
+    // Click toggle button
+    $('.orabooks-cust-toggle-active').first().trigger('click');
+
+    const call = latestAjax('post');
+    expect(call.data.action).toBe('orabooks_customer_update');
+    expect(call.data.customer_id).toBe(10);
+    expect(call.data.is_active).toBe(0); // Toggling to inactive
+  });
+
+  test('toggles inactive to active', () => {
+    clearAjax();
+    window.orabooksLoadCustomerList();
+    resolveAjax('get', {
+      data: {
+        customers: [
+          { id: 11, email: 'revive@test.com', is_active: 0, invoice_count: 0, total_paid: 0, last_paid_invoice_date: null }
+        ]
+      }
+    }, 'orabooks_customers_list');
+
+    $('.orabooks-cust-toggle-active').first().trigger('click');
+
+    const call = latestAjax('post');
+    expect(call.data.customer_id).toBe(11);
+    expect(call.data.is_active).toBe(1); // Toggling to active
+  });
+});
+
+// ============================================================
+// CUSTOMERS & INVOICES — Customer Detail
+// ============================================================
+describe('Customer detail view', () => {
+  beforeEach(setupCustomerDom);
+
+  test('orabooksShowCustomerDetail fetches and renders detail', () => {
+    clearAjax();
+    window.orabooksShowCustomerDetail(5);
+
+    resolveAjax('get', {
+      error: false,
+      data: {
+        id: 5,
+        email: 'detail@test.com',
+        is_active: 1,
+        last_paid_invoice_date: '2024-07-15',
+        lifetime_value: 5000.00,
+        is_email_verified: 1,
+        notes: 'Important client'
+      }
+    }, 'orabooks_customer_get');
+
+    expect($('#orabooks-cust-detail-title').text()).toContain('detail@test.com');
+    expect($('#orabooks-cust-detail-body').html()).toContain('5');
+    expect($('#orabooks-cust-detail-body').html()).toContain('$5,000.00');
+    expect($('#orabooks-customer-detail').css('display')).not.toBe('none');
+  });
+
+  test('clicking view button opens detail panel', () => {
+    // Populate list first
+    clearAjax();
+    window.orabooksLoadCustomerList();
+    resolveAjax('get', {
+      data: {
+        customers: [
+          { id: 7, email: 'viewtest@test.com', is_active: 1, invoice_count: 2, total_paid: 300, last_paid_invoice_date: '2024-08-01' }
+        ]
+      }
+    }, 'orabooks_customers_list');
+
+    $('.orabooks-cust-view').first().trigger('click');
+
+    // Should have made a customer_get call
+    const call = latestAjax('get');
+    expect(call.data.action).toBe('orabooks_customer_get');
+    expect(call.data.customer_id).toBe(7);
+  });
+
+  test('close button hides detail panel', () => {
+    clearAjax();
+    window.orabooksShowCustomerDetail(5);
+    resolveAjax('get', {
+      error: false,
+      data: { id: 5, email: 'close@test.com', is_active: 1 }
+    }, 'orabooks_customer_get');
+
+    $('#orabooks-cust-detail-close').trigger('click');
+    expect($('#orabooks-customer-detail').css('display')).toBe('none');
+  });
+
+  test('save notes posts update', () => {
+    clearAjax();
+    window.orabooksShowCustomerDetail(9);
+    resolveAjax('get', {
+      error: false,
+      data: { id: 9, email: 'notes@test.com', is_active: 1, notes: 'Old note' }
+    }, 'orabooks_customer_get');
+
+    $('#orabooks-cust-notes').val('Updated note');
+    $('.orabooks-cust-save-notes').trigger('click');
+
+    const call = latestAjax('post');
+    expect(call.data.action).toBe('orabooks_customer_update');
+    expect(call.data.customer_id).toBe(9);
+    expect(call.data.notes).toBe('Updated note');
+  });
+});
+
+// ============================================================
+// CUSTOMERS & INVOICES — orabooksLoadInvoices
+// ============================================================
+describe('orabooksLoadInvoices()', () => {
+  beforeEach(setupCustomerDom);
+
+  test('renders invoice table with formatted values', () => {
+    clearAjax();
+    window.orabooksLoadInvoices();
+
+    resolveAjax('get', {
+      data: {
+        invoices: [
+          {
+            id: 100,
+            invoice_number: 'INV-001',
+            customer_email: 'cust@test.com',
+            transaction_date: '2024-06-01',
+            due_date: '2024-07-01',
+            total_amount: 500.00,
+            total_paid_amount: 250.00,
+            payment_status: 'partial',
+            workflow_status: 'posted'
+          }
+        ]
+      }
+    }, 'orabooks_invoices_list');
+
+    const html = $('#orabooks-invoices-tbody').html();
+    expect(html).toContain('INV-001');
+    expect(html).toContain('cust@test.com');
+    expect(html).toContain('$500.00');
+    expect(html).toContain('$250.00');
+    expect(html).toContain('Partial');
+    expect(html).toContain('orabooks-inv-pay');
+    expect(html).toContain('orabooks-inv-view');
+  });
+
+  test('shows empty message when no invoices', () => {
+    clearAjax();
+    window.orabooksLoadInvoices();
+
+    resolveAjax('get', {
+      data: { invoices: [] }
+    }, 'orabooks_invoices_list');
+
+    expect($('#orabooks-invoices-tbody').html()).toContain('No invoices found');
+  });
+
+  test('shows empty message when no data.invoices', () => {
+    clearAjax();
+    window.orabooksLoadInvoices();
+
+    resolveAjax('get', {
+      data: {}
+    }, 'orabooks_invoices_list');
+
+    expect($('#orabooks-invoices-tbody').html()).toContain('No invoices found');
+  });
+
+  test('does not show Pay button for paid invoices', () => {
+    clearAjax();
+    window.orabooksLoadInvoices();
+
+    resolveAjax('get', {
+      data: {
+        invoices: [
+          {
+            id: 200,
+            invoice_number: 'INV-200',
+            customer_email: 'paid@test.com',
+            transaction_date: '2024-06-01',
+            due_date: '2024-07-01',
+            total_amount: 1000.00,
+            total_paid_amount: 1000.00,
+            payment_status: 'paid',
+            workflow_status: 'posted'
+          }
+        ]
+      }
+    }, 'orabooks_invoices_list');
+
+    const html = $('#orabooks-invoices-tbody').html();
+    expect(html).toContain('INV-200');
+    expect(html).not.toContain('orabooks-inv-pay');
+  });
+
+  test('does not show Pay button for cancelled invoices', () => {
+    clearAjax();
+    window.orabooksLoadInvoices();
+
+    resolveAjax('get', {
+      data: {
+        invoices: [
+          {
+            id: 201,
+            invoice_number: 'INV-201',
+            customer_email: 'cancel@test.com',
+            transaction_date: '2024-06-01',
+            due_date: '2024-07-01',
+            total_amount: 500.00,
+            total_paid_amount: 0,
+            payment_status: 'cancelled',
+            workflow_status: 'cancelled'
+          }
+        ]
+      }
+    }, 'orabooks_invoices_list');
+
+    const html = $('#orabooks-invoices-tbody').html();
+    expect(html).toContain('Cancelled');
+    expect(html).not.toContain('orabooks-inv-pay');
+  });
+
+  test('passes filter values in request', () => {
+    $('#orabooks-inv-filter-status').val('overdue');
+    $('#orabooks-inv-filter-workflow').val('posted');
+    $('#orabooks-inv-filter-from').val('2024-01-01');
+    $('#orabooks-inv-filter-to').val('2024-12-31');
+
+    clearAjax();
+    window.orabooksLoadInvoices();
+
+    const call = latestAjax('get');
+    expect(call.data.payment_status).toBe('overdue');
+    expect(call.data.workflow_status).toBe('posted');
+    expect(call.data.from_date).toBe('2024-01-01');
+    expect(call.data.to_date).toBe('2024-12-31');
+  });
+
+  test('invoice filter button triggers reload', () => {
+    clearAjax();
+    $('#orabooks-inv-filter-btn').trigger('click');
+
+    const call = latestAjax('get');
+    expect(call).not.toBeNull();
+    expect(call.data.action).toBe('orabooks_invoices_list');
+  });
+});
+
+// ============================================================
+// CUSTOMERS & INVOICES — orabooksGetInvoiceStatusHtml
+// ============================================================
+describe('orabooksGetInvoiceStatusHtml()', () => {
+  beforeEach(setupCustomerDom);
+
+  test('returns unpaid badge', () => {
+    const html = window.orabooksGetInvoiceStatusHtml('unpaid');
+    expect(html).toContain('orabooks-badge-warning');
+    expect(html).toContain('Unpaid');
+  });
+
+  test('returns partial badge', () => {
+    const html = window.orabooksGetInvoiceStatusHtml('partial');
+    expect(html).toContain('orabooks-badge-info');
+    expect(html).toContain('Partial');
+  });
+
+  test('returns paid badge', () => {
+    const html = window.orabooksGetInvoiceStatusHtml('paid');
+    expect(html).toContain('orabooks-badge-active');
+    expect(html).toContain('Paid');
+  });
+
+  test('returns overdue badge', () => {
+    const html = window.orabooksGetInvoiceStatusHtml('overdue');
+    expect(html).toContain('orabooks-badge-danger');
+    expect(html).toContain('Overdue');
+  });
+
+  test('returns cancelled badge', () => {
+    const html = window.orabooksGetInvoiceStatusHtml('cancelled');
+    expect(html).toContain('orabooks-badge-inactive');
+    expect(html).toContain('Cancelled');
+  });
+
+  test('defaults unknown status to warning', () => {
+    const html = window.orabooksGetInvoiceStatusHtml('unknown_status');
+    expect(html).toContain('orabooks-badge-warning');
+    expect(html).toContain('unknown_status');
+  });
+});
+
+// ============================================================
+// CUSTOMERS & INVOICES — Create Invoice Modal
+// ============================================================
+describe('Invoice create modal', () => {
+  beforeEach(setupCustomerDom);
+
+  test('open modal fetches customer list and shows modal', () => {
+    clearAjax();
+    $('#orabooks-inv-create-btn').trigger('click');
+
+    // Should fetch customers first
+    const call = latestAjax('get');
+    expect(call.data.action).toBe('orabooks_customers_list');
+
+    resolveAjax('get', {
+      data: {
+        customers: [
+          { id: 10, email: 'cust10@test.com' },
+          { id: 20, email: 'cust20@test.com' }
+        ]
+      }
+    }, 'orabooks_customers_list');
+
+    expect($('#inv_customer_id').children().length).toBe(3); // placeholder + 2 customers
+    expect($('#inv_customer_id').html()).toContain('cust10@test.com');
+    expect($('#inv_customer_id').html()).toContain('cust20@test.com');
+    expect($('#orabooks-invoice-modal').css('display')).not.toBe('none');
+  });
+
+  test('submit form posts invoice create request', () => {
+    clearAjax();
+    $('#orabooks-inv-create-btn').trigger('click');
+    resolveAjax('get', {
+      data: { customers: [{ id: 1, email: 'test@test.com' }] }
+    }, 'orabooks_customers_list');
+
+    // Fill form
+    $('#inv_customer_id').val('1');
+    $('#inv_total_amount').val('250.00');
+    $('#inv_description').val('Test invoice');
+
+    // Submit form
+    $('#orabooks-invoice-form').trigger('submit');
+
+    const call = latestAjax('post');
+    expect(call.data.action).toContain('orabooks_invoice_create');
+    expect(call.data.customer_id).toBe('1');
+    expect(call.data.total_amount).toBe('250.00');
+  });
+
+  test('modal close button hides modal', () => {
+    clearAjax();
+    $('#orabooks-inv-create-btn').trigger('click');
+    resolveAjax('get', {
+      data: { customers: [{ id: 1, email: 't@t.com' }] }
+    }, 'orabooks_customers_list');
+
+    $('.orabooks-modal-close').first().trigger('click');
+    expect($('#orabooks-invoice-modal').css('display')).toBe('none');
+  });
+});
+
+// ============================================================
+// CUSTOMERS & INVOICES — Invoice Detail
+// ============================================================
+describe('Invoice detail view', () => {
+  beforeEach(setupCustomerDom);
+
+  test('orabooksShowInvoiceDetail renders with payments', () => {
+    clearAjax();
+    window.orabooksShowInvoiceDetail(42);
+
+    resolveAjax('get', {
+      error: false,
+      data: {
+        id: 42,
+        invoice_number: 'INV-042',
+        customer_email: 'inv42@test.com',
+        transaction_date: '2024-07-01',
+        due_date: '2024-08-01',
+        total_amount: 2000.00,
+        paid_amount: 1000.00,
+        payment_status: 'partial',
+        description: 'Consulting services',
+        payments: [
+          { payment_date: '2024-07-15', amount: 500.00, payment_method: 'bank_transfer', reference: 'REF-001' },
+          { payment_date: '2024-07-20', amount: 500.00, payment_method: 'credit_card', reference: '' }
+        ]
+      }
+    }, 'orabooks_invoice_get');
+
+    expect($('#orabooks-inv-detail-title').text()).toContain('INV-042');
+    expect($('#orabooks-inv-detail-body').html()).toContain('$2,000.00');
+    expect($('#orabooks-inv-detail-body').html()).toContain('$1,000.00');
+    expect($('#orabooks-inv-detail-body').html()).toContain('Partial');
+    expect($('#orabooks-invoice-detail').css('display')).not.toBe('none');
+    // Payments table
+    expect($('#orabooks-inv-detail-body').html()).toContain('REF-001');
+    expect($('#orabooks-inv-detail-body').html()).toContain('bank_transfer');
+  });
+
+  test('orabooksShowInvoiceDetail renders without payments', () => {
+    clearAjax();
+    window.orabooksShowInvoiceDetail(43);
+
+    resolveAjax('get', {
+      error: false,
+      data: {
+        id: 43,
+        invoice_number: 'INV-043',
+        customer_email: 'no-pay@test.com',
+        transaction_date: '2024-07-01',
+        due_date: '2024-08-01',
+        total_amount: 500.00,
+        paid_amount: 0,
+        payment_status: 'unpaid',
+        description: 'Service',
+        payments: []
+      }
+    }, 'orabooks_invoice_get');
+
+    const html = $('#orabooks-inv-detail-body').html();
+    expect(html).toContain('INV-043');
+    expect(html).toContain('$500.00');
+    expect(html).toContain('Unpaid');
+    expect(html).not.toContain('Payments'); // No payments header
+  });
+
+  test('clicking view button opens invoice detail', () => {
+    clearAjax();
+    window.orabooksLoadInvoices();
+    resolveAjax('get', {
+      data: {
+        invoices: [
+          {
+            id: 55,
+            invoice_number: 'INV-055',
+            customer_email: 'v@t.com',
+            transaction_date: '2024-09-01',
+            due_date: '2024-10-01',
+            total_amount: 100.00,
+            total_paid_amount: 0,
+            payment_status: 'unpaid',
+            workflow_status: 'draft'
+          }
+        ]
+      }
+    }, 'orabooks_invoices_list');
+
+    $('.orabooks-inv-view').first().trigger('click');
+
+    const call = latestAjax('get');
+    expect(call.data.action).toBe('orabooks_invoice_get');
+    expect(call.data.invoice_id).toBe(55);
+  });
+
+  test('close button hides invoice detail panel', () => {
+    clearAjax();
+    window.orabooksShowInvoiceDetail(1);
+    resolveAjax('get', {
+      error: false,
+      data: { id: 1, invoice_number: 'INV-001', customer_email: 'c@t.com', total_amount: 0, paid_amount: 0, payment_status: 'unpaid', payments: [] }
+    }, 'orabooks_invoice_get');
+
+    $('#orabooks-inv-detail-close').trigger('click');
+    expect($('#orabooks-invoice-detail').css('display')).toBe('none');
+  });
+});
+
+// ============================================================
+// CUSTOMERS & INVOICES — Payment Modal
+// ============================================================
+describe('Invoice payment modal', () => {
+  beforeEach(setupCustomerDom);
+
+  test('clicking Pay button opens payment modal', () => {
+    // Populate invoices first
+    clearAjax();
+    window.orabooksLoadInvoices();
+    resolveAjax('get', {
+      data: {
+        invoices: [
+          {
+            id: 77,
+            invoice_number: 'INV-077',
+            customer_email: 'pay-test@test.com',
+            transaction_date: '2024-09-01',
+            due_date: '2024-10-01',
+            total_amount: 750.00,
+            total_paid_amount: 0,
+            payment_status: 'unpaid',
+            workflow_status: 'posted'
+          }
+        ]
+      }
+    }, 'orabooks_invoices_list');
+
+    $('.orabooks-inv-pay').first().trigger('click');
+
+    expect($('#pay_invoice_id').val()).toBe('77');
+    expect($('#pay_invoice_number').text()).toBe('INV-077');
+    expect($('#orabooks-payment-modal').css('display')).not.toBe('none');
+  });
+
+  test('submit payment form posts record payment', () => {
+    clearAjax();
+    window.orabooksLoadInvoices();
+    resolveAjax('get', {
+      data: {
+        invoices: [
+          {
+            id: 88,
+            invoice_number: 'INV-088',
+            customer_email: 'p@t.com',
+            transaction_date: '2024-09-01',
+            due_date: '2024-10-01',
+            total_amount: 500.00,
+            total_paid_amount: 0,
+            payment_status: 'unpaid',
+            workflow_status: 'posted'
+          }
+        ]
+      }
+    }, 'orabooks_invoices_list');
+
+    $('.orabooks-inv-pay').first().trigger('click');
+
+    // Fill payment form
+    $('#pay_amount').val('500.00');
+    $('#pay_method').val('bank_transfer');
+
+    $('#orabooks-payment-form').trigger('submit');
+
+    const call = latestAjax('post');
+    expect(call.data.action).toContain('orabooks_invoice_record_payment');
+    expect(call.data.invoice_id).toBe('88');
+    expect(call.data.amount).toBe('500.00');
+  });
+
+  test('payment modal close hides modal', () => {
+    clearAjax();
+    window.orabooksLoadInvoices();
+    resolveAjax('get', {
+      data: {
+        invoices: [
+          {
+            id: 99,
+            invoice_number: 'INV-099',
+            customer_email: 'c@t.com',
+            transaction_date: '2024-09-01',
+            due_date: '2024-10-01',
+            total_amount: 1.00,
+            total_paid_amount: 0,
+            payment_status: 'unpaid',
+            workflow_status: 'posted'
+          }
+        ]
+      }
+    }, 'orabooks_invoices_list');
+
+    $('.orabooks-inv-pay').first().trigger('click');
+    $('.orabooks-modal-cancel').first().trigger('click');
+    expect($('#orabooks-payment-modal').css('display')).toBe('none');
+  });
+});
+
+// ============================================================
+// CUSTOMERS & INVOICES — Reports
+// ============================================================
+describe('orabooksRenderReports()', () => {
+  beforeEach(setupCustomerDom);
+
+  test('renders all report values from data', () => {
+    clearAjax();
+    window.orabooksRenderReports({
+      total_revenue: 50000.00,
+      outstanding_ar: 12500.50,
+      paid_invoices: 100,
+      overdue_invoices: 8
+    });
+
+    expect($('#orabooks-ar-revenue').text()).toBe('$50,000.00');
+    expect($('#orabooks-ar-outstanding').text()).toBe('$12,500.50');
+    expect($('#orabooks-ar-paid').text()).toBe('100');
+    expect($('#orabooks-ar-overdue').text()).toBe('8');
+  });
+
+  test('defaults undefined values to zero', () => {
+    clearAjax();
+    window.orabooksRenderReports({});
+
+    expect($('#orabooks-ar-revenue').text()).toBe('$0.00');
+    expect($('#orabooks-ar-outstanding').text()).toBe('$0.00');
+    expect($('#orabooks-ar-paid').text()).toBe('0');
+    expect($('#orabooks-ar-overdue').text()).toBe('0');
+  });
+});
+
+// ============================================================
+// CUSTOMERS & INVOICES — Deep Link (invoice_id query param)
+// ============================================================
+describe('Invoice deep link from URL', () => {
+  let originalLocation;
+
+  beforeEach(() => {
+    originalLocation = global.location;
+  });
+
+  afterEach(() => {
+    Object.defineProperty(global, 'location', {
+      value: originalLocation,
+      writable: true,
+      configurable: true
+    });
+  });
+
+  test('deep link loads invoice and switches to invoices tab', () => {
+    const deepLinkLocation = {
+      href: 'https://example.com/admin.php?page=orabooks-customers&invoice_id=123',
+      search: '?page=orabooks-customers&invoice_id=123',
+      protocol: 'https:',
+      host: 'example.com',
+      pathname: '/admin.php',
+      hash: '',
+      toString() { return this.href; }
+    };
+    Object.defineProperty(global, 'location', {
+      value: deepLinkLocation,
+      writable: true,
+      configurable: true
+    });
+
+    // Mock history.replaceState
+    global.window.history.replaceState = jest.fn();
+
+    setupCustomerDom();
+
+    // The ready handler's deep link IIFE should fire and switch to invoices tab + load detail
+    // The ready handler also fires the init GET for customer_stats
+    // Clear those init calls, then check for the invoice_get call
+    const getCalls = ajaxResponses.get;
+    // Find the invoice_get call
+    let foundInvGet = false;
+    for (let i = 0; i < getCalls.length; i++) {
+      if (getCalls[i].data && getCalls[i].data.action === 'orabooks_invoice_get') {
+        foundInvGet = true;
+        break;
+      }
+    }
+    expect(foundInvGet).toBe(true);
+
+    // Tab should have switched to invoices
+    expect($('.nav-tab[data-tab="invoices"]').hasClass('nav-tab-active')).toBe(true);
+
+    // history.replaceState should have been called to clean up the URL
+    expect(window.history.replaceState).toHaveBeenCalled();
+  });
+
+  test('deep link does not fire when no invoice_id in URL', () => {
+    const normalLocation = {
+      href: 'https://example.com/admin.php?page=orabooks-customers',
+      search: '?page=orabooks-customers',
+      protocol: 'https:',
+      host: 'example.com',
+      pathname: '/admin.php',
+      hash: '',
+      toString() { return this.href; }
+    };
+    Object.defineProperty(global, 'location', {
+      value: normalLocation,
+      writable: true,
+      configurable: true
+    });
+
+    global.window.history.replaceState = jest.fn();
+
+    setupCustomerDom();
+
+    // Should NOT have invoice_get call
+    const getCalls = ajaxResponses.get;
+    let foundInvGet = false;
+    for (let i = 0; i < getCalls.length; i++) {
+      if (getCalls[i].data && getCalls[i].data.action === 'orabooks_invoice_get') {
+        foundInvGet = true;
+        break;
+      }
+    }
+    expect(foundInvGet).toBe(false);
+
+    // Tab should remain on customers
+    expect($('.nav-tab[data-tab="customers"]').hasClass('nav-tab-active')).toBe(true);
+    expect(window.history.replaceState).not.toHaveBeenCalled();
+  });
+});
+
+// ============================================================
+// CUSTOMERS & INVOICES — Modal Helpers (shared click handlers)
+// ============================================================
+describe('Shared modal close handlers', () => {
+  beforeEach(setupCustomerDom);
+
+  test('orabooks-modal-close hides the modal', () => {
+    // Show a modal
+    $('#orabooks-invoice-modal').fadeIn(200).show();
+    expect($('#orabooks-invoice-modal').css('display')).not.toBe('none');
+
+    $('.orabooks-modal-close').first().trigger('click');
+    expect($('#orabooks-invoice-modal').css('display')).toBe('none');
+  });
+
+  test('orabooks-modal-backdrop hides the modal', () => {
+    $('#orabooks-payment-modal').show();
+    expect($('#orabooks-payment-modal').css('display')).not.toBe('none');
+
+    $('.orabooks-modal-backdrop').first().trigger('click');
+    expect($('#orabooks-payment-modal').css('display')).toBe('none');
+  });
+});
+
+// ============================================================
 // Dashboard Stats — orabooksLoadDashboard
 // ============================================================
 describe('orabooksLoadDashboard()', () => {
