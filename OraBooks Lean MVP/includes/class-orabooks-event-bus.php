@@ -400,6 +400,7 @@ class OraBooks_EventBus {
 
         // Consumer event tracking for idempotency
         $table = OraBooks_Database::table(self::TRACKING_TABLE);
+        $table_outbox = OraBooks_Database::table(self::OUTBOX_TABLE);
         $tables[] = "CREATE TABLE IF NOT EXISTS {$table} (
             id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
             event_key VARCHAR(128) NOT NULL,
@@ -408,6 +409,7 @@ class OraBooks_EventBus {
             aggregate_id BIGINT UNSIGNED NOT NULL,
             outbox_id BIGINT UNSIGNED NOT NULL,
             processed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (outbox_id) REFERENCES {$table_outbox}(id) ON DELETE CASCADE,
             UNIQUE KEY uk_event_consumer (event_key(100), consumer(80)),
             INDEX idx_event_type (event_type),
             INDEX idx_consumer (consumer(64))
