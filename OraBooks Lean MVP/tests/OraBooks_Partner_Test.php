@@ -683,6 +683,9 @@ class OraBooks_Partner_Test extends TestCase
         $this->assertFalse($result['is_blocked']);
         $this->assertFalse($result['read_only']);
         $this->assertFalse($result['payout_disabled']);
+        $this->assertFalse($result['is_inactive']);
+        $this->assertFalse($result['new_attribution_blocked']);
+        $this->assertNull($result['status_banner']);
         $this->assertFalse($result['can_reactivate']);
         $this->assertFalse($result['is_dormant']);
 
@@ -760,6 +763,9 @@ class OraBooks_Partner_Test extends TestCase
         $result = OraBooks_Partner::get_dashboard_data(5);
 
         $this->assertTrue($result['can_reactivate']);
+        $this->assertTrue($result['is_inactive']);
+        $this->assertTrue($result['new_attribution_blocked']);
+        $this->assertEquals('inactive', $result['status_banner']['type']);
     }
 
     #[Test]
