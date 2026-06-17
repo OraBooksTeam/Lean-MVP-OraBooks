@@ -28,7 +28,7 @@ export default function TierSelectionPage() {
     if (available === false) return setMsg('Please choose an available subdomain.');
     setLoading(true);
     const res = await api.post('orabooks_select_tier', { tier, subdomain });
-    if (!res.error && (res as any).data?.redirect_to) window.location.href = (res as any).data.redirect_to;
+    if (!res.error) window.location.hash = '/dashboard';
     else setMsg(typeof res.error === 'string' ? res.error : 'Failed');
     setLoading(false);
   };

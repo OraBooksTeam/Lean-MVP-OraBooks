@@ -178,6 +178,36 @@ class OraBooks_Partner_Test extends TestCase
         $this->assertNull($result);
     }
 
+    #[Test]
+    public function test_get_onboarding_info_contract()
+    {
+        global $wpdb;
+
+        $wpdb->test_get_row_callback = function ($query) {
+            return (object) [
+                'partner_code'      => 'PARTNER-ONBOARD',
+                'code_status'       => 'pending_review',
+                'partner_type'      => 'agency',
+                'organization_name' => 'ABC Consulting',
+                'org_status'        => 'pending_setup',
+                'org_name'          => 'ABC Consulting',
+                'created_at'        => '2026-06-01 10:00:00',
+            ];
+        };
+
+        $result = OraBooks_Partner::get_onboarding_info(5);
+
+        $this->assertIsArray($result);
+        $this->assertEquals('PARTNER-ONBOARD', $result['partner_code']);
+        $this->assertEquals('pending_review', $result['code_status']);
+        $this->assertEquals('agency', $result['partner_type']);
+        $this->assertEquals('ABC Consulting', $result['organization_name']);
+        $this->assertEquals('pending_setup', $result['org_status']);
+        $this->assertFalse($result['bank_info_required']);
+        $this->assertFalse($result['payment_settings_available']);
+        $this->assertStringContainsString('Awaiting admin approval', $result['status_message']);
+    }
+
     // ================================================================
     // get_active_customer_count()
     // ================================================================
