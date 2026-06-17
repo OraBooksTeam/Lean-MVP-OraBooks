@@ -18,6 +18,8 @@ class OraBooks_Shortcodes {
             self::$instance = new self();
             add_shortcode('orabooks_login', [self::$instance, 'login_form']);
             add_shortcode('orabooks_register', [self::$instance, 'register_form']);
+            add_shortcode('orabooks_verify_email', [self::$instance, 'verify_email']);
+            add_shortcode('orabooks_reset_password', [self::$instance, 'reset_password']);
             add_shortcode('orabooks_partner_onboarding', [self::$instance, 'partner_onboarding']);
             add_shortcode('orabooks_tier_selection', [self::$instance, 'tier_selection']);
             add_shortcode('orabooks_dashboard', [self::$instance, 'dashboard']);
@@ -63,6 +65,64 @@ class OraBooks_Shortcodes {
     
     public function register_form() {
         return $this->react_app('/register', 'Loading OraBooks registration...');
+    }
+    
+    public function verify_email() {
+        $token = sanitize_text_field($_GET['token'] ?? '');
+        
+        if (empty($token)) {
+            return '<div class="orabooks-message error" style="display:block;">' .
+                esc_html__('Invalid verification link.', 'orabooks') .
+                '</div>';
+        }
+        
+        $result = OraBooks_Auth::verify_email($token);
+        
+        if (is_wp_error($result)) {
+            return '<div class="orabooks-message error" style="display:block;">' .
+                esc_html($result->get_error_message()) .
+                '</div>';
+        }
+        
+        return '<div class="orabooks-message success" style="display:block;">' .
+            esc_html__('Email verified successfully. You can now log in.', 'orabooks') .
+            ' <a href="' . esc_url(home_url('/login/?verified=1')) . '">' .
+            esc_html__('Go to login', 'orabooks') .
+            '</a></div>';
+    }
+    
+    public function reset_password() {
+        $token = sanitize_text_field($_GET['token'] ?? '');
+        ob_start();
+        ?>
+        <div class="orabooks-form-container">
+            <h2><?php esc_html_e('Reset Password', 'orabooks'); ?></h2>
+            <?php if (empty($token)) : ?>
+                <div class="orabooks-message error" style="display:block;">
+                    <?php esc_html_e('Invalid or missing reset token.', 'orabooks'); ?>
+                </div>
+            <?php else : ?>
+                <form id="orabooks-reset-password-form" class="orabooks-form">
+                    <input type="hidden" id="reset-token" value="<?php echo esc_attr($token); ?>">
+                    <div class="orabooks-form-group">
+                        <label for="reset-password"><?php esc_html_e('New Password', 'orabooks'); ?></label>
+                        <input type="password" id="reset-password" required autocomplete="new-password">
+                    </div>
+                    <div class="orabooks-form-group">
+                        <label for="reset-confirm-password"><?php esc_html_e('Confirm New Password', 'orabooks'); ?></label>
+                        <input type="password" id="reset-confirm-password" required autocomplete="new-password">
+                    </div>
+                    <div class="orabooks-form-actions">
+                        <button type="submit" class="orabooks-btn orabooks-btn-primary">
+                            <?php esc_html_e('Reset Password', 'orabooks'); ?>
+                        </button>
+                    </div>
+                </form>
+                <div id="orabooks-reset-password-message" class="orabooks-message"></div>
+            <?php endif; ?>
+        </div>
+        <?php
+        return ob_get_clean();
     }
     
     public function partner_onboarding() {
