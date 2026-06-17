@@ -42,6 +42,7 @@ require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-exports.php';
 require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-customers.php';
 require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-vendors.php';
 require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-inventory.php';
+require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-bank-reconciliation.php';
 require_once ORABOOKS_PLUGIN_DIR . 'includes/helpers.php';
 
 // Initialize plugin
@@ -75,6 +76,7 @@ function orabooks_init() {
     OraBooks_Customers::init();
     OraBooks_Vendors::init();
     OraBooks_Inventory::init();
+    OraBooks_Bank_Reconciliation::init();
     OraBooks_Exports::register_report_provider('coa', function($params) {
         // Reuse OraBooks_COA if available
         if (class_exists('OraBooks_COA') && method_exists('OraBooks_COA', 'get_accounts')) {
