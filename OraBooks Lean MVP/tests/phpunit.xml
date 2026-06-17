@@ -50,5 +50,8 @@
         <testsuite name="OraBooks SL-093 Observability Tests">
             <file>OraBooks_Observability_Test.php</file>
         </testsuite>
+        <testsuite name="OraBooks SL-113 CSV Imports Tests">
+            <file>OraBooks_Csv_Imports_Test.php</file>
+        </testsuite>
     </testsuites>
 </phpunit>

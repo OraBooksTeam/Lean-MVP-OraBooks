@@ -1046,6 +1046,13 @@ if (!file_exists($observability_file)) {
 }
 require_once $observability_file;
 
+$csv_imports_file = __DIR__ . '/../includes/class-orabooks-csv-imports.php';
+if (!file_exists($csv_imports_file)) {
+    echo "ERROR: Cannot find class-orabooks-csv-imports.php at {$csv_imports_file}\n";
+    exit(1);
+}
+require_once $csv_imports_file;
+
 if (!function_exists('get_users')) {
     function get_users($args = []) {
         return [];
