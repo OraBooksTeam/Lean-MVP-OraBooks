@@ -80,6 +80,40 @@ class OraBooks_Partner_Test extends TestCase
     }
 
     // ================================================================
+    // Helper: capture JSON response from AJAX handlers
+    // ================================================================
+
+    /**
+     * Invoke an AJAX handler method and return the decoded JSON response.
+     */
+    private function callAjax(string $method, array $post = []): array
+    {
+        $_POST = array_merge($_POST, $post);
+        $partner = new OraBooks_Partner();
+        try {
+            $partner->$method();
+            $this->fail("Expected RuntimeException (JSON response) was not thrown by {$method}");
+        } catch (RuntimeException $e) {
+            return json_decode($e->getMessage(), true);
+        }
+    }
+
+    // ================================================================
+    // Helper: orabooks_generate_partner_code()
+    // ================================================================
+
+    #[Test]
+    public function test_generate_partner_code_format()
+    {
+        $code = orabooks_generate_partner_code();
+        $this->assertIsString($code);
+        $this->assertStringStartsWith('PARTNER-', $code);
+        // Should be PARTNER- + 8 uppercase hex chars = 16 chars total
+        $this->assertEquals(16, strlen($code));
+        $this->assertMatchesRegularExpression('/^PARTNER-[A-F0-9]{8}$/', $code);
+    }
+
+    // ================================================================
     // get_partner_info()
     // ================================================================
 
@@ -379,6 +413,59 @@ class OraBooks_Partner_Test extends TestCase
         // The org UPDATE is last (last_query = organizations UPDATE),
         // but we verify the function completed successfully
         $this->assertStringContainsString('orabooks_organizations', $wpdb->last_query);
+    }
+
+    // ================================================================
+    // Admin list queries — pagination args
+    // ================================================================
+
+    #[Test]
+    public function test_get_pending_partners_with_pagination_args()
+    {
+        global $wpdb;
+
+        $capturedLimit = null;
+        $capturedOffset = null;
+        $wpdb->test_get_results_callback = function ($query) use (&$capturedLimit, &$capturedOffset) {
+            // Parse LIMIT and OFFSET from the query
+            if (preg_match('/LIMIT (\d+) OFFSET (\d+)/i', $query, $m)) {
+                $capturedLimit = (int) $m[1];
+                $capturedOffset = (int) $m[2];
+            }
+            return [
+                (object)['id' => 1, 'partner_code' => 'PG-1', 'status' => 'pending_review', 'email' => 'p1@t.com'],
+            ];
+        };
+
+        $results = OraBooks_Partner::get_pending_partners(['limit' => 10, 'offset' => 20]);
+
+        $this->assertCount(1, $results);
+        $this->assertEquals(10, $capturedLimit);
+        $this->assertEquals(20, $capturedOffset);
+    }
+
+    #[Test]
+    public function test_get_active_partners_with_pagination_args()
+    {
+        global $wpdb;
+
+        $capturedLimit = null;
+        $capturedOffset = null;
+        $wpdb->test_get_results_callback = function ($query) use (&$capturedLimit, &$capturedOffset) {
+            if (preg_match('/LIMIT (\d+) OFFSET (\d+)/i', $query, $m)) {
+                $capturedLimit = (int) $m[1];
+                $capturedOffset = (int) $m[2];
+            }
+            return [
+                (object)['id' => 1, 'partner_code' => 'ACT-1', 'status' => 'active', 'email' => 'a1@t.com', 'verified_attributions' => 3],
+            ];
+        };
+
+        $results = OraBooks_Partner::get_active_partners(['limit' => 25, 'offset' => 50]);
+
+        $this->assertCount(1, $results);
+        $this->assertEquals(25, $capturedLimit);
+        $this->assertEquals(50, $capturedOffset);
     }
 
     // ================================================================
@@ -866,6 +953,211 @@ class OraBooks_Partner_Test extends TestCase
 
         // If reminder was sent 2 months ago (< 3 months), no new reminder
         $this->assertStringNotContainsString('low_activity_reminder_sent_at', $wpdb->last_query);
+    }
+
+    // ================================================================
+    // ADMIN AJAX: ajax_admin_approve_partner()
+    // ================================================================
+
+    #[Test]
+    public function test_ajax_admin_approve_partner_success()
+    {
+        global $wpdb;
+
+        $wpdb->test_get_row_callback = function ($query) {
+            return $this->mockPartnerCode([
+                'status'     => 'pending_review',
+                'org_status' => 'pending_setup',
+            ]);
+        };
+
+        $response = $this->callAjax('ajax_admin_approve_partner', [
+            'partner_code_id' => 1,
+        ]);
+
+        $this->assertFalse($response['error']);
+        $this->assertStringContainsString('approved', $response['message']);
+    }
+
+    #[Test]
+    public function test_ajax_admin_approve_partner_permission_denied()
+    {
+        $GLOBALS['orabooks_test_current_user_can'] = false;
+
+        $response = $this->callAjax('ajax_admin_approve_partner', [
+            'partner_code_id' => 1,
+        ]);
+
+        $this->assertTrue($response['error']);
+        $this->assertStringContainsString('Permission denied', $response['message']);
+    }
+
+    #[Test]
+    public function test_ajax_admin_approve_partner_missing_id()
+    {
+        // No partner_code_id in POST
+        $response = $this->callAjax('ajax_admin_approve_partner');
+
+        $this->assertTrue($response['error']);
+        $this->assertStringContainsString('Invalid partner code ID', $response['message']);
+    }
+
+    // ================================================================
+    // ADMIN AJAX: ajax_admin_reject_partner()
+    // ================================================================
+
+    #[Test]
+    public function test_ajax_admin_reject_partner_success()
+    {
+        global $wpdb;
+
+        $wpdb->test_get_row_callback = function ($query) {
+            return $this->mockPartnerCode([
+                'status' => 'pending_review',
+                'org_id' => 10,
+            ]);
+        };
+
+        $response = $this->callAjax('ajax_admin_reject_partner', [
+            'partner_code_id' => 1,
+            'reason'          => 'Incomplete documentation',
+        ]);
+
+        $this->assertFalse($response['error']);
+        $this->assertStringContainsString('rejected', $response['message']);
+    }
+
+    #[Test]
+    public function test_ajax_admin_reject_partner_permission_denied()
+    {
+        $GLOBALS['orabooks_test_current_user_can'] = false;
+
+        $response = $this->callAjax('ajax_admin_reject_partner', [
+            'partner_code_id' => 1,
+        ]);
+
+        $this->assertTrue($response['error']);
+        $this->assertStringContainsString('Permission denied', $response['message']);
+    }
+
+    // ================================================================
+    // ADMIN AJAX: ajax_admin_review_reactivation()
+    // ================================================================
+
+    #[Test]
+    public function test_ajax_admin_review_reactivation_approve()
+    {
+        global $wpdb;
+
+        $wpdb->test_get_row_callback = function ($query) {
+            return (object)[
+                'id'      => 5,
+                'org_id'  => 10,
+                'reason'  => 'Need to reactivate',
+            ];
+        };
+
+        $response = $this->callAjax('ajax_admin_review_reactivation', [
+            'review_id' => 5,
+            'decision'  => 'approved',
+            'notes'     => 'Approved after review',
+        ]);
+
+        $this->assertFalse($response['error']);
+        $this->assertStringContainsString('approved', $response['message']);
+    }
+
+    #[Test]
+    public function test_ajax_admin_review_reactivation_deny()
+    {
+        $response = $this->callAjax('ajax_admin_review_reactivation', [
+            'review_id' => 5,
+            'decision'  => 'denied',
+            'notes'     => 'Does not qualify',
+        ]);
+
+        $this->assertFalse($response['error']);
+        $this->assertStringContainsString('denied', $response['message']);
+    }
+
+    #[Test]
+    public function test_ajax_admin_review_reactivation_invalid_decision()
+    {
+        $response = $this->callAjax('ajax_admin_review_reactivation', [
+            'review_id' => 5,
+            'decision'  => 'invalid_decision',
+        ]);
+
+        $this->assertTrue($response['error']);
+        $this->assertStringContainsString('Invalid request', $response['message']);
+    }
+
+    // ================================================================
+    // ADMIN AJAX: List handlers
+    // ================================================================
+
+    #[Test]
+    public function test_ajax_admin_list_pending_partners_success()
+    {
+        global $wpdb;
+        $wpdb->test_get_results_callback = function ($query) {
+            return [
+                (object)['id' => 1, 'partner_code' => 'P1', 'status' => 'pending_review', 'email' => 'p1@t.com'],
+            ];
+        };
+
+        $response = $this->callAjax('ajax_admin_list_pending_partners');
+
+        $this->assertFalse($response['error']);
+        $this->assertCount(1, $response['data']);
+        $this->assertEquals('P1', $response['data'][0]->partner_code);
+    }
+
+    #[Test]
+    public function test_ajax_admin_list_active_partners_success()
+    {
+        global $wpdb;
+        $wpdb->test_get_results_callback = function ($query) {
+            return [
+                (object)['id' => 1, 'partner_code' => 'A1', 'status' => 'active', 'email' => 'a1@t.com', 'verified_attributions' => 5],
+            ];
+        };
+
+        $response = $this->callAjax('ajax_admin_list_active_partners');
+
+        $this->assertFalse($response['error']);
+        $this->assertCount(1, $response['data']);
+        $this->assertEquals('A1', $response['data'][0]->partner_code);
+    }
+
+    #[Test]
+    public function test_ajax_admin_list_reactivation_requests_success()
+    {
+        global $wpdb;
+        $wpdb->test_get_results_callback = function ($query) {
+            return [
+                (object)[
+                    'id'                 => 1,
+                    'org_id'             => 10,
+                    'requested_by'       => 5,
+                    'requested_by_email' => 'owner@t.com',
+                    'org_name'           => 'React Corp',
+                    'subdomain'          => 'react',
+                    'partner_code'       => 'R1',
+                    'partner_type'       => 'agency',
+                    'code_status'        => 'pending_review',
+                    'reason'             => 'Need to restart',
+                    'requested_at'       => '2026-06-01 10:00:00',
+                    'decision'           => null,
+                ],
+            ];
+        };
+
+        $response = $this->callAjax('ajax_admin_list_reactivation_requests');
+
+        $this->assertFalse($response['error']);
+        $this->assertCount(1, $response['data']);
+        $this->assertEquals('R1', $response['data'][0]->partner_code);
     }
 
     // ================================================================
