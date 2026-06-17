@@ -516,6 +516,12 @@ if (!function_exists('add_action')) {
     function add_action($tag, $callback, $priority = 10, $accepted_args = 1) { /* no-op */ }
 }
 
+if (!function_exists('apply_filters')) {
+    function apply_filters($tag, $value, ...$args) {
+        return $value;
+    }
+}
+
 if (!function_exists('home_url')) {
     function home_url($path = '') { return 'http://example.com' . $path; }
 }
