@@ -216,6 +216,11 @@ function orabooks_create_required_pages() {
         
         // Dashboard
         'dashboard'           => ['Dashboard', '[orabooks_dashboard]'],
+        'customers'           => ['Customers', '[orabooks_customers]'],
+        'invoices'            => ['Invoices', '[orabooks_invoices]'],
+        'chart-of-accounts'   => ['Chart of Accounts', '[orabooks_chart_of_accounts]'],
+        'journals'            => ['Journals', '[orabooks_journals]'],
+        'profile'             => ['Profile', '[orabooks_profile]'],
         
         // Notification pages
         'notifications'       => ['Notifications', '[orabooks_notification_center]'],
