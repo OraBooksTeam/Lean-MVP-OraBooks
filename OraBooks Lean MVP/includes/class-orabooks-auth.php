@@ -121,6 +121,14 @@ class OraBooks_Auth {
             return new WP_Error('creation_failed', 'Failed to create user');
         }
         
+        $email_result = self::send_verification_email($email, $verification_token);
+        if (is_wp_error($email_result)) {
+            orabooks_log_event('verification_email_failed', "Verification email failed for $email", 'error', [
+                'error' => $email_result->get_error_message()
+            ], $user_id, null);
+            return $email_result;
+        }
+        
         // Store partner type and org name in session for later use
         if ($user_type === 'partner') {
             $_SESSION['orabooks_partner_type'] = $partner_type;
@@ -146,14 +154,6 @@ class OraBooks_Auth {
             if (is_wp_error($attribution_result)) {
                 return $attribution_result;
             }
-        }
-        
-        $email_result = self::send_verification_email($email, $verification_token);
-        if (is_wp_error($email_result)) {
-            orabooks_log_event('verification_email_failed', "Verification email failed for $email", 'error', [
-                'error' => $email_result->get_error_message()
-            ], $user_id, null);
-            return $email_result;
         }
         
         // Generate JWT
