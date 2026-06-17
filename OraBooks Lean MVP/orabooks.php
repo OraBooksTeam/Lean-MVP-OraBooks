@@ -43,6 +43,7 @@ require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-customers.php';
 require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-vendors.php';
 require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-inventory.php';
 require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-bank-reconciliation.php';
+require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-financial-reports.php';
 require_once ORABOOKS_PLUGIN_DIR . 'includes/helpers.php';
 
 // Initialize plugin
@@ -77,6 +78,7 @@ function orabooks_init() {
     OraBooks_Vendors::init();
     OraBooks_Inventory::init();
     OraBooks_Bank_Reconciliation::init();
+    OraBooks_Financial_Reports::init();
     OraBooks_Exports::register_report_provider('coa', function($params) {
         // Reuse OraBooks_COA if available
         if (class_exists('OraBooks_COA') && method_exists('OraBooks_COA', 'get_accounts')) {
@@ -296,6 +298,8 @@ function orabooks_deactivate() {
     wp_clear_scheduled_hook('orabooks_daily_invoice_overdue_check');
     wp_clear_scheduled_hook('orabooks_daily_overdue_digest');
     wp_clear_scheduled_hook('orabooks_daily_ap_aging_snapshot');
+    wp_clear_scheduled_hook('orabooks_monthly_report_snapshot_archive');
+    wp_clear_scheduled_hook('orabooks_daily_projection_integrity_check');
 }
 
 // Add custom cron schedule for every_minute
