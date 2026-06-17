@@ -16,6 +16,7 @@ class OraBooks_Tax {
     const DEFAULT_OVERRIDE_REASONS = [
         'WRONG_AI_CLASSIFICATION',
         'LOCAL_TAX_RULE',
+        'MANUAL_JURISDICTION_ADJUSTMENT',
         'CUSTOMER_EXEMPTION',
         'REGIONAL_COMPLIANCE_OVERRIDE',
     ];
@@ -413,6 +414,31 @@ class OraBooks_Tax {
         }
 
         return self::DEFAULT_OVERRIDE_REASONS;
+    }
+
+    public static function validate_override($org_id, $jurisdiction, $tax_rate, $reason_code) {
+        $org_id = intval($org_id);
+        $jurisdiction = strtoupper(sanitize_text_field($jurisdiction ?: 'US'));
+        $tax_rate = round(floatval($tax_rate), 4);
+        $reason_code = sanitize_text_field($reason_code);
+
+        if ($org_id <= 0) {
+            return new WP_Error('invalid_org', 'Organization is required');
+        }
+
+        if ($reason_code === '') {
+            return new WP_Error('override_reason_required', 'Tax override reason is required');
+        }
+
+        if (!in_array($reason_code, self::get_allowed_override_reasons($org_id, $jurisdiction), true)) {
+            return new WP_Error('invalid_override_reason', 'Tax override reason is not allowed');
+        }
+
+        if ($tax_rate < 0 || $tax_rate > 100) {
+            return new WP_Error('invalid_rate', 'Tax override rate must be between 0 and 100');
+        }
+
+        return true;
     }
 
     private static function is_tax_locked($org_id, $data) {
