@@ -50,7 +50,7 @@ export default function TierSelectionPage() {
                 className={cn_tier(tier === plan)}
               >
                 <h3 className="text-sm font-bold uppercase tracking-wide">{plan}</h3>
-                <p className="mt-1 text-xs text-slate-500">
+                <p className={`mt-1 text-xs ${tier === plan ? 'text-white/85' : 'text-slate-500'}`}>
                   {plan === 'free' && 'Basic features for small businesses'}
                   {plan === 'premium' && 'Advanced features for growing businesses'}
                   {plan === 'enterprise' && 'Full features for large organizations'}
