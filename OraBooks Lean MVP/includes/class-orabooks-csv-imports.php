@@ -846,16 +846,44 @@ class OraBooks_Csv_Imports {
         ));
     }
 
-    private static function get_required_fields($resource_type) {
+    public static function format_import($import) {
         return [
-            'id'              => (int) $row->id,
-            'row_index'       => (int) $row->row_index,
-            'raw_data'        => json_decode($row->raw_data ?: '{}', true),
-            'parsed_data'     => json_decode($row->parsed_data ?: '{}', true),
-            'confidence_avg'  => $row->confidence_avg !== null ? (float) $row->confidence_avg : null,
-            'risk_scores'     => json_decode($row->risk_scores ?: '[]', true),
-            'status'          => $row->status,
+            'id'                => (int) $import->id,
+            'org_id'            => (int) $import->org_id,
+            'user_id'           => (int) $import->user_id,
+            'resource_type'     => $import->resource_type,
+            'original_filename' => $import->original_filename,
+            'status'            => $import->status,
+            'total_rows'        => (int) $import->total_rows,
+            'processed_rows'    => (int) $import->processed_rows,
+            'header_mapping'    => json_decode($import->header_mapping ?: '{}', true),
+            'created_at'        => $import->created_at,
         ];
+    }
+
+    private static function format_row($row) {
+        return [
+            'id'             => (int) $row->id,
+            'row_index'      => (int) $row->row_index,
+            'raw_data'       => json_decode($row->raw_data ?: '{}', true),
+            'parsed_data'    => json_decode($row->parsed_data ?: '{}', true),
+            'confidence_avg' => $row->confidence_avg !== null ? (float) $row->confidence_avg : null,
+            'risk_scores'    => json_decode($row->risk_scores ?: '[]', true),
+            'status'         => $row->status,
+        ];
+    }
+
+    /**
+     * Normalize parsed row field aliases before confidence / resource creation.
+     */
+    public static function normalize_parsed_row(array $parsed, $resource_type) {
+        if (empty($parsed['total_amount']) && !empty($parsed['amount'])) {
+            $parsed['total_amount'] = $parsed['amount'];
+        }
+        if (empty($parsed['vendor_name']) && !empty($parsed['name']) && in_array($resource_type, ['expense'], true)) {
+            $parsed['vendor_name'] = $parsed['name'];
+        }
+        return $parsed;
     }
 
     private static function get_required_fields($resource_type) {
