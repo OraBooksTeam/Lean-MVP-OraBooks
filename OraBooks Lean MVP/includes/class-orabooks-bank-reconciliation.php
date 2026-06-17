@@ -39,6 +39,7 @@ class OraBooks_Bank_Reconciliation {
         $table_feeds = OraBooks_Database::table('bank_feeds');
         $table_matches = OraBooks_Database::table('reconciliation_matches');
         $table_log = OraBooks_Database::table('reconciliation_log');
+        $table_orgs = OraBooks_Database::table('organizations');
 
         return [
             "CREATE TABLE IF NOT EXISTS {$table_accounts} (
@@ -55,6 +56,7 @@ class OraBooks_Bank_Reconciliation {
                 target_balance DECIMAL(20,2) NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                FOREIGN KEY (org_id) REFERENCES {$table_orgs}(id) ON DELETE CASCADE,
                 INDEX idx_org_active (org_id, is_active)
             ) {$charset_collate};",
             "CREATE TABLE IF NOT EXISTS {$table_transactions} (
@@ -71,6 +73,7 @@ class OraBooks_Bank_Reconciliation {
                 is_internal_transfer TINYINT(1) DEFAULT 0,
                 raw_data JSON NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (org_id) REFERENCES {$table_orgs}(id) ON DELETE CASCADE,
                 FOREIGN KEY (bank_account_id) REFERENCES {$table_accounts}(id) ON DELETE CASCADE,
                 UNIQUE KEY uk_bank_dedupe (bank_account_id, transaction_date, amount, reference),
                 INDEX idx_status (status),
@@ -88,6 +91,7 @@ class OraBooks_Bank_Reconciliation {
                 status VARCHAR(20) DEFAULT 'inactive',
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                FOREIGN KEY (org_id) REFERENCES {$table_orgs}(id) ON DELETE CASCADE,
                 FOREIGN KEY (bank_account_id) REFERENCES {$table_accounts}(id) ON DELETE CASCADE,
                 INDEX idx_org_provider (org_id, provider)
             ) {$charset_collate};",
@@ -115,6 +119,8 @@ class OraBooks_Bank_Reconciliation {
                 note TEXT NULL,
                 reconciled_by BIGINT UNSIGNED NOT NULL,
                 reconciled_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (org_id) REFERENCES {$table_orgs}(id) ON DELETE CASCADE,
+                FOREIGN KEY (bank_account_id) REFERENCES {$table_accounts}(id) ON DELETE CASCADE,
                 INDEX idx_org_account_date (org_id, bank_account_id, statement_date)
             ) {$charset_collate};",
         ];
