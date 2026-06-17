@@ -1320,6 +1320,58 @@ class OraBooks_Customers {
     }
 
     /**
+     * Override invoice tax before posting (SL-081).
+     */
+    public function ajax_invoice_override_tax() {
+        global $wpdb;
+
+        check_ajax_referer('orabooks_nonce', 'nonce');
+
+        $user_id = get_current_user_id();
+        $invoice_id = intval($_POST['invoice_id'] ?? 0);
+        $org_id = intval($_POST['org_id'] ?? 0);
+
+        if (!$invoice_id) {
+            orabooks_json_error('Invoice ID required', 400);
+        }
+
+        if (!$org_id) {
+            $table_invoices = OraBooks_Database::table('invoices');
+            $org_id = (int) $wpdb->get_var($wpdb->prepare(
+                "SELECT org_id FROM {$table_invoices} WHERE id = %d",
+                $invoice_id
+            ));
+        }
+
+        if (!$org_id) {
+            orabooks_json_error('Organization ID required', 400);
+        }
+
+        $can_override = current_user_can('manage_options')
+            || OraBooks_RBAC::require_permission($user_id, $org_id, 'manage_org_settings')
+            || OraBooks_RBAC::require_permission($user_id, $org_id, 'approve_journal');
+
+        if (!$can_override) {
+            orabooks_json_error('Permission denied', 403);
+        }
+
+        $result = self::override_invoice_tax(
+            $org_id,
+            $invoice_id,
+            floatval($_POST['new_tax_rate'] ?? 0),
+            sanitize_text_field($_POST['reason_code'] ?? ''),
+            $user_id,
+            sanitize_text_field($_POST['jurisdiction'] ?? 'US')
+        );
+
+        if (is_wp_error($result)) {
+            orabooks_json_error($result->get_error_message(), 400);
+        }
+
+        orabooks_json_success($result, 'Tax override applied');
+    }
+
+    /**
      * Record a payment against an invoice.
      */
     public function ajax_record_payment() {
