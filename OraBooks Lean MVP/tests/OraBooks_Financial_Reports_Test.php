@@ -256,4 +256,72 @@ class OraBooks_Financial_Reports_Test extends TestCase
         $this->assertEquals('wp_test_orabooks_projection_integrity_checks', $inserts[0][0]);
         $this->assertTrue(is_callable($originalUpdate));
     }
+
+    #[Test]
+    public function test_flatten_profit_loss_for_export()
+    {
+        $flat = OraBooks_Financial_Reports::flatten_for_export([
+            'report' => [
+                'report_type' => 'profit_loss',
+                'revenue' => [
+                    ['account_id' => 1, 'code' => '4000', 'name' => 'Sales', 'type' => 'revenue', 'amount' => 1000],
+                ],
+                'expenses' => [
+                    ['account_id' => 2, 'code' => '5000', 'name' => 'Rent', 'type' => 'expense', 'amount' => 350],
+                ],
+                'net_income' => 650,
+            ],
+        ]);
+
+        $this->assertSame(['section', 'code', 'name', 'type', 'amount'], $flat['columns']);
+        $this->assertCount(3, $flat['rows']);
+        $this->assertEquals('Summary', $flat['rows'][2]['section']);
+        $this->assertEquals(650, $flat['rows'][2]['amount']);
+    }
+
+    #[Test]
+    public function test_export_report_data_resolves_financial_export_type()
+    {
+        global $wpdb;
+
+        $wpdb->test_get_row_callback = function ($query) {
+            if (stripos($query, 'fiscal_periods') !== false) {
+                return null;
+            }
+            if (stripos($query, 'report_snapshots') !== false) {
+                return null;
+            }
+            return null;
+        };
+        $wpdb->test_get_results_callback = function ($query) {
+            return [
+                (object) [
+                    'account_id' => 1,
+                    'code' => '4000',
+                    'name' => 'Sales Revenue',
+                    'type' => 'revenue',
+                    'normal_balance' => 'credit',
+                    'debit_sum' => 0,
+                    'credit_sum' => 500,
+                    'balance' => -500,
+                ],
+            ];
+        };
+        $wpdb->test_insert_callback = function ($table, $data) {
+            return true;
+        };
+        $GLOBALS['orabooks_test_use_insert_id'] = 9001;
+
+        $data = OraBooks_Financial_Reports::export_report_data([
+            'org_id' => 10,
+            'export_type' => 'financial_profit_loss',
+            'period_start' => '2026-01-01',
+            'period_end' => '2026-01-31',
+        ]);
+
+        $this->assertIsArray($data);
+        $this->assertArrayHasKey('columns', $data);
+        $this->assertArrayHasKey('rows', $data);
+        $this->assertNotEmpty($data['rows']);
+    }
 }

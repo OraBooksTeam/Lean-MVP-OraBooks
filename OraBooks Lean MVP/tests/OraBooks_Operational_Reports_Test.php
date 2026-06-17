@@ -274,4 +274,39 @@ class OraBooks_Operational_Reports_Test extends TestCase
         $this->assertTrue($second['from_cache']);
         $this->assertEquals(1, $calls);
     }
+
+    #[Test]
+    public function test_flatten_ar_aging_for_export()
+    {
+        $flat = OraBooks_Operational_Reports::flatten_for_export([
+            'report_type' => 'ar_aging',
+            'data' => [
+                ['customer_id' => 10, 'current' => 100, '30' => 50, '60' => 0, '90_plus' => 0, 'total_due' => 150],
+            ],
+        ]);
+
+        $this->assertSame(['customer_id', 'current', '30', '60', '90_plus', 'total_due'], $flat['columns']);
+        $this->assertCount(1, $flat['rows']);
+        $this->assertEquals(150, $flat['rows'][0]['total_due']);
+    }
+
+    #[Test]
+    public function test_export_report_data_resolves_operational_export_type()
+    {
+        global $wpdb;
+
+        $wpdb->test_get_results_callback = function ($query) {
+            return [(object) ['customer_id' => 10, 'bucket' => 'current', 'amount' => 200]];
+        };
+
+        $data = OraBooks_Operational_Reports::export_report_data([
+            'org_id' => 5,
+            'export_type' => 'operational_ar_aging',
+            'as_of_date' => '2026-06-30',
+        ]);
+
+        $this->assertIsArray($data);
+        $this->assertArrayHasKey('rows', $data);
+        $this->assertNotEmpty($data['rows']);
+    }
 }
