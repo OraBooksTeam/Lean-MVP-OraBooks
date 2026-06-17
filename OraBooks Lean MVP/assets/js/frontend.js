@@ -210,6 +210,31 @@ jQuery(document).ready(function($) {
         });
     });
     
+    // Forgot password request form
+    $('#orabooks-forgot-password-form').on('submit', function(e) {
+        e.preventDefault();
+        var $form = $(this);
+        var $msg = $('#orabooks-forgot-password-message');
+        
+        $msg.hide();
+        $form.find('button').prop('disabled', true).text('Sending...');
+        
+        $.post(orabooks_ajax.ajax_url, {
+            action: 'orabooks_forgot_password',
+            email: $('#forgot-email').val()
+        }, function(response) {
+            if (response.error) {
+                $msg.removeClass('success').addClass('error').text(response.message).show();
+                $form.find('button').prop('disabled', false).text('Send Reset Link');
+            } else {
+                $msg.removeClass('error').addClass('success').text(response.message || 'If the email exists, a reset link has been sent.').show();
+            }
+        }).fail(function() {
+            $msg.removeClass('success').addClass('error').text('An error occurred. Please try again.').show();
+            $form.find('button').prop('disabled', false).text('Send Reset Link');
+        });
+    });
+    
     // Reset password form
     $('#orabooks-reset-password-form').on('submit', function(e) {
         e.preventDefault();
