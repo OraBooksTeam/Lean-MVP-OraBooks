@@ -634,7 +634,6 @@ function orabooks_admin_enqueue($hook) {
 
 // Enqueue frontend assets
 add_action('wp_enqueue_scripts', 'orabooks_frontend_enqueue');
-function orabooks_frontend_enqueue() {
     wp_enqueue_style('orabooks-frontend', ORABOOKS_PLUGIN_URL . 'assets/css/frontend.css', [], ORABOOKS_VERSION);
     wp_enqueue_script('orabooks-frontend', ORABOOKS_PLUGIN_URL . 'assets/js/frontend.js', ['jquery'], ORABOOKS_VERSION, true);
     wp_localize_script('orabooks-frontend', 'orabooks_ajax', [

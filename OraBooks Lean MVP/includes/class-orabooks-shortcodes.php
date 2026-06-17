@@ -330,6 +330,8 @@ class OraBooks_Shortcodes {
         }
         ob_start();
         ?>
+        <div class="orabooks-page-shell">
+        <div class="orabooks-page-shell-inner">
         <div class="orabooks-notification-preferences">
             <h2><?php _e('Notification Preferences', 'orabooks'); ?></h2>
             
@@ -385,6 +387,8 @@ class OraBooks_Shortcodes {
                 </div>
             </form>
             <div id="orabooks-nc-prefs-message" class="orabooks-message"></div>
+        </div>
+        </div>
         </div>
         <?php
         return ob_get_clean();
