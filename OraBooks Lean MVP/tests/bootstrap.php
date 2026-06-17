@@ -704,6 +704,14 @@ if (!class_exists('OraBooks_Organization', false)) {
                 'name'      => $data['name'] ?? 'Test Org',
             ];
         }
+
+        public static function request_partner_reactivation($org_id, $user_id, $reason) {
+            return rand(100, 999); // Returns review ID
+        }
+
+        public static function review_reactivation($review_id, $admin_id, $decision, $notes) {
+            return true;
+        }
     }
 }
 
@@ -912,10 +920,14 @@ if (!file_exists($notifications_file)) {
 }
 require_once $notifications_file;
 
-// Stub OraBooks_Partner
-if (!class_exists('OraBooks_Partner', false)) {
-    class OraBooks_Partner {
-        public static function init() { return new self(); }
+// orabooks_mask_email — used by OraBooks_Partner::get_dashboard_data
+if (!function_exists('orabooks_mask_email')) {
+    function orabooks_mask_email($email) {
+        $parts = explode('@', $email);
+        $name = $parts[0];
+        $domain = $parts[1] ?? '';
+        $masked = substr($name, 0, 2) . str_repeat('*', max(0, strlen($name) - 2));
+        return $masked . '@' . $domain;
     }
 }
 
