@@ -888,10 +888,11 @@ class OraBooks_Notifications {
         $charset_collate = $wpdb->get_charset_collate();
 
         $tables = [];
+        $table_orgs = OraBooks_Database::table('organizations');
 
         // 1. Notifications
-        $table = OraBooks_Database::table('notifications');
-        $tables[] = "CREATE TABLE IF NOT EXISTS {$table} (
+        $table_notifications = OraBooks_Database::table('notifications');
+        $tables[] = "CREATE TABLE IF NOT EXISTS {$table_notifications} (
             id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
             org_id BIGINT UNSIGNED NOT NULL,
             user_id BIGINT UNSIGNED NOT NULL,
@@ -908,6 +909,7 @@ class OraBooks_Notifications {
             is_read TINYINT(1) DEFAULT 0,
             read_at TIMESTAMP NULL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (org_id) REFERENCES {$table_orgs}(id) ON DELETE CASCADE,
             INDEX idx_user_status (user_id, status),
             INDEX idx_correlation (correlation_id),
             INDEX idx_org_created (org_id, created_at)
@@ -936,7 +938,8 @@ class OraBooks_Notifications {
             prohibited_channels JSON DEFAULT NULL,
             retention_override_days INT DEFAULT NULL,
             max_escalation_attempts INT DEFAULT 3,
-            escalation_fallback_chain JSON DEFAULT NULL
+            escalation_fallback_chain JSON DEFAULT NULL,
+            FOREIGN KEY (org_id) REFERENCES {$table_orgs}(id) ON DELETE CASCADE
         ) {$charset_collate};";
 
         // 4. Dedup Log
@@ -978,6 +981,8 @@ class OraBooks_Notifications {
             provider VARCHAR(50) DEFAULT NULL,
             cost DECIMAL(10,6) DEFAULT 0,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (org_id) REFERENCES {$table_orgs}(id) ON DELETE CASCADE,
+            FOREIGN KEY (notification_id) REFERENCES {$table_notifications}(id) ON DELETE CASCADE,
             INDEX idx_org_month (org_id, created_at)
         ) {$charset_collate};";
 
@@ -990,6 +995,7 @@ class OraBooks_Notifications {
             exported_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             bundle_hash VARCHAR(64) DEFAULT NULL,
             record_count INT DEFAULT 0,
+            FOREIGN KEY (org_id) REFERENCES {$table_orgs}(id) ON DELETE CASCADE,
             INDEX idx_org (org_id)
         ) {$charset_collate};";
 
