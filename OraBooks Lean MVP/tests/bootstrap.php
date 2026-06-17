@@ -955,6 +955,13 @@ if (!file_exists($inventory_file)) {
 }
 require_once $inventory_file;
 
+$bank_reconciliation_file = __DIR__ . '/../includes/class-orabooks-bank-reconciliation.php';
+if (!file_exists($bank_reconciliation_file)) {
+    echo "ERROR: Cannot find class-orabooks-bank-reconciliation.php at {$bank_reconciliation_file}\n";
+    exit(1);
+}
+require_once $bank_reconciliation_file;
+
 // orabooks_mask_email — used by OraBooks_Partner::get_dashboard_data
 if (!function_exists('orabooks_mask_email')) {
     function orabooks_mask_email($email) {
