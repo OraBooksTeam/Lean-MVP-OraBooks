@@ -32,6 +32,7 @@ class OraBooks_Shortcodes {
             add_shortcode('orabooks_async_queue_dashboard', [self::$instance, 'async_queue_dashboard']);
             add_shortcode('orabooks_observability_dashboard', [self::$instance, 'observability_dashboard']);
             add_shortcode('orabooks_export_status', [self::$instance, 'export_status']);
+            add_shortcode('orabooks_csv_import', [self::$instance, 'csv_import_page']);
             add_shortcode('orabooks_export_button', [self::$instance, 'export_button']);
             add_shortcode('orabooks_customers', [self::$instance, 'customers_page']);
             add_shortcode('orabooks_invoices', [self::$instance, 'invoices_page']);
@@ -737,6 +738,17 @@ class OraBooks_Shortcodes {
             return '<p>' . __('Please log in to view your exports.', 'orabooks') . '</p>';
         }
         return $this->react_app('/my-exports', 'Loading exports...');
+    }
+
+    /**
+     * CSV Import page shortcode (SL-113).
+     */
+    public function csv_import_page() {
+        $user_id = get_current_user_id();
+        if (!$user_id) {
+            return '<p>' . __('Please log in to import CSV data.', 'orabooks') . '</p>';
+        }
+        return $this->react_app('/csv-imports', 'Loading CSV import...');
     }
 
     /**

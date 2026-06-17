@@ -42,6 +42,11 @@ class OraBooks_Notifications {
             add_action('orabooks_inventory_low_stock_alert', [self::$instance, 'on_inventory_low_stock_alert'], 10, 2);
             add_action('orabooks_projection_integrity_failed', [self::$instance, 'on_projection_integrity_failed'], 10, 2);
 
+            // CSV import alerts (SL-113 integration)
+            add_action('orabooks_csv_import_completed', [self::$instance, 'on_csv_import_completed'], 10, 2);
+            add_action('orabooks_csv_import_failed', [self::$instance, 'on_csv_import_failed'], 10, 2);
+            add_action('orabooks_csv_row_escalated', [self::$instance, 'on_csv_row_escalated'], 10, 2);
+
             // Listen for invoice events (SL-021 integration)
             add_action('orabooks_invoice_created', [self::$instance, 'on_invoice_created'], 10, 2);
             add_action('orabooks_payment_recorded', [self::$instance, 'on_payment_recorded'], 10, 2);
@@ -1891,6 +1896,89 @@ class OraBooks_Notifications {
             'format'         => $format,
             'error'          => $error,
         ], $org_id);
+    }
+
+    /**
+     * Handle csv_import_completed from SL-113.
+     */
+    public function on_csv_import_completed($import_id, $data) {
+        $user_id = !empty($data['user_id']) ? (int) $data['user_id'] : 0;
+        $org_id = !empty($data['org_id']) ? (int) $data['org_id'] : 0;
+        $processed = !empty($data['processed']) ? (int) $data['processed'] : 0;
+        $escalated = !empty($data['escalated']) ? (int) $data['escalated'] : 0;
+        $resource_type = !empty($data['resource_type']) ? $data['resource_type'] : 'data';
+
+        if (!$user_id) {
+            return;
+        }
+
+        self::send_notification($user_id, 'csv_import_completed', [
+            'title'          => __('CSV Import Complete', 'orabooks'),
+            'message'        => sprintf(
+                __('Your %s CSV import finished: %d rows processed, %d sent to review.', 'orabooks'),
+                str_replace('_', ' ', $resource_type),
+                $processed,
+                $escalated
+            ),
+            'priority'       => $escalated > 0 ? 'high' : 'normal',
+            'correlation_id' => 'csv_import_' . (int) $import_id,
+            'import_id'      => (int) $import_id,
+            'processed'      => $processed,
+            'escalated'    => $escalated,
+        ], $org_id);
+    }
+
+    /**
+     * Handle csv_import_failed from SL-113.
+     */
+    public function on_csv_import_failed($import_id, $data) {
+        $user_id = !empty($data['user_id']) ? (int) $data['user_id'] : 0;
+        $org_id = !empty($data['org_id']) ? (int) $data['org_id'] : 0;
+        $reason = !empty($data['reason']) ? $data['reason'] : __('Unknown error', 'orabooks');
+
+        if (!$user_id) {
+            return;
+        }
+
+        self::send_notification($user_id, 'csv_import_failed', [
+            'title'          => __('CSV Import Failed', 'orabooks'),
+            'message'        => sprintf(
+                __('Your CSV import could not be processed. %s', 'orabooks'),
+                $reason
+            ),
+            'priority'       => 'high',
+            'correlation_id' => 'csv_import_' . (int) $import_id,
+            'import_id'      => (int) $import_id,
+            'reason'         => $reason,
+        ], $org_id);
+    }
+
+    /**
+     * Handle csv_row_escalated from SL-113 (SL-076 AI review placeholder).
+     */
+    public function on_csv_row_escalated($import_id, $data) {
+        $org_id = !empty($data['org_id']) ? (int) $data['org_id'] : 0;
+        $row_index = !empty($data['row_index']) ? (int) $data['row_index'] : 0;
+        $confidence = !empty($data['confidence']) ? (float) $data['confidence'] : 0;
+
+        if (!$org_id) {
+            return;
+        }
+
+        self::notify_org_admins($org_id, 'csv_row_escalated', [
+            'title'          => sprintf(__('CSV Row Needs Review (row %d)', 'orabooks'), $row_index + 1),
+            'message'        => sprintf(
+                __('Import #%d row %d has low confidence (%.0f%%) and was sent to AI review.', 'orabooks'),
+                (int) $import_id,
+                $row_index + 1,
+                $confidence
+            ),
+            'priority'       => 'normal',
+            'correlation_id' => 'csv_escalated_' . (int) $import_id . '_' . $row_index,
+            'import_id'      => (int) $import_id,
+            'row_index'      => $row_index,
+            'confidence'     => $confidence,
+        ]);
     }
 
     /**
