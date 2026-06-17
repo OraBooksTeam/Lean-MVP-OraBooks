@@ -123,7 +123,7 @@ export default function LoginPage() {
           <Input label="Password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" required />
           {error && <p className="text-sm text-danger">{error}</p>}
           <div className="flex items-center justify-between text-sm">
-            <a href="#" className="text-primary hover:text-primary-dark font-medium">Forgot password?</a>
+            <a href="/reset-password/" className="text-primary hover:text-primary-dark font-medium">Forgot password?</a>
             <a href="#/register" className="text-primary hover:text-primary-dark font-medium">Create account</a>
           </div>
           <Button type="submit" loading={loading} className="w-full">Log In</Button>
