@@ -86,6 +86,37 @@ function orabooks_get_user_agent() {
 }
 
 /**
+ * Resolve an OraBooks user from WordPress auth or a verified OraBooks JWT.
+ */
+function orabooks_get_current_user_id() {
+    $wp_user_id = get_current_user_id();
+    if ($wp_user_id) {
+        return (int) $wp_user_id;
+    }
+
+    $token = '';
+    $auth_header = $_SERVER['HTTP_AUTHORIZATION'] ?? $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ?? '';
+    if (stripos($auth_header, 'Bearer ') === 0) {
+        $token = trim(substr($auth_header, 7));
+    }
+
+    if (!$token && isset($_REQUEST['orabooks_token'])) {
+        $token = sanitize_text_field(wp_unslash($_REQUEST['orabooks_token']));
+    }
+
+    if (!$token || !class_exists('OraBooks_Secrets')) {
+        return 0;
+    }
+
+    $payload = OraBooks_Secrets::verify_jwt($token);
+    if (!$payload || empty($payload['user_id'])) {
+        return 0;
+    }
+
+    return (int) $payload['user_id'];
+}
+
+/**
  * Check rate limit
  */
 function orabooks_check_rate_limit($key, $max_attempts, $period_seconds = 3600) {
