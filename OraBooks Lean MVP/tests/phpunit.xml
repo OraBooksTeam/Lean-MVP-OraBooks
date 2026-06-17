@@ -29,6 +29,9 @@
         <testsuite name="OraBooks SL-068 Commission Tests">
             <file>OraBooks_Commission_Test.php</file>
         </testsuite>
+        <testsuite name="OraBooks SL-074 Financial Reports Tests">
+            <file>OraBooks_Financial_Reports_Test.php</file>
+        </testsuite>
         <testsuite name="OraBooks SL-081 Manual Tax Tests">
             <file>OraBooks_Manual_Tax_Test.php</file>
         </testsuite>
