@@ -86,6 +86,13 @@ jQuery(document).ready(function($) {
                 $msg.removeClass('success').addClass('error').text(response.message).show();
                 $form.find('button').prop('disabled', false).text('Log In');
             } else {
+                if (response.data.token) {
+                    localStorage.setItem('orabooks_token', response.data.token);
+                }
+                if (response.data.refresh_token) {
+                    localStorage.setItem('orabooks_refresh_token', response.data.refresh_token);
+                }
+                
                 if (response.data.requires_2fa) {
                     // Show 2FA challenge form (replace login form)
                     orabooksShow2faChallenge(response.data.temp_token, response.data.user_id);
@@ -95,10 +102,6 @@ jQuery(document).ready(function($) {
                     window.location.href = response.data.redirect_to;
                 } else {
                     $msg.removeClass('error').addClass('success').text('Login successful! Redirecting...').show();
-                    // Store token in localStorage
-                    if (response.data.token) {
-                        localStorage.setItem('orabooks_token', response.data.token);
-                    }
                     setTimeout(function() {
                         window.location.href = '/dashboard/';
                     }, 1000);
