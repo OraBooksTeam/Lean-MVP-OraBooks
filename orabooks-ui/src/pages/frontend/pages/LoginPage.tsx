@@ -4,6 +4,10 @@ import Input from '@/components/Input';
 import { api } from '../api';
 import { Flame } from 'lucide-react';
 
+function goToFrontendRoute(route: string) {
+  window.location.hash = route;
+}
+
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -23,7 +27,7 @@ export default function LoginPage() {
         else if ((res as any).data?.requires_2fa) {
           setShow2fa(true);
           setTempToken((res as any).data.temp_token);
-        } else if ((res as any).data?.redirect_to) window.location.href = (res as any).data.redirect_to;
+        } else if ((res as any).data?.redirect_to) goToFrontendRoute('/dashboard');
       });
     }
   }, []);
@@ -38,8 +42,8 @@ export default function LoginPage() {
       else if ((res as any).data?.requires_2fa) {
         setShow2fa(true);
         setTempToken((res as any).data.temp_token);
-      } else if ((res as any).data?.redirect_to) window.location.href = (res as any).data.redirect_to;
-      else window.location.href = '/dashboard';
+      } else if ((res as any).data?.redirect_to) goToFrontendRoute('/dashboard');
+      else goToFrontendRoute('/dashboard');
     } finally {
       setLoading(false);
     }
@@ -51,7 +55,7 @@ export default function LoginPage() {
     try {
       const res = await api.twoFactorChallenge(tempToken, otp);
       if (res.error) setError(typeof res.error === 'string' ? res.error : '2FA failed');
-      else window.location.href = '/dashboard';
+      else goToFrontendRoute('/dashboard');
     } finally {
       setLoading(false);
     }
@@ -101,7 +105,7 @@ export default function LoginPage() {
           {error && <p className="text-sm text-danger">{error}</p>}
           <div className="flex items-center justify-between text-sm">
             <a href="#" className="text-primary hover:text-primary-dark font-medium">Forgot password?</a>
-            <a href="/register" className="text-primary hover:text-primary-dark font-medium">Create account</a>
+            <a href="#/register" className="text-primary hover:text-primary-dark font-medium">Create account</a>
           </div>
           <Button type="submit" loading={loading} className="w-full">Log In</Button>
         </form>
