@@ -1204,3 +1204,178 @@
         font-size: 14px;
     }
 }
+
+/* =============================================
+   ORABOOKS BRAND OVERRIDES
+   Solid frontend palette: #1A69B4 + #3AB54A
+   ============================================= */
+:root {
+    --orabooks-blue: #1A69B4;
+    --orabooks-blue-dark: #145694;
+    --orabooks-green: #3AB54A;
+    --orabooks-green-dark: #2f963c;
+    --orabooks-ink: #102f52;
+    --orabooks-soft-blue: #e9f2fb;
+    --orabooks-soft-green: #eaf8ec;
+    --orabooks-border: #d8e6f3;
+}
+
+.orabooks-form-container,
+.orabooks-dashboard,
+.orabooks-commission-dashboard,
+.orabooks-partner-dashboard,
+.orabooks-notification-center,
+.orabooks-export-status,
+.orabooks-invoice-detail {
+    border: 1px solid var(--orabooks-border);
+    border-radius: 16px;
+    box-shadow: 0 14px 40px rgba(26, 105, 180, 0.08);
+    color: var(--orabooks-ink);
+}
+
+.orabooks-form-container {
+    position: relative;
+    overflow: hidden;
+}
+
+.orabooks-form-container::before,
+.orabooks-dashboard::before,
+.orabooks-commission-dashboard::before,
+.orabooks-partner-dashboard::before,
+.orabooks-notification-center::before,
+.orabooks-export-status::before {
+    content: '';
+    display: block;
+    height: 6px;
+    margin: -30px -30px 24px;
+    background: var(--orabooks-green);
+}
+
+.orabooks-form-container h2,
+.orabooks-commission-dashboard h2,
+.orabooks-partner-dashboard h2,
+.orabooks-notification-center h2,
+.orabooks-export-status h2,
+.orabooks-invoice-header h2,
+.orabooks-invoice-payments h3 {
+    color: var(--orabooks-ink);
+}
+
+.orabooks-form-group label {
+    color: #42627f;
+}
+
+.orabooks-form-group input,
+.orabooks-form-group select,
+.orabooks-code-input,
+.orabooks-nc-filters select,
+.orabooks-nc-filters input {
+    border-color: var(--orabooks-border);
+    border-radius: 10px;
+}
+
+.orabooks-form-group input:focus,
+.orabooks-form-group select:focus,
+.orabooks-nc-filters select:focus,
+.orabooks-nc-filters input:focus,
+.orabooks-form-group input:focus-visible,
+.orabooks-form-group select:focus-visible,
+.orabooks-nc-filters select:focus-visible,
+.orabooks-nc-filters input:focus-visible {
+    border-color: var(--orabooks-blue);
+    outline-color: var(--orabooks-blue);
+    box-shadow: 0 0 0 3px rgba(26, 105, 180, 0.16);
+}
+
+.orabooks-btn {
+    border-radius: 10px;
+}
+
+.orabooks-btn-primary,
+.orabooks-progress-fill,
+.orabooks-pagination-inner .orabooks-btn-primary {
+    background: var(--orabooks-blue);
+    color: #fff;
+}
+
+.orabooks-btn-primary:hover,
+.orabooks-btn-primary:hover:not(:disabled) {
+    background: var(--orabooks-blue-dark);
+    box-shadow: 0 8px 20px rgba(26, 105, 180, 0.22);
+}
+
+.orabooks-btn-secondary,
+.orabooks-btn-google {
+    background: #fff;
+    border-color: rgba(26, 105, 180, 0.3);
+    color: var(--orabooks-blue);
+}
+
+.orabooks-btn-secondary:hover,
+.orabooks-btn-google:hover,
+.orabooks-pagination-inner .orabooks-btn-secondary:hover {
+    background: var(--orabooks-soft-blue);
+    border-color: var(--orabooks-blue);
+    color: var(--orabooks-blue-dark);
+}
+
+.orabooks-form-links a,
+.orabooks-tab:hover,
+.orabooks-tab-active,
+.orabooks-invoice-number {
+    color: var(--orabooks-blue);
+}
+
+.orabooks-tab::after,
+.orabooks-tab-active {
+    border-bottom-color: var(--orabooks-blue);
+}
+
+.orabooks-tier-option input[type="radio"]:checked + .orabooks-tier-card {
+    border-color: var(--orabooks-blue);
+    background: var(--orabooks-blue);
+    color: #fff;
+}
+
+.orabooks-message.success,
+.orabooks-status-badge.active,
+.orabooks-badge-paid,
+.orabooks-badge-settled {
+    background: var(--orabooks-soft-green);
+    color: var(--orabooks-green-dark);
+    border-color: rgba(58, 181, 74, 0.25);
+}
+
+.orabooks-nc-item:hover,
+.orabooks-table tbody tr:hover td {
+    background: var(--orabooks-soft-blue);
+}
+
+.orabooks-nc-item-unread {
+    border-left-color: var(--orabooks-green);
+    background: var(--orabooks-soft-green);
+}
+
+.orabooks-nc-item-unread:hover {
+    border-left-color: var(--orabooks-green-dark);
+}
+
+.orabooks-badge-earned {
+    background: var(--orabooks-soft-blue);
+    color: var(--orabooks-blue);
+}
+
+.orabooks-partner-stats .orabooks-stat-verified .orabooks-stat-number,
+.orabooks-partner-stats .orabooks-stat-paid .orabooks-stat-amount {
+    color: var(--orabooks-green);
+}
+
+.orabooks-coa-export-actions {
+    background: var(--orabooks-soft-blue) !important;
+    border-color: var(--orabooks-border) !important;
+    border-radius: 12px !important;
+}
+
+.orabooks-coa-export-actions span {
+    color: var(--orabooks-ink) !important;
+}
