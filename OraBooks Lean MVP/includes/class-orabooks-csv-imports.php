@@ -844,7 +844,7 @@ class OraBooks_Csv_Imports {
         ));
     }
 
-    private static function format_import($import) {
+    public static function format_import($import) {
         return [
             'id'              => (int) $import->id,
             'org_id'          => (int) $import->org_id,

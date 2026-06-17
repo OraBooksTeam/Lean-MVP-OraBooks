@@ -46,6 +46,7 @@ require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-bank-reconciliation.
 require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-financial-reports.php';
 require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-operational-reports.php';
 require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-observability.php';
+require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-csv-imports.php';
 require_once ORABOOKS_PLUGIN_DIR . 'includes/helpers.php';
 
 // Initialize plugin
@@ -83,6 +84,7 @@ function orabooks_init() {
     OraBooks_Financial_Reports::init();
     OraBooks_Operational_Reports::init();
     OraBooks_Observability::init();
+    OraBooks_Csv_Imports::init();
     OraBooks_Exports::register_report_provider('coa', function($params) {
         // Reuse OraBooks_COA if available
         if (class_exists('OraBooks_COA') && method_exists('OraBooks_COA', 'get_accounts')) {
@@ -197,6 +199,7 @@ function orabooks_init() {
     }
     // Register the generate_export handler with SL-303 async queue
     OraBooks_AsyncQueue::register_handler('generate_export', ['OraBooks_Exports', 'generate_export_job']);
+    OraBooks_AsyncQueue::register_handler('parse_csv_import', ['OraBooks_Csv_Imports', 'parse_csv_import_job']);
 }
 
 /**
@@ -476,6 +479,16 @@ function orabooks_admin_menu() {
         'orabooks-exports',
         'orabooks_admin_exports'
     );
+
+    // CSV Imports page
+    add_submenu_page(
+        'orabooks',
+        'CSV Imports',
+        'CSV Imports',
+        'read',
+        'orabooks-csv-imports',
+        'orabooks_admin_csv_imports'
+    );
 }
 
 // Admin page render functions
@@ -493,6 +506,9 @@ function orabooks_admin_observability() {
 }
 function orabooks_admin_exports() {
     echo do_shortcode('[orabooks_export_status]');
+}
+function orabooks_admin_csv_imports() {
+    echo do_shortcode('[orabooks_csv_import]');
 }
 function orabooks_admin_coa() {
     include ORABOOKS_PLUGIN_DIR . 'admin/coa.php';

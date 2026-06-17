@@ -855,6 +855,18 @@ class OraBooks_Database {
             wp_schedule_event(time(), 'daily', 'orabooks_observability_purge');
         }
 
+        // ============================================================
+        // SL-113: CSV Imports
+        // ============================================================
+        $csv_import_tables = OraBooks_Csv_Imports::get_create_table_sql();
+        foreach ($csv_import_tables as $sql) {
+            dbDelta($sql);
+        }
+
+        if (!wp_next_scheduled('orabooks_csv_imports_purge')) {
+            wp_schedule_event(time(), 'monthly', 'orabooks_csv_imports_purge');
+        }
+
         update_option('orabooks_db_version', ORABOOKS_DB_VERSION);
     }
     

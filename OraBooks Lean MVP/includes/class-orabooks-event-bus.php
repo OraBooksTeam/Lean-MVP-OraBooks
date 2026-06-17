@@ -125,6 +125,22 @@ class OraBooks_EventBus {
             do_action('orabooks_projection_integrity_failed', $org_id, $payload);
             return true;
         });
+
+        // csv_import_completed / csv_import_failed → SL-250 notification (SL-113)
+        self::register_consumer('csv_import_completed', function($event, $payload) {
+            do_action('orabooks_csv_import_completed', $event->aggregate_id, $payload);
+            return true;
+        });
+
+        self::register_consumer('csv_import_failed', function($event, $payload) {
+            do_action('orabooks_csv_import_failed', $event->aggregate_id, $payload);
+            return true;
+        });
+
+        self::register_consumer('csv_row_escalated', function($event, $payload) {
+            do_action('orabooks_csv_row_escalated', $event->aggregate_id, $payload);
+            return true;
+        });
     }
 
     /**
