@@ -16,7 +16,7 @@ export default function JournalsPage() {
     setError('');
     const ctx = await api.frontendContext();
     if (ctx.error) {
-      setError((ctx as any).message || 'Unable to load account context.');
+      setError(ctx.error || 'Unable to load account context.');
       setLoading(false);
       return;
     }
@@ -31,7 +31,7 @@ export default function JournalsPage() {
     }
 
     const res = await api.journalsList(orgId, { status: nextStatus });
-    if (res.error) setError((res as any).message || 'Unable to load journals.');
+    if (res.error) setError(res.error || 'Unable to load journals.');
     else setJournals((res as any).data || []);
     setLoading(false);
   };

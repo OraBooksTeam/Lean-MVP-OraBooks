@@ -13,7 +13,7 @@ export default function CustomersPage() {
     setLoading(true);
     setError('');
     const res = await api.customerDashboard();
-    if (res.error) setError((res as any).message || 'Unable to load customers.');
+    if (res.error) setError(res.error || 'Unable to load customers.');
     else setData((res as any).data);
     setLoading(false);
   };
