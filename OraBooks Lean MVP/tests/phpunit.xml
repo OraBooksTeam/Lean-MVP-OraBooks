@@ -20,6 +20,9 @@
         <testsuite name="OraBooks SL-027 Vendors Tests">
             <file>OraBooks_Vendors_Test.php</file>
         </testsuite>
+        <testsuite name="OraBooks SL-034 Inventory Tests">
+            <file>OraBooks_Inventory_Test.php</file>
+        </testsuite>
         <testsuite name="OraBooks SL-081 Manual Tax Tests">
             <file>OraBooks_Manual_Tax_Test.php</file>
         </testsuite>
