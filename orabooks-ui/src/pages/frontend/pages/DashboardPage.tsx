@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import type { ReactNode } from 'react';
 import Button from '@/components/Button';
 import { api } from '../api';
 import ClientShell from '../components/ClientShell';
@@ -321,7 +322,7 @@ function PartnerDashboard({
   );
 }
 
-function Panel({ title, children, className }: { title: string; children: React.ReactNode; className?: string }) {
+function Panel({ title, children, className }: { title: string; children: ReactNode; className?: string }) {
   return (
     <section className={`glass-panel p-5 ${className || ''}`}>
       <h2 className="text-sm font-bold uppercase tracking-wide text-slate-500">{title}</h2>
