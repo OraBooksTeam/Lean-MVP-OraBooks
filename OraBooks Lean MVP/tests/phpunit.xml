@@ -47,5 +47,8 @@
         <testsuite name="OraBooks SL-250 Notification Tests">
             <file>OraBooks_Notifications_Test.php</file>
         </testsuite>
+        <testsuite name="OraBooks SL-093 Observability Tests">
+            <file>OraBooks_Observability_Test.php</file>
+        </testsuite>
     </testsuites>
 </phpunit>

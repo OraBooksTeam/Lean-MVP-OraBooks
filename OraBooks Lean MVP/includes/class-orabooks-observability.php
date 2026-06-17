@@ -387,7 +387,7 @@ class OraBooks_Observability {
             orabooks_json_error('Permission denied', 403);
         }
 
-        $hours = intval($_GET['hours'] ?? 24);
+        $hours = intval($_REQUEST['hours'] ?? 24);
         orabooks_json_success(self::get_dashboard($hours));
     }
 

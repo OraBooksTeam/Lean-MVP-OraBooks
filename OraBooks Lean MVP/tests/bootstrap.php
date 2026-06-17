@@ -1033,6 +1033,19 @@ if (!file_exists($operational_reports_file)) {
 }
 require_once $operational_reports_file;
 
+$observability_file = __DIR__ . '/../includes/class-orabooks-observability.php';
+if (!file_exists($observability_file)) {
+    echo "ERROR: Cannot find class-orabooks-observability.php at {$observability_file}\n";
+    exit(1);
+}
+require_once $observability_file;
+
+if (!function_exists('get_users')) {
+    function get_users($args = []) {
+        return [(object) ['ID' => 1]];
+    }
+}
+
 // orabooks_mask_email — used by OraBooks_Partner::get_dashboard_data
 if (!function_exists('orabooks_mask_email')) {
     function orabooks_mask_email($email) {
