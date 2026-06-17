@@ -1,7 +1,7 @@
 import { useState, useEffect, type FormEvent } from 'react';
 import Button from '@/components/Button';
 import Input from '@/components/Input';
-import { api } from './api';
+import { api } from '../api';
 import { Flame2 } from 'lucide-react';
 
 export default function LoginPage() {
