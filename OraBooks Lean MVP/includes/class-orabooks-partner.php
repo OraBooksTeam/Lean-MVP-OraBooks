@@ -691,8 +691,13 @@ class OraBooks_Partner {
         // Format payouts with period
         $payout_breakdown = [];
         foreach ($payouts as $p) {
+            if (!isset($p->gross_amount, $p->fee_amount, $p->net_amount, $p->status)) {
+                continue;
+            }
+
+            $period_date = $p->payout_date ?? $p->created_at ?? current_time('mysql');
             $payout_breakdown[] = [
-                'period' => $p->payout_date ? date('Y-m', strtotime($p->payout_date)) : date('Y-m', strtotime($p->created_at)),
+                'period' => date('Y-m', strtotime($period_date)),
                 'gross' => (float) $p->gross_amount,
                 'fee' => (float) $p->fee_amount,
                 'net' => (float) $p->net_amount,

@@ -148,6 +148,14 @@ class OraBooks_Auth {
             }
         }
         
+        $email_result = self::send_verification_email($email, $verification_token);
+        if (is_wp_error($email_result)) {
+            orabooks_log_event('verification_email_failed', "Verification email failed for $email", 'error', [
+                'error' => $email_result->get_error_message()
+            ], $user_id, null);
+            return $email_result;
+        }
+        
         // Generate JWT
         $jwt = OraBooks_Secrets::generate_jwt([
             'user_id' => $user_id,
@@ -244,6 +252,62 @@ class OraBooks_Auth {
         }
 
         return strtolower(trim(substr(strrchr($email, '@'), 1)));
+    }
+    
+    private static function site_name() {
+        if (function_exists('get_bloginfo')) {
+            $name = get_bloginfo('name');
+            if (!empty($name)) {
+                return wp_specialchars_decode($name, ENT_QUOTES);
+            }
+        }
+        
+        return 'OraBooks';
+    }
+    
+    private static function verification_url($token) {
+        return home_url('/verify-email/?token=' . rawurlencode($token));
+    }
+    
+    private static function reset_password_url($token) {
+        return home_url('/reset-password/?token=' . rawurlencode($token));
+    }
+    
+    private static function send_verification_email($email, $token) {
+        $verify_url = self::verification_url($token);
+        $subject = sprintf('[%s] Verify your email address', self::site_name());
+        $message = "Welcome to OraBooks.\n\n";
+        $message .= "Please verify your email address to activate your account:\n";
+        $message .= $verify_url . "\n\n";
+        $message .= "This link expires in 24 hours. If you did not create an OraBooks account, you can ignore this email.";
+        
+        return self::send_email($email, $subject, $message, 'verification_email_send_failed');
+    }
+    
+    private static function send_password_reset_email($email, $token) {
+        $reset_url = self::reset_password_url($token);
+        $subject = sprintf('[%s] Reset your password', self::site_name());
+        $message = "We received a request to reset your OraBooks password.\n\n";
+        $message .= "Use this secure link to choose a new password:\n";
+        $message .= $reset_url . "\n\n";
+        $message .= "This link expires in 1 hour. If you did not request a password reset, you can ignore this email.";
+        
+        return self::send_email($email, $subject, $message, 'password_reset_email_send_failed');
+    }
+    
+    private static function send_email($to, $subject, $message, $error_code) {
+        if (!function_exists('wp_mail')) {
+            return true;
+        }
+        
+        $headers = ['Content-Type: text/plain; charset=UTF-8'];
+        $sent = wp_mail($to, $subject, $message, $headers);
+        
+        if (!$sent) {
+            return new WP_Error($error_code, 'Email could not be sent. Please check the site mail/SMTP configuration.');
+        }
+        
+        return true;
     }
     
     /**
@@ -681,6 +745,14 @@ class OraBooks_Auth {
             ['%d']
         );
         
+        $email_result = self::send_password_reset_email($email, $reset_token);
+        if (is_wp_error($email_result)) {
+            orabooks_log_event('password_reset_email_failed', "Password reset email failed for $email", 'error', [
+                'error' => $email_result->get_error_message()
+            ], $user->id, null);
+            return $email_result;
+        }
+        
         orabooks_log_event('password_reset_requested', "Password reset requested for $email", 'info', [], $user->id, null);
         
         return true;
@@ -811,6 +883,11 @@ class OraBooks_Auth {
                 ['%d']
             );
             
+            $email_result = self::send_verification_email($email, $new_token);
+            if (is_wp_error($email_result)) {
+                orabooks_json_error($email_result->get_error_message(), 500);
+            }
+            
             orabooks_log_event('verification_resent', "Verification email resent to $email", 'info', [], $user->id, null);
         }
         
@@ -819,7 +896,11 @@ class OraBooks_Auth {
     
     public function ajax_forgot_password() {
         $email = sanitize_email($_POST['email'] ?? '');
-        self::forgot_password($email);
+        $result = self::forgot_password($email);
+        if (is_wp_error($result)) {
+            $status_code = ($result->get_error_code() === 'rate_limit') ? 429 : 500;
+            orabooks_json_error($result->get_error_message(), $status_code);
+        }
         orabooks_json_success([], 'If the email exists, a reset link has been sent.');
     }
     
@@ -1519,7 +1600,11 @@ class OraBooks_Auth {
     public function ajax_select_tier() {
         $tier = $_POST['tier'] ?? '';
         $subdomain = strtolower(trim($_POST['subdomain'] ?? ''));
-        $user_id = get_current_user_id();
+        $user_id = orabooks_get_current_user_id();
+        
+        if (!$user_id) {
+            orabooks_json_error('Please log in before selecting a plan.', 401);
+        }
         
         if (!in_array($tier, ['free', 'premium', 'enterprise'])) {
             orabooks_json_error('Invalid tier', 400);
