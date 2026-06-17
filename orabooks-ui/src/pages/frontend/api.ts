@@ -71,6 +71,10 @@ export const api = {
     api.post('orabooks_partner_code_copied', { source }),
 
   // Dashboard / Stats
+  frontendContext: () =>
+    api.get('orabooks_frontend_context'),
+  customerDashboard: () =>
+    api.get('orabooks_customer_dashboard'),
   dashboardStats: () =>
     api.get('orabooks_dashboard_stats'),
   customerStats: (orgId = 0) =>
@@ -117,6 +121,8 @@ export const api = {
   // CoA / Audit
   coaGet: (orgId: number) =>
     api.get('orabooks_get_coa', { org_id: orgId }),
+  journalsList: (orgId: number, filters = {}) =>
+    api.get('orabooks_get_journals', { org_id: orgId, ...filters }),
   auditLogs: (filters = {}) =>
     api.get('orabooks_get_audit_logs', filters),
   pendingPartners: () =>
