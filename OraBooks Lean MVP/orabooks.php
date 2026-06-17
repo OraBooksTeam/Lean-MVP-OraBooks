@@ -634,6 +634,7 @@ function orabooks_admin_enqueue($hook) {
 
 // Enqueue frontend assets
 add_action('wp_enqueue_scripts', 'orabooks_frontend_enqueue');
+function orabooks_frontend_enqueue() {
     wp_enqueue_style('orabooks-frontend', ORABOOKS_PLUGIN_URL . 'assets/css/frontend.css', [], ORABOOKS_VERSION);
     wp_enqueue_script('orabooks-frontend', ORABOOKS_PLUGIN_URL . 'assets/js/frontend.js', ['jquery'], ORABOOKS_VERSION, true);
     wp_localize_script('orabooks-frontend', 'orabooks_ajax', [
@@ -676,6 +677,31 @@ add_action('wp_enqueue_scripts', 'orabooks_frontend_enqueue');
             'before'
         );
     }
+}
+
+// Add body classes on OraBooks frontend pages for full-width layout
+add_filter('body_class', 'orabooks_body_class');
+function orabooks_body_class($classes) {
+    if (!is_singular('page')) {
+        return $classes;
+    }
+
+    $post = get_post();
+    if (!$post || strpos($post->post_content, '[orabooks_') === false) {
+        return $classes;
+    }
+
+    $classes[] = 'orabooks-page';
+
+    $auth_shortcodes = ['orabooks_login', 'orabooks_register', 'orabooks_tier_selection', 'orabooks_reset_password'];
+    foreach ($auth_shortcodes as $shortcode) {
+        if (has_shortcode($post->post_content, $shortcode)) {
+            $classes[] = 'orabooks-auth-page';
+            break;
+        }
+    }
+
+    return $classes;
 }
 
 add_filter('script_loader_tag', 'orabooks_react_module_script_tag', 10, 3);
