@@ -488,6 +488,9 @@ function orabooks_admin_notifications() {
 function orabooks_admin_job_queue() {
     echo do_shortcode('[orabooks_async_queue_dashboard]');
 }
+function orabooks_admin_observability() {
+    echo do_shortcode('[orabooks_observability_dashboard]');
+}
 function orabooks_admin_exports() {
     echo do_shortcode('[orabooks_export_status]');
 }

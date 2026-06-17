@@ -830,4 +830,64 @@ class OraBooks_Shortcodes {
         <?php
         return ob_get_clean();
     }
+
+    /**
+     * Platform observability dashboard (SL-093, admin only).
+     */
+    public function observability_dashboard() {
+        if (!current_user_can('manage_options')) {
+            return '<p>' . __('Access denied.', 'orabooks') . '</p>';
+        }
+
+        ob_start();
+        ?>
+        <div class="orabooks-observability-dashboard">
+            <h2><?php _e('Platform Observability', 'orabooks'); ?></h2>
+            <p style="color:#666;"><?php _e('Queue depth, lag, failure rates, and subsystem health snapshots.', 'orabooks'); ?></p>
+            <button id="orabooks-obs-refresh" class="orabooks-btn orabooks-btn-secondary orabooks-btn-sm">🔄 <?php _e('Refresh', 'orabooks'); ?></button>
+            <div class="orabooks-commission-stats" id="orabooks-obs-stats" style="margin-top:16px;">
+                <div class="orabooks-stat-card"><h3><?php _e('Event Bus', 'orabooks'); ?></h3><p class="orabooks-stat-number" id="obs-eventbus">—</p></div>
+                <div class="orabooks-stat-card"><h3><?php _e('Async Queue', 'orabooks'); ?></h3><p class="orabooks-stat-number" id="obs-async">—</p></div>
+                <div class="orabooks-stat-card"><h3><?php _e('Notifications', 'orabooks'); ?></h3><p class="orabooks-stat-number" id="obs-notifications">—</p></div>
+                <div class="orabooks-stat-card"><h3><?php _e('Exports', 'orabooks'); ?></h3><p class="orabooks-stat-number" id="obs-exports">—</p></div>
+            </div>
+            <table class="orabooks-table" style="margin-top:16px;">
+                <thead>
+                    <tr>
+                        <th><?php _e('Service', 'orabooks'); ?></th>
+                        <th><?php _e('Status', 'orabooks'); ?></th>
+                        <th><?php _e('Details', 'orabooks'); ?></th>
+                    </tr>
+                </thead>
+                <tbody id="orabooks-obs-health-body">
+                    <tr><td colspan="3"><?php _e('Loading...', 'orabooks'); ?></td></tr>
+                </tbody>
+            </table>
+        </div>
+        <script>
+        (function($){
+            function renderObservability(data) {
+                var s = data.snapshots || {};
+                $('#obs-eventbus').text((s.eventbus && s.eventbus.status) ? s.eventbus.status.toUpperCase() : '—');
+                $('#obs-async').text((s.async_queue && s.async_queue.status) ? s.async_queue.status.toUpperCase() : '—');
+                $('#obs-notifications').text((s.notifications && s.notifications.status) ? s.notifications.status.toUpperCase() : '—');
+                $('#obs-exports').text((s.exports && s.exports.status) ? s.exports.status.toUpperCase() : '—');
+                var rows = '';
+                Object.keys(s).forEach(function(key){
+                    rows += '<tr><td>' + key + '</td><td>' + (s[key].status || '—') + '</td><td><code>' + JSON.stringify(s[key]) + '</code></td></tr>';
+                });
+                $('#orabooks-obs-health-body').html(rows || '<tr><td colspan="3"><?php echo esc_js(__('No data', 'orabooks')); ?></td></tr>');
+            }
+            function loadObservability() {
+                $.post(orabooks_ajax.ajax_url, { action: 'orabooks_observability_dashboard', nonce: orabooks_ajax.nonce, hours: 24 }, function(resp){
+                    if (resp && resp.success) { renderObservability(resp.data); }
+                });
+            }
+            $('#orabooks-obs-refresh').on('click', loadObservability);
+            loadObservability();
+        })(jQuery);
+        </script>
+        <?php
+        return ob_get_clean();
+    }
 }
