@@ -166,6 +166,10 @@ if ($.fn && $.fn.ready) {
   };
 }
 
+// Disable jQuery animations globally so fadeIn/fadeOut complete instantly
+// under jest.useFakeTimers() — animations would never complete otherwise.
+$.fx.off = true;
+
 // Fake timers
 jest.useFakeTimers();
 
