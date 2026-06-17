@@ -1111,7 +1111,7 @@ class OraBooks_Notifications {
      * AJAX: List notifications for current user.
      */
     public function ajax_list_notifications() {
-        $user_id = get_current_user_id();
+        $user_id = orabooks_get_current_user_id();
         if (!$user_id) {
             orabooks_json_error('Not authenticated', 401);
         }
@@ -1141,7 +1141,7 @@ class OraBooks_Notifications {
      * AJAX: Mark notification as read.
      */
     public function ajax_mark_read() {
-        $user_id = get_current_user_id();
+        $user_id = orabooks_get_current_user_id();
         $notification_id = intval($_POST['notification_id'] ?? 0);
 
         if (!$user_id) {
@@ -1156,7 +1156,7 @@ class OraBooks_Notifications {
      * AJAX: Mark all notifications as read.
      */
     public function ajax_mark_all_read() {
-        $user_id = get_current_user_id();
+        $user_id = orabooks_get_current_user_id();
         if (!$user_id) {
             orabooks_json_error('Not authenticated', 401);
         }
@@ -1169,7 +1169,7 @@ class OraBooks_Notifications {
      * AJAX: Get unread count.
      */
     public function ajax_unread_count() {
-        $user_id = get_current_user_id();
+        $user_id = orabooks_get_current_user_id();
         if (!$user_id) {
             orabooks_json_error('Not authenticated', 401);
         }

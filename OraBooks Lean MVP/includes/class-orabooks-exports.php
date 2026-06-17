@@ -71,6 +71,7 @@ class OraBooks_Exports {
 
         $table_requests = OraBooks_Database::table(self::TABLE_REQUESTS);
         $table_files    = OraBooks_Database::table(self::TABLE_FILES);
+        $table_orgs     = OraBooks_Database::table('organizations');
 
         $sql = [];
 
@@ -91,6 +92,7 @@ class OraBooks_Exports {
             error_message TEXT DEFAULT NULL,
             generated_at TIMESTAMP NULL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (org_id) REFERENCES {$table_orgs}(id) ON DELETE CASCADE,
             INDEX idx_org_user_status (org_id, user_id, status),
             INDEX idx_expires (expires_at),
             INDEX idx_status_created (status, created_at)
