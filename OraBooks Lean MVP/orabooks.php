@@ -600,3 +600,16 @@ function orabooks_frontend_enqueue() {
         ]);
     }
 }
+
+add_filter('script_loader_tag', 'orabooks_react_module_script_tag', 10, 3);
+function orabooks_react_module_script_tag($tag, $handle, $src) {
+    if ($handle !== 'orabooks-react-frontend') {
+        return $tag;
+    }
+
+    if (strpos($tag, ' type=') !== false) {
+        return $tag;
+    }
+
+    return str_replace('<script ', '<script type="module" ', $tag);
+}
