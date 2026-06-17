@@ -133,9 +133,9 @@ export default function DashboardPage() {
   const organization = data?.context.organization || context?.organization;
   const cards = [
     { label: 'Total Customers', value: stats.total_customers ?? 0, icon: Users, tone: 'text-primary bg-primary/10' },
-    { label: 'Open Invoices', value: stats.unpaid_invoices ?? 0, icon: FileText, tone: 'text-amber-700 bg-amber-50' },
-    { label: 'Outstanding AR', value: money(stats.outstanding_ar), icon: Banknote, tone: 'text-rose-700 bg-rose-50' },
-    { label: 'Paid Revenue', value: money(stats.total_revenue), icon: TrendingUp, tone: 'text-emerald-700 bg-emerald-50' },
+    { label: 'Open Invoices', value: stats.unpaid_invoices ?? 0, icon: FileText, tone: 'text-primary bg-primary/10' },
+    { label: 'Outstanding AR', value: money(stats.outstanding_ar), icon: Banknote, tone: 'text-primary bg-primary/10' },
+    { label: 'Paid Revenue', value: money(stats.total_revenue), icon: TrendingUp, tone: 'text-success bg-success/10' },
   ];
 
   return (
@@ -260,7 +260,7 @@ function PartnerDashboard({
         )}
 
         {data.is_dormant && (
-          <div className="rounded-2xl border border-sky-200 bg-sky-50 p-4 text-sm font-medium text-sky-900">
+          <div className="rounded-2xl border border-primary/20 bg-primary/10 p-4 text-sm font-medium text-primary-dark">
             You have no active customers and have not had new attribution in more than 6 months. Share your code to keep your partner activity active.
           </div>
         )}
