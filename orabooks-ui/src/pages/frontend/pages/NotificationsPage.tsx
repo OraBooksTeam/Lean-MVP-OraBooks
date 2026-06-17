@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { api } from './api';
+import { api } from '../api';
 import { Bell, Mail, Smartphone, Monitor } from 'lucide-react';
 
 export default function NotificationsPage() {
