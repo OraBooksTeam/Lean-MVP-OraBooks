@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import {
   Bell,
   BookOpen,
+  Download,
   FileText,
   Home,
   Landmark,
@@ -26,16 +27,21 @@ interface ClientShellProps {
 
 const customerNav = [
   { label: 'Dashboard', href: '/dashboard', icon: Home },
+  { label: 'Customers', href: '/customers', icon: Users },
   { label: 'Invoices', href: '/invoices', icon: FileText },
   { label: 'Chart of Accounts', href: '/chart-of-accounts', icon: BookOpen },
   { label: 'Journals', href: '/journals', icon: Landmark },
   { label: 'Notifications', href: '/notifications', icon: Bell },
+  { label: 'My Exports', href: '/my-exports', icon: Download },
+  { label: 'Profile', href: '/profile', icon: Users },
 ];
 
 const partnerNav = [
   { label: 'Dashboard', href: '/dashboard', icon: Home },
   { label: 'Onboarding', href: '/partner-onboarding', icon: Users },
   { label: 'Notifications', href: '/notifications', icon: Bell },
+  { label: 'My Exports', href: '/my-exports', icon: Download },
+  { label: 'Profile', href: '/profile', icon: Users },
 ];
 
 export default function ClientShell({
