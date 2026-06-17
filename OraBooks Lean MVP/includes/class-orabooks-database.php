@@ -313,6 +313,16 @@ class OraBooks_Database {
         if (!wp_next_scheduled('orabooks_partner_activity_check')) {
             wp_schedule_event(time(), 'daily', 'orabooks_partner_activity_check');
         }
+
+        // ============================================================
+        // SL-305: Tax Governance & Compliance Engine
+        // ============================================================
+        $tax_tables = OraBooks_Tax::get_create_table_sql();
+        foreach ($tax_tables as $sql) {
+            dbDelta($sql);
+        }
+        OraBooks_Tax::seed_default_jurisdictions();
+
         if (!wp_next_scheduled('orabooks_monthly_commission_release')) {
             wp_schedule_event(time(), 'daily', 'orabooks_monthly_commission_release');
         }
