@@ -33,6 +33,7 @@ class OraBooks_Customers {
             add_action('wp_ajax_orabooks_invoices_list', [self::$instance, 'ajax_invoices_list']);
             add_action('wp_ajax_orabooks_invoice_create', [self::$instance, 'ajax_invoice_create']);
             add_action('wp_ajax_orabooks_invoice_get', [self::$instance, 'ajax_invoice_get']);
+            add_action('wp_ajax_orabooks_invoice_override_tax', [self::$instance, 'ajax_invoice_override_tax']);
             add_action('wp_ajax_orabooks_invoice_record_payment', [self::$instance, 'ajax_record_payment']);
             add_action('wp_ajax_orabooks_customer_stats', [self::$instance, 'ajax_customer_stats']);
 
@@ -85,6 +86,10 @@ class OraBooks_Customers {
             description TEXT NULL,
             total_amount DECIMAL(20,2) NOT NULL DEFAULT 0,
             tax_amount DECIMAL(20,2) DEFAULT 0,
+            tax_rate DECIMAL(8,4) DEFAULT 0,
+            tax_override_reason VARCHAR(64) NULL,
+            tax_override_by BIGINT UNSIGNED NULL,
+            tax_override_at TIMESTAMP NULL,
             currency CHAR(3) DEFAULT 'USD',
             payment_status ENUM('unpaid','partial','paid','overdue','cancelled') DEFAULT 'unpaid',
             workflow_status ENUM('draft','sent','posted','cancelled') DEFAULT 'draft',
@@ -401,12 +406,16 @@ class OraBooks_Customers {
                 'description'     => $data['description'] ?? '',
                 'total_amount'    => $data['total_amount'],
                 'tax_amount'      => $data['tax_amount'] ?? 0,
+                'tax_rate'        => $data['tax_rate'] ?? 0,
+                'tax_override_reason' => !empty($data['tax_override_reason']) ? sanitize_text_field($data['tax_override_reason']) : null,
+                'tax_override_by' => !empty($data['tax_override_reason']) ? get_current_user_id() : null,
+                'tax_override_at' => !empty($data['tax_override_reason']) ? current_time('mysql') : null,
                 'currency'        => $data['currency'] ?? 'USD',
                 'payment_status'  => 'unpaid',
                 'workflow_status' => $data['workflow_status'] ?? 'draft',
                 'idempotency_key' => $data['idempotency_key'] ?? orabooks_uuid(),
             ],
-            ['%d', '%d', '%s', '%s', '%s', '%s', '%s', '%f', '%f', '%s', '%s', '%s', '%s']
+            ['%d', '%d', '%s', '%s', '%s', '%s', '%s', '%f', '%f', '%f', '%s', '%d', '%s', '%s', '%s', '%s', '%s']
         );
 
         $invoice_id = $wpdb->insert_id;
@@ -436,6 +445,94 @@ class OraBooks_Customers {
         ]);
 
         return self::get_invoice($invoice_id);
+    }
+
+    public static function override_invoice_tax($org_id, $invoice_id, $new_tax_rate, $reason_code, $user_id, $jurisdiction = 'US') {
+        global $wpdb;
+
+        $org_id = intval($org_id);
+        $invoice_id = intval($invoice_id);
+        $user_id = intval($user_id);
+        $new_tax_rate = round(floatval($new_tax_rate), 4);
+        $reason_code = sanitize_text_field($reason_code);
+        $jurisdiction = strtoupper(sanitize_text_field($jurisdiction ?: 'US'));
+
+        $table = OraBooks_Database::table('invoices');
+        $invoice = $wpdb->get_row($wpdb->prepare(
+            "SELECT * FROM {$table} WHERE id = %d AND org_id = %d",
+            $invoice_id,
+            $org_id
+        ));
+
+        if (!$invoice) {
+            return new WP_Error('not_found', 'Invoice not found');
+        }
+
+        if (!in_array($invoice->workflow_status, ['draft', 'submitted'], true)) {
+            return new WP_Error('invalid_status', 'Tax can only be overridden before posting');
+        }
+
+        if (class_exists('OraBooks_Tax')) {
+            $validation = OraBooks_Tax::validate_override($org_id, $jurisdiction, $new_tax_rate, $reason_code);
+            if (is_wp_error($validation)) {
+                return $validation;
+            }
+        }
+
+        $tax_base = self::get_invoice_tax_base($invoice);
+        $old_tax_rate = isset($invoice->tax_rate) ? floatval($invoice->tax_rate) : self::infer_tax_rate($invoice);
+        $old_tax_amount = floatval($invoice->tax_amount ?? 0);
+        $new_tax_amount = round($tax_base * ($new_tax_rate / 100), 2);
+        $new_total = round($tax_base + $new_tax_amount, 2);
+
+        $wpdb->update(
+            $table,
+            [
+                'tax_rate' => $new_tax_rate,
+                'tax_amount' => $new_tax_amount,
+                'total_amount' => $new_total,
+                'tax_override_reason' => $reason_code,
+                'tax_override_by' => $user_id,
+                'tax_override_at' => current_time('mysql'),
+            ],
+            ['id' => $invoice_id, 'org_id' => $org_id],
+            ['%f', '%f', '%f', '%s', '%d', '%s'],
+            ['%d', '%d']
+        );
+
+        orabooks_log_event('tax_override', 'Invoice tax overridden', 'info', [
+            'transaction_type' => 'invoice',
+            'transaction_id' => $invoice_id,
+            'old_tax_rate' => $old_tax_rate,
+            'new_tax_rate' => $new_tax_rate,
+            'old_tax_amount' => $old_tax_amount,
+            'new_tax_amount' => $new_tax_amount,
+            'reason_code' => $reason_code,
+        ], $user_id, $org_id);
+
+        return [
+            'invoice_id' => $invoice_id,
+            'tax_rate' => $new_tax_rate,
+            'tax_amount' => $new_tax_amount,
+            'total_amount' => $new_total,
+            'tax_override_reason' => $reason_code,
+            'tax_override_by' => $user_id,
+        ];
+    }
+
+    private static function get_invoice_tax_base($invoice) {
+        $total = floatval($invoice->total_amount ?? 0);
+        $tax = floatval($invoice->tax_amount ?? 0);
+        return max(0, round($total - $tax, 2));
+    }
+
+    private static function infer_tax_rate($invoice) {
+        $tax_base = self::get_invoice_tax_base($invoice);
+        if ($tax_base <= 0) {
+            return 0.0;
+        }
+
+        return round((floatval($invoice->tax_amount ?? 0) / $tax_base) * 100, 4);
     }
 
     /**
