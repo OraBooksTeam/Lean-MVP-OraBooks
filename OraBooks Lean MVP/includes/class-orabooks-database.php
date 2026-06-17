@@ -756,6 +756,14 @@ class OraBooks_Database {
         }
 
         // ============================================================
+        // SL-034: Inventory Lite
+        // ============================================================
+        $inventory_tables = OraBooks_Inventory::get_create_table_sql();
+        foreach ($inventory_tables as $sql) {
+            dbDelta($sql);
+        }
+
+        // ============================================================
         // SL-250: Notification Center Tables
         // ============================================================
         $notification_tables = OraBooks_Notifications::get_create_table_sql();
