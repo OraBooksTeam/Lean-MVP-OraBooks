@@ -2152,46 +2152,30 @@ describe('orabooksRenderReports()', () => {
 // CUSTOMERS & INVOICES — Deep Link (invoice_id query param)
 // ============================================================
 describe('Invoice deep link from URL', () => {
-  let originalLocation;
+  let originalSearch;
+  let originalReplaceState;
 
   beforeEach(() => {
-    originalLocation = global.location;
+    // Save and modify the existing location.search
+    originalSearch = global.location.search;
+    originalReplaceState = global.window.history.replaceState;
+    global.window.history.replaceState = jest.fn();
   });
 
   afterEach(() => {
-    Object.defineProperty(global, 'location', {
-      value: originalLocation,
-      writable: true,
-      configurable: true
-    });
+    // Restore
+    global.location.search = originalSearch;
+    global.window.history.replaceState = originalReplaceState;
   });
 
   test('deep link loads invoice and switches to invoices tab', () => {
-    const deepLinkLocation = {
-      href: 'https://example.com/admin.php?page=orabooks-customers&invoice_id=123',
-      search: '?page=orabooks-customers&invoice_id=123',
-      protocol: 'https:',
-      host: 'example.com',
-      pathname: '/admin.php',
-      hash: '',
-      toString() { return this.href; }
-    };
-    Object.defineProperty(global, 'location', {
-      value: deepLinkLocation,
-      writable: true,
-      configurable: true
-    });
-
-    // Mock history.replaceState
-    global.window.history.replaceState = jest.fn();
+    global.location.search = '?page=orabooks-customers&invoice_id=123';
+    global.location._href = 'https://example.com/admin.php?page=orabooks-customers&invoice_id=123';
 
     setupCustomerDom();
 
-    // The ready handler's deep link IIFE should fire and switch to invoices tab + load detail
-    // The ready handler also fires the init GET for customer_stats
-    // Clear those init calls, then check for the invoice_get call
+    // The ready handler's deep link IIFE should fire and queue invoice_get
     const getCalls = ajaxResponses.get;
-    // Find the invoice_get call
     let foundInvGet = false;
     for (let i = 0; i < getCalls.length; i++) {
       if (getCalls[i].data && getCalls[i].data.action === 'orabooks_invoice_get') {
@@ -2209,22 +2193,10 @@ describe('Invoice deep link from URL', () => {
   });
 
   test('deep link does not fire when no invoice_id in URL', () => {
-    const normalLocation = {
-      href: 'https://example.com/admin.php?page=orabooks-customers',
-      search: '?page=orabooks-customers',
-      protocol: 'https:',
-      host: 'example.com',
-      pathname: '/admin.php',
-      hash: '',
-      toString() { return this.href; }
-    };
-    Object.defineProperty(global, 'location', {
-      value: normalLocation,
-      writable: true,
-      configurable: true
-    });
+    global.location.search = '?page=orabooks-customers';
+    global.location._href = 'https://example.com/admin.php?page=orabooks-customers';
 
-    global.window.history.replaceState = jest.fn();
+    window.history.replaceState = jest.fn();
 
     setupCustomerDom();
 
