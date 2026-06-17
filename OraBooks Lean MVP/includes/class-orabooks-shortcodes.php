@@ -40,6 +40,12 @@ class OraBooks_Shortcodes {
     }
 
     private function react_app($route = '/dashboard', $loading_text = 'Loading OraBooks...') {
+        if (!file_exists(ORABOOKS_PLUGIN_DIR . 'assets/react/frontend.js')) {
+            return '<div class="orabooks-message error" style="display:block;">' .
+                esc_html__('OraBooks frontend assets are missing. Build locally with npm run build and upload the assets/react folder with the plugin.', 'orabooks') .
+                '</div>';
+        }
+
         ob_start();
         ?>
         <div class="orabooks-react-page">
