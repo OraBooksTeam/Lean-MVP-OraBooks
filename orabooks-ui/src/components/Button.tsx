@@ -19,10 +19,10 @@ export default function Button({
     'inline-flex items-center justify-center rounded-lg font-semibold transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40';
 
   const variants: Record<string, string> = {
-    primary: 'bg-primary text-white hover:bg-primary-dark active:scale-[0.98] shadow-sm',
+    primary: 'bg-primary text-white hover:bg-primary-dark active:scale-[0.98] shadow-sm shadow-primary/20',
     secondary:
-      'bg-white text-ink border border-border hover:bg-muted active:scale-[0.98]',
-    ghost: 'text-ink-secondary hover:text-ink hover:bg-muted',
+      'bg-white text-primary border border-primary/30 hover:border-primary hover:bg-primary/5 active:scale-[0.98]',
+    ghost: 'text-ink-secondary hover:text-primary hover:bg-primary/5',
     danger: 'bg-danger text-white hover:opacity-90 active:scale-[0.98]',
   };
 
