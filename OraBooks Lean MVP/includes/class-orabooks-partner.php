@@ -839,7 +839,7 @@ class OraBooks_Partner {
     }
 
     public function ajax_partner_onboarding() {
-        $user_id = orabooks_get_current_user_id();
+        $user_id = get_current_user_id();
 
         if (!orabooks_check_rate_limit('partner_onboarding_' . $user_id, 60, 60)) {
             orabooks_json_error('Too many requests', 429);
