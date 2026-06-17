@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { api } from './api';
+import { api } from '../api';
 import { Building2, Users, UserCheck, Link2, TrendingUp, ArrowRight } from 'lucide-react';
 
 interface Stats {
