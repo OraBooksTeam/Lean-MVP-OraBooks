@@ -920,6 +920,13 @@ if (!file_exists($notifications_file)) {
 }
 require_once $notifications_file;
 
+$partner_file = __DIR__ . '/../includes/class-orabooks-partner.php';
+if (!file_exists($partner_file)) {
+    echo "ERROR: Cannot find class-orabooks-partner.php at {$partner_file}\n";
+    exit(1);
+}
+require_once $partner_file;
+
 // orabooks_mask_email — used by OraBooks_Partner::get_dashboard_data
 if (!function_exists('orabooks_mask_email')) {
     function orabooks_mask_email($email) {
