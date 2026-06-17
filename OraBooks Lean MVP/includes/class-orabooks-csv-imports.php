@@ -353,7 +353,7 @@ class OraBooks_Csv_Imports {
         $mapping = [];
 
         foreach ($headers as $index => $header) {
-            $normalized = strtolower(preg_replace('/[^a-z0-9]+/', '_', trim($header)));
+            $normalized = preg_replace('/[^a-z0-9]+/', '_', strtolower(trim($header)));
             $segments = array_filter(explode('_', $normalized));
             $field = null;
 
