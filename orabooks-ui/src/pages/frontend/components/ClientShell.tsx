@@ -144,7 +144,7 @@ export default function ClientShell({
             })}
           </nav>
         </div>
-        <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+        <div className="w-full px-4 py-6 sm:px-6 lg:px-8">
           <header className="mb-6 overflow-hidden rounded-3xl border border-border bg-white shadow-sm shadow-primary/5">
             <div className="brand-accent-bar h-1.5" />
             <div className="flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between">

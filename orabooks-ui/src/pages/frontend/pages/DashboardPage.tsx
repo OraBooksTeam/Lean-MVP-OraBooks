@@ -100,8 +100,8 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-50 p-6 lg:pl-80">
-        <div className="mx-auto max-w-7xl space-y-6">
+      <div className="brand-page-bg min-h-screen p-6 lg:pl-80">
+        <div className="w-full space-y-6">
           <div className="h-10 w-48 animate-pulse rounded-lg bg-slate-200" />
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {[...Array(4)].map((_, i) => (
@@ -115,7 +115,7 @@ export default function DashboardPage() {
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+      <div className="brand-page-bg min-h-screen flex items-center justify-center">
         <div className="glass-panel max-w-md p-6 text-center">
           <p className="font-medium text-danger">{error}</p>
           <Button onClick={load} variant="secondary" className="mt-4">Try again</Button>

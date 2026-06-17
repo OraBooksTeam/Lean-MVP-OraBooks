@@ -1379,3 +1379,102 @@
 .orabooks-coa-export-actions span {
     color: var(--orabooks-ink) !important;
 }
+
+/* =============================================
+   FULL-PAGE OraBooks FRONTEND SHELL
+   Break out of theme content width + page backgrounds
+   ============================================= */
+.orabooks-react-page,
+.orabooks-page-shell {
+    width: 100%;
+    max-width: none;
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+.orabooks-auth-shell {
+    background: var(--orabooks-blue);
+    min-height: 100vh;
+    min-height: 100dvh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 48px 16px;
+    box-sizing: border-box;
+}
+
+.orabooks-page-shell {
+    background: var(--orabooks-soft-blue);
+    background: #f4f8fc;
+    min-height: 100vh;
+    min-height: 100dvh;
+    padding: 24px 16px;
+    box-sizing: border-box;
+}
+
+.orabooks-page-shell-inner {
+    width: 100%;
+    max-width: 960px;
+    margin: 0 auto;
+}
+
+.orabooks-react-page #orabooks-app-root {
+    width: 100%;
+    min-height: 100vh;
+    min-height: 100dvh;
+}
+
+/* Break out of common WordPress theme content columns */
+.entry-content .orabooks-react-page,
+.entry-content .orabooks-page-shell,
+.entry-content .orabooks-auth-shell,
+.wp-block-post-content .orabooks-react-page,
+.wp-block-post-content .orabooks-page-shell,
+.wp-block-post-content .orabooks-auth-shell {
+    width: 100vw;
+    max-width: 100vw;
+    margin-left: calc(50% - 50vw);
+    margin-right: calc(50% - 50vw);
+}
+
+body.orabooks-page {
+    background: #f4f8fc;
+}
+
+body.orabooks-page.orabooks-auth-page {
+    background: var(--orabooks-blue);
+}
+
+body.orabooks-page .entry-header,
+body.orabooks-page .page-header,
+body.orabooks-page .entry-title,
+body.orabooks-page .page-title {
+    display: none;
+}
+
+body.orabooks-page main,
+body.orabooks-page .site-content,
+body.orabooks-page .content-area,
+body.orabooks-page .entry-content,
+body.orabooks-page .wp-block-post-content,
+body.orabooks-page #primary,
+body.orabooks-page #content {
+    max-width: none !important;
+    width: 100% !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+}
+
+body.orabooks-page .orabooks-partner-dashboard,
+body.orabooks-page .orabooks-commission-dashboard,
+body.orabooks-page .orabooks-notification-center,
+body.orabooks-page .orabooks-notification-preferences,
+body.orabooks-page .orabooks-export-status,
+body.orabooks-page .orabooks-form-container {
+    max-width: none;
+    width: 100%;
+    margin: 0;
+}
