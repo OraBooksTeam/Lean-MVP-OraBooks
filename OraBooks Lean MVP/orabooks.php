@@ -572,7 +572,8 @@ function orabooks_frontend_enqueue() {
     wp_localize_script('orabooks-frontend', 'orabooks_ajax', [
         'ajax_url' => admin_url('admin-ajax.php'),
         'nonce' => wp_create_nonce('orabooks_nonce'),
-        'current_user_id' => get_current_user_id()
+        'current_user_id' => get_current_user_id(),
+        'logout_url' => wp_logout_url(home_url('/login/'))
     ]);
 
     $react_entry = ORABOOKS_PLUGIN_DIR . 'assets/react/frontend.js';
@@ -598,7 +599,8 @@ function orabooks_frontend_enqueue() {
         wp_localize_script('orabooks-react-frontend', 'orabooks_ajax', [
             'ajax_url' => admin_url('admin-ajax.php'),
             'nonce' => wp_create_nonce('orabooks_nonce'),
-            'current_user_id' => get_current_user_id()
+            'current_user_id' => get_current_user_id(),
+            'logout_url' => wp_logout_url(home_url('/login/'))
         ]);
 
         wp_add_inline_script(
