@@ -1110,7 +1110,7 @@ class OraBooks_Partner_Test extends TestCase
 
         $this->assertFalse($response['error']);
         $this->assertCount(1, $response['data']);
-        $this->assertEquals('P1', $response['data'][0]->partner_code);
+        $this->assertEquals('P1', $response['data'][0]['partner_code']);
     }
 
     #[Test]
@@ -1127,7 +1127,7 @@ class OraBooks_Partner_Test extends TestCase
 
         $this->assertFalse($response['error']);
         $this->assertCount(1, $response['data']);
-        $this->assertEquals('A1', $response['data'][0]->partner_code);
+        $this->assertEquals('A1', $response['data'][0]['partner_code']);
     }
 
     #[Test]
@@ -1157,7 +1157,7 @@ class OraBooks_Partner_Test extends TestCase
 
         $this->assertFalse($response['error']);
         $this->assertCount(1, $response['data']);
-        $this->assertEquals('R1', $response['data'][0]->partner_code);
+        $this->assertEquals('R1', $response['data'][0]['partner_code']);
     }
 
     // ================================================================
