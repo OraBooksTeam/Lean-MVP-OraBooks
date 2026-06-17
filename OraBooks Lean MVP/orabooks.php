@@ -567,4 +567,31 @@ function orabooks_frontend_enqueue() {
         'nonce' => wp_create_nonce('orabooks_nonce'),
         'current_user_id' => get_current_user_id()
     ]);
+
+    $react_entry = ORABOOKS_PLUGIN_DIR . 'assets/react/frontend.js';
+    if (file_exists($react_entry)) {
+        foreach (glob(ORABOOKS_PLUGIN_DIR . 'assets/react/assets/*.css') ?: [] as $css_file) {
+            $handle = 'orabooks-react-' . sanitize_key(basename($css_file, '.css'));
+            wp_enqueue_style(
+                $handle,
+                ORABOOKS_PLUGIN_URL . 'assets/react/assets/' . basename($css_file),
+                [],
+                filemtime($css_file)
+            );
+        }
+
+        wp_enqueue_script(
+            'orabooks-react-frontend',
+            ORABOOKS_PLUGIN_URL . 'assets/react/frontend.js',
+            [],
+            filemtime($react_entry),
+            true
+        );
+        wp_script_add_data('orabooks-react-frontend', 'type', 'module');
+        wp_localize_script('orabooks-react-frontend', 'orabooks_ajax', [
+            'ajax_url' => admin_url('admin-ajax.php'),
+            'nonce' => wp_create_nonce('orabooks_nonce'),
+            'current_user_id' => get_current_user_id()
+        ]);
+    }
 }
