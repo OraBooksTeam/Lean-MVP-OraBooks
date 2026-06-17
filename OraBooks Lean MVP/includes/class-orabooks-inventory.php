@@ -38,6 +38,7 @@ class OraBooks_Inventory {
         $charset_collate = $wpdb->get_charset_collate();
         $table_products = OraBooks_Database::table('products');
         $table_movements = OraBooks_Database::table('inventory_movements');
+        $table_orgs = OraBooks_Database::table('organizations');
 
         return [
             "CREATE TABLE IF NOT EXISTS {$table_products} (
@@ -53,6 +54,7 @@ class OraBooks_Inventory {
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                 UNIQUE KEY uk_org_sku (org_id, sku),
+                FOREIGN KEY (org_id) REFERENCES {$table_orgs}(id) ON DELETE CASCADE,
                 INDEX idx_org_active (org_id, is_active),
                 INDEX idx_sku (sku)
             ) {$charset_collate};",
@@ -72,6 +74,7 @@ class OraBooks_Inventory {
                 journal_id BIGINT UNSIGNED NULL,
                 created_by BIGINT UNSIGNED NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (org_id) REFERENCES {$table_orgs}(id) ON DELETE CASCADE,
                 FOREIGN KEY (product_id) REFERENCES {$table_products}(id) ON DELETE CASCADE,
                 INDEX idx_org_product (org_id, product_id),
                 INDEX idx_reference (reference_type, reference_id),
