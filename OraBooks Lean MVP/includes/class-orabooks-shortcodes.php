@@ -191,6 +191,14 @@ class OraBooks_Shortcodes {
     public function profile_page() {
         return $this->react_app('/profile', 'Loading profile...');
     }
+
+    public function team_page() {
+        $user_id = get_current_user_id();
+        if (!$user_id) {
+            return '<p>' . __('Please log in to manage your team.', 'orabooks') . '</p>';
+        }
+        return $this->react_app('/team', 'Loading team...');
+    }
     
     /**
      * Partner Commission Dashboard Shortcode

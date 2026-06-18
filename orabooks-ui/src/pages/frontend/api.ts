@@ -205,6 +205,18 @@ export const api = {
     }),
   csvImportsList: (orgId: number) =>
     api.get('orabooks_csv_imports_list', { org_id: orgId }),
+  teamDashboard: () =>
+    api.get('orabooks_team_dashboard'),
+  inviteTeamUser: (orgId: number, email: string, role: string) =>
+    api.post('orabooks_invite_user', { org_id: orgId, email, role }),
+  updateTeamRole: (orgId: number, userId: number, role: string) =>
+    api.post('orabooks_update_role', { org_id: orgId, user_id: userId, role }),
+  removeTeamUser: (orgId: number, userId: number) =>
+    api.post('orabooks_remove_user', { org_id: orgId, user_id: userId }),
+  resendTeamInvite: (orgId: number, inviteId: number) =>
+    api.post('orabooks_resend_invite', { org_id: orgId, invite_id: inviteId }),
+  cancelTeamInvite: (orgId: number, inviteId: number) =>
+    api.post('orabooks_cancel_invite', { org_id: orgId, invite_id: inviteId }),
   generateFinancialReport: (orgId: number, reportType: string, periodStart: string, periodEnd: string) =>
     api.get('orabooks_financial_report_generate', {
       org_id: orgId,
