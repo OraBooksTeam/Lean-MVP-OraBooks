@@ -108,7 +108,12 @@ class OBN_Reports {
             wp_die();
         }
 
-        $where = "WHERE 1=1";
+        $org_id = obn_current_org_id();
+        $where = $wpdb->prepare(
+            "WHERE (je.organization_id = %d OR je.store_id = %d)",
+            $org_id,
+            $org_id
+        );
         if (!empty($start))       $where .= $wpdb->prepare(" AND je.entry_date >= %s", $start);
         if (!empty($end))         $where .= $wpdb->prepare(" AND je.entry_date <= %s", $end);
         if (!empty($source_type)) $where .= $wpdb->prepare(" AND je.source_type = %s", $source_type);
@@ -171,17 +176,38 @@ class OBN_Reports {
 
     public function handle_search_trial_balance_report() {
         check_ajax_referer('frontend_ajax_nonce', 'security');
+        OBN_Org_Context::require_accounting_access_or_die('html', 'view_financial_reports');
 
-        $auth = new OBN_Auth();
-        if ( ! is_user_logged_in() || ! $auth->can_access_accounting() ) {
-            echo '<tr><td colspan="5" class="px-6 py-10 text-center text-red-500">Access denied.</td></tr>';
+        $start_date = isset($_POST['start_date']) ? sanitize_text_field($_POST['start_date']) : date('Y-m-01');
+        $end_date   = isset($_POST['end_date']) ? sanitize_text_field($_POST['end_date']) : date('Y-m-d');
+
+        if (OBN_Financial_Reports_Adapter::is_available()) {
+            $rows = OBN_Financial_Reports_Adapter::render_trial_balance_rows($start_date, $end_date);
+            if (is_wp_error($rows)) {
+                echo '<tr><td colspan="5" class="px-6 py-10 text-center text-red-500">' . esc_html($rows->get_error_message()) . '</td></tr>';
+                wp_die();
+            }
+            if ($rows) {
+                $i = 1;
+                foreach ($rows as $r) {
+                    $debit = floatval($r->total_debit);
+                    $credit = floatval($r->total_credit);
+                    echo '<tr class="hover:bg-gray-50 transition-colors border-b border-gray-100">
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">' . $i . '</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">' . esc_html($r->account_code) . '</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">' . esc_html($r->account_name) . '</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-right font-medium text-gray-900 debit-amt">' . ($debit > 0 ? number_format($debit, 2) : '-') . '</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-right font-medium text-gray-900 credit-amt">' . ($credit > 0 ? number_format($credit, 2) : '-') . '</td>
+                    </tr>';
+                    $i++;
+                }
+            } else {
+                echo '<tr><td colspan="5" class="px-6 py-10 text-center text-gray-500">No records found for the selected period.</td></tr>';
+            }
             wp_die();
         }
 
         global $wpdb;
-
-        $start_date = isset($_POST['start_date']) ? sanitize_text_field($_POST['start_date']) : date('Y-m-01');
-        $end_date   = isset($_POST['end_date']) ? sanitize_text_field($_POST['end_date']) : date('Y-m-d');
 
         // Check if tables exist
         $je_table   = "{$wpdb->prefix}orabooks_ac_journal_entry";
