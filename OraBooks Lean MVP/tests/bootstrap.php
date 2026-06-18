@@ -66,6 +66,7 @@ if (!class_exists('wpdb', false)) {
     public $test_get_results_callback = null;
     public $test_query_callback       = null;
     public $test_insert_callback      = null;
+    public $test_update_callback      = null;
 
     /** Register SHOW COLUMNS results so dbDelta calls don't crash */
     private $show_columns_cache = [];
