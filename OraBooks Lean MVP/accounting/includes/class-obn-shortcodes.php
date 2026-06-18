@@ -27,10 +27,22 @@ class OBN_Shortcodes
 		$is_accounting_page = false;
 		if (is_page() && isset($post->post_content) && has_shortcode($post->post_content, 'orabooks_accounting')) {
 			$is_accounting_page = true;
-		} elseif (isset($post->post_name) && (strpos($post->post_name, 'accounting') !== false)) {
+		} elseif (
+			is_page()
+			&& isset($post->post_content)
+			&& has_shortcode($post->post_content, 'orabooks_dashboard')
+			&& function_exists('orabooks_uses_merged_accounting_workspace')
+			&& orabooks_uses_merged_accounting_workspace()
+		) {
 			$is_accounting_page = true;
-		} elseif (strpos($_SERVER['REQUEST_URI'] ?? '', '/accounting') !== false) {
-			$is_accounting_page = true;
+		} elseif (isset($post->post_name) && in_array($post->post_name, ['dashboard', 'customers', 'invoices', 'inventory', 'vendors', 'reports', 'expenses', 'journals', 'chart-of-accounts', 'fiscal-periods', 'tax-settings', 'csv-imports'], true)) {
+			if (function_exists('orabooks_uses_merged_accounting_workspace') && orabooks_uses_merged_accounting_workspace()) {
+				$is_accounting_page = true;
+			}
+		} elseif (strpos($_SERVER['REQUEST_URI'] ?? '', '/dashboard') !== false) {
+			if (function_exists('orabooks_uses_merged_accounting_workspace') && orabooks_uses_merged_accounting_workspace()) {
+				$is_accounting_page = true;
+			}
 		}
 
 		if (!$is_accounting_page)
@@ -112,7 +124,7 @@ class OBN_Shortcodes
 		if ( ! $this->auth->can_access_accounting() ) {
 			return '<div class="obn-notice obn-error">
                 <h3>Access Denied</h3>
-                <p>Your organization does not have permission to access the Advanced Accounting workspace.</p>
+                <p>Your organization does not have permission to access the accounting workspace.</p>
                 <p>Please contact your organization owner or administrator.</p>
             </div>';
 		}
