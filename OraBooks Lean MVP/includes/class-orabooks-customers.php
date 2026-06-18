@@ -378,6 +378,38 @@ class OraBooks_Customers {
             return new WP_Error('missing_field', 'Customer ID is required');
         }
         if (empty($data['total_amount']) || $data['total_amount'] <= 0) {
+            if (!empty($data['subtotal_amount']) && floatval($data['subtotal_amount']) > 0) {
+                $subtotal = round(floatval($data['subtotal_amount']), 2);
+                $jurisdiction = strtoupper(sanitize_text_field($data['jurisdiction'] ?? 'US'));
+
+                if (class_exists('OraBooks_Tax')) {
+                    $tax_result = OraBooks_Tax::calculate([
+                        'org_id' => $org_id,
+                        'amount' => $subtotal,
+                        'jurisdiction' => $jurisdiction,
+                        'customer_tax_status' => sanitize_text_field($data['customer_tax_status'] ?? 'taxable'),
+                    ]);
+
+                    if (!is_wp_error($tax_result)) {
+                        $data['tax_amount'] = $tax_result['tax_amount'];
+                        $data['tax_rate'] = $tax_result['tax_rate'];
+                        $data['total_amount'] = round($subtotal + $tax_result['tax_amount'], 2);
+                    } else {
+                        $data['total_amount'] = $subtotal;
+                        $data['tax_amount'] = 0;
+                        $data['tax_rate'] = 0;
+                    }
+                } else {
+                    $data['total_amount'] = $subtotal;
+                    $data['tax_amount'] = 0;
+                    $data['tax_rate'] = 0;
+                }
+            } else {
+                return new WP_Error('invalid_amount', 'Total amount must be greater than 0');
+            }
+        }
+
+        if (empty($data['total_amount']) || $data['total_amount'] <= 0) {
             return new WP_Error('invalid_amount', 'Total amount must be greater than 0');
         }
 
@@ -1141,18 +1173,28 @@ class OraBooks_Customers {
     // AJAX HANDLERS
     // ================================================================
 
+    private function require_customer_access($user_id, $org_id, $permission = 'view_invoices') {
+        if (!$user_id) {
+            orabooks_json_error('Not authenticated', 401);
+        }
+
+        $isolation = OraBooks_Auth::require_customer_org($user_id, $org_id);
+        if (is_wp_error($isolation)) {
+            orabooks_json_error($isolation->get_error_message(), 403);
+        }
+
+        if (!current_user_can('manage_options') && !OraBooks_RBAC::require_permission($user_id, $org_id, $permission)) {
+            orabooks_json_error('Permission denied', 403);
+        }
+    }
+
     /**
      * List customers for admin.
      */
     public function ajax_customers_list() {
-        if (!current_user_can('manage_options')) {
-            orabooks_json_error('Permission denied', 403);
-        }
-
-        $org_id = intval($_GET['org_id'] ?? 0);
-        if (!$org_id) {
-            orabooks_json_error('Organization ID required', 400);
-        }
+        $user_id = orabooks_get_current_user_id();
+        $org_id = intval($_GET['org_id'] ?? $_POST['org_id'] ?? 0);
+        $this->require_customer_access($user_id, $org_id, 'view_invoices');
 
         $args = [
             'is_active' => isset($_GET['is_active']) ? intval($_GET['is_active']) : null,
@@ -1170,12 +1212,13 @@ class OraBooks_Customers {
      * or user_id (users table ID).
      */
     public function ajax_customer_get() {
-        if (!current_user_can('manage_options')) {
-            orabooks_json_error('Permission denied', 403);
+        $user_id = orabooks_get_current_user_id();
+        if (!$user_id) {
+            orabooks_json_error('Not authenticated', 401);
         }
 
         $customer_id = intval($_GET['customer_id'] ?? 0);
-        $user_id = intval($_GET['user_id'] ?? 0);
+        $user_lookup_id = intval($_GET['user_id'] ?? 0);
 
         if ($customer_id) {
             $customer = self::get_by_id($customer_id);
