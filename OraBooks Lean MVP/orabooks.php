@@ -225,6 +225,11 @@ function orabooks_init() {
     // Register the generate_export handler with SL-303 async queue
     OraBooks_AsyncQueue::register_handler('generate_export', ['OraBooks_Exports', 'generate_export_job']);
     OraBooks_AsyncQueue::register_handler('parse_csv_import', ['OraBooks_Csv_Imports', 'parse_csv_import_job']);
+
+    /**
+     * Allow addon plugins (e.g. Frontend Basic Accounting) to register themselves.
+     */
+    do_action('orabooks_register_addons');
 }
 
 /**
@@ -288,6 +293,7 @@ function orabooks_create_required_pages() {
         
         // Exports
         'my-exports'          => ['My Exports', '[orabooks_export_status]'],
+        'accounting'          => ['Advanced Accounting', '[orabooks_accounting]'],
     ];
     
     // Create a parent page "OraBooks" if needed (optional)

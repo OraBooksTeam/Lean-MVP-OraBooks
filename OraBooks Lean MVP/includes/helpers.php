@@ -432,3 +432,132 @@ function orabooks_mask_email($email) {
     $masked = substr($name, 0, 2) . str_repeat('*', max(0, strlen($name) - 2));
     return $masked . '@' . $domain;
 }
+
+/**
+ * Resolve the active organization ID for the current request (SL-004).
+ *
+ * Prefers the org mapped to the request subdomain, then falls back to the
+ * user's primary org membership.
+ */
+function orabooks_get_current_org_id($user_id = 0) {
+    $user_id = $user_id ?: orabooks_get_current_user_id();
+
+    if (class_exists('OraBooks_Auth') && class_exists('OraBooks_Organization')) {
+        $subdomain = OraBooks_Auth::detect_subdomain_from_host();
+        if ($subdomain !== '') {
+            $org = OraBooks_Organization::get_by_subdomain($subdomain);
+            if ($org) {
+                if (!$user_id) {
+                    return (int) $org->id;
+                }
+
+                if ((int) $org->owner_id === (int) $user_id) {
+                    return (int) $org->id;
+                }
+
+                global $wpdb;
+                $table_user_org = OraBooks_Database::table('user_org');
+                $membership = $wpdb->get_var($wpdb->prepare(
+                    "SELECT org_id FROM {$table_user_org} WHERE user_id = %d AND org_id = %d LIMIT 1",
+                    $user_id,
+                    $org->id
+                ));
+
+                if ($membership) {
+                    return (int) $org->id;
+                }
+            }
+        }
+    }
+
+    if (!$user_id) {
+        return 0;
+    }
+
+    global $wpdb;
+    $table_users = OraBooks_Database::table('users');
+    $org_id = (int) $wpdb->get_var($wpdb->prepare(
+        "SELECT org_id FROM {$table_users} WHERE id = %d",
+        $user_id
+    ));
+
+    if (!$org_id) {
+        $table_user_org = OraBooks_Database::table('user_org');
+        $org_id = (int) $wpdb->get_var($wpdb->prepare(
+            "SELECT org_id FROM {$table_user_org} WHERE user_id = %d ORDER BY joined_at ASC LIMIT 1",
+            $user_id
+        ));
+    }
+
+    return $org_id;
+}
+
+/**
+ * Register an OraBooks addon module (e.g. Frontend Accounting).
+ */
+function orabooks_register_addon($addon) {
+    if (empty($addon['id'])) {
+        return false;
+    }
+
+    $addons = get_option('orabooks_addons', []);
+    if (!is_array($addons)) {
+        $addons = [];
+    }
+
+    $addons[$addon['id']] = $addon;
+    update_option('orabooks_addons', $addons, false);
+
+    return true;
+}
+
+/**
+ * Get all registered OraBooks addons.
+ */
+function orabooks_get_addons() {
+    $addons = get_option('orabooks_addons', []);
+    return is_array($addons) ? $addons : [];
+}
+
+/**
+ * Legacy compatibility helper used by addon plugins.
+ */
+function orabooks_is_feature_enabled($feature_id) {
+    $feature_id = sanitize_key($feature_id);
+    $addons = orabooks_get_addons();
+
+    foreach ($addons as $addon) {
+        if (empty($addon['features']) || !is_array($addon['features'])) {
+            continue;
+        }
+
+        if (!isset($addon['features'][$feature_id])) {
+            continue;
+        }
+
+        $user_id = orabooks_get_current_user_id();
+        if (!$user_id) {
+            return false;
+        }
+
+        if (current_user_can('manage_options')) {
+            return true;
+        }
+
+        $org_id = orabooks_get_current_org_id($user_id);
+        if (!$org_id) {
+            return false;
+        }
+
+        if (class_exists('OraBooks_Auth')) {
+            $allowed = OraBooks_Auth::require_customer_org($user_id, $org_id);
+            if (is_wp_error($allowed)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    return false;
+}

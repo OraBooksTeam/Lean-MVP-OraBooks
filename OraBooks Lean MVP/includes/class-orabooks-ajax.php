@@ -87,13 +87,7 @@ class OraBooks_Ajax {
             return new WP_Error('user_not_found', 'OraBooks user record was not found.');
         }
 
-        $org_id = (int) $user->org_id;
-        if (!$org_id) {
-            $org_id = (int) $wpdb->get_var($wpdb->prepare(
-                "SELECT org_id FROM {$table_user_org} WHERE user_id = %d ORDER BY joined_at ASC LIMIT 1",
-                $user_id
-            ));
-        }
+        $org_id = orabooks_get_current_org_id($user_id);
 
         $org = $org_id ? $wpdb->get_row($wpdb->prepare(
             "SELECT id, name, tier, subdomain, region, status, organization_type, owner_id
