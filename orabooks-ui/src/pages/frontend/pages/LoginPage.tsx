@@ -1,6 +1,7 @@
 import { useState, useEffect, type FormEvent } from 'react';
 import Button from '@/components/Button';
 import Input from '@/components/Input';
+import { Flame } from 'lucide-react';
 import { api } from '../api';
 import {
   clearRedirectGuard,
@@ -39,8 +40,6 @@ function redirectAfterLogin(data: any) {
 
   replaceAppLocation('/dashboard/', '/dashboard');
 }
-
-import { Flame } from 'lucide-react';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
