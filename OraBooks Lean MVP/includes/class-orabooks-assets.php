@@ -133,22 +133,9 @@ class OraBooks_Assets {
      */
     public static function should_enqueue_frontend_react($content) {
         foreach (self::get_react_shortcode_tags() as $tag) {
-            if (!has_shortcode($content, $tag)) {
-                continue;
+            if (has_shortcode($content, $tag)) {
+                return true;
             }
-
-            if (
-                function_exists('orabooks_uses_merged_accounting_workspace')
-                && function_exists('orabooks_is_user_logged_in')
-                && orabooks_is_user_logged_in()
-                && orabooks_uses_merged_accounting_workspace()
-                && function_exists('orabooks_merged_accounting_shortcodes')
-                && in_array($tag, orabooks_merged_accounting_shortcodes(), true)
-            ) {
-                continue;
-            }
-
-            return true;
         }
 
         return false;
