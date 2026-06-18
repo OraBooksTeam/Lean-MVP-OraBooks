@@ -90,6 +90,7 @@ function orabooks_init() {
     OraBooks_Csv_Imports::init();
     OraBooks_Attachments::init();
     OraBooks_Ai_Review::init();
+    OraBooks_Expenses::init();
     OraBooks_Exports::register_report_provider('coa', function($params) {
         // Reuse OraBooks_COA if available
         if (class_exists('OraBooks_COA') && method_exists('OraBooks_COA', 'get_accounts')) {

@@ -34,6 +34,7 @@ class OraBooks_Ajax {
             add_action('wp_ajax_orabooks_attachments_dashboard', [self::$instance, 'ajax_attachments_dashboard']);
             add_action('wp_ajax_orabooks_approval_dashboard', [self::$instance, 'ajax_approval_dashboard']);
             add_action('wp_ajax_orabooks_ai_review_dashboard', [self::$instance, 'ajax_ai_review_dashboard']);
+            add_action('wp_ajax_orabooks_expenses_dashboard', [self::$instance, 'ajax_expenses_dashboard']);
             add_action('wp_ajax_nopriv_orabooks_frontend_context', [self::$instance, 'ajax_frontend_context']);
             add_action('wp_ajax_nopriv_orabooks_customer_dashboard', [self::$instance, 'ajax_customer_dashboard']);
             add_action('wp_ajax_nopriv_orabooks_vendor_dashboard', [self::$instance, 'ajax_vendor_dashboard']);
@@ -45,6 +46,7 @@ class OraBooks_Ajax {
             add_action('wp_ajax_nopriv_orabooks_attachments_dashboard', [self::$instance, 'ajax_attachments_dashboard']);
             add_action('wp_ajax_nopriv_orabooks_approval_dashboard', [self::$instance, 'ajax_approval_dashboard']);
             add_action('wp_ajax_nopriv_orabooks_ai_review_dashboard', [self::$instance, 'ajax_ai_review_dashboard']);
+            add_action('wp_ajax_nopriv_orabooks_expenses_dashboard', [self::$instance, 'ajax_expenses_dashboard']);
             
             // Register settings
             add_action('admin_init', [self::$instance, 'register_settings']);
@@ -906,6 +908,70 @@ class OraBooks_Ajax {
             'threshold' => OraBooks_Ai_Review::CONFIDENCE_THRESHOLD,
             'capabilities' => [
                 'review' => OraBooks_RBAC::require_permission($context['user_id'], $org_id, 'approve_journal'),
+            ],
+            'timestamp' => current_time('mysql'),
+        ]);
+    }
+
+    public function ajax_expenses_dashboard() {
+        $context = $this->get_current_orabooks_context();
+        if (is_wp_error($context)) {
+            orabooks_json_error($context->get_error_message(), 401);
+        }
+
+        $org = $context['organization'];
+        $org_id = $org ? (int) $org['id'] : 0;
+        if (!$org_id) {
+            orabooks_json_error('Organization is not set up yet.', 400);
+        }
+
+        if (($org['organization_type'] ?? '') === 'partner') {
+            orabooks_json_error('Partner accounts cannot perform accounting operations.', 403);
+        }
+
+        if (!OraBooks_RBAC::require_permission($context['user_id'], $org_id, 'view_expenses')) {
+            orabooks_json_error('Permission denied', 403);
+        }
+
+        $stats = [
+            'total'       => 0,
+            'draft'       => 0,
+            'submitted'   => 0,
+            'ai_review'   => 0,
+            'approved'    => 0,
+            'posted'      => 0,
+            'pending_ocr' => 0,
+        ];
+        $expenses = [];
+        $pending_approval = [];
+
+        if (class_exists('OraBooks_Expenses')) {
+            $stats = OraBooks_Expenses::get_expense_stats($org_id);
+            $rows = OraBooks_Expenses::list_expenses($org_id, ['limit' => 25]);
+            $expenses = array_map([OraBooks_Expenses::class, 'format_expense'], $rows ?: []);
+
+            $approval_rows = OraBooks_Expenses::list_expenses($org_id, ['status' => 'submitted', 'limit' => 15]);
+            $ai_rows = OraBooks_Expenses::list_expenses($org_id, ['status' => 'ai_review', 'limit' => 15]);
+            $pending_approval = array_map(
+                [OraBooks_Expenses::class, 'format_expense'],
+                array_merge($approval_rows ?: [], $ai_rows ?: [])
+            );
+        }
+
+        orabooks_json_success([
+            'context' => $context,
+            'stats' => $stats,
+            'expenses' => $expenses,
+            'pending_approval' => $pending_approval,
+            'threshold' => OraBooks_Expenses::CONFIDENCE_THRESHOLD,
+            'capabilities' => [
+                'upload'  => OraBooks_RBAC::require_permission($context['user_id'], $org_id, 'manage_expenses'),
+                'submit'  => OraBooks_RBAC::require_permission($context['user_id'], $org_id, 'manage_expenses'),
+                'approve' => OraBooks_RBAC::require_permission($context['user_id'], $org_id, 'approve_expense'),
+                'post'    => OraBooks_RBAC::require_permission($context['user_id'], $org_id, 'approve_expense'),
+            ],
+            'limits' => [
+                'max_file_size' => OraBooks_Expenses::MAX_RECEIPT_SIZE,
             ],
             'timestamp' => current_time('mysql'),
         ]);
