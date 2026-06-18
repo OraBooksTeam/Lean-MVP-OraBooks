@@ -1,9 +1,10 @@
 import { useEffect, useState, type ReactNode } from 'react';
+import { Link } from 'react-router-dom';
 import Button from '@/components/Button';
 import Input from '@/components/Input';
 import { api } from '../api';
 import ClientShell from '../components/ClientShell';
-import { Building2, FileText, Info, Plus, RefreshCw, Wallet } from 'lucide-react';
+import { Building2, FileText, Info, Paperclip, Plus, RefreshCw, Wallet } from 'lucide-react';
 
 type Vendor = {
   id: number;
@@ -328,12 +329,20 @@ export default function VendorsPage() {
                   <td className="px-5 py-3 text-right font-bold text-ink">{money(vendor.payable_balance)}</td>
                   <td className="px-5 py-3 text-right text-slate-600">{money(vendor.credit_balance)}</td>
                   <td className="px-5 py-3">
-                    {Number(vendor.payable_balance || 0) > 0 && (
-                      <Button size="sm" variant="secondary" onClick={() => openPayment(vendor)}>
-                        <Wallet className="h-3.5 w-3.5" />
-                        Pay
-                      </Button>
-                    )}
+                    <div className="flex flex-wrap gap-1">
+                      {Number(vendor.payable_balance || 0) > 0 && (
+                        <Button size="sm" variant="secondary" onClick={() => openPayment(vendor)}>
+                          <Wallet className="h-3.5 w-3.5" />
+                          Pay
+                        </Button>
+                      )}
+                      <Link to={`/attachments?resource_type=vendor&resource_id=${vendor.id}`}>
+                        <Button size="sm" variant="secondary">
+                          <Paperclip className="h-3.5 w-3.5" />
+                          Files
+                        </Button>
+                      </Link>
+                    </div>
                   </td>
                 </tr>
               ))}

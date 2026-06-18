@@ -146,6 +146,21 @@ export default function CustomersPage() {
                   <td className="px-5 py-3 text-right font-semibold text-ink">{money(customer.wallet_balance)}</td>
                   <td className="px-5 py-3 text-right font-bold text-ink">{money(customer.total_paid)}</td>
                   <td className="px-5 py-3 text-slate-600">{customer.last_paid_invoice_date || '—'}</td>
+                  <td className="px-5 py-3">
+                    <div className="flex flex-wrap gap-1">
+                      <Link to={`/attachments?resource_type=customer&resource_id=${customer.id}`}>
+                        <Button size="sm" variant="secondary">
+                          <Paperclip className="h-3.5 w-3.5" />
+                          Files
+                        </Button>
+                      </Link>
+                      <Link to="/invoices">
+                        <Button size="sm" variant="secondary">
+                          Invoices
+                        </Button>
+                      </Link>
+                    </div>
+                  </td>
                 </tr>
               ))}
             </tbody>
