@@ -196,6 +196,78 @@ class OraBooks_Ajax {
             'timestamp' => current_time('mysql'),
         ]);
     }
+
+    public function ajax_vendor_dashboard() {
+        global $wpdb;
+
+        $context = $this->get_current_orabooks_context();
+        if (is_wp_error($context)) {
+            orabooks_json_error($context->get_error_message(), 401);
+        }
+
+        $org = $context['organization'];
+        $org_id = $org ? (int) $org['id'] : 0;
+        if (!$org_id) {
+            orabooks_json_error('Organization is not set up yet.', 400);
+        }
+
+        if (($org['organization_type'] ?? '') === 'partner') {
+            orabooks_json_error('Partner accounts cannot perform accounting operations.', 403);
+        }
+
+        if (!current_user_can('manage_options') && !OraBooks_RBAC::require_permission($context['user_id'], $org_id, 'view_reports')) {
+            orabooks_json_error('Permission denied', 403);
+        }
+
+        $vendors_table = OraBooks_Database::table('vendors');
+        $bills_table = OraBooks_Database::table('bills');
+
+        $vendor_stats = $wpdb->get_row($wpdb->prepare(
+            "SELECT
+                COUNT(*) AS total_vendors,
+                SUM(CASE WHEN is_active = 1 THEN 1 ELSE 0 END) AS active_vendors,
+                COALESCE(SUM(payable_balance), 0) AS total_payable,
+                COALESCE(SUM(credit_balance), 0) AS total_credit
+             FROM {$vendors_table}
+             WHERE org_id = %d",
+            $org_id
+        ));
+
+        $bill_stats = $wpdb->get_results($wpdb->prepare(
+            "SELECT workflow_status, payment_status, COUNT(*) AS total
+             FROM {$bills_table}
+             WHERE org_id = %d
+             GROUP BY workflow_status, payment_status",
+            $org_id
+        ));
+
+        $recent_vendors = class_exists('OraBooks_Vendors')
+            ? OraBooks_Vendors::get_vendors_list($org_id, ['limit' => 25, 'offset' => 0])
+            : ['vendors' => [], 'total' => 0, 'page' => 1, 'per_page' => 25];
+
+        $recent_bills = class_exists('OraBooks_Vendors')
+            ? OraBooks_Vendors::get_bills_list($org_id, ['limit' => 25, 'offset' => 0])
+            : ['bills' => [], 'total' => 0, 'page' => 1, 'per_page' => 25];
+
+        $ap_aging = class_exists('OraBooks_Vendors')
+            ? OraBooks_Vendors::get_ap_aging($org_id)
+            : ['current' => 0, '30' => 0, '60' => 0, '90_plus' => 0];
+
+        orabooks_json_success([
+            'context' => $context,
+            'stats' => [
+                'total_vendors' => (int) ($vendor_stats->total_vendors ?? 0),
+                'active_vendors' => (int) ($vendor_stats->active_vendors ?? 0),
+                'total_payable' => (float) ($vendor_stats->total_payable ?? 0),
+                'total_credit' => (float) ($vendor_stats->total_credit ?? 0),
+            ],
+            'bill_stats' => $bill_stats ?: [],
+            'ap_aging' => $ap_aging,
+            'recent_vendors' => $recent_vendors,
+            'recent_bills' => $recent_bills,
+            'timestamp' => current_time('mysql'),
+        ]);
+    }
     
     public function ajax_list_orgs() {
         if (!current_user_can('manage_options')) {
