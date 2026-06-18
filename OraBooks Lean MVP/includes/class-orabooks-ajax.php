@@ -30,6 +30,7 @@ class OraBooks_Ajax {
             add_action('wp_ajax_orabooks_bank_dashboard', [self::$instance, 'ajax_bank_dashboard']);
             add_action('wp_ajax_orabooks_reports_dashboard', [self::$instance, 'ajax_reports_dashboard']);
             add_action('wp_ajax_orabooks_csv_imports_dashboard', [self::$instance, 'ajax_csv_imports_dashboard']);
+            add_action('wp_ajax_orabooks_team_dashboard', [self::$instance, 'ajax_team_dashboard']);
             add_action('wp_ajax_nopriv_orabooks_frontend_context', [self::$instance, 'ajax_frontend_context']);
             add_action('wp_ajax_nopriv_orabooks_customer_dashboard', [self::$instance, 'ajax_customer_dashboard']);
             add_action('wp_ajax_nopriv_orabooks_vendor_dashboard', [self::$instance, 'ajax_vendor_dashboard']);
@@ -37,6 +38,7 @@ class OraBooks_Ajax {
             add_action('wp_ajax_nopriv_orabooks_bank_dashboard', [self::$instance, 'ajax_bank_dashboard']);
             add_action('wp_ajax_nopriv_orabooks_reports_dashboard', [self::$instance, 'ajax_reports_dashboard']);
             add_action('wp_ajax_nopriv_orabooks_csv_imports_dashboard', [self::$instance, 'ajax_csv_imports_dashboard']);
+            add_action('wp_ajax_nopriv_orabooks_team_dashboard', [self::$instance, 'ajax_team_dashboard']);
             
             // Register settings
             add_action('admin_init', [self::$instance, 'register_settings']);
@@ -594,6 +596,90 @@ class OraBooks_Ajax {
                 'max_rows' => OraBooks_Csv_Imports::MAX_ROWS,
                 'confidence_threshold' => OraBooks_Csv_Imports::CONFIDENCE_THRESHOLD,
             ] : [],
+            'timestamp' => current_time('mysql'),
+        ]);
+    }
+
+    public function ajax_team_dashboard() {
+        $context = $this->get_current_orabooks_context();
+        if (is_wp_error($context)) {
+            orabooks_json_error($context->get_error_message(), 401);
+        }
+
+        $org = $context['organization'];
+        $org_id = $org ? (int) $org['id'] : 0;
+        if (!$org_id) {
+            orabooks_json_error('Organization is not set up yet.', 400);
+        }
+
+        global $wpdb;
+        $table_user_org = OraBooks_Database::table('user_org');
+        $membership = $wpdb->get_var($wpdb->prepare(
+            "SELECT user_id FROM {$table_user_org} WHERE user_id = %d AND org_id = %d",
+            $context['user_id'],
+            $org_id
+        ));
+
+        if (!$membership && !current_user_can('manage_options')) {
+            orabooks_json_error('You are not a member of this organization', 403);
+        }
+
+        $stats = [
+            'total_members' => 0,
+            'pending_invites' => 0,
+            'by_role' => [
+                'owner' => 0,
+                'admin' => 0,
+                'approver' => 0,
+                'staff' => 0,
+                'viewer' => 0,
+            ],
+        ];
+        $members = [];
+        $pending_invites = [];
+
+        if (class_exists('OraBooks_Team')) {
+            $stats = OraBooks_Team::get_team_stats($org_id);
+            $member_rows = OraBooks_Team::list_members($org_id);
+            $members = array_map([OraBooks_Team::class, 'format_member'], $member_rows ?: []);
+
+            if (OraBooks_RBAC::require_permission($context['user_id'], $org_id, 'invite_user')) {
+                $invite_rows = OraBooks_Team::list_pending_invites($org_id);
+                $pending_invites = array_map([OraBooks_Team::class, 'format_invite'], $invite_rows ?: []);
+            }
+        }
+
+        $role_labels = [
+            'owner' => 'Owner',
+            'admin' => 'Admin',
+            'approver' => 'Approver',
+            'staff' => 'Staff',
+            'viewer' => 'Viewer',
+        ];
+
+        $invite_roles = [];
+        $member_roles = [];
+        foreach ($role_labels as $id => $label) {
+            $member_roles[] = ['id' => $id, 'label' => $label];
+            if ($id !== 'owner') {
+                $invite_roles[] = ['id' => $id, 'label' => $label];
+            }
+        }
+
+        $capabilities = [
+            'invite_user' => OraBooks_RBAC::require_permission($context['user_id'], $org_id, 'invite_user'),
+            'change_role' => OraBooks_RBAC::require_permission($context['user_id'], $org_id, 'change_role'),
+            'remove_user' => OraBooks_RBAC::require_permission($context['user_id'], $org_id, 'remove_user'),
+        ];
+
+        orabooks_json_success([
+            'context' => $context,
+            'stats' => $stats,
+            'members' => $members,
+            'pending_invites' => $pending_invites,
+            'invite_roles' => $invite_roles,
+            'member_roles' => $member_roles,
+            'capabilities' => $capabilities,
             'timestamp' => current_time('mysql'),
         ]);
     }

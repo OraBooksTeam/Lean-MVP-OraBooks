@@ -33,6 +33,7 @@ class OraBooks_Shortcodes {
             add_shortcode('orabooks_observability_dashboard', [self::$instance, 'observability_dashboard']);
             add_shortcode('orabooks_export_status', [self::$instance, 'export_status']);
             add_shortcode('orabooks_csv_import', [self::$instance, 'csv_import_page']);
+            add_shortcode('orabooks_team', [self::$instance, 'team_page']);
             add_shortcode('orabooks_export_button', [self::$instance, 'export_button']);
             add_shortcode('orabooks_customers', [self::$instance, 'customers_page']);
             add_shortcode('orabooks_vendors', [self::$instance, 'vendors_page']);
