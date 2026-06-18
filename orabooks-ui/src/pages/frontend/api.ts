@@ -367,6 +367,38 @@ export const api = {
       report_type: reportType,
       ...params,
     }),
+  financialReportExport: (
+    orgId: number,
+    reportType: string,
+    format: 'csv' | 'pdf',
+    periodStart: string,
+    periodEnd: string,
+  ) =>
+    api.post('orabooks_financial_report_export', {
+      org_id: orgId,
+      report_type: reportType,
+      format,
+      period_start: periodStart,
+      period_end: periodEnd,
+    }),
+  operationalReportExport: (
+    orgId: number,
+    reportType: string,
+    format: 'csv' | 'pdf',
+    params: Record<string, string> = {},
+  ) =>
+    api.post('orabooks_operational_export', {
+      org_id: orgId,
+      report_type: reportType,
+      format,
+      ...params,
+    }),
+  financialReportSign: (orgId: number, snapshotId: number, boardApprovalReference = '') =>
+    api.post('orabooks_financial_report_sign', {
+      org_id: orgId,
+      snapshot_id: snapshotId,
+      board_approval_reference: boardApprovalReference,
+    }),
   dashboardStats: () =>
     api.get('orabooks_dashboard_stats'),
   platformSettingsGet: () =>
