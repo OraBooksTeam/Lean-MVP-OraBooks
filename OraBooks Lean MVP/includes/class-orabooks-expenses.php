@@ -580,6 +580,48 @@ class OraBooks_Expenses {
         }
     }
 
+    public static function create_draft_from_voice($org_id, $user_id, array $extracted, $confidence = null, $risk_level = 'low') {
+        global $wpdb;
+
+        $table = OraBooks_Database::table(self::TABLE_EXPENSES);
+        $wpdb->insert($table, [
+            'org_id'            => intval($org_id),
+            'vendor'            => sanitize_text_field($extracted['vendor'] ?? ''),
+            'vendor_tax_id'     => sanitize_text_field($extracted['vendor_tax_id'] ?? ''),
+            'invoice_number'    => sanitize_text_field($extracted['invoice_number'] ?? ''),
+            'transaction_date'  => sanitize_text_field($extracted['transaction_date'] ?? current_time('Y-m-d')),
+            'due_date'          => !empty($extracted['due_date']) ? sanitize_text_field($extracted['due_date']) : null,
+            'subtotal'          => isset($extracted['subtotal']) ? (float) $extracted['subtotal'] : null,
+            'tax_amount'        => isset($extracted['tax_amount']) ? (float) $extracted['tax_amount'] : null,
+            'tax_rate'          => isset($extracted['tax_rate']) ? (float) $extracted['tax_rate'] : null,
+            'total_amount'      => (float) ($extracted['amount'] ?? $extracted['total_amount'] ?? 0),
+            'currency'          => sanitize_text_field($extracted['currency'] ?? 'USD'),
+            'payment_method'    => sanitize_text_field($extracted['payment_method'] ?? 'Voice'),
+            'category'          => sanitize_text_field($extracted['category'] ?? 'General'),
+            'description'       => sanitize_textarea_field($extracted['description'] ?? 'Created from voice input'),
+            'ocr_confidence'    => $confidence !== null ? (float) $confidence : null,
+            'ocr_risk_level'    => sanitize_text_field($risk_level),
+            'ocr_data'          => wp_json_encode(['source' => 'voice', 'fields' => $extracted]),
+            'ocr_provider'      => 'voice-nlu',
+            'ocr_model_version' => 'mvp-stub-1.0',
+            'workflow_status'   => 'draft',
+            'payment_status'    => 'unpaid',
+            'lock_status'       => 'unlocked',
+            'created_by'        => intval($user_id),
+        ]);
+
+        $expense_id = (int) $wpdb->insert_id;
+        if (!$expense_id) {
+            return new WP_Error('db_error', 'Failed to create expense from voice input');
+        }
+
+        if (!empty($extracted['line_items']) && is_array($extracted['line_items'])) {
+            self::replace_line_items($expense_id, $extracted['line_items']);
+        }
+
+        return ['id' => $expense_id];
+    }
+
     public static function confirm_submit($expense_id, $org_id, $user_id, $idempotency_key, array $edited_fields = []) {
         global $wpdb;
 
