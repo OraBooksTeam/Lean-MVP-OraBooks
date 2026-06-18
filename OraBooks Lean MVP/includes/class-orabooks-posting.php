@@ -31,6 +31,9 @@ class OraBooks_Posting {
             add_action('wp_ajax_nopriv_orabooks_get_journals', [self::$instance, 'ajax_get_journals']);
             add_action('wp_ajax_orabooks_get_journal', [self::$instance, 'ajax_get_journal']);
             add_action('wp_ajax_nopriv_orabooks_get_journal', [self::$instance, 'ajax_get_journal']);
+            add_action('wp_ajax_orabooks_reverse_journal', [self::$instance, 'ajax_reverse_journal']);
+            add_action('wp_ajax_nopriv_orabooks_reverse_journal', [self::$instance, 'ajax_reverse_journal']);
+            add_action('orabooks_daily_ledger_integrity_check', [__CLASS__, 'cron_validate_all_orgs']);
         }
         return self::$instance;
     }
