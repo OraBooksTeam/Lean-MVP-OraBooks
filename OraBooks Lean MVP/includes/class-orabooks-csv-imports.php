@@ -142,7 +142,7 @@ class OraBooks_Csv_Imports {
 
         $perm = OraBooks_RBAC::require_permission($user_id, $org_id, 'submit_transaction');
         if (!$perm) {
-            return $perm;
+            return new WP_Error('permission_denied', 'Permission denied');
         }
 
         $rate_key = "csv_upload_{$user_id}";
@@ -487,7 +487,7 @@ class OraBooks_Csv_Imports {
 
         $perm = OraBooks_RBAC::require_permission($user_id, $org_id, 'submit_transaction');
         if (!$perm) {
-            return $perm;
+            return new WP_Error('permission_denied', 'Permission denied');
         }
 
         $import = self::get_import($import_id, $org_id);
