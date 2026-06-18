@@ -400,13 +400,25 @@ class OraBooks_Auth {
     
     private static function send_verification_email($email, $token) {
         $verify_url = self::verification_url($token);
-        $subject = sprintf('[%s] Verify your email address', self::site_name());
-        $message = "Welcome to OraBooks.\n\n";
-        $message .= "Please verify your email address to activate your account:\n";
-        $message .= $verify_url . "\n\n";
-        $message .= "This link expires in 24 hours. If you did not create an OraBooks account, you can ignore this email.";
-        
+        $subject = sprintf(__('[%s] Verify your email address', 'orabooks'), self::site_name());
+        $message = sprintf(
+            __("Welcome to %1\$s.\n\nPlease verify your email address to activate your OraBooks account:\n%2\$s\n\nThis link expires in 24 hours. If you did not create an account, you can ignore this email.", 'orabooks'),
+            self::site_name(),
+            $verify_url
+        );
+
         return self::send_email($email, $subject, $message, 'verification_email_send_failed');
+    }
+
+    /**
+     * Send WordPress-native registration notifications plus OraBooks verification.
+     */
+    private static function send_registration_emails($wp_user_id, $email, $verification_token) {
+        if ($wp_user_id && function_exists('wp_send_new_user_notifications')) {
+            wp_send_new_user_notifications($wp_user_id, 'user');
+        }
+
+        return self::send_verification_email($email, $verification_token);
     }
     
     private static function send_password_reset_email($email, $token) {

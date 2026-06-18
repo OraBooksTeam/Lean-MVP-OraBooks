@@ -622,8 +622,10 @@ export const api = {
     api.post('orabooks_admin_review_reactivation', { review_id: reviewId, decision, notes }),
 
   // Notifications
-  notificationsList: (params = {}) =>
+  notificationsList: (params: Record<string, string | number | boolean> = {}) =>
     api.get('orabooks_notifications_list', params),
+  notificationsUnreadCount: () =>
+    api.get('orabooks_notifications_unread_count'),
   notificationsMarkRead: (notificationId: number) =>
     api.post('orabooks_notifications_mark_read', { notification_id: notificationId }),
   notificationsMarkAllRead: () =>
@@ -634,8 +636,10 @@ export const api = {
     api.post('orabooks_notification_preferences_save', data),
   notificationPolicyGet: (orgId = 0) =>
     api.get('orabooks_notification_admin_policy_get', { org_id: orgId }),
-  notificationPolicySave: (data: Record<string, any>) =>
-    api.post('orabooks_notification_admin_policy_save', data),
+  notificationPolicySave: (orgId: number, data: Record<string, any>) =>
+    api.post('orabooks_notification_admin_policy_save', { org_id: orgId, ...data }),
+  notificationProviderHealth: (orgId: number) =>
+    api.get('orabooks_notification_admin_provider_health', { org_id: orgId }),
 
   // Exports
   exportRequest: (exportType: string, format: 'csv' | 'pdf', parameters?: Record<string, any>) =>
