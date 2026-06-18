@@ -51,6 +51,7 @@ require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-attachments.php';
 require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-ai-review.php';
 require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-expenses.php';
 require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-voice.php';
+require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-security.php';
 require_once ORABOOKS_PLUGIN_DIR . 'includes/helpers.php';
 
 // Initialize plugin
@@ -93,6 +94,7 @@ function orabooks_init() {
     OraBooks_Ai_Review::init();
     OraBooks_Expenses::init();
     OraBooks_Voice::init();
+    OraBooks_Security::init();
     OraBooks_Exports::register_report_provider('coa', function($params) {
         // Reuse OraBooks_COA if available
         if (class_exists('OraBooks_COA') && method_exists('OraBooks_COA', 'get_accounts')) {
@@ -340,6 +342,11 @@ function orabooks_deactivate() {
     wp_clear_scheduled_hook('orabooks_observability_evaluate');
     wp_clear_scheduled_hook('orabooks_observability_purge');
     wp_clear_scheduled_hook('orabooks_csv_imports_purge');
+    wp_clear_scheduled_hook('orabooks_security_dependency_scan');
+    wp_clear_scheduled_hook('orabooks_security_header_check');
+    wp_clear_scheduled_hook('orabooks_security_audit_integrity');
+    wp_clear_scheduled_hook('orabooks_security_secret_rotation_reminder');
+    wp_clear_scheduled_hook('orabooks_security_purge');
 }
 
 // Add custom cron schedule for every_minute
@@ -352,6 +359,10 @@ function orabooks_cron_schedules($schedules) {
     $schedules['every_5_minutes'] = [
         'interval' => 300,
         'display'  => __('Every 5 Minutes', 'orabooks'),
+    ];
+    $schedules['every_6_hours'] = [
+        'interval' => 6 * HOUR_IN_SECONDS,
+        'display'  => __('Every 6 Hours', 'orabooks'),
     ];
     $schedules['monthly'] = [
         'interval' => 30 * DAY_IN_SECONDS,
@@ -556,6 +567,7 @@ function orabooks_get_admin_nav_items() {
             ['slug' => 'orabooks-partners', 'label' => __('Partners', 'orabooks'), 'route' => '/admin/partners'],
             ['slug' => 'orabooks-job-queue', 'label' => __('Job Queue', 'orabooks'), 'route' => '/admin/job-queue'],
             ['slug' => 'orabooks-observability', 'label' => __('Observability', 'orabooks'), 'route' => '/admin/observability'],
+            ['slug' => 'orabooks-security', 'label' => __('Security', 'orabooks'), 'route' => '/admin/security'],
             ['slug' => 'orabooks-coa', 'label' => __('Chart of Accounts', 'orabooks'), 'route' => '/admin/coa'],
             ['slug' => 'orabooks-customers', 'label' => __('Customers', 'orabooks'), 'route' => '/admin/customers'],
             ['slug' => 'orabooks-settings', 'label' => __('Settings', 'orabooks'), 'route' => '/admin/settings'],

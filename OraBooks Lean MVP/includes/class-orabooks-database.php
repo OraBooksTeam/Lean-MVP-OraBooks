@@ -923,6 +923,35 @@ class OraBooks_Database {
             wp_schedule_event(time(), 'daily', 'orabooks_voice_purge');
         }
 
+        // ============================================================
+        // SL-099: OWASP Security Controls
+        // ============================================================
+        $security_tables = OraBooks_Security::get_create_table_sql();
+        foreach ($security_tables as $sql) {
+            dbDelta($sql);
+        }
+        OraBooks_Security::seed_owasp_controls();
+
+        if (!wp_next_scheduled('orabooks_security_dependency_scan')) {
+            wp_schedule_event(time(), 'weekly', 'orabooks_security_dependency_scan');
+        }
+        if (!wp_next_scheduled('orabooks_security_header_check')) {
+            wp_schedule_event(time(), 'daily', 'orabooks_security_header_check');
+        }
+        if (!wp_next_scheduled('orabooks_security_audit_integrity')) {
+            wp_schedule_event(time(), 'every_6_hours', 'orabooks_security_audit_integrity');
+        }
+        if (!wp_next_scheduled('orabooks_security_secret_rotation_reminder')) {
+            wp_schedule_event(time(), 'monthly', 'orabooks_security_secret_rotation_reminder');
+        }
+        if (!wp_next_scheduled('orabooks_security_purge')) {
+            wp_schedule_event(time(), 'daily', 'orabooks_security_purge');
+        }
+
+        if (!get_option('orabooks_installed_at')) {
+            update_option('orabooks_installed_at', current_time('mysql', true));
+        }
+
         update_option('orabooks_db_version', ORABOOKS_DB_VERSION);
     }
     
