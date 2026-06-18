@@ -859,35 +859,50 @@ class OraBooks_Security {
     private static function verify_single_control($owasp_id) {
         switch ($owasp_id) {
             case 'A01':
-                $pass = class_exists('OraBooks_RBAC') && method_exists('OraBooks_RBAC', 'require_permission');
-                return ['pass' => $pass, 'note' => $pass ? 'RBAC active' : 'RBAC class missing'];
+                $pass = class_exists('OraBooks_RBAC')
+                    && method_exists('OraBooks_RBAC', 'require_permission')
+                    && class_exists('OraBooks_Organization');
+                return ['pass' => $pass, 'note' => $pass ? 'RBAC + org_id scoping active' : 'RBAC or org isolation missing'];
             case 'A02':
-                $pass = class_exists('OraBooks_Secrets') && function_exists('orabooks_validate_password');
-                return ['pass' => $pass, 'note' => $pass ? 'Secrets and password policy active' : 'Crypto controls missing'];
+                $pass = class_exists('OraBooks_Secrets')
+                    && function_exists('orabooks_validate_password')
+                    && method_exists('OraBooks_Secrets', 'hash_password');
+                return ['pass' => $pass, 'note' => $pass ? 'Secrets, bcrypt, and password policy active' : 'Crypto controls missing'];
             case 'A03':
-                $pass = function_exists('orabooks_check_rate_limit');
-                return ['pass' => $pass, 'note' => $pass ? 'Input validation and rate limits active' : 'Validation helpers missing'];
+                $pass = function_exists('orabooks_check_rate_limit')
+                    && method_exists(__CLASS__, 'validate_input');
+                return ['pass' => $pass, 'note' => $pass ? 'Input schemas and rate limits active' : 'Validation helpers missing'];
             case 'A04':
-                $pass = class_exists('OraBooks_Posting');
-                return ['pass' => $pass, 'note' => $pass ? 'Central posting engine present' : 'Posting engine missing'];
+                $pass = class_exists('OraBooks_Posting')
+                    && method_exists('OraBooks_Posting', 'validate_ledger_integrity');
+                return ['pass' => $pass, 'note' => $pass ? 'Central posting engine + hash chain present' : 'Posting engine missing'];
             case 'A05':
                 $headers = self::get_headers_status();
                 $pass = !in_array(false, $headers['configured'], true);
                 return ['pass' => $pass, 'note' => $pass ? 'Security headers configured' : 'Header misconfiguration'];
             case 'A06':
                 $pass = (bool) wp_next_scheduled('orabooks_security_dependency_scan');
-                return ['pass' => $pass, 'note' => $pass ? 'Dependency scan cron scheduled' : 'Dependency scan not scheduled'];
+                return ['pass' => $pass, 'note' => $pass ? 'Weekly dependency scan cron scheduled' : 'Dependency scan not scheduled'];
             case 'A07':
-                $pass = class_exists('OraBooks_Auth');
-                return ['pass' => $pass, 'note' => $pass ? 'Authentication module active' : 'Auth module missing'];
+                $pass = class_exists('OraBooks_Auth')
+                    && method_exists('OraBooks_Secrets', 'verify_totp')
+                    && isset(self::get_rate_limit_config()['login_failure']);
+                return ['pass' => $pass, 'note' => $pass ? 'Auth, 2FA, and login rate limits active' : 'Auth module incomplete'];
             case 'A08':
-                $pass = class_exists('OraBooks_Audit') && class_exists('OraBooks_Posting');
-                return ['pass' => $pass, 'note' => $pass ? 'Audit and ledger integrity modules active' : 'Integrity modules missing'];
+                $pass = class_exists('OraBooks_Audit')
+                    && class_exists('OraBooks_Posting')
+                    && (bool) wp_next_scheduled('orabooks_security_audit_integrity');
+                return ['pass' => $pass, 'note' => $pass ? 'Audit log + ledger integrity cron active' : 'Integrity modules missing'];
             case 'A09':
-                $pass = class_exists('OraBooks_Audit') && class_exists('OraBooks_Notifications');
-                return ['pass' => $pass, 'note' => $pass ? 'Audit logging and alerting active' : 'Logging/alerting missing'];
+                $pass = class_exists('OraBooks_Audit')
+                    && class_exists('OraBooks_Notifications')
+                    && method_exists(__CLASS__, 'record_incident');
+                return ['pass' => $pass, 'note' => $pass ? 'Audit logging, incidents, and alerting active' : 'Logging/alerting missing'];
             case 'A10':
-                $pass = method_exists(__CLASS__, 'validate_outbound_url');
+                $allowlist = get_option('orabooks_webhook_url_allowlist', self::$default_webhook_allowlist);
+                $pass = method_exists(__CLASS__, 'validate_outbound_url')
+                    && is_array($allowlist)
+                    && !empty($allowlist);
                 return ['pass' => $pass, 'note' => $pass ? 'SSRF allowlist validation active' : 'SSRF validation missing'];
             default:
                 return ['pass' => false, 'note' => 'Unknown control'];
