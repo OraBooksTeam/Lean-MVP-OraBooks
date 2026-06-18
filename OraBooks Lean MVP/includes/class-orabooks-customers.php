@@ -1453,8 +1453,12 @@ class OraBooks_Customers {
      */
     public function ajax_record_payment() {
         global $wpdb;
-        $user_id = get_current_user_id();
+        $user_id = orabooks_get_current_user_id();
         $org_id = intval($_POST['org_id'] ?? 0);
+
+        if (!$user_id) {
+            orabooks_json_error('Not authenticated', 401);
+        }
 
         // Admin global mode: resolve org_id from the invoice
         if (!$org_id && !empty($_POST['invoice_id'])) {
@@ -1465,13 +1469,11 @@ class OraBooks_Customers {
             ));
         }
 
-        if (!current_user_can('manage_options') && !OraBooks_RBAC::require_permission($user_id, $org_id, 'create_invoices')) {
-            orabooks_json_error('Permission denied', 403);
-        }
-
         if (!$org_id) {
             orabooks_json_error('Organization ID required', 400);
         }
+
+        $this->require_customer_access($user_id, $org_id, 'create_invoice');
 
         $invoice_id = intval($_POST['invoice_id'] ?? 0);
         if (!$invoice_id) {
@@ -1534,3 +1536,4 @@ class OraBooks_Customers {
         orabooks_json_success($stats);
     }
 }
+               
