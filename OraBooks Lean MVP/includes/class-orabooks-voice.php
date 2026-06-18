@@ -132,6 +132,7 @@ class OraBooks_Voice {
     public static function get_voice_input($voice_id, $org_id) {
         global $wpdb;
 
+        $table = OraBooks_Database::table(self::TABLE_VOICE);
         return $wpdb->get_row($wpdb->prepare(
             "SELECT * FROM {$table} WHERE id = %d AND org_id = %d",
             intval($voice_id),
