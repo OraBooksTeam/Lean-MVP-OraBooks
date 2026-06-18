@@ -490,7 +490,7 @@ class OraBooks_Voice {
                         'confidence'        => $confidence,
                         'risk_level'        => $risk,
                         'explanation'       => 'Voice NLU confidence below threshold or elevated risk',
-                        'model_version'     => self::NLU_MODEL_VERSION,
+                        'model_version'     => OraBooks_Ai_Providers::model_version('speech'),
                         'escalation_reason' => 'voice_low_confidence',
                     ],
                     (float) ($extracted['amount'] ?? $extracted['total_amount'] ?? 0)

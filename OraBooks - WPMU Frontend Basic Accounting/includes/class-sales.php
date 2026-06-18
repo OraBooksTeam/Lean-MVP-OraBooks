@@ -229,7 +229,7 @@ class Frontend_Accounting_Sales
             wp_send_json_error(['message' => 'Sale not found.']);
         }
         if (class_exists('OBN_Fiscal_Period_Posting_Guard')) {
-            $modification_allowed = OBN_Fiscal_Period_Posting_Guard::can_modify(get_current_blog_id(), $sale->sales_date);
+            $modification_allowed = OBN_Fiscal_Period_Posting_Guard::can_modify(obn_current_org_id(), $sale->sales_date);
             if (is_wp_error($modification_allowed)) {
                 wp_send_json_error(['message' => $modification_allowed->get_error_message()], 409);
             }
@@ -758,7 +758,7 @@ class Frontend_Accounting_Sales
         $other_charges = floatval($sale->other_charges_input);
 
         if (class_exists('OBN_Fiscal_Period_Posting_Guard')) {
-            $posting_allowed = OBN_Fiscal_Period_Posting_Guard::can_post(get_current_blog_id(), $sales_date);
+            $posting_allowed = OBN_Fiscal_Period_Posting_Guard::can_post(obn_current_org_id(), $sales_date);
             if (is_wp_error($posting_allowed)) {
                 wp_send_json_error($posting_allowed->get_error_message(), 409);
             }
@@ -791,7 +791,7 @@ class Frontend_Accounting_Sales
 
         // 5. Insert Main Journal Entry
         $entry_data = [
-            'organization_id' => get_current_blog_id(),
+            'organization_id' => obn_current_org_id(),
             'entry_number' => $entry_number,
             'entry_date' => $sales_date,
             'posting_date' => $sales_date,
@@ -1047,7 +1047,7 @@ class Frontend_Accounting_Sales
             if (!$existing_sale) {
                 wp_send_json_error('Sales record not found');
             }
-            $modification_allowed = OBN_Fiscal_Period_Posting_Guard::can_modify(get_current_blog_id(), $existing_sale->sales_date);
+            $modification_allowed = OBN_Fiscal_Period_Posting_Guard::can_modify(obn_current_org_id(), $existing_sale->sales_date);
             if (is_wp_error($modification_allowed)) {
                 wp_send_json_error($modification_allowed->get_error_message(), 409);
             }
@@ -1509,7 +1509,7 @@ class Frontend_Accounting_Sales
             wp_send_json_error(['message' => 'Sales record not found']);
         }
         if (class_exists('OBN_Fiscal_Period_Posting_Guard')) {
-            $modification_allowed = OBN_Fiscal_Period_Posting_Guard::can_modify(get_current_blog_id(), $sale->sales_date);
+            $modification_allowed = OBN_Fiscal_Period_Posting_Guard::can_modify(obn_current_org_id(), $sale->sales_date);
             if (is_wp_error($modification_allowed)) {
                 wp_send_json_error(['message' => $modification_allowed->get_error_message()], 409);
             }

@@ -388,7 +388,7 @@ class OraBooks_Classification {
             OraBooks_Ai_Review::enqueue($org_id, $record_type, $record_id, null, [
                 'confidence'        => $suggestion['confidence'],
                 'risk_level'        => $risk_score['level'],
-                'model_version'     => self::MODEL_VERSION,
+                'model_version'     => $suggestion['model_version'] ?? OraBooks_Ai_Providers::model_version('classification'),
                 'escalation_reason' => 'low_classification_confidence',
                 'explanation'       => $suggestion['reason'],
             ], $amount);
@@ -401,7 +401,7 @@ class OraBooks_Classification {
             'account_confidence'           => $suggestion['confidence'],
             'tax_hints'                    => wp_json_encode($tax_hints),
             'classification_risk_score'    => wp_json_encode($risk_score),
-            'classification_model_version' => self::MODEL_VERSION,
+            'classification_model_version' => $suggestion['model_version'] ?? OraBooks_Ai_Providers::model_version('classification'),
             'tax_engine_version'           => self::TAX_ENGINE_VERSION,
             'classification_reason'        => $suggestion['reason'],
             'last_classified_at'           => current_time('mysql', true),
@@ -753,6 +753,7 @@ class OraBooks_Classification {
             'source'           => 'ai_stub',
             'reason'           => $reason,
             'tax_jurisdiction' => 'US',
+            'model_version'    => OraBooks_Ai_Providers::model_version('classification'),
         ];
     }
 
