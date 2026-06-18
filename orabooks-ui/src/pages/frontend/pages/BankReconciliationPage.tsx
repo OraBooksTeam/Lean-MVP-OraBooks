@@ -397,10 +397,10 @@ export default function BankReconciliationPage() {
             </thead>
             <tbody className="divide-y divide-border">
               {loading ? (
-                <tr><td colSpan={5} className="px-5 py-8 text-center text-slate-500">Loading reconciliation history...</td></tr>
+                <tr><td colSpan={6} className="px-5 py-8 text-center text-slate-500">Loading reconciliation history...</td></tr>
               ) : reconciliations.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-5 py-10 text-center text-sm text-slate-500">No reconciliations finalized yet.</td>
+                  <td colSpan={6} className="px-5 py-10 text-center text-sm text-slate-500">No reconciliations finalized yet.</td>
                 </tr>
               ) : reconciliations.map((entry: any) => (
                 <tr key={entry.id} className="hover:bg-slate-50/70">
@@ -410,6 +410,18 @@ export default function BankReconciliationPage() {
                   <td className="px-5 py-3 text-right text-slate-600">{money(entry.system_balance)}</td>
                   <td className={`px-5 py-3 text-right font-bold ${Math.abs(Number(entry.difference)) < 0.01 ? 'text-success' : 'text-amber-700'}`}>
                     {money(entry.difference)}
+                  </td>
+                  <td className="px-5 py-3">
+                    {entry.bank_account_id ? (
+                      <Link to={`/attachments?resource_type=bank_account&resource_id=${entry.bank_account_id}`}>
+                        <Button size="sm" variant="secondary">
+                          <Paperclip className="h-3.5 w-3.5" />
+                          Statement
+                        </Button>
+                      </Link>
+                    ) : (
+                      <span className="text-xs text-slate-400">—</span>
+                    )}
                   </td>
                 </tr>
               ))}
