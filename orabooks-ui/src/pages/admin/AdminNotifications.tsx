@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
 import Button from '@/components/Button';
 import AdminPageShell from '@/components/AdminPageShell';
+import NotificationPreferencesForm from '@/components/NotificationPreferencesForm';
 import { api } from '../api';
-import { Bell, Download, Mail, RefreshCw } from 'lucide-react';
+import { Bell, Mail, RefreshCw } from 'lucide-react';
 
 export default function AdminNotifications() {
+  const [tab, setTab] = useState<'feed' | 'prefs'>('feed');
   const [loading, setLoading] = useState(true);
   const [notifications, setNotifications] = useState<any[]>([]);
   const [unread, setUnread] = useState(0);
@@ -35,14 +37,41 @@ export default function AdminNotifications() {
       description="Platform and account activity delivered to your inbox and in-app feed."
       actions={
         <div className="flex gap-2">
-          <Button onClick={markAllRead} variant="secondary" size="sm">Mark all read</Button>
-          <Button onClick={load} variant="secondary" size="sm">
+          {tab === 'feed' && (
+            <Button onClick={markAllRead} variant="secondary" size="sm">Mark all read</Button>
+          )}
+          <Button onClick={tab === 'feed' ? load : undefined} variant="secondary" size="sm" onClick={tab === 'feed' ? load : undefined}>
             <RefreshCw className="h-4 w-4" />
             Refresh
           </Button>
         </div>
       }
     >
+      <div className="flex gap-2">
+        <button
+          type="button"
+          onClick={() => setTab('feed')}
+          className={`rounded-lg px-3 py-2 text-sm font-semibold transition ${
+            tab === 'feed' ? 'bg-primary text-white' : 'bg-white text-ink-secondary hover:bg-primary/5'
+          }`}
+        >
+          Activity feed
+        </button>
+        <button
+          type="button"
+          onClick={() => setTab('prefs')}
+          className={`rounded-lg px-3 py-2 text-sm font-semibold transition ${
+            tab === 'prefs' ? 'bg-primary text-white' : 'bg-white text-ink-secondary hover:bg-primary/5'
+          }`}
+        >
+          Preferences
+        </button>
+      </div>
+
+      {tab === 'prefs' ? (
+        <NotificationPreferencesForm compact />
+      ) : (
+        <>
       <div className="grid gap-4 sm:grid-cols-3">
         <div className="stat-card">
           <p className="text-xs font-bold uppercase tracking-wide text-slate-500">Unread</p>
@@ -74,6 +103,8 @@ export default function AdminNotifications() {
           ))
         )}
       </div>
+        </>
+      )}
     </AdminPageShell>
   );
 }
