@@ -758,6 +758,77 @@ class OraBooks_Ajax {
             'timestamp' => current_time('mysql'),
         ]);
     }
+
+    public function ajax_approval_dashboard() {
+        $context = $this->get_current_orabooks_context();
+        if (is_wp_error($context)) {
+            orabooks_json_error($context->get_error_message(), 401);
+        }
+
+        $org = $context['organization'];
+        $org_id = $org ? (int) $org['id'] : 0;
+        if (!$org_id) {
+            orabooks_json_error('Organization is not set up yet.', 400);
+        }
+
+        if (($org['organization_type'] ?? '') === 'partner') {
+            orabooks_json_error('Partner accounts cannot perform accounting operations.', 403);
+        }
+
+        if (!OraBooks_RBAC::require_permission($context['user_id'], $org_id, 'view_reports')) {
+            orabooks_json_error('Permission denied', 403);
+        }
+
+        $stats = [
+            'pending_review' => 0,
+            'approved_ready' => 0,
+            'draft_count'    => 0,
+            'posted_mtd'     => 0,
+        ];
+        $pending_review = [];
+        $approved_ready = [];
+        $draft_journals = [];
+        $recent_history = [];
+
+        if (class_exists('OraBooks_Posting')) {
+            $stats = OraBooks_Posting::get_approval_stats($org_id);
+            $pending_rows = OraBooks_Posting::get_journals($org_id, ['status' => 'review_pending', 'limit' => 25]);
+            $approved_rows = OraBooks_Posting::get_journals($org_id, ['status' => 'approved', 'limit' => 25]);
+            $draft_rows = OraBooks_Posting::get_journals($org_id, ['status' => 'draft', 'limit' => 15]);
+
+            $pending_review = array_map([OraBooks_Posting::class, 'format_journal'], $pending_rows ?: []);
+            $approved_ready = array_map([OraBooks_Posting::class, 'format_journal'], $approved_rows ?: []);
+            $draft_journals = array_map([OraBooks_Posting::class, 'format_journal'], $draft_rows ?: []);
+
+            global $wpdb;
+            $history_table = OraBooks_Database::table('journal_approval_history');
+            $journals_table = OraBooks_Database::table('journals');
+            $history_rows = $wpdb->get_results($wpdb->prepare(
+                "SELECT h.* FROM {$history_table} h
+                 JOIN {$journals_table} j ON j.id = h.journal_id
+                 WHERE j.org_id = %d
+                 ORDER BY h.created_at DESC
+                 LIMIT 15",
+                $org_id
+            ));
+            $recent_history = array_map([OraBooks_Posting::class, 'format_approval_history_row'], $history_rows ?: []);
+        }
+
+        orabooks_json_success([
+            'context' => $context,
+            'stats' => $stats,
+            'pending_review' => $pending_review,
+            'approved_ready' => $approved_ready,
+            'draft_journals' => $draft_journals,
+            'recent_history' => $recent_history,
+            'capabilities' => [
+                'submit'  => OraBooks_RBAC::require_permission($context['user_id'], $org_id, 'submit_transaction'),
+                'approve' => OraBooks_RBAC::require_permission($context['user_id'], $org_id, 'approve_journal'),
+                'post'    => OraBooks_RBAC::require_permission($context['user_id'], $org_id, 'submit_transaction'),
+            ],
+            'timestamp' => current_time('mysql'),
+        ]);
+    }
     
     public function ajax_list_orgs() {
         if (!current_user_can('manage_options')) {
