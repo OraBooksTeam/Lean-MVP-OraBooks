@@ -5,7 +5,7 @@
   "main": "dist/assets/admin.js",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "node scripts/clean-react-output.mjs && vite build",
     "preview": "vite preview"
   },
   "keywords": [],

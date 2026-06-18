@@ -27,6 +27,12 @@ export default defineConfig({
         },
         chunkFileNames: 'chunks/[name]-[hash].js',
         assetFileNames: 'assets/[name]-[hash].[ext]',
+        // Keep admin entry self-contained — no runtime chunk fetches in wp-admin.
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            return 'vendor';
+          }
+        },
       },
     },
   },
