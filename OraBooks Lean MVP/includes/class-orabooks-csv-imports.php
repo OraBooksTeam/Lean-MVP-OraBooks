@@ -41,9 +41,13 @@ class OraBooks_Csv_Imports {
             add_action('orabooks_csv_imports_purge', [self::$instance, 'cron_purge_old_imports']);
 
             add_action('wp_ajax_orabooks_csv_upload', [self::$instance, 'ajax_upload']);
+            add_action('wp_ajax_nopriv_orabooks_csv_upload', [self::$instance, 'ajax_upload']);
             add_action('wp_ajax_orabooks_csv_import_get', [self::$instance, 'ajax_get_import']);
+            add_action('wp_ajax_nopriv_orabooks_csv_import_get', [self::$instance, 'ajax_get_import']);
             add_action('wp_ajax_orabooks_csv_import_confirm', [self::$instance, 'ajax_confirm']);
+            add_action('wp_ajax_nopriv_orabooks_csv_import_confirm', [self::$instance, 'ajax_confirm']);
             add_action('wp_ajax_orabooks_csv_imports_list', [self::$instance, 'ajax_list_imports']);
+            add_action('wp_ajax_nopriv_orabooks_csv_imports_list', [self::$instance, 'ajax_list_imports']);
         }
 
         return self::$instance;
@@ -823,6 +827,44 @@ class OraBooks_Csv_Imports {
                 'pending'   => (int) ($counts['pending']->cnt ?? 0),
             ],
         ];
+    }
+
+    public static function get_import_stats($org_id, $user_id = 0) {
+        global $wpdb;
+
+        $table = OraBooks_Database::table(self::TABLE_IMPORTS);
+        $where = 'org_id = %d';
+        $params = [intval($org_id)];
+
+        if ($user_id > 0) {
+            $where .= ' AND user_id = %d';
+            $params[] = intval($user_id);
+        }
+
+        $rows = $wpdb->get_results($wpdb->prepare(
+            "SELECT status, COUNT(*) AS total FROM {$table} WHERE {$where} GROUP BY status",
+            $params
+        ));
+
+        $stats = [
+            'total' => 0,
+            'uploaded' => 0,
+            'parsing' => 0,
+            'mapping' => 0,
+            'pending_confirm' => 0,
+            'confirmed' => 0,
+            'failed' => 0,
+        ];
+
+        foreach ($rows ?: [] as $row) {
+            $count = (int) $row->total;
+            $stats['total'] += $count;
+            if (isset($stats[$row->status])) {
+                $stats[$row->status] = $count;
+            }
+        }
+
+        return $stats;
     }
 
     public static function list_imports($org_id, $user_id = 0, $limit = 20) {
