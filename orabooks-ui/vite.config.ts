@@ -12,6 +12,7 @@ export default defineConfig({
   build: {
     outDir: path.resolve(__dirname, '../OraBooks Lean MVP/assets/react'),
     emptyOutDir: true,
+    cssCodeSplit: false,
     rollupOptions: {
       input: {
         admin: path.resolve(__dirname, 'src/pages/admin/main.tsx'),
