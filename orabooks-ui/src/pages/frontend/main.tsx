@@ -43,39 +43,53 @@ class FrontendErrorBoundary extends React.Component<
   }
 }
 
-const root = document.getElementById('orabooks-app-root');
-const initialRoute = root?.dataset.initialRoute;
-if (initialRoute && !window.location.hash) {
-  window.location.hash = initialRoute;
-}
+function bootFrontend() {
+  const root = document.getElementById('orabooks-app-root');
+  if (!root) {
+    return;
+  }
 
-const router = createHashRouter([
-  {
-    path: '/',
-    element: <FrontendRoutes />,
-    children: [
-      { path: '/', element: <div /> },
-      { path: '/login', element: <div /> },
-      { path: '/register', element: <div /> },
-      { path: '/tier-selection', element: <div /> },
-      { path: '/dashboard', element: <div /> },
-      { path: '/customers', element: <div /> },
-      { path: '/invoices', element: <div /> },
-      { path: '/chart-of-accounts', element: <div /> },
-      { path: '/journals', element: <div /> },
-      { path: '/partner-onboarding', element: <div /> },
-      { path: '/notifications', element: <div /> },
-      { path: '/my-exports', element: <div /> },
-      { path: '/profile', element: <div /> },
-    ],
-  },
-]);
+  const initialRoute = root.dataset.initialRoute;
+  if (initialRoute && (!window.location.hash || window.location.hash === '#')) {
+    window.location.hash = initialRoute;
+  }
 
-if (root) {
+  const router = createHashRouter([
+    {
+      path: '/',
+      element: <FrontendRoutes />,
+      children: [
+        { path: '/', element: <div /> },
+        { path: '/login', element: <div /> },
+        { path: '/register', element: <div /> },
+        { path: '/tier-selection', element: <div /> },
+        { path: '/dashboard', element: <div /> },
+        { path: '/customers', element: <div /> },
+        { path: '/vendors', element: <div /> },
+        { path: '/inventory', element: <div /> },
+        { path: '/bank-reconciliation', element: <div /> },
+        { path: '/invoices', element: <div /> },
+        { path: '/chart-of-accounts', element: <div /> },
+        { path: '/journals', element: <div /> },
+        { path: '/partner-onboarding', element: <div /> },
+        { path: '/notifications', element: <div /> },
+        { path: '/my-exports', element: <div /> },
+        { path: '/profile', element: <div /> },
+      ],
+    },
+  ]);
+
   window.orabooksReactMounted = true;
+  root.classList.add('is-mounted');
   ReactDOM.createRoot(root).render(
     <FrontendErrorBoundary>
       <RouterProvider router={router} />
     </FrontendErrorBoundary>
   );
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', bootFrontend);
+} else {
+  bootFrontend();
 }

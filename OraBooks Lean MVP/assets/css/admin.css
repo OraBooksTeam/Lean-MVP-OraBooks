@@ -664,6 +664,17 @@
     display: none;
 }
 
+.orabooks-app-root-loading {
+    color: #42627f;
+    font-size: 14px;
+    padding: 24px 0;
+    text-align: center;
+}
+
+.orabooks-app-root.is-mounted .orabooks-app-root-loading {
+    display: none;
+}
+
 /* React shortcodes inside wp-admin */
 .wp-admin .orabooks-react-page {
     margin: 12px 0 0;

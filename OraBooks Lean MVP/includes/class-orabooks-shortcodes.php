@@ -38,6 +38,7 @@ class OraBooks_Shortcodes {
             add_shortcode('orabooks_vendors', [self::$instance, 'vendors_page']);
             add_shortcode('orabooks_inventory', [self::$instance, 'inventory_page']);
             add_shortcode('orabooks_bank_reconciliation', [self::$instance, 'bank_reconciliation_page']);
+            add_shortcode('orabooks_reports', [self::$instance, 'reports_page']);
             add_shortcode('orabooks_invoices', [self::$instance, 'invoices_page']);
             add_shortcode('orabooks_chart_of_accounts', [self::$instance, 'chart_of_accounts_page']);
             add_shortcode('orabooks_journals', [self::$instance, 'journals_page']);
@@ -56,8 +57,8 @@ class OraBooks_Shortcodes {
         ob_start();
         ?>
         <div class="orabooks-react-page">
-            <div id="orabooks-app-root" data-initial-route="<?php echo esc_attr($route); ?>">
-                <p><?php echo esc_html__($loading_text, 'orabooks'); ?></p>
+            <div id="orabooks-app-root" class="orabooks-app-root" data-initial-route="<?php echo esc_attr($route); ?>">
+                <p class="orabooks-app-root-loading"><?php echo esc_html__($loading_text, 'orabooks'); ?></p>
             </div>
         </div>
         <?php
@@ -168,6 +169,10 @@ class OraBooks_Shortcodes {
 
     public function bank_reconciliation_page() {
         return $this->react_app('/bank-reconciliation', 'Loading bank reconciliation...');
+    }
+
+    public function reports_page() {
+        return $this->react_app('/reports', 'Loading reports...');
     }
 
     public function invoices_page() {

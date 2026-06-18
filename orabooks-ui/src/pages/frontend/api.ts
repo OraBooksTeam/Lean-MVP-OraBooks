@@ -156,6 +156,21 @@ export const api = {
     api.get('orabooks_inventory_dashboard'),
   bankDashboard: () =>
     api.get('orabooks_bank_dashboard'),
+  reportsDashboard: () =>
+    api.get('orabooks_reports_dashboard'),
+  generateFinancialReport: (orgId: number, reportType: string, periodStart: string, periodEnd: string) =>
+    api.get('orabooks_financial_report_generate', {
+      org_id: orgId,
+      report_type: reportType,
+      period_start: periodStart,
+      period_end: periodEnd,
+    }),
+  generateOperationalReport: (orgId: number, reportType: string, params: Record<string, string> = {}) =>
+    api.get('orabooks_operational_report', {
+      org_id: orgId,
+      report_type: reportType,
+      ...params,
+    }),
   dashboardStats: () =>
     api.get('orabooks_dashboard_stats'),
   customerStats: (orgId = 0) =>
