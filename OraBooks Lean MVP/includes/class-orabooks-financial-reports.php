@@ -1183,7 +1183,7 @@ class OraBooks_Financial_Reports {
     }
 
     public static function encrypt_snapshot_payload($org_id, $plaintext) {
-        $dek = class_exists('OraBooks_Secrets')
+        $dek = (class_exists('OraBooks_Secrets') && method_exists('OraBooks_Secrets', 'get_encryption_key'))
             ? OraBooks_Secrets::get_encryption_key()
             : wp_salt('auth');
         $key = hash('sha256', $dek . '|' . (int) $org_id, true);
@@ -1214,7 +1214,7 @@ class OraBooks_Financial_Reports {
 
         $iv = substr($raw, 0, 16);
         $encrypted = substr($raw, 16);
-        $dek = class_exists('OraBooks_Secrets')
+        $dek = (class_exists('OraBooks_Secrets') && method_exists('OraBooks_Secrets', 'get_encryption_key'))
             ? OraBooks_Secrets::get_encryption_key()
             : wp_salt('auth');
         $key = hash('sha256', $dek . '|' . (int) $org_id, true);

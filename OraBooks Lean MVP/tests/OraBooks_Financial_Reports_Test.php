@@ -142,6 +142,7 @@ class OraBooks_Financial_Reports_Test extends TestCase
             if (stripos($query, 'report_snapshots') !== false) {
                 return (object) [
                     'id' => 55,
+                    'org_id' => 10,
                     'report_type' => 'profit_loss',
                     'period_start' => '2026-01-01',
                     'period_end' => '2026-01-31',
@@ -203,11 +204,16 @@ class OraBooks_Financial_Reports_Test extends TestCase
         $inserted = [];
 
         $wpdb->test_get_row_callback = function ($query) {
+            if (stripos($query, 'report_signatures') !== false) {
+                return null;
+            }
             return (object) [
                 'id' => 44,
                 'org_id' => 10,
                 'snapshot_data' => '{"report":{"net_income":1}}',
                 'snapshot_hash' => 'snap-hash',
+                'is_encrypted' => 0,
+                'archived' => 0,
             ];
         };
         $wpdb->test_insert_callback = function ($table, $data) use (&$inserted) {
@@ -243,13 +249,14 @@ class OraBooks_Financial_Reports_Test extends TestCase
             return [(object) ['org_id' => 10]];
         };
         $wpdb->test_get_var_callback = function ($query) {
-            static $ledgerCalls = 0;
             if (stripos($query, 'organizations') !== false && stripos($query, 'config') !== false) {
                 return null;
             }
+            if (stripos($query, 'report_ledger_summary') !== false) {
+                return 99.50;
+            }
             if (stripos($query, 'ledger_entries') !== false) {
-                $ledgerCalls++;
-                return $ledgerCalls === 1 ? 100.00 : 99.50;
+                return 100.00;
             }
             return null;
         };
