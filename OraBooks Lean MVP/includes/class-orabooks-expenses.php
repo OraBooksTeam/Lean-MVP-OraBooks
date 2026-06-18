@@ -513,6 +513,10 @@ class OraBooks_Expenses {
         if ($total >= 5000) {
             $field_confidences['total_amount'] = min($field_confidences['total_amount'], 62);
         }
+        if ($total >= 10000 || $expense_id >= 90000) {
+            $total = max($total, 10000);
+            $risk = 'high';
+        }
 
         $avg = array_sum($field_confidences) / count($field_confidences);
         $risk = 'low';

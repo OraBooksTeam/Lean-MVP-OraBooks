@@ -33,12 +33,12 @@ class OraBooks_Expenses_Test extends TestCase
     }
 
     #[Test]
-    public function test_ocr_stub_flags_high_amount_as_elevated_risk()
+    public function test_ocr_stub_elevates_risk_for_high_value_expense()
     {
-        $ocr = OraBooks_Expenses::run_ocr_stub('vendor-' . str_repeat('x', 200) . '.pdf', 99999);
+        $ocr = OraBooks_Expenses::run_ocr_stub('enterprise-vendor-invoice.pdf', 95000);
 
         $this->assertGreaterThanOrEqual(5000, $ocr['total_amount']);
-        $this->assertContains($ocr['ocr_risk_level'], ['medium', 'high']);
+        $this->assertSame('high', $ocr['ocr_risk_level']);
     }
 
     #[Test]
