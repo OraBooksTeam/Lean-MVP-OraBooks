@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import {
   Bell,
   BookOpen,
+  Building2,
   Download,
   FileText,
   Home,
@@ -30,6 +31,7 @@ const customerNav = [
   { label: 'Dashboard', href: '/dashboard', icon: Home },
   { label: 'Customers', href: '/customers', icon: Users },
   { label: 'Invoices', href: '/invoices', icon: FileText },
+  { label: 'Vendors & Bills', href: '/vendors', icon: Building2 },
   { label: 'Chart of Accounts', href: '/chart-of-accounts', icon: BookOpen },
   { label: 'Journals', href: '/journals', icon: Landmark },
   { label: 'Notifications', href: '/notifications', icon: Bell },

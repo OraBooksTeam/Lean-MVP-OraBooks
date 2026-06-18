@@ -10,6 +10,7 @@ import InvoicesPage from './pages/InvoicesPage';
 import ChartOfAccountsPage from './pages/ChartOfAccountsPage';
 import JournalsPage from './pages/JournalsPage';
 import CustomersPage from './pages/CustomersPage';
+import VendorsPage from './pages/VendorsPage';
 import ProfilePage from './pages/ProfilePage';
 
 export default function FrontendRoutes() {
@@ -21,6 +22,7 @@ export default function FrontendRoutes() {
       <Route path="/tier-selection" element={<TierSelectionPage />} />
       <Route path="/dashboard" element={<DashboardPage />} />
       <Route path="/customers" element={<CustomersPage />} />
+      <Route path="/vendors" element={<VendorsPage />} />
       <Route path="/invoices" element={<InvoicesPage />} />
       <Route path="/chart-of-accounts" element={<ChartOfAccountsPage />} />
       <Route path="/journals" element={<JournalsPage />} />
