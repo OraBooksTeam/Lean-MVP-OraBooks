@@ -169,7 +169,7 @@ $accounts = $wpdb->get_results("SELECT id, account_name, account_code FROM $coa_
             };
 
             $.ajax({
-                url: typeof obn_ajax !== 'undefined' ? obn_ajax.ajax_url : (typeof obn_accounting_ajax !== 'undefined' ? obn_accounting_ajax.ajax_url : '<?php echo get_admin_url(get_current_blog_id(), "admin-ajax.php"); ?>'),
+                url: typeof obn_ajax !== 'undefined' ? obn_ajax.ajax_url : (typeof obn_accounting_ajax !== 'undefined' ? obn_accounting_ajax.ajax_url : '<?php echo get_admin_url(obn_current_org_id(), "admin-ajax.php"); ?>'),
                 type: 'POST',
                 data: ajaxData,
                 beforeSend: function () {

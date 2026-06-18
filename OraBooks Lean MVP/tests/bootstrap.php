@@ -835,10 +835,20 @@ if (!function_exists('delete_transient')) {
 
 if (!function_exists('wp_remote_post')) {
     function wp_remote_post($url, $args = []) {
+        $args['method'] = 'POST';
+        return wp_remote_request($url, $args);
+    }
+}
+
+if (!function_exists('wp_remote_request')) {
+    function wp_remote_request($url, $args = []) {
+        if (isset($GLOBALS['orabooks_test_wp_remote_request_callback'])) {
+            return ($GLOBALS['orabooks_test_wp_remote_request_callback'])($url, $args);
+        }
         if (isset($GLOBALS['orabooks_test_wp_remote_post_callback'])) {
             return ($GLOBALS['orabooks_test_wp_remote_post_callback'])($url, $args);
         }
-        // Default: return a mock Google token response
+        // Default: return a mock Google token response for auth tests
         $client_id = $GLOBALS['orabooks_test_secrets']['google_oauth_client_id'] ?? 'test-client-id';
         $id_token_payload = base64_encode(json_encode([
             'sub'   => 'google-12345',
@@ -854,6 +864,18 @@ if (!function_exists('wp_remote_post')) {
             ]),
             'response' => ['code' => 200],
         ];
+    }
+}
+
+if (!function_exists('wp_remote_retrieve_headers')) {
+    function wp_remote_retrieve_headers($response) {
+        if (!is_array($response)) {
+            return [];
+        }
+        if (isset($response['headers'])) {
+            return $response['headers'];
+        }
+        return [];
     }
 }
 
@@ -1157,6 +1179,13 @@ if (!file_exists($voice_file)) {
     exit(1);
 }
 require_once $voice_file;
+
+$ai_providers_file = __DIR__ . '/../includes/class-orabooks-ai-providers.php';
+if (!file_exists($ai_providers_file)) {
+    echo "ERROR: Cannot find class-orabooks-ai-providers.php at {$ai_providers_file}\n";
+    exit(1);
+}
+require_once $ai_providers_file;
 
 $security_file = __DIR__ . '/../includes/class-orabooks-security.php';
 if (!file_exists($security_file)) {

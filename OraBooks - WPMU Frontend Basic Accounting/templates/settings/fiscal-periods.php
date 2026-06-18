@@ -4,7 +4,7 @@ if (!defined('ABSPATH')) {
 }
 
 $repo = class_exists('OBN_Fiscal_Period_Repository') ? new OBN_Fiscal_Period_Repository() : null;
-$periods = $repo ? $repo->paginate(get_current_blog_id(), [
+$periods = $repo ? $repo->paginate(obn_current_org_id(), [
     'page' => isset($_GET['fp_page']) ? intval($_GET['fp_page']) : 1,
     'per_page' => 25,
 ]) : ['data' => [], 'page' => 1, 'per_page' => 25, 'total' => 0, 'total_pages' => 0];
