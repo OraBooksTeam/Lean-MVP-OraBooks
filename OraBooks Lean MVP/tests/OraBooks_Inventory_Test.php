@@ -207,4 +207,35 @@ class OraBooks_Inventory_Test extends TestCase
         $this->assertEquals(8.0, $result['stock_after']);
         $this->assertEquals(91, $result['movement_id']);
     }
+
+    #[Test]
+    public function test_get_recent_movements_joins_product_details()
+    {
+        global $wpdb;
+
+        $wpdb->test_get_results_callback = function ($query) {
+            if (stripos($query, 'inventory_movements') !== false) {
+                return [
+                    (object) [
+                        'id' => 1,
+                        'product_id' => 10,
+                        'quantity_change' => '5.0000',
+                        'stock_after' => '15.0000',
+                        'reference_type' => 'purchase',
+                        'movement_value' => '25.00',
+                        'created_at' => '2026-06-01 10:00:00',
+                        'sku' => 'SKU-001',
+                        'product_name' => 'Widget',
+                    ],
+                ];
+            }
+            return [];
+        };
+
+        $movements = OraBooks_Inventory::get_recent_movements(5, ['limit' => 10]);
+
+        $this->assertCount(1, $movements);
+        $this->assertEquals('Widget', $movements[0]->product_name);
+        $this->assertEquals('SKU-001', $movements[0]->sku);
+    }
 }
