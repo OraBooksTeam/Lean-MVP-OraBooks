@@ -268,7 +268,7 @@ class OraBooks_Shortcodes {
      * CSV Import page shortcode (SL-113).
      */
     public function csv_import_page() {
-        return $this->react_page('/csv-imports');
+        return $this->merged_or_react('import-customers', '/csv-imports');
     }
 
     /**

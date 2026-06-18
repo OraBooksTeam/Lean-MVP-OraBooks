@@ -166,7 +166,7 @@ class OraBooks_Assets {
             'logout_url' => wp_logout_url(home_url('/login/')),
             'admin_base' => admin_url('admin.php'),
             'is_admin' => current_user_can('manage_options'),
-            'accounting_url' => home_url('/accounting/'),
+            'accounting_url' => home_url('/dashboard/'),
         ];
 
         if ($context === 'admin' && function_exists('orabooks_get_admin_nav_items')) {

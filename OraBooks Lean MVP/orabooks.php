@@ -911,6 +911,13 @@ function orabooks_body_class($classes) {
 
     if (has_shortcode($post->post_content, 'orabooks_accounting')) {
         $classes[] = 'orabooks-accounting-page';
+    } elseif (
+        has_shortcode($post->post_content, 'orabooks_dashboard')
+        && function_exists('orabooks_uses_merged_accounting_workspace')
+        && is_user_logged_in()
+        && orabooks_uses_merged_accounting_workspace()
+    ) {
+        $classes[] = 'orabooks-accounting-page';
     }
 
     $auth_shortcodes = ['orabooks_login', 'orabooks_register', 'orabooks_tier_selection', 'orabooks_reset_password'];

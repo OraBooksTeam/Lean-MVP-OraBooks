@@ -60,6 +60,21 @@ class OraBooks_Accounting {
         add_action('init', [__CLASS__, 'init_logic'], 20);
         add_action('wpmu_new_blog', [__CLASS__, 'on_new_blog'], 10, 6);
         add_action('orabooks_register_addons', [__CLASS__, 'register_feature'], 5);
+        add_action('template_redirect', [__CLASS__, 'redirect_legacy_accounting_page'], 5);
+    }
+
+    public static function redirect_legacy_accounting_page() {
+        if (!is_page('accounting')) {
+            return;
+        }
+
+        $target = home_url('/dashboard/');
+        if (!empty($_GET)) {
+            $target = add_query_arg(array_map('sanitize_text_field', wp_unslash($_GET)), $target);
+        }
+
+        wp_safe_redirect($target, 301);
+        exit;
     }
 
     public static function define_constants() {
@@ -81,8 +96,8 @@ class OraBooks_Accounting {
 
         orabooks_register_addon([
             'id' => 'accounting',
-            'name' => 'Advanced Accounting',
-            'description' => 'Full double-entry accounting workspace (sales, purchase, inventory, GL, reports).',
+            'name' => 'Accounting Workspace',
+            'description' => 'Full accounting system merged into OraBooks Lean MVP (sales, purchase, inventory, GL, reports).',
             'version' => OBN_ACCOUNTING_VERSION,
             'plugin_file' => ORABOOKS_PLUGIN_DIR . 'orabooks.php',
             'author' => 'OraBooks',
@@ -198,10 +213,6 @@ class OraBooks_Accounting {
 
     public static function init_logic() {
         global $wpdb;
-
-        if (function_exists('orabooks_create_page')) {
-            orabooks_create_page('accounting', 'Advanced Accounting', '[orabooks_accounting]');
-        }
 
         $table_sidebar = $wpdb->prefix . 'orabooks_db_sidebar';
         $table_assets = $wpdb->prefix . 'orabooks_ac_assets';
