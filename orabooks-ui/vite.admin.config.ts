@@ -8,14 +8,24 @@ export default defineConfig({
   base: './',
   plugins: [react(), tailwindcss()],
   root: 'src',
+  define: {
+    'import.meta.url': '""',
+    'import.meta.env.MODE': JSON.stringify('production'),
+    'import.meta.env.PROD': 'true',
+    'import.meta.env.DEV': 'false',
+  },
   build: {
     outDir: path.resolve(__dirname, '../OraBooks Lean MVP/assets/react'),
     emptyOutDir: false,
     cssCodeSplit: false,
     codeSplitting: false,
+    modulePreload: false,
     rollupOptions: {
       input: path.resolve(__dirname, 'src/pages/admin/main.tsx'),
       output: {
+        format: 'iife',
+        name: 'OraBooksAdmin',
+        inlineDynamicImports: true,
         entryFileNames: 'admin.js',
         assetFileNames: 'assets/[name]-[hash].[ext]',
       },
