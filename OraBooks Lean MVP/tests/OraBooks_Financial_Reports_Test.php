@@ -471,7 +471,6 @@ class OraBooks_Financial_Reports_Test extends TestCase
         $this->assertTrue($meta['board_approved']);
         $this->assertEquals('BOARD-9', $meta['signature']['board_approval_reference']);
     }
-}
 
     #[Test]
     public function test_flatten_profit_loss_for_export()
