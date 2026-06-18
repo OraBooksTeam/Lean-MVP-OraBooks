@@ -220,6 +220,9 @@ function orabooks_json_response($data, $status_code = 200) {
  * Error response helper
  */
 function orabooks_json_error($message, $status_code = 400) {
+    if (class_exists('OraBooks_Security') && method_exists('OraBooks_Security', 'record_http_response')) {
+        OraBooks_Security::record_http_response($status_code, $message);
+    }
     wp_send_json(['error' => true, 'message' => $message], $status_code);
 }
 

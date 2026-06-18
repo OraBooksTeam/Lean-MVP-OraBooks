@@ -651,6 +651,13 @@ class OraBooks_AsyncQueue {
                 return 'Webhook URL required';
             }
 
+            if (class_exists('OraBooks_Security')) {
+                $ssrf = OraBooks_Security::validate_outbound_url($url);
+                if (is_wp_error($ssrf)) {
+                    return $ssrf->get_error_message();
+                }
+            }
+
             $response = wp_remote_request($url, [
                 'method'  => $method,
                 'body'    => json_encode($body),
