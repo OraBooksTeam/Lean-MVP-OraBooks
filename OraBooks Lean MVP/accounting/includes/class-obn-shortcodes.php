@@ -149,24 +149,57 @@ class OBN_Shortcodes
 			}
 
 			/* Force Full Screen Dashboard */
+			body.orabooks-accounting-page,
 			body {
 				margin: 0;
 				padding: 0;
 				overflow: hidden;
-				/* Let dashboard wrapper handle scroll */
+				height: 100%;
+				width: 100%;
 			}
 
 			.obn-dashboard-wrapper {
 				display: flex;
 				flex-direction: row;
 				position: fixed;
-				top: 0;
-				left: 0;
-				width: 100vw;
+				inset: 0;
+				width: 100%;
 				height: 100vh;
+				height: 100dvh;
+				max-height: 100dvh;
 				z-index: 99999;
 				background: #f3f4f6;
+				overflow: hidden;
+			}
+
+			.obn-sidebar {
+				height: 100%;
+				max-height: 100%;
+				min-height: 0;
+				overflow: hidden;
+			}
+
+			.obn-sidebar-nav {
+				flex: 1 1 auto;
+				min-height: 0;
 				overflow-y: auto;
+				overflow-x: hidden;
+				-webkit-overflow-scrolling: touch;
+			}
+
+			.obn-main-content {
+				flex: 1 1 auto;
+				min-width: 0;
+				min-height: 0;
+				overflow: hidden;
+			}
+
+			.obn-content-area {
+				min-height: 0;
+				min-width: 0;
+				overflow-y: auto;
+				overflow-x: hidden;
+				-webkit-overflow-scrolling: touch;
 			}
 
 			/* Fix for Print Previews */
