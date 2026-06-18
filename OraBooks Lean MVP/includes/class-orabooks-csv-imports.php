@@ -141,7 +141,7 @@ class OraBooks_Csv_Imports {
         }
 
         $perm = OraBooks_RBAC::require_permission($user_id, $org_id, 'submit_transaction');
-        if (is_wp_error($perm)) {
+        if (!$perm) {
             return $perm;
         }
 
@@ -486,7 +486,7 @@ class OraBooks_Csv_Imports {
         }
 
         $perm = OraBooks_RBAC::require_permission($user_id, $org_id, 'submit_transaction');
-        if (is_wp_error($perm)) {
+        if (!$perm) {
             return $perm;
         }
 
