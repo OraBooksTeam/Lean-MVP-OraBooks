@@ -493,45 +493,50 @@ function orabooks_admin_menu() {
 }
 
 // Admin page render functions
+function orabooks_admin_render_app($route) {
+    $orabooks_admin_route = $route;
+    include ORABOOKS_PLUGIN_DIR . 'admin/app.php';
+}
+
 function orabooks_admin_commissions() {
-    echo do_shortcode('[orabooks_partner_dashboard]');
+    orabooks_admin_render_app('/admin/commissions');
 }
 function orabooks_admin_notifications() {
-    echo do_shortcode('[orabooks_notification_center]');
+    orabooks_admin_render_app('/admin/notifications');
 }
 function orabooks_admin_job_queue() {
-    echo do_shortcode('[orabooks_async_queue_dashboard]');
+    orabooks_admin_render_app('/admin/job-queue');
 }
 function orabooks_admin_observability() {
-    echo do_shortcode('[orabooks_observability_dashboard]');
+    orabooks_admin_render_app('/admin/observability');
 }
 function orabooks_admin_exports() {
-    echo do_shortcode('[orabooks_export_status]');
+    orabooks_admin_render_app('/admin/exports');
 }
 function orabooks_admin_csv_imports() {
-    echo do_shortcode('[orabooks_csv_import]');
+    orabooks_admin_render_app('/admin/csv-imports');
 }
 function orabooks_admin_coa() {
-    include ORABOOKS_PLUGIN_DIR . 'admin/coa.php';
+    orabooks_admin_render_app('/admin/coa');
 }
 
 function orabooks_admin_customers() {
-    include ORABOOKS_PLUGIN_DIR . 'admin/customers.php';
+    orabooks_admin_render_app('/admin/customers');
 }
 function orabooks_admin_dashboard() {
-    include ORABOOKS_PLUGIN_DIR . 'admin/dashboard.php';
+    orabooks_admin_render_app('/admin/dashboard');
 }
 
 function orabooks_admin_partners() {
-    include ORABOOKS_PLUGIN_DIR . 'admin/partners.php';
+    orabooks_admin_render_app('/admin/partners');
 }
 
 function orabooks_admin_orgs() {
-    include ORABOOKS_PLUGIN_DIR . 'admin/organizations.php';
+    orabooks_admin_render_app('/admin/organizations');
 }
 
 function orabooks_admin_users() {
-    include ORABOOKS_PLUGIN_DIR . 'admin/users.php';
+    orabooks_admin_render_app('/admin/users');
 }
 
 function orabooks_admin_audit() {
@@ -710,20 +715,9 @@ function orabooks_admin_enqueue($hook) {
     );
     wp_localize_script('orabooks-frontend-jquery', 'orabooks_ajax', $ajax_config);
 
-    $react_admin_hooks = ['toplevel_page_orabooks'];
-    $react_frontend_hooks = [
-        'orabooks_page_orabooks-commissions',
-        'orabooks_page_orabooks-notifications',
-        'orabooks_page_orabooks-exports',
-        'orabooks_page_orabooks-csv-imports',
-    ];
-
-    if (in_array($hook, $react_admin_hooks, true)) {
+    // React admin UI on all OraBooks pages except native WP settings form.
+    if ($hook !== 'orabooks_page_orabooks-settings') {
         orabooks_enqueue_react_admin_bundle($ajax_config);
-    }
-
-    if (in_array($hook, $react_frontend_hooks, true)) {
-        orabooks_enqueue_react_frontend_bundle($ajax_config);
     }
 }
 
