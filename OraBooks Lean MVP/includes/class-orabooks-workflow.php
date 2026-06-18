@@ -38,7 +38,7 @@ class OraBooks_Workflow {
             'org_id_column'  => 'org_id',
         ],
         'commission' => [
-            'table'          => 'commission_earnings',
+            'table'          => 'commissions_earned',
             'status_column'  => 'status',
             'org_id_column'  => 'org_id',
         ],
