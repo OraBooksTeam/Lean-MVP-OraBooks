@@ -82,6 +82,21 @@ class OraBooks_Shortcodes {
             'description' => $description,
         ]);
     }
+
+    /**
+     * Route customer orgs to merged accounting workspace; partners/admins keep React routes.
+     */
+    private function merged_or_react($accounting_view, $react_route, $require_login = true) {
+        if ($require_login && !get_current_user_id()) {
+            return OraBooks_Views::require_login_message();
+        }
+
+        if (function_exists('orabooks_uses_merged_accounting_workspace') && orabooks_uses_merged_accounting_workspace()) {
+            return orabooks_render_merged_accounting_workspace($accounting_view);
+        }
+
+        return $this->react_page($react_route, $require_login);
+    }
     
     public function login_form() {
         return $this->react_page('/login', false);
@@ -108,19 +123,23 @@ class OraBooks_Shortcodes {
     }
     
     public function dashboard() {
-        return $this->react_page('/dashboard');
+        if (function_exists('orabooks_uses_merged_accounting_workspace') && orabooks_uses_merged_accounting_workspace()) {
+            return orabooks_render_merged_accounting_workspace();
+        }
+
+        return $this->react_page('/partner-program');
     }
 
     public function customers_page() {
-        return $this->react_page('/customers');
+        return $this->merged_or_react('customers', '/customers');
     }
 
     public function vendors_page() {
-        return $this->react_page('/vendors');
+        return $this->merged_or_react('suppliers', '/vendors');
     }
 
     public function inventory_page() {
-        return $this->react_page('/inventory');
+        return $this->merged_or_react('view-items', '/inventory');
     }
 
     public function bank_reconciliation_page() {
@@ -128,27 +147,27 @@ class OraBooks_Shortcodes {
     }
 
     public function reports_page() {
-        return $this->react_page('/reports');
+        return $this->merged_or_react('journal-report', '/reports');
     }
 
     public function invoices_page() {
-        return $this->react_page('/invoices');
+        return $this->merged_or_react('view-sales', '/invoices');
     }
 
     public function chart_of_accounts_page() {
-        return $this->react_page('/chart-of-accounts');
+        return $this->merged_or_react('coa-list', '/chart-of-accounts');
     }
 
     public function fiscal_periods_page() {
-        return $this->react_page('/fiscal-periods');
+        return $this->merged_or_react('fiscal-periods', '/fiscal-periods');
     }
 
     public function tax_settings_page() {
-        return $this->react_page('/tax-settings');
+        return $this->merged_or_react('setting-tax-list', '/tax-settings');
     }
 
     public function journals_page() {
-        return $this->react_page('/journals');
+        return $this->merged_or_react('journal-entry-list', '/journals');
     }
 
     public function profile_page() {
@@ -172,7 +191,7 @@ class OraBooks_Shortcodes {
     }
 
     public function expenses_page() {
-        return $this->react_page('/expenses');
+        return $this->merged_or_react('expense-list', '/expenses');
     }
 
     public function voice_page() {

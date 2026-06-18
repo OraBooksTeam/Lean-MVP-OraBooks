@@ -300,7 +300,6 @@ function orabooks_create_required_pages() {
         
         // Exports
         'my-exports'          => ['My Exports', '[orabooks_export_status]'],
-        'accounting'          => ['Advanced Accounting', '[orabooks_accounting]'],
     ];
     
     // Create a parent page "OraBooks" if needed (optional)
