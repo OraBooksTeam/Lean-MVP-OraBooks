@@ -133,16 +133,16 @@ class OraBooks_Classification_Test extends TestCase
             return $expense;
         };
 
-        $updated = null;
-        $wpdb->test_update_callback = function ($table, $data, $where) use (&$updated) {
-            $updated = [$table, $data, $where];
+        $updates = [];
+        $wpdb->test_update_callback = function ($table, $data, $where) use (&$updates) {
+            $updates[] = $data;
             return 1;
         };
 
-        $result = OraBooks_Classification::override('expense', 20, 2, 5, '5300', 5.0);
+        OraBooks_Classification::override('expense', 20, 2, 5, '5300', 5.0);
 
-        $this->assertNotNull($updated);
-        $this->assertEquals('overridden', $updated[1]['classification_status']);
-        $this->assertEquals('5300', $updated[1]['suggested_account_code']);
+        $this->assertNotEmpty($updates);
+        $this->assertEquals('overridden', $updates[0]['classification_status']);
+        $this->assertEquals('5300', $updates[0]['suggested_account_code']);
     }
 }
