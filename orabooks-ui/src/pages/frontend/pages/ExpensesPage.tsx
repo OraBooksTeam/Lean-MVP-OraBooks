@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import Button from '@/components/Button';
 import { api } from '../api';
 import ClientShell from '../components/ClientShell';
-import { Camera, CheckCircle2, Receipt, RefreshCw, Sparkles, Upload, XCircle } from 'lucide-react';
+import { Camera, CheckCircle2, Paperclip, Receipt, RefreshCw, Sparkles, Upload, XCircle } from 'lucide-react';
 
 const fieldClass =
   'w-full rounded-lg border border-border bg-white px-3.5 py-2.5 text-sm text-ink shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20';
@@ -282,6 +283,20 @@ export default function ExpensesPage() {
             )}
 
             <div className="mt-4 flex flex-wrap gap-2">
+              <Link to={`/attachments?resource_type=expense&resource_id=${selectedExpense.id}`}>
+                <Button variant="secondary" size="sm">
+                  <Paperclip className="h-3.5 w-3.5" />
+                  View Files
+                </Button>
+              </Link>
+              {selectedExpense.attachment_id && (
+                <Link to={`/attachments?attachment_id=${selectedExpense.attachment_id}`}>
+                  <Button variant="secondary" size="sm">
+                    <Receipt className="h-3.5 w-3.5" />
+                    Receipt
+                  </Button>
+                </Link>
+              )}
               {caps.submit && selectedExpense.workflow_status === 'draft' && selectedExpense.ocr_confidence != null && (
                 <Button onClick={() => void handleConfirm()} disabled={confirming}>
                   <CheckCircle2 className="h-4 w-4" />

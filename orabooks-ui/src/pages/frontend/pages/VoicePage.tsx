@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import Button from '@/components/Button';
 import { api } from '../api';
 import ClientShell from '../components/ClientShell';
-import { CheckCircle2, Mic, RefreshCw, Square } from 'lucide-react';
+import { CheckCircle2, Mic, Paperclip, RefreshCw, Square } from 'lucide-react';
 
 const fieldClass =
   'w-full rounded-lg border border-border bg-white px-3.5 py-2.5 text-sm text-ink shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20';
@@ -226,7 +227,13 @@ export default function VoicePage() {
             )}
 
             {caps.confirm && selectedVoice.status === 'processed' && (
-              <div className="mt-4">
+              <div className="mt-4 flex flex-wrap gap-2">
+                <Link to={`/attachments?resource_type=voice_input&resource_id=${selectedVoice.id}`}>
+                  <Button variant="secondary" size="sm">
+                    <Paperclip className="h-3.5 w-3.5" />
+                    View Audio File
+                  </Button>
+                </Link>
                 <Button onClick={() => void handleConfirm()} disabled={confirming}>
                   <CheckCircle2 className="h-4 w-4" />
                   {confirming ? 'Submitting...' : 'Confirm & Submit'}
