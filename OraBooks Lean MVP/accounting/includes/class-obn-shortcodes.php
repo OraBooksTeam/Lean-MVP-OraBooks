@@ -88,6 +88,15 @@ class OBN_Shortcodes
 
 		wp_enqueue_style('obn-accounting-style', OBN_ACCOUNTING_PLUGIN_URL . 'assets/css/style.css', array(), OBN_ACCOUNTING_VERSION . '.' . filemtime(OBN_ACCOUNTING_PLUGIN_DIR . 'assets/css/style.css'));
 		wp_enqueue_style('obn-accounting-brand-theme', OBN_ACCOUNTING_PLUGIN_URL . 'assets/css/brand-theme.css', array('obn-accounting-style'), OBN_ACCOUNTING_VERSION . '.' . filemtime(OBN_ACCOUNTING_PLUGIN_DIR . 'assets/css/brand-theme.css'));
+
+		if (function_exists('orabooks_is_divi_theme') && orabooks_is_divi_theme()) {
+			wp_enqueue_style(
+				'orabooks-divi-compat',
+				ORABOOKS_PLUGIN_URL . 'assets/css/divi-compat.css',
+				array('obn-accounting-brand-theme'),
+				defined('ORABOOKS_VERSION') ? ORABOOKS_VERSION : OBN_ACCOUNTING_VERSION
+			);
+		}
 		wp_enqueue_script('obn-accounting-script', OBN_ACCOUNTING_PLUGIN_URL . 'assets/js/script.js', array('jquery', 'jquery-ui-autocomplete'), OBN_ACCOUNTING_VERSION . '.' . filemtime(OBN_ACCOUNTING_PLUGIN_DIR . 'assets/js/script.js'), false);
 		wp_localize_script(
 			'obn-accounting-script',
