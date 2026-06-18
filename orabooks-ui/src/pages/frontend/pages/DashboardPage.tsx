@@ -3,17 +3,26 @@ import type { ReactNode } from 'react';
 import Button from '@/components/Button';
 import { api } from '../api';
 import ClientShell from '../components/ClientShell';
+import PartnerProgramPage from './PartnerProgramPage';
 import {
-  AlertTriangle,
   Banknote,
-  BookOpen,
-  CheckCircle2,
-  Copy,
   FileText,
   RefreshCw,
   TrendingUp,
   Users,
 } from 'lucide-react';
+
+interface FrontendContext {
+  user: { is_partner: boolean; email?: string };
+  organization: {
+    id: number;
+    name?: string;
+    tier?: string;
+    status?: string;
+    organization_type?: string;
+  } | null;
+  role?: string;
+}
 
 interface CustomerDashboardData {
   context: FrontendContext;
