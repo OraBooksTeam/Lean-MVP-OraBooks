@@ -1,44 +1,111 @@
 import { useEffect, useState } from 'react';
 import Button from '@/components/Button';
+import Input from '@/components/Input';
 import { api } from '../api';
 import ClientShell from '../components/ClientShell';
-import { RefreshCw, Users } from 'lucide-react';
+import { Info, RefreshCw, Users } from 'lucide-react';
+
+type Customer = {
+  id: number;
+  email?: string;
+  is_active?: number;
+  invoice_count?: number;
+  total_paid?: string | number;
+  wallet_balance?: string | number;
+  last_paid_invoice_date?: string | null;
+  notes?: string | null;
+};
 
 export default function CustomersPage() {
-  const [data, setData] = useState<any>(null);
+  const [context, setContext] = useState<any>(null);
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [search, setSearch] = useState('');
 
   const load = async () => {
     setLoading(true);
     setError('');
-    const res = await api.customerDashboard();
-    if (res.error) setError(res.error || 'Unable to load customers.');
-    else setData((res as any).data);
+    const ctx = await api.frontendContext();
+    if (ctx.error) {
+      setError(ctx.error || 'Unable to load organization context.');
+      setLoading(false);
+      return;
+    }
+
+    const nextContext = (ctx as any).data;
+    setContext(nextContext);
+    const orgId = nextContext?.organization?.id;
+    if (!orgId) {
+      setError('Organization is not set up yet.');
+      setLoading(false);
+      return;
+    }
+
+    const [customersRes, statsRes] = await Promise.all([
+      api.customersList(orgId, { limit: 100, search: search.trim() || undefined }),
+      api.customerStats(orgId),
+    ]);
+
+    if (customersRes.error) {
+      setError(customersRes.error || 'Unable to load customers.');
+    } else {
+      setCustomers((customersRes as any).data?.customers || []);
+    }
+
+    if (!statsRes.error) {
+      setStats((statsRes as any).data);
+    }
+
     setLoading(false);
   };
 
   useEffect(() => { void load(); }, []);
 
-  const customers = data?.recent_customers?.customers || [];
+  const handleSearch = () => { void load(); };
 
   return (
-    <ClientShell title="Customers" eyebrow="Client records" organization={data?.context?.organization}>
+    <ClientShell
+      title="Customers"
+      eyebrow="SL-021 Accounts receivable"
+      organization={context?.organization}
+      isPartner={context?.organization?.organization_type === 'partner'}
+    >
       <div className="space-y-5">
-        <div className="grid gap-4 sm:grid-cols-3">
-          <Metric label="Total Customers" value={data?.stats?.total_customers ?? 0} />
-          <Metric label="Active" value={data?.stats?.active_customers ?? 0} />
-          <Metric label="Inactive" value={data?.stats?.inactive_customers ?? 0} />
+        <div className="flex items-start gap-3 rounded-xl border border-sky-200 bg-sky-50/80 p-4 text-sm text-sky-900">
+          <Info className="mt-0.5 h-4 w-4 shrink-0" />
+          <p>
+            Wallet balance shows open AR per customer (unpaid and partial invoices). Active status is maintained automatically from paid invoice activity.
+          </p>
         </div>
 
-        <div className="flex justify-end">
+        <div className="grid gap-4 sm:grid-cols-4">
+          <Metric label="Total Customers" value={stats?.total_customers ?? 0} />
+          <Metric label="Active" value={stats?.active_customers ?? 0} />
+          <Metric label="Outstanding AR" value={money(stats?.outstanding_ar)} />
+          <Metric label="Unpaid Invoices" value={stats?.unpaid_invoices ?? 0} />
+        </div>
+
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="min-w-[200px] flex-1">
+            <Input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search by email or notes…"
+              onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+            />
+          </div>
+          <Button onClick={handleSearch} variant="secondary" size="sm">Search</Button>
           <Button onClick={load} variant="secondary" size="sm">
             <RefreshCw className="h-4 w-4" />
             Refresh
           </Button>
         </div>
 
-        {error && <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-medium text-red-700">{error}</div>}
+        {error && (
+          <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-medium text-red-700">{error}</div>
+        )}
 
         <div className="glass-panel overflow-hidden">
           <table className="min-w-full text-left text-sm">
@@ -47,21 +114,22 @@ export default function CustomersPage() {
                 <th className="px-5 py-3 font-semibold">Customer</th>
                 <th className="px-5 py-3 font-semibold">Status</th>
                 <th className="px-5 py-3 font-semibold">Invoices</th>
+                <th className="px-5 py-3 text-right font-semibold">Wallet (AR due)</th>
                 <th className="px-5 py-3 text-right font-semibold">Paid</th>
                 <th className="px-5 py-3 font-semibold">Last Paid</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
               {loading ? (
-                <tr><td colSpan={5} className="px-5 py-8 text-center text-slate-500">Loading customers...</td></tr>
+                <tr><td colSpan={6} className="px-5 py-8 text-center text-slate-500">Loading customers…</td></tr>
               ) : customers.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-5 py-10 text-center">
+                  <td colSpan={6} className="px-5 py-10 text-center">
                     <Users className="mx-auto h-8 w-8 text-slate-300" />
                     <p className="mt-2 text-sm text-slate-500">No customer records found.</p>
                   </td>
                 </tr>
-              ) : customers.map((customer: any) => (
+              ) : customers.map((customer) => (
                 <tr key={customer.id} className="hover:bg-slate-50/70">
                   <td className="px-5 py-3">
                     <p className="font-semibold text-ink">{customer.email || `Customer #${customer.id}`}</p>
@@ -73,6 +141,7 @@ export default function CustomersPage() {
                     </span>
                   </td>
                   <td className="px-5 py-3 text-slate-600">{customer.invoice_count ?? 0}</td>
+                  <td className="px-5 py-3 text-right font-semibold text-ink">{money(customer.wallet_balance)}</td>
                   <td className="px-5 py-3 text-right font-bold text-ink">{money(customer.total_paid)}</td>
                   <td className="px-5 py-3 text-slate-600">{customer.last_paid_invoice_date || '—'}</td>
                 </tr>
@@ -87,9 +156,9 @@ export default function CustomersPage() {
 
 function Metric({ label, value }: { label: string; value: string | number }) {
   return (
-    <div className="stat-card">
-      <p className="text-xs font-bold uppercase tracking-wide text-slate-500">{label}</p>
-      <p className="mt-2 text-3xl font-black text-ink">{value}</p>
+    <div className="glass-panel p-4">
+      <p className="text-xs uppercase tracking-wide text-slate-500">{label}</p>
+      <p className="mt-1 text-2xl font-bold text-ink">{value}</p>
     </div>
   );
 }
