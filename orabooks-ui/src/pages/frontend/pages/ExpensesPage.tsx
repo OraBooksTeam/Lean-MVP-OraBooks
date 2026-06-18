@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import Button from '@/components/Button';
 import { api } from '../api';
 import ClientShell from '../components/ClientShell';
+import ResourceAttachmentsPanel from '../components/ResourceAttachmentsPanel';
 import { Camera, CheckCircle2, Paperclip, Receipt, RefreshCw, Sparkles, Upload, XCircle } from 'lucide-react';
 
 const fieldClass =
@@ -280,6 +281,17 @@ export default function ExpensesPage() {
                   setClassifying(false);
                 }}
               />
+            )}
+
+            {orgId && selectedExpense?.id && (
+              <div className="mt-4">
+                <ResourceAttachmentsPanel
+                  orgId={orgId}
+                  resourceType="expense"
+                  resourceId={selectedExpense.id}
+                  title="Receipt & files"
+                />
+              </div>
             )}
 
             <div className="mt-4 flex flex-wrap gap-2">
