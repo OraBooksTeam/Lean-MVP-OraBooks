@@ -266,7 +266,7 @@ class OBN_Quotations {
 
             $wpdb->insert($item_table, [
                 'quotation_id'   => $quotation_id,
-                'store_id'       => 1, // Default or fetch
+                'store_id'       => obn_store_id(),
                 'item_id'        => intval($item['item_id']),
                 'description'    => sanitize_text_field($item['name']),
                 'quotation_qty'  => floatval($item['qty']),

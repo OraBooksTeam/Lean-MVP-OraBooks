@@ -385,7 +385,7 @@ class OBN_Coupons
         $system_name = sanitize_text_field(gethostname());
 
         $data = [
-            'store_id' => 1, // Default store ID
+            'store_id' => obn_store_id(), // Default store ID
             'code' => $coupon_code,
             'name' => $master_coupon->name,
             'description' => $description,

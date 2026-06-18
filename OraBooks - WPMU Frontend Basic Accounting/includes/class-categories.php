@@ -230,7 +230,7 @@ class Frontend_Accounting_Categories {
             }
 
             $inserted = $wpdb->insert( $table, array(
-                'store_id' => 1,
+                'store_id' => obn_store_id(),
                 'category_name' => $category_name,
                 'category_code' => $category_code,
                 'description' => $description,

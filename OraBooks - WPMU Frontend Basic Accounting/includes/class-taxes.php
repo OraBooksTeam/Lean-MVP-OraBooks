@@ -51,7 +51,7 @@ class Frontend_Accounting_Taxes {
         } else {
             // Insert
             $inserted = $wpdb->insert( $table, array(
-                'store_id' => 1,
+                'store_id' => obn_store_id(),
                 'tax_name' => $tax_name,
                 'tax' => $tax_percent,
                 'status' => 1

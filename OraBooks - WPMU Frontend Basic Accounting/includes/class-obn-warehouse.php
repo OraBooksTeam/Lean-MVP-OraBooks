@@ -129,7 +129,7 @@ class OBN_Warehouse {
                             'mobile'         => $mobile,
                             'email'          => $email,
                             'address'        => $address,
-                            'store_id'       => 1, // Default
+                            'store_id'       => obn_store_id(),
                             'warehouse_type' => 'custom',
                             'status'         => 1,
                             'created_date'   => current_time( 'mysql' ),

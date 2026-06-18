@@ -64,7 +64,7 @@ class OBN_Tax {
             }
 
             $result = $wpdb->insert( $table, array(
-                'store_id' => 1,
+                'store_id' => obn_store_id(),
                 'tax_name' => $name,
                 'tax'      => $rate,
                 'status'   => 1

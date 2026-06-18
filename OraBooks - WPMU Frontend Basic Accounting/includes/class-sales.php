@@ -1155,7 +1155,7 @@ class Frontend_Accounting_Sales
                             $item_code = $prefix . str_pad($count_id, 6, '0', STR_PAD_LEFT);
 
                             $new_item_data = [
-                                'store_id' => 1,
+                                'store_id' => obn_store_id(),
                                 'count_id' => $count_id,
                                 'item_code' => $item_code,
                                 'item_name' => $item_name,
@@ -1175,7 +1175,7 @@ class Frontend_Accounting_Sales
                     }
                 }
                 $item_data = [
-                    'store_id' => 1,
+                    'store_id' => obn_store_id(),
                     'sales_id' => $sales_id,
                     'sales_status' => 'Final',
                     'item_id' => intval($item['item_id']),
@@ -1204,7 +1204,7 @@ class Frontend_Accounting_Sales
                         $wpdb->query($wpdb->prepare("UPDATE {$wpdb->prefix}orabooks_db_warehouseitems SET available_qty = available_qty - %f WHERE id = %d", $item_data['sales_qty'], $wh_res->id));
                     } else {
                         $wpdb->insert($wpdb->prefix . 'orabooks_db_warehouseitems', [
-                            'store_id' => 1,
+                            'store_id' => obn_store_id(),
                             'warehouse_id' => $warehouse_id,
                             'item_id' => $item_data['item_id'],
                             'available_qty' => -($item_data['sales_qty'])
