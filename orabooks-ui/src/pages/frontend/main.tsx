@@ -59,6 +59,14 @@ function bootExportWidgets() {
   });
 }
 
+function showFrontendBootError(root: HTMLElement, message: string) {
+  root.classList.add('is-mounted');
+  root.innerHTML = `<div style="padding:24px;border:1px solid #d8e6f3;border-radius:16px;background:#fff;color:#102f52;max-width:640px;margin:48px auto;">
+    <h2 style="margin:0 0 8px;color:#1A69B4;">OraBooks could not start</h2>
+    <p style="margin:0;">${message}</p>
+  </div>`;
+}
+
 function bootFrontend() {
   bootExportWidgets();
 
@@ -72,20 +80,25 @@ function bootFrontend() {
     window.location.hash = initialRoute;
   }
 
-  const router = createHashRouter([
-    {
-      path: '*',
-      element: <FrontendRoutes />,
-    },
-  ]);
+  try {
+    const router = createHashRouter([
+      {
+        path: '*',
+        element: <FrontendRoutes />,
+      },
+    ]);
 
-  window.orabooksReactMounted = true;
-  root.classList.add('is-mounted');
-  ReactDOM.createRoot(root).render(
-    <FrontendErrorBoundary>
-      <RouterProvider router={router} />
-    </FrontendErrorBoundary>
-  );
+    window.orabooksReactMounted = true;
+    root.classList.add('is-mounted');
+    ReactDOM.createRoot(root).render(
+      <FrontendErrorBoundary>
+        <RouterProvider router={router} />
+      </FrontendErrorBoundary>
+    );
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Unknown error starting OraBooks.';
+    showFrontendBootError(root, msg);
+  }
 }
 
 if (document.readyState === 'loading') {
