@@ -234,32 +234,21 @@ class OraBooks_Security {
         global $wpdb;
 
         $table = OraBooks_Database::table('security_controls');
-        $controls = [
-            ['A01', 'Broken Access Control', 'SL-003, SL-004', 'RBAC deny-by-default with org_id scoping'],
-            ['A02', 'Cryptographic Failures', 'SL-008, SL-017, SL-203', 'TLS, encrypted secrets, bcrypt passwords'],
-            ['A03', 'Injection', 'All SL', 'Prepared statements and input allowlist validation'],
-            ['A04', 'Insecure Design', 'Architecture', 'Central posting engine and immutable ledger'],
-            ['A05', 'Security Misconfiguration', 'SL-008, SL-099', 'Security headers and secrets in environment'],
-            ['A06', 'Vulnerable Components', 'DevOps, SL-099', 'Weekly dependency scan job'],
-            ['A07', 'Authentication Failures', 'SL-013', 'JWT, 2FA, rate limits, password policy'],
-            ['A08', 'Software & Data Integrity', 'SL-001, SL-009', 'Outbox pattern and audit logging'],
-            ['A09', 'Security Logging Failures', 'SL-009, SL-250', 'Centralized audit and alerting'],
-            ['A10', 'SSRF', 'SL-250, SL-099', 'Webhook URL allowlist validation'],
-        ];
+        $catalog = self::get_owasp_catalog();
 
-        foreach ($controls as $row) {
+        foreach ($catalog as $owasp_id => $meta) {
             $existing = $wpdb->get_var($wpdb->prepare(
                 "SELECT id FROM {$table} WHERE owasp_id = %s",
-                $row[0]
+                $owasp_id
             ));
             if ($existing) {
                 continue;
             }
             $wpdb->insert($table, [
-                'owasp_id'           => $row[0],
-                'control_name'       => $row[1],
-                'implemented_in_sl'  => $row[2],
-                'validation_note'    => $row[3],
+                'owasp_id'           => $owasp_id,
+                'control_name'       => $meta['control_name'],
+                'implemented_in_sl'  => $meta['implemented_in_sl'],
+                'validation_note'    => $meta['validation_note'],
                 'status'             => 'pending',
             ], ['%s', '%s', '%s', '%s', '%s']);
         }
