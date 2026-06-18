@@ -63,6 +63,12 @@ export default function DashboardPage() {
       return;
     }
 
+    const onDashboardPage = /\/dashboard\/?$/.test(window.location.pathname);
+    if (onDashboardPage) {
+      setLoading(false);
+      return;
+    }
+
     // Customer orgs use the merged PHP accounting workspace on /dashboard/.
     window.location.replace('/dashboard/' + window.location.search);
     return;
