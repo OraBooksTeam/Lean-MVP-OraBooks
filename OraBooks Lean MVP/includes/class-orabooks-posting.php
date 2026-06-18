@@ -567,6 +567,158 @@ class OraBooks_Posting {
         
         return $wpdb->get_results($wpdb->prepare($sql, $params));
     }
+
+    public static function get_journal($journal_id, $org_id = 0) {
+        global $wpdb;
+
+        $table = OraBooks_Database::table('journals');
+        if ($org_id > 0) {
+            return $wpdb->get_row($wpdb->prepare(
+                "SELECT * FROM {$table} WHERE id = %d AND org_id = %d",
+                intval($journal_id),
+                intval($org_id)
+            ));
+        }
+
+        return $wpdb->get_row($wpdb->prepare(
+            "SELECT * FROM {$table} WHERE id = %d",
+            intval($journal_id)
+        ));
+    }
+
+    public static function get_journal_lines($journal_id) {
+        global $wpdb;
+
+        $table = OraBooks_Database::table('journal_lines');
+        return $wpdb->get_results($wpdb->prepare(
+            "SELECT * FROM {$table} WHERE journal_id = %d ORDER BY id ASC",
+            intval($journal_id)
+        ));
+    }
+
+    public static function get_approval_history($journal_id, $limit = 20) {
+        global $wpdb;
+
+        $table = OraBooks_Database::table('journal_approval_history');
+        $limit = max(1, min(100, intval($limit)));
+
+        return $wpdb->get_results($wpdb->prepare(
+            "SELECT * FROM {$table} WHERE journal_id = %d ORDER BY created_at DESC LIMIT %d",
+            intval($journal_id),
+            $limit
+        ));
+    }
+
+    public static function get_approval_stats($org_id) {
+        global $wpdb;
+
+        $table = OraBooks_Database::table('journals');
+        $org_id = intval($org_id);
+
+        $pending_review = (int) $wpdb->get_var($wpdb->prepare(
+            "SELECT COUNT(*) FROM {$table} WHERE org_id = %d AND status = 'review_pending'",
+            $org_id
+        ));
+
+        $approved_ready = (int) $wpdb->get_var($wpdb->prepare(
+            "SELECT COUNT(*) FROM {$table} WHERE org_id = %d AND status = 'approved'",
+            $org_id
+        ));
+
+        $draft_count = (int) $wpdb->get_var($wpdb->prepare(
+            "SELECT COUNT(*) FROM {$table} WHERE org_id = %d AND status = 'draft'",
+            $org_id
+        ));
+
+        $posted_mtd = (int) $wpdb->get_var($wpdb->prepare(
+            "SELECT COUNT(*) FROM {$table}
+             WHERE org_id = %d AND status = 'posted'
+               AND posted_at >= %s",
+            $org_id,
+            gmdate('Y-m-01 00:00:00')
+        ));
+
+        return [
+            'pending_review' => $pending_review,
+            'approved_ready' => $approved_ready,
+            'draft_count'    => $draft_count,
+            'posted_mtd'     => $posted_mtd,
+        ];
+    }
+
+    public static function format_journal($journal) {
+        return [
+            'id'                   => (int) $journal->id,
+            'org_id'               => (int) $journal->org_id,
+            'journal_number'       => $journal->journal_number,
+            'status'               => $journal->status,
+            'transaction_date'     => $journal->transaction_date,
+            'total_amount'         => (float) $journal->total_amount,
+            'source_type'          => $journal->source_type,
+            'source_id'            => $journal->source_id ? (int) $journal->source_id : null,
+            'created_by'           => (int) $journal->created_by,
+            'approved_by'          => $journal->approved_by ? (int) $journal->approved_by : null,
+            'posted_by'            => $journal->posted_by ? (int) $journal->posted_by : null,
+            'approval_round'       => (int) $journal->approval_round,
+            'approval_expires_at'  => $journal->approval_expires_at,
+            'rejected_reason'      => $journal->rejected_reason,
+            'created_at'           => $journal->created_at,
+            'approved_at'          => $journal->approved_at,
+            'posted_at'            => $journal->posted_at,
+        ];
+    }
+
+    public static function format_journal_line($line) {
+        return [
+            'id'            => (int) $line->id,
+            'account_code'  => $line->account_code,
+            'debit_amount'  => (float) $line->debit_amount,
+            'credit_amount' => (float) $line->credit_amount,
+            'description'   => $line->description,
+        ];
+    }
+
+    public static function format_approval_history_row($row) {
+        return [
+            'id'              => (int) $row->id,
+            'journal_id'      => (int) $row->journal_id,
+            'action'          => $row->action,
+            'performed_by'    => (int) $row->performed_by,
+            'approval_round'  => (int) $row->approval_round,
+            'revision_number' => (int) $row->revision_number,
+            'reason'          => $row->reason,
+            'created_at'      => $row->created_at,
+        ];
+    }
+
+    private function current_user_id() {
+        return orabooks_get_current_user_id();
+    }
+
+    private function require_journal_access($user_id, $journal_id) {
+        global $wpdb;
+
+        if (!$user_id) {
+            orabooks_json_error('Not authenticated', 401);
+        }
+
+        $table = OraBooks_Database::table('journals');
+        $journal = $wpdb->get_row($wpdb->prepare(
+            "SELECT org_id FROM {$table} WHERE id = %d",
+            intval($journal_id)
+        ));
+
+        if (!$journal) {
+            orabooks_json_error('Journal not found', 404);
+        }
+
+        $isolation = OraBooks_Auth::require_customer_org($user_id, (int) $journal->org_id);
+        if (is_wp_error($isolation)) {
+            orabooks_json_error($isolation->get_error_message(), 403);
+        }
+
+        return (int) $journal->org_id;
+    }
     
     // AJAX handlers
     public function ajax_create_journal() {
