@@ -896,7 +896,7 @@ class OraBooks_Approval {
             (int) ($_POST['delegator_user_id'] ?? $user_id),
             (int) ($_POST['delegate_user_id'] ?? 0),
             sanitize_text_field($_POST['starts_at'] ?? gmdate('Y-m-d H:i:s')),
-            sanitize_text_field($_POST['ends_at'] ?? gmdate('Y-m-d H:i:s', time() + WEEK_IN_SECONDS)),
+            sanitize_text_field($_POST['ends_at'] ?? gmdate('Y-m-d H:i:s', time() + (7 * DAY_IN_SECONDS))),
             $user_id
         );
 
