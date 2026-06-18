@@ -192,10 +192,6 @@ function orabooks_create_wp_user_for_registration($email, $password, $meta = [])
     $username = orabooks_generate_username_from_email($email);
 
     if (orabooks_multisite_uses_signup_activation() && function_exists('wpmu_signup_user')) {
-        if (!function_exists('wpmu_signup_user')) {
-            require_once ABSPATH . 'wp-includes/ms-functions.php';
-        }
-
         $signup_meta = array_merge($meta, [
             'password' => $password,
             'orabooks_signup' => 1,

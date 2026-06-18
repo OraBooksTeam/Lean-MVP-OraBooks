@@ -1329,7 +1329,10 @@ class OraBooks_Notifications {
      * AJAX: Get provider health scores (Owner only).
      */
     public function ajax_provider_health() {
-        if (!current_user_can('manage_options')) {
+        $org_id = intval($_GET['org_id'] ?? $_POST['org_id'] ?? 0);
+        if ($org_id) {
+            $this->require_org_notification_admin($org_id);
+        } elseif (!current_user_can('manage_options')) {
             orabooks_json_error('Permission denied', 403);
         }
 
@@ -1343,12 +1346,8 @@ class OraBooks_Notifications {
      * AJAX: Export signed audit bundle (Owner only).
      */
     public function ajax_audit_export() {
-        $user_id = get_current_user_id();
-        if (!current_user_can('manage_options')) {
-            orabooks_json_error('Permission denied', 403);
-        }
-
         $org_id = intval($_GET['org_id'] ?? 0);
+        $user_id = $this->require_org_notification_admin($org_id);
         $start_date = sanitize_text_field($_GET['start_date'] ?? date('Y-m-d', strtotime('-30 days')));
         $end_date = sanitize_text_field($_GET['end_date'] ?? date('Y-m-d'));
 
