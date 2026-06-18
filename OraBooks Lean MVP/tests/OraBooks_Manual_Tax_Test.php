@@ -153,4 +153,68 @@ class OraBooks_Manual_Tax_Test extends TestCase
         $this->assertInstanceOf(WP_Error::class, $result);
         $this->assertEquals('invalid_status', $result->get_error_code());
     }
+
+    #[Test]
+    public function test_override_invoice_tax_allows_sent_invoice()
+    {
+        global $wpdb;
+
+        $wpdb->test_get_row_callback = function ($query) {
+            if (stripos($query, 'orabooks_invoices') !== false) {
+                return $this->mockInvoice(['workflow_status' => 'sent']);
+            }
+            if (stripos($query, 'fiscal_periods') !== false) {
+                return (object) ['status' => 'open'];
+            }
+            if (stripos($query, 'orabooks_tax_configs') !== false) {
+                return (object) [
+                    'id' => 1,
+                    'default_tax_rate' => '15.0000',
+                    'tax_type' => 'VAT',
+                    'override_reasons' => json_encode(['LOCAL_TAX_RULE']),
+                ];
+            }
+            return null;
+        };
+
+        $result = OraBooks_Customers::override_invoice_tax(
+            5,
+            100,
+            10,
+            'LOCAL_TAX_RULE',
+            7,
+            'BD'
+        );
+
+        $this->assertIsArray($result);
+        $this->assertEquals(10.0, $result['tax_rate']);
+    }
+
+    #[Test]
+    public function test_override_invoice_tax_blocks_when_fiscal_period_closed()
+    {
+        global $wpdb;
+
+        $wpdb->test_get_row_callback = function ($query) {
+            if (stripos($query, 'orabooks_invoices') !== false) {
+                return $this->mockInvoice();
+            }
+            if (stripos($query, 'fiscal_periods') !== false) {
+                return (object) ['status' => 'soft_closed'];
+            }
+            return null;
+        };
+
+        $result = OraBooks_Customers::override_invoice_tax(
+            5,
+            100,
+            5,
+            'LOCAL_TAX_RULE',
+            7,
+            'BD'
+        );
+
+        $this->assertInstanceOf(WP_Error::class, $result);
+        $this->assertEquals('tax_locked', $result->get_error_code());
+    }
 }
