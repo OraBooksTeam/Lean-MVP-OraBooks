@@ -44,7 +44,7 @@ class OBN_Opening_Balances {
         $wpdb->query('START TRANSACTION');
 
         try {
-            $store_id = 1; // Default for now
+            $store_id = obn_store_id();
             $entry_date = sanitize_text_field($_POST['entry_date'] ?? date('Y-m-d'));
 
             if (class_exists('OBN_Fiscal_Period_Posting_Guard')) {

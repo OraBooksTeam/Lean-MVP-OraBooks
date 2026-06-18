@@ -114,7 +114,7 @@ class OBN_Items {
                     );
                 } else {
                     $wpdb->insert($wh_table, [
-                        'store_id'      => 1,
+                        'store_id'      => obn_store_id(),
                         'warehouse_id'  => $warehouse_id,
                         'item_id'       => $id,
                         'available_qty' => $opening_stock,
@@ -197,7 +197,7 @@ class OBN_Items {
             'alert_qty'       => intval($_POST['alert_stock'] ?? 0),
             'item_image'      => $item_image,
             'status'          => 1,
-            'store_id'        => 1,
+            'store_id'        => obn_store_id(),
         ];
 
         $result = $wpdb->insert($table, $data);
@@ -222,7 +222,7 @@ class OBN_Items {
                     );
                 } else {
                     $wpdb->insert($wh_table, [
-                        'store_id'      => 1,
+                        'store_id'      => obn_store_id(),
                         'warehouse_id'  => $warehouse_id,
                         'item_id'       => $insert_id,
                         'available_qty' => $opening_stock,

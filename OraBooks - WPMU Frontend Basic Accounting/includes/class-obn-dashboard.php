@@ -3099,7 +3099,7 @@ class OBN_Dashboard
 						$items_list = $wpdb->get_results("SELECT id, item_name, item_code, purchase_price FROM {$wpdb->prefix}orabooks_db_items WHERE status = 1");
 
 						// Fetch existing opening balances
-						$existing_obs = $wpdb->get_results("SELECT * FROM {$wpdb->prefix}orabooks_ac_opening_balances WHERE store_id = 1");
+						$existing_obs = $wpdb->get_results($wpdb->prepare("SELECT * FROM {$wpdb->prefix}orabooks_ac_opening_balances WHERE store_id = %d", obn_store_id()));
 						$coa_obs = [];
 						$cust_obs = [];
 						$supp_obs = [];
@@ -3118,7 +3118,7 @@ class OBN_Dashboard
 							}
 						}
 
-						$existing_inv = $wpdb->get_results("SELECT * FROM {$wpdb->prefix}orabooks_ac_inventory_opening WHERE store_id = 1");
+						$existing_inv = $wpdb->get_results($wpdb->prepare("SELECT * FROM {$wpdb->prefix}orabooks_ac_inventory_opening WHERE store_id = %d", obn_store_id()));
 						$inv_obs = [];
 						if ($existing_inv) {
 							foreach ($existing_inv as $inv) {
@@ -5932,7 +5932,7 @@ class OBN_Dashboard
 			// Ensure obn_ajax is defined for inline scripts in case footer scripts haven't loaded yet
 			if (typeof obn_ajax === 'undefined') {
 				var obn_ajax = {
-					ajax_url: '<?php echo get_admin_url(obn_current_org_id(), "admin-ajax.php"); ?>',
+					ajax_url: '<?php echo esc_url(obn_ajax_admin_url()); ?>',
 					nonce: '<?php echo wp_create_nonce("frontend_ajax_nonce"); ?>',
 					auth_nonce: '<?php echo wp_create_nonce("obn_auth_nonce"); ?>',
 					expense_nonce: '<?php echo wp_create_nonce("obn_expense_action_nonce"); ?>',
