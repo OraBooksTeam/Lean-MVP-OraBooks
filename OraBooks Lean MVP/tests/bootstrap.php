@@ -15,6 +15,14 @@ if (!defined('ABSPATH')) {
     define('ABSPATH', __DIR__ . '/../');
 }
 
+if (!defined('ORABOOKS_PLUGIN_DIR')) {
+    define('ORABOOKS_PLUGIN_DIR', __DIR__ . '/../');
+}
+
+if (!defined('ORABOOKS_PLUGIN_URL')) {
+    define('ORABOOKS_PLUGIN_URL', 'http://example.com/wp-content/plugins/orabooks/');
+}
+
 // Define WordPress constants used by the exports class
 if (!defined('OBJECT')) {
     define('OBJECT', 'OBJECT');
@@ -536,6 +544,18 @@ if (!function_exists('apply_filters')) {
 
 if (!function_exists('home_url')) {
     function home_url($path = '') { return 'http://example.com' . $path; }
+}
+
+if (!function_exists('rest_url')) {
+    function rest_url($path = '') {
+        return home_url('/wp-json' . $path);
+    }
+}
+
+if (!function_exists('trailingslashit')) {
+    function trailingslashit($string) {
+        return rtrim($string, '/\\') . '/';
+    }
 }
 
 if (!function_exists('is_ssl')) {

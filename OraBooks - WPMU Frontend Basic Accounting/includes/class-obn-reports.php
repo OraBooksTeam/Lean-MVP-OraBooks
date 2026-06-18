@@ -419,13 +419,13 @@ class OBN_Reports {
                 SUM(jl.credit) as total_credit
             FROM $coa_table coal
             LEFT JOIN $jl_table jl ON coal.id = jl.account_id
-            LEFT JOIN $je_table je ON jl.journal_entry_id = je.id AND je.status = 'Posted' AND je.entry_date >= %s AND je.entry_date <= %s
+            LEFT JOIN $je_table je ON jl.journal_entry_id = je.id AND je.status = 'Posted' AND je.entry_date >= %s AND je.entry_date <= %s AND (je.organization_id = %d OR je.store_id = %d)
             JOIN $types_table t ON coal.coa_type_id = t.id
-            WHERE coal.coa_type_id IN (1, 2, 3)
+            WHERE coal.coa_type_id IN (1, 2, 3) AND (coal.store_id = %d OR coal.organization_id = %d OR coal.store_id IS NULL)
             GROUP BY coal.id
             HAVING (SUM(jl.debit) != 0 OR SUM(jl.credit) != 0)
             ORDER BY coal.coa_type_id ASC, coal.account_code ASC
-        ", $start_date, $end_date);
+        ", $start_date, $end_date, $org_id, $org_id, $org_id, $org_id);
         
         $rows = $wpdb->get_results($sql);
 
