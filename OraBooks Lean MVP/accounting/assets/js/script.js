@@ -18,6 +18,10 @@ function obnSwitchTab(tabName) {
 }
 
 jQuery(document).ready(function ($) {
+    if (!$('.obn-dashboard-wrapper').length) {
+        return;
+    }
+
     // Define global fallback for Frontend_Accounting_ajax to ensure compatibility
     if (typeof obn_ajax !== 'undefined') {
         window.Frontend_Accounting_ajax = window.Frontend_Accounting_ajax || obn_ajax;

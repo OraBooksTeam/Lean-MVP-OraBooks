@@ -12,41 +12,21 @@ class OBN_Shortcodes
 		$this->dashboard = $dashboard;
 		add_shortcode('orabooks_accounting', array($this, 'render_dashboard'));
 		add_action('wp_enqueue_scripts', array($this, 'enqueue_assets'));
-
-		// Hard stop for assets on inventory pages
-		add_action('template_redirect', function () {
-			if (strpos($_SERVER['REQUEST_URI'], '/inventory') !== false) {
-				remove_action('wp_enqueue_scripts', array($this, 'enqueue_assets'));
-			}
-		});
 	}
 
 	public function enqueue_assets()
 	{
-		global $post;
-		$is_accounting_page = false;
-		if (is_page() && isset($post->post_content) && has_shortcode($post->post_content, 'orabooks_accounting')) {
-			$is_accounting_page = true;
-		} elseif (
-			is_page()
-			&& isset($post->post_content)
-			&& has_shortcode($post->post_content, 'orabooks_dashboard')
-			&& function_exists('orabooks_uses_merged_accounting_workspace')
-			&& orabooks_uses_merged_accounting_workspace()
-		) {
-			$is_accounting_page = true;
-		} elseif (isset($post->post_name) && in_array($post->post_name, ['dashboard', 'customers', 'invoices', 'inventory', 'vendors', 'reports', 'expenses', 'journals', 'chart-of-accounts', 'fiscal-periods', 'tax-settings', 'csv-imports'], true)) {
-			if (function_exists('orabooks_uses_merged_accounting_workspace') && orabooks_uses_merged_accounting_workspace()) {
-				$is_accounting_page = true;
-			}
-		} elseif (strpos($_SERVER['REQUEST_URI'] ?? '', '/dashboard') !== false) {
-			if (function_exists('orabooks_uses_merged_accounting_workspace') && orabooks_uses_merged_accounting_workspace()) {
-				$is_accounting_page = true;
-			}
+		if (!is_page()) {
+			return;
 		}
 
-		if (!$is_accounting_page)
+		global $post;
+		if (
+			!isset($post->post_content)
+			|| !has_shortcode($post->post_content, 'orabooks_accounting')
+		) {
 			return;
+		}
 
 		// Load Tailwind via CDN script so utility classes are available
 		wp_enqueue_script('obn-tailwind', 'https://cdn.tailwindcss.com', array(), null, false);
