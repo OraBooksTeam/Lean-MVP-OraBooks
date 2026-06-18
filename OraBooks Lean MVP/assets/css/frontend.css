@@ -1457,6 +1457,8 @@
 .orabooks-ajax-dashboard .orabooks-section {
     margin-top: 20px;
 }
+
+.orabooks-app-root.is-mounted .orabooks-app-root-loading {
     display: none;
 }
 
