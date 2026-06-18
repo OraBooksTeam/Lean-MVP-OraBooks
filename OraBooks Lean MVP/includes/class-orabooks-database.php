@@ -952,6 +952,15 @@ class OraBooks_Database {
             update_option('orabooks_installed_at', current_time('mysql', true));
         }
 
+        // ============================================================
+        // SL-022: Smart Classification & Tax Hints
+        // ============================================================
+        $classification_tables = OraBooks_Classification::get_create_table_sql();
+        foreach ($classification_tables as $sql) {
+            dbDelta($sql);
+        }
+        OraBooks_Classification::ensure_schema();
+
         update_option('orabooks_db_version', ORABOOKS_DB_VERSION);
     }
     

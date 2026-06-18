@@ -32,6 +32,8 @@ class OraBooks_RBAC {
             'view_ai_review_queue'        => ['owner', 'admin', 'approver'],
             'view_expenses'               => ['owner', 'admin', 'approver', 'staff', 'viewer'],
             'manage_expenses'             => ['owner', 'admin', 'staff'],
+            'view_classification'         => ['owner', 'admin', 'approver', 'staff', 'viewer'],
+            'override_classification'     => ['owner', 'admin', 'staff'],
             'approve_expense'             => ['owner', 'admin', 'approver'],
             'view_voice_inputs'           => ['owner', 'admin', 'approver', 'staff', 'viewer'],
             'manage_voice_inputs'         => ['owner', 'admin', 'staff'],
