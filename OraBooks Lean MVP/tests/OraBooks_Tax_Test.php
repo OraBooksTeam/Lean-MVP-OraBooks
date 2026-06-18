@@ -192,6 +192,9 @@ class OraBooks_Tax_Test extends TestCase
             return null;
         };
         $wpdb->test_get_row_callback = function ($query) {
+            if (stripos($query, 'fiscal_periods') !== false) {
+                return (object) ['status' => 'open'];
+            }
             if (stripos($query, 'WHERE id') !== false) {
                 return (object) [
                     'id' => 123,
@@ -216,5 +219,119 @@ class OraBooks_Tax_Test extends TestCase
         $this->assertEquals(123, $result->id);
         $this->assertEquals('BD', $result->jurisdiction);
         $this->assertEquals('VAT', $result->tax_type);
+    }
+
+    #[Test]
+    public function test_save_config_blocked_when_fiscal_period_closed()
+    {
+        global $wpdb;
+
+        $wpdb->test_get_row_callback = function ($query) {
+            if (stripos($query, 'fiscal_periods') !== false) {
+                return (object) ['status' => 'soft_closed'];
+            }
+            return null;
+        };
+
+        $result = OraBooks_Tax::save_config(5, [
+            'jurisdiction' => 'US',
+            'default_tax_rate' => 8,
+            'tax_type' => 'Sales Tax',
+            'is_active' => 1,
+        ], 1);
+
+        $this->assertInstanceOf(WP_Error::class, $result);
+        $this->assertEquals('tax_locked', $result->get_error_code());
+    }
+
+    #[Test]
+    public function test_is_tax_locked_for_soft_closed_period()
+    {
+        global $wpdb;
+
+        $wpdb->test_get_row_callback = function ($query) {
+            if (stripos($query, 'fiscal_periods') !== false) {
+                return (object) ['status' => 'soft_closed'];
+            }
+            return null;
+        };
+
+        $this->assertTrue(OraBooks_Tax::is_tax_locked(3, ['transaction_date' => '2026-06-10']));
+    }
+
+    #[Test]
+    public function test_list_configs_formats_rows()
+    {
+        global $wpdb;
+
+        $wpdb->test_get_results_callback = function ($query) {
+            if (stripos($query, 'tax_configs') !== false) {
+                return [
+                    (object) [
+                        'id' => 9,
+                        'org_id' => 2,
+                        'jurisdiction' => 'IN',
+                        'default_tax_rate' => '18.0000',
+                        'tax_type' => 'GST',
+                        'exemption_certificate_url' => null,
+                        'override_reasons' => null,
+                        'is_active' => 1,
+                        'updated_at' => '2026-06-01 10:00:00',
+                    ],
+                ];
+            }
+            return [];
+        };
+
+        $configs = OraBooks_Tax::list_configs(2);
+
+        $this->assertCount(1, $configs);
+        $this->assertEquals('IN', $configs[0]['jurisdiction']);
+        $this->assertEquals(18.0, $configs[0]['default_tax_rate']);
+        $this->assertEquals('GST', $configs[0]['tax_type']);
+    }
+
+    #[Test]
+    public function test_create_snapshot_returns_existing_without_insert()
+    {
+        global $wpdb;
+
+        $insert_called = false;
+        $wpdb->test_get_var_callback = function ($query) use (&$insert_called) {
+            if (stripos($query, 'tax_snapshots') !== false && stripos($query, 'SELECT id') !== false) {
+                return 88;
+            }
+            return null;
+        };
+        $wpdb->test_get_row_callback = function ($query) {
+            if (stripos($query, 'fiscal_periods') !== false) {
+                return (object) ['status' => 'open'];
+            }
+            if (stripos($query, 'tax_configs') !== false) {
+                return (object) [
+                    'id' => 1,
+                    'default_tax_rate' => '10.0000',
+                    'tax_type' => 'Sales Tax',
+                    'override_reasons' => null,
+                ];
+            }
+            return null;
+        };
+        $wpdb->test_insert_callback = function () use (&$insert_called) {
+            $insert_called = true;
+        };
+
+        $result = OraBooks_Tax::create_snapshot([
+            'org_id' => 5,
+            'transaction_id' => 200,
+            'transaction_type' => 'invoice',
+            'amount' => 500,
+            'jurisdiction' => 'US',
+        ], 1);
+
+        $this->assertIsArray($result);
+        $this->assertEquals(88, $result['snapshot_id']);
+        $this->assertTrue($result['existing']);
+        $this->assertFalse($insert_called);
     }
 }
