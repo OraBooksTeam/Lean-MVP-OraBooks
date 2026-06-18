@@ -313,6 +313,21 @@ class OraBooks_Tax {
         }
 
         $table = OraBooks_Database::table('tax_snapshots');
+        $existing_id = $wpdb->get_var($wpdb->prepare(
+            "SELECT id FROM {$table} WHERE org_id = %d AND transaction_type = %s AND transaction_id = %d",
+            $org_id,
+            $transaction_type,
+            $transaction_id
+        ));
+
+        if ($existing_id) {
+            return [
+                'snapshot_id' => (int) $existing_id,
+                'calculation' => $calculation,
+                'existing' => true,
+            ];
+        }
+
         $wpdb->insert(
             $table,
             [
