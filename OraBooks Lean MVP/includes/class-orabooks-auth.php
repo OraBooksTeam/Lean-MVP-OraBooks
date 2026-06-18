@@ -1321,14 +1321,20 @@ class OraBooks_Auth {
     }
     
     public function ajax_logout() {
-        if (!is_user_logged_in()) {
+        if (!orabooks_is_user_logged_in()) {
+            orabooks_clear_auth_token_cookie();
             orabooks_json_success([], 'Logged out');
         }
         
-        $user_id = get_current_user_id();
+        $user_id = orabooks_get_current_user_id();
         
         // Revoke all refresh tokens
         self::revoke_user_tokens($user_id);
+
+        orabooks_clear_auth_token_cookie();
+        if (function_exists('wp_logout')) {
+            wp_logout();
+        }
         
         orabooks_log_event('logout', "User logged out", 'info', [], $user_id, null);
         orabooks_json_success([], 'Logged out successfully');
@@ -1725,6 +1731,8 @@ class OraBooks_Auth {
             $status_code = ($result->get_error_code() === 'oidc_email_conflict') ? 409 : 401;
             orabooks_json_error($result->get_error_message(), $status_code);
         }
+
+        orabooks_persist_login_session($result);
 
         orabooks_json_success($result, 'Google login successful');
     }
