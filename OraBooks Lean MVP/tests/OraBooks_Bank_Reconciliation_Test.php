@@ -232,4 +232,24 @@ class OraBooks_Bank_Reconciliation_Test extends TestCase
         $this->assertEquals(900.0, $result['system_balance']);
         $this->assertEquals(100.0, $result['difference']);
     }
+
+    #[Test]
+    public function test_get_transactions_list_without_account_filter_returns_org_transactions()
+    {
+        global $wpdb;
+
+        $seen_query = '';
+        $wpdb->test_get_results_callback = function ($query) use (&$seen_query) {
+            $seen_query = $query;
+            return [
+                $this->mockBankTransaction(['bank_account_id' => 10]),
+                $this->mockBankTransaction(['id' => 101, 'bank_account_id' => 11]),
+            ];
+        };
+
+        $rows = OraBooks_Bank_Reconciliation::get_transactions_list(5, 0, ['limit' => 50, 'offset' => 0]);
+
+        $this->assertCount(2, $rows);
+        $this->assertStringContainsString('WHERE org_id =', $seen_query);
+    }
 }
