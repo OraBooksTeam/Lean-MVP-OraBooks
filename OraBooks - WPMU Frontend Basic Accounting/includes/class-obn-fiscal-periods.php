@@ -105,6 +105,10 @@ class OBN_Fiscal_Period {
 
 class OBN_Fiscal_Period_Policy {
     public static function current_org_id() {
+        if ( class_exists( 'OBN_Lean_MVP_Bridge' ) ) {
+            return OBN_Lean_MVP_Bridge::current_org_id();
+        }
+
         return get_current_blog_id();
     }
 

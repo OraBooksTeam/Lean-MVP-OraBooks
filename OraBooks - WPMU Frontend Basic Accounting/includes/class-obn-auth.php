@@ -21,6 +21,10 @@ class OBN_Auth {
 	}
 
     public function can_access_accounting() {
+        if ( class_exists( 'OBN_Lean_MVP_Bridge' ) ) {
+            return OBN_Lean_MVP_Bridge::can_access_accounting();
+        }
+
         if ( ! is_user_logged_in() ) {
             return false;
         }
@@ -29,13 +33,20 @@ class OBN_Auth {
             return true;
         }
 
-        // Check if Orabooks Membership plugin is active and feature is enabled
         if ( function_exists('orabooks_is_feature_enabled') ) {
             return orabooks_is_feature_enabled('accounting');
         }
 
 		return false;
 	}
+
+    public function is_partner_org_blocked() {
+        if ( ! class_exists( 'OBN_Lean_MVP_Bridge' ) ) {
+            return false;
+        }
+
+        return OBN_Lean_MVP_Bridge::is_partner_org();
+    }
 
 	public function get_current_user() {
 		return wp_get_current_user();

@@ -386,6 +386,8 @@ function run_obn_frontend_accounting()
 		return;
 	}
 
+	require_once OBN_ACCOUNTING_PLUGIN_DIR . 'includes/class-obn-lean-mvp-bridge.php';
+
 	require_once OBN_ACCOUNTING_PLUGIN_DIR . 'includes/class-obn-activator.php';
 	OBN_Activator::maybe_upgrade_schema();
 
