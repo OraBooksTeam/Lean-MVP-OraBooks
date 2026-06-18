@@ -305,6 +305,32 @@ export default function InvoicesPage() {
           <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-medium text-emerald-700">{success}</div>
         )}
 
+        {selectedInvoice && orgId && (
+          <div className="glass-panel p-5">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-4">
+              <div>
+                <h2 className="font-bold text-ink">
+                  {selectedInvoice.invoice_number || `Invoice #${selectedInvoice.id}`}
+                </h2>
+                <p className="text-sm text-slate-600">
+                  Due {selectedInvoice.due_date || '—'} · {money(selectedInvoice.total_amount, selectedInvoice.currency)}
+                </p>
+              </div>
+              <Button variant="secondary" size="sm" onClick={() => setSelectedInvoice(null)}>
+                Close
+              </Button>
+            </div>
+            <div className="mt-4">
+              <ResourceAttachmentsPanel
+                orgId={orgId}
+                resourceType="invoice"
+                resourceId={selectedInvoice.id}
+                title="Invoice files"
+              />
+            </div>
+          </div>
+        )}
+
         <div className="glass-panel overflow-hidden">
           <table className="min-w-full text-left text-sm">
             <thead>
