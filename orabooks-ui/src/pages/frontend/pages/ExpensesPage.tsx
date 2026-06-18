@@ -5,7 +5,14 @@ import Input from '@/components/Input';
 import { api } from '../api';
 import ClientShell from '../components/ClientShell';
 import ResourceAttachmentsPanel from '../components/ResourceAttachmentsPanel';
-import { Camera, CheckCircle2, Paperclip, Percent, Receipt, RefreshCw, Sparkles, Upload, XCircle } from 'lucide-react';
+import {
+  isOffline,
+  listQueuedReceipts,
+  queueReceipt,
+  syncQueuedReceipts,
+} from '@/lib/pwa/offline-receipt-queue';
+import { onOnline } from '@/lib/pwa/register-pwa';
+import { Camera, CheckCircle2, CloudOff, Paperclip, Percent, Receipt, RefreshCw, Sparkles, Upload, XCircle } from 'lucide-react';
 
 const fieldClass =
   'w-full rounded-lg border border-border bg-white px-3.5 py-2.5 text-sm text-ink shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20';
@@ -39,7 +46,10 @@ export default function ExpensesPage() {
   const [overrideJurisdiction, setOverrideJurisdiction] = useState('US');
   const [taxLocked, setTaxLocked] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [offlineQueueCount, setOfflineQueueCount] = useState(0);
+  const [syncingOffline, setSyncingOffline] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
 
   const orgId = data?.context?.organization?.id;
   const caps = data?.capabilities || {};
