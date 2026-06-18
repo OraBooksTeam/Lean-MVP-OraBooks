@@ -344,7 +344,7 @@ class OraBooks_Expenses {
         $wpdb->update($table, ['attachment_id' => $attachment_id], ['id' => $expense_id], ['%d'], ['%d']);
 
         $queue_id = self::enqueue_ocr($expense_id, $org_id, $attachment_id);
-        self::$instance->process_ocr_item_by_id($queue_id);
+        self::init()->process_ocr_item_by_id($queue_id);
 
         orabooks_log_event('expense_receipt_uploaded', "Receipt uploaded for expense #{$expense_id}", 'info', [
             'expense_id'    => $expense_id,
@@ -779,7 +779,7 @@ class OraBooks_Expenses {
             'source_id'        => intval($expense_id),
             'metadata'         => ['vendor' => $expense->vendor, 'category' => $expense->category],
             'idempotency_key'  => 'expense-post-' . intval($expense_id),
-        ], $user_id);
+        ], (int) $expense->created_by);
 
         if (!$journal_id) {
             return new WP_Error('journal_error', 'Failed to create journal for expense');
@@ -797,7 +797,7 @@ class OraBooks_Expenses {
             return $lines_result;
         }
 
-        $submit = OraBooks_Posting::submit_journal($journal_id, $user_id);
+        $submit = OraBooks_Posting::submit_journal($journal_id, (int) $expense->created_by);
         if (is_wp_error($submit)) {
             return $submit;
         }

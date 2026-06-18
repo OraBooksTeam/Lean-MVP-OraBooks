@@ -273,6 +273,34 @@ class OraBooks_Ai_Review {
         return count($items ?: []);
     }
 
+    public static function resolve_ai_review_by_resource($org_id, $resource_type, $resource_id, $user_id = 0) {
+        global $wpdb;
+
+        $table = OraBooks_Database::table(self::TABLE_QUEUE);
+        $items = $wpdb->get_results($wpdb->prepare(
+            "SELECT * FROM {$table}
+             WHERE org_id = %d AND resource_type = %s AND resource_id = %d
+               AND status IN ('pending','processing','escalated')",
+            intval($org_id),
+            sanitize_text_field($resource_type),
+            intval($resource_id)
+        ));
+
+        foreach ($items ?: [] as $item) {
+            $wpdb->update($table, [
+                'status'      => 'resolved',
+                'resolved_at' => current_time('mysql'),
+            ], ['id' => (int) $item->id], ['%s', '%s'], ['%d']);
+
+            self::record_history((int) $item->id, (int) $item->org_id, 'resolve', (int) $user_id, [
+                'resource_type' => $resource_type,
+                'resource_id'   => (int) $resource_id,
+            ]);
+        }
+
+        return count($items ?: []);
+    }
+
     public static function list_queue($org_id, $args = []) {
         global $wpdb;
 
