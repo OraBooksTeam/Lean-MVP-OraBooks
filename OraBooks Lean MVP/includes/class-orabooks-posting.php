@@ -753,18 +753,12 @@ class OraBooks_Posting {
     }
     
     public function ajax_submit_journal() {
-        $user_id = get_current_user_id();
+        $user_id = $this->current_user_id();
         $journal_id = intval($_POST['journal_id'] ?? 0);
-        
-        // Fetch journal to get org_id for isolation check
-        global $wpdb;
-        $table = OraBooks_Database::table('journals');
-        $journal = $wpdb->get_row($wpdb->prepare("SELECT org_id FROM {$table} WHERE id = %d", $journal_id));
-        if ($journal) {
-            $isolation = OraBooks_Auth::require_customer_org($user_id, $journal->org_id);
-            if (is_wp_error($isolation)) {
-                orabooks_json_error($isolation->get_error_message(), 403);
-            }
+        $org_id = $this->require_journal_access($user_id, $journal_id);
+
+        if (!OraBooks_RBAC::require_permission($user_id, $org_id, 'submit_transaction')) {
+            orabooks_json_error('Permission denied', 403);
         }
         
         $result = self::submit_journal($journal_id, $user_id);
@@ -775,18 +769,12 @@ class OraBooks_Posting {
     }
     
     public function ajax_approve_journal() {
-        $user_id = get_current_user_id();
+        $user_id = $this->current_user_id();
         $journal_id = intval($_POST['journal_id'] ?? 0);
-        
-        // Fetch journal to get org_id for isolation check
-        global $wpdb;
-        $table = OraBooks_Database::table('journals');
-        $journal = $wpdb->get_row($wpdb->prepare("SELECT org_id FROM {$table} WHERE id = %d", $journal_id));
-        if ($journal) {
-            $isolation = OraBooks_Auth::require_customer_org($user_id, $journal->org_id);
-            if (is_wp_error($isolation)) {
-                orabooks_json_error($isolation->get_error_message(), 403);
-            }
+        $org_id = $this->require_journal_access($user_id, $journal_id);
+
+        if (!OraBooks_RBAC::require_permission($user_id, $org_id, 'approve_journal')) {
+            orabooks_json_error('Permission denied', 403);
         }
         
         $result = self::approve_journal($journal_id, $user_id);
@@ -797,19 +785,13 @@ class OraBooks_Posting {
     }
     
     public function ajax_reject_journal() {
-        $user_id = get_current_user_id();
+        $user_id = $this->current_user_id();
         $journal_id = intval($_POST['journal_id'] ?? 0);
         $reason = sanitize_textarea_field($_POST['reason'] ?? '');
-        
-        // Fetch journal to get org_id for isolation check
-        global $wpdb;
-        $table = OraBooks_Database::table('journals');
-        $journal = $wpdb->get_row($wpdb->prepare("SELECT org_id FROM {$table} WHERE id = %d", $journal_id));
-        if ($journal) {
-            $isolation = OraBooks_Auth::require_customer_org($user_id, $journal->org_id);
-            if (is_wp_error($isolation)) {
-                orabooks_json_error($isolation->get_error_message(), 403);
-            }
+        $org_id = $this->require_journal_access($user_id, $journal_id);
+
+        if (!OraBooks_RBAC::require_permission($user_id, $org_id, 'approve_journal')) {
+            orabooks_json_error('Permission denied', 403);
         }
         
         $result = self::reject_journal($journal_id, $user_id, $reason);
@@ -820,18 +802,12 @@ class OraBooks_Posting {
     }
     
     public function ajax_post_journal() {
-        $user_id = get_current_user_id();
+        $user_id = $this->current_user_id();
         $journal_id = intval($_POST['journal_id'] ?? 0);
-        
-        // Fetch journal to get org_id for isolation check
-        global $wpdb;
-        $table = OraBooks_Database::table('journals');
-        $journal = $wpdb->get_row($wpdb->prepare("SELECT org_id FROM {$table} WHERE id = %d", $journal_id));
-        if ($journal) {
-            $isolation = OraBooks_Auth::require_customer_org($user_id, $journal->org_id);
-            if (is_wp_error($isolation)) {
-                orabooks_json_error($isolation->get_error_message(), 403);
-            }
+        $org_id = $this->require_journal_access($user_id, $journal_id);
+
+        if (!OraBooks_RBAC::require_permission($user_id, $org_id, 'submit_transaction')) {
+            orabooks_json_error('Permission denied', 403);
         }
         
         $result = self::post_journal($journal_id, $user_id);
@@ -842,22 +818,56 @@ class OraBooks_Posting {
     }
     
     public function ajax_get_journals() {
-        $user_id = get_current_user_id();
-        $org_id = intval($_GET['org_id'] ?? 0);
+        $user_id = $this->current_user_id();
+        $org_id = intval($_GET['org_id'] ?? $_POST['org_id'] ?? 0);
         
-        // SL-013: Enforce customer org isolation on accounting endpoints
         $isolation = OraBooks_Auth::require_customer_org($user_id, $org_id);
         if (is_wp_error($isolation)) {
             orabooks_json_error($isolation->get_error_message(), 403);
         }
+
+        if (!OraBooks_RBAC::require_permission($user_id, $org_id, 'view_reports')) {
+            orabooks_json_error('Permission denied', 403);
+        }
         
         $args = [
-            'status' => sanitize_text_field($_GET['status'] ?? ''),
-            'from_date' => sanitize_text_field($_GET['from_date'] ?? ''),
-            'to_date' => sanitize_text_field($_GET['to_date'] ?? ''),
+            'status' => sanitize_text_field($_GET['status'] ?? $_POST['status'] ?? ''),
+            'from_date' => sanitize_text_field($_GET['from_date'] ?? $_POST['from_date'] ?? ''),
+            'to_date' => sanitize_text_field($_GET['to_date'] ?? $_POST['to_date'] ?? ''),
         ];
         
         $journals = self::get_journals($org_id, $args);
-        orabooks_json_success($journals);
+        orabooks_json_success([
+            'journals' => array_map([self::class, 'format_journal'], $journals ?: []),
+        ]);
+    }
+
+    public function ajax_get_journal() {
+        $user_id = $this->current_user_id();
+        $org_id = intval($_GET['org_id'] ?? $_POST['org_id'] ?? 0);
+        $journal_id = intval($_GET['journal_id'] ?? $_POST['journal_id'] ?? 0);
+
+        $isolation = OraBooks_Auth::require_customer_org($user_id, $org_id);
+        if (is_wp_error($isolation)) {
+            orabooks_json_error($isolation->get_error_message(), 403);
+        }
+
+        if (!OraBooks_RBAC::require_permission($user_id, $org_id, 'view_reports')) {
+            orabooks_json_error('Permission denied', 403);
+        }
+
+        $journal = self::get_journal($journal_id, $org_id);
+        if (!$journal) {
+            orabooks_json_error('Journal not found', 404);
+        }
+
+        $lines = self::get_journal_lines($journal_id);
+        $history = self::get_approval_history($journal_id);
+
+        orabooks_json_success([
+            'journal' => self::format_journal($journal),
+            'lines'   => array_map([self::class, 'format_journal_line'], $lines ?: []),
+            'approval_history' => array_map([self::class, 'format_approval_history_row'], $history ?: []),
+        ]);
     }
 }
