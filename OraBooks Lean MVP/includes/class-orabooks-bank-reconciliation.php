@@ -314,8 +314,23 @@ class OraBooks_Bank_Reconciliation {
         }
 
         $transaction_type = sanitize_text_field($transaction_type);
-        if (!in_array($transaction_type, ['payment', 'expense', 'journal'], true)) {
+        if (!in_array($transaction_type, ['payment', 'expense', 'journal', 'commission_payout'], true)) {
             return new WP_Error('invalid_transaction_type', 'Invalid transaction type');
+        }
+
+        if ($transaction_type === 'commission_payout') {
+            if (!class_exists('OraBooks_Commission')) {
+                return new WP_Error('commission_unavailable', 'Commission module unavailable');
+            }
+
+            $settle = OraBooks_Commission::settle_payout(
+                intval($transaction_id),
+                intval($bank_transaction_id),
+                $bank_transaction->transaction_date
+            );
+            if (is_wp_error($settle)) {
+                return $settle;
+            }
         }
 
         $wpdb->insert(

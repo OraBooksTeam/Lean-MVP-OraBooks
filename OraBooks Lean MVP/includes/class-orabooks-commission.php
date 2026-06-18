@@ -1107,14 +1107,7 @@ class OraBooks_Commission {
             
             // Compute fee
             $gross_amount = $total_pending;
-            $fee_amount = 0;
-            
-            if ($config->payout_fee_type === 'percentage') {
-                $fee_amount = round($gross_amount * ($config->payout_fee_rate / 100), 2);
-            } else {
-                // Flat fee per payout
-                $fee_amount = $config->payout_fee_rate;
-            }
+            $fee_amount = self::calculate_payout_fee($gross_amount, $config);
             
             // Create payout record
             $wpdb->insert(
