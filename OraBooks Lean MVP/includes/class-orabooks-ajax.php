@@ -539,12 +539,14 @@ class OraBooks_Ajax {
     }
 
     public function ajax_csv_imports_dashboard() {
-        $context = $this->get_current_orabooks_context();
-        if (is_wp_error($context)) {
-            orabooks_json_error($context->get_error_message(), 401);
+        $user_id = orabooks_get_current_user_id();
+        if (!$user_id) {
+            orabooks_json_error('Not authenticated', 401);
         }
 
-        $org = $context['organization'];
+        if (current_user_can('manage_options')) {
+            global $wpdb;
+            $table = Oabooks_Database::table('csv_imports');
         $org_id = $org ? (int) $org['id'] : 0;
         if (!$org_id) {
             orabooks_json_error('Organization is not set up yet.', 400);
