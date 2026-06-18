@@ -1206,11 +1206,19 @@ class OraBooks_Posting {
         $journal_id = intval($_POST['journal_id'] ?? 0);
         $org_id = $this->require_journal_access($user_id, $journal_id);
 
-        if (!OraBooks_RBAC::require_permission($user_id, $org_id, 'approve_journal')) {
+        if (!OraBooks_Approval::user_can_approve($user_id, $org_id)) {
             orabooks_json_error('Permission denied', 403);
         }
-        
-        $result = self::approve_journal($journal_id, $user_id);
+
+        $args = [];
+        if (!empty($_POST['mfa_otp'])) {
+            $args['mfa_otp'] = sanitize_text_field($_POST['mfa_otp']);
+        }
+        if (!empty($_POST['mfa_verified'])) {
+            $args['mfa_verified'] = true;
+        }
+
+        $result = self::approve_journal($journal_id, $user_id, $args);
         if (is_wp_error($result)) {
             orabooks_json_error($result->get_error_message(), 400);
         }
@@ -1223,7 +1231,7 @@ class OraBooks_Posting {
         $reason = sanitize_textarea_field($_POST['reason'] ?? '');
         $org_id = $this->require_journal_access($user_id, $journal_id);
 
-        if (!OraBooks_RBAC::require_permission($user_id, $org_id, 'approve_journal')) {
+        if (!OraBooks_Approval::user_can_approve($user_id, $org_id)) {
             orabooks_json_error('Permission denied', 403);
         }
         
@@ -1319,4 +1327,6 @@ class OraBooks_Posting {
             orabooks_json_error($result->get_error_message(), 409);
         }
 
-        oraboo
+        orabooks_json_success($result, 'Reversal journal created');
+    }
+}
