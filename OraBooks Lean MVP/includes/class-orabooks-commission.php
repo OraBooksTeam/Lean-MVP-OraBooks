@@ -1234,10 +1234,27 @@ class OraBooks_Commission {
         }
         
         $settlement_date = $settlement_date ?: current_time('Y-m-d');
-        
-        // Journal entry: Dr Commission Payable (gross), Cr Bank (net), Cr Commission Fee Payable (fee)
-        // In MVP, this is handled via direct balance update
-        // Full SL-031 integration will use proper journal entries
+        $gross_amount = (float) $payout->gross_amount;
+        $fee_amount = (float) $payout->fee_amount;
+
+        $journal_result = self::post_system_journal(
+            $settlement_date,
+            'commission_payout_settlement',
+            (int) $payout_id,
+            self::build_payout_settlement_lines($gross_amount, $fee_amount),
+            [
+                'payout_id' => (int) $payout_id,
+                'partner_user_id' => (int) $payout->partner_user_id,
+                'bank_transaction_id' => (int) $bank_transaction_id,
+                'gross_amount' => $gross_amount,
+                'fee_amount' => $fee_amount,
+                'net_amount' => round($gross_amount - $fee_amount, 2),
+            ]
+        );
+
+        if (is_wp_error($journal_result)) {
+            return $journal_result;
+        }
         
         // Update payout status
         $wpdb->update(
@@ -1258,14 +1275,17 @@ class OraBooks_Commission {
              SET status = 'paid' 
              WHERE payout_id = %d AND status = 'earned'",
             $payout_id
-        ));        orabooks_log_event('payout_settled', 
-                "Payout #{$payout_id} settled: gross={$payout->gross_amount}, fee={$payout->fee_amount}, net=" . ($payout->gross_amount - $payout->fee_amount), 
+        ));
+
+        orabooks_log_event('payout_settled', 
+                "Payout #{$payout_id} settled: gross={$gross_amount}, fee={$fee_amount}, net=" . round($gross_amount - $fee_amount, 2), 
                 'info', [
                     'payout_id' => $payout_id,
                     'bank_transaction_id' => $bank_transaction_id,
-                    'gross_amount' => $payout->gross_amount,
-                    'fee_amount' => $payout->fee_amount,
-                    'net_amount' => $payout->gross_amount - $payout->fee_amount
+                    'gross_amount' => $gross_amount,
+                    'fee_amount' => $fee_amount,
+                    'net_amount' => round($gross_amount - $fee_amount, 2),
+                    'journal' => $journal_result,
                 ], $payout->partner_user_id, $payout->org_id);
         
         // Publish via EventBus (SL-302)
