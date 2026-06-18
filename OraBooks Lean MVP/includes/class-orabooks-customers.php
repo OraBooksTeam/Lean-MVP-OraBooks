@@ -1345,8 +1345,11 @@ class OraBooks_Customers {
             'transaction_date' => sanitize_text_field($_POST['transaction_date'] ?? ''),
             'due_date'         => sanitize_text_field($_POST['due_date'] ?? ''),
             'description'      => sanitize_textarea_field($_POST['description'] ?? ''),
+            'subtotal_amount'  => floatval($_POST['subtotal_amount'] ?? 0),
+            'jurisdiction'     => sanitize_text_field($_POST['jurisdiction'] ?? 'US'),
             'total_amount'     => floatval($_POST['total_amount'] ?? 0),
             'tax_amount'       => floatval($_POST['tax_amount'] ?? 0),
+            'tax_rate'         => floatval($_POST['tax_rate'] ?? 0),
             'currency'         => sanitize_text_field($_POST['currency'] ?? 'USD'),
             'workflow_status'  => sanitize_text_field($_POST['workflow_status'] ?? 'draft'),
             'due_days'         => intval($_POST['due_days'] ?? 30),
@@ -1365,8 +1368,12 @@ class OraBooks_Customers {
      * Get single invoice details.
      */
     public function ajax_invoice_get() {
-        $user_id = get_current_user_id();
-        $invoice_id = intval($_GET['invoice_id'] ?? 0);
+        $user_id = orabooks_get_current_user_id();
+        $invoice_id = intval($_GET['invoice_id'] ?? $_POST['invoice_id'] ?? 0);
+
+        if (!$user_id) {
+            orabooks_json_error('Not authenticated', 401);
+        }
 
         if (!$invoice_id) {
             orabooks_json_error('Invoice ID required', 400);
@@ -1377,13 +1384,7 @@ class OraBooks_Customers {
             orabooks_json_error('Invoice not found', 404);
         }
 
-        // Permission check: must be admin or have view_invoices in the org
-        if (!current_user_can('manage_options')) {
-            $org_id = (int) $invoice->org_id;
-            if (!OraBooks_RBAC::require_permission($user_id, $org_id, 'view_invoices')) {
-                orabooks_json_error('Permission denied', 403);
-            }
-        }
+        $this->require_customer_access($user_id, (int) $invoice->org_id, 'view_invoices');
 
         orabooks_json_success($invoice);
     }
