@@ -88,37 +88,29 @@ class OraBooks_COA {
         $template = self::$templates[$tier] ?? self::$templates['free'];
         $table = $wpdb->prefix . 'orabooks_accounts';
         
-        $inserted = 0;
-        foreach ($template as $acc) {
-            $result = $wpdb->insert(
-                $table,
-                [
-                    'org_id' => $org_id,
-                    'code' => $acc['code'],
-                    'name' => $acc['name'],
-                    'type' => $acc['type'],
-                    'normal_balance' => $acc['normal_balance'],
-                    'system_generated' => 1,
-                    'is_active' => 1
-                ],
-                ['%d', '%s', '%s', '%s', '%s', '%d', '%d']
-            );
-            if ($result) {
-                $inserted++;
-            }
-        }
-        
-        // Initialize account balances
         $table_balances = $wpdb->prefix . 'orabooks_account_balances';
-        $accounts = $wpdb->get_results($wpdb->prepare(
-            "SELECT id FROM {$table} WHERE org_id = %d", $org_id
-        ));
-        foreach ($accounts as $account) {
-            $wpdb->insert(
-                $table_balances,
-                ['org_id' => $org_id, 'account_id' => $account->id, 'balance' => 0],
-                ['%d', '%d', '%f']
-            );
+        $inserted = 0;
+
+        foreach ($template as $acc) {
+            $wpdb->query($wpdb->prepare(
+                "INSERT IGNORE INTO {$table}
+                    (org_id, code, name, type, normal_balance, system_generated, is_active)
+                 VALUES (%d, %s, %s, %s, %s, 1, 1)",
+                $org_id,
+                $acc['code'],
+                $acc['name'],
+                $acc['type'],
+                $acc['normal_balance']
+            ));
+
+            if ((int) $wpdb->insert_id > 0) {
+                $inserted++;
+                $wpdb->insert(
+                    $table_balances,
+                    ['org_id' => $org_id, 'account_id' => (int) $wpdb->insert_id, 'balance' => 0],
+                    ['%d', '%d', '%f']
+                );
+            }
         }
         
         orabooks_log_event('coa_loaded', "Tier $tier template loaded with $inserted accounts", 'info', [
@@ -145,10 +137,16 @@ class OraBooks_COA {
         }
         
         $table = $wpdb->prefix . 'orabooks_accounts';
+        $table_lines = OraBooks_Database::table('journal_lines');
+
         return $wpdb->get_results($wpdb->prepare(
-            "SELECT id, code, name, type, normal_balance, system_generated, is_active 
-             FROM {$table} WHERE org_id = %d AND is_active = 1 
-             ORDER BY code",
+            "SELECT a.id, a.code, a.name, a.type, a.normal_balance, a.system_generated, a.is_active,
+                    CASE WHEN EXISTS (
+                        SELECT 1 FROM {$table_lines} jl WHERE jl.account_id = a.id LIMIT 1
+                    ) THEN 1 ELSE 0 END AS has_journal_entries
+             FROM {$table} a
+             WHERE a.org_id = %d AND a.is_active = 1
+             ORDER BY a.code",
             $org_id
         ));
     }
@@ -230,7 +228,7 @@ class OraBooks_COA {
     }
     
     public function ajax_export_coa() {
-        $user_id = get_current_user_id();
+        $user_id = orabooks_get_current_user_id();
         $org_id = intval($_GET['org_id'] ?? 0);
         
         // SL-013: Enforce customer org isolation on accounting endpoints
