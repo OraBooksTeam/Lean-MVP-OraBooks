@@ -445,8 +445,17 @@ class OraBooks_Expenses {
             }
         }
 
+        $file_bytes = null;
+        if ($expense->attachment_id) {
+            $file_bytes = OraBooks_Ai_Providers::resolve_attachment_bytes((int) $expense->attachment_id, (int) $item->org_id);
+        }
+
         try {
-            $ocr = self::run_ocr_stub($filename, (int) $item->expense_id);
+            $ocr = OraBooks_Ai_Providers::run_ocr([
+                'filename'   => $filename,
+                'expense_id' => (int) $item->expense_id,
+                'file_bytes' => $file_bytes,
+            ]);
         } catch (Exception $e) {
             $retry = (int) $item->retry_count + 1;
             if ($retry > self::MAX_OCR_RETRIES) {
@@ -481,8 +490,8 @@ class OraBooks_Expenses {
             'ocr_confidence'     => $ocr['ocr_confidence'],
             'ocr_risk_level'     => $ocr['ocr_risk_level'],
             'ocr_data'           => wp_json_encode($ocr['ocr_data']),
-            'ocr_provider'       => self::OCR_PROVIDER,
-            'ocr_model_version'  => self::OCR_MODEL_VERSION,
+            'ocr_provider'       => sanitize_text_field($ocr['provider'] ?? OraBooks_Ai_Providers::provider_name('ocr')),
+            'ocr_model_version'  => sanitize_text_field($ocr['model_version'] ?? OraBooks_Ai_Providers::model_version('ocr')),
             'ocr_snapshot_hash'  => $snapshot_hash,
         ], ['id' => (int) $item->expense_id]);
 
