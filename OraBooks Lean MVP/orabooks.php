@@ -653,7 +653,7 @@ function orabooks_enqueue_react_frontend_bundle($ajax_config) {
         return;
     }
 
-    $style_handles = orabooks_enqueue_react_bundle_styles('orabooks-react');
+    orabooks_enqueue_react_bundle_styles('orabooks-react');
 
     wp_enqueue_script(
         'orabooks-react-frontend',
