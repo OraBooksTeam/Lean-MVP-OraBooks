@@ -549,7 +549,7 @@ export const api = {
       description: data.description || '',
       lines: data.lines ? JSON.stringify(data.lines) : '',
     }),
-  journalSubmit: (orgId: number, journalId: number) =>
+  approvalDashboard: () =>
     api.get('orabooks_approval_dashboard'),
   aiReviewDashboard: () =>
     api.get('orabooks_ai_review_dashboard'),
