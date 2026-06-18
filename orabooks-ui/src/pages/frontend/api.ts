@@ -81,6 +81,10 @@ async function request<T = any>(
   if (ORABOOKS_USER_ID) body.set('current_user_id', String(ORABOOKS_USER_ID));
   Object.entries(payload).forEach(([k, v]) => {
     if (k === 'action' || k === '_ajax_nonce' || k === 'current_user_id') return;
+    if (Array.isArray(v)) {
+      v.forEach((item) => body.append(`${k}[]`, String(item)));
+      return;
+    }
     if (typeof v === 'object') body.set(k, JSON.stringify(v));
     else body.set(k, String(v ?? ''));
   });
@@ -237,6 +241,18 @@ export const api = {
     api.get('orabooks_get_journals', { org_id: orgId, ...filters }),
   auditLogs: (filters = {}) =>
     api.get('orabooks_get_audit_logs', filters),
+  exportAuditLogs: (filters = {}) => {
+    const qs = new URLSearchParams();
+    const token = getStoredToken();
+    qs.set('action', 'orabooks_export_audit_logs');
+    qs.set('_ajax_nonce', ORABOOKS_NONCE);
+    if (token) qs.set('orabooks_token', token);
+    if (ORABOOKS_USER_ID) qs.set('current_user_id', String(ORABOOKS_USER_ID));
+    Object.entries(filters).forEach(([k, v]) => {
+      if (v !== undefined && v !== null && v !== '') qs.set(k, String(v));
+    });
+    window.location.href = `${ORABOOKS_URL}?${qs.toString()}`;
+  },
   pendingPartners: () =>
     api.get('orabooks_admin_list_pending_partners'),
   activePartners: () =>
@@ -280,4 +296,5 @@ export const api = {
   observabilityDashboard: (hours = 24) =>
     api.post('orabooks_observability_dashboard', { hours }),
   exportsList: (page = 1) => api.get('orabooks_exports_list', { page }),
+  csvImportsDashboard: () => api.get('orabooks_csv_imports_dashboard'),
 };
