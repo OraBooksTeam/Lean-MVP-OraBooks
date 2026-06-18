@@ -640,6 +640,150 @@ class OraBooks_Expenses {
         return ['id' => $expense_id];
     }
 
+    /**
+     * Manual tax override for draft expenses (SL-081).
+     */
+    public static function override_expense_tax($org_id, $expense_id, $new_tax_rate, $reason_code, $user_id, $jurisdiction = 'US') {
+        global $wpdb;
+
+        $org_id = (int) $org_id;
+        $expense_id = (int) $expense_id;
+        $user_id = (int) $user_id;
+        $new_tax_rate = round((float) $new_tax_rate, 4);
+        $reason_code = sanitize_text_field($reason_code);
+        $jurisdiction = strtoupper(sanitize_text_field($jurisdiction ?: 'US'));
+
+        $expense = self::get_expense($expense_id, $org_id);
+        if (!$expense) {
+            return new WP_Error('not_found', 'Expense not found');
+        }
+
+        if ($expense->workflow_status !== 'draft') {
+            return new WP_Error('invalid_status', 'Tax can only be overridden on draft expenses');
+        }
+
+        if (class_exists('OraBooks_Tax') && OraBooks_Tax::is_tax_locked($org_id, [
+            'transaction_date' => $expense->transaction_date ?? current_time('Y-m-d'),
+        ])) {
+            return new WP_Error('tax_locked', 'Tax is locked for this transaction period');
+        }
+
+        if (class_exists('OraBooks_Tax')) {
+            $validation = OraBooks_Tax::validate_override($org_id, $jurisdiction, $new_tax_rate, $reason_code);
+            if (is_wp_error($validation)) {
+                return $validation;
+            }
+        }
+
+        $tax_base = self::get_expense_tax_base($expense);
+        $old_tax_rate = isset($expense->tax_rate) ? (float) $expense->tax_rate : 0;
+        $old_tax_amount = (float) ($expense->tax_amount ?? 0);
+        $new_tax_amount = round($tax_base * ($new_tax_rate / 100), 2);
+        $new_total = round($tax_base + $new_tax_amount, 2);
+
+        $table = OraBooks_Database::table(self::TABLE_EXPENSES);
+        $wpdb->update(
+            $table,
+            [
+                'tax_rate'            => $new_tax_rate,
+                'tax_amount'          => $new_tax_amount,
+                'total_amount'        => $new_total,
+                'subtotal'            => $tax_base,
+                'tax_override_reason' => $reason_code,
+                'tax_override_by'     => $user_id,
+                'tax_override_at'     => current_time('mysql'),
+            ],
+            ['id' => $expense_id, 'org_id' => $org_id],
+            ['%f', '%f', '%f', '%f', '%s', '%d', '%s'],
+            ['%d', '%d']
+        );
+
+        orabooks_log_event('tax_override', 'Expense tax overridden', 'info', [
+            'transaction_type' => 'expense',
+            'transaction_id'   => $expense_id,
+            'old_tax_rate'     => $old_tax_rate,
+            'new_tax_rate'     => $new_tax_rate,
+            'old_tax_amount'   => $old_tax_amount,
+            'new_tax_amount'   => $new_tax_amount,
+            'reason_code'      => $reason_code,
+        ], $user_id, $org_id);
+
+        return [
+            'expense_id'          => $expense_id,
+            'tax_rate'            => $new_tax_rate,
+            'tax_amount'          => $new_tax_amount,
+            'total_amount'        => $new_total,
+            'tax_override_reason' => $reason_code,
+            'tax_override_by'     => $user_id,
+        ];
+    }
+
+    /**
+     * Clear manual tax override and recalculate from SL-305 (SL-081 §5.4).
+     */
+    public static function clear_expense_tax_override($org_id, $expense_id, $user_id, $jurisdiction = 'US') {
+        global $wpdb;
+
+        $expense = self::get_expense((int) $expense_id, (int) $org_id);
+        if (!$expense) {
+            return new WP_Error('not_found', 'Expense not found');
+        }
+
+        if ($expense->workflow_status !== 'draft') {
+            return new WP_Error('invalid_status', 'Override can only be cleared on draft expenses');
+        }
+
+        $tax_base = self::get_expense_tax_base($expense);
+        $tax_rate = 0.0;
+        $tax_amount = 0.0;
+        $total = $tax_base;
+
+        if (class_exists('OraBooks_Tax') && $tax_base > 0) {
+            $calc = OraBooks_Tax::calculate([
+                'org_id'       => (int) $org_id,
+                'amount'       => $tax_base,
+                'jurisdiction' => strtoupper(sanitize_text_field($jurisdiction ?: 'US')),
+            ]);
+            if (!is_wp_error($calc)) {
+                $tax_rate = (float) ($calc['tax_rate'] ?? 0);
+                $tax_amount = (float) ($calc['tax_amount'] ?? 0);
+                $total = round($tax_base + $tax_amount, 2);
+            }
+        }
+
+        $table = OraBooks_Database::table(self::TABLE_EXPENSES);
+        $wpdb->update(
+            $table,
+            [
+                'tax_rate'            => $tax_rate,
+                'tax_amount'          => $tax_amount,
+                'total_amount'        => $total,
+                'tax_override_reason' => null,
+                'tax_override_by'     => null,
+                'tax_override_at'     => null,
+            ],
+            ['id' => (int) $expense_id, 'org_id' => (int) $org_id],
+            ['%f', '%f', '%f', '%s', '%s', '%s'],
+            ['%d', '%d']
+        );
+
+        orabooks_log_event('tax_override_cleared', 'Expense tax override cleared', 'info', [
+            'expense_id' => (int) $expense_id,
+        ], (int) $user_id, (int) $org_id);
+
+        return self::format_expense(self::get_expense((int) $expense_id, (int) $org_id), true);
+    }
+
+    private static function get_expense_tax_base($expense) {
+        if (!empty($expense->subtotal)) {
+            return max(0, round((float) $expense->subtotal, 2));
+        }
+
+        $total = (float) ($expense->total_amount ?? 0);
+        $tax = (float) ($expense->tax_amount ?? 0);
+        return max(0, round($total - $tax, 2));
+    }
+
     public static function confirm_submit($expense_id, $org_id, $user_id, $idempotency_key, array $edited_fields = []) {
         global $wpdb;
 
