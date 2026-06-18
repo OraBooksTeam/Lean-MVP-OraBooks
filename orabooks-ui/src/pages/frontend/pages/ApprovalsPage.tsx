@@ -33,7 +33,8 @@ export default function ApprovalsPage() {
     const res = await api.submitJournal(journalId);
     if (res.error) setError(res.error);
     else {
-      setSuccess('Journal submitted for approval.');
+      const aiReview = (res as any).data?.ai_review;
+      setSuccess(aiReview ? 'Journal queued for AI review before approval.' : 'Journal submitted for approval.');
       await load();
     }
     setActionId(null);

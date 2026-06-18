@@ -75,20 +75,20 @@ class OraBooks_Ai_Review_Test extends TestCase
         global $wpdb;
 
         $wpdb->test_get_row_callback = function ($query) {
-            if (strpos($query, 'journal_lines') !== false) {
-                return (object) ['total_debit' => 100000, 'total_credit' => 100000];
+            if (strpos($query, 'journals') !== false) {
+                return (object) [
+                    'id' => 1,
+                    'org_id' => 1,
+                    'total_amount' => 100000,
+                ];
             }
-            return (object) [
-                'id' => 1,
-                'org_id' => 1,
-                'total_amount' => 100000,
-            ];
+            return null;
         };
 
         $wpdb->test_get_results_callback = function () {
             return [
-                (object) ['description' => 'Office supplies', 'debit_amount' => 50000, 'credit_amount' => 0],
-                (object) ['description' => 'Cash', 'debit_amount' => 0, 'credit_amount' => 50000],
+                (object) ['description' => 'Office supplies'],
+                (object) ['description' => 'Cash'],
             ];
         };
 

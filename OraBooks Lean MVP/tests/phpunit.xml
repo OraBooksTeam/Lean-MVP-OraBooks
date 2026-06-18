@@ -54,6 +54,7 @@
             <file>OraBooks_Csv_Imports_Test.php</file>
             <file>OraBooks_Attachments_Test.php</file>
             <file>OraBooks_Approval_Test.php</file>
+            <file>OraBooks_Ai_Review_Test.php</file>
         </testsuite>
     </testsuites>
 </phpunit>
