@@ -1222,8 +1222,8 @@ class OraBooks_Customers {
 
         if ($customer_id) {
             $customer = self::get_by_id($customer_id);
-        } elseif ($user_id) {
-            $customer = self::get_by_user_id($user_id);
+        } elseif ($user_lookup_id) {
+            $customer = self::get_by_user_id($user_lookup_id);
         } else {
             orabooks_json_error('customer_id or user_id required', 400);
         }
@@ -1231,6 +1231,8 @@ class OraBooks_Customers {
         if (!$customer) {
             orabooks_json_error('Customer not found', 404);
         }
+
+        $this->require_customer_access($user_id, (int) $customer->org_id, 'view_invoices');
 
         orabooks_json_success($customer);
     }
