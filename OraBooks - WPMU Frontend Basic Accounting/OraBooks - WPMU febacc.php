@@ -218,6 +218,7 @@ function obn_register_accounting_addon()
 	}
 }
 add_action('orabooks_register_addons', 'obn_register_accounting_addon');
+add_action('plugins_loaded', 'obn_register_accounting_addon', 20);
 
 /**
  * The code that runs during plugin activation.
