@@ -514,7 +514,7 @@ class OraBooks_Ai_Providers {
         }
 
         if (class_exists('OraBooks_COA')) {
-            $accounts = OraBooks_COA::list_accounts($org_id, ['is_active' => 1]);
+            $accounts = OraBooks_COA::get_accounts($org_id);
             if (!empty($accounts)) {
                 return array_map(function ($account) {
                     return [

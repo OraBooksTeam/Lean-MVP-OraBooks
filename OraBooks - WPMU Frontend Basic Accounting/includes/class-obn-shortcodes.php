@@ -101,11 +101,19 @@ class OBN_Shortcodes
 		}
 
 		// Logged in but no access
-		if (!$this->auth->can_access_accounting()) {
+		if ( $this->auth->is_partner_org_blocked() ) {
 			return '<div class="obn-notice obn-error">
                 <h3>Access Denied</h3>
-                <p>Your current membership plan does not include access to the Accounting System.</p>
-                <p>Please <a href="' . home_url('/pricing') . '">upgrade your plan</a> to access this feature.</p>
+                <p>Partner accounts cannot perform accounting operations.</p>
+                <p>You earn commissions from qualified customers attributed to your Partner Code. No accounting features.</p>
+            </div>';
+		}
+
+		if ( ! $this->auth->can_access_accounting() ) {
+			return '<div class="obn-notice obn-error">
+                <h3>Access Denied</h3>
+                <p>Your organization does not have permission to access the Advanced Accounting workspace.</p>
+                <p>Please contact your organization owner or administrator.</p>
             </div>';
 		}
 
