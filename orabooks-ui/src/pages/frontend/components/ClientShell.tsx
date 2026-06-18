@@ -57,7 +57,6 @@ const customerNav = [
   { label: 'Chart of Accounts', href: '/chart-of-accounts', icon: BookOpen },
   { label: 'Fiscal Periods', href: '/fiscal-periods', icon: CalendarRange },
   { label: 'Tax Settings', href: '/tax-settings', icon: Percent },
-  { label: 'Advanced Accounting', href: '/accounting/', icon: Landmark, external: true },
   { label: 'Journals', href: '/journals', icon: BookOpen },
   { label: 'AI Review', href: '/ai-review', icon: Bot },
   { label: 'Approvals', href: '/approvals', icon: ShieldCheck },

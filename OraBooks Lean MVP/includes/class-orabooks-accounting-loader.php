@@ -199,6 +199,10 @@ class OraBooks_Accounting {
     public static function init_logic() {
         global $wpdb;
 
+        if (function_exists('orabooks_create_page')) {
+            orabooks_create_page('accounting', 'Advanced Accounting', '[orabooks_accounting]');
+        }
+
         $table_sidebar = $wpdb->prefix . 'orabooks_db_sidebar';
         $table_assets = $wpdb->prefix . 'orabooks_ac_assets';
         $table_user_permissions = $wpdb->prefix . 'orabooks_user_permissions';
