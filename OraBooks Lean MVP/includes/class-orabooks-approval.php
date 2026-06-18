@@ -685,6 +685,23 @@ class OraBooks_Approval {
         }
     }
 
+    private static function notify_org_admins($org_id, $event_type, array $payload) {
+        if (!class_exists('OraBooks_Notifications')) {
+            return;
+        }
+
+        global $wpdb;
+        $table_user_org = OraBooks_Database::table('user_org');
+        $admins = $wpdb->get_results($wpdb->prepare(
+            "SELECT user_id FROM {$table_user_org} WHERE org_id = %d AND role IN ('owner', 'admin')",
+            (int) $org_id
+        ));
+
+        foreach ($admins ?: [] as $admin) {
+            OraBooks_Notifications::notify((int) $admin->user_id, $event_type, $payload, (int) $org_id);
+        }
+    }
+
     public static function install_history_guards() {
         global $wpdb;
 
