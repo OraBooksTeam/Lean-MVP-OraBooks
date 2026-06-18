@@ -1552,15 +1552,36 @@ class OraBooks_Commission {
     // AJAX HANDLERS
     // ============================================================
 
-    public function ajax_commission_stats() {
-        $user_id = get_current_user_id();
-        $org_id = intval($_GET['org_id'] ?? 0);
-        
-        // Check permission: partner commission access
-        if (!empty($org_id) && !OraBooks_RBAC::require_permission($user_id, $org_id, 'partner_commission_access')) {
+    private function require_partner_commission_user() {
+        $user_id = orabooks_get_current_user_id();
+        if (!$user_id) {
+            orabooks_json_error('Not authenticated', 401);
+        }
+
+        global $wpdb;
+        $org_id = intval($_REQUEST['org_id'] ?? 0);
+        if (!$org_id) {
+            $table_users = OraBooks_Database::table('users');
+            $org_id = (int) $wpdb->get_var($wpdb->prepare(
+                "SELECT org_id FROM {$table_users} WHERE id = %d",
+                $user_id
+            ));
+        }
+
+        if ($org_id && !OraBooks_RBAC::require_permission($user_id, $org_id, 'partner_commission_access')) {
             orabooks_json_error('Permission denied', 403);
         }
-        
+
+        return [
+            'user_id' => $user_id,
+            'org_id' => $org_id,
+        ];
+    }
+
+    public function ajax_commission_stats() {
+        $context = $this->require_partner_commission_user();
+        $user_id = $context['user_id'];
+
         // Determine which partner to show stats for
         $partner_user_id = intval($_GET['partner_user_id'] ?? $user_id);
         
@@ -1578,13 +1599,9 @@ class OraBooks_Commission {
     }
 
     public function ajax_commission_earned() {
-        $user_id = get_current_user_id();
-        $org_id = intval($_GET['org_id'] ?? 0);
-        
-        if (!OraBooks_RBAC::require_permission($user_id, $org_id, 'partner_commission_access')) {
-            orabooks_json_error('Permission denied', 403);
-        }
-        
+        $context = $this->require_partner_commission_user();
+        $user_id = $context['user_id'];
+
         $partner_user_id = intval($_GET['partner_user_id'] ?? $user_id);
         
         $args = [
@@ -1600,13 +1617,9 @@ class OraBooks_Commission {
     }
 
     public function ajax_commission_payouts() {
-        $user_id = get_current_user_id();
-        $org_id = intval($_GET['org_id'] ?? 0);
-        
-        if (!OraBooks_RBAC::require_permission($user_id, $org_id, 'partner_commission_access')) {
-            orabooks_json_error('Permission denied', 403);
-        }
-        
+        $context = $this->require_partner_commission_user();
+        $user_id = $context['user_id'];
+
         $partner_user_id = intval($_GET['partner_user_id'] ?? $user_id);
         
         $args = [
@@ -1620,13 +1633,9 @@ class OraBooks_Commission {
     }
 
     public function ajax_commission_aging() {
-        $user_id = get_current_user_id();
-        $org_id = intval($_GET['org_id'] ?? 0);
-        
-        if (!OraBooks_RBAC::require_permission($user_id, $org_id, 'partner_commission_access')) {
-            orabooks_json_error('Permission denied', 403);
-        }
-        
+        $context = $this->require_partner_commission_user();
+        $user_id = $context['user_id'];
+
         $partner_user_id = intval($_GET['partner_user_id'] ?? $user_id);
         
         $aging = self::get_aging_report($partner_user_id);
