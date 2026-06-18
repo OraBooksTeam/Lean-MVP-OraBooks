@@ -1201,6 +1201,11 @@ class OraBooks_Customers {
     public function ajax_customers_list() {
         $user_id = orabooks_get_current_user_id();
         $org_id = intval($_GET['org_id'] ?? $_POST['org_id'] ?? 0);
+
+        if (!$org_id) {
+            orabooks_json_error('Organization ID required', 400);
+        }
+
         $this->require_customer_access($user_id, $org_id, 'view_invoices');
 
         $args = [
