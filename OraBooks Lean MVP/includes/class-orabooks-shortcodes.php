@@ -236,6 +236,14 @@ class OraBooks_Shortcodes {
         }
         return $this->react_app('/expenses', 'Loading expenses...');
     }
+
+    public function voice_page() {
+        $user_id = get_current_user_id();
+        if (!$user_id) {
+            return '<p>' . __('Please log in to use voice input.', 'orabooks') . '</p>';
+        }
+        return $this->react_app('/voice', 'Loading voice input...');
+    }
     
     /**
      * Partner Commission Dashboard Shortcode
