@@ -19,12 +19,19 @@ class OraBooks_Posting {
         if (self::$instance === null) {
             self::$instance = new self();
             add_action('wp_ajax_orabooks_create_journal', [self::$instance, 'ajax_create_journal']);
+            add_action('wp_ajax_nopriv_orabooks_create_journal', [self::$instance, 'ajax_create_journal']);
             add_action('wp_ajax_orabooks_submit_journal', [self::$instance, 'ajax_submit_journal']);
+            add_action('wp_ajax_nopriv_orabooks_submit_journal', [self::$instance, 'ajax_submit_journal']);
             add_action('wp_ajax_orabooks_approve_journal', [self::$instance, 'ajax_approve_journal']);
+            add_action('wp_ajax_nopriv_orabooks_approve_journal', [self::$instance, 'ajax_approve_journal']);
             add_action('wp_ajax_orabooks_reject_journal', [self::$instance, 'ajax_reject_journal']);
+            add_action('wp_ajax_nopriv_orabooks_reject_journal', [self::$instance, 'ajax_reject_journal']);
             add_action('wp_ajax_orabooks_post_journal', [self::$instance, 'ajax_post_journal']);
+            add_action('wp_ajax_nopriv_orabooks_post_journal', [self::$instance, 'ajax_post_journal']);
             add_action('wp_ajax_orabooks_get_journals', [self::$instance, 'ajax_get_journals']);
             add_action('wp_ajax_nopriv_orabooks_get_journals', [self::$instance, 'ajax_get_journals']);
+            add_action('wp_ajax_orabooks_get_journal', [self::$instance, 'ajax_get_journal']);
+            add_action('wp_ajax_nopriv_orabooks_get_journal', [self::$instance, 'ajax_get_journal']);
             
             // Initialize state machine config
             self::init_state_machine();
