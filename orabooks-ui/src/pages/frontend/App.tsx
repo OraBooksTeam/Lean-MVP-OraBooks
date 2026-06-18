@@ -36,6 +36,8 @@ import NotificationAdminPage from './pages/NotificationAdminPage';
 import CommissionAdminPage from './pages/CommissionAdminPage';
 
 export default function FrontendRoutes() {
+  const protectedPage = (page: JSX.Element) => <RequireAuth>{page}</RequireAuth>;
+
   return (
     <Routes>
       <Route path="/" element={<LoginPage />} />
@@ -43,36 +45,36 @@ export default function FrontendRoutes() {
       <Route path="/register" element={<RegisterPage />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route path="/verify-email" element={<VerifyEmailPage />} />
-      <Route path="/tier-selection" element={<TierSelectionPage />} />
-      <Route path="/dashboard" element={<DashboardPage />} />
-      <Route path="/customers" element={<CustomersPage />} />
-      <Route path="/vendors" element={<VendorsPage />} />
-      <Route path="/inventory" element={<InventoryPage />} />
-      <Route path="/bank-reconciliation" element={<BankReconciliationPage />} />
-      <Route path="/reports" element={<ReportsPage />} />
-      <Route path="/csv-imports" element={<CsvImportsPage />} />
-      <Route path="/team" element={<TeamPage />} />
-      <Route path="/attachments" element={<AttachmentsPage />} />
-      <Route path="/invoices" element={<InvoicesPage />} />
-      <Route path="/chart-of-accounts" element={<ChartOfAccountsPage />} />
-      <Route path="/fiscal-periods" element={<FiscalPeriodsPage />} />
-      <Route path="/tax-settings" element={<TaxSettingsPage />} />
-      <Route path="/journals" element={<JournalsPage />} />
-      <Route path="/approvals" element={<ApprovalsPage />} />
-      <Route path="/ai-review" element={<AiReviewPage />} />
-      <Route path="/expenses" element={<ExpensesPage />} />
-      <Route path="/voice" element={<VoicePage />} />
-      <Route path="/partner-onboarding" element={<PartnerOnboardingPage />} />
-      <Route path="/partner-program" element={<PartnerProgramPage />} />
-      <Route path="/commissions" element={<CommissionsPage />} />
-      <Route path="/notifications" element={<NotificationsPage />} />
-      <Route path="/notification-preferences" element={<NotificationPreferencesPage />} />
-      <Route path="/my-exports" element={<ExportStatusPage />} />
-      <Route path="/profile" element={<ProfilePage />} />
-      <Route path="/job-queue" element={<JobQueuePage />} />
-      <Route path="/observability" element={<ObservabilityPage />} />
-      <Route path="/notification-admin" element={<NotificationAdminPage />} />
-      <Route path="/commission-admin" element={<CommissionAdminPage />} />
+      <Route path="/tier-selection" element={protectedPage(<TierSelectionPage />)} />
+      <Route path="/dashboard" element={protectedPage(<DashboardPage />)} />
+      <Route path="/customers" element={protectedPage(<CustomersPage />)} />
+      <Route path="/vendors" element={protectedPage(<VendorsPage />)} />
+      <Route path="/inventory" element={protectedPage(<InventoryPage />)} />
+      <Route path="/bank-reconciliation" element={protectedPage(<BankReconciliationPage />)} />
+      <Route path="/reports" element={protectedPage(<ReportsPage />)} />
+      <Route path="/csv-imports" element={protectedPage(<CsvImportsPage />)} />
+      <Route path="/team" element={protectedPage(<TeamPage />)} />
+      <Route path="/attachments" element={protectedPage(<AttachmentsPage />)} />
+      <Route path="/invoices" element={protectedPage(<InvoicesPage />)} />
+      <Route path="/chart-of-accounts" element={protectedPage(<ChartOfAccountsPage />)} />
+      <Route path="/fiscal-periods" element={protectedPage(<FiscalPeriodsPage />)} />
+      <Route path="/tax-settings" element={protectedPage(<TaxSettingsPage />)} />
+      <Route path="/journals" element={protectedPage(<JournalsPage />)} />
+      <Route path="/approvals" element={protectedPage(<ApprovalsPage />)} />
+      <Route path="/ai-review" element={protectedPage(<AiReviewPage />)} />
+      <Route path="/expenses" element={protectedPage(<ExpensesPage />)} />
+      <Route path="/voice" element={protectedPage(<VoicePage />)} />
+      <Route path="/partner-onboarding" element={protectedPage(<PartnerOnboardingPage />)} />
+      <Route path="/partner-program" element={protectedPage(<PartnerProgramPage />)} />
+      <Route path="/commissions" element={protectedPage(<CommissionsPage />)} />
+      <Route path="/notifications" element={protectedPage(<NotificationsPage />)} />
+      <Route path="/notification-preferences" element={protectedPage(<NotificationPreferencesPage />)} />
+      <Route path="/my-exports" element={protectedPage(<ExportStatusPage />)} />
+      <Route path="/profile" element={protectedPage(<ProfilePage />)} />
+      <Route path="/job-queue" element={protectedPage(<JobQueuePage />)} />
+      <Route path="/observability" element={protectedPage(<ObservabilityPage />)} />
+      <Route path="/notification-admin" element={protectedPage(<NotificationAdminPage />)} />
+      <Route path="/commission-admin" element={protectedPage(<CommissionAdminPage />)} />
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>
   );
