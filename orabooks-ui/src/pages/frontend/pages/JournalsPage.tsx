@@ -32,7 +32,7 @@ export default function JournalsPage() {
 
     const res = await api.journalsList(orgId, { status: nextStatus });
     if (res.error) setError(res.error || 'Unable to load journals.');
-    else setJournals((res as any).data || []);
+    else setJournals((res as any).data?.journals || (res as any).data || []);
     setLoading(false);
   };
 

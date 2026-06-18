@@ -335,6 +335,18 @@ export const api = {
     api.get('orabooks_get_coa', { org_id: orgId }),
   journalsList: (orgId: number, filters = {}) =>
     api.get('orabooks_get_journals', { org_id: orgId, ...filters }),
+  journalGet: (orgId: number, journalId: number) =>
+    api.get('orabooks_get_journal', { org_id: orgId, journal_id: journalId }),
+  approvalDashboard: () =>
+    api.get('orabooks_approval_dashboard'),
+  submitJournal: (journalId: number) =>
+    api.post('orabooks_submit_journal', { journal_id: journalId }),
+  approveJournal: (journalId: number) =>
+    api.post('orabooks_approve_journal', { journal_id: journalId }),
+  rejectJournal: (journalId: number, reason: string) =>
+    api.post('orabooks_reject_journal', { journal_id: journalId, reason }),
+  postJournal: (journalId: number) =>
+    api.post('orabooks_post_journal', { journal_id: journalId }),
   auditLogs: (filters = {}) =>
     api.get('orabooks_get_audit_logs', filters),
   exportAuditLogs: (filters = {}) => {
