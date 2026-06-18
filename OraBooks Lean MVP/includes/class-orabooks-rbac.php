@@ -39,6 +39,7 @@ class OraBooks_RBAC {
             'manage_voice_inputs'         => ['owner', 'admin', 'staff'],
             'submit_transaction'          => ['owner', 'admin', 'staff'],
             'approve_journal'             => ['owner', 'admin', 'approver'],
+            'reverse_journal'             => ['owner', 'admin'],
             'invite_user'                 => ['owner', 'admin'],
             'change_role'                 => ['owner'],
             'remove_user'                 => ['owner'],
