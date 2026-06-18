@@ -29,6 +29,19 @@ class OraBooks_Commission_Test extends TestCase
 
         $_GET = [];
         $_POST = [];
+        $GLOBALS['orabooks_test_commission_skip_posting'] = false;
+        $GLOBALS['orabooks_test_commission_journal_posts'] = [];
+    }
+
+    private function assertLinesBalance(array $lines): void
+    {
+        $debits = 0.0;
+        $credits = 0.0;
+        foreach ($lines as $line) {
+            $debits += (float) ($line['debit'] ?? 0);
+            $credits += (float) ($line['credit'] ?? 0);
+        }
+        $this->assertEqualsWithDelta($debits, $credits, 0.001);
     }
 
     private function config(array $overrides = []): object
