@@ -1264,7 +1264,7 @@ class OraBooks_Customers {
             orabooks_json_error('Customer not found', 404);
         }
 
-        $this->require_customer_access($user_id, (int) $customer->org_id, 'manage_customers');
+        $this->require_customer_access($user_id, (int) $customer->org_id, 'create_invoice');
 
         $is_active = isset($_POST['is_active']) ? (int) $_POST['is_active'] : null;
         $notes = isset($_POST['notes']) ? sanitize_textarea_field($_POST['notes']) : null;
