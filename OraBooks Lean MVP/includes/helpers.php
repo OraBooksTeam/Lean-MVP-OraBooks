@@ -602,3 +602,26 @@ function orabooks_render_merged_accounting_workspace($view = '') {
 
     return do_shortcode('[orabooks_accounting]');
 }
+
+/**
+ * Shortcodes that render the merged PHP accounting workspace for customer orgs.
+ *
+ * @return string[]
+ */
+function orabooks_merged_accounting_shortcodes() {
+    return [
+        'orabooks_dashboard',
+        'orabooks_customers',
+        'orabooks_vendors',
+        'orabooks_inventory',
+        'orabooks_reports',
+        'orabooks_invoices',
+        'orabooks_chart_of_accounts',
+        'orabooks_fiscal_periods',
+        'orabooks_tax_settings',
+        'orabooks_journals',
+        'orabooks_expenses',
+        'orabooks_csv_import',
+        'orabooks_accounting',
+    ];
+}
