@@ -1053,6 +1053,22 @@ class OraBooks_Auth {
         wp_redirect(home_url('/login?verified=1'));
         exit;
     }
+
+    public function ajax_verify_email_token() {
+        $token = sanitize_text_field($_POST['token'] ?? $_GET['token'] ?? '');
+
+        if (empty($token)) {
+            orabooks_json_error(__('Invalid verification link.', 'orabooks'), 400);
+        }
+
+        $result = self::verify_email($token);
+
+        if (is_wp_error($result)) {
+            orabooks_json_error($result->get_error_message(), 400);
+        }
+
+        orabooks_json_success([], __('Email verified successfully. You can now log in.', 'orabooks'));
+    }
     
     public function ajax_resend_verification() {
         $email = sanitize_email($_POST['email'] ?? '');

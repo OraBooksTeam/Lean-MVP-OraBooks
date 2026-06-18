@@ -44,6 +44,12 @@ class OraBooks_Assets {
             'orabooks_notification_center',
             'orabooks_notification_preferences',
             'orabooks_export_status',
+            'orabooks_verify_email',
+            'orabooks_commission_admin',
+            'orabooks_notification_admin',
+            'orabooks_async_queue_dashboard',
+            'orabooks_observability_dashboard',
+            'orabooks_export_button',
         ];
     }
 
@@ -53,14 +59,7 @@ class OraBooks_Assets {
      * @return string[]
      */
     public static function get_legacy_shortcode_tags() {
-        return [
-            'orabooks_verify_email',
-            'orabooks_commission_admin',
-            'orabooks_notification_admin',
-            'orabooks_async_queue_dashboard',
-            'orabooks_observability_dashboard',
-            'orabooks_export_button',
-        ];
+        return [];
     }
 
     /**
