@@ -105,6 +105,29 @@ async function request<T = any>(
   }
 }
 
+async function uploadRequest<T = any>(
+  action: string,
+  formData: FormData
+): Promise<ApiResult<T>> {
+  const token = getStoredToken();
+  formData.set('action', action);
+  formData.set('_ajax_nonce', ORABOOKS_NONCE);
+  if (token) formData.set('orabooks_token', token);
+  if (ORABOOKS_USER_ID) formData.set('current_user_id', String(ORABOOKS_USER_ID));
+
+  try {
+    const res = await fetch(ORABOOKS_URL, {
+      method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: formData,
+    });
+
+    return parseResponse<T>(res);
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : 'OraBooks upload failed.' };
+  }
+}
+
 export const api = {
   get<T = any>(action: string, params: Record<string, any> = {}): Promise<ApiResult<T>> {
     const qs = new URLSearchParams();
@@ -162,6 +185,26 @@ export const api = {
     api.get('orabooks_bank_dashboard'),
   reportsDashboard: () =>
     api.get('orabooks_reports_dashboard'),
+  csvImportsDashboard: () =>
+    api.get('orabooks_csv_imports_dashboard'),
+  uploadCsv: (orgId: number, resourceType: string, file: File, idempotencyKey = '') => {
+    const formData = new FormData();
+    formData.set('org_id', String(orgId));
+    formData.set('resource_type', resourceType);
+    formData.set('csv_file', file);
+    if (idempotencyKey) formData.set('idempotency_key', idempotencyKey);
+    return uploadRequest('orabooks_csv_upload', formData);
+  },
+  csvImportGet: (orgId: number, importId: number) =>
+    api.get('orabooks_csv_import_get', { org_id: orgId, import_id: importId }),
+  csvImportConfirm: (orgId: number, importId: number, idempotencyKey: string) =>
+    api.post('orabooks_csv_import_confirm', {
+      org_id: orgId,
+      import_id: importId,
+      idempotency_key: idempotencyKey,
+    }),
+  csvImportsList: (orgId: number) =>
+    api.get('orabooks_csv_imports_list', { org_id: orgId }),
   generateFinancialReport: (orgId: number, reportType: string, periodStart: string, periodEnd: string) =>
     api.get('orabooks_financial_report_generate', {
       org_id: orgId,

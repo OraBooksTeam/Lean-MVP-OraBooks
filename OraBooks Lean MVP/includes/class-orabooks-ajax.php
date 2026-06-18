@@ -531,6 +531,72 @@ class OraBooks_Ajax {
             'timestamp' => current_time('mysql'),
         ]);
     }
+
+    public function ajax_csv_imports_dashboard() {
+        $context = $this->get_current_orabooks_context();
+        if (is_wp_error($context)) {
+            orabooks_json_error($context->get_error_message(), 401);
+        }
+
+        $org = $context['organization'];
+        $org_id = $org ? (int) $org['id'] : 0;
+        if (!$org_id) {
+            orabooks_json_error('Organization is not set up yet.', 400);
+        }
+
+        if (($org['organization_type'] ?? '') === 'partner') {
+            orabooks_json_error('Partner accounts cannot perform accounting operations.', 403);
+        }
+
+        if (!current_user_can('manage_options') && !OraBooks_RBAC::require_permission($context['user_id'], $org_id, 'submit_transaction')) {
+            orabooks_json_error('Permission denied', 403);
+        }
+
+        $stats = [
+            'total' => 0,
+            'uploaded' => 0,
+            'parsing' => 0,
+            'mapping' => 0,
+            'pending_confirm' => 0,
+            'confirmed' => 0,
+            'failed' => 0,
+        ];
+        $recent_imports = [];
+        $resource_types = [];
+
+        if (class_exists('OraBooks_Csv_Imports')) {
+            $stats = OraBooks_Csv_Imports::get_import_stats($org_id, $context['user_id']);
+            $recent = OraBooks_Csv_Imports::list_imports($org_id, $context['user_id'], 15);
+            $recent_imports = array_map([OraBooks_Csv_Imports::class, 'format_import'], $recent ?: []);
+
+            $labels = [
+                'inventory_item' => 'Inventory Items',
+                'contact'        => 'Contacts',
+                'vendor'         => 'Vendors',
+                'expense'        => 'Expenses',
+                'invoice'        => 'Invoices',
+            ];
+            foreach (OraBooks_Csv_Imports::RESOURCE_TYPES as $type) {
+                $resource_types[] = [
+                    'id'    => $type,
+                    'label' => $labels[$type] ?? $type,
+                ];
+            }
+        }
+
+        orabooks_json_success([
+            'context' => $context,
+            'stats' => $stats,
+            'recent_imports' => $recent_imports,
+            'resource_types' => $resource_types,
+            'limits' => class_exists('OraBooks_Csv_Imports') ? [
+                'max_file_size' => OraBooks_Csv_Imports::MAX_FILE_SIZE,
+                'max_rows' => OraBooks_Csv_Imports::MAX_ROWS,
+                'confidence_threshold' => OraBooks_Csv_Imports::CONFIDENCE_THRESHOLD,
+            ] : [],
+            'timestamp' => current_time('mysql'),
+        ]);
+    }
     
     public function ajax_list_orgs() {
         if (!current_user_can('manage_options')) {
