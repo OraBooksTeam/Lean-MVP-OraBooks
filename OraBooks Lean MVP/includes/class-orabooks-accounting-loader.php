@@ -69,8 +69,11 @@ class OraBooks_Accounting {
         }
 
         $target = home_url('/dashboard/');
-        if (!empty($_GET)) {
-            $target = add_query_arg(array_map('sanitize_text_field', wp_unslash($_GET)), $target);
+        foreach ($_GET as $key => $value) {
+            if (!is_scalar($value)) {
+                continue;
+            }
+            $target = add_query_arg(sanitize_key($key), sanitize_text_field(wp_unslash((string) $value)), $target);
         }
 
         wp_safe_redirect($target, 301);
