@@ -928,7 +928,8 @@ function orabooks_body_class($classes) {
     } elseif (
         has_shortcode($post->post_content, 'orabooks_dashboard')
         && function_exists('orabooks_uses_merged_accounting_workspace')
-        && is_user_logged_in()
+        && function_exists('orabooks_is_user_logged_in')
+        && orabooks_is_user_logged_in()
         && orabooks_uses_merged_accounting_workspace()
     ) {
         $classes[] = 'orabooks-accounting-page';
