@@ -674,11 +674,6 @@ function orabooks_admin_react_page($route) {
 }
 
 function orabooks_admin_commissions() {
-    if (current_user_can('manage_options')) {
-        $shortcodes = OraBooks_Shortcodes::init();
-        echo '<div class="wrap orabooks-admin">' . $shortcodes->commission_admin() . '</div>';
-        return;
-    }
     orabooks_admin_react_page('/admin/commissions');
 }
 function orabooks_admin_notifications() {
