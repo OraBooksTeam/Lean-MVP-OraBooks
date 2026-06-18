@@ -14,6 +14,7 @@ import VendorsPage from './pages/VendorsPage';
 import InventoryPage from './pages/InventoryPage';
 import BankReconciliationPage from './pages/BankReconciliationPage';
 import ReportsPage from './pages/ReportsPage';
+import ProfilePage from './pages/ProfilePage';
 import NotificationPreferencesPage from './pages/NotificationPreferencesPage';
 
 export default function FrontendRoutes() {
