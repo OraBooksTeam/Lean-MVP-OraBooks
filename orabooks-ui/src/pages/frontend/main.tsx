@@ -56,26 +56,8 @@ function bootFrontend() {
 
   const router = createHashRouter([
     {
-      path: '/',
+      path: '*',
       element: <FrontendRoutes />,
-      children: [
-        { path: '/', element: <div /> },
-        { path: '/login', element: <div /> },
-        { path: '/register', element: <div /> },
-        { path: '/tier-selection', element: <div /> },
-        { path: '/dashboard', element: <div /> },
-        { path: '/customers', element: <div /> },
-        { path: '/vendors', element: <div /> },
-        { path: '/inventory', element: <div /> },
-        { path: '/bank-reconciliation', element: <div /> },
-        { path: '/invoices', element: <div /> },
-        { path: '/chart-of-accounts', element: <div /> },
-        { path: '/journals', element: <div /> },
-        { path: '/partner-onboarding', element: <div /> },
-        { path: '/notifications', element: <div /> },
-        { path: '/my-exports', element: <div /> },
-        { path: '/profile', element: <div /> },
-      ],
     },
   ]);
 
