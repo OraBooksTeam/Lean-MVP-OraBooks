@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import AdminPageShell from '@/components/AdminPageShell';
 import { api } from '../api';
 import Button from '@/components/Button';
 import { Building2, ShieldCheck, ShieldOff } from 'lucide-react';
@@ -38,10 +39,12 @@ export default function AdminOrganizations() {
   };
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-ink">Organizations</h1>
-      <div className="flex items-center justify-between">
-        <div className="flex gap-2">
+    <AdminPageShell
+      title="Organizations"
+      description="Manage customer and partner organizations across the platform."
+      actions={<Button variant="secondary" onClick={load}>Refresh</Button>}
+    >
+      <div className="space-y-6">
           <select className="rounded-lg border border-border bg-white px-3 py-2 text-sm">
             <option value="">All Types</option>
             <option value="customer">Customer</option>

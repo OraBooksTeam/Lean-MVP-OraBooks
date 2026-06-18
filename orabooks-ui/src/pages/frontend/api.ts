@@ -238,4 +238,11 @@ export const api = {
       format,
       parameters: parameters ? JSON.stringify(parameters) : '',
     }),
+
+  // Async queue / observability (admin)
+  asyncQueueStats: () => api.get('orabooks_async_queue_stats'),
+  asyncQueueReplay: (jobId: number) => api.post('orabooks_async_queue_replay', { job_id: jobId }),
+  observabilityDashboard: (hours = 24) =>
+    api.post('orabooks_observability_dashboard', { hours }),
+  exportsList: (page = 1) => api.get('orabooks_exports_list', { page }),
 };

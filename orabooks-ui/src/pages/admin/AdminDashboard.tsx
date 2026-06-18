@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import Button from '@/components/Button';
+import AdminPageShell from '@/components/AdminPageShell';
 import { api } from '../api';
 import {
   Building2,
@@ -159,25 +160,20 @@ export default function AdminDashboard() {
   ];
 
   return (
-    <div className="space-y-6">
-      <header className="overflow-hidden rounded-2xl border border-border bg-white shadow-sm shadow-primary/5">
-        <div className="brand-accent-bar h-1.5" />
-        <div className="flex flex-col gap-4 p-6 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <p className="text-xs font-bold uppercase tracking-wide text-primary">OraBooks Admin</p>
-            <h1 className="mt-1 text-2xl font-bold text-ink">Platform Dashboard</h1>
-            {stats?.timestamp && (
-              <p className="mt-1 text-xs text-ink-secondary">
-                Last updated: {new Date(stats.timestamp).toLocaleString()}
-              </p>
-            )}
-          </div>
-          <Button onClick={load} variant="secondary" size="sm">
-            <RefreshCw className="h-4 w-4" />
-            Refresh
-          </Button>
-        </div>
-      </header>
+    <AdminPageShell
+      title="Platform Dashboard"
+      description="Live counts across organizations, partners, users, and attributions."
+      actions={
+        <Button onClick={load} variant="secondary" size="sm">
+          <RefreshCw className="h-4 w-4" />
+          Refresh
+        </Button>
+      }
+    >
+      <div className="space-y-6">
+      {stats?.timestamp && (
+        <p className="text-xs text-ink-secondary">Last updated: {new Date(stats.timestamp).toLocaleString()}</p>
+      )}
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {cards.map((card) => {
@@ -281,7 +277,8 @@ export default function AdminDashboard() {
           </div>
         </section>
       </div>
-    </div>
+      </div>
+    </AdminPageShell>
   );
 }
 
