@@ -4,6 +4,7 @@ import Button from '@/components/Button';
 import Input from '@/components/Input';
 import { api } from '../api';
 import ClientShell from '../components/ClientShell';
+import ResourceAttachmentsPanel from '../components/ResourceAttachmentsPanel';
 import { FileText, Info, Paperclip, Percent, Plus, RefreshCw, Wallet } from 'lucide-react';
 
 type Invoice = {
@@ -67,6 +68,7 @@ export default function InvoicesPage() {
   const [overrideReason, setOverrideReason] = useState('');
   const [overrideJurisdiction, setOverrideJurisdiction] = useState('US');
   const [taxLocked, setTaxLocked] = useState(false);
+  const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
 
   const orgId = context?.organization?.id;
 
