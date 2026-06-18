@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import Button from '@/components/Button';
 import Input from '@/components/Input';
 import { api } from '../api';
 import ClientShell from '../components/ClientShell';
-import { Bot, Landmark, RefreshCw } from 'lucide-react';
+import { Bot, Landmark, Paperclip, RefreshCw } from 'lucide-react';
 
 type Journal = {
   id: number;
@@ -212,6 +213,13 @@ export default function JournalsPage() {
                 {selectedJournal.rejected_reason ? (
                   <p className="text-sm text-amber-700">Rejected: {selectedJournal.rejected_reason}</p>
                 ) : null}
+
+                <Link to={`/attachments?resource_type=journal&resource_id=${selectedJournal.id}`}>
+                  <Button variant="secondary" size="sm">
+                    <Paperclip className="h-3.5 w-3.5" />
+                    View Attachments
+                  </Button>
+                </Link>
 
                 <div className="overflow-hidden rounded-xl border border-border">
                   <table className="min-w-full text-left text-sm">
