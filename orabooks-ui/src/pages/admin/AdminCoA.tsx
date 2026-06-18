@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import AdminPageShell from '@/components/AdminPageShell';
 import { api } from '../api';
 
 interface Account {
@@ -34,8 +35,7 @@ export default function AdminCoA() {
   useEffect(() => { loadOrgs(); }, []);
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-ink">Chart of Accounts</h1>
+    <AdminPageShell title="Chart of Accounts" description="Browse organization account structures and system-generated entries.">
       <div className="flex flex-wrap items-center gap-2">
         <select
           value={orgId}
@@ -84,7 +84,7 @@ export default function AdminCoA() {
           </tbody>
         </table>
       </div>
-    </div>
+    </AdminPageShell>
   );
 }
 

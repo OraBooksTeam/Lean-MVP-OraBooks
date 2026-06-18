@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import AdminPageShell from '@/components/AdminPageShell';
 import { api } from '../api';
 import { Calendar, User, Filter } from 'lucide-react';
 
@@ -27,13 +28,15 @@ export default function AdminAudit() {
   useEffect(() => { load(); }, []);
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-ink">Audit Log</h1>
+    <AdminPageShell
+      title="Audit Log"
+      description="Security and compliance events across the platform."
+      actions={
         <button onClick={load} className="flex items-center gap-1.5 rounded-lg border border-border bg-white px-3 py-2 text-sm font-medium shadow-sm transition hover:bg-slate-50">
           <Filter className="h-4 w-4" /> Refresh
         </button>
-      </div>
+      }
+    >
       <div className="flex flex-wrap items-center gap-2">
         <div className="flex items-center gap-1.5 rounded-lg border border-border bg-white px-3 py-2 text-sm"><User className="h-4 w-4 text-slate-500" /> <input className="w-24 bg-transparent text-sm outline-none" placeholder="User ID" /></div>
         <div className="flex items-center gap-1.5 rounded-lg border border-border bg-white px-3 py-2 text-sm"><Calendar className="h-4 w-4 text-slate-500" /> <input type="date" className="bg-transparent text-sm outline-none" /></div>
@@ -67,7 +70,7 @@ export default function AdminAudit() {
           </tbody>
         </table>
       </div>
-    </div>
+    </AdminPageShell>
   );
 }
 

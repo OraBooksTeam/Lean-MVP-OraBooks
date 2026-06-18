@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import AdminPageShell from '@/components/AdminPageShell';
 import { api } from '../api';
 import Button from '@/components/Button';
 import { UserCheck, UserX, RefreshCw } from 'lucide-react';
@@ -46,8 +47,10 @@ export default function AdminPartners() {
   };
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-ink">Partner Management</h1>
+    <AdminPageShell
+      title="Partner Management"
+      description="Review pending partner applications and monitor active partner organizations."
+    >
       <div className="grid gap-6 lg:grid-cols-2">
         <div className="glass-panel p-6">
           <div className="mb-4 flex items-center justify-between">
@@ -98,6 +101,6 @@ export default function AdminPartners() {
           </div>
         </div>
       </div>
-    </div>
+    </AdminPageShell>
   );
 }
