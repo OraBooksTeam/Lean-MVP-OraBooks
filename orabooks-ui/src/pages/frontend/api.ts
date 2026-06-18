@@ -531,6 +531,12 @@ export const api = {
     api.get('orabooks_approval_dashboard'),
   aiReviewDashboard: () =>
     api.get('orabooks_ai_review_dashboard'),
+  aiReviewList: (orgId: number, filters: { status?: string; limit?: number } = {}) =>
+    api.get('orabooks_ai_review_list', { org_id: orgId, ...filters }),
+  aiReviewResolve: (
+    orgId: number,
+    params: { queue_id?: number; journal_id?: number; resource_type?: string; resource_id?: number },
+  ) => api.post('orabooks_ai_review_resolve', { org_id: orgId, ...params }),
   expensesDashboard: () =>
     api.get('orabooks_expenses_dashboard'),
   uploadExpenseReceipt: (orgId: number, file: File, idempotencyKey = '') => {
