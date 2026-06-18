@@ -334,7 +334,11 @@ function JournalSection({
               <tr
                 key={journal.id}
                 id={`journal-row-${journal.id}`}
-                className={`hover:bg-slate-50/70 ${highlightJournalId === journal.id ? 'bg-primary/10 ring-2 ring-inset ring-primary/30' : ''}`}
+                className={`hover:bg-slate-50/70 ${
+                  highlightJournalId === journal.id || selectedJournalId === journal.id
+                    ? 'bg-primary/10 ring-2 ring-inset ring-primary/30'
+                    : ''
+                }`}
               >
                 <td className="px-5 py-3 font-semibold text-ink">
                   {journal.journal_number || `Journal #${journal.id}`}
@@ -344,6 +348,12 @@ function JournalSection({
                 <td className="px-5 py-3 text-right font-bold text-ink">{money(journal.total_amount)}</td>
                 <td className="px-5 py-3">
                   <div className="flex flex-wrap gap-2">
+                    {onSelect && (
+                      <Button variant="secondary" size="sm" onClick={() => onSelect(journal.id)}>
+                        <Eye className="h-3.5 w-3.5" />
+                        Review
+                      </Button>
+                    )}
                     {actions(journal)}
                     <Link to={`/attachments?resource_type=journal&resource_id=${journal.id}`}>
                       <Button variant="secondary" size="sm">
@@ -401,4 +411,8 @@ function money(value?: string | number) {
 }
 
 function formatDate(value: string) {
-  if (!value) return '—'
+  if (!value) return '—';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleString();
+}
