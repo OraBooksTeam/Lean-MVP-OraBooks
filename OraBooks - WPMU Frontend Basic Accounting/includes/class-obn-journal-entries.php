@@ -189,8 +189,10 @@ class OBN_Journal_Entries {
             "SELECT je.*, u.display_name as creator_name 
              FROM $je_table je 
              LEFT JOIN {$wpdb->users} u ON je.created_by = u.ID 
-             WHERE je.id = %d", 
-            $id 
+             WHERE je.id = %d AND (je.organization_id = %d OR je.store_id = %d)", 
+            $id,
+            obn_current_org_id(),
+            obn_current_org_id()
         ) );
         if ( ! $entry ) wp_send_json_error('Journal Entry not found.');
 

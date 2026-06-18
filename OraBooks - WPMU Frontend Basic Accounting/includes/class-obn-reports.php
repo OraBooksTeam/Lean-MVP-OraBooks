@@ -259,17 +259,13 @@ class OBN_Reports {
 
     public function handle_search_income_statement_report() {
         check_ajax_referer('frontend_ajax_nonce', 'security');
-
-        $auth = new OBN_Auth();
-        if ( ! is_user_logged_in() || ! $auth->can_access_accounting() ) {
-            echo '<tr><td colspan="3" class="px-6 py-10 text-center text-red-500">Access denied.</td></tr>';
-            wp_die();
-        }
+        OBN_Org_Context::require_accounting_access_or_die('html', 'view_financial_reports');
 
         global $wpdb;
 
         $start_date = isset($_POST['start_date']) ? sanitize_text_field($_POST['start_date']) : date('Y-m-01');
         $end_date   = isset($_POST['end_date']) ? sanitize_text_field($_POST['end_date']) : date('Y-m-d');
+        $org_id = obn_current_org_id();
 
         $je_table   = "{$wpdb->prefix}orabooks_ac_journal_entry";
         $jl_table   = "{$wpdb->prefix}orabooks_ac_journal_line";
@@ -291,13 +287,13 @@ class OBN_Reports {
                 SUM(jl.credit) as total_credit
             FROM $coa_table coal
             LEFT JOIN $jl_table jl ON coal.id = jl.account_id
-            LEFT JOIN $je_table je ON jl.journal_entry_id = je.id AND je.status = 'Posted' AND je.entry_date >= %s AND je.entry_date <= %s
+            LEFT JOIN $je_table je ON jl.journal_entry_id = je.id AND je.status = 'Posted' AND je.entry_date >= %s AND je.entry_date <= %s AND (je.organization_id = %d OR je.store_id = %d)
             JOIN $types_table t ON coal.coa_type_id = t.id
-            WHERE coal.coa_type_id IN (4, 5, 6)
+            WHERE coal.coa_type_id IN (4, 5, 6) AND (coal.store_id = %d OR coal.organization_id = %d OR coal.store_id IS NULL)
             GROUP BY coal.id
             HAVING (SUM(jl.debit) != 0 OR SUM(jl.credit) != 0)
             ORDER BY coal.coa_type_id ASC, coal.account_code ASC
-        ", $start_date, $end_date);
+        ", $start_date, $end_date, $org_id, $org_id, $org_id, $org_id);
         
         $rows = $wpdb->get_results($sql);
 
