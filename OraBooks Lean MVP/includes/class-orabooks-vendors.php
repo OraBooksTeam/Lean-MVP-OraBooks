@@ -1080,10 +1080,7 @@ class OraBooks_Vendors {
     public function ajax_ap_aging() {
         $user_id = $this->current_user_id();
         $org_id = intval($_GET['org_id'] ?? 0);
-        $this->require_customer_org_access($user_id, $org_id);
-        if (!OraBooks_RBAC::require_permission($user_id, $org_id, 'view_reports')) {
-            orabooks_json_error('Permission denied', 403);
-        }
+        $this->require_ap_permission($user_id, $org_id, ['view_reports']);
         orabooks_json_success(self::get_ap_aging($org_id, $_GET['as_of_date'] ?? null));
     }
 }
