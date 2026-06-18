@@ -29,6 +29,8 @@ class OraBooks_RBAC {
     private static function define_permissions() {
         self::$permissions = [
             'view_reports'                => ['owner', 'admin', 'approver', 'staff', 'viewer'],
+            'view_financial_reports'      => ['owner', 'admin', 'approver', 'staff', 'viewer'],
+            'view_operational_reports'    => ['owner', 'admin', 'approver', 'staff', 'viewer'],
             'view_ai_review_queue'        => ['owner', 'admin', 'approver'],
             'view_expenses'               => ['owner', 'admin', 'approver', 'staff', 'viewer'],
             'manage_expenses'             => ['owner', 'admin', 'staff'],
@@ -40,6 +42,7 @@ class OraBooks_RBAC {
             'submit_transaction'          => ['owner', 'admin', 'staff'],
             'approve_journal'             => ['owner', 'admin', 'approver'],
             'reverse_journal'             => ['owner', 'admin'],
+            'sign_report'                 => ['owner', 'admin'],
             'invite_user'                 => ['owner', 'admin'],
             'change_role'                 => ['owner'],
             'remove_user'                 => ['owner'],
@@ -50,6 +53,7 @@ class OraBooks_RBAC {
             'view_audit_logs'             => ['owner', 'admin'],
             'manage_org_settings'         => ['owner', 'admin'],
             'manage_billing'              => ['owner'],
+            'manage_inventory'            => ['owner', 'admin', 'staff'],
             'create_invoice'              => ['owner', 'admin', 'staff'],
             'view_invoices'               => ['owner', 'admin', 'approver', 'staff', 'viewer'],
             'manage_partner_settings'     => ['owner', 'admin'],
