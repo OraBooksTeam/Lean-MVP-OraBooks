@@ -29,7 +29,7 @@ if (!defined('WPINC')) {
  * This plugin has been merged into OraBooks Lean MVP (single unified plugin).
  * Deactivate this standalone copy to avoid duplicate handlers and shortcodes.
  */
-if (defined('ORABOOKS_ACCOUNTING_LOADED')) {
+if (defined('ORABOOKS_ACCOUNTING_LOADED') || defined('ORABOOKS_VERSION') || defined('ORABOOKS_PLUGIN_DIR')) {
 	add_action('admin_notices', function () {
 		if (!current_user_can('activate_plugins')) {
 			return;
