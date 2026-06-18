@@ -660,6 +660,10 @@
     padding: 24px 0;
 }
 
+.orabooks-admin-root.is-mounted .orabooks-admin-root-loading {
+    display: none;
+}
+
 /* React shortcodes inside wp-admin */
 .wp-admin .orabooks-react-page {
     margin: 12px 0 0;
@@ -668,10 +672,6 @@
 .wp-admin #orabooks-app-root {
     min-height: 480px;
     width: 100%;
-}
-
-.wp-admin #orabooks-admin-root:not(:empty) .orabooks-admin-root-loading {
-    display: none;
 }
 
 /* Brand alignment for legacy admin pages */

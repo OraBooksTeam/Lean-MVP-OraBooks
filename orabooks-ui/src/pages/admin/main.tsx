@@ -11,26 +11,50 @@ declare global {
   }
 }
 
-const adminRoot = document.getElementById('orabooks-admin-root');
-if (adminRoot) {
+function showAdminBootError(root: HTMLElement, message: string) {
+  root.classList.add('is-mounted');
+  root.innerHTML = `<div style="padding:24px;border:1px solid #d8e6f3;border-radius:16px;background:#fff;color:#102f52;">
+    <h2 style="margin:0 0 8px;color:#1A69B4;">OraBooks could not start</h2>
+    <p style="margin:0;">${message}</p>
+  </div>`;
+}
+
+function bootAdmin() {
+  const adminRoot = document.getElementById('orabooks-admin-root');
+  if (!adminRoot) {
+    return;
+  }
+
   const initialRoute = adminRoot.dataset.adminRoute || '/admin/dashboard';
   if (!window.location.hash || window.location.hash === '#') {
     window.location.hash = initialRoute;
   }
 
-  const router = createHashRouter([
-    {
-      path: '*',
-      element: <AdminRoutes />,
-    },
-  ]);
+  try {
+    const router = createHashRouter([
+      {
+        path: '*',
+        element: <AdminRoutes />,
+      },
+    ]);
 
-  window.orabooksAdminMounted = true;
-  ReactDOM.createRoot(adminRoot).render(
-    <React.StrictMode>
-      <RouterProvider router={router} />
-    </React.StrictMode>
-  );
+    window.orabooksAdminMounted = true;
+    adminRoot.classList.add('is-mounted');
+    ReactDOM.createRoot(adminRoot).render(
+      <React.StrictMode>
+        <RouterProvider router={router} />
+      </React.StrictMode>
+    );
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Unknown error starting admin UI.';
+    showAdminBootError(adminRoot, msg);
+  }
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', bootAdmin);
+} else {
+  bootAdmin();
 }
 
 const appRoot = document.getElementById('orabooks-app-root');

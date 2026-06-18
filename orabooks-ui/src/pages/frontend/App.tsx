@@ -12,6 +12,7 @@ import JournalsPage from './pages/JournalsPage';
 import CustomersPage from './pages/CustomersPage';
 import VendorsPage from './pages/VendorsPage';
 import InventoryPage from './pages/InventoryPage';
+import BankReconciliationPage from './pages/BankReconciliationPage';
 import ProfilePage from './pages/ProfilePage';
 
 export default function FrontendRoutes() {
@@ -25,6 +26,7 @@ export default function FrontendRoutes() {
       <Route path="/customers" element={<CustomersPage />} />
       <Route path="/vendors" element={<VendorsPage />} />
       <Route path="/inventory" element={<InventoryPage />} />
+      <Route path="/bank-reconciliation" element={<BankReconciliationPage />} />
       <Route path="/invoices" element={<InvoicesPage />} />
       <Route path="/chart-of-accounts" element={<ChartOfAccountsPage />} />
       <Route path="/journals" element={<JournalsPage />} />
