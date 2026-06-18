@@ -123,6 +123,30 @@ class OraBooks_Security_Test extends TestCase
     }
 
     #[Test]
+    public function test_get_owasp_catalog_has_all_ten_controls()
+    {
+        $catalog = OraBooks_Security::get_owasp_catalog();
+
+        $this->assertCount(10, $catalog);
+        $this->assertArrayHasKey('A01', $catalog);
+        $this->assertArrayHasKey('A10', $catalog);
+        $this->assertEquals('Broken Access Control', $catalog['A01']['control_name']);
+        $this->assertEquals('SSRF', $catalog['A10']['control_name']);
+        $this->assertNotEmpty($catalog['A01']['mitigations']);
+    }
+
+    #[Test]
+    public function test_get_secret_rotation_status_returns_structure()
+    {
+        $status = OraBooks_Security::get_secret_rotation_status();
+
+        $this->assertArrayHasKey('last_rotated', $status);
+        $this->assertArrayHasKey('days_since', $status);
+        $this->assertArrayHasKey('due', $status);
+        $this->assertArrayHasKey('days_until', $status);
+    }
+
+    #[Test]
     public function test_store_scan_result_inserts_scan()
     {
         global $wpdb;

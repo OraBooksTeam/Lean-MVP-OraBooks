@@ -176,7 +176,7 @@ export default function AdminSecurity() {
                       </ul>
                     )}
                     {row.user_message && (
-                      <p className="mt-+2 mt-2 rounded-lg bg-amber-50 px-2 py-1 text-[11px] text-amber-800">
+                      <p className="mt-2 rounded-lg bg-amber-50 px-2 py-1 text-[11px] text-amber-800">
                         User message: &ldquo;{row.user_message}&rdquo;
                       </p>
                     )}
