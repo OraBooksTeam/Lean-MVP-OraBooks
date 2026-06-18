@@ -4,7 +4,7 @@ import Button from '@/components/Button';
 import Input from '@/components/Input';
 import { api } from '../api';
 import ClientShell from '../components/ClientShell';
-import { Bot, Landmark, Paperclip, RefreshCw } from 'lucide-react';
+import { Bot, Landmark, Paperclip, Plus, RefreshCw } from 'lucide-react';
 
 type Journal = {
   id: number;

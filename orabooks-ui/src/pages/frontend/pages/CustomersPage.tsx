@@ -204,6 +204,23 @@ export default function CustomersPage() {
             </tbody>
           </table>
         </div>
+
+        {editing && (
+          <div className="glass-panel space-y-4 p-5">
+            <h3 className="text-lg font-bold text-ink">Edit customer notes</h3>
+            <p className="text-sm text-slate-600">{editing.email || `Customer #${editing.id}`}</p>
+            <Input
+              label="Notes"
+              value={editNotes}
+              onChange={(e) => setEditNotes(e.target.value)}
+              placeholder="Internal notes about this customer"
+            />
+            <div className="flex gap-2">
+              <Button onClick={saveNotes} loading={saving}>Save notes</Button>
+              <Button variant="secondary" onClick={() => setEditing(null)}>Cancel</Button>
+            </div>
+          </div>
+        )}
       </div>
     </ClientShell>
   );
