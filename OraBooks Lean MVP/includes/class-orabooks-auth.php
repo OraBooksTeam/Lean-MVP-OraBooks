@@ -96,12 +96,20 @@ class OraBooks_Auth {
         if (!orabooks_check_rate_limit('register_' . $ip, 5, 3600)) {
             return new WP_Error('rate_limit', 'Too many registration attempts. Please try again later.');
         }
+
+        if (!orabooks_users_can_register()) {
+            return new WP_Error('registration_disabled', 'User registration is disabled on this site.');
+        }
         
         // Check if email already exists
         $existing = $wpdb->get_var($wpdb->prepare(
             "SELECT id FROM {$table_users} WHERE email = %s", $email
         ));
         if ($existing) {
+            return new WP_Error('email_exists', 'This email is already registered');
+        }
+
+        if (function_exists('email_exists') && email_exists($email)) {
             return new WP_Error('email_exists', 'This email is already registered');
         }
         
