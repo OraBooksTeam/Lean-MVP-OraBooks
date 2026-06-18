@@ -416,6 +416,117 @@ class OraBooks_Ajax {
             'timestamp' => current_time('mysql'),
         ]);
     }
+
+    public function ajax_reports_dashboard() {
+        $context = $this->get_current_orabooks_context();
+        if (is_wp_error($context)) {
+            orabooks_json_error($context->get_error_message(), 401);
+        }
+
+        $org = $context['organization'];
+        $org_id = $org ? (int) $org['id'] : 0;
+        if (!$org_id) {
+            orabooks_json_error('Organization is not set up yet.', 400);
+        }
+
+        if (($org['organization_type'] ?? '') === 'partner') {
+            orabooks_json_error('Partner accounts cannot perform accounting operations.', 403);
+        }
+
+        if (!current_user_can('manage_options') && !OraBooks_RBAC::require_permission($context['user_id'], $org_id, 'view_reports')) {
+            orabooks_json_error('Permission denied', 403);
+        }
+
+        $period_start = date('Y-m-01');
+        $period_end = current_time('Y-m-d');
+        $as_of_date = current_time('Y-m-d');
+
+        $financial_preview = null;
+        if (class_exists('OraBooks_Financial_Reports')) {
+            $pl = OraBooks_Financial_Reports::generate_report(
+                $org_id,
+                'profit_loss',
+                $period_start,
+                $period_end,
+                ['generated_by' => $context['user_id']]
+            );
+            if (!is_wp_error($pl)) {
+                $report = $pl['report'] ?? [];
+                $financial_preview = [
+                    'total_revenue' => (float) ($report['total_revenue'] ?? 0),
+                    'total_expenses' => (float) ($report['total_expenses'] ?? 0),
+                    'net_income' => (float) ($report['net_income'] ?? 0),
+                    'period_start' => $period_start,
+                    'period_end' => $period_end,
+                    'from_cache' => !empty($pl['from_cache']),
+                ];
+            }
+        }
+
+        $operational_preview = [
+            'net_sales_mtd' => 0.0,
+            'ar_customers' => 0,
+            'low_stock_items' => 0,
+        ];
+
+        if (class_exists('OraBooks_Operational_Reports')) {
+            $sales = OraBooks_Operational_Reports::generate_report($org_id, 'sales_summary', [
+                'start_date' => $period_start,
+                'end_date' => $period_end,
+            ]);
+            if (!is_wp_error($sales) && is_array($sales['data'] ?? null)) {
+                foreach ($sales['data'] as $row) {
+                    $operational_preview['net_sales_mtd'] += (float) ($row->net_sales ?? 0);
+                }
+            }
+
+            $ar = OraBooks_Operational_Reports::generate_report($org_id, 'ar_aging', [
+                'as_of_date' => $as_of_date,
+            ]);
+            if (!is_wp_error($ar) && is_array($ar['data'] ?? null)) {
+                $operational_preview['ar_customers'] = count($ar['data']);
+            }
+
+            $inventory = OraBooks_Operational_Reports::generate_report($org_id, 'inventory_status', [
+                'status' => 'low',
+            ]);
+            if (!is_wp_error($inventory) && is_array($inventory['data'] ?? null)) {
+                $operational_preview['low_stock_items'] = count($inventory['data']);
+            }
+        }
+
+        $recent_snapshots = class_exists('OraBooks_Financial_Reports')
+            ? OraBooks_Financial_Reports::get_recent_snapshots($org_id, ['limit' => 10])
+            : [];
+
+        orabooks_json_success([
+            'context' => $context,
+            'period' => [
+                'start' => $period_start,
+                'end' => $period_end,
+                'as_of_date' => $as_of_date,
+            ],
+            'financial_types' => [
+                ['id' => 'profit_loss', 'label' => 'Profit & Loss'],
+                ['id' => 'balance_sheet', 'label' => 'Balance Sheet'],
+                ['id' => 'cash_flow', 'label' => 'Cash Flow'],
+                ['id' => 'trial_balance', 'label' => 'Trial Balance'],
+                ['id' => 'changes_equity', 'label' => 'Changes in Equity'],
+            ],
+            'operational_types' => [
+                ['id' => 'ar_aging', 'label' => 'AR Aging'],
+                ['id' => 'ap_aging', 'label' => 'AP Aging'],
+                ['id' => 'inventory_status', 'label' => 'Inventory Status'],
+                ['id' => 'bank_reconciliation', 'label' => 'Bank Reconciliation'],
+                ['id' => 'sales_summary', 'label' => 'Sales Summary'],
+                ['id' => 'purchase_summary', 'label' => 'Purchase Summary'],
+            ],
+            'financial_preview' => $financial_preview,
+            'operational_preview' => $operational_preview,
+            'recent_snapshots' => $recent_snapshots,
+            'timestamp' => current_time('mysql'),
+        ]);
+    }
     
     public function ajax_list_orgs() {
         if (!current_user_can('manage_options')) {
