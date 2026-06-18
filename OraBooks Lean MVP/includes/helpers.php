@@ -776,7 +776,6 @@ function orabooks_render_merged_accounting_workspace($view = '') {
  */
 function orabooks_merged_accounting_shortcodes() {
     return [
-        'orabooks_dashboard',
         'orabooks_customers',
         'orabooks_vendors',
         'orabooks_inventory',

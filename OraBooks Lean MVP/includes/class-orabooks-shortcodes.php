@@ -123,11 +123,7 @@ class OraBooks_Shortcodes {
     }
     
     public function dashboard() {
-        if (function_exists('orabooks_uses_merged_accounting_workspace') && orabooks_uses_merged_accounting_workspace()) {
-            return orabooks_render_merged_accounting_workspace();
-        }
-
-        return $this->react_page('/partner-program');
+        return $this->react_page('/dashboard');
     }
 
     public function customers_page() {
