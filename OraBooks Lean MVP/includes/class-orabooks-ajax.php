@@ -35,6 +35,7 @@ class OraBooks_Ajax {
             add_action('wp_ajax_orabooks_approval_dashboard', [self::$instance, 'ajax_approval_dashboard']);
             add_action('wp_ajax_orabooks_ai_review_dashboard', [self::$instance, 'ajax_ai_review_dashboard']);
             add_action('wp_ajax_orabooks_expenses_dashboard', [self::$instance, 'ajax_expenses_dashboard']);
+            add_action('wp_ajax_orabooks_voice_dashboard', [self::$instance, 'ajax_voice_dashboard']);
             add_action('wp_ajax_nopriv_orabooks_frontend_context', [self::$instance, 'ajax_frontend_context']);
             add_action('wp_ajax_nopriv_orabooks_customer_dashboard', [self::$instance, 'ajax_customer_dashboard']);
             add_action('wp_ajax_nopriv_orabooks_vendor_dashboard', [self::$instance, 'ajax_vendor_dashboard']);
@@ -47,6 +48,7 @@ class OraBooks_Ajax {
             add_action('wp_ajax_nopriv_orabooks_approval_dashboard', [self::$instance, 'ajax_approval_dashboard']);
             add_action('wp_ajax_nopriv_orabooks_ai_review_dashboard', [self::$instance, 'ajax_ai_review_dashboard']);
             add_action('wp_ajax_nopriv_orabooks_expenses_dashboard', [self::$instance, 'ajax_expenses_dashboard']);
+            add_action('wp_ajax_nopriv_orabooks_voice_dashboard', [self::$instance, 'ajax_voice_dashboard']);
             
             // Register settings
             add_action('admin_init', [self::$instance, 'register_settings']);
@@ -972,6 +974,58 @@ class OraBooks_Ajax {
             ],
             'limits' => [
                 'max_file_size' => OraBooks_Expenses::MAX_RECEIPT_SIZE,
+            ],
+            'timestamp' => current_time('mysql'),
+        ]);
+    }
+
+    public function ajax_voice_dashboard() {
+        $context = $this->get_current_orabooks_context();
+        if (is_wp_error($context)) {
+            orabooks_json_error($context->get_error_message(), 401);
+        }
+
+        $org = $context['organization'];
+        $org_id = $org ? (int) $org['id'] : 0;
+        if (!$org_id) {
+            orabooks_json_error('Organization is not set up yet.', 400);
+        }
+
+        if (($org['organization_type'] ?? '') === 'partner') {
+            orabooks_json_error('Partner accounts cannot perform accounting operations.', 403);
+        }
+
+        if (!OraBooks_RBAC::require_permission($context['user_id'], $org_id, 'view_voice_inputs')) {
+            orabooks_json_error('Permission denied', 403);
+        }
+
+        $stats = [
+            'total'     => 0,
+            'pending'   => 0,
+            'processed' => 0,
+            'failed'    => 0,
+            'escalated' => 0,
+        ];
+        $voice_inputs = [];
+
+        if (class_exists('OraBooks_Voice')) {
+            $stats = OraBooks_Voice::get_voice_stats($org_id);
+            $rows = OraBooks_Voice::list_voice_inputs($org_id, ['limit' => 25]);
+            $voice_inputs = array_map([OraBooks_Voice::class, 'format_voice_input'], $rows ?: []);
+        }
+
+        orabooks_json_success([
+            'context' => $context,
+            'stats' => $stats,
+            'voice_inputs' => $voice_inputs,
+            'transaction_types' => OraBooks_Voice::TRANSACTION_TYPES,
+            'threshold' => OraBooks_Voice::CONFIDENCE_THRESHOLD,
+            'capabilities' => [
+                'record'  => OraBooks_RBAC::require_permission($context['user_id'], $org_id, 'manage_voice_inputs'),
+                'confirm' => OraBooks_RBAC::require_permission($context['user_id'], $org_id, 'manage_voice_inputs'),
+            ],
+            'limits' => [
+                'max_file_size' => OraBooks_Voice::MAX_AUDIO_SIZE,
             ],
             'timestamp' => current_time('mysql'),
         ]);

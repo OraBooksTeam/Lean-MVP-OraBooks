@@ -50,6 +50,7 @@ require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-csv-imports.php';
 require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-attachments.php';
 require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-ai-review.php';
 require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-expenses.php';
+require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-voice.php';
 require_once ORABOOKS_PLUGIN_DIR . 'includes/helpers.php';
 
 // Initialize plugin
@@ -91,6 +92,7 @@ function orabooks_init() {
     OraBooks_Attachments::init();
     OraBooks_Ai_Review::init();
     OraBooks_Expenses::init();
+    OraBooks_Voice::init();
     OraBooks_Exports::register_report_provider('coa', function($params) {
         // Reuse OraBooks_COA if available
         if (class_exists('OraBooks_COA') && method_exists('OraBooks_COA', 'get_accounts')) {

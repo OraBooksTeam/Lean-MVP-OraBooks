@@ -38,6 +38,7 @@ class OraBooks_Shortcodes {
             add_shortcode('orabooks_approvals', [self::$instance, 'approvals_page']);
             add_shortcode('orabooks_ai_review', [self::$instance, 'ai_review_page']);
             add_shortcode('orabooks_expenses', [self::$instance, 'expenses_page']);
+            add_shortcode('orabooks_voice', [self::$instance, 'voice_page']);
             add_shortcode('orabooks_export_button', [self::$instance, 'export_button']);
             add_shortcode('orabooks_customers', [self::$instance, 'customers_page']);
             add_shortcode('orabooks_vendors', [self::$instance, 'vendors_page']);

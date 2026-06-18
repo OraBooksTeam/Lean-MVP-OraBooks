@@ -33,6 +33,8 @@ class OraBooks_RBAC {
             'view_expenses'               => ['owner', 'admin', 'approver', 'staff', 'viewer'],
             'manage_expenses'             => ['owner', 'admin', 'staff'],
             'approve_expense'             => ['owner', 'admin', 'approver'],
+            'view_voice_inputs'           => ['owner', 'admin', 'approver', 'staff', 'viewer'],
+            'manage_voice_inputs'         => ['owner', 'admin', 'staff'],
             'submit_transaction'          => ['owner', 'admin', 'staff'],
             'approve_journal'             => ['owner', 'admin', 'approver'],
             'invite_user'                 => ['owner', 'admin'],

@@ -907,6 +907,22 @@ class OraBooks_Database {
             wp_schedule_event(time(), 'every_5_minutes', 'orabooks_expenses_ocr_process');
         }
 
+        // ============================================================
+        // SL-052: Voice-to-Text
+        // ============================================================
+        $voice_tables = OraBooks_Voice::get_create_table_sql();
+        foreach ($voice_tables as $sql) {
+            dbDelta($sql);
+        }
+
+        if (!wp_next_scheduled('orabooks_voice_transcription_process')) {
+            wp_schedule_event(time(), 'every_5_minutes', 'orabooks_voice_transcription_process');
+        }
+
+        if (!wp_next_scheduled('orabooks_voice_purge')) {
+            wp_schedule_event(time(), 'daily', 'orabooks_voice_purge');
+        }
+
         update_option('orabooks_db_version', ORABOOKS_DB_VERSION);
     }
     
