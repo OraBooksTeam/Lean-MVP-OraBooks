@@ -1029,6 +1029,30 @@ class OraBooks_Expenses {
             'journal_id'      => intval($journal_id),
         ], ['id' => intval($expense_id)], ['%s', '%s', '%d', '%s', '%d'], ['%d']);
 
+        if (class_exists('OraBooks_Tax') && method_exists('OraBooks_Tax', 'create_snapshot_from_expense')) {
+            OraBooks_Tax::create_snapshot_from_expense(self::get_expense($expense_id, $org_id));
+        } elseif (class_exists('OraBooks_Tax')) {
+            $posted = self::get_expense($expense_id, $org_id);
+            if ($posted) {
+                $tax_base = self::get_expense_tax_base($posted);
+                $payload = [
+                    'org_id'       => (int) $org_id,
+                    'amount'       => $tax_base,
+                    'jurisdiction' => 'US',
+                    'transaction_date' => $posted->transaction_date ?? current_time('Y-m-d'),
+                ];
+                if (!empty($posted->tax_override_reason)) {
+                    $payload['override'] = true;
+                    $payload['override_tax_rate'] = (float) ($posted->tax_rate ?? 0);
+                    $payload['override_reason'] = $posted->tax_override_reason;
+                }
+                OraBooks_Tax::create_snapshot(array_merge($payload, [
+                    'transaction_id'   => (int) $expense_id,
+                    'transaction_type' => 'expense',
+                ]));
+            }
+        }
+
         orabooks_log_event('expense_posted', "Expense #{$expense_id} posted to ledger", 'info', [
             'expense_id' => intval($expense_id),
             'journal_id' => intval($journal_id),
