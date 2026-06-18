@@ -1182,10 +1182,19 @@ class OraBooks_Financial_Reports {
         return 'orabooks-kms-v1-org-' . (int) $org_id;
     }
 
+    private static function get_snapshot_dek($org_id) {
+        if (class_exists('OraBooks_Secrets') && method_exists('OraBooks_Secrets', 'get_encryption_key')) {
+            return OraBooks_Secrets::get_encryption_key();
+        }
+        if (function_exists('wp_salt')) {
+            return wp_salt('auth');
+        }
+
+        return 'orabooks-test-dek-' . (int) $org_id;
+    }
+
     public static function encrypt_snapshot_payload($org_id, $plaintext) {
-        $dek = (class_exists('OraBooks_Secrets') && method_exists('OraBooks_Secrets', 'get_encryption_key'))
-            ? OraBooks_Secrets::get_encryption_key()
-            : wp_salt('auth');
+        $dek = self::get_snapshot_dek($org_id);
         $key = hash('sha256', $dek . '|' . (int) $org_id, true);
         $iv = random_bytes(16);
         $ciphertext = openssl_encrypt($plaintext, 'aes-256-cbc', $key, OPENSSL_RAW_DATA, $iv);
@@ -1214,9 +1223,7 @@ class OraBooks_Financial_Reports {
 
         $iv = substr($raw, 0, 16);
         $encrypted = substr($raw, 16);
-        $dek = (class_exists('OraBooks_Secrets') && method_exists('OraBooks_Secrets', 'get_encryption_key'))
-            ? OraBooks_Secrets::get_encryption_key()
-            : wp_salt('auth');
+        $dek = self::get_snapshot_dek($org_id);
         $key = hash('sha256', $dek . '|' . (int) $org_id, true);
         $plaintext = openssl_decrypt($encrypted, 'aes-256-cbc', $key, OPENSSL_RAW_DATA, $iv);
 
