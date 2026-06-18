@@ -1,0 +1,373 @@
+/* OraBooks Accounting brand color overrides */
+:root {
+    --orabooks-primary: #1569B3;
+    --orabooks-primary-hover: #10548f;
+    --orabooks-primary-soft: #e8f2fb;
+    --orabooks-primary-border: #b8d8f2;
+    --orabooks-accent: #39B54A;
+    --orabooks-accent-hover: #2f9b3e;
+    --orabooks-accent-soft: #eaf8ec;
+    --orabooks-accent-border: #bfe8c6;
+}
+
+.obn-dashboard-wrapper .bg-blue-50,
+.obn-dashboard-wrapper .bg-indigo-50,
+.obn-dashboard-wrapper .bg-purple-50,
+.obn-dashboard-wrapper .bg-violet-50,
+.obn-dashboard-wrapper .hover\:bg-blue-50:hover,
+.obn-dashboard-wrapper .hover\:bg-indigo-50:hover,
+.obn-dashboard-wrapper .hover\:bg-purple-50:hover,
+.obn-dashboard-wrapper .hover\:bg-violet-50:hover,
+.obn-dashboard-wrapper [class^="bg-blue-50"],
+.obn-dashboard-wrapper [class*=" bg-blue-50"],
+.obn-dashboard-wrapper [class^="bg-indigo-50"],
+.obn-dashboard-wrapper [class*=" bg-indigo-50"],
+.obn-dashboard-wrapper [class^="bg-purple-50"],
+.obn-dashboard-wrapper [class*=" bg-purple-50"],
+.obn-dashboard-wrapper [class^="bg-violet-50"],
+.obn-dashboard-wrapper [class*=" bg-violet-50"] {
+    background-color: var(--orabooks-primary-soft) !important;
+}
+
+.obn-dashboard-wrapper .bg-blue-100,
+.obn-dashboard-wrapper .bg-indigo-100,
+.obn-dashboard-wrapper .bg-purple-100,
+.obn-dashboard-wrapper .bg-violet-100,
+.obn-dashboard-wrapper [class^="bg-blue-100"],
+.obn-dashboard-wrapper [class*=" bg-blue-100"],
+.obn-dashboard-wrapper [class^="bg-indigo-100"],
+.obn-dashboard-wrapper [class*=" bg-indigo-100"],
+.obn-dashboard-wrapper [class^="bg-purple-100"],
+.obn-dashboard-wrapper [class*=" bg-purple-100"],
+.obn-dashboard-wrapper [class^="bg-violet-100"],
+.obn-dashboard-wrapper [class*=" bg-violet-100"] {
+    background-color: #d7eafb !important;
+}
+
+.obn-dashboard-wrapper .bg-blue-400,
+.obn-dashboard-wrapper .bg-blue-500,
+.obn-dashboard-wrapper .bg-blue-600,
+.obn-dashboard-wrapper .bg-indigo-500,
+.obn-dashboard-wrapper .bg-indigo-600,
+.obn-dashboard-wrapper .bg-purple-500,
+.obn-dashboard-wrapper .bg-purple-600,
+.obn-dashboard-wrapper .bg-violet-500,
+.obn-dashboard-wrapper .bg-violet-600,
+.obn-dashboard-wrapper .hover\:bg-blue-600:hover,
+.obn-dashboard-wrapper .hover\:bg-blue-700:hover,
+.obn-dashboard-wrapper .hover\:bg-indigo-600:hover,
+.obn-dashboard-wrapper .hover\:bg-indigo-700:hover,
+.obn-dashboard-wrapper .hover\:bg-purple-600:hover,
+.obn-dashboard-wrapper .hover\:bg-purple-700:hover,
+.obn-dashboard-wrapper .hover\:bg-violet-600:hover,
+.obn-dashboard-wrapper .hover\:bg-violet-700:hover,
+.obn-dashboard-wrapper [class^="bg-blue-"],
+.obn-dashboard-wrapper [class*=" bg-blue-"],
+.obn-dashboard-wrapper [class^="bg-indigo-"],
+.obn-dashboard-wrapper [class*=" bg-indigo-"],
+.obn-dashboard-wrapper [class^="bg-purple-"],
+.obn-dashboard-wrapper [class*=" bg-purple-"],
+.obn-dashboard-wrapper [class^="bg-violet-"],
+.obn-dashboard-wrapper [class*=" bg-violet-"],
+.obn-dashboard-wrapper [class^="hover:bg-blue-"]:hover,
+.obn-dashboard-wrapper [class*=" hover:bg-blue-"]:hover,
+.obn-dashboard-wrapper [class^="hover:bg-indigo-"]:hover,
+.obn-dashboard-wrapper [class*=" hover:bg-indigo-"]:hover,
+.obn-dashboard-wrapper [class^="hover:bg-purple-"]:hover,
+.obn-dashboard-wrapper [class*=" hover:bg-purple-"]:hover,
+.obn-dashboard-wrapper [class^="hover:bg-violet-"]:hover,
+.obn-dashboard-wrapper [class*=" hover:bg-violet-"]:hover,
+.obn-dashboard-wrapper .group:hover [class^="group-hover:bg-blue-"],
+.obn-dashboard-wrapper .group:hover [class*=" group-hover:bg-blue-"],
+.obn-dashboard-wrapper .group:hover [class^="group-hover:bg-indigo-"],
+.obn-dashboard-wrapper .group:hover [class*=" group-hover:bg-indigo-"],
+.obn-dashboard-wrapper .group:hover [class^="group-hover:bg-purple-"],
+.obn-dashboard-wrapper .group:hover [class*=" group-hover:bg-purple-"],
+.obn-dashboard-wrapper .group:hover [class^="group-hover:bg-violet-"],
+.obn-dashboard-wrapper .group:hover [class*=" group-hover:bg-violet-"] {
+    background-color: var(--orabooks-primary) !important;
+}
+
+.obn-dashboard-wrapper .bg-green-50,
+.obn-dashboard-wrapper .bg-emerald-50,
+.obn-dashboard-wrapper .hover\:bg-green-50:hover,
+.obn-dashboard-wrapper .hover\:bg-emerald-50:hover,
+.obn-dashboard-wrapper [class^="bg-green-50"],
+.obn-dashboard-wrapper [class*=" bg-green-50"],
+.obn-dashboard-wrapper [class^="bg-emerald-50"],
+.obn-dashboard-wrapper [class*=" bg-emerald-50"] {
+    background-color: var(--orabooks-accent-soft) !important;
+}
+
+.obn-dashboard-wrapper .bg-green-100,
+.obn-dashboard-wrapper .bg-emerald-100,
+.obn-dashboard-wrapper [class^="bg-green-100"],
+.obn-dashboard-wrapper [class*=" bg-green-100"],
+.obn-dashboard-wrapper [class^="bg-emerald-100"],
+.obn-dashboard-wrapper [class*=" bg-emerald-100"] {
+    background-color: #d8f2dc !important;
+}
+
+.obn-dashboard-wrapper .bg-green-400,
+.obn-dashboard-wrapper .bg-green-500,
+.obn-dashboard-wrapper .bg-green-600,
+.obn-dashboard-wrapper .bg-emerald-500,
+.obn-dashboard-wrapper .bg-emerald-600,
+.obn-dashboard-wrapper .hover\:bg-green-600:hover,
+.obn-dashboard-wrapper .hover\:bg-green-700:hover,
+.obn-dashboard-wrapper .hover\:bg-emerald-600:hover,
+.obn-dashboard-wrapper .hover\:bg-emerald-700:hover,
+.obn-dashboard-wrapper [class^="bg-green-"],
+.obn-dashboard-wrapper [class*=" bg-green-"],
+.obn-dashboard-wrapper [class^="bg-emerald-"],
+.obn-dashboard-wrapper [class*=" bg-emerald-"],
+.obn-dashboard-wrapper [class^="hover:bg-green-"]:hover,
+.obn-dashboard-wrapper [class*=" hover:bg-green-"]:hover,
+.obn-dashboard-wrapper [class^="hover:bg-emerald-"]:hover,
+.obn-dashboard-wrapper [class*=" hover:bg-emerald-"]:hover,
+.obn-dashboard-wrapper .group:hover [class^="group-hover:bg-green-"],
+.obn-dashboard-wrapper .group:hover [class*=" group-hover:bg-green-"],
+.obn-dashboard-wrapper .group:hover [class^="group-hover:bg-emerald-"],
+.obn-dashboard-wrapper .group:hover [class*=" group-hover:bg-emerald-"] {
+    background-color: var(--orabooks-accent) !important;
+}
+
+.obn-dashboard-wrapper [class^="bg-gradient-to-"],
+.obn-dashboard-wrapper [class*=" bg-gradient-to-"],
+.obn-dashboard-wrapper [class^="from-blue-"],
+.obn-dashboard-wrapper [class*=" from-blue-"],
+.obn-dashboard-wrapper [class^="from-indigo-"],
+.obn-dashboard-wrapper [class*=" from-indigo-"],
+.obn-dashboard-wrapper [class^="from-purple-"],
+.obn-dashboard-wrapper [class*=" from-purple-"],
+.obn-dashboard-wrapper [class^="from-violet-"],
+.obn-dashboard-wrapper [class*=" from-violet-"],
+.obn-dashboard-wrapper [class^="from-emerald-"],
+.obn-dashboard-wrapper [class*=" from-emerald-"],
+.obn-dashboard-wrapper [class^="from-green-"],
+.obn-dashboard-wrapper [class*=" from-green-"],
+.obn-dashboard-wrapper [class^="to-blue-"],
+.obn-dashboard-wrapper [class*=" to-blue-"],
+.obn-dashboard-wrapper [class^="to-indigo-"],
+.obn-dashboard-wrapper [class*=" to-indigo-"],
+.obn-dashboard-wrapper [class^="to-purple-"],
+.obn-dashboard-wrapper [class*=" to-purple-"],
+.obn-dashboard-wrapper [class^="to-violet-"],
+.obn-dashboard-wrapper [class*=" to-violet-"],
+.obn-dashboard-wrapper [class^="to-emerald-"],
+.obn-dashboard-wrapper [class*=" to-emerald-"],
+.obn-dashboard-wrapper [class^="to-green-"],
+.obn-dashboard-wrapper [class*=" to-green-"] {
+    background-image: linear-gradient(135deg, var(--orabooks-primary), var(--orabooks-accent)) !important;
+}
+
+.obn-dashboard-wrapper .text-blue-500,
+.obn-dashboard-wrapper .text-blue-600,
+.obn-dashboard-wrapper .text-blue-700,
+.obn-dashboard-wrapper .text-blue-800,
+.obn-dashboard-wrapper .text-indigo-500,
+.obn-dashboard-wrapper .text-indigo-600,
+.obn-dashboard-wrapper .text-indigo-700,
+.obn-dashboard-wrapper .text-purple-500,
+.obn-dashboard-wrapper .text-purple-600,
+.obn-dashboard-wrapper .text-violet-500,
+.obn-dashboard-wrapper .text-violet-600,
+.obn-dashboard-wrapper .hover\:text-blue-600:hover,
+.obn-dashboard-wrapper .hover\:text-blue-700:hover,
+.obn-dashboard-wrapper .hover\:text-blue-800:hover,
+.obn-dashboard-wrapper .hover\:text-indigo-700:hover,
+.obn-dashboard-wrapper [class^="text-blue-"],
+.obn-dashboard-wrapper [class*=" text-blue-"],
+.obn-dashboard-wrapper [class^="text-indigo-"],
+.obn-dashboard-wrapper [class*=" text-indigo-"],
+.obn-dashboard-wrapper [class^="text-purple-"],
+.obn-dashboard-wrapper [class*=" text-purple-"],
+.obn-dashboard-wrapper [class^="text-violet-"],
+.obn-dashboard-wrapper [class*=" text-violet-"],
+.obn-dashboard-wrapper [class^="hover:text-blue-"]:hover,
+.obn-dashboard-wrapper [class*=" hover:text-blue-"]:hover,
+.obn-dashboard-wrapper [class^="hover:text-indigo-"]:hover,
+.obn-dashboard-wrapper [class*=" hover:text-indigo-"]:hover,
+.obn-dashboard-wrapper [class^="hover:text-purple-"]:hover,
+.obn-dashboard-wrapper [class*=" hover:text-purple-"]:hover,
+.obn-dashboard-wrapper [class^="hover:text-violet-"]:hover,
+.obn-dashboard-wrapper [class*=" hover:text-violet-"]:hover,
+.obn-dashboard-wrapper .group:hover [class^="group-hover:text-blue-"],
+.obn-dashboard-wrapper .group:hover [class*=" group-hover:text-blue-"],
+.obn-dashboard-wrapper .group:hover [class^="group-hover:text-indigo-"],
+.obn-dashboard-wrapper .group:hover [class*=" group-hover:text-indigo-"],
+.obn-dashboard-wrapper .group:hover [class^="group-hover:text-purple-"],
+.obn-dashboard-wrapper .group:hover [class*=" group-hover:text-purple-"],
+.obn-dashboard-wrapper .group:hover [class^="group-hover:text-violet-"],
+.obn-dashboard-wrapper .group:hover [class*=" group-hover:text-violet-"] {
+    color: var(--orabooks-primary) !important;
+}
+
+.obn-dashboard-wrapper .text-green-500,
+.obn-dashboard-wrapper .text-green-600,
+.obn-dashboard-wrapper .text-green-700,
+.obn-dashboard-wrapper .text-green-800,
+.obn-dashboard-wrapper .text-emerald-500,
+.obn-dashboard-wrapper .text-emerald-600,
+.obn-dashboard-wrapper .text-emerald-700,
+.obn-dashboard-wrapper [class^="text-green-"],
+.obn-dashboard-wrapper [class*=" text-green-"],
+.obn-dashboard-wrapper [class^="text-emerald-"],
+.obn-dashboard-wrapper [class*=" text-emerald-"] {
+    color: var(--orabooks-accent) !important;
+}
+
+/* Explicit group-hover white text override for icon overlays */
+.obn-dashboard-wrapper .group:hover [class^="group-hover:text-white"],
+.obn-dashboard-wrapper .group:hover [class*=" group-hover:text-white"] {
+    color: #ffffff !important;
+}
+
+.obn-dashboard-wrapper [class^="border-blue-"],
+.obn-dashboard-wrapper [class*=" border-blue-"],
+.obn-dashboard-wrapper [class^="border-indigo-"],
+.obn-dashboard-wrapper [class*=" border-indigo-"],
+.obn-dashboard-wrapper [class^="border-purple-"],
+.obn-dashboard-wrapper [class*=" border-purple-"],
+.obn-dashboard-wrapper [class^="border-violet-"],
+.obn-dashboard-wrapper [class*=" border-violet-"],
+.obn-dashboard-wrapper [class^="hover:border-blue-"]:hover,
+.obn-dashboard-wrapper [class*=" hover:border-blue-"]:hover,
+.obn-dashboard-wrapper [class^="hover:border-indigo-"]:hover,
+.obn-dashboard-wrapper [class*=" hover:border-indigo-"]:hover,
+.obn-dashboard-wrapper [class^="hover:border-purple-"]:hover,
+.obn-dashboard-wrapper [class*=" hover:border-purple-"]:hover,
+.obn-dashboard-wrapper [class^="hover:border-violet-"]:hover,
+.obn-dashboard-wrapper [class*=" hover:border-violet-"]:hover,
+.obn-dashboard-wrapper .group:hover [class^="group-hover:border-blue-"],
+.obn-dashboard-wrapper .group:hover [class*=" group-hover:border-blue-"],
+.obn-dashboard-wrapper .group:hover [class^="group-hover:border-indigo-"],
+.obn-dashboard-wrapper .group:hover [class*=" group-hover:bg-indigo-"],
+.obn-dashboard-wrapper .group:hover [class^="group-hover:border-purple-"],
+.obn-dashboard-wrapper .group:hover [class*=" group-hover:border-purple-"],
+.obn-dashboard-wrapper .group:hover [class^="group-hover:border-violet-"],
+.obn-dashboard-wrapper .group:hover [class*=" group-hover:border-violet-"] {
+    border-color: var(--orabooks-primary-border) !important;
+}
+
+.obn-dashboard-wrapper [class^="border-green-"],
+.obn-dashboard-wrapper [class*=" border-green-"],
+.obn-dashboard-wrapper [class^="border-emerald-"],
+.obn-dashboard-wrapper [class*=" border-emerald-"] {
+    border-color: var(--orabooks-accent-border) !important;
+}
+
+.obn-dashboard-wrapper input:focus,
+.obn-dashboard-wrapper select:focus,
+.obn-dashboard-wrapper textarea:focus,
+.obn-dashboard-wrapper [class*="focus:ring-blue-"]:focus,
+.obn-dashboard-wrapper [class*="focus:ring-indigo-"]:focus,
+.obn-dashboard-wrapper [class*="focus:ring-purple-"]:focus,
+.obn-dashboard-wrapper [class*="focus:ring-violet-"]:focus,
+.obn-dashboard-wrapper [class*="focus:border-blue-"]:focus,
+.obn-dashboard-wrapper [class*="focus:border-indigo-"]:focus,
+.obn-dashboard-wrapper [class*="focus:border-purple-"]:focus,
+.obn-dashboard-wrapper [class*="focus:border-violet-"]:focus {
+    border-color: var(--orabooks-primary) !important;
+    --tw-ring-color: rgba(21, 105, 179, 0.25) !important;
+    box-shadow: 0 0 0 3px rgba(21, 105, 179, 0.16) !important;
+}
+
+.obn-dashboard-wrapper .dataTables_wrapper .dataTables_paginate .paginate_button.current,
+.obn-dashboard-wrapper .dataTables_wrapper .dataTables_paginate .paginate_button.current:hover,
+.obn-dashboard-wrapper .dt-button:hover {
+    background: var(--orabooks-primary) !important;
+    border-color: var(--orabooks-primary) !important;
+    color: #fff !important;
+}
+
+.swal2-confirm {
+    background-color: var(--orabooks-primary) !important;
+}
+
+.swal2-cancel {
+    background-color: var(--orabooks-accent) !important;
+}
+
+.obn-dashboard-wrapper [class^="bg-blue-50"],
+.obn-dashboard-wrapper [class*=" bg-blue-50"],
+.obn-dashboard-wrapper [class^="bg-indigo-50"],
+.obn-dashboard-wrapper [class*=" bg-indigo-50"],
+.obn-dashboard-wrapper [class^="bg-purple-50"],
+.obn-dashboard-wrapper [class*=" bg-purple-50"],
+.obn-dashboard-wrapper [class^="bg-violet-50"],
+.obn-dashboard-wrapper [class*=" bg-violet-50"],
+.obn-dashboard-wrapper [class^="hover:bg-blue-50"]:hover,
+.obn-dashboard-wrapper [class*=" hover:bg-blue-50"]:hover,
+.obn-dashboard-wrapper [class^="hover:bg-indigo-50"]:hover,
+.obn-dashboard-wrapper [class*=" hover:bg-indigo-50"]:hover,
+.obn-dashboard-wrapper [class^="hover:bg-purple-50"]:hover,
+.obn-dashboard-wrapper [class*=" hover:bg-purple-50"]:hover,
+.obn-dashboard-wrapper [class^="hover:bg-violet-50"]:hover,
+.obn-dashboard-wrapper [class*=" hover:bg-violet-50"]:hover {
+    background-color: var(--orabooks-primary-soft) !important;
+}
+
+.obn-dashboard-wrapper [class^="bg-blue-100"],
+.obn-dashboard-wrapper [class*=" bg-blue-100"],
+.obn-dashboard-wrapper [class^="bg-indigo-100"],
+.obn-dashboard-wrapper [class*=" bg-indigo-100"],
+.obn-dashboard-wrapper [class^="bg-purple-100"],
+.obn-dashboard-wrapper [class*=" bg-purple-100"],
+.obn-dashboard-wrapper [class^="bg-violet-100"],
+.obn-dashboard-wrapper [class*=" bg-violet-100"] {
+    background-color: #d7eafb !important;
+}
+
+.obn-dashboard-wrapper [class^="bg-green-50"],
+.obn-dashboard-wrapper [class*=" bg-green-50"],
+.obn-dashboard-wrapper [class^="bg-emerald-50"],
+.obn-dashboard-wrapper [class*=" bg-emerald-50"],
+.obn-dashboard-wrapper [class^="hover:bg-green-50"]:hover,
+.obn-dashboard-wrapper [class*=" hover:bg-green-50"]:hover,
+.obn-dashboard-wrapper [class^="hover:bg-emerald-50"]:hover,
+.obn-dashboard-wrapper [class*=" hover:bg-emerald-50"]:hover {
+    background-color: var(--orabooks-accent-soft) !important;
+}
+
+.obn-dashboard-wrapper [class^="bg-green-100"],
+.obn-dashboard-wrapper [class*=" bg-green-100"],
+.obn-dashboard-wrapper [class^="bg-emerald-100"],
+.obn-dashboard-wrapper [class*=" bg-emerald-100"] {
+    background-color: #d8f2dc !important;
+}
+
+/* Premium Hover Effects for All Features Cards */
+.obn-feature-card {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.obn-feature-card:hover {
+    background-color: var(--orabooks-primary) !important;
+    border-color: var(--orabooks-primary) !important;
+    transform: translateY(-4px);
+    box-shadow: 0 12px 20px -8px rgba(21, 105, 179, 0.3);
+}
+
+/* Make card title and badge white on hover */
+.obn-dashboard-wrapper .obn-feature-card:hover h3,
+.obn-dashboard-wrapper .obn-feature-card:hover [class*="group-hover:text-"] {
+    color: #ffffff !important;
+}
+
+.obn-feature-card:hover span {
+    background-color: rgba(255, 255, 255, 0.2) !important;
+    color: #ffffff !important;
+    border-color: rgba(255, 255, 255, 0.3) !important;
+}
+
+/* Icon and wrapper styles on card hover */
+.obn-feature-card:hover .w-14 {
+    background-color: #ffffff !important;
+    transform: scale(1.1);
+}
+
+.obn-feature-card:hover i {
+    color: var(--orabooks-primary) !important;
+}
+
