@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { Link } from 'react-router-dom';
 import Button from '@/components/Button';
 import Input from '@/components/Input';
 import { api } from '../api';
 import ClientShell from '../components/ClientShell';
-import { Landmark, Plus, RefreshCw, ShieldCheck, Wallet } from 'lucide-react';
+import { Landmark, Paperclip, Plus, RefreshCw, ShieldCheck, Wallet } from 'lucide-react';
 
 export default function BankReconciliationPage() {
   const [context, setContext] = useState<any>(null);

@@ -29,6 +29,8 @@ class OraBooks_Attachments {
         'journal',
         'customer',
         'vendor',
+        'inventory_item',
+        'bank_account',
         'bank_transaction',
         'export',
         'general',

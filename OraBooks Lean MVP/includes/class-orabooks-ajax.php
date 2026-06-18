@@ -764,6 +764,8 @@ class OraBooks_Ajax {
                 'journal'          => 'Journal',
                 'customer'         => 'Customer',
                 'vendor'           => 'Vendor',
+                'inventory_item'   => 'Inventory Item',
+                'bank_account'     => 'Bank Account',
                 'bank_transaction' => 'Bank Transaction',
                 'export'           => 'Export',
                 'general'          => 'General',
