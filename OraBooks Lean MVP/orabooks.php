@@ -328,6 +328,15 @@ function orabooks_create_required_pages() {
     return $created_ids;
 }
 
+/**
+ * Ensure frontend pages exist on existing installs (idempotent).
+ */
+function orabooks_ensure_frontend_pages() {
+    orabooks_create_required_pages();
+}
+
+add_action('init', 'orabooks_ensure_frontend_pages', 20);
+
 // Activation hook
 register_activation_hook(__FILE__, 'orabooks_activate');
 function orabooks_activate($network_wide = false) {
