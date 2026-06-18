@@ -1431,7 +1431,32 @@
     text-align: center;
 }
 
-.orabooks-app-root.is-mounted .orabooks-app-root-loading {
+.orabooks-dashboard-links {
+    list-style: none;
+    margin: 16px 0 0;
+    padding: 0;
+    display: grid;
+    gap: 8px;
+}
+
+.orabooks-dashboard-links a {
+    display: inline-block;
+    padding: 10px 14px;
+    border: 1px solid #d8e6f3;
+    border-radius: 10px;
+    text-decoration: none;
+    color: #1A69B4;
+    background: #fff;
+}
+
+.orabooks-dashboard-kv {
+    margin: 8px 0 0;
+    padding-left: 18px;
+}
+
+.orabooks-ajax-dashboard .orabooks-section {
+    margin-top: 20px;
+}
     display: none;
 }
 
