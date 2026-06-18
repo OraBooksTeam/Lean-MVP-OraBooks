@@ -34,6 +34,7 @@ class OraBooks_Shortcodes {
             add_shortcode('orabooks_export_status', [self::$instance, 'export_status']);
             add_shortcode('orabooks_csv_import', [self::$instance, 'csv_import_page']);
             add_shortcode('orabooks_team', [self::$instance, 'team_page']);
+            add_shortcode('orabooks_attachments', [self::$instance, 'attachments_page']);
             add_shortcode('orabooks_export_button', [self::$instance, 'export_button']);
             add_shortcode('orabooks_customers', [self::$instance, 'customers_page']);
             add_shortcode('orabooks_vendors', [self::$instance, 'vendors_page']);
@@ -198,6 +199,14 @@ class OraBooks_Shortcodes {
             return '<p>' . __('Please log in to manage your team.', 'orabooks') . '</p>';
         }
         return $this->react_app('/team', 'Loading team...');
+    }
+
+    public function attachments_page() {
+        $user_id = get_current_user_id();
+        if (!$user_id) {
+            return '<p>' . __('Please log in to manage attachments.', 'orabooks') . '</p>';
+        }
+        return $this->react_app('/attachments', 'Loading attachments...');
     }
     
     /**

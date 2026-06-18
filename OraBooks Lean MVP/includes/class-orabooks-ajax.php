@@ -685,6 +685,77 @@ class OraBooks_Ajax {
             'timestamp' => current_time('mysql'),
         ]);
     }
+
+    public function ajax_attachments_dashboard() {
+        $context = $this->get_current_orabooks_context();
+        if (is_wp_error($context)) {
+            orabooks_json_error($context->get_error_message(), 401);
+        }
+
+        $org = $context['organization'];
+        $org_id = $org ? (int) $org['id'] : 0;
+        if (!$org_id) {
+            orabooks_json_error('Organization is not set up yet.', 400);
+        }
+
+        if (($org['organization_type'] ?? '') === 'partner') {
+            orabooks_json_error('Partner accounts cannot perform accounting operations.', 403);
+        }
+
+        if (!OraBooks_RBAC::require_permission($context['user_id'], $org_id, 'view_reports')) {
+            orabooks_json_error('Permission denied', 403);
+        }
+
+        $stats = [
+            'active_count'  => 0,
+            'deleted_count' => 0,
+            'total_bytes'   => 0,
+        ];
+        $attachments = [];
+        $resource_types = [];
+
+        if (class_exists('OraBooks_Attachments')) {
+            $stats = OraBooks_Attachments::get_attachment_stats($org_id);
+            $rows = OraBooks_Attachments::list_attachments($org_id, ['limit' => 25]);
+            $attachments = array_map([OraBooks_Attachments::class, 'format_attachment_row'], $rows ?: []);
+
+            $labels = [
+                'invoice'          => 'Invoice',
+                'expense'          => 'Expense',
+                'voice_input'      => 'Voice Input',
+                'csv_import'       => 'CSV Import',
+                'user_profile'     => 'User Profile',
+                'journal'          => 'Journal',
+                'customer'         => 'Customer',
+                'vendor'           => 'Vendor',
+                'bank_transaction' => 'Bank Transaction',
+                'export'           => 'Export',
+                'general'          => 'General',
+            ];
+            foreach (OraBooks_Attachments::RESOURCE_TYPES as $type) {
+                $resource_types[] = [
+                    'id'    => $type,
+                    'label' => $labels[$type] ?? ucwords(str_replace('_', ' ', $type)),
+                ];
+            }
+        }
+
+        orabooks_json_success([
+            'context' => $context,
+            'stats' => $stats,
+            'attachments' => $attachments,
+            'resource_types' => $resource_types,
+            'capabilities' => class_exists('OraBooks_Attachments') ? [
+                'upload'   => OraBooks_Attachments::can_upload($context['user_id'], $org_id),
+                'download' => OraBooks_Attachments::can_download($context['user_id'], $org_id),
+                'delete'   => OraBooks_Attachments::can_delete($context['user_id'], $org_id),
+            ] : [],
+            'limits' => class_exists('OraBooks_Attachments') ? [
+                'max_file_size' => OraBooks_Attachments::MAX_FILE_SIZE,
+            ] : [],
+            'timestamp' => current_time('mysql'),
+        ]);
+    }
     
     public function ajax_list_orgs() {
         if (!current_user_can('manage_options')) {
