@@ -204,7 +204,18 @@ class OraBooks_Posting {
         }
 
         $new_round = $journal->approval_round + 1;
-        $snapshot_hash = self::compute_snapshot_hash($journal_id);
+
+        if (class_exists('OraBooks_Approval')) {
+            $policy = OraBooks_Approval::get_policy((int) $journal->org_id);
+            $round_check = OraBooks_Approval::validate_submit_rounds($journal, $policy);
+            if (is_wp_error($round_check)) {
+                return $round_check;
+            }
+        }
+
+        $snapshot_hash = class_exists('OraBooks_Approval')
+            ? OraBooks_Approval::compute_snapshot_hash($journal_id)
+            : self::compute_snapshot_hash($journal_id);
 
         $wpdb->update($table, [
             'status' => 'review_pending',
@@ -216,7 +227,12 @@ class OraBooks_Posting {
             'rejected_reason' => null
         ], ['id' => $journal_id], ['%s', '%d', '%s', '%d', '%d', '%s', null], ['%d']);
 
-        self::record_approval_history($journal_id, 'submit', $user_id, $snapshot_hash, $new_round, $journal->revision_number);
+        if (class_exists('OraBooks_Approval')) {
+            OraBooks_Approval::record_history($journal_id, 'submit', $user_id, $snapshot_hash, $new_round, $journal->revision_number);
+            OraBooks_Approval::on_submitted($journal_id, $user_id, (int) $journal->org_id, $new_round);
+        } else {
+            self::record_approval_history($journal_id, 'submit', $user_id, $snapshot_hash, $new_round, $journal->revision_number);
+        }
         self::transition('journal', $journal_id, 'submit', $user_id);
 
         orabooks_log_event('journal_submitted', "Journal #$journal_id submitted for approval", 'info', [
@@ -247,7 +263,11 @@ class OraBooks_Posting {
     /**
      * Approve journal
      */
-    public static function approve_journal($journal_id, $user_id) {
+    public static function approve_journal($journal_id, $user_id, $args = []) {
+        if (class_exists('OraBooks_Approval')) {
+            return OraBooks_Approval::approve_journal($journal_id, $user_id, is_array($args) ? $args : []);
+        }
+
         global $wpdb;
         
         $table = OraBooks_Database::table('journals');
@@ -316,6 +336,9 @@ class OraBooks_Posting {
         ], ['id' => $journal_id], ['%s', '%s', null, '%d', '%d'], ['%d']);
         
         self::record_approval_history($journal_id, 'reject', $user_id, null, $journal->approval_round, $journal->revision_number, $reason);
+        if (class_exists('OraBooks_Approval')) {
+            OraBooks_Approval::on_rejected($journal_id, $user_id, (int) $journal->org_id, $reason);
+        }
         self::transition('journal', $journal_id, 'reject', $user_id);
         
         orabooks_log_event('journal_rejected', "Journal #$journal_id rejected: $reason", 'warning', [
@@ -872,6 +895,10 @@ class OraBooks_Posting {
      * Compute canonical snapshot hash for approval
      */
     private static function compute_snapshot_hash($journal_id) {
+        if (class_exists('OraBooks_Approval')) {
+            return OraBooks_Approval::compute_snapshot_hash($journal_id);
+        }
+
         global $wpdb;
         
         $table = OraBooks_Database::table('journals');
@@ -903,6 +930,11 @@ class OraBooks_Posting {
      * Record approval history entry
      */
     private static function record_approval_history($journal_id, $action, $user_id, $snapshot_hash = null, $round = 0, $revision = 1, $reason = null) {
+        if (class_exists('OraBooks_Approval')) {
+            OraBooks_Approval::record_history($journal_id, $action, $user_id, $snapshot_hash, $round, $revision, $reason);
+            return;
+        }
+
         global $wpdb;
         
         $table = OraBooks_Database::table('journal_approval_history');
@@ -1083,6 +1115,7 @@ class OraBooks_Posting {
             'performed_by'    => (int) $row->performed_by,
             'approval_round'  => (int) $row->approval_round,
             'revision_number' => (int) $row->revision_number,
+            'snapshot_hash'   => $row->snapshot_hash ?? null,
             'reason'          => $row->reason,
             'created_at'      => $row->created_at,
         ];
@@ -1286,6 +1319,4 @@ class OraBooks_Posting {
             orabooks_json_error($result->get_error_message(), 409);
         }
 
-        orabooks_json_success($result, 'Reversal journal created');
-    }
-}
+        oraboo
