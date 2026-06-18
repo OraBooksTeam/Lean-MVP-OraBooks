@@ -92,27 +92,7 @@ class OraBooks_Shortcodes {
     }
     
     public function verify_email() {
-        $token = sanitize_text_field($_GET['token'] ?? '');
-        
-        if (empty($token)) {
-            return '<div class="orabooks-message error" style="display:block;">' .
-                esc_html__('Invalid verification link.', 'orabooks') .
-                '</div>';
-        }
-        
-        $result = OraBooks_Auth::verify_email($token);
-        
-        if (is_wp_error($result)) {
-            return '<div class="orabooks-message error" style="display:block;">' .
-                esc_html($result->get_error_message()) .
-                '</div>';
-        }
-        
-        return '<div class="orabooks-message success" style="display:block;">' .
-            esc_html__('Email verified successfully. You can now log in.', 'orabooks') .
-            ' <a href="' . esc_url(home_url('/login/?verified=1')) . '">' .
-            esc_html__('Go to login', 'orabooks') .
-            '</a></div>';
+        return $this->react_page('/verify-email', false);
     }
     
     public function reset_password() {
