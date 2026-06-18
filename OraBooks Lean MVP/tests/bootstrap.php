@@ -976,6 +976,37 @@ if (!function_exists('orabooks_generate_partner_code')) {
     }
 }
 
+if (!function_exists('orabooks_users_can_register')) {
+    function orabooks_users_can_register() {
+        return true;
+    }
+}
+
+if (!function_exists('orabooks_multisite_uses_signup_activation')) {
+    function orabooks_multisite_uses_signup_activation() {
+        return false;
+    }
+}
+
+if (!function_exists('orabooks_generate_username_from_email')) {
+    function orabooks_generate_username_from_email($email) {
+        $local = strstr($email, '@', true);
+        return sanitize_user($local ?: 'user', true) ?: 'user';
+    }
+}
+
+if (!function_exists('orabooks_create_wp_user_for_registration')) {
+    function orabooks_create_wp_user_for_registration($email, $password, $meta = []) {
+        return 0;
+    }
+}
+
+if (!function_exists('orabooks_resolve_user_id')) {
+    function orabooks_resolve_user_id($user_id = 0) {
+        return (int) ($user_id ?: orabooks_get_current_user_id());
+    }
+}
+
 // ---------------------------------------------------------------------------
 // 9. Load the actual classes under test
 // ---------------------------------------------------------------------------
