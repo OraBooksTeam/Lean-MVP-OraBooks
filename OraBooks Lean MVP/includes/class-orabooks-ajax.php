@@ -24,9 +24,11 @@ class OraBooks_Ajax {
             add_action('wp_ajax_orabooks_frontend_context', [self::$instance, 'ajax_frontend_context']);
             add_action('wp_ajax_orabooks_customer_dashboard', [self::$instance, 'ajax_customer_dashboard']);
             add_action('wp_ajax_orabooks_vendor_dashboard', [self::$instance, 'ajax_vendor_dashboard']);
+            add_action('wp_ajax_orabooks_inventory_dashboard', [self::$instance, 'ajax_inventory_dashboard']);
             add_action('wp_ajax_nopriv_orabooks_frontend_context', [self::$instance, 'ajax_frontend_context']);
             add_action('wp_ajax_nopriv_orabooks_customer_dashboard', [self::$instance, 'ajax_customer_dashboard']);
             add_action('wp_ajax_nopriv_orabooks_vendor_dashboard', [self::$instance, 'ajax_vendor_dashboard']);
+            add_action('wp_ajax_nopriv_orabooks_inventory_dashboard', [self::$instance, 'ajax_inventory_dashboard']);
             
             // Register settings
             add_action('admin_init', [self::$instance, 'register_settings']);
@@ -265,6 +267,67 @@ class OraBooks_Ajax {
             'ap_aging' => $ap_aging,
             'recent_vendors' => $recent_vendors,
             'recent_bills' => $recent_bills,
+            'timestamp' => current_time('mysql'),
+        ]);
+    }
+
+    public function ajax_inventory_dashboard() {
+        global $wpdb;
+
+        $context = $this->get_current_orabooks_context();
+        if (is_wp_error($context)) {
+            orabooks_json_error($context->get_error_message(), 401);
+        }
+
+        $org = $context['organization'];
+        $org_id = $org ? (int) $org['id'] : 0;
+        if (!$org_id) {
+            orabooks_json_error('Organization is not set up yet.', 400);
+        }
+
+        if (($org['organization_type'] ?? '') === 'partner') {
+            orabooks_json_error('Partner accounts cannot perform accounting operations.', 403);
+        }
+
+        if (!current_user_can('manage_options') && !OraBooks_RBAC::require_permission($context['user_id'], $org_id, 'view_reports')) {
+            orabooks_json_error('Permission denied', 403);
+        }
+
+        $products_table = OraBooks_Database::table('products');
+
+        $product_stats = $wpdb->get_row($wpdb->prepare(
+            "SELECT
+                COUNT(*) AS total_products,
+                SUM(CASE WHEN is_active = 1 THEN 1 ELSE 0 END) AS active_products,
+                COALESCE(SUM(current_stock * average_cost), 0) AS total_stock_value,
+                SUM(CASE
+                    WHEN low_stock_threshold IS NOT NULL
+                         AND current_stock <= low_stock_threshold
+                         AND is_active = 1
+                    THEN 1 ELSE 0 END) AS low_stock_count
+             FROM {$products_table}
+             WHERE org_id = %d",
+            $org_id
+        ));
+
+        $recent_products = class_exists('OraBooks_Inventory')
+            ? OraBooks_Inventory::get_products_list($org_id, ['limit' => 25, 'offset' => 0])
+            : ['products' => [], 'total' => 0, 'page' => 1, 'per_page' => 25];
+
+        $recent_movements = class_exists('OraBooks_Inventory')
+            ? OraBooks_Inventory::get_recent_movements($org_id, ['limit' => 25, 'offset' => 0])
+            : [];
+
+        orabooks_json_success([
+            'context' => $context,
+            'stats' => [
+                'total_products' => (int) ($product_stats->total_products ?? 0),
+                'active_products' => (int) ($product_stats->active_products ?? 0),
+                'total_stock_value' => (float) ($product_stats->total_stock_value ?? 0),
+                'low_stock_count' => (int) ($product_stats->low_stock_count ?? 0),
+            ],
+            'recent_products' => $recent_products,
+            'recent_movements' => $recent_movements,
             'timestamp' => current_time('mysql'),
         ]);
     }
