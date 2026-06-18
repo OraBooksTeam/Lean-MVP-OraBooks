@@ -366,6 +366,12 @@ export default function BankReconciliationPage() {
                       ) : (
                         <span className="text-xs text-slate-500">No action</span>
                       )}
+                      <Link to={`/attachments?resource_type=bank_transaction&resource_id=${txn.id}`}>
+                        <Button size="sm" variant="secondary">
+                          <Paperclip className="h-3.5 w-3.5" />
+                          Files
+                        </Button>
+                      </Link>
                     </div>
                   </td>
                 </tr>
@@ -386,6 +392,7 @@ export default function BankReconciliationPage() {
                 <th className="px-5 py-3 text-right font-semibold">Ending Balance</th>
                 <th className="px-5 py-3 text-right font-semibold">System Balance</th>
                 <th className="px-5 py-3 text-right font-semibold">Difference</th>
+                <th className="px-5 py-3 font-semibold">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
