@@ -91,17 +91,7 @@ class OraBooks_Shortcodes {
         return $this->react_page($route, $require_login);
     }
 
-    public function customers_page() {
-        return $this->customer_react_page('/customers');
-    }
-
-    public function vendors_page() {
-        return $this->customer_react_page('/vendors');
-    }
-
-    public function inventory_page() {
-        return $this->customer_react_page('/inventory');
-    }
+    public function login_form() {
         return $this->react_page('/login', false);
     }
     
