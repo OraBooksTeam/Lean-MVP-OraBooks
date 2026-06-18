@@ -40,7 +40,28 @@ export default function ApprovalsPage() {
     if (row) {
       row.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
-  }, [highlightJournalId, loading, data]);
+    if (orgId) {
+      void loadJournalDetail(highlightJournalId);
+    }
+  }, [highlightJournalId, loading, data, orgId]);
+
+  const loadJournalDetail = async (journalId: number) => {
+    if (!orgId) return;
+    setSelectedJournalId(journalId);
+    setDetailLoading(true);
+    setError('');
+    const res = await api.journalGet(orgId, journalId);
+    if (res.error) setError(res.error);
+    else setJournalDetail((res as any).data);
+    setDetailLoading(false);
+  };
+
+  const refreshAfterAction = async (journalId: number) => {
+    await load();
+    if (selectedJournalId === journalId || highlightJournalId === journalId) {
+      await loadJournalDetail(journalId);
+    }
+  };
 
   const handleSubmit = async (journalId: number) => {
     setActionId(journalId);
@@ -50,7 +71,7 @@ export default function ApprovalsPage() {
     else {
       const aiReview = (res as any).data?.ai_review;
       setSuccess(aiReview ? 'Journal queued for AI review before approval.' : 'Journal submitted for approval.');
-      await load();
+      await refreshAfterAction(journalId);
     }
     setActionId(null);
   };
@@ -62,7 +83,7 @@ export default function ApprovalsPage() {
     if (res.error) setError(res.error);
     else {
       setSuccess('Journal approved.');
-      await load();
+      await refreshAfterAction(journalId);
     }
     setActionId(null);
   };
@@ -76,7 +97,7 @@ export default function ApprovalsPage() {
     if (res.error) setError(res.error);
     else {
       setSuccess('Journal rejected and returned to draft.');
-      await load();
+      await refreshAfterAction(journalId);
     }
     setActionId(null);
   };
@@ -88,7 +109,7 @@ export default function ApprovalsPage() {
     if (res.error) setError(res.error);
     else {
       setSuccess(`Journal posted${(res as any).data?.journal_number ? `: ${(res as any).data.journal_number}` : ''}.`);
-      await load();
+      await refreshAfterAction(journalId);
     }
     setActionId(null);
   };
@@ -121,8 +142,26 @@ export default function ApprovalsPage() {
 
         {highlightJournalId && (
           <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 text-sm text-ink">
-            Highlighting journal #{highlightJournalId} from AI Review queue.
+            Reviewing journal #{highlightJournalId} from AI Review queue.
           </div>
+        )}
+
+        {selectedJournalId && (
+          <JournalDetailPanel
+            journalId={selectedJournalId}
+            detail={journalDetail}
+            loading={detailLoading}
+            caps={caps}
+            actionId={actionId}
+            onClose={() => {
+              setSelectedJournalId(null);
+              setJournalDetail(null);
+            }}
+            onApprove={(id) => void handleApprove(id)}
+            onReject={(id) => void handleReject(id)}
+            onPost={(id) => void handlePost(id)}
+            onSubmit={(id) => void handleSubmit(id)}
+          />
         )}
 
         <JournalSection
@@ -132,6 +171,8 @@ export default function ApprovalsPage() {
           loading={loading}
           emptyText="No journals awaiting approval."
           highlightJournalId={highlightJournalId}
+          selectedJournalId={selectedJournalId}
+          onSelect={(id) => void loadJournalDetail(id)}
           actions={(journal) => (
             <>
               {caps.approve && (
