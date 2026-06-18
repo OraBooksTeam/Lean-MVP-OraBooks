@@ -242,4 +242,244 @@ class OraBooks_Commission_Test extends TestCase
         $this->assertCount(1, $payouts);
         $this->assertEquals(2.50, $payouts[0]->fee_amount);
     }
+
+    #[Test]
+    public function test_payout_settlement_lines_balance_gross_net_and_fee()
+    {
+        $lines = OraBooks_Commission::build_payout_settlement_lines(100.00, 2.50);
+        $this->assertLinesBalance($lines);
+        $this->assertEquals(100.00, $lines[0]['debit']);
+        $this->assertEquals(97.50, $lines[1]['credit']);
+        $this->assertEquals(2.50, $lines[2]['credit']);
+        $this->assertTrue(OraBooks_Commission::validate_journal_lines_balance($lines));
+    }
+
+    #[Test]
+    public function test_gateway_fee_payment_lines_balance()
+    {
+        $lines = OraBooks_Commission::build_gateway_fee_payment_lines(2.50);
+        $this->assertLinesBalance($lines);
+        $this->assertEquals('2100', $lines[0]['account_code']);
+        $this->assertEquals('1000', $lines[1]['account_code']);
+    }
+
+    #[Test]
+    public function test_expiry_reversal_lines_support_income_and_expense_actions()
+    {
+        $expense = OraBooks_Commission::build_expiry_reversal_lines(25.00, 'reverse_expense');
+        $income = OraBooks_Commission::build_expiry_reversal_lines(25.00, 'income');
+        $this->assertLinesBalance($expense);
+        $this->assertLinesBalance($income);
+        $this->assertEquals('5000', $expense[1]['account_code']);
+        $this->assertEquals('4000', $income[1]['account_code']);
+    }
+
+    #[Test]
+    public function test_calculate_payout_fee_percentage_and_flat()
+    {
+        $config = $this->config(['payout_fee_type' => 'percentage', 'payout_fee_rate' => 2.5]);
+        $this->assertEquals(2.50, OraBooks_Commission::calculate_payout_fee(100.00, $config));
+
+        $flat = $this->config(['payout_fee_type' => 'flat', 'payout_fee_rate' => 3.75]);
+        $this->assertEquals(3.75, OraBooks_Commission::calculate_payout_fee(100.00, $flat));
+    }
+
+    #[Test]
+    public function test_payout_batch_skips_when_not_first_day_without_force()
+    {
+        if ((int) date('j') === 1) {
+            $this->markTestSkipped('Cannot assert non-first-day skip on the 1st of the month.');
+        }
+
+        $result = OraBooks_Commission::process_payout_batch(false);
+        $this->assertEquals(0, $result['batches_created']);
+        $this->assertEquals(1, $result['skipped_not_first_day']);
+    }
+
+    #[Test]
+    public function test_settle_payout_posts_journal_before_status_update()
+    {
+        global $wpdb;
+        $updatedPayout = false;
+        $updatedEarned = false;
+
+        $GLOBALS['orabooks_test_commission_skip_posting'] = true;
+        $GLOBALS['orabooks_test_commission_journal_posts'] = [];
+
+        $wpdb->test_get_row_callback = function ($query) {
+            if (stripos($query, 'commission_payouts') !== false) {
+                return (object) [
+                    'id' => 42,
+                    'status' => 'initiated',
+                    'gross_amount' => 100.00,
+                    'fee_amount' => 2.50,
+                    'partner_user_id' => 5,
+                    'org_id' => 10,
+                ];
+            }
+            return null;
+        };
+        $wpdb->test_update_callback = function ($table) use (&$updatedPayout) {
+            if ($table === 'wp_test_orabooks_commission_payouts') {
+                $updatedPayout = true;
+            }
+        };
+        $wpdb->test_query_callback = function ($query) use (&$updatedEarned) {
+            if (stripos($query, 'commissions_earned') !== false) {
+                $updatedEarned = true;
+            }
+        };
+
+        $result = OraBooks_Commission::settle_payout(42, 9001, '2026-02-03');
+
+        $this->assertTrue($result);
+        $this->assertCount(1, $GLOBALS['orabooks_test_commission_journal_posts']);
+        $journal = $GLOBALS['orabooks_test_commission_journal_posts'][0];
+        $this->assertEquals('commission_payout_settlement', $journal['source_type']);
+        $this->assertEquals(42, $journal['source_id']);
+        $this->assertLinesBalance($journal['lines']);
+        $this->assertTrue($updatedPayout);
+        $this->assertTrue($updatedEarned);
+    }
+
+    #[Test]
+    public function test_settle_payout_is_idempotent_when_already_settled()
+    {
+        global $wpdb;
+        $GLOBALS['orabooks_test_commission_skip_posting'] = true;
+        $GLOBALS['orabooks_test_commission_journal_posts'] = [];
+
+        $wpdb->test_get_row_callback = function () {
+            return (object) ['id' => 42, 'status' => 'settled', 'gross_amount' => 100, 'fee_amount' => 2.5];
+        };
+
+        $result = OraBooks_Commission::settle_payout(42, 9001);
+        $this->assertTrue($result);
+        $this->assertCount(0, $GLOBALS['orabooks_test_commission_journal_posts']);
+    }
+
+    #[Test]
+    public function test_settle_gateway_fee_requires_settled_payout()
+    {
+        global $wpdb;
+        $GLOBALS['orabooks_test_commission_skip_posting'] = true;
+        $GLOBALS['orabooks_test_commission_journal_posts'] = [];
+
+        $wpdb->test_get_row_callback = function () {
+            return (object) [
+                'id' => 42,
+                'status' => 'initiated',
+                'fee_amount' => 2.50,
+                'partner_user_id' => 5,
+                'org_id' => 10,
+            ];
+        };
+
+        $result = OraBooks_Commission::settle_gateway_fee(42, 9002);
+        $this->assertInstanceOf(WP_Error::class, $result);
+        $this->assertEquals('invalid_status', $result->get_error_code());
+    }
+
+    #[Test]
+    public function test_settle_gateway_fee_posts_fee_journal_for_settled_payout()
+    {
+        global $wpdb;
+        $GLOBALS['orabooks_test_commission_skip_posting'] = true;
+        $GLOBALS['orabooks_test_commission_journal_posts'] = [];
+
+        $wpdb->test_get_row_callback = function () {
+            return (object) [
+                'id' => 42,
+                'status' => 'settled',
+                'fee_amount' => 2.50,
+                'partner_user_id' => 5,
+                'org_id' => 10,
+            ];
+        };
+
+        $result = OraBooks_Commission::settle_gateway_fee(42, 9002, '2026-02-04');
+        $this->assertTrue($result);
+        $this->assertCount(1, $GLOBALS['orabooks_test_commission_journal_posts']);
+        $journal = $GLOBALS['orabooks_test_commission_journal_posts'][0];
+        $this->assertEquals('commission_gateway_fee', $journal['source_type']);
+        $this->assertLinesBalance($journal['lines']);
+    }
+
+    #[Test]
+    public function test_bank_manual_match_commission_payout_triggers_settlement()
+    {
+        global $wpdb;
+        $GLOBALS['orabooks_test_commission_skip_posting'] = true;
+        $GLOBALS['orabooks_test_commission_journal_posts'] = [];
+
+        $payoutSeen = false;
+        $wpdb->test_get_row_callback = function ($query) use (&$payoutSeen) {
+            if (stripos($query, 'bank_transactions') !== false) {
+                return (object) [
+                    'id' => 77,
+                    'status' => 'unmatched',
+                    'transaction_date' => '2026-02-03',
+                ];
+            }
+            if (stripos($query, 'commission_payouts') !== false) {
+                $payoutSeen = true;
+                return (object) [
+                    'id' => 42,
+                    'status' => 'initiated',
+                    'gross_amount' => 50.00,
+                    'fee_amount' => 1.25,
+                    'partner_user_id' => 5,
+                    'org_id' => 10,
+                ];
+            }
+            return null;
+        };
+
+        $result = OraBooks_Bank_Reconciliation::manual_match(10, 77, 'commission_payout', 42, 1);
+
+        $this->assertIsArray($result);
+        $this->assertEquals('matched', $result['status']);
+        $this->assertTrue($payoutSeen);
+        $this->assertCount(1, $GLOBALS['orabooks_test_commission_journal_posts']);
+    }
+
+    #[Test]
+    public function test_process_expiry_posts_system_journal_for_expired_earned()
+    {
+        global $wpdb;
+        $GLOBALS['orabooks_test_commission_skip_posting'] = true;
+        $GLOBALS['orabooks_test_commission_journal_posts'] = [];
+
+        $expiredUpdated = false;
+        $wpdb->test_get_row_callback = function ($query) {
+            if (stripos($query, 'partner_commission_config') !== false) {
+                return $this->config(['expiry_accounting_action' => 'reverse_expense']);
+            }
+            return null;
+        };
+        $wpdb->test_get_results_callback = function ($query) {
+            if (stripos($query, 'commissions_earned') !== false && stripos($query, 'expires_at') !== false) {
+                return [(object) [
+                    'id' => 88,
+                    'org_id' => 10,
+                    'partner_user_id' => 5,
+                    'customer_id' => 9,
+                    'amount' => 12.50,
+                ]];
+            }
+            return [];
+        };
+        $wpdb->test_update_callback = function ($table) use (&$expiredUpdated) {
+            if ($table === 'wp_test_orabooks_commissions_earned') {
+                $expiredUpdated = true;
+            }
+        };
+
+        $result = OraBooks_Commission::process_expiry();
+
+        $this->assertEquals(1, $result['expired_earned']);
+        $this->assertTrue($expiredUpdated);
+        $this->assertCount(1, $GLOBALS['orabooks_test_commission_journal_posts']);
+        $this->assertEquals('commission_expiry', $GLOBALS['orabooks_test_commission_journal_posts'][0]['source_type']);
+    }
 }
