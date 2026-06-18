@@ -437,12 +437,15 @@ class OraBooks_Auth {
             return true;
         }
 
-        $from_email = get_option('admin_email');
-        if (function_exists('is_multisite') && is_multisite()) {
+        $from_email = function_exists('get_option') ? get_option('admin_email') : '';
+        if (function_exists('is_multisite') && is_multisite() && function_exists('get_site_option')) {
             $network_email = get_site_option('admin_email');
             if (!empty($network_email) && is_email($network_email)) {
                 $from_email = $network_email;
             }
+        }
+        if (empty($from_email) || !is_email($from_email)) {
+            $from_email = 'wordpress@' . (isset($_SERVER['HTTP_HOST']) ? preg_replace('/:\d+$/', '', $_SERVER['HTTP_HOST']) : 'localhost');
         }
 
         $from_name = self::site_name();
