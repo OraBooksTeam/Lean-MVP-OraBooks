@@ -1424,6 +1424,17 @@
     min-height: 100dvh;
 }
 
+.orabooks-app-root-loading {
+    color: #42627f;
+    font-size: 14px;
+    padding: 48px 16px;
+    text-align: center;
+}
+
+.orabooks-app-root.is-mounted .orabooks-app-root-loading {
+    display: none;
+}
+
 /* Break out of common WordPress theme content columns */
 .entry-content .orabooks-react-page,
 .entry-content .orabooks-page-shell,
