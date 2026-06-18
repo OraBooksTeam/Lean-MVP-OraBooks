@@ -202,6 +202,8 @@ export default function ApprovalsPage() {
           journals={data?.approved_ready || []}
           loading={loading}
           emptyText="No approved journals waiting to post."
+          selectedJournalId={selectedJournalId}
+          onSelect={(id) => void loadJournalDetail(id)}
           actions={(journal) =>
             caps.post ? (
               <Button size="sm" disabled={actionId === journal.id} onClick={() => void handlePost(journal.id)}>
@@ -218,6 +220,8 @@ export default function ApprovalsPage() {
           journals={data?.draft_journals || []}
           loading={loading}
           emptyText="No draft journals."
+          selectedJournalId={selectedJournalId}
+          onSelect={(id) => void loadJournalDetail(id)}
           actions={(journal) =>
             caps.submit ? (
               <Button size="sm" disabled={actionId === journal.id} onClick={() => void handleSubmit(journal.id)}>
@@ -283,6 +287,8 @@ function JournalSection({
   emptyText,
   actions,
   highlightJournalId = null,
+  selectedJournalId = null,
+  onSelect,
 }: {
   title: string;
   icon: typeof ShieldCheck;
@@ -291,6 +297,8 @@ function JournalSection({
   emptyText: string;
   actions: (journal: any) => ReactNode;
   highlightJournalId?: number | null;
+  selectedJournalId?: number | null;
+  onSelect?: (journalId: number) => void;
 }) {
   return (
     <div className="glass-panel overflow-hidden">
@@ -393,8 +401,4 @@ function money(value?: string | number) {
 }
 
 function formatDate(value: string) {
-  if (!value) return '—';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleString();
-}
+  if (!value) return '—'
