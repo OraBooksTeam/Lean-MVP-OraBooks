@@ -3,7 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import Button from '@/components/Button';
 import { api } from '../api';
 import ClientShell from '../components/ClientShell';
-import { CheckCircle2, Paperclip, RefreshCw, Send, ShieldCheck, XCircle } from 'lucide-react';
+import { CheckCircle2, Eye, Paperclip, RefreshCw, Send, ShieldCheck, XCircle } from 'lucide-react';
 
 export default function ApprovalsPage() {
   const [searchParams] = useSearchParams();
@@ -13,8 +13,12 @@ export default function ApprovalsPage() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [actionId, setActionId] = useState<number | null>(null);
+  const [selectedJournalId, setSelectedJournalId] = useState<number | null>(null);
+  const [journalDetail, setJournalDetail] = useState<any>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
 
   const caps = data?.capabilities || {};
+  const orgId = data?.context?.organization?.id;
 
   const load = async () => {
     setLoading(true);
