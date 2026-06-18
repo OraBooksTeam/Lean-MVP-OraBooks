@@ -272,7 +272,17 @@ class OraBooks_Voice {
         }
 
         try {
-            $result = self::run_nlu_stub($filename, $voice_id);
+            $file_bytes = null;
+            if (!empty($row->audio_file_id)) {
+                $file_bytes = OraBooks_Ai_Providers::resolve_attachment_bytes((int) $row->audio_file_id, $org_id);
+            }
+
+            $result = OraBooks_Ai_Providers::run_voice_nlu([
+                'filename'   => $filename,
+                'voice_id'   => $voice_id,
+                'file_bytes' => $file_bytes,
+                'mime_type'  => 'audio/webm',
+            ]);
         } catch (Exception $e) {
             $retry = (int) $row->processing_retry_count + 1;
             if ($retry > self::MAX_RETRIES) {

@@ -323,7 +323,7 @@ class OraBooks_Classification {
         if ($use_rules && $rule_result) {
             $suggestion = $rule_result;
         } else {
-            $suggestion = self::run_ai_stub($record_type, $record, $text, $amount);
+            $suggestion = OraBooks_Ai_Providers::classify_record($record_type, $record, $text, $amount, $org_id);
             if ($rule_result && !$use_rules) {
                 $suggestion['rule_match'] = $rule_result;
             }
@@ -351,7 +351,7 @@ class OraBooks_Classification {
                 'account_confidence'             => $suggestion['confidence'],
                 'tax_hints'                      => wp_json_encode($tax_hints),
                 'classification_risk_score'      => wp_json_encode($risk_score),
-                'classification_model_version'   => self::MODEL_VERSION,
+                'classification_model_version'   => $suggestion['model_version'] ?? OraBooks_Ai_Providers::model_version('classification'),
                 'tax_engine_version'             => self::TAX_ENGINE_VERSION,
                 'classification_reason'            => $suggestion['reason'],
                 'last_classified_at'             => current_time('mysql', true),
