@@ -269,4 +269,76 @@ class OraBooks_Vendors_Test extends TestCase
         $this->assertEquals(150.0, $aging['60']);
         $this->assertEquals(600.0, $aging['90_plus']);
     }
+
+    #[Test]
+    public function test_create_bill_calculates_tax_from_subtotal()
+    {
+        global $wpdb;
+
+        $wpdb->test_get_var_callback = function () {
+            return 0;
+        };
+        $wpdb->test_get_row_callback = function ($query) {
+            if (stripos($query, 'tax_configs') !== false) {
+                return (object) [
+                    'id' => 1,
+                    'default_tax_rate' => '18.0000',
+                    'tax_type' => 'GST',
+                    'override_reasons' => null,
+                ];
+            }
+            if (stripos($query, 'orabooks_vendors') !== false && stripos($query, 'JOIN') === false) {
+                return $this->mockVendor(['payment_terms' => 30]);
+            }
+            if (stripos($query, 'orabooks_bills') !== false) {
+                return $this->mockBill([
+                    'id' => 201,
+                    'subtotal_amount' => '100.00',
+                    'tax_amount' => '18.00',
+                    'total_amount' => '118.00',
+                    'workflow_status' => 'draft',
+                ]);
+            }
+            return null;
+        };
+        $GLOBALS['orabooks_test_use_insert_id'] = 201;
+
+        $bill = OraBooks_Vendors::create_bill(5, [
+            'vendor_id' => 10,
+            'bill_date' => '2026-06-01',
+            'subtotal_amount' => 100,
+            'jurisdiction' => 'IN',
+        ]);
+
+        $this->assertIsObject($bill);
+        $this->assertEquals('118.00', $bill->total_amount);
+    }
+
+    #[Test]
+    public function test_post_bill_updates_workflow_to_posted()
+    {
+        global $wpdb;
+
+        $wpdb->test_get_row_callback = function ($query) {
+            if (stripos($query, 'vendor_ap_configs') !== false) {
+                return (object) [
+                    'auto_post_bill_on_approve' => 0,
+                    'adjustment_threshold' => 1000,
+                    'vendor_adjustment_account' => '5000',
+                ];
+            }
+            if (stripos($query, 'orabooks_bills') !== false) {
+                return $this->mockBill(['workflow_status' => 'approved']);
+            }
+            if (stripos($query, 'orabooks_accounts') !== false) {
+                return (object) ['id' => 1, 'code' => '2000'];
+            }
+            return null;
+        };
+
+        $result = OraBooks_Vendors::post_bill(5, 100, 2);
+
+        $this->assertTrue($result);
+        $this->assertStringContainsString("workflow_status = 'posted'", $wpdb->last_query);
+    }
 }
