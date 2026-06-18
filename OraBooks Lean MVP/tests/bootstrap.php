@@ -1196,14 +1196,7 @@ if (!class_exists('OraBooks_Commission', false)) {
     }
 }
 
-// Stub OraBooks_COA
-if (!class_exists('OraBooks_COA', false)) {
-    class OraBooks_COA {
-        public static function init() { return new self(); }
-        public static function load_chart_of_accounts($org_id, $tier, $org_type) { return true; }
-        public static function get_account_by_code($org_id, $code) { return null; }
-    }
-}
+// OraBooks_COA and OraBooks_Fiscal are loaded from includes/ above.
 
 // Stub OraBooks_Posting
 if (!class_exists('OraBooks_Posting', false)) {
