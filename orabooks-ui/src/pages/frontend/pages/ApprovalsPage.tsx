@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import Button from '@/components/Button';
 import { api } from '../api';
@@ -237,6 +237,7 @@ function JournalSection({
   loading,
   emptyText,
   actions,
+  highlightJournalId = null,
 }: {
   title: string;
   icon: typeof ShieldCheck;
@@ -244,6 +245,7 @@ function JournalSection({
   loading: boolean;
   emptyText: string;
   actions: (journal: any) => ReactNode;
+  highlightJournalId?: number | null;
 }) {
   return (
     <div className="glass-panel overflow-hidden">
@@ -276,7 +278,11 @@ function JournalSection({
             </tr>
           ) : (
             journals.map((journal) => (
-              <tr key={journal.id} className="hover:bg-slate-50/70">
+              <tr
+                key={journal.id}
+                id={`journal-row-${journal.id}`}
+                className={`hover:bg-slate-50/70 ${highlightJournalId === journal.id ? 'bg-primary/10 ring-2 ring-inset ring-primary/30' : ''}`}
+              >
                 <td className="px-5 py-3 font-semibold text-ink">
                   {journal.journal_number || `Journal #${journal.id}`}
                 </td>
