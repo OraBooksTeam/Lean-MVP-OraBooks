@@ -2,6 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { RouterProvider, createHashRouter } from 'react-router-dom';
 import FrontendRoutes from './App';
+import ExportTriggerButton from '@/components/platform/ExportTriggerButton';
 import '@/styles/index.css';
 
 declare global {

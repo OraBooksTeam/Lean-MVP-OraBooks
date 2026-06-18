@@ -28,6 +28,11 @@ import TaxSettingsPage from './pages/TaxSettingsPage';
 import ProfilePage from './pages/ProfilePage';
 import NotificationPreferencesPage from './pages/NotificationPreferencesPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
+import VerifyEmailPage from './pages/VerifyEmailPage';
+import JobQueuePage from './pages/JobQueuePage';
+import ObservabilityPage from './pages/ObservabilityPage';
+import NotificationAdminPage from './pages/NotificationAdminPage';
+import CommissionAdminPage from './pages/CommissionAdminPage';
 
 export default function FrontendRoutes() {
   return (
@@ -36,6 +41,7 @@ export default function FrontendRoutes() {
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
+      <Route path="/verify-email" element={<VerifyEmailPage />} />
       <Route path="/tier-selection" element={<TierSelectionPage />} />
       <Route path="/dashboard" element={<DashboardPage />} />
       <Route path="/customers" element={<CustomersPage />} />
@@ -62,6 +68,10 @@ export default function FrontendRoutes() {
       <Route path="/notification-preferences" element={<NotificationPreferencesPage />} />
       <Route path="/my-exports" element={<ExportStatusPage />} />
       <Route path="/profile" element={<ProfilePage />} />
+      <Route path="/job-queue" element={<JobQueuePage />} />
+      <Route path="/observability" element={<ObservabilityPage />} />
+      <Route path="/notification-admin" element={<NotificationAdminPage />} />
+      <Route path="/commission-admin" element={<CommissionAdminPage />} />
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>
   );
