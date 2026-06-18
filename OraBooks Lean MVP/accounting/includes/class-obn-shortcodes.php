@@ -74,9 +74,9 @@ class OBN_Shortcodes
 
 		// optional: define Tailwind config (colors, etc.) by printing inline script before the CDN loads if needed
 
-		wp_enqueue_style('obn-accounting-style', OBN_ACCOUNTING_PLUGIN_URL . 'assets/css/style.css', array(), OBN_ACCOUNTING_VERSION);
-		wp_enqueue_style('obn-accounting-brand-theme', OBN_ACCOUNTING_PLUGIN_URL . 'assets/css/brand-theme.css', array('obn-accounting-style'), OBN_ACCOUNTING_VERSION);
-		wp_enqueue_script('obn-accounting-script', OBN_ACCOUNTING_PLUGIN_URL . 'assets/js/script.js', array('jquery', 'jquery-ui-autocomplete'), OBN_ACCOUNTING_VERSION, false);
+		wp_enqueue_style('obn-accounting-style', OBN_ACCOUNTING_PLUGIN_URL . 'assets/css/style.css', array(), OBN_ACCOUNTING_VERSION . '.' . filemtime(OBN_ACCOUNTING_PLUGIN_DIR . 'assets/css/style.css'));
+		wp_enqueue_style('obn-accounting-brand-theme', OBN_ACCOUNTING_PLUGIN_URL . 'assets/css/brand-theme.css', array('obn-accounting-style'), OBN_ACCOUNTING_VERSION . '.' . filemtime(OBN_ACCOUNTING_PLUGIN_DIR . 'assets/css/brand-theme.css'));
+		wp_enqueue_script('obn-accounting-script', OBN_ACCOUNTING_PLUGIN_URL . 'assets/js/script.js', array('jquery', 'jquery-ui-autocomplete'), OBN_ACCOUNTING_VERSION . '.' . filemtime(OBN_ACCOUNTING_PLUGIN_DIR . 'assets/js/script.js'), false);
 		wp_localize_script(
 			'obn-accounting-script',
 			'obn_ajax',
