@@ -68,6 +68,9 @@ class OraBooks_Manual_Tax_Test extends TestCase
             if (stripos($query, 'orabooks_invoices') !== false) {
                 return $this->mockInvoice();
             }
+            if (stripos($query, 'fiscal_periods') !== false) {
+                return (object) ['status' => 'open'];
+            }
             if (stripos($query, 'orabooks_tax_configs') !== false) {
                 return (object) [
                     'id' => 1,
@@ -104,6 +107,9 @@ class OraBooks_Manual_Tax_Test extends TestCase
         $wpdb->test_get_row_callback = function ($query) {
             if (stripos($query, 'orabooks_invoices') !== false) {
                 return $this->mockInvoice();
+            }
+            if (stripos($query, 'fiscal_periods') !== false) {
+                return (object) ['status' => 'open'];
             }
             if (stripos($query, 'orabooks_tax_configs') !== false) {
                 return (object) [
