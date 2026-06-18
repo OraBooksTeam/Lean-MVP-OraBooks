@@ -182,6 +182,11 @@ export default function CsvImportsPage() {
         {error && (
           <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-medium text-red-700">{error}</div>
         )}
+        {success && (
+          <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-medium text-emerald-800">
+            {success}
+          </div>
+        )}
 
         <div className="glass-panel overflow-hidden">
           <div className="border-b border-border px-5 py-4">
@@ -246,6 +251,19 @@ export default function CsvImportsPage() {
                     {preview.import.original_filename} · <StatusBadge status={preview.import.status} />
                   </p>
                 )}
+                {preview?.row_counts && (
+                  <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-slate-600">
+                    <span>Processed: {preview.row_counts.processed ?? 0}</span>
+                    <span>Escalated: {preview.row_counts.escalated ?? 0}</span>
+                    <span>Failed: {preview.row_counts.failed ?? 0}</span>
+                    {(preview.row_counts.escalated ?? 0) > 0 && (
+                      <Link to="/ai-review" className="inline-flex items-center gap-1 font-semibold text-amber-700 hover:underline">
+                        <AlertTriangle className="h-3.5 w-3.5" />
+                        Review in AI Queue
+                      </Link>
+                    )}
+                  </div>
+                )}
               </div>
               {preview?.import?.status === 'pending_confirm' && (
                 <Button onClick={handleConfirm} disabled={confirming}>
@@ -275,13 +293,26 @@ export default function CsvImportsPage() {
                   </thead>
                   <tbody className="divide-y divide-border">
                     {preview.rows.map((row: any) => (
-                      <tr key={row.id} className="hover:bg-slate-50/70">
+                      <tr
+                        key={row.id}
+                        className={`hover:bg-slate-50/70 ${row.status === 'escalated' ? 'bg-amber-50/80' : ''}`}
+                      >
                         <td className="px-5 py-3 font-mono text-xs">{row.row_index + 1}</td>
                         <td className="px-5 py-3">
                           <ConfidenceBadge value={row.confidence_avg} threshold={data?.limits?.confidence_threshold ?? 70} />
                         </td>
                         <td className="px-5 py-3">
-                          <span className="badge border border-slate-200 bg-slate-50 text-slate-700">{row.status}</span>
+                          <span
+                            className={`badge border capitalize ${
+                              row.status === 'escalated'
+                                ? 'border-amber-200 bg-amber-50 text-amber-800'
+                                : row.status === 'failed'
+                                  ? 'border-red-200 bg-red-50 text-red-800'
+                                  : 'border-slate-200 bg-slate-50 text-slate-700'
+                            }`}
+                          >
+                            {row.status}
+                          </span>
                         </td>
                         <td className="px-5 py-3 font-mono text-xs text-slate-600">
                           {JSON.stringify(row.parsed_data || {})}
