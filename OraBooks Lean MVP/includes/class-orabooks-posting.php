@@ -421,14 +421,24 @@ class OraBooks_Posting {
         // Generate journal number and hash
         $journal_number = "JE-{$year}-" . str_pad($batch_number, 6, '0', STR_PAD_LEFT);
         $previous_hash = $wpdb->get_var($wpdb->prepare(
-            "SELECT journal_hash FROM {$table_journals} WHERE org_id = %d AND status = 'posted' ORDER BY posted_at DESC LIMIT 1",
+            "SELECT journal_hash FROM {$table_journals}
+             WHERE org_id = %d AND status IN ('posted', 'locked')
+             ORDER BY posted_at DESC LIMIT 1",
             $journal->org_id
         ));
-        
+
         $lines = $wpdb->get_results($wpdb->prepare(
             "SELECT * FROM {$table_lines} WHERE journal_id = %d ORDER BY id", $journal_id
         ));
-        
+
+        $journal_hash = self::compute_canonical_hash(
+            (int) $journal->org_id,
+            $journal->transaction_date,
+            $lines,
+            $previous_hash ?: null,
+            $journal_number
+        );
+
         // Create ledger entries and update balances
         foreach ($lines as $line) {
             $wpdb->insert($table_ledger, [
