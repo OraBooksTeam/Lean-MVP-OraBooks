@@ -44,20 +44,18 @@ export default function AdminOrganizations() {
       description="Manage customer and partner organizations across the platform."
       actions={<Button variant="secondary" onClick={load}>Refresh</Button>}
     >
-      <div className="space-y-6">
-          <select className="rounded-lg border border-border bg-white px-3 py-2 text-sm">
-            <option value="">All Types</option>
-            <option value="customer">Customer</option>
-            <option value="partner">Partner</option>
-          </select>
-          <select className="rounded-lg border border-border bg-white px-3 py-2 text-sm">
-            <option value="">All Statuses</option>
-            <option value="active">Active</option>
-            <option value="pending_setup">Pending Setup</option>
-            <option value="suspended">Suspended</option>
-          </select>
-        </div>
-        <Button variant="secondary" onClick={load}>Refresh</Button>
+      <div className="flex flex-wrap gap-2">
+        <select className="rounded-lg border border-border bg-white px-3 py-2 text-sm">
+          <option value="">All Types</option>
+          <option value="customer">Customer</option>
+          <option value="partner">Partner</option>
+        </select>
+        <select className="rounded-lg border border-border bg-white px-3 py-2 text-sm">
+          <option value="">All Statuses</option>
+          <option value="active">Active</option>
+          <option value="pending_setup">Pending Setup</option>
+          <option value="suspended">Suspended</option>
+        </select>
       </div>
       <div className="glass-panel overflow-hidden">
         <table className="min-w-full text-left text-sm">
@@ -101,7 +99,7 @@ export default function AdminOrganizations() {
           </tbody>
         </table>
       </div>
-    </div>
+    </AdminPageShell>
   );
 }
 
