@@ -218,6 +218,28 @@ export default function InventoryPage() {
           <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-medium text-emerald-700">{success}</div>
         )}
 
+        {selectedProduct && orgId && (
+          <div className="glass-panel p-5">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-4">
+              <div>
+                <h2 className="font-bold text-ink">{selectedProduct.name}</h2>
+                <p className="text-sm text-slate-600">SKU {selectedProduct.sku} · #{selectedProduct.id}</p>
+              </div>
+              <Button variant="secondary" size="sm" onClick={() => setSelectedProduct(null)}>
+                Close
+              </Button>
+            </div>
+            <div className="mt-4">
+              <ResourceAttachmentsPanel
+                orgId={orgId}
+                resourceType="inventory_item"
+                resourceId={selectedProduct.id}
+                title="Product files"
+              />
+            </div>
+          </div>
+        )}
+
         <div className="glass-panel overflow-hidden">
           <div className="border-b border-border px-5 py-4">
             <h2 className="font-bold text-ink">Products</h2>
@@ -267,9 +289,20 @@ export default function InventoryPage() {
                       )}
                     </td>
                     <td className="px-5 py-3">
-                      <Button size="sm" variant="secondary" onClick={() => openAdjust(product)}>
-                        Adjust
-                      </Button>
+                      <div className="flex flex-wrap gap-1">
+                        <Button size="sm" variant="secondary" onClick={() => setSelectedProduct(product)}>
+                          View
+                        </Button>
+                        <Button size="sm" variant="secondary" onClick={() => openAdjust(product)}>
+                          Adjust
+                        </Button>
+                        <Link to={`/attachments?resource_type=inventory_item&resource_id=${product.id}`}>
+                          <Button size="sm" variant="secondary">
+                            <Paperclip className="h-3.5 w-3.5" />
+                            Files
+                          </Button>
+                        </Link>
+                      </div>
                     </td>
                   </tr>
                 );
