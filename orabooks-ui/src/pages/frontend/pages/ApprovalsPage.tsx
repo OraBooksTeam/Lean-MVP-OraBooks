@@ -1,10 +1,13 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import Button from '@/components/Button';
 import { api } from '../api';
 import ClientShell from '../components/ClientShell';
 import { CheckCircle2, RefreshCw, Send, ShieldCheck, XCircle } from 'lucide-react';
 
 export default function ApprovalsPage() {
+  const [searchParams] = useSearchParams();
+  const highlightJournalId = Number(searchParams.get('journal_id') || 0) || null;
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -26,6 +29,14 @@ export default function ApprovalsPage() {
   useEffect(() => {
     void load();
   }, []);
+
+  useEffect(() => {
+    if (!highlightJournalId || loading) return;
+    const row = document.getElementById(`journal-row-${highlightJournalId}`);
+    if (row) {
+      row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, [highlightJournalId, loading, data]);
 
   const handleSubmit = async (journalId: number) => {
     setActionId(journalId);
@@ -104,12 +115,19 @@ export default function ApprovalsPage() {
           </div>
         )}
 
+        {highlightJournalId && (
+          <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 text-sm text-ink">
+            Highlighting journal #{highlightJournalId} from AI Review queue.
+          </div>
+        )}
+
         <JournalSection
           title="Pending Approval"
           icon={ShieldCheck}
           journals={data?.pending_review || []}
           loading={loading}
           emptyText="No journals awaiting approval."
+          highlightJournalId={highlightJournalId}
           actions={(journal) => (
             <>
               {caps.approve && (
