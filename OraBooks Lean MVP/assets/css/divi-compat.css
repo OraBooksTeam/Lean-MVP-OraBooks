@@ -170,23 +170,34 @@ body.orabooks-page.orabooks-divi-theme .obn-dashboard-wrapper .modal-backdrop {
     z-index: 100010 !important;
 }
 
-/* Auth pages: immersive full-screen (hide Divi chrome) */
-body.orabooks-page.orabooks-divi-theme.orabooks-auth-page #main-header,
-body.orabooks-page.orabooks-divi-theme.orabooks-auth-page #top-header,
-body.orabooks-page.orabooks-divi-theme.orabooks-auth-page .et-l--header,
-body.orabooks-page.orabooks-divi-theme.orabooks-auth-page #footer-bottom,
-body.orabooks-page.orabooks-divi-theme.orabooks-auth-page .et-l--footer {
+/* React app pages: immersive workspace (hide Divi chrome, keep WP admin bar) */
+body.orabooks-page.orabooks-divi-theme.orabooks-react-page #main-header,
+body.orabooks-page.orabooks-divi-theme.orabooks-react-page #top-header,
+body.orabooks-page.orabooks-divi-theme.orabooks-react-page .et-l--header,
+body.orabooks-page.orabooks-divi-theme.orabooks-react-page #footer-bottom,
+body.orabooks-page.orabooks-divi-theme.orabooks-react-page .et-l--footer {
     display: none !important;
 }
 
-body.orabooks-page.orabooks-divi-theme.orabooks-auth-page #page-container {
+body.orabooks-page.orabooks-divi-theme.orabooks-react-page #page-container {
     padding-top: 0 !important;
 }
 
+body.orabooks-page.orabooks-divi-theme.orabooks-react-page #orabooks-app-root aside.fixed {
+    top: var(--orabooks-divi-admin-bar);
+    height: calc(100vh - var(--orabooks-divi-admin-bar));
+    height: calc(100dvh - var(--orabooks-divi-admin-bar));
+}
+
+body.orabooks-page.orabooks-divi-theme.orabooks-react-page #orabooks-app-root main > .sticky {
+    top: var(--orabooks-divi-admin-bar);
+}
+
+/* Auth pages: immersive full-screen */
 body.orabooks-page.orabooks-divi-theme.orabooks-auth-page .brand-auth-bg,
 body.orabooks-page.orabooks-divi-theme.orabooks-auth-page .orabooks-auth-shell {
     min-height: 100vh;
     min-height: 100dvh;
 }
 
-/* React workspace pages: keep Divi header, offset app chrome below it */
+/* React workspace pages with Divi header visible (legacy PHP views only) */
