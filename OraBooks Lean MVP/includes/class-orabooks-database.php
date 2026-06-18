@@ -867,6 +867,18 @@ class OraBooks_Database {
             wp_schedule_event(time(), 'monthly', 'orabooks_csv_imports_purge');
         }
 
+        // ============================================================
+        // SL-203: Attachments & Versioning
+        // ============================================================
+        $attachment_tables = OraBooks_Attachments::get_create_table_sql();
+        foreach ($attachment_tables as $sql) {
+            dbDelta($sql);
+        }
+
+        if (!wp_next_scheduled('orabooks_attachments_purge')) {
+            wp_schedule_event(time(), 'monthly', 'orabooks_attachments_purge');
+        }
+
         update_option('orabooks_db_version', ORABOOKS_DB_VERSION);
     }
     
