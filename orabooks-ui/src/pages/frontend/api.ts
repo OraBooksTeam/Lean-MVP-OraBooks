@@ -327,6 +327,20 @@ export const api = {
     api.get('orabooks_invoice_get', { invoice_id: invoiceId }),
   invoiceCreate: (data: Record<string, any>) =>
     api.post('orabooks_invoice_create', data),
+  invoiceOverrideTax: (
+    orgId: number,
+    invoiceId: number,
+    newTaxRate: number,
+    reasonCode: string,
+    jurisdiction = 'US'
+  ) =>
+    api.post('orabooks_invoice_override_tax', {
+      org_id: orgId,
+      invoice_id: invoiceId,
+      new_tax_rate: newTaxRate,
+      reason_code: reasonCode,
+      jurisdiction,
+    }),
   recordPayment: (data: Record<string, any>) =>
     api.post('orabooks_invoice_record_payment', data),
 
