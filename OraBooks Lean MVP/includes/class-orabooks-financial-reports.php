@@ -539,7 +539,11 @@ class OraBooks_Financial_Reports {
     }
 
     private static function snapshot_response($snapshot, $from_cache) {
-        $payload = json_decode($snapshot->snapshot_data ?? '{}', true) ?: [];
+        $raw = self::decode_snapshot_payload($snapshot);
+        $payload = json_decode($raw, true) ?: [];
+        $signature = self::get_report_signature((int) $snapshot->id);
+        $export_meta = self::build_export_watermark($snapshot, $signature);
+
         return [
             'snapshot_id' => (int) $snapshot->id,
             'report_type' => $snapshot->report_type,
@@ -549,7 +553,13 @@ class OraBooks_Financial_Reports {
             'snapshot_hash' => $snapshot->snapshot_hash,
             'correlation_id' => $snapshot->correlation_id,
             'frozen' => !empty($snapshot->frozen),
+            'archived' => !empty($snapshot->archived),
+            'is_encrypted' => !empty($snapshot->is_encrypted),
             'from_cache' => $from_cache,
+            'watermark' => $export_meta['watermark'],
+            'board_approved' => $export_meta['board_approved'],
+            'signature' => $export_meta['signature'],
+            'retention_days' => self::get_org_report_config((int) $snapshot->org_id)['snapshot_retention_days'],
         ];
     }
 
