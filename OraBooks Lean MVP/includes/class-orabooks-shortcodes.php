@@ -162,143 +162,83 @@ class OraBooks_Shortcodes {
     }
     
     public function partner_onboarding() {
-        if (!get_current_user_id()) {
-            return OraBooks_Views::require_login_message();
-        }
-        return $this->render_view('partner-onboarding');
+        return $this->react_page('/partner-onboarding');
     }
     
     public function tier_selection() {
-        if (!get_current_user_id()) {
-            return OraBooks_Views::require_login_message();
-        }
-        return $this->render_view('tier-selection');
+        return $this->react_page('/tier-selection');
     }
     
     public function dashboard() {
-        if (!get_current_user_id()) {
-            return OraBooks_Views::require_login_message();
-        }
-        return $this->render_view('dashboard');
+        return $this->react_page('/dashboard');
     }
 
     public function customers_page() {
-        if (!get_current_user_id()) {
-            return OraBooks_Views::require_login_message();
-        }
-        return $this->ajax_dashboard_page(__('Customers', 'orabooks'), 'orabooks_customer_dashboard');
+        return $this->react_page('/customers');
     }
 
     public function vendors_page() {
-        if (!get_current_user_id()) {
-            return OraBooks_Views::require_login_message();
-        }
-        return $this->ajax_dashboard_page(__('Vendors & Bills', 'orabooks'), 'orabooks_vendor_dashboard');
+        return $this->react_page('/vendors');
     }
 
     public function inventory_page() {
-        if (!get_current_user_id()) {
-            return OraBooks_Views::require_login_message();
-        }
-        return $this->ajax_dashboard_page(__('Inventory', 'orabooks'), 'orabooks_inventory_dashboard');
+        return $this->react_page('/inventory');
     }
 
     public function bank_reconciliation_page() {
-        if (!get_current_user_id()) {
-            return OraBooks_Views::require_login_message();
-        }
-        return $this->ajax_dashboard_page(__('Bank Reconciliation', 'orabooks'), 'orabooks_bank_dashboard');
+        return $this->react_page('/bank-reconciliation');
     }
 
     public function reports_page() {
-        if (!get_current_user_id()) {
-            return OraBooks_Views::require_login_message();
-        }
-        return $this->ajax_dashboard_page(__('Reports', 'orabooks'), 'orabooks_reports_dashboard');
+        return $this->react_page('/reports');
     }
 
     public function invoices_page() {
-        if (!get_current_user_id()) {
-            return OraBooks_Views::require_login_message();
-        }
-        return $this->ajax_dashboard_page(__('Invoices', 'orabooks'), 'orabooks_customer_dashboard', __('Invoice summary for your organization.', 'orabooks'));
+        return $this->react_page('/invoices');
     }
 
     public function chart_of_accounts_page() {
-        if (!get_current_user_id()) {
-            return OraBooks_Views::require_login_message();
-        }
-        return $this->ajax_dashboard_page(__('Chart of Accounts', 'orabooks'), 'orabooks_customer_dashboard', __('Account summary for your organization.', 'orabooks'));
+        return $this->react_page('/chart-of-accounts');
     }
 
     public function fiscal_periods_page() {
-        if (!get_current_user_id()) {
-            return OraBooks_Views::require_login_message();
-        }
-        return $this->ajax_dashboard_page(__('Fiscal Periods', 'orabooks'), 'orabooks_frontend_context', __('Manage fiscal period close and reopen governance.', 'orabooks'));
+        return $this->react_page('/fiscal-periods');
     }
 
     public function tax_settings_page() {
-        if (!get_current_user_id()) {
-            return OraBooks_Views::require_login_message();
-        }
-        return $this->ajax_dashboard_page(__('Tax Settings', 'orabooks'), 'orabooks_frontend_context', __('Configure tax jurisdictions, rates, and override governance.', 'orabooks'));
+        return $this->react_page('/tax-settings');
     }
 
     public function journals_page() {
-        if (!get_current_user_id()) {
-            return OraBooks_Views::require_login_message();
-        }
-        return $this->ajax_dashboard_page(__('Journals', 'orabooks'), 'orabooks_customer_dashboard', __('Journal activity for your organization.', 'orabooks'));
+        return $this->react_page('/journals');
     }
 
     public function profile_page() {
-        if (!get_current_user_id()) {
-            return OraBooks_Views::require_login_message();
-        }
-        return $this->ajax_dashboard_page(__('Profile', 'orabooks'), 'orabooks_frontend_context');
+        return $this->react_page('/profile');
     }
 
     public function team_page() {
-        if (!get_current_user_id()) {
-            return OraBooks_Views::require_login_message();
-        }
-        return $this->ajax_dashboard_page(__('Team', 'orabooks'), 'orabooks_team_dashboard');
+        return $this->react_page('/team');
     }
 
     public function attachments_page() {
-        if (!get_current_user_id()) {
-            return OraBooks_Views::require_login_message();
-        }
-        return $this->ajax_dashboard_page(__('Attachments', 'orabooks'), 'orabooks_attachments_dashboard');
+        return $this->react_page('/attachments');
     }
 
     public function approvals_page() {
-        if (!get_current_user_id()) {
-            return OraBooks_Views::require_login_message();
-        }
-        return $this->ajax_dashboard_page(__('Approvals', 'orabooks'), 'orabooks_approval_dashboard');
+        return $this->react_page('/approvals');
     }
 
     public function ai_review_page() {
-        if (!get_current_user_id()) {
-            return OraBooks_Views::require_login_message();
-        }
-        return $this->ajax_dashboard_page(__('AI Review Queue', 'orabooks'), 'orabooks_ai_review_dashboard');
+        return $this->react_page('/ai-review');
     }
 
     public function expenses_page() {
-        if (!get_current_user_id()) {
-            return OraBooks_Views::require_login_message();
-        }
-        return $this->ajax_dashboard_page(__('Expenses', 'orabooks'), 'orabooks_expenses_dashboard');
+        return $this->react_page('/expenses');
     }
 
     public function voice_page() {
-        if (!get_current_user_id()) {
-            return OraBooks_Views::require_login_message();
-        }
-        return $this->ajax_dashboard_page(__('Voice Input', 'orabooks'), 'orabooks_voice_dashboard');
+        return $this->react_page('/voice');
     }
     
     /**
@@ -429,10 +369,7 @@ class OraBooks_Shortcodes {
      * payout breakdown (Gross/Fee/Net), attribution table, and reactivation.
      */
     public function partner_dashboard() {
-        if (!get_current_user_id()) {
-            return OraBooks_Views::require_login_message();
-        }
-        return $this->render_view('partner-program');
+        return $this->react_page('/partner-program');
     }
     
     /**
@@ -447,10 +384,7 @@ class OraBooks_Shortcodes {
      * Shows all notifications for the current user with filtering.
      */
     public function notification_center() {
-        if (!get_current_user_id()) {
-            return OraBooks_Views::require_login_message();
-        }
-        return $this->render_view('notifications');
+        return $this->react_page('/notifications');
     }
 
     /**
@@ -458,10 +392,7 @@ class OraBooks_Shortcodes {
      * Allows user to configure notification channels, quiet hours, digest, language, escalation.
      */
     public function notification_preferences() {
-        if (!get_current_user_id()) {
-            return OraBooks_Views::require_login_message();
-        }
-        return $this->render_view('notification-preferences');
+        return $this->react_page('/notification-preferences');
     }
 
     /**
@@ -673,20 +604,14 @@ class OraBooks_Shortcodes {
      * Shows "My Exports" table with status, download, cancel.
      */
     public function export_status() {
-        if (!get_current_user_id()) {
-            return OraBooks_Views::require_login_message();
-        }
-        return $this->render_view('exports');
+        return $this->react_page('/my-exports');
     }
 
     /**
      * CSV Import page shortcode (SL-113).
      */
     public function csv_import_page() {
-        if (!get_current_user_id()) {
-            return OraBooks_Views::require_login_message();
-        }
-        return $this->ajax_dashboard_page(__('CSV Imports', 'orabooks'), 'orabooks_csv_imports_dashboard');
+        return $this->react_page('/csv-imports');
     }
 
     /**
