@@ -148,7 +148,7 @@ jQuery(document).ready(function ($) {
             return;
         }
 
-        if ($(window).width() <= 768) {
+        if ($(window).width() <= 1024) {
             $('.obn-sidebar').removeClass('open');
             $('.obn-overlay').fadeOut(300);
         }
