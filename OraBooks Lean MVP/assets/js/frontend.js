@@ -62,8 +62,14 @@ jQuery(document).ready(function($) {
                 $msg.removeClass('error').addClass('success').text('Registration successful! Verification email sent. Check your inbox.').show();
                 $form.find('button').prop('disabled', false).text('Create Account');
             }
-        }).fail(function() {
-            $msg.removeClass('success').addClass('error').text('An error occurred. Please try again.').show();
+        }).fail(function(xhr) {
+            var message = 'An error occurred. Please try again.';
+            if (xhr.responseJSON && xhr.responseJSON.message) {
+                message = xhr.responseJSON.message;
+            } else if (xhr.responseText === '0' || xhr.responseText === '-1') {
+                message = 'Registration is unavailable. Confirm the OraBooks plugin is active, then try again.';
+            }
+            $msg.removeClass('success').addClass('error').text(message).show();
             $form.find('button').prop('disabled', false).text('Create Account');
         });
     });

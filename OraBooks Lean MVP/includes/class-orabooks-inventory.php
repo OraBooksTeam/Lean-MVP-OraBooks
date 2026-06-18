@@ -574,23 +574,41 @@ class OraBooks_Inventory {
         }
     }
 
+    private function require_inventory_permission($user_id, $org_id, $permissions) {
+        if (!$user_id) {
+            orabooks_json_error('Not authenticated', 401);
+        }
+
+        if ($org_id <= 0) {
+            orabooks_json_error('Organization ID required', 400);
+        }
+
+        $this->require_customer_org_access($user_id, $org_id);
+
+        if (current_user_can('manage_options')) {
+            return;
+        }
+
+        foreach ((array) $permissions as $permission) {
+            if (OraBooks_RBAC::require_permission($user_id, $org_id, $permission)) {
+                return;
+            }
+        }
+
+        orabooks_json_error('Permission denied', 403);
+    }
+
     public function ajax_products_list() {
         $user_id = $this->current_user_id();
         $org_id = intval($_GET['org_id'] ?? 0);
-        $this->require_customer_org_access($user_id, $org_id);
-        if (!OraBooks_RBAC::require_permission($user_id, $org_id, 'view_reports')) {
-            orabooks_json_error('Permission denied', 403);
-        }
+        $this->require_inventory_permission($user_id, $org_id, ['view_reports']);
         orabooks_json_success(self::get_products_list($org_id, $_GET));
     }
 
     public function ajax_product_create() {
         $user_id = $this->current_user_id();
         $org_id = intval($_POST['org_id'] ?? 0);
-        $this->require_customer_org_access($user_id, $org_id);
-        if (!OraBooks_RBAC::require_permission($user_id, $org_id, 'manage_org_settings')) {
-            orabooks_json_error('Permission denied', 403);
-        }
+        $this->require_inventory_permission($user_id, $org_id, ['manage_org_settings']);
         $result = self::create_product($org_id, $_POST);
         if (is_wp_error($result)) {
             orabooks_json_error($result->get_error_message(), 400);
@@ -601,10 +619,7 @@ class OraBooks_Inventory {
     public function ajax_adjust_stock() {
         $user_id = $this->current_user_id();
         $org_id = intval($_POST['org_id'] ?? 0);
-        $this->require_customer_org_access($user_id, $org_id);
-        if (!OraBooks_RBAC::require_permission($user_id, $org_id, 'manage_org_settings')) {
-            orabooks_json_error('Permission denied', 403);
-        }
+        $this->require_inventory_permission($user_id, $org_id, ['manage_org_settings', 'submit_transaction']);
         $result = self::adjust_stock(
             $org_id,
             intval($_POST['product_id'] ?? 0),
@@ -622,11 +637,11 @@ class OraBooks_Inventory {
     public function ajax_movements() {
         $user_id = $this->current_user_id();
         $org_id = intval($_GET['org_id'] ?? 0);
-        $this->require_customer_org_access($user_id, $org_id);
-        if (!OraBooks_RBAC::require_permission($user_id, $org_id, 'view_reports')) {
-            orabooks_json_error('Permission denied', 403);
-        }
-        $movements = self::get_movements($org_id, intval($_GET['product_id'] ?? 0), $_GET);
+        $this->require_inventory_permission($user_id, $org_id, ['view_reports']);
+        $product_id = intval($_GET['product_id'] ?? 0);
+        $movements = $product_id > 0
+            ? self::get_movements($org_id, $product_id, $_GET)
+            : self::get_recent_movements($org_id, $_GET);
         orabooks_json_success(['movements' => $movements]);
     }
 }

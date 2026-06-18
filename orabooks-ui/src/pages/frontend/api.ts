@@ -199,6 +199,30 @@ export const api = {
     api.get('orabooks_ap_aging', { org_id: orgId, ...(asOfDate ? { as_of_date: asOfDate } : {}) }),
   inventoryDashboard: () =>
     api.get('orabooks_inventory_dashboard'),
+  inventoryProductsList: (orgId: number, filters: Record<string, unknown> = {}) =>
+    api.get('orabooks_inventory_products_list', { org_id: orgId, ...filters }),
+  inventoryProductCreate: (orgId: number, data: Record<string, unknown>) =>
+    api.post('orabooks_inventory_product_create', { org_id: orgId, ...data }),
+  inventoryAdjustStock: (
+    orgId: number,
+    productId: number,
+    quantityChange: number,
+    reason: string,
+    note = ''
+  ) =>
+    api.post('orabooks_inventory_product_adjust', {
+      org_id: orgId,
+      product_id: productId,
+      quantity_change: quantityChange,
+      reason,
+      note,
+    }),
+  inventoryMovements: (orgId: number, productId = 0, filters: Record<string, unknown> = {}) =>
+    api.get('orabooks_inventory_movements', {
+      org_id: orgId,
+      ...(productId ? { product_id: productId } : {}),
+      ...filters,
+    }),
   bankDashboard: () =>
     api.get('orabooks_bank_dashboard'),
   reportsDashboard: () =>

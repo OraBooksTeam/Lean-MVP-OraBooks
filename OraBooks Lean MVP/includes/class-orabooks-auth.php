@@ -18,12 +18,19 @@ class OraBooks_Auth {
         if (self::$instance === null) {
             self::$instance = new self();
             add_action('wp_ajax_nopriv_orabooks_register', [self::$instance, 'ajax_register']);
+            add_action('wp_ajax_orabooks_register', [self::$instance, 'ajax_register']);
             add_action('wp_ajax_nopriv_orabooks_login', [self::$instance, 'ajax_login']);
+            add_action('wp_ajax_orabooks_login', [self::$instance, 'ajax_login']);
             add_action('wp_ajax_nopriv_orabooks_verify_email', [self::$instance, 'ajax_verify_email']);
+            add_action('wp_ajax_orabooks_verify_email', [self::$instance, 'ajax_verify_email']);
             add_action('wp_ajax_nopriv_orabooks_resend_verification', [self::$instance, 'ajax_resend_verification']);
+            add_action('wp_ajax_orabooks_resend_verification', [self::$instance, 'ajax_resend_verification']);
             add_action('wp_ajax_nopriv_orabooks_forgot_password', [self::$instance, 'ajax_forgot_password']);
+            add_action('wp_ajax_orabooks_forgot_password', [self::$instance, 'ajax_forgot_password']);
             add_action('wp_ajax_nopriv_orabooks_reset_password', [self::$instance, 'ajax_reset_password']);
+            add_action('wp_ajax_orabooks_reset_password', [self::$instance, 'ajax_reset_password']);
             add_action('wp_ajax_nopriv_orabooks_check_subdomain', [self::$instance, 'ajax_check_subdomain']);
+            add_action('wp_ajax_orabooks_check_subdomain', [self::$instance, 'ajax_check_subdomain']);
             add_action('wp_ajax_orabooks_setup_2fa', [self::$instance, 'ajax_setup_2fa']);
             add_action('wp_ajax_orabooks_verify_2fa_setup', [self::$instance, 'ajax_verify_2fa_setup']);
             add_action('wp_ajax_orabooks_2fa_challenge', [self::$instance, 'ajax_2fa_challenge']);
@@ -33,7 +40,9 @@ class OraBooks_Auth {
             add_action('wp_ajax_nopriv_orabooks_select_tier', [self::$instance, 'ajax_select_tier']);
             // SL-013: Google OIDC endpoints
             add_action('wp_ajax_nopriv_orabooks_oidc_initiate', [self::$instance, 'ajax_oidc_initiate']);
+            add_action('wp_ajax_orabooks_oidc_initiate', [self::$instance, 'ajax_oidc_initiate']);
             add_action('wp_ajax_nopriv_orabooks_oidc_callback', [self::$instance, 'ajax_oidc_callback']);
+            add_action('wp_ajax_orabooks_oidc_callback', [self::$instance, 'ajax_oidc_callback']);
             // SL-003: Admin partner approval endpoints registered in OraBooks_Partner
         }
         return self::$instance;
@@ -809,9 +818,9 @@ class OraBooks_Auth {
         $result = self::register($data);
         
         if (is_wp_error($result)) {
-            orabooks_json_error($result->get_error_message(), 400);
+            orabooks_json_error($result->get_error_message(), 200);
         }
-        
+
         orabooks_json_success($result, 'Registration successful. Verification email sent.');
     }
     
