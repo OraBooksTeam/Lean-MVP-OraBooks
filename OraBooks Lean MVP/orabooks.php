@@ -500,6 +500,16 @@ function orabooks_admin_menu() {
         'orabooks_admin_observability'
     );
 
+    // Security dashboard (admin only)
+    add_submenu_page(
+        'orabooks',
+        'Security',
+        'Security',
+        'manage_options',
+        'orabooks-security',
+        'orabooks_admin_security'
+    );
+
     // Chart of Accounts page (admin only)
     add_submenu_page(
         'orabooks',
@@ -692,6 +702,9 @@ function orabooks_admin_job_queue() {
 }
 function orabooks_admin_observability() {
     orabooks_admin_react_page('/admin/observability');
+}
+function orabooks_admin_security() {
+    orabooks_admin_react_page('/admin/security');
 }
 function orabooks_admin_exports() {
     orabooks_admin_react_page('/admin/exports');
