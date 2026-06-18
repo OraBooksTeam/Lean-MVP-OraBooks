@@ -53,30 +53,24 @@ class OraBooks_Shortcodes {
         return self::$instance;
     }
 
-    private function react_app($route = '/dashboard', $loading_text = 'Loading OraBooks...') {
-        if (!file_exists(ORABOOKS_PLUGIN_DIR . 'assets/react/frontend.js')) {
-            return '<div class="orabooks-message error" style="display:block;">' .
-                esc_html__('OraBooks frontend assets are missing. Build locally with npm run build and upload the assets/react folder with the plugin.', 'orabooks') .
-                '</div>';
-        }
+    private function render_view($view, $vars = []) {
+        return OraBooks_Views::render('frontend/' . $view, $vars);
+    }
 
-        ob_start();
-        ?>
-        <div class="orabooks-react-page">
-            <div id="orabooks-app-root" class="orabooks-app-root" data-initial-route="<?php echo esc_attr($route); ?>">
-                <p class="orabooks-app-root-loading"><?php echo esc_html__($loading_text, 'orabooks'); ?></p>
-            </div>
-        </div>
-        <?php
-        return ob_get_clean();
+    private function ajax_dashboard_page($title, $ajax_action, $description = '') {
+        return $this->render_view('ajax-dashboard', [
+            'title' => $title,
+            'ajax_action' => $ajax_action,
+            'description' => $description,
+        ]);
     }
     
     public function login_form() {
-        return $this->react_app('/login', 'Loading OraBooks login...');
+        return $this->render_view('login');
     }
     
     public function register_form() {
-        return $this->react_app('/register', 'Loading OraBooks registration...');
+        return $this->render_view('register');
     }
     
     public function verify_email() {
