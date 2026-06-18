@@ -270,6 +270,7 @@ function orabooks_create_required_pages() {
         'invoices'            => ['Invoices', '[orabooks_invoices]'],
         'chart-of-accounts'   => ['Chart of Accounts', '[orabooks_chart_of_accounts]'],
         'fiscal-periods'      => ['Fiscal Periods', '[orabooks_fiscal_periods]'],
+        'tax-settings'        => ['Tax Settings', '[orabooks_tax_settings]'],
         'journals'            => ['Journals', '[orabooks_journals]'],
         'profile'             => ['Profile', '[orabooks_profile]'],
         

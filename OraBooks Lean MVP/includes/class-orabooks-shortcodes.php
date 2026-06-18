@@ -222,6 +222,13 @@ class OraBooks_Shortcodes {
         return $this->ajax_dashboard_page(__('Fiscal Periods', 'orabooks'), 'orabooks_frontend_context', __('Manage fiscal period close and reopen governance.', 'orabooks'));
     }
 
+    public function tax_settings_page() {
+        if (!get_current_user_id()) {
+            return OraBooks_Views::require_login_message();
+        }
+        return $this->ajax_dashboard_page(__('Tax Settings', 'orabooks'), 'orabooks_frontend_context', __('Configure tax jurisdictions, rates, and override governance.', 'orabooks'));
+    }
+
     public function journals_page() {
         if (!get_current_user_id()) {
             return OraBooks_Views::require_login_message();
