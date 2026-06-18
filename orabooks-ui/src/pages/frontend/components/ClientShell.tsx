@@ -14,6 +14,7 @@ import {
   Package,
   Paperclip,
   RefreshCw,
+  ShieldCheck,
   Upload,
   UserCog,
   Users,
