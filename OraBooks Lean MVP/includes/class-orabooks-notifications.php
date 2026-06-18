@@ -1232,12 +1232,8 @@ class OraBooks_Notifications {
      * AJAX: Mark notification as read.
      */
     public function ajax_mark_read() {
-        $user_id = orabooks_get_current_user_id();
+        $user_id = $this->require_notification_user();
         $notification_id = intval($_POST['notification_id'] ?? 0);
-
-        if (!$user_id) {
-            orabooks_json_error('Not authenticated', 401);
-        }
 
         self::mark_read($notification_id, $user_id);
         orabooks_json_success([], 'Marked as read');
@@ -1247,10 +1243,7 @@ class OraBooks_Notifications {
      * AJAX: Mark all notifications as read.
      */
     public function ajax_mark_all_read() {
-        $user_id = orabooks_get_current_user_id();
-        if (!$user_id) {
-            orabooks_json_error('Not authenticated', 401);
-        }
+        $user_id = $this->require_notification_user();
 
         self::mark_all_read($user_id);
         orabooks_json_success([], 'All notifications marked as read');
@@ -1260,23 +1253,17 @@ class OraBooks_Notifications {
      * AJAX: Get unread count.
      */
     public function ajax_unread_count() {
-        $user_id = orabooks_get_current_user_id();
-        if (!$user_id) {
-            orabooks_json_error('Not authenticated', 401);
-        }
+        $user_id = $this->require_notification_user();
 
         $count = self::get_unread_count($user_id);
-        orabooks_json_success(['count' => $count]);
+        orabooks_json_success(['count' => $count, 'unread_count' => $count]);
     }
 
     /**
      * AJAX: Get user notification preferences.
      */
     public function ajax_get_preferences() {
-        $user_id = get_current_user_id();
-        if (!$user_id) {
-            orabooks_json_error('Not authenticated', 401);
-        }
+        $user_id = $this->require_notification_user();
 
         $prefs = self::get_user_preferences($user_id);
         orabooks_json_success($prefs);
@@ -1286,10 +1273,7 @@ class OraBooks_Notifications {
      * AJAX: Save user notification preferences.
      */
     public function ajax_save_preferences() {
-        $user_id = get_current_user_id();
-        if (!$user_id) {
-            orabooks_json_error('Not authenticated', 401);
-        }
+        $user_id = $this->require_notification_user();
 
         $data = [
             'channels'          => isset($_POST['channels']) ? (array)$_POST['channels'] : [],
@@ -1314,12 +1298,8 @@ class OraBooks_Notifications {
      * AJAX: Get org notification policy (Owner only).
      */
     public function ajax_get_org_policy() {
-        $user_id = get_current_user_id();
         $org_id = intval($_GET['org_id'] ?? 0);
-
-        if (!current_user_can('manage_options')) {
-            orabooks_json_error('Permission denied', 403);
-        }
+        $this->require_org_notification_admin($org_id);
 
         $policy = self::get_org_policy($org_id);
         orabooks_json_success($policy ?: []);
@@ -1329,12 +1309,8 @@ class OraBooks_Notifications {
      * AJAX: Save org notification policy (Owner only).
      */
     public function ajax_save_org_policy() {
-        $user_id = get_current_user_id();
         $org_id = intval($_POST['org_id'] ?? 0);
-
-        if (!current_user_can('manage_options')) {
-            orabooks_json_error('Permission denied', 403);
-        }
+        $user_id = $this->require_org_notification_admin($org_id);
 
         $data = [
             'monthly_budget'          => floatval($_POST['monthly_budget'] ?? 0),
