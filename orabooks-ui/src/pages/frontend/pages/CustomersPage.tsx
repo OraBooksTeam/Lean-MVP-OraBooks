@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import Button from '@/components/Button';
 import Input from '@/components/Input';
 import { api } from '../api';
 import ClientShell from '../components/ClientShell';
-import { Info, RefreshCw, Users } from 'lucide-react';
+import { Info, Paperclip, RefreshCw, Users } from 'lucide-react';
 
 type Customer = {
   id: number;
@@ -117,14 +118,15 @@ export default function CustomersPage() {
                 <th className="px-5 py-3 text-right font-semibold">Wallet (AR due)</th>
                 <th className="px-5 py-3 text-right font-semibold">Paid</th>
                 <th className="px-5 py-3 font-semibold">Last Paid</th>
+                <th className="px-5 py-3 font-semibold">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
               {loading ? (
-                <tr><td colSpan={6} className="px-5 py-8 text-center text-slate-500">Loading customers…</td></tr>
+                <tr><td colSpan={7} className="px-5 py-8 text-center text-slate-500">Loading customers…</td></tr>
               ) : customers.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-5 py-10 text-center">
+                  <td colSpan={7} className="px-5 py-10 text-center">
                     <Users className="mx-auto h-8 w-8 text-slate-300" />
                     <p className="mt-2 text-sm text-slate-500">No customer records found.</p>
                   </td>
