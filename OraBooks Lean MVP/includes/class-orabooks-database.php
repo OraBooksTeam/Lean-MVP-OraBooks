@@ -888,7 +888,7 @@ class OraBooks_Database {
         }
 
         if (!wp_next_scheduled('orabooks_ai_review_process')) {
-            wp_schedule_event(time(), 'five_minutes', 'orabooks_ai_review_process');
+            wp_schedule_event(time(), 'every_5_minutes', 'orabooks_ai_review_process');
         }
 
         if (!wp_next_scheduled('orabooks_ai_review_purge')) {
