@@ -206,7 +206,7 @@ class OraBooks_Security {
             return new WP_Error('ssrf_empty', __('Webhook URL required', 'orabooks'));
         }
 
-        $parsed = wp_parse_url($url);
+        $parsed = parse_url($url);
         if (empty($parsed['scheme']) || !in_array(strtolower($parsed['scheme']), ['https'], true)) {
             self::record_incident('ssrf_blocked', 'warning', ['url' => $url, 'reason' => 'non_https']);
             return new WP_Error('ssrf_scheme', __('Only HTTPS webhook URLs are allowed', 'orabooks'));
