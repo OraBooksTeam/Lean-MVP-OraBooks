@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import Button from '@/components/Button';
 import { api } from '../api';
 import ClientShell from '../components/ClientShell';
@@ -7,7 +7,7 @@ import { BarChart3, RefreshCw } from 'lucide-react';
 const FINANCIAL_DEFAULT = 'profit_loss';
 const OPERATIONAL_DEFAULT = 'ar_aging';
 
-export default function ReportsPage() {
+const fieldClass = 'w-full rounded-lg border border-border bg-white px-3.5 py-2.5 text-sm text-ink shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20';
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -93,7 +93,7 @@ export default function ReportsPage() {
             <p className="mt-1 text-sm text-slate-600">P&amp;L, balance sheet, cash flow, trial balance, and equity changes.</p>
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
               <Field label="Report">
-                <select className="input-field" value={financialType} onChange={(e) => setFinancialType(e.target.value)}>
+                <select className={fieldClass} value={financialType} onChange={(e) => setFinancialType(e.target.value)}>
                   {(data?.financial_types || []).map((item: any) => (
                     <option key={item.id} value={item.id}>{item.label}</option>
                   ))}
@@ -240,7 +240,7 @@ function ReportOutput({ title, payload, kind }: { title: string; payload: any; k
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
     <label className="block">
       <span className="text-xs font-semibold uppercase text-slate-500">{label}</span>
