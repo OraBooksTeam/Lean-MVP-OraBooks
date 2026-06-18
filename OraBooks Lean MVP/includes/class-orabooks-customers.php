@@ -1253,14 +1253,18 @@ class OraBooks_Customers {
      * Update customer (primarily is_active status).
      */
     public function ajax_customer_update() {
-        if (!current_user_can('manage_options')) {
-            orabooks_json_error('Permission denied', 403);
-        }
-
+        $user_id = orabooks_get_current_user_id();
         $customer_id = intval($_POST['customer_id'] ?? 0);
         if (!$customer_id) {
             orabooks_json_error('Customer ID required', 400);
         }
+
+        $customer = self::get_by_id($customer_id);
+        if (!$customer) {
+            orabooks_json_error('Customer not found', 404);
+        }
+
+        $this->require_customer_access($user_id, (int) $customer->org_id, 'manage_customers');
 
         $is_active = isset($_POST['is_active']) ? (int) $_POST['is_active'] : null;
         $notes = isset($_POST['notes']) ? sanitize_textarea_field($_POST['notes']) : null;

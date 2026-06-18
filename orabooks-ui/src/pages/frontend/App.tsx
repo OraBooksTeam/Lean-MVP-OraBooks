@@ -1,4 +1,5 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
+import type { ReactNode } from 'react';
 import RequireAuth from './components/RequireAuth';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
@@ -36,7 +37,7 @@ import NotificationAdminPage from './pages/NotificationAdminPage';
 import CommissionAdminPage from './pages/CommissionAdminPage';
 
 export default function FrontendRoutes() {
-  const protectedPage = (page: JSX.Element) => <RequireAuth>{page}</RequireAuth>;
+  const protectedPage = (page: ReactNode) => <RequireAuth>{page}</RequireAuth>;
 
   return (
     <Routes>
