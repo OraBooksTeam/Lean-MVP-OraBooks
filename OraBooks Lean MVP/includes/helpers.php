@@ -317,6 +317,149 @@ function orabooks_get_current_user_id() {
 }
 
 /**
+ * Whether an OraBooks user is authenticated (WordPress session or verified JWT).
+ */
+function orabooks_is_user_logged_in() {
+    return orabooks_get_current_user_id() > 0;
+}
+
+/**
+ * Cookie lifetime for the OraBooks auth token mirror.
+ */
+function orabooks_get_auth_token_cookie_ttl() {
+    $jwt_expiry = (int) get_option('orabooks_jwt_expiry', 3600);
+
+    return max(300, $jwt_expiry);
+}
+
+/**
+ * Persist the OraBooks JWT in an HTTP-only cookie for full-page loads.
+ */
+function orabooks_set_auth_token_cookie($token) {
+    if (empty($token) || headers_sent()) {
+        return;
+    }
+
+    $expiry = time() + orabooks_get_auth_token_cookie_ttl();
+    $path = defined('COOKIEPATH') && COOKIEPATH ? COOKIEPATH : '/';
+    $domain = defined('COOKIEDOMAIN') ? COOKIEDOMAIN : '';
+    setcookie('orabooks_token', $token, $expiry, $path, $domain, is_ssl(), true);
+    $_COOKIE['orabooks_token'] = $token;
+}
+
+/**
+ * Clear the mirrored OraBooks auth token cookie.
+ */
+function orabooks_clear_auth_token_cookie() {
+    if (headers_sent()) {
+        return;
+    }
+
+    $path = defined('COOKIEPATH') && COOKIEPATH ? COOKIEPATH : '/';
+    $domain = defined('COOKIEDOMAIN') ? COOKIEDOMAIN : '';
+    setcookie('orabooks_token', '', time() - 3600, $path, $domain, is_ssl(), true);
+    unset($_COOKIE['orabooks_token']);
+}
+
+/**
+ * Establish a WordPress session for a linked OraBooks user.
+ */
+function orabooks_establish_wp_session_for_orabooks_user($orabooks_user_id, $password = '') {
+    if (!function_exists('wp_set_auth_cookie')) {
+        require_once ABSPATH . 'wp-includes/pluggable.php';
+    }
+
+    global $wpdb;
+    $table_users = OraBooks_Database::table('users');
+    $user = $wpdb->get_row($wpdb->prepare(
+        "SELECT id, email, wp_user_id FROM {$table_users} WHERE id = %d",
+        (int) $orabooks_user_id
+    ));
+
+    if (!$user) {
+        return 0;
+    }
+
+    if (!empty($user->wp_user_id)) {
+        $wp_user = get_user_by('id', (int) $user->wp_user_id);
+        if ($wp_user) {
+            wp_set_current_user($wp_user->ID);
+            wp_set_auth_cookie($wp_user->ID, true, is_ssl());
+            do_action('wp_login', $wp_user->user_login, $wp_user);
+
+            return (int) $wp_user->ID;
+        }
+    }
+
+    if ($password === '' || !function_exists('wp_signon')) {
+        return 0;
+    }
+
+    $signon_attempts = [$user->email];
+    if (function_exists('orabooks_generate_username_from_email')) {
+        $signon_attempts[] = orabooks_generate_username_from_email($user->email);
+    }
+
+    foreach (array_unique(array_filter($signon_attempts)) as $login_name) {
+        $signed_on = wp_signon([
+            'user_login'    => $login_name,
+            'user_password' => $password,
+            'remember'      => true,
+        ], is_ssl());
+
+        if (!is_wp_error($signed_on)) {
+            if (empty($user->wp_user_id)) {
+                $wpdb->update(
+                    $table_users,
+                    ['wp_user_id' => $signed_on->ID],
+                    ['id' => $user->id],
+                    ['%d'],
+                    ['%d']
+                );
+            }
+
+            return (int) $signed_on->ID;
+        }
+    }
+
+    return 0;
+}
+
+/**
+ * Mirror JWT auth into cookie + WordPress session after login flows.
+ */
+function orabooks_persist_login_session($login_result, $password = '') {
+    if (!is_array($login_result)) {
+        return;
+    }
+
+    if (!empty($login_result['token'])) {
+        orabooks_set_auth_token_cookie($login_result['token']);
+    }
+
+    $user_id = !empty($login_result['user_id']) ? (int) $login_result['user_id'] : 0;
+    if ($user_id > 0) {
+        orabooks_establish_wp_session_for_orabooks_user($user_id, $password);
+    }
+}
+
+/**
+ * Sync WordPress auth when a valid OraBooks JWT cookie is present.
+ */
+function orabooks_sync_wp_session_from_auth_token() {
+    if (is_user_logged_in()) {
+        return;
+    }
+
+    $orabooks_user_id = orabooks_get_current_user_id();
+    if ($orabooks_user_id > 0) {
+        orabooks_establish_wp_session_for_orabooks_user($orabooks_user_id);
+    }
+}
+
+add_action('init', 'orabooks_sync_wp_session_from_auth_token', 1);
+
+/**
  * Check rate limit
  */
 function orabooks_check_rate_limit($key, $max_attempts, $period_seconds = 3600) {
@@ -612,7 +755,7 @@ function orabooks_uses_merged_accounting_workspace($user_id = 0) {
  * Render the merged accounting workspace shortcode output.
  */
 function orabooks_render_merged_accounting_workspace($view = '') {
-    if (!is_user_logged_in()) {
+    if (!orabooks_is_user_logged_in()) {
         if (class_exists('OraBooks_Views')) {
             return OraBooks_Views::require_login_message();
         }
