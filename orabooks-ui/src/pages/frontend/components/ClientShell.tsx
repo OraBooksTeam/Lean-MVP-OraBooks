@@ -13,6 +13,7 @@ import {
   Menu,
   Package,
   Upload,
+  UserCog,
   Users,
   Wallet,
 } from 'lucide-react';
@@ -44,6 +45,7 @@ const customerNav = [
   { label: 'Journals', href: '/journals', icon: Landmark },
   { label: 'Notifications', href: '/notifications', icon: Bell },
   { label: 'My Exports', href: '/my-exports', icon: Download },
+  { label: 'Team', href: '/team', icon: UserCog },
   { label: 'Profile', href: '/profile', icon: Users },
 ];
 
@@ -52,6 +54,7 @@ const partnerNav = [
   { label: 'Onboarding', href: '/partner-onboarding', icon: Users },
   { label: 'Notifications', href: '/notifications', icon: Bell },
   { label: 'My Exports', href: '/my-exports', icon: Download },
+  { label: 'Team', href: '/team', icon: UserCog },
   { label: 'Profile', href: '/profile', icon: Users },
 ];
 
