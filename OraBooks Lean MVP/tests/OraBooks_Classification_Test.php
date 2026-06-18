@@ -1,0 +1,148 @@
+<?php
+/**
+ * Unit Tests for OraBooks_Classification (SL-022)
+ */
+
+use PHPUnit\Framework\Attributes\Test;
+use PHPUnit\Framework\TestCase;
+
+class OraBooks_Classification_Test extends TestCase
+{
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        global $wpdb;
+        $wpdb->test_get_var_callback = null;
+        $wpdb->test_get_row_callback = null;
+        $wpdb->test_get_results_callback = null;
+        $wpdb->test_query_callback = null;
+        $wpdb->test_insert_callback = null;
+        $wpdb->test_update_callback = null;
+        $wpdb->insert_id = 0;
+        $wpdb->last_query = '';
+
+        $GLOBALS['orabooks_test_current_user_id'] = 1;
+        $GLOBALS['orabooks_test_current_user_can'] = true;
+        $GLOBALS['orabooks_test_use_insert_id'] = null;
+        $GLOBALS['orabooks_test_transients'] = [];
+    }
+
+    #[Test]
+    public function test_schema_includes_classification_rules_table()
+    {
+        $sql = implode("\n", OraBooks_Classification::get_create_table_sql());
+        $this->assertStringContainsString('orabooks_classification_rules', $sql);
+        $this->assertStringContainsString('match_value', $sql);
+    }
+
+    #[Test]
+    public function test_validate_transition_accepts_valid_journal_submit()
+    {
+        $result = OraBooks_Classification::format_classification((object) [
+            'classification_status' => 'processed',
+            'suggested_account_code' => '5100',
+            'account_confidence' => 92.5,
+            'tax_hints' => wp_json_encode(['tax_rate' => 5, 'tax_type' => 'Sales Tax']),
+            'classification_reason' => 'Matched keyword rule',
+        ]);
+
+        $this->assertEquals('processed', $result['status']);
+        $this->assertEquals('5100', $result['suggested_account_code']);
+        $this->assertEquals(92.5, $result['account_confidence']);
+        $this->assertFalse($result['low_confidence']);
+    }
+
+    #[Test]
+    public function test_format_flags_low_confidence()
+    {
+        $result = OraBooks_Classification::format_classification((object) [
+            'classification_status' => 'processed',
+            'account_confidence' => 55,
+        ]);
+
+        $this->assertTrue($result['low_confidence']);
+    }
+
+    #[Test]
+    public function test_run_classification_updates_expense()
+    {
+        global $wpdb;
+
+        $expense = (object) [
+            'id' => 12,
+            'org_id' => 3,
+            'vendor' => 'Office Depot',
+            'category' => 'Office Supplies',
+            'description' => 'Printer paper',
+            'total_amount' => 120.00,
+            'classification_status' => 'pending',
+        ];
+
+        $wpdb->test_get_row_callback = function ($query) use ($expense) {
+            if (stripos($query, 'expenses') !== false) {
+                return $expense;
+            }
+            return null;
+        };
+
+        $wpdb->test_get_results_callback = function ($query) {
+            if (stripos($query, 'classification_rules') !== false) {
+                return [(object) [
+                    'rule_type' => 'vendor',
+                    'match_value' => 'office',
+                    'account_code' => '5100',
+                    'tax_jurisdiction' => 'US',
+                    'priority' => 10,
+                ]];
+            }
+            return [];
+        };
+
+        $updated = null;
+        $wpdb->test_update_callback = function ($table, $data, $where) use (&$updated) {
+            $updated = [$table, $data, $where];
+            return 1;
+        };
+
+        $wpdb->test_insert_callback = function () {
+            return true;
+        };
+
+        $result = OraBooks_Classification::run('expense', 12, 3);
+
+        $this->assertIsArray($result);
+        $this->assertEquals('5100', $result['suggested_account_code']);
+        $this->assertNotNull($updated);
+        $this->assertEquals('processed', $updated[1]['classification_status']);
+    }
+
+    #[Test]
+    public function test_override_marks_status_overridden()
+    {
+        global $wpdb;
+
+        $expense = (object) [
+            'id' => 20,
+            'org_id' => 2,
+            'classification_status' => 'processed',
+            'suggested_account_code' => '5100',
+        ];
+
+        $wpdb->test_get_row_callback = function () use ($expense) {
+            return $expense;
+        };
+
+        $updated = null;
+        $wpdb->test_update_callback = function ($table, $data, $where) use (&$updated) {
+            $updated = [$table, $data, $where];
+            return 1;
+        };
+
+        $result = OraBooks_Classification::override('expense', 20, 2, 5, '5300', 5.0);
+
+        $this->assertNotNull($updated);
+        $this->assertEquals('overridden', $updated[1]['classification_status']);
+        $this->assertEquals('5300', $updated[1]['suggested_account_code']);
+    }
+}

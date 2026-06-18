@@ -1069,6 +1069,13 @@ if (!file_exists($workflow_file)) {
 }
 require_once $workflow_file;
 
+$classification_file = __DIR__ . '/../includes/class-orabooks-classification.php';
+if (!file_exists($classification_file)) {
+    echo "ERROR: Cannot find class-orabooks-classification.php at {$classification_file}\n";
+    exit(1);
+}
+require_once $classification_file;
+
 $csv_imports_file = __DIR__ . '/../includes/class-orabooks-csv-imports.php';
 if (!file_exists($csv_imports_file)) {
     echo "ERROR: Cannot find class-orabooks-csv-imports.php at {$csv_imports_file}\n";

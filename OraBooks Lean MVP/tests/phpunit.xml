@@ -56,6 +56,9 @@
         <testsuite name="OraBooks SL-301 Workflow Tests">
             <file>OraBooks_Workflow_Test.php</file>
         </testsuite>
+        <testsuite name="OraBooks SL-022 Classification Tests">
+            <file>OraBooks_Classification_Test.php</file>
+        </testsuite>
         <testsuite name="OraBooks SL-113 CSV Imports Tests">
             <file>OraBooks_Csv_Imports_Test.php</file>
             <file>OraBooks_Attachments_Test.php</file>
