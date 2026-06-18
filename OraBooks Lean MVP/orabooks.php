@@ -661,18 +661,24 @@ function orabooks_admin_submenu_file($submenu_file) {
 }
 
 // Admin page render functions
-function orabooks_admin_include($file) {
+function orabooks_admin_include($file, $vars = []) {
     $path = ORABOOKS_PLUGIN_DIR . 'admin/' . $file;
     if (!file_exists($path)) {
         echo '<div class="wrap"><h1>OraBooks</h1><p>' . esc_html__('Admin view not found.', 'orabooks') . '</p></div>';
         return;
     }
+
+    if (!empty($vars)) {
+        extract($vars, EXTR_SKIP);
+    }
+
     include $path;
 }
 
 function orabooks_admin_react_page($route) {
-    $orabooks_admin_route = $route;
-    orabooks_admin_include('app.php');
+    orabooks_admin_include('app.php', [
+        'orabooks_admin_route' => $route,
+    ]);
 }
 
 function orabooks_admin_commissions() {

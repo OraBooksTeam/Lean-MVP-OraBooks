@@ -26,9 +26,7 @@ function bootAdmin() {
   }
 
   const initialRoute = adminRoot.dataset.adminRoute || '/admin/dashboard';
-  if (!window.location.hash || window.location.hash === '#') {
-    window.location.hash = initialRoute;
-  }
+  window.location.hash = initialRoute;
 
   try {
     const router = createHashRouter([
