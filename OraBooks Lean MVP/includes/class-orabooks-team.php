@@ -17,12 +17,19 @@ class OraBooks_Team {
         if (self::$instance === null) {
             self::$instance = new self();
             add_action('wp_ajax_orabooks_invite_user', [self::$instance, 'ajax_invite_user']);
+            add_action('wp_ajax_nopriv_orabooks_invite_user', [self::$instance, 'ajax_invite_user']);
             add_action('wp_ajax_orabooks_list_members', [self::$instance, 'ajax_list_members']);
+            add_action('wp_ajax_nopriv_orabooks_list_members', [self::$instance, 'ajax_list_members']);
             add_action('wp_ajax_orabooks_update_role', [self::$instance, 'ajax_update_role']);
+            add_action('wp_ajax_nopriv_orabooks_update_role', [self::$instance, 'ajax_update_role']);
             add_action('wp_ajax_orabooks_remove_user', [self::$instance, 'ajax_remove_user']);
+            add_action('wp_ajax_nopriv_orabooks_remove_user', [self::$instance, 'ajax_remove_user']);
             add_action('wp_ajax_orabooks_list_pending_invites', [self::$instance, 'ajax_list_pending_invites']);
+            add_action('wp_ajax_nopriv_orabooks_list_pending_invites', [self::$instance, 'ajax_list_pending_invites']);
             add_action('wp_ajax_orabooks_resend_invite', [self::$instance, 'ajax_resend_invite']);
+            add_action('wp_ajax_nopriv_orabooks_resend_invite', [self::$instance, 'ajax_resend_invite']);
             add_action('wp_ajax_orabooks_cancel_invite', [self::$instance, 'ajax_cancel_invite']);
+            add_action('wp_ajax_nopriv_orabooks_cancel_invite', [self::$instance, 'ajax_cancel_invite']);
             add_action('wp_ajax_nopriv_orabooks_accept_invite', [self::$instance, 'ajax_accept_invite']);
         }
         return self::$instance;
@@ -182,6 +189,10 @@ class OraBooks_Team {
         
         if ($current_role === 'owner' && $owner_count <= 1) {
             return new WP_Error('last_owner', 'Cannot demote the last owner');
+        }
+
+        if (!self::is_member_role($new_role)) {
+            return new WP_Error('invalid_role', 'Invalid role');
         }
         
         $wpdb->update(
