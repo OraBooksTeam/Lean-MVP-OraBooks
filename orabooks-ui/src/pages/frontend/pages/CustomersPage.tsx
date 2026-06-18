@@ -122,11 +122,21 @@ export default function CustomersPage() {
             />
           </div>
           <Button onClick={handleSearch} variant="secondary" size="sm">Search</Button>
+          <Link to="/csv-imports">
+            <Button variant="secondary" size="sm"><Upload className="h-4 w-4" />Import customers</Button>
+          </Link>
+          <Link to="/invoices">
+            <Button size="sm">Create invoice</Button>
+          </Link>
           <Button onClick={load} variant="secondary" size="sm">
             <RefreshCw className="h-4 w-4" />
             Refresh
           </Button>
         </div>
+
+        {success && (
+          <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-medium text-emerald-700">{success}</div>
+        )}
 
         {error && (
           <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-medium text-red-700">{error}</div>
@@ -172,6 +182,10 @@ export default function CustomersPage() {
                   <td className="px-5 py-3 text-slate-600">{customer.last_paid_invoice_date || '—'}</td>
                   <td className="px-5 py-3">
                     <div className="flex flex-wrap gap-1">
+                      <Button size="sm" variant="secondary" onClick={() => openEdit(customer)}>
+                        <Pencil className="h-3.5 w-3.5" />
+                        Notes
+                      </Button>
                       <Link to={`/attachments?resource_type=customer&resource_id=${customer.id}`}>
                         <Button size="sm" variant="secondary">
                           <Paperclip className="h-3.5 w-3.5" />
