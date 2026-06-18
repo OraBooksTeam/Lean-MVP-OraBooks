@@ -488,8 +488,85 @@ export default function ExpensesPage() {
           expenses={expenses}
           loading={loading}
           onSelect={(id) => void loadExpense(id)}
+          onOverride={(expense) => void openOverride(expense)}
+          canOverride={!!(caps.submit || caps.approve)}
           actionId={actionId}
         />
+
+        {overrideExpense && (
+          <Modal title="Override tax" onClose={() => setOverrideExpense(null)}>
+            <p className="mb-4 text-sm text-slate-600">
+              {overrideExpense.vendor || `Expense #${overrideExpense.id}`}
+            </p>
+            {taxLocked && (
+              <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+                Tax is locked for this fiscal period.
+              </div>
+            )}
+            {error && <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div>}
+            <div className="grid gap-4">
+              <Field label="Jurisdiction">
+                <select
+                  value={overrideJurisdiction}
+                  onChange={(e) => setOverrideJurisdiction(e.target.value)}
+                  disabled={taxLocked}
+                  className={fieldClass}
+                >
+                  {(taxConfigs.length ? taxConfigs : [{ jurisdiction: 'US' }]).map((c) => (
+                    <option key={c.jurisdiction} value={c.jurisdiction}>
+                      {c.jurisdiction}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+              <Field label="New tax rate (%)">
+                <Input
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="0.01"
+                  value={overrideRate}
+                  onChange={(e) => setOverrideRate(e.target.value)}
+                  disabled={taxLocked}
+                />
+              </Field>
+              <Field label="Reason code">
+                <select
+                  value={overrideReason}
+                  onChange={(e) => setOverrideReason(e.target.value)}
+                  disabled={taxLocked}
+                  className={fieldClass}
+                >
+                  <option value="">Select a reason…</option>
+                  {reasonOptions.map((r) => (
+                    <option key={r} value={r}>
+                      {formatReason(r)}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+              {overridePreview && (
+                <div className="rounded-lg border border-border bg-slate-50 p-3 text-sm">
+                  <div>New tax: {money(overridePreview.newTax)}</div>
+                  <div className="font-semibold">New total: {money(overridePreview.newTotal)}</div>
+                </div>
+              )}
+            </div>
+            <div className="mt-6 flex flex-wrap justify-end gap-2">
+              {overrideExpense.tax_override_reason && (
+                <Button variant="secondary" onClick={() => void handleClearOverride()} disabled={saving || taxLocked}>
+                  Clear override
+                </Button>
+              )}
+              <Button variant="secondary" onClick={() => setOverrideExpense(null)}>
+                Cancel
+              </Button>
+              <Button onClick={() => void handleApplyOverride()} disabled={saving || taxLocked || !overrideReason}>
+                Apply override
+              </Button>
+            </div>
+          </Modal>
+        )}
       </div>
     </ClientShell>
   );
@@ -502,6 +579,8 @@ function ExpenseTable({
   onSelect,
   onApprove,
   onReject,
+  onOverride,
+  canOverride,
   actionId,
 }: {
   title: string;
@@ -510,6 +589,8 @@ function ExpenseTable({
   onSelect: (id: number) => void;
   onApprove?: (id: number) => void;
   onReject?: (id: number) => void;
+  onOverride?: (expense: any) => void;
+  canOverride?: boolean;
   actionId: number | null;
 }) {
   return (
