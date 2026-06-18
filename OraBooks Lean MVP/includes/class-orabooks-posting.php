@@ -34,6 +34,7 @@ class OraBooks_Posting {
             add_action('wp_ajax_orabooks_reverse_journal', [self::$instance, 'ajax_reverse_journal']);
             add_action('wp_ajax_nopriv_orabooks_reverse_journal', [self::$instance, 'ajax_reverse_journal']);
             add_action('orabooks_daily_ledger_integrity_check', [__CLASS__, 'cron_validate_all_orgs']);
+            add_action('orabooks_monthly_balance_snapshot', [__CLASS__, 'cron_capture_balance_snapshots']);
         }
         return self::$instance;
     }
@@ -542,6 +543,8 @@ class OraBooks_Posting {
 
         self::maybe_emit_fraud_hooks($journal, $lines);
 
+        self::bump_read_models_for_journal_posted((int) $journal->org_id);
+
         self::transition('journal', $journal_id, 'post', $user_id);
         self::transition('journal', $journal_id, 'lock', $user_id);
 
@@ -776,6 +779,13 @@ class OraBooks_Posting {
                     'stored_balance' => (float) $account->stored_balance,
                     'computed_balance' => $computed,
                 ];
+            }
+        }
+
+        $snapshot_check = self::validate_snapshot_replay($org_id);
+        if (!$snapshot_check['ok']) {
+            foreach ($snapshot_check['issues'] as $issue) {
+                $issues[] = $issue;
             }
         }
 

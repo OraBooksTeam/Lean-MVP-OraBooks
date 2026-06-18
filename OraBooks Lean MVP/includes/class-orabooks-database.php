@@ -580,9 +580,19 @@ class OraBooks_Database {
         $sql = "CREATE TABLE IF NOT EXISTS {$table_rmv} (
             projection_name VARCHAR(100) PRIMARY KEY,
             version INT NOT NULL DEFAULT 1,
+            rebuild_version INT NOT NULL DEFAULT 1,
+            schema_version INT NOT NULL DEFAULT 1,
             last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
         ) {$charset_collate};";
         dbDelta($sql);
+
+        if (class_exists('OraBooks_Posting')) {
+            OraBooks_Posting::seed_read_model_versions();
+        }
+
+        if (!wp_next_scheduled('orabooks_monthly_balance_snapshot')) {
+            wp_schedule_event(time(), 'monthly', 'orabooks_monthly_balance_snapshot');
+        }
         
         // ============================================================
         // SL-002: journal_approval_history table (append-only)
