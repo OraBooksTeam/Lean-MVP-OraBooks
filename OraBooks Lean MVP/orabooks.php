@@ -59,6 +59,8 @@ require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-voice.php';
 require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-security.php';
 require_once ORABOOKS_PLUGIN_DIR . 'includes/helpers.php';
 
+add_filter('script_loader_tag', ['OraBooks_Assets', 'filter_react_script_tag'], 10, 3);
+
 // Initialize plugin
 add_action('plugins_loaded', 'orabooks_init');
 

@@ -125,7 +125,7 @@ class OraBooks_Assets {
             }
         }
 
-        return 'assets/style-CIiniAZY.css';
+        return 'assets/style-gwG2VvaX.css';
     }
 
     /**
