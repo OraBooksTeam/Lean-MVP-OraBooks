@@ -166,10 +166,11 @@ export default function ApprovalsPage() {
               setSelectedJournalId(null);
               setJournalDetail(null);
             }}
-            onApprove={(id) => void handleApprove(id)}
+            onApprove={(id, amount) => void handleApprove(id, amount, Number(data?.policy?.mfa_amount_threshold ?? 10000))}
             onReject={(id) => void handleReject(id)}
             onPost={(id) => void handlePost(id)}
-            onSubmit={(id) => void handleSubmit(id)}
+            onSubmit={(id, round) => void handleSubmit(id, round)}
+            mfaThreshold={Number(data?.policy?.mfa_amount_threshold ?? 10000)}
           />
         )}
 
@@ -186,7 +187,7 @@ export default function ApprovalsPage() {
             <>
               {caps.approve && (
                 <>
-                  <Button size="sm" disabled={actionId === journal.id} onClick={() => void handleApprove(journal.id)}>
+                  <Button size="sm" disabled={actionId === journal.id} onClick={() => void handleApprove(journal.id, Number(journal.total_amount || 0), Number(data?.policy?.mfa_amount_threshold ?? 10000))}>
                     <CheckCircle2 className="h-3.5 w-3.5" />
                     Approve
                   </Button>
@@ -233,7 +234,7 @@ export default function ApprovalsPage() {
           onSelect={(id) => void loadJournalDetail(id)}
           actions={(journal) =>
             caps.submit ? (
-              <Button size="sm" disabled={actionId === journal.id} onClick={() => void handleSubmit(journal.id)}>
+              <Button size="sm" disabled={actionId === journal.id} onClick={() => void handleSubmit(journal.id, Number(journal.approval_round || 0))}>
                 Submit
               </Button>
             ) : null
@@ -392,6 +393,7 @@ function JournalDetailPanel({
   onReject,
   onPost,
   onSubmit,
+  mfaThreshold = 10000,
 }: {
   journalId: number;
   detail: any;
@@ -399,10 +401,11 @@ function JournalDetailPanel({
   caps: Record<string, boolean>;
   actionId: number | null;
   onClose: () => void;
-  onApprove: (id: number) => void;
+  onApprove: (id: number, amount?: number) => void;
   onReject: (id: number) => void;
   onPost: (id: number) => void;
-  onSubmit: (id: number) => void;
+  onSubmit: (id: number, round?: number) => void;
+  mfaThreshold?: number;
 }) {
   const journal = detail?.journal;
   const lines = detail?.lines || [];
@@ -531,7 +534,7 @@ function JournalDetailPanel({
           <div className="flex flex-wrap gap-2 border-t border-border pt-4">
             {caps.approve && status === 'review_pending' && (
               <>
-                <Button size="sm" disabled={actionId === journalId} onClick={() => onApprove(journalId)}>
+                <Button size="sm" disabled={actionId === journalId} onClick={() => onApprove(journalId, Number(journal.total_amount || 0))}>
                   <CheckCircle2 className="h-3.5 w-3.5" />
                   Approve
                 </Button>
@@ -553,8 +556,8 @@ function JournalDetailPanel({
               </Button>
             )}
             {caps.submit && status === 'draft' && (
-              <Button size="sm" disabled={actionId === journalId} onClick={() => onSubmit(journalId)}>
-                Submit for Approval
+              <Button size="sm" disabled={actionId === journalId} onClick={() => onSubmit(journalId, Number(journal.approval_round || 0))}>
+                {(journal?.approval_round ?? 0) > 0 ? 'Resubmit for Approval' : 'Submit for Approval'}
               </Button>
             )}
             <Link to={`/attachments?resource_type=journal&resource_id=${journalId}`}>
