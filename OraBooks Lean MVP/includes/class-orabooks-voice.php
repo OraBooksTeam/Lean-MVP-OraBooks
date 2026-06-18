@@ -337,8 +337,10 @@ class OraBooks_Voice {
         ];
 
         if (stripos($filename, 'unclear') !== false) {
-            $field_confidences['amount'] = 55;
-            $field_confidences['vendor'] = 52;
+            $field_confidences['amount'] = 48;
+            $field_confidences['vendor'] = 45;
+            $field_confidences['category'] = 50;
+            $field_confidences['transaction_type'] = 55;
         }
 
         $confidence_avg = array_sum($field_confidences) / count($field_confidences);
