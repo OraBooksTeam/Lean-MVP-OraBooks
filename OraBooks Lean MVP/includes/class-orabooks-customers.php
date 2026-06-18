@@ -444,6 +444,10 @@ class OraBooks_Customers {
             'org_id'         => $org_id,
         ]);
 
+        if (class_exists('OraBooks_Classification')) {
+            OraBooks_Classification::request('invoice', (int) $invoice_id, (int) $org_id);
+        }
+
         return self::get_invoice($invoice_id);
     }
 

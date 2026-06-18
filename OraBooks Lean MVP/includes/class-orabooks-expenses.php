@@ -265,6 +265,10 @@ class OraBooks_Expenses {
             'updated_at'       => $row->updated_at,
         ];
 
+        if (class_exists('OraBooks_Classification')) {
+            $formatted['classification'] = OraBooks_Classification::format_classification($row);
+        }
+
         if ($include_lines) {
             $lines = self::get_line_items((int) $row->id);
             $formatted['line_items'] = array_map([self::class, 'format_line_item'], $lines ?: []);
@@ -482,6 +486,10 @@ class OraBooks_Expenses {
             'risk_level'     => $ocr['ocr_risk_level'],
             'provider'       => self::OCR_PROVIDER,
         ], 0, (int) $item->org_id);
+
+        if (class_exists('OraBooks_Classification')) {
+            OraBooks_Classification::request('expense', (int) $item->expense_id, (int) $item->org_id);
+        }
     }
 
     public static function run_ocr_stub($filename, $expense_id) {
