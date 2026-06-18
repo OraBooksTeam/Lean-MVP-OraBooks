@@ -1,9 +1,9 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import Button from '@/components/Button';
 import { api } from '../api';
 import ClientShell from '../components/ClientShell';
-import { CheckCircle2, RefreshCw, Send, ShieldCheck, XCircle } from 'lucide-react';
+import { CheckCircle2, Paperclip, RefreshCw, Send, ShieldCheck, XCircle } from 'lucide-react';
 
 export default function ApprovalsPage() {
   const [searchParams] = useSearchParams();

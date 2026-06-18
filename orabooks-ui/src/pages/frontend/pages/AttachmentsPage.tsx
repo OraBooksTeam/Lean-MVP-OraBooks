@@ -1,20 +1,25 @@
 import { useEffect, useRef, useState } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import Button from '@/components/Button';
 import { api } from '../api';
 import ClientShell from '../components/ClientShell';
-import { Download, History, Paperclip, RefreshCw, Trash2, Upload } from 'lucide-react';
+import { Download, History, Paperclip, RefreshCw, Trash2, Upload, X } from 'lucide-react';
 
 const fieldClass =
   'w-full rounded-lg border border-border bg-white px-3.5 py-2.5 text-sm text-ink shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20';
 
 export default function AttachmentsPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [listLoading, setListLoading] = useState(false);
+  const [listAttachments, setListAttachments] = useState<any[]>([]);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [resourceType, setResourceType] = useState('general');
   const [resourceId, setResourceId] = useState('1');
   const [filterType, setFilterType] = useState('');
+  const [filterResourceId, setFilterResourceId] = useState('');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [newVersionAttachmentId, setNewVersionAttachmentId] = useState('');
   const [uploading, setUploading] = useState(false);
@@ -23,14 +28,15 @@ export default function AttachmentsPage() {
   const [historyLoading, setHistoryLoading] = useState(false);
   const [actionId, setActionId] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const initializedFromUrl = useRef(false);
 
   const orgId = data?.context?.organization?.id;
   const caps = data?.capabilities || {};
+  const hasServerFilter = filterType !== '' || filterResourceId !== '';
 
-  const load = async () => {
+  const loadDashboard = async () => {
     setLoading(true);
     setError('');
-    setSuccess('');
     const res = await api.attachmentsDashboard();
     if (res.error) setError(res.error || 'Unable to load attachments.');
     else {
@@ -43,9 +49,58 @@ export default function AttachmentsPage() {
     setLoading(false);
   };
 
+  const loadFilteredList = async (targetOrgId = orgId) => {
+    if (!targetOrgId || !hasServerFilter) {
+      setListAttachments([]);
+      return;
+    }
+
+    setListLoading(true);
+    const res = await api.attachmentsList(
+      targetOrgId,
+      filterType,
+      Number(filterResourceId) || 0,
+    );
+    if (res.error) setError(res.error);
+    else setListAttachments((res as any).data?.attachments || []);
+    setListLoading(false);
+  };
+
+  const load = async () => {
+    await loadDashboard();
+    await loadFilteredList();
+  };
+
   useEffect(() => {
-    void load();
+    if (initializedFromUrl.current) return;
+    initializedFromUrl.current = true;
+
+    const urlType = searchParams.get('resource_type') || '';
+    const urlResourceId = searchParams.get('resource_id') || '';
+    if (urlType) {
+      setFilterType(urlType);
+      setResourceType(urlType);
+    }
+    if (urlResourceId) {
+      setFilterResourceId(urlResourceId);
+      setResourceId(urlResourceId);
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
+    void loadDashboard();
   }, []);
+
+  useEffect(() => {
+    void loadFilteredList();
+  }, [orgId, filterType, filterResourceId]);
+
+  useEffect(() => {
+    const attachmentId = Number(searchParams.get('attachment_id') || 0);
+    if (orgId && attachmentId > 0) {
+      void loadHistory(attachmentId);
+    }
+  }, [orgId, searchParams]);
 
   const handleUpload = async () => {
     if (!orgId || !selectedFile) {
@@ -74,7 +129,7 @@ export default function AttachmentsPage() {
       parsedResourceId,
       selectedFile,
       Number(newVersionAttachmentId) || 0,
-      idempotencyKey
+      idempotencyKey,
     );
 
     if (res.error) {
@@ -84,7 +139,8 @@ export default function AttachmentsPage() {
       setSelectedFile(null);
       setNewVersionAttachmentId('');
       if (fileInputRef.current) fileInputRef.current.value = '';
-      await load();
+      await loadDashboard();
+      await loadFilteredList();
     }
     setUploading(false);
   };
@@ -102,7 +158,8 @@ export default function AttachmentsPage() {
         setHistoryAttachmentId(null);
         setHistory(null);
       }
-      await load();
+      await loadDashboard();
+      await loadFilteredList();
     }
     setActionId(null);
   };
@@ -118,13 +175,28 @@ export default function AttachmentsPage() {
     setHistoryLoading(false);
   };
 
-  const attachments = (data?.attachments || []).filter((item: any) =>
-    filterType ? item.resource_type === filterType : true
-  );
+  const applyFilter = () => {
+    const params = new URLSearchParams();
+    if (filterType) params.set('resource_type', filterType);
+    if (filterResourceId) params.set('resource_id', filterResourceId);
+    setSearchParams(params);
+  };
+
+  const clearFilter = () => {
+    setFilterType('');
+    setFilterResourceId('');
+    setSearchParams({});
+  };
+
+  const attachments = hasServerFilter
+    ? listAttachments
+    : (data?.attachments || []).filter((item: any) => (filterType ? item.resource_type === filterType : true));
+
+  const tableLoading = loading || listLoading;
   const maxMb = Math.round((data?.limits?.max_file_size || 26214400) / 1048576);
 
   return (
-    <ClientShell title="Attachments" eyebrow="Files & versioning" organization={data?.context?.organization}>
+    <ClientShell title="Attachments" eyebrow="SL-203 files & versioning" organization={data?.context?.organization}>
       <div className="space-y-5">
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <Metric label="Active Files" value={data?.stats?.active_count ?? 0} />
@@ -132,6 +204,22 @@ export default function AttachmentsPage() {
           <Metric label="Soft Deleted" value={data?.stats?.deleted_count ?? 0} />
           <Metric label="Max File Size" value={`${maxMb} MB`} />
         </div>
+
+        {hasServerFilter && (
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-primary/20 bg-primary/5 p-4 text-sm text-ink">
+            <p>
+              Showing attachments for{' '}
+              <strong>
+                {formatResourceType(filterType, data?.resource_types) || 'all types'}
+                {filterResourceId ? ` #${filterResourceId}` : ''}
+              </strong>
+            </p>
+            <Button variant="secondary" size="sm" onClick={clearFilter}>
+              <X className="h-3.5 w-3.5" />
+              Clear filter
+            </Button>
+          </div>
+        )}
 
         {caps.upload && (
           <div className="glass-panel p-5">
@@ -190,23 +278,37 @@ export default function AttachmentsPage() {
           </div>
         )}
 
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <label className="flex items-center gap-2 text-sm">
-            <span className="font-semibold text-slate-600">Filter:</span>
-            <select
-              className="rounded-lg border border-border bg-white px-3 py-2 text-sm"
-              value={filterType}
-              onChange={(e) => setFilterType(e.target.value)}
-            >
-              <option value="">All types</option>
-              {(data?.resource_types || []).map((type: any) => (
-                <option key={type.id} value={type.id}>
-                  {type.label}
-                </option>
-              ))}
-            </select>
-          </label>
-          <Button onClick={load} variant="secondary" size="sm">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <div className="flex flex-wrap items-end gap-3">
+            <label className="block text-sm">
+              <span className="mb-1.5 block text-xs font-semibold uppercase text-slate-500">Type</span>
+              <select
+                className="rounded-lg border border-border bg-white px-3 py-2 text-sm"
+                value={filterType}
+                onChange={(e) => setFilterType(e.target.value)}
+              >
+                <option value="">All types</option>
+                {(data?.resource_types || []).map((type: any) => (
+                  <option key={type.id} value={type.id}>
+                    {type.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="block text-sm">
+              <span className="mb-1.5 block text-xs font-semibold uppercase text-slate-500">Resource ID</span>
+              <input
+                className="w-32 rounded-lg border border-border bg-white px-3 py-2 text-sm"
+                value={filterResourceId}
+                onChange={(e) => setFilterResourceId(e.target.value)}
+                placeholder="Any"
+              />
+            </label>
+            <Button variant="secondary" size="sm" onClick={applyFilter}>
+              Apply
+            </Button>
+          </div>
+          <Button onClick={() => void load()} variant="secondary" size="sm">
             <RefreshCw className="h-4 w-4" />
             Refresh
           </Button>
@@ -231,41 +333,55 @@ export default function AttachmentsPage() {
                 <th className="px-5 py-3 font-semibold">File</th>
                 <th className="px-5 py-3 font-semibold">Resource</th>
                 <th className="px-5 py-3 font-semibold">Version</th>
+                <th className="px-5 py-3 font-semibold">Scan</th>
                 <th className="px-5 py-3 text-right font-semibold">Size</th>
                 <th className="px-5 py-3 font-semibold">Uploaded</th>
                 <th className="px-5 py-3 font-semibold">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {loading ? (
+              {tableLoading ? (
                 <tr>
-                  <td colSpan={6} className="px-5 py-8 text-center text-slate-500">
+                  <td colSpan={7} className="px-5 py-8 text-center text-slate-500">
                     Loading attachments...
                   </td>
                 </tr>
               ) : attachments.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-5 py-10 text-center">
+                  <td colSpan={7} className="px-5 py-10 text-center">
                     <Paperclip className="mx-auto h-8 w-8 text-slate-300" />
-                    <p className="mt-2 text-sm text-slate-500">No attachments found.</p>
+                    <p className="mt-2 text-sm text-slate-500">
+                      {hasServerFilter ? 'No attachments match this resource filter.' : 'No attachments found.'}
+                    </p>
                   </td>
                 </tr>
               ) : (
                 attachments.map((item: any) => (
-                  <tr key={item.id} className="hover:bg-slate-50/70">
+                  <tr
+                    key={item.id}
+                    className={`hover:bg-slate-50/70 ${historyAttachmentId === item.id ? 'bg-primary/10 ring-2 ring-inset ring-primary/20' : ''}`}
+                  >
                     <td className="px-5 py-3">
                       <p className="font-semibold text-ink">{item.file_name || `Attachment #${item.id}`}</p>
                       <p className="text-xs text-slate-500">{item.mime_type || 'unknown type'}</p>
                     </td>
                     <td className="px-5 py-3 text-slate-600">
-                      {formatResourceType(item.resource_type, data?.resource_types)} #{item.resource_id}
+                      <Link
+                        to={`/attachments?resource_type=${item.resource_type}&resource_id=${item.resource_id}`}
+                        className="hover:text-primary hover:underline"
+                      >
+                        {formatResourceType(item.resource_type, data?.resource_types)} #{item.resource_id}
+                      </Link>
                     </td>
                     <td className="px-5 py-3 font-mono text-xs">v{item.version_number ?? 1}</td>
+                    <td className="px-5 py-3">
+                      <ScanBadge status={item.virus_scan_status || 'pending'} />
+                    </td>
                     <td className="px-5 py-3 text-right text-slate-600">{formatBytes(item.file_size ?? 0)}</td>
                     <td className="px-5 py-3 text-slate-600">{formatDate(item.uploaded_at || item.updated_at)}</td>
                     <td className="px-5 py-3">
                       <div className="flex flex-wrap gap-2">
-                        {caps.download && (
+                        {caps.download && item.virus_scan_status !== 'infected' && (
                           <a
                             href={api.attachmentDownloadUrl(orgId, item.id, item.version_id || 0)}
                             className="inline-flex items-center gap-1 rounded-lg border border-border bg-white px-2.5 py-1.5 text-xs font-semibold text-primary hover:bg-primary/5"
