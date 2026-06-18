@@ -294,10 +294,6 @@ if (!class_exists('wpdb', false)) {
         }
 
         public function update($table, $data, $where, $format = [], $where_format = []) {
-            if ($this->test_update_callback !== null) {
-                return ($this->test_update_callback)($table, $data, $where, $format, $where_format);
-            }
-            // Build a representative last_query so tests can inspect column names
             $set_clauses = [];
             foreach ($data as $col => $val) {
                 $set_clauses[] = is_null($val) ? "{$col} = NULL" : "{$col} = '" . addslashes((string)$val) . "'";
@@ -312,6 +308,12 @@ if (!class_exists('wpdb', false)) {
                 implode(', ', $set_clauses),
                 implode(' AND ', $where_clauses)
             );
+
+            if ($this->test_update_callback !== null) {
+                $result = ($this->test_update_callback)($table, $data, $where, $format, $where_format);
+                return $result !== null ? $result : 1;
+            }
+
             $this->last_result = [];
             return 1; // 1 row affected
         }
