@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import type { ReactNode } from 'react';
 import Button from '@/components/Button';
 import { api } from '../api';
@@ -7,6 +8,7 @@ import PartnerProgramPage from './PartnerProgramPage';
 import {
   Banknote,
   FileText,
+  Plus,
   RefreshCw,
   TrendingUp,
   Users,
@@ -117,9 +119,16 @@ export default function DashboardPage() {
   ];
 
   return (
-    <ClientShell title="Client Dashboard" eyebrow="Accounting workspace" organization={organization}>
+    <ClientShell title="Client Dashboard" eyebrow="Lean MVP workspace" organization={organization}>
       <div className="space-y-6">
-        <div className="flex justify-end">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap gap-2">
+            <Link to="/invoices"><Button size="sm"><Plus className="h-4 w-4" />New Invoice</Button></Link>
+            <Link to="/customers"><Button size="sm" variant="secondary">Customers</Button></Link>
+            <Link to="/expenses"><Button size="sm" variant="secondary">Expenses</Button></Link>
+            <Link to="/reports"><Button size="sm" variant="secondary">Reports</Button></Link>
+            <Link to="/csv-imports"><Button size="sm" variant="secondary">Import CSV</Button></Link>
+          </div>
           <Button onClick={load} variant="secondary" size="sm">
             <RefreshCw className="h-4 w-4" />
             Refresh
