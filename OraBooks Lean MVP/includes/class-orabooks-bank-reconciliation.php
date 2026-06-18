@@ -583,19 +583,36 @@ class OraBooks_Bank_Reconciliation {
         ))), 2);
     }
 
+    private function current_user_id() {
+        return orabooks_get_current_user_id();
+    }
+
+    private function require_customer_org_access($user_id, $org_id) {
+        if (!$user_id) {
+            orabooks_json_error('Not authenticated', 401);
+        }
+
+        $isolation = OraBooks_Auth::require_customer_org($user_id, $org_id);
+        if (is_wp_error($isolation)) {
+            orabooks_json_error($isolation->get_error_message(), 403);
+        }
+    }
+
     public function ajax_accounts_list() {
-        check_ajax_referer('orabooks_nonce', 'nonce');
+        $user_id = $this->current_user_id();
         $org_id = intval($_GET['org_id'] ?? 0);
-        if (!OraBooks_RBAC::require_permission(orabooks_get_current_user_id(), $org_id, 'view_reports')) {
+        $this->require_customer_org_access($user_id, $org_id);
+        if (!OraBooks_RBAC::require_permission($user_id, $org_id, 'view_reports')) {
             orabooks_json_error('Permission denied', 403);
         }
         orabooks_json_success(['accounts' => self::get_accounts_list($org_id)]);
     }
 
     public function ajax_account_create() {
-        check_ajax_referer('orabooks_nonce', 'nonce');
+        $user_id = $this->current_user_id();
         $org_id = intval($_POST['org_id'] ?? 0);
-        if (!OraBooks_RBAC::require_permission(orabooks_get_current_user_id(), $org_id, 'manage_org_settings')) {
+        $this->require_customer_org_access($user_id, $org_id);
+        if (!OraBooks_RBAC::require_permission($user_id, $org_id, 'manage_org_settings')) {
             orabooks_json_error('Permission denied', 403);
         }
         $result = self::create_bank_account($org_id, $_POST);
@@ -606,13 +623,14 @@ class OraBooks_Bank_Reconciliation {
     }
 
     public function ajax_import_rows() {
-        check_ajax_referer('orabooks_nonce', 'nonce');
+        $user_id = $this->current_user_id();
         $org_id = intval($_POST['org_id'] ?? 0);
-        if (!OraBooks_RBAC::require_permission(orabooks_get_current_user_id(), $org_id, 'submit_transaction')) {
+        $this->require_customer_org_access($user_id, $org_id);
+        if (!OraBooks_RBAC::require_permission($user_id, $org_id, 'submit_transaction')) {
             orabooks_json_error('Permission denied', 403);
         }
         $rows = json_decode(stripslashes($_POST['rows_json'] ?? '[]'), true);
-        $result = self::import_rows($org_id, intval($_POST['bank_account_id'] ?? 0), is_array($rows) ? $rows : [], orabooks_get_current_user_id());
+        $result = self::import_rows($org_id, intval($_POST['bank_account_id'] ?? 0), is_array($rows) ? $rows : [], $user_id);
         if (is_wp_error($result)) {
             orabooks_json_error($result->get_error_message(), 400);
         }
@@ -620,21 +638,23 @@ class OraBooks_Bank_Reconciliation {
     }
 
     public function ajax_transactions_list() {
-        check_ajax_referer('orabooks_nonce', 'nonce');
+        $user_id = $this->current_user_id();
         $org_id = intval($_GET['org_id'] ?? 0);
-        if (!OraBooks_RBAC::require_permission(orabooks_get_current_user_id(), $org_id, 'view_reports')) {
+        $this->require_customer_org_access($user_id, $org_id);
+        if (!OraBooks_RBAC::require_permission($user_id, $org_id, 'view_reports')) {
             orabooks_json_error('Permission denied', 403);
         }
         orabooks_json_success(['transactions' => self::get_transactions_list($org_id, intval($_GET['bank_account_id'] ?? 0), $_GET)]);
     }
 
     public function ajax_manual_match() {
-        check_ajax_referer('orabooks_nonce', 'nonce');
+        $user_id = $this->current_user_id();
         $org_id = intval($_POST['org_id'] ?? 0);
-        if (!OraBooks_RBAC::require_permission(orabooks_get_current_user_id(), $org_id, 'submit_transaction')) {
+        $this->require_customer_org_access($user_id, $org_id);
+        if (!OraBooks_RBAC::require_permission($user_id, $org_id, 'submit_transaction')) {
             orabooks_json_error('Permission denied', 403);
         }
-        $result = self::manual_match($org_id, intval($_POST['bank_transaction_id'] ?? 0), $_POST['transaction_type'] ?? '', intval($_POST['transaction_id'] ?? 0), orabooks_get_current_user_id());
+        $result = self::manual_match($org_id, intval($_POST['bank_transaction_id'] ?? 0), $_POST['transaction_type'] ?? '', intval($_POST['transaction_id'] ?? 0), $user_id);
         if (is_wp_error($result)) {
             orabooks_json_error($result->get_error_message(), 400);
         }
@@ -642,12 +662,13 @@ class OraBooks_Bank_Reconciliation {
     }
 
     public function ajax_skip_transaction() {
-        check_ajax_referer('orabooks_nonce', 'nonce');
+        $user_id = $this->current_user_id();
         $org_id = intval($_POST['org_id'] ?? 0);
-        if (!OraBooks_RBAC::require_permission(orabooks_get_current_user_id(), $org_id, 'submit_transaction')) {
+        $this->require_customer_org_access($user_id, $org_id);
+        if (!OraBooks_RBAC::require_permission($user_id, $org_id, 'submit_transaction')) {
             orabooks_json_error('Permission denied', 403);
         }
-        $result = self::skip_transaction($org_id, intval($_POST['bank_transaction_id'] ?? 0), $_POST['reason'] ?? '', orabooks_get_current_user_id());
+        $result = self::skip_transaction($org_id, intval($_POST['bank_transaction_id'] ?? 0), $_POST['reason'] ?? '', $user_id);
         if (is_wp_error($result)) {
             orabooks_json_error($result->get_error_message(), 400);
         }
@@ -655,9 +676,10 @@ class OraBooks_Bank_Reconciliation {
     }
 
     public function ajax_finalize_reconciliation() {
-        check_ajax_referer('orabooks_nonce', 'nonce');
+        $user_id = $this->current_user_id();
         $org_id = intval($_POST['org_id'] ?? 0);
-        if (!OraBooks_RBAC::require_permission(orabooks_get_current_user_id(), $org_id, 'manage_org_settings')) {
+        $this->require_customer_org_access($user_id, $org_id);
+        if (!OraBooks_RBAC::require_permission($user_id, $org_id, 'manage_org_settings')) {
             orabooks_json_error('Permission denied', 403);
         }
         $result = self::finalize_reconciliation(
@@ -665,7 +687,7 @@ class OraBooks_Bank_Reconciliation {
             intval($_POST['bank_account_id'] ?? 0),
             sanitize_text_field($_POST['statement_date'] ?? ''),
             floatval($_POST['ending_balance'] ?? 0),
-            orabooks_get_current_user_id(),
+            $user_id,
             !empty($_POST['force']),
             sanitize_textarea_field($_POST['note'] ?? '')
         );
