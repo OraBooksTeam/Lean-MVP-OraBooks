@@ -296,12 +296,34 @@ class OraBooks_Vendors {
         $org_id = intval($org_id);
         $vendor_id = intval($data['vendor_id'] ?? 0);
         $subtotal = round(floatval($data['subtotal_amount'] ?? $data['total_amount'] ?? 0), 2);
-        $tax_amount = round(floatval($data['tax_amount'] ?? 0), 2);
-        $total = round(floatval($data['total_amount'] ?? ($subtotal + $tax_amount)), 2);
 
         if ($org_id <= 0 || $vendor_id <= 0) {
             return new WP_Error('missing_field', 'Vendor is required');
         }
+
+        $tax_amount = array_key_exists('tax_amount', $data)
+            ? round(floatval($data['tax_amount']), 2)
+            : null;
+
+        if ($subtotal > 0 && $tax_amount === null && class_exists('OraBooks_Tax')) {
+            $jurisdiction = strtoupper(sanitize_text_field($data['jurisdiction'] ?? 'US'));
+            $tax_result = OraBooks_Tax::calculate([
+                'org_id' => $org_id,
+                'amount' => $subtotal,
+                'jurisdiction' => $jurisdiction,
+            ]);
+
+            if (!is_wp_error($tax_result)) {
+                $tax_amount = round(floatval($tax_result['tax_amount']), 2);
+            } else {
+                $tax_amount = 0.0;
+            }
+        } else {
+            $tax_amount = $tax_amount ?? 0.0;
+        }
+
+        $total = round(floatval($data['total_amount'] ?? ($subtotal + $tax_amount)), 2);
+
         if ($total <= 0) {
             return new WP_Error('invalid_amount', 'Bill total must be greater than 0');
         }
