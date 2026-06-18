@@ -361,14 +361,11 @@ class OraBooks_Partner_Test extends TestCase
             ]);
         };
 
-        // Track how many updates are made
-        $updateCount = 0;
-        $originalUpdate = $wpdb->update(...);
-        // Can't easily spy on update, but we can check the last_query
-        // The last query should be for partner_codes, not organizations
-
         $result = OraBooks_Partner::approve_partner_code(1, 1);
         $this->assertTrue($result);
+        $this->assertStringContainsString('partner_codes', $wpdb->last_query);
+        $this->assertStringContainsString('active', $wpdb->last_query);
+        $this->assertStringNotContainsString('organizations', $wpdb->last_query);
     }
 
     // ================================================================
