@@ -9,6 +9,38 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+if (!class_exists('Frontend_Accounting_Permissions')) {
+    class Frontend_Accounting_Permissions {
+        public static function has_view_permission($view) {
+            if (current_user_can('manage_options')) {
+                return true;
+            }
+            if (class_exists('OBN_Permissions')) {
+                return OBN_Permissions::has_view_permission($view);
+            }
+            return false;
+        }
+    }
+}
+
+if (!function_exists('orabooks_can_access_accounting')) {
+    function orabooks_can_access_accounting() {
+        if (!is_user_logged_in()) {
+            return false;
+        }
+        if (current_user_can('manage_options')) {
+            return true;
+        }
+        if (class_exists('OBN_Auth')) {
+            $auth = new OBN_Auth();
+            if ($auth->can_access_accounting()) {
+                return true;
+            }
+        }
+        return false;
+    }
+}
+
 class OraBooks_Accounting {
     private static $booted = false;
 
