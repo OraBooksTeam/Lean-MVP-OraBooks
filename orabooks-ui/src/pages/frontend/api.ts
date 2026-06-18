@@ -341,6 +341,30 @@ export const api = {
     api.get('orabooks_approval_dashboard'),
   aiReviewDashboard: () =>
     api.get('orabooks_ai_review_dashboard'),
+  expensesDashboard: () =>
+    api.get('orabooks_expenses_dashboard'),
+  uploadExpenseReceipt: (orgId: number, file: File, idempotencyKey = '') => {
+    const formData = new FormData();
+    formData.set('org_id', String(orgId));
+    formData.set('receipt_file', file);
+    if (idempotencyKey) formData.set('idempotency_key', idempotencyKey);
+    return uploadRequest('orabooks_expense_upload_receipt', formData);
+  },
+  expenseGet: (orgId: number, expenseId: number) =>
+    api.get('orabooks_expense_get', { org_id: orgId, expense_id: expenseId }),
+  expenseConfirm: (orgId: number, expenseId: number, idempotencyKey: string, editedFields: Record<string, unknown>) =>
+    api.post('orabooks_expense_confirm', {
+      org_id: orgId,
+      expense_id: expenseId,
+      idempotency_key: idempotencyKey,
+      edited_fields: editedFields,
+    }),
+  expenseApprove: (orgId: number, expenseId: number) =>
+    api.post('orabooks_expense_approve', { org_id: orgId, expense_id: expenseId }),
+  expenseReject: (orgId: number, expenseId: number, reason: string) =>
+    api.post('orabooks_expense_reject', { org_id: orgId, expense_id: expenseId, reason }),
+  expensePost: (orgId: number, expenseId: number) =>
+    api.post('orabooks_expense_post', { org_id: orgId, expense_id: expenseId }),
   submitJournal: (journalId: number) =>
     api.post('orabooks_submit_journal', { journal_id: journalId }),
   approveJournal: (journalId: number) =>

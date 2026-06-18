@@ -1,0 +1,474 @@
+import { useEffect, useRef, useState } from 'react';
+import Button from '@/components/Button';
+import { api } from '../api';
+import ClientShell from '../components/ClientShell';
+import { Camera, CheckCircle2, Receipt, RefreshCw, Upload, XCircle } from 'lucide-react';
+
+const fieldClass =
+  'w-full rounded-lg border border-border bg-white px-3.5 py-2.5 text-sm text-ink shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20';
+
+export default function ExpensesPage() {
+  const [data, setData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [selectedExpense, setSelectedExpense] = useState<any>(null);
+  const [editFields, setEditFields] = useState<Record<string, string>>({});
+  const [confirming, setConfirming] = useState(false);
+  const [actionId, setActionId] = useState<number | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const orgId = data?.context?.organization?.id;
+  const caps = data?.capabilities || {};
+  const threshold = data?.threshold ?? 70;
+  const maxMb = Math.round((data?.limits?.max_file_size || 10485760) / 1048576);
+
+  const load = async () => {
+    setLoading(true);
+    setError('');
+    setSuccess('');
+    const res = await api.expensesDashboard();
+    if (res.error) setError(res.error || 'Unable to load expenses.');
+    else setData((res as any).data);
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    void load();
+  }, []);
+
+  const loadExpense = async (expenseId: number) => {
+    if (!orgId) return;
+    const res = await api.expenseGet(orgId, expenseId);
+    if (res.error) setError(res.error);
+    else {
+      const expense = (res as any).data?.expense;
+      setSelectedExpense(expense);
+      setEditFields({
+        vendor: expense?.vendor || '',
+        invoice_number: expense?.invoice_number || '',
+        transaction_date: expense?.transaction_date || '',
+        total_amount: expense?.total_amount != null ? String(expense.total_amount) : '',
+        tax_amount: expense?.tax_amount != null ? String(expense.tax_amount) : '',
+        category: expense?.category || '',
+        description: expense?.description || '',
+      });
+    }
+  };
+
+  const handleUpload = async () => {
+    if (!orgId || !selectedFile) {
+      setError('Select a receipt file to upload.');
+      return;
+    }
+
+    setUploading(true);
+    setError('');
+    const idempotencyKey =
+      typeof crypto !== 'undefined' && crypto.randomUUID
+        ? crypto.randomUUID()
+        : `receipt-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
+    const res = await api.uploadExpenseReceipt(orgId, selectedFile, idempotencyKey);
+    if (res.error) {
+      setError(res.error);
+    } else {
+      setSelectedFile(null);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      setSuccess('Receipt uploaded. OCR fields extracted.');
+      await load();
+      const expense = (res as any).data?.expense;
+      if (expense?.id) void loadExpense(expense.id);
+    }
+    setUploading(false);
+  };
+
+  const handleConfirm = async () => {
+    if (!orgId || !selectedExpense || selectedExpense.workflow_status !== 'draft') return;
+
+    setConfirming(true);
+    setError('');
+    const idempotencyKey =
+      typeof crypto !== 'undefined' && crypto.randomUUID
+        ? crypto.randomUUID()
+        : `confirm-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
+    const res = await api.expenseConfirm(orgId, selectedExpense.id, idempotencyKey, {
+      ...editFields,
+      total_amount: parseFloat(editFields.total_amount || '0'),
+      tax_amount: parseFloat(editFields.tax_amount || '0'),
+    });
+
+    if (res.error) {
+      setError(res.error);
+    } else {
+      const expense = (res as any).data?.expense;
+      setSuccess(
+        expense?.workflow_status === 'ai_review'
+          ? 'Expense sent to AI review (low confidence or elevated risk).'
+          : 'Expense submitted for approval.'
+      );
+      setSelectedExpense(expense);
+      await load();
+    }
+    setConfirming(false);
+  };
+
+  const handleApprove = async (expenseId: number) => {
+    if (!orgId) return;
+    setActionId(expenseId);
+    setError('');
+    const res = await api.expenseApprove(orgId, expenseId);
+    if (res.error) setError(res.error);
+    else {
+      setSuccess('Expense approved and posted.');
+      await load();
+      if (selectedExpense?.id === expenseId) void loadExpense(expenseId);
+    }
+    setActionId(null);
+  };
+
+  const handleReject = async (expenseId: number) => {
+    const reason = window.prompt('Enter rejection reason:');
+    if (!reason?.trim() || !orgId) return;
+    setActionId(expenseId);
+    setError('');
+    const res = await api.expenseReject(orgId, expenseId, reason.trim());
+    if (res.error) setError(res.error);
+    else {
+      setSuccess('Expense rejected and returned to draft.');
+      await load();
+      if (selectedExpense?.id === expenseId) void loadExpense(expenseId);
+    }
+    setActionId(null);
+  };
+
+  const expenses = data?.expenses || [];
+  const pending = data?.pending_approval || [];
+  const stats = data?.stats || {};
+
+  return (
+    <ClientShell title="Expenses" eyebrow="Receipt OCR & approval" organization={data?.context?.organization}>
+      <div className="space-y-5">
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <Metric label="Total Expenses" value={stats.total ?? 0} />
+          <Metric label="Draft / OCR" value={(stats.draft ?? 0) + (stats.pending_ocr ?? 0)} />
+          <Metric label="Awaiting Approval" value={(stats.submitted ?? 0) + (stats.ai_review ?? 0)} tone="warning" />
+          <Metric label="Posted" value={stats.posted ?? 0} tone="success" />
+        </div>
+
+        {caps.upload && (
+          <div className="glass-panel p-5">
+            <div className="flex items-center gap-2 border-b border-border pb-4">
+              <Upload className="h-5 w-5 text-primary" />
+              <h2 className="font-bold text-ink">Upload Receipt</h2>
+            </div>
+            <p className="mt-3 text-sm text-slate-600">
+              Supported: PDF, JPG, PNG. Max {maxMb}MB. AI extracts vendor, amount, date, and category.
+            </p>
+            <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end">
+              <div className="flex-1">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".pdf,.jpg,.jpeg,.png,image/*,application/pdf"
+                  className={fieldClass}
+                  onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
+                />
+              </div>
+              <Button onClick={() => void handleUpload()} disabled={uploading || !selectedFile}>
+                <Receipt className="h-4 w-4" />
+                {uploading ? 'Processing...' : 'Upload Receipt'}
+              </Button>
+            </div>
+            <p className="mt-2 flex items-center gap-1.5 text-xs text-slate-500">
+              <Camera className="h-3.5 w-3.5" />
+              Mobile camera scan supported via file picker.
+            </p>
+          </div>
+        )}
+
+        {selectedExpense && (
+          <div className="glass-panel p-5">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-4">
+              <div>
+                <h2 className="font-bold text-ink">OCR Result</h2>
+                <p className="text-sm text-slate-600">
+                  Expense #{selectedExpense.id} · {selectedExpense.workflow_status}
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {selectedExpense.ocr_confidence != null && (
+                  <ConfidenceBadge value={selectedExpense.ocr_confidence} threshold={threshold} />
+                )}
+                {selectedExpense.ocr_risk_level && <RiskBadge level={selectedExpense.ocr_risk_level} />}
+              </div>
+            </div>
+
+            {selectedExpense.workflow_status === 'draft' && selectedExpense.ocr_confidence != null ? (
+              <div className="mt-4 grid gap-4 md:grid-cols-2">
+                {(['vendor', 'invoice_number', 'transaction_date', 'total_amount', 'tax_amount', 'category'] as const).map(
+                  (field) => (
+                    <label key={field} className="block text-sm">
+                      <span className="mb-1 block font-semibold capitalize text-slate-700">
+                        {field.replace('_', ' ')}
+                      </span>
+                      <input
+                        className={fieldClass}
+                        value={editFields[field] || ''}
+                        onChange={(e) => setEditFields((prev) => ({ ...prev, [field]: e.target.value }))}
+                      />
+                    </label>
+                  )
+                )}
+                <label className="block text-sm md:col-span-2">
+                  <span className="mb-1 block font-semibold text-slate-700">Description</span>
+                  <input
+                    className={fieldClass}
+                    value={editFields.description || ''}
+                    onChange={(e) => setEditFields((prev) => ({ ...prev, description: e.target.value }))}
+                  />
+                </label>
+              </div>
+            ) : (
+              <div className="mt-4 grid gap-2 text-sm text-slate-700 md:grid-cols-2">
+                <p>
+                  <strong>Vendor:</strong> {selectedExpense.vendor || '—'}
+                </p>
+                <p>
+                  <strong>Amount:</strong> {money(selectedExpense.total_amount)}
+                </p>
+                <p>
+                  <strong>Date:</strong> {selectedExpense.transaction_date || '—'}
+                </p>
+                <p>
+                  <strong>Category:</strong> {selectedExpense.category || '—'}
+                </p>
+              </div>
+            )}
+
+            <div className="mt-4 flex flex-wrap gap-2">
+              {caps.submit && selectedExpense.workflow_status === 'draft' && selectedExpense.ocr_confidence != null && (
+                <Button onClick={() => void handleConfirm()} disabled={confirming}>
+                  <CheckCircle2 className="h-4 w-4" />
+                  {confirming ? 'Submitting...' : 'Confirm & Submit'}
+                </Button>
+              )}
+              {caps.approve &&
+                ['submitted', 'ai_review'].includes(selectedExpense.workflow_status) && (
+                  <>
+                    <Button disabled={actionId === selectedExpense.id} onClick={() => void handleApprove(selectedExpense.id)}>
+                      Approve
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      disabled={actionId === selectedExpense.id}
+                      onClick={() => void handleReject(selectedExpense.id)}
+                    >
+                      <XCircle className="h-4 w-4" />
+                      Reject
+                    </Button>
+                  </>
+                )}
+            </div>
+          </div>
+        )}
+
+        <div className="flex justify-end">
+          <Button onClick={load} variant="secondary" size="sm">
+            <RefreshCw className="h-4 w-4" />
+            Refresh
+          </Button>
+        </div>
+
+        {error && (
+          <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-medium text-red-700">{error}</div>
+        )}
+        {success && (
+          <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-medium text-emerald-800">
+            {success}
+          </div>
+        )}
+
+        {caps.approve && pending.length > 0 && (
+          <ExpenseTable
+            title="Pending Approval"
+            expenses={pending}
+            loading={loading}
+            onSelect={(id) => void loadExpense(id)}
+            onApprove={caps.approve ? (id) => void handleApprove(id) : undefined}
+            onReject={caps.approve ? (id) => void handleReject(id) : undefined}
+            actionId={actionId}
+          />
+        )}
+
+        <ExpenseTable
+          title="All Expenses"
+          expenses={expenses}
+          loading={loading}
+          onSelect={(id) => void loadExpense(id)}
+          actionId={actionId}
+        />
+      </div>
+    </ClientShell>
+  );
+}
+
+function ExpenseTable({
+  title,
+  expenses,
+  loading,
+  onSelect,
+  onApprove,
+  onReject,
+  actionId,
+}: {
+  title: string;
+  expenses: any[];
+  loading: boolean;
+  onSelect: (id: number) => void;
+  onApprove?: (id: number) => void;
+  onReject?: (id: number) => void;
+  actionId: number | null;
+}) {
+  return (
+    <div className="glass-panel overflow-hidden">
+      <div className="border-b border-border px-5 py-4">
+        <h2 className="font-bold text-ink">{title}</h2>
+      </div>
+      <table className="min-w-full text-left text-sm">
+        <thead>
+          <tr className="border-b border-border bg-slate-50/70 text-xs uppercase text-slate-500">
+            <th className="px-5 py-3 font-semibold">Vendor</th>
+            <th className="px-5 py-3 font-semibold">Date</th>
+            <th className="px-5 py-3 text-right font-semibold">Amount</th>
+            <th className="px-5 py-3 font-semibold">Workflow</th>
+            <th className="px-5 py-3 font-semibold">Risk</th>
+            <th className="px-5 py-3 font-semibold">Confidence</th>
+            <th className="px-5 py-3 font-semibold">Actions</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-border">
+          {loading ? (
+            <tr>
+              <td colSpan={7} className="px-5 py-8 text-center text-slate-500">
+                Loading...
+              </td>
+            </tr>
+          ) : expenses.length === 0 ? (
+            <tr>
+              <td colSpan={7} className="px-5 py-8 text-center text-sm text-slate-500">
+                No expenses yet.
+              </td>
+            </tr>
+          ) : (
+            expenses.map((expense) => (
+              <tr key={expense.id} className="hover:bg-slate-50/70">
+                <td className="px-5 py-3 font-semibold text-ink">{expense.vendor || '—'}</td>
+                <td className="px-5 py-3 text-slate-600">{expense.transaction_date || '—'}</td>
+                <td className="px-5 py-3 text-right font-bold text-ink">{money(expense.total_amount)}</td>
+                <td className="px-5 py-3">
+                  <StatusBadge status={expense.workflow_status} />
+                </td>
+                <td className="px-5 py-3">
+                  {expense.ocr_risk_level ? <RiskBadge level={expense.ocr_risk_level} /> : '—'}
+                </td>
+                <td className="px-5 py-3">
+                  {expense.ocr_confidence != null ? `${Number(expense.ocr_confidence).toFixed(1)}%` : '—'}
+                </td>
+                <td className="px-5 py-3">
+                  <div className="flex flex-wrap gap-2">
+                    <Button size="sm" variant="secondary" onClick={() => onSelect(expense.id)}>
+                      View
+                    </Button>
+                    {onApprove && ['submitted', 'ai_review'].includes(expense.workflow_status) && (
+                      <>
+                        <Button size="sm" disabled={actionId === expense.id} onClick={() => onApprove(expense.id)}>
+                          Approve
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          disabled={actionId === expense.id}
+                          onClick={() => onReject?.(expense.id)}
+                        >
+                          Reject
+                        </Button>
+                      </>
+                    )}
+                  </div>
+                </td>
+              </tr>
+            ))
+          )}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function Metric({
+  label,
+  value,
+  tone = 'default',
+}: {
+  label: string;
+  value: string | number;
+  tone?: 'default' | 'warning' | 'success';
+}) {
+  const toneClass =
+    tone === 'warning'
+      ? 'border-amber-200 bg-amber-50'
+      : tone === 'success'
+        ? 'border-emerald-200 bg-emerald-50'
+        : 'border-border bg-white';
+
+  return (
+    <div className={`rounded-2xl border p-4 shadow-sm ${toneClass}`}>
+      <p className="text-xs font-bold uppercase tracking-wide text-slate-500">{label}</p>
+      <p className="mt-2 text-2xl font-black text-ink">{value}</p>
+    </div>
+  );
+}
+
+function ConfidenceBadge({ value, threshold }: { value: number; threshold: number }) {
+  const low = value < threshold;
+  return (
+    <span
+      className={`badge border font-mono ${low ? 'border-amber-200 bg-amber-50 text-amber-800' : 'border-emerald-200 bg-emerald-50 text-emerald-800'}`}
+    >
+      {Number(value).toFixed(1)}% {low ? 'Low' : 'High'}
+    </span>
+  );
+}
+
+function RiskBadge({ level }: { level: string }) {
+  const styles: Record<string, string> = {
+    low: 'border-emerald-200 bg-emerald-50 text-emerald-800',
+    medium: 'border-amber-200 bg-amber-50 text-amber-800',
+    high: 'border-red-200 bg-red-50 text-red-800',
+  };
+  return (
+    <span className={`badge border capitalize ${styles[level] || 'border-slate-200 bg-slate-50 text-slate-700'}`}>
+      Risk: {level}
+    </span>
+  );
+}
+
+function StatusBadge({ status }: { status: string }) {
+  const styles: Record<string, string> = {
+    draft: 'border-slate-200 bg-slate-50 text-slate-700',
+    submitted: 'border-blue-200 bg-blue-50 text-blue-800',
+    ai_review: 'border-amber-200 bg-amber-50 text-amber-800',
+    approved: 'border-emerald-200 bg-emerald-50 text-emerald-800',
+    posted: 'border-primary/20 bg-primary/10 text-primary',
+    locked: 'border-slate-300 bg-slate-100 text-slate-800',
+  };
+  return <span className={`badge border capitalize ${styles[status] || styles.draft}`}>{status.replace('_', ' ')}</span>;
+}
+
+function money(value?: string | number | null) {
+  return new Intl.NumberFormat(undefined, { style: 'currency', currency: 'USD' }).format(Number(value || 0));
+}
