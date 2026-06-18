@@ -10,6 +10,8 @@ import {
 } from '../lib/auth-routing';
 
 function redirectAfterLogin(data: any) {
+  clearRedirectGuard();
+
   if (data?.needs_tier_selection) {
     replaceAppLocation('/tier-selection/', '/tier-selection');
     return;
@@ -53,6 +55,7 @@ export default function LoginPage() {
   useEffect(() => {
     api.frontendContext().then((res) => {
       if (!res.error) {
+        clearRedirectGuard();
         replaceAppLocation('/dashboard/', '/dashboard');
       }
     });
