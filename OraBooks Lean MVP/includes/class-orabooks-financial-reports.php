@@ -1135,6 +1135,9 @@ class OraBooks_Financial_Reports {
             }
 
             $offset += $batch_size;
+            if (count($entries) < $batch_size) {
+                break;
+            }
             if (!$skip_throttle && $throttle_per_sec > 0 && count($entries) > 0) {
                 usleep((int) ((1000000 / $throttle_per_sec) * count($entries)));
             }
