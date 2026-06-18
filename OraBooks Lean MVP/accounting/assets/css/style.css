@@ -886,12 +886,14 @@ body.orabooks-accounting-page .obn-sidebar.open {
 
 /* Admin bar offset to prevent scrolling issues */
 body.admin-bar .obn-dashboard-wrapper {
-    height: calc(100vh - 32px) !important;
+    height: calc(100dvh - 32px) !important;
+    max-height: calc(100dvh - 32px) !important;
 }
 
 @media (max-width: 782px) {
     body.admin-bar .obn-dashboard-wrapper {
-        height: calc(100vh - 46px) !important;
+        height: calc(100dvh - 46px) !important;
+        max-height: calc(100dvh - 46px) !important;
     }
 }
 

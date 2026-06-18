@@ -89,26 +89,28 @@ export default function ClientShell({
 
   return (
     <div className="min-h-screen brand-page-bg">
-      <aside className="fixed inset-y-0 left-0 hidden w-72 bg-primary p-5 text-white shadow-xl shadow-primary/20 lg:block">
-        <div className="flex items-center gap-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-base font-black text-primary">
-            OB
+      <aside className="fixed inset-y-0 left-0 z-30 hidden w-72 flex-col bg-primary p-5 text-white shadow-xl shadow-primary/20 lg:flex">
+        <div className="shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-base font-black text-primary">
+              OB
+            </div>
+            <div>
+              <p className="text-sm font-bold text-white">OraBooks</p>
+              <p className="text-xs text-white/70">{isPartner ? 'Partner Account' : 'Client Workspace'}</p>
+            </div>
           </div>
-          <div>
-            <p className="text-sm font-bold text-white">OraBooks</p>
-            <p className="text-xs text-white/70">{isPartner ? 'Partner Account' : 'Client Workspace'}</p>
+
+          <div className="mt-6 rounded-2xl border border-white/15 bg-white/10 p-4">
+            <p className="truncate text-sm font-semibold text-white">{organization?.name || 'Workspace setup'}</p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {organization?.tier && <span className="badge bg-white text-primary">{organization.tier}</span>}
+              {organization?.status && <span className="badge bg-accent text-white">{organization.status}</span>}
+            </div>
           </div>
         </div>
 
-        <div className="mt-6 rounded-2xl border border-white/15 bg-white/10 p-4">
-          <p className="truncate text-sm font-semibold text-white">{organization?.name || 'Workspace setup'}</p>
-          <div className="mt-2 flex flex-wrap gap-2">
-            {organization?.tier && <span className="badge bg-white text-primary">{organization.tier}</span>}
-            {organization?.status && <span className="badge bg-accent text-white">{organization.status}</span>}
-          </div>
-        </div>
-
-        <nav className="mt-6 space-y-1.5">
+        <nav className="mt-6 min-h-0 flex-1 space-y-1.5 overflow-y-auto overscroll-contain pr-1">
           {nav.map((item) => {
             const Icon = item.icon;
             const active = !item.external && location.pathname === item.href;
@@ -120,7 +122,7 @@ export default function ClientShell({
             if (item.external) {
               return (
                 <a key={item.href} href={item.href} className={className}>
-                  <Icon className="h-4 w-4" />
+                  <Icon className="h-4 w-4 shrink-0" />
                   {item.label}
                 </a>
               );
@@ -128,7 +130,7 @@ export default function ClientShell({
 
             return (
               <Link key={item.href} to={item.href} className={className}>
-                <Icon className="h-4 w-4" />
+                <Icon className="h-4 w-4 shrink-0" />
                 {item.label}
               </Link>
             );
@@ -141,14 +143,14 @@ export default function ClientShell({
             window.localStorage.removeItem('orabooks_token');
             window.localStorage.removeItem('orabooks_refresh_token');
           }}
-          className="absolute bottom-5 left-5 right-5 flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-white/70 hover:bg-white/10 hover:text-white"
+          className="mt-4 flex shrink-0 items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-white/70 hover:bg-white/10 hover:text-white"
         >
-          <LogOut className="h-4 w-4" />
+          <LogOut className="h-4 w-4 shrink-0" />
           Log out
         </a>
       </aside>
 
-      <main className="lg:pl-72">
+      <main className="min-w-0 lg:pl-72">
         <div className="sticky top-0 z-20 border-b border-primary/10 bg-white/95 shadow-sm shadow-primary/5 backdrop-blur lg:hidden">
           <div className="flex items-center justify-between px-4 py-3">
             <div className="flex items-center gap-3">
