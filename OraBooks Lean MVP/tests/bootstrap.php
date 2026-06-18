@@ -1060,6 +1060,13 @@ if (!file_exists($attachments_file)) {
 }
 require_once $attachments_file;
 
+$posting_file = __DIR__ . '/../includes/class-orabooks-posting.php';
+if (!file_exists($posting_file)) {
+    echo "ERROR: Cannot find class-orabooks-posting.php at {$posting_file}\n";
+    exit(1);
+}
+require_once $posting_file;
+
 if (!function_exists('get_users')) {
     function get_users($args = []) {
         return [];

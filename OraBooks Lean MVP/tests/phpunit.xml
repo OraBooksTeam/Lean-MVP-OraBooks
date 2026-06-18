@@ -53,6 +53,7 @@
         <testsuite name="OraBooks SL-113 CSV Imports Tests">
             <file>OraBooks_Csv_Imports_Test.php</file>
             <file>OraBooks_Attachments_Test.php</file>
+            <file>OraBooks_Approval_Test.php</file>
         </testsuite>
     </testsuites>
 </phpunit>

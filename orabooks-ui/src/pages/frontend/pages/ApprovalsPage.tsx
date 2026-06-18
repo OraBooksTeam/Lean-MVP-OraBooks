@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import Button from '@/components/Button';
 import { api } from '../api';
 import ClientShell from '../components/ClientShell';
@@ -224,7 +224,7 @@ function JournalSection({
   journals: any[];
   loading: boolean;
   emptyText: string;
-  actions: (journal: any) => React.ReactNode;
+  actions: (journal: any) => ReactNode;
 }) {
   return (
     <div className="glass-panel overflow-hidden">
