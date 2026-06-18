@@ -860,16 +860,3 @@ function orabooks_body_class($classes) {
 
     return $classes;
 }
-
-add_filter('script_loader_tag', 'orabooks_react_module_script_tag', 10, 3);
-function orabooks_react_module_script_tag($tag, $handle, $src) {
-    if (strpos($handle, 'orabooks-react') === false) {
-        return $tag;
-    }
-
-    if (strpos($tag, ' type=') !== false) {
-        return $tag;
-    }
-
-    return str_replace('<script ', '<script type="module" ', $tag);
-}
