@@ -822,14 +822,18 @@ class OraBooks_Auth {
     // ============= AJAX HANDLERS =============
     
     public function ajax_register() {
-        $data = $_POST;
-        $result = self::register($data);
-        
+        try {
+            $result = self::register($_POST);
+        } catch (Throwable $e) {
+            orabooks_log_event('registration_exception', $e->getMessage(), 'error');
+            orabooks_json_error('Registration failed due to a server error. Please try again.', 200);
+        }
+
         if (is_wp_error($result)) {
             orabooks_json_error($result->get_error_message(), 200);
         }
 
-        orabooks_json_success($result, 'Registration successful. Verification email sent.');
+        orabooks_json_success($result, $result['message'] ?? 'Registration successful. Verification email sent.');
     }
     
     public function ajax_login() {
