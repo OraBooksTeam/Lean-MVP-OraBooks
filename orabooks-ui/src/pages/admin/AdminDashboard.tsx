@@ -1,13 +1,49 @@
 import { useEffect, useState } from 'react';
+import Button from '@/components/Button';
 import { api } from '../api';
-import { Building2, UserCheck, Users, Link2 } from 'lucide-react';
+import {
+  Building2,
+  Clock,
+  Link2,
+  RefreshCw,
+  Settings,
+  UserCheck,
+  Users,
+  Wrench,
+} from 'lucide-react';
 
 interface Stats {
-  organizations: { total: number; customer: number; partner: number; active: number; pending: number; suspended: number; recent_7d: number };
+  organizations: {
+    total: number;
+    customer: number;
+    partner: number;
+    active: number;
+    pending: number;
+    suspended: number;
+    recent_7d: number;
+  };
   partners: { active: number; pending: number; inactive: number; disabled: number };
-  users: { total: number; partner: number; customer: number; verified: number; '2fa_enabled': number; recent_7d: number };
-  attributions: { total: number; verified: number; pending: number; blocked: number; recent_7d: number };
+  users: {
+    total: number;
+    partner: number;
+    customer: number;
+    verified: number;
+    '2fa_enabled': number;
+    recent_7d: number;
+  };
+  attributions: {
+    total: number;
+    verified: number;
+    pending: number;
+    blocked: number;
+    recent_7d: number;
+  };
   timestamp?: string;
+}
+
+function adminLink(page: string) {
+  const base = (window as any).orabooks_ajax?.admin_base || '/wp-admin/admin.php';
+  return `${base}?page=${page}`;
 }
 
 export default function AdminDashboard() {
@@ -17,111 +53,303 @@ export default function AdminDashboard() {
 
   const load = () => {
     setLoading(true);
+    setError('');
     api.dashboardStats().then((res: any) => {
-      if (res.error) setError(typeof res.error === 'string' ? res.error : 'Failed');
+      if (res.error) setError(typeof res.error === 'string' ? res.error : 'Failed to load dashboard.');
       else if (res.data) setStats(res.data);
       setLoading(false);
     });
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    void load();
+  }, []);
 
   if (loading) {
     return (
       <div className="space-y-6">
-        <div className="h-8 w-48 animate-pulse rounded-lg bg-slate-200" />
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {[...Array(4)].map((_, i) => <div key={i} className="h-32 animate-pulse rounded-2xl bg-white border border-slate-200" />)}
+        <div className="h-24 animate-pulse rounded-2xl border border-border bg-white" />
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="h-32 animate-pulse rounded-2xl border border-border bg-white" />
+          ))}
+        </div>
+        <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-4">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="h-52 animate-pulse rounded-2xl border border-border bg-white" />
+          ))}
         </div>
       </div>
     );
   }
 
-  if (error) return <p className="text-sm text-danger">{error}</p>;
+  if (error) {
+    return (
+      <div className="glass-panel p-6 text-center">
+        <p className="font-medium text-danger">{error}</p>
+        <Button onClick={load} variant="secondary" className="mt-4">Try again</Button>
+      </div>
+    );
+  }
+
+  const orgs = stats?.organizations;
+  const partners = stats?.partners;
+  const users = stats?.users;
+  const attrs = stats?.attributions;
 
   const cards = [
-    { label: 'Organizations', value: stats?.organizations.total ?? 0, sub: `${stats?.organizations.customer ?? 0} customer · ${stats?.organizations.partner ?? 0} partner`, icon: <Building2 className="h-5 w-5 text-primary" />, color: 'bg-sky-500/10 text-sky-700' },
-    { label: 'Active Partners', value: stats?.partners.active ?? 0, sub: `${stats?.partners.pending ?? 0} pending · ${stats?.partners.inactive ?? 0} inactive`, icon: <UserCheck className="h-5 w-5 text-rose-600" />, color: 'bg-rose-500/10 text-rose-700' },
-    { label: 'Total Users', value: stats?.users.total ?? 0, sub: `${stats?.users.verified ?? 0} verified · ${stats?.users['2fa_enabled'] ?? 0} 2FA`, icon: <Users className="h-5 w-5 text-emerald-600" />, color: 'bg-emerald-500/10 text-emerald-700' },
-    { label: 'Verified Attributions', value: stats?.attributions.verified ?? 0, sub: `${stats?.attributions.total ?? 0} total · ${stats?.attributions.pending ?? 0} pending`, icon: <Link2 className="h-5 w-5 text-orange-600" />, color: 'bg-orange-500/10 text-orange-700' },
+    {
+      label: 'Organizations',
+      value: orgs?.total ?? 0,
+      footer: `${orgs?.customer ?? 0} customer · ${orgs?.partner ?? 0} partner`,
+      icon: Building2,
+      tone: 'bg-primary/10 text-primary',
+    },
+    {
+      label: 'Active Partners',
+      value: partners?.active ?? 0,
+      footer: `${partners?.pending ?? 0} pending · ${partners?.inactive ?? 0} inactive`,
+      icon: UserCheck,
+      tone: 'bg-accent/10 text-accent',
+    },
+    {
+      label: 'Total Users',
+      value: users?.total ?? 0,
+      footer: `${users?.verified ?? 0} verified · ${users?.['2fa_enabled'] ?? 0} 2FA`,
+      icon: Users,
+      tone: 'bg-primary/10 text-primary-dark',
+    },
+    {
+      label: 'Verified Attributions',
+      value: attrs?.verified ?? 0,
+      footer: `${attrs?.total ?? 0} total · ${attrs?.pending ?? 0} pending`,
+      icon: Link2,
+      tone: 'bg-accent/10 text-accent',
+    },
+  ];
+
+  const quickActions = [
+    {
+      label: 'Review Pending Partners',
+      href: adminLink('orabooks-partners'),
+      badge: partners?.pending ?? 0,
+    },
+    {
+      label: 'Pending Organizations',
+      href: adminLink('orabooks-orgs'),
+      badge: orgs?.pending ?? 0,
+    },
+    {
+      label: 'Job Queue',
+      href: adminLink('orabooks-job-queue'),
+    },
+    {
+      label: 'Observability',
+      href: adminLink('orabooks-observability'),
+    },
+    {
+      label: 'System Settings',
+      href: adminLink('orabooks-settings'),
+      icon: Settings,
+    },
+    {
+      label: 'View Audit Log',
+      href: adminLink('orabooks-audit'),
+    },
   ];
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-ink">Dashboard</h1>
-          {stats?.timestamp && (
-            <p className="mt-0.5 text-xs text-slate-500">Last updated: {new Date(stats.timestamp).toLocaleString()}</p>
-          )}
+      <header className="overflow-hidden rounded-2xl border border-border bg-white shadow-sm shadow-primary/5">
+        <div className="brand-accent-bar h-1.5" />
+        <div className="flex flex-col gap-4 p-6 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-wide text-primary">OraBooks Admin</p>
+            <h1 className="mt-1 text-2xl font-bold text-ink">Platform Dashboard</h1>
+            {stats?.timestamp && (
+              <p className="mt-1 text-xs text-ink-secondary">
+                Last updated: {new Date(stats.timestamp).toLocaleString()}
+              </p>
+            )}
+          </div>
+          <Button onClick={load} variant="secondary" size="sm">
+            <RefreshCw className="h-4 w-4" />
+            Refresh
+          </Button>
         </div>
-        <button onClick={load} className="flex items-center gap-1.5 rounded-lg border border-border bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50">
-          Refresh
-        </button>
+      </header>
+
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        {cards.map((card) => {
+          const Icon = card.icon;
+          return (
+            <div key={card.label} className="stat-card">
+              <div className={`inline-flex rounded-xl p-2.5 ${card.tone}`}>
+                <Icon className="h-5 w-5" />
+              </div>
+              <p className="mt-4 text-xs font-bold uppercase tracking-wide text-slate-500">{card.label}</p>
+              <p className="mt-1 text-3xl font-black text-ink">{card.value}</p>
+              <p className="mt-1 text-xs text-slate-500">{card.footer}</p>
+            </div>
+          );
+        })}
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {cards.map((c) => (
-          <div key={c.label} className="stat-card">
-            <div className="flex items-center justify-between">
-              <div className={`rounded-xl p-2.5 ${c.color}`}>{c.icon}</div>
-            </div>
-            <div className="mt-4">
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{c.label}</p>
-              <p className="mt-1 text-3xl font-bold text-ink">{c.value}</p>
-              <p className="mt-1 truncate text-xs text-slate-500">{c.sub}</p>
-            </div>
-          </div>
-        ))}
+      <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-4">
+        <DetailPanel
+          title="Organization Breakdown"
+          icon={Building2}
+          link={adminLink('orabooks-orgs')}
+          linkLabel="View all organizations"
+          rows={[
+            { label: 'Customer orgs', value: orgs?.customer ?? 0 },
+            { label: 'Partner orgs', value: orgs?.partner ?? 0 },
+            { label: 'Active', value: orgs?.active ?? 0, tone: 'success' },
+            { label: 'Pending setup', value: orgs?.pending ?? 0, tone: 'warning' },
+            { label: 'Suspended', value: orgs?.suspended ?? 0, tone: 'danger' },
+          ]}
+        />
+        <DetailPanel
+          title="Partner Codes"
+          icon={UserCheck}
+          link={adminLink('orabooks-partners')}
+          linkLabel="Manage partners"
+          rows={[
+            { label: 'Active', value: partners?.active ?? 0, tone: 'success' },
+            { label: 'Pending review', value: partners?.pending ?? 0, tone: 'warning' },
+            { label: 'Inactive', value: partners?.inactive ?? 0 },
+            { label: 'Disabled', value: partners?.disabled ?? 0, tone: 'muted' },
+          ]}
+        />
+        <DetailPanel
+          title="User Stats"
+          icon={Users}
+          link={adminLink('orabooks-users')}
+          linkLabel="View all users"
+          rows={[
+            { label: 'Customer users', value: users?.customer ?? 0 },
+            { label: 'Partner users', value: users?.partner ?? 0 },
+            { label: 'Verified email', value: users?.verified ?? 0, tone: 'success' },
+            { label: '2FA enabled', value: users?.['2fa_enabled'] ?? 0, tone: 'success' },
+          ]}
+        />
+        <DetailPanel
+          title="Attribution Stats"
+          icon={Link2}
+          link={adminLink('orabooks-partners')}
+          linkLabel="View attributions"
+          rows={[
+            { label: 'Total', value: attrs?.total ?? 0 },
+            { label: 'Verified', value: attrs?.verified ?? 0, tone: 'success' },
+            { label: 'Pending', value: attrs?.pending ?? 0, tone: 'warning' },
+            { label: 'Blocked', value: attrs?.blocked ?? 0, tone: 'danger' },
+          ]}
+        />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <div className="glass-panel p-6">
-          <h3 className="text-sm font-bold uppercase tracking-wide text-slate-500">Organizations</h3>
-          <div className="mt-4 space-y-2.5">
-            <StatRow label="Active" value={stats?.organizations.active ?? 0} />
-            <StatRow label="Pending Setup" value={stats?.organizations.pending ?? 0} />
-            <StatRow label="Suspended" value={stats?.organizations.suspended ?? 0} />
-            <StatRow label="Recent (7d)" value={stats?.organizations.recent_7d ?? 0} />
+        <section className="glass-panel overflow-hidden">
+          <div className="flex items-center gap-2 border-b border-border bg-muted/60 px-5 py-3">
+            <Clock className="h-4 w-4 text-primary" />
+            <h2 className="text-sm font-bold text-ink">Recent Activity (7 days)</h2>
           </div>
-        </div>
-        <div className="glass-panel p-6">
-          <h3 className="text-sm font-bold uppercase tracking-wide text-slate-500">Partners</h3>
-          <div className="mt-4 space-y-2.5">
-            <StatRow label="Active" value={stats?.partners.active ?? 0} />
-            <StatRow label="Pending Review" value={stats?.partners.pending ?? 0} />
-            <StatRow label="Inactive" value={stats?.partners.inactive ?? 0} />
-            <StatRow label="Disabled" value={stats?.partners.disabled ?? 0} />
+          <div className="divide-y divide-border">
+            <ActivityRow
+              icon={Building2}
+              text={`${orgs?.recent_7d ?? 0} new organizations`}
+            />
+            <ActivityRow
+              icon={Users}
+              text={`${users?.recent_7d ?? 0} new users registered`}
+            />
+            <ActivityRow
+              icon={Link2}
+              text={`${attrs?.recent_7d ?? 0} new attributions`}
+            />
           </div>
-        </div>
-        <div className="glass-panel p-6">
-          <h3 className="text-sm font-bold uppercase tracking-wide text-slate-500">Users</h3>
-          <div className="mt-4 space-y-2.5">
-            <StatRow label="Customer Users" value={stats?.users.customer ?? 0} />
-            <StatRow label="Partner Users" value={stats?.users.partner ?? 0} />
-            <StatRow label="Verified Email" value={stats?.users.verified ?? 0} />
-            <StatRow label="2FA Enabled" value={stats?.users['2fa_enabled'] ?? 0} />
+        </section>
+
+        <section className="glass-panel overflow-hidden">
+          <div className="flex items-center gap-2 border-b border-border bg-muted/60 px-5 py-3">
+            <Wrench className="h-4 w-4 text-primary" />
+            <h2 className="text-sm font-bold text-ink">Quick Actions</h2>
           </div>
-        </div>
-        <div className="glass-panel p-6">
-          <h3 className="text-sm font-bold uppercase tracking-wide text-slate-500">Attributions</h3>
-          <div className="mt-4 space-y-2.5">
-            <StatRow label="Total" value={stats?.attributions.total ?? 0} />
-            <StatRow label="Verified" value={stats?.attributions.verified ?? 0} />
-            <StatRow label="Pending" value={stats?.attributions.pending ?? 0} />
-            <StatRow label="Blocked" value={stats?.attributions.blocked ?? 0} />
+          <div className="divide-y divide-border">
+            {quickActions.map((action) => (
+              <a
+                key={action.label}
+                href={action.href}
+                className="flex items-center justify-between px-5 py-3 text-sm font-medium text-ink-secondary transition hover:bg-primary/5 hover:text-primary"
+              >
+                <span>{action.label}</span>
+                {action.badge && action.badge > 0 ? (
+                  <span className="badge bg-danger text-white">{action.badge}</span>
+                ) : null}
+              </a>
+            ))}
           </div>
-        </div>
+        </section>
       </div>
     </div>
   );
 }
 
-function StatRow({ label, value }: { label: string; value: number }) {
+function DetailPanel({
+  title,
+  icon: Icon,
+  link,
+  linkLabel,
+  rows,
+}: {
+  title: string;
+  icon: typeof Building2;
+  link: string;
+  linkLabel: string;
+  rows: { label: string; value: number; tone?: 'success' | 'warning' | 'danger' | 'muted' }[];
+}) {
+  const toneClass = {
+    success: 'text-success',
+    warning: 'text-warning',
+    danger: 'text-danger',
+    muted: 'text-slate-400',
+  };
+
   return (
-    <div className="flex items-center justify-between rounded-lg border border-border bg-white px-4 py-2.5">
-      <span className="text-sm text-slate-600">{label}</span>
-      <span className="text-sm font-bold text-ink">{value}</span>
+    <section className="glass-panel overflow-hidden">
+      <div className="flex items-center gap-2 border-b border-border bg-muted/60 px-5 py-3">
+        <Icon className="h-4 w-4 text-primary" />
+        <h2 className="text-sm font-bold text-ink">{title}</h2>
+      </div>
+      <div className="space-y-0 px-5 py-3">
+        {rows.map((row) => (
+          <div
+            key={row.label}
+            className="flex items-center justify-between border-b border-border/60 py-2.5 text-sm last:border-0"
+          >
+            <span className={row.tone ? toneClass[row.tone] : 'text-slate-600'}>{row.label}</span>
+            <span className="font-bold text-ink">{row.value}</span>
+          </div>
+        ))}
+      </div>
+      <div className="border-t border-border px-5 py-3">
+        <a href={link} className="text-xs font-semibold text-primary hover:text-primary-dark">
+          {linkLabel} →
+        </a>
+      </div>
+    </section>
+  );
+}
+
+function ActivityRow({ icon: Icon, text }: { icon: typeof Building2; text: string }) {
+  return (
+    <div className="flex items-center gap-3 px-5 py-3">
+      <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
+        <Icon className="h-4 w-4" />
+      </div>
+      <p className="text-sm text-slate-600">
+        <strong className="font-bold text-ink">{text.split(' ')[0]}</strong>
+        {text.slice(text.indexOf(' '))}
+      </p>
     </div>
   );
 }
