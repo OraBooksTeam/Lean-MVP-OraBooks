@@ -66,12 +66,9 @@ class OraBooks_Shortcodes {
      * @param bool   $require_login Whether a logged-in user is required.
      */
     private function react_page($route, $require_login = true) {
-        if ($require_login && !orabooks_is_user_logged_in()) {
-            return OraBooks_Views::require_login_message();
-        }
-
         return $this->render_view('react-app', [
             'initial_route' => $route,
+            'require_login' => $require_login,
         ]);
     }
 

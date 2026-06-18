@@ -281,39 +281,55 @@ function orabooks_resolve_user_id($user_id = 0) {
 }
 
 /**
+ * Return the first verified OraBooks JWT payload from request sources.
+ *
+ * @return array<string, mixed>|null
+ */
+function orabooks_get_verified_jwt_payload() {
+    if (!class_exists('OraBooks_Secrets')) {
+        return null;
+    }
+
+    $candidates = [];
+    $auth_header = $_SERVER['HTTP_AUTHORIZATION'] ?? $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ?? '';
+    if (stripos($auth_header, 'Bearer ') === 0) {
+        $candidates[] = trim(substr($auth_header, 7));
+    }
+    if (!empty($_COOKIE['orabooks_token'])) {
+        $candidates[] = sanitize_text_field(wp_unslash($_COOKIE['orabooks_token']));
+    }
+    if (isset($_REQUEST['orabooks_token'])) {
+        $candidates[] = sanitize_text_field(wp_unslash($_REQUEST['orabooks_token']));
+    }
+
+    foreach (array_unique(array_filter($candidates)) as $token) {
+        $payload = OraBooks_Secrets::verify_jwt($token);
+        if ($payload && !empty($payload['user_id'])) {
+            return $payload;
+        }
+    }
+
+    return null;
+}
+
+/**
  * Resolve an OraBooks user from WordPress auth or a verified OraBooks JWT.
  */
 function orabooks_get_current_user_id() {
     $wp_user_id = get_current_user_id();
     if ($wp_user_id) {
         $resolved = orabooks_resolve_user_id((int) $wp_user_id);
-        return $resolved ?: (int) $wp_user_id;
+        if ($resolved > 0) {
+            return $resolved;
+        }
     }
 
-    $token = '';
-    $auth_header = $_SERVER['HTTP_AUTHORIZATION'] ?? $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ?? '';
-    if (stripos($auth_header, 'Bearer ') === 0) {
-        $token = trim(substr($auth_header, 7));
+    $payload = orabooks_get_verified_jwt_payload();
+    if ($payload) {
+        return (int) $payload['user_id'];
     }
 
-    if (!$token && !empty($_COOKIE['orabooks_token'])) {
-        $token = sanitize_text_field(wp_unslash($_COOKIE['orabooks_token']));
-    }
-
-    if (!$token && isset($_REQUEST['orabooks_token'])) {
-        $token = sanitize_text_field(wp_unslash($_REQUEST['orabooks_token']));
-    }
-
-    if (!$token || !class_exists('OraBooks_Secrets')) {
-        return 0;
-    }
-
-    $payload = OraBooks_Secrets::verify_jwt($token);
-    if (!$payload || empty($payload['user_id'])) {
-        return 0;
-    }
-
-    return (int) $payload['user_id'];
+    return 0;
 }
 
 /**
