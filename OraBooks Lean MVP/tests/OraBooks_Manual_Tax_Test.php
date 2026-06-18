@@ -1,6 +1,6 @@
 <?php
 /**
- * Unit Tests for Manual Tax Override on Invoices (SL-081)
+ * Unit Tests for Manual Tax Override (SL-081)
  */
 
 use PHPUnit\Framework\Attributes\Test;
