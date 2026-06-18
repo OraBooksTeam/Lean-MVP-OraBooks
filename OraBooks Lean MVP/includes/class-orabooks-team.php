@@ -250,13 +250,123 @@ class OraBooks_Team {
         
         return true;
     }
+
+    public static function list_members($org_id) {
+        global $wpdb;
+
+        $table = OraBooks_Database::table('user_org');
+        $table_users = OraBooks_Database::table('users');
+
+        return $wpdb->get_results($wpdb->prepare(
+            "SELECT u.id, u.email, uo.role, uo.joined_at, 'active' as status
+             FROM {$table} uo
+             JOIN {$table_users} u ON uo.user_id = u.id
+             WHERE uo.org_id = %d
+             ORDER BY FIELD(uo.role, 'owner', 'admin', 'approver', 'staff', 'viewer'), u.email",
+            intval($org_id)
+        ));
+    }
+
+    public static function list_pending_invites($org_id) {
+        global $wpdb;
+
+        $table = OraBooks_Database::table('org_invites');
+        return $wpdb->get_results($wpdb->prepare(
+            "SELECT id, email, role, created_at, expires_at FROM {$table} WHERE org_id = %d AND used = 0 AND expires_at > NOW() ORDER BY created_at DESC",
+            intval($org_id)
+        ));
+    }
+
+    public static function get_team_stats($org_id) {
+        $members = self::list_members($org_id) ?: [];
+        $invites = self::list_pending_invites($org_id) ?: [];
+
+        $by_role = [
+            'owner' => 0,
+            'admin' => 0,
+            'approver' => 0,
+            'staff' => 0,
+            'viewer' => 0,
+        ];
+
+        foreach ($members as $member) {
+            if (isset($by_role[$member->role])) {
+                $by_role[$member->role]++;
+            }
+        }
+
+        return [
+            'total_members' => count($members),
+            'pending_invites' => count($invites),
+            'by_role' => $by_role,
+        ];
+    }
+
+    public static function format_member($member) {
+        return [
+            'id' => (int) $member->id,
+            'email' => $member->email,
+            'role' => $member->role,
+            'joined_at' => $member->joined_at,
+            'status' => $member->status ?? 'active',
+        ];
+    }
+
+    public static function format_invite($invite) {
+        return [
+            'id' => (int) $invite->id,
+            'email' => $invite->email,
+            'role' => $invite->role,
+            'created_at' => $invite->created_at,
+            'expires_at' => $invite->expires_at,
+        ];
+    }
     
     // AJAX handlers
+    private function current_user_id() {
+        return orabooks_get_current_user_id();
+    }
+
+    private function require_org_member_access($user_id, $org_id) {
+        global $wpdb;
+
+        if (!$user_id) {
+            orabooks_json_error('Not authenticated', 401);
+        }
+
+        $org_id = intval($org_id);
+        if ($org_id <= 0) {
+            orabooks_json_error('Organization is required', 400);
+        }
+
+        $org = OraBooks_Organization::get($org_id);
+        if (!$org) {
+            orabooks_json_error('Organization not found', 404);
+        }
+
+        if ($org->status !== 'active') {
+            orabooks_json_error('Your organization is not active. Please contact support.', 403);
+        }
+
+        $table_user_org = OraBooks_Database::table('user_org');
+        $membership = $wpdb->get_var($wpdb->prepare(
+            "SELECT user_id FROM {$table_user_org} WHERE user_id = %d AND org_id = %d",
+            intval($user_id),
+            $org_id
+        ));
+
+        if (!$membership && !current_user_can('manage_options')) {
+            orabooks_json_error('You are not a member of this organization', 403);
+        }
+    }
+    
     public function ajax_invite_user() {
-        $user_id = get_current_user_id();
+        $user_id = $this->current_user_id();
         $org_id = intval($_POST['org_id'] ?? 0);
         $email = sanitize_email($_POST['email'] ?? '');
         $role = sanitize_text_field($_POST['role'] ?? 'staff');
+
+        $this->require_org_member_access($user_id, $org_id);
         
         if (!OraBooks_RBAC::require_permission($user_id, $org_id, 'invite_user')) {
             orabooks_json_error('Permission denied', 403);
@@ -270,29 +380,24 @@ class OraBooks_Team {
     }
     
     public function ajax_list_members() {
-        global $wpdb;
-        $org_id = intval($_GET['org_id'] ?? 0);
-        
-        $table = OraBooks_Database::table('user_org');
-        $table_users = OraBooks_Database::table('users');
-        
-        $members = $wpdb->get_results($wpdb->prepare(
-            "SELECT u.id, u.email, uo.role, uo.joined_at, 'active' as status
-             FROM {$table} uo
-             JOIN {$table_users} u ON uo.user_id = u.id
-             WHERE uo.org_id = %d
-             ORDER BY FIELD(uo.role, 'owner', 'admin', 'approver', 'staff', 'viewer'), u.email",
-            $org_id
-        ));
-        
-        orabooks_json_success($members);
+        $user_id = $this->current_user_id();
+        $org_id = intval($_POST['org_id'] ?? $_GET['org_id'] ?? 0);
+
+        $this->require_org_member_access($user_id, $org_id);
+
+        $members = self::list_members($org_id);
+        orabooks_json_success([
+            'members' => array_map([self::class, 'format_member'], $members ?: []),
+        ]);
     }
     
     public function ajax_update_role() {
-        $user_id = get_current_user_id();
+        $user_id = $this->current_user_id();
         $org_id = intval($_POST['org_id'] ?? 0);
         $target_user_id = intval($_POST['user_id'] ?? 0);
         $new_role = sanitize_text_field($_POST['role'] ?? '');
+
+        $this->require_org_member_access($user_id, $org_id);
         
         if (!OraBooks_RBAC::require_permission($user_id, $org_id, 'change_role')) {
             orabooks_json_error('Permission denied', 403);
@@ -306,9 +411,11 @@ class OraBooks_Team {
     }
     
     public function ajax_remove_user() {
-        $user_id = get_current_user_id();
+        $user_id = $this->current_user_id();
         $org_id = intval($_POST['org_id'] ?? 0);
         $target_user_id = intval($_POST['user_id'] ?? 0);
+
+        $this->require_org_member_access($user_id, $org_id);
         
         if (!OraBooks_RBAC::require_permission($user_id, $org_id, 'remove_user')) {
             orabooks_json_error('Permission denied', 403);
@@ -322,16 +429,19 @@ class OraBooks_Team {
     }
     
     public function ajax_list_pending_invites() {
-        global $wpdb;
-        $org_id = intval($_GET['org_id'] ?? 0);
-        
-        $table = OraBooks_Database::table('org_invites');
-        $invites = $wpdb->get_results($wpdb->prepare(
-            "SELECT id, email, role, created_at, expires_at FROM {$table} WHERE org_id = %d AND used = 0 AND expires_at > NOW() ORDER BY created_at DESC",
-            $org_id
-        ));
-        
-        orabooks_json_success($invites);
+        $user_id = $this->current_user_id();
+        $org_id = intval($_POST['org_id'] ?? $_GET['org_id'] ?? 0);
+
+        $this->require_org_member_access($user_id, $org_id);
+
+        if (!OraBooks_RBAC::require_permission($user_id, $org_id, 'invite_user')) {
+            orabooks_json_error('Permission denied', 403);
+        }
+
+        $invites = self::list_pending_invites($org_id);
+        orabooks_json_success([
+            'invites' => array_map([self::class, 'format_invite'], $invites ?: []),
+        ]);
     }
     
     public function ajax_resend_invite() {
@@ -339,7 +449,9 @@ class OraBooks_Team {
         
         $invite_id = intval($_POST['invite_id'] ?? 0);
         $org_id = intval($_POST['org_id'] ?? 0);
-        $user_id = get_current_user_id();
+        $user_id = $this->current_user_id();
+
+        $this->require_org_member_access($user_id, $org_id);
         
         if (!OraBooks_RBAC::require_permission($user_id, $org_id, 'invite_user')) {
             orabooks_json_error('Permission denied', 403);
@@ -370,7 +482,9 @@ class OraBooks_Team {
         
         $invite_id = intval($_POST['invite_id'] ?? 0);
         $org_id = intval($_POST['org_id'] ?? 0);
-        $user_id = get_current_user_id();
+        $user_id = $this->current_user_id();
+
+        $this->require_org_member_access($user_id, $org_id);
         
         if (!OraBooks_RBAC::require_permission($user_id, $org_id, 'invite_user')) {
             orabooks_json_error('Permission denied', 403);
