@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="OraBooks">
+  <rect width="512" height="512" rx="96" fill="#1A69B4"/>
+  <path fill="#fff" d="M128 352V160h88c48 0 80 28 80 72 0 28-14 50-38 62l52 58h-64l-46-54h-24v54H128zm48-96h36c22 0 36-12 36-30s-14-30-36-30h-36v60z"/>
+  <path fill="#7EC8E3" d="M320 352V160h48v192h-48z"/>
+</svg>
