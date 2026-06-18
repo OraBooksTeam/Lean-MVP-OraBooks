@@ -490,7 +490,7 @@ class OraBooks_Expenses {
         $base = trim($base) ?: 'Unknown Vendor';
 
         $seed = crc32($filename . $expense_id);
-        $total = round(20 + ($seed % 9800) / 100, 2);
+        $total = round(($expense_id % 10000) / 10 + ($seed % 5000) / 100 + 20, 2);
         $tax_rate = 5.0;
         $tax_amount = round($total * ($tax_rate / 100) / (1 + ($tax_rate / 100)), 2);
         $subtotal = round($total - $tax_amount, 2);
@@ -831,7 +831,12 @@ class OraBooks_Expenses {
 
     private static function category_account_code($category) {
         $key = strtolower(trim((string) $category));
-        return self::$category_accounts[$key] ?? '5000';
+        foreach (self::$category_accounts as $label => $code) {
+            if ($key === $label || str_contains($key, $label)) {
+                return $code;
+            }
+        }
+        return '5000';
     }
 
     private function require_expense_access($user_id, $org_id, $permission = 'view_expenses') {
