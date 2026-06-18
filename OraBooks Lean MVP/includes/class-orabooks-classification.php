@@ -694,7 +694,7 @@ class OraBooks_Classification {
         return null;
     }
 
-    private static function run_ai_stub($record_type, $record, $text, $amount) {
+    public static function run_classification_stub($record_type, $record, $text, $amount) {
         $defaults = [
             '5100' => ['Office Supplies', 88.0],
             '5200' => ['Meals & Entertainment', 82.0],
