@@ -4,6 +4,8 @@ import tailwindcss from '@tailwindcss/vite';
 import path from 'path';
 
 export default defineConfig({
+  // Relative base so CSS/JS preloads resolve under wp-content/plugins/.../assets/react/
+  base: './',
   plugins: [react(), tailwindcss()],
   root: 'src',
   publicDir: '../public',
