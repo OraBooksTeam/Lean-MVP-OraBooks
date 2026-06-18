@@ -22,8 +22,11 @@ class OraBooks_Financial_Reports {
             self::$instance = new self();
 
             add_action('wp_ajax_orabooks_financial_report_generate', [self::$instance, 'ajax_generate_report']);
+            add_action('wp_ajax_nopriv_orabooks_financial_report_generate', [self::$instance, 'ajax_generate_report']);
             add_action('wp_ajax_orabooks_financial_report_export', [self::$instance, 'ajax_request_export']);
+            add_action('wp_ajax_nopriv_orabooks_financial_report_export', [self::$instance, 'ajax_request_export']);
             add_action('wp_ajax_orabooks_financial_report_sign', [self::$instance, 'ajax_sign_report']);
+            add_action('wp_ajax_nopriv_orabooks_financial_report_sign', [self::$instance, 'ajax_sign_report']);
             add_action('wp_ajax_orabooks_financial_report_rebuild', [self::$instance, 'ajax_rebuild_projection']);
 
             add_action('orabooks_journal_posted', [self::$instance, 'project_journal_posted'], 10, 2);
@@ -530,6 +533,23 @@ class OraBooks_Financial_Reports {
             'frozen' => !empty($snapshot->frozen),
             'from_cache' => $from_cache,
         ];
+    }
+
+    public static function get_recent_snapshots($org_id, $args = []) {
+        global $wpdb;
+
+        $table = OraBooks_Database::table('report_snapshots');
+        $limit = intval($args['limit'] ?? 10);
+
+        return $wpdb->get_results($wpdb->prepare(
+            "SELECT id, report_type, period_start, period_end, frozen, created_at, correlation_id
+             FROM {$table}
+             WHERE org_id = %d
+             ORDER BY created_at DESC, id DESC
+             LIMIT %d",
+            intval($org_id),
+            $limit
+        ));
     }
 
     public static function project_journal_posted($journal_id, $payload = []) {

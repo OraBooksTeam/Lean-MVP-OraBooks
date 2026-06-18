@@ -692,7 +692,7 @@ function orabooks_enqueue_react_admin_bundle($ajax_config) {
 
     wp_add_inline_script(
         'orabooks-react-admin',
-        'window.setTimeout(function(){var root=document.getElementById("orabooks-admin-root");if(root&&!window.orabooksAdminMounted){root.innerHTML="<div style=\"padding:24px;border:1px solid #d8e6f3;border-radius:16px;background:#fff;color:#102f52;\"><h2 style=\"margin:0 0 8px;color:#1A69B4;\">OraBooks dashboard did not load</h2><p style=\"margin:0;\">Check browser Console/Network for blocked or missing JavaScript.</p></div>";}},3500);',
+        'window.setTimeout(function(){var root=document.getElementById("orabooks-admin-root");if(root&&!window.orabooksAdminMounted){root.classList.add("is-mounted");root.innerHTML="<div style=\"padding:24px;border:1px solid #d8e6f3;border-radius:16px;background:#fff;color:#102f52;\"><h2 style=\"margin:0 0 8px;color:#1A69B4;\">OraBooks did not load</h2><p style=\"margin:0 0 8px;\">The admin JavaScript bundle did not run. Upload the full <code>assets/react/</code> folder and hard-refresh.</p><p style=\"margin:0;font-size:12px;color:#64748b;\">Check Network for <strong>admin.js</strong> (should be ~340KB, status 200).</p></div>";}},4000);',
         'before'
     );
 }
@@ -709,6 +709,7 @@ function orabooks_admin_enqueue($hook) {
         'ajax_url' => admin_url('admin-ajax.php'),
         'nonce' => wp_create_nonce('orabooks_nonce'),
         'admin_base' => admin_url('admin.php'),
+        'react_base' => ORABOOKS_PLUGIN_URL . 'assets/react/',
         'current_user_id' => get_current_user_id(),
         'logout_url' => wp_logout_url(home_url('/login/')),
     ];

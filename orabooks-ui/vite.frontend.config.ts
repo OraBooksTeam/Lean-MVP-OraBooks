@@ -11,17 +11,12 @@ export default defineConfig({
     outDir: path.resolve(__dirname, '../OraBooks Lean MVP/assets/react'),
     emptyOutDir: false,
     cssCodeSplit: false,
+    codeSplitting: false,
     rollupOptions: {
       input: path.resolve(__dirname, 'src/pages/frontend/main.tsx'),
       output: {
         entryFileNames: 'frontend.js',
-        chunkFileNames: 'chunks/[name]-[hash].js',
         assetFileNames: 'assets/[name]-[hash].[ext]',
-        manualChunks(id) {
-          if (id.includes('node_modules')) {
-            return 'vendor';
-          }
-        },
       },
     },
   },
