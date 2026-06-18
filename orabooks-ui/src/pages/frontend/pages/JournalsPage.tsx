@@ -180,11 +180,33 @@ export default function JournalsPage() {
             <option value="locked">Locked</option>
             <option value="reversed">Reversed</option>
           </select>
-          <Button onClick={() => load()} variant="secondary" size="sm">
-            <RefreshCw className="h-4 w-4" />
-            Refresh
-          </Button>
+          <div className="flex gap-2">
+            <Button onClick={() => setShowCreate((v) => !v)} size="sm">
+              <Plus className="h-4 w-4" />
+              New journal
+            </Button>
+            <Button onClick={() => load()} variant="secondary" size="sm">
+              <RefreshCw className="h-4 w-4" />
+              Refresh
+            </Button>
+          </div>
         </div>
+
+        {showCreate && (
+          <div className="glass-panel grid gap-4 p-5 md:grid-cols-2">
+            <Input label="Transaction date" type="date" value={createDate} onChange={(e) => setCreateDate(e.target.value)} />
+            <Input label="Amount" type="number" min="0" step="0.01" value={entryAmount} onChange={(e) => setEntryAmount(e.target.value)} placeholder="0.00" />
+            <Input label="Debit account code" value={debitAccount} onChange={(e) => setDebitAccount(e.target.value)} placeholder="e.g. 1010" />
+            <Input label="Credit account code" value={creditAccount} onChange={(e) => setCreditAccount(e.target.value)} placeholder="e.g. 4010" />
+            <div className="md:col-span-2">
+              <Input label="Description" value={entryDescription} onChange={(e) => setEntryDescription(e.target.value)} placeholder="Journal entry memo" />
+            </div>
+            <div className="md:col-span-2 flex gap-2">
+              <Button onClick={createJournal} loading={actionLoading}>Create draft</Button>
+              <Button variant="secondary" onClick={() => setShowCreate(false)}>Cancel</Button>
+            </div>
+          </div>
+        )}
 
         {error && <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-medium text-red-700">{error}</div>}
         {success && <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-medium text-emerald-700">{success}</div>}
