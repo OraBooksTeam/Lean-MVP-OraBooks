@@ -339,6 +339,8 @@ export const api = {
     api.get('orabooks_get_journal', { org_id: orgId, journal_id: journalId }),
   approvalDashboard: () =>
     api.get('orabooks_approval_dashboard'),
+  aiReviewDashboard: () =>
+    api.get('orabooks_ai_review_dashboard'),
   submitJournal: (journalId: number) =>
     api.post('orabooks_submit_journal', { journal_id: journalId }),
   approveJournal: (journalId: number) =>

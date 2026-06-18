@@ -18,6 +18,7 @@ import CsvImportsPage from './pages/CsvImportsPage';
 import TeamPage from './pages/TeamPage';
 import AttachmentsPage from './pages/AttachmentsPage';
 import ApprovalsPage from './pages/ApprovalsPage';
+import AiReviewPage from './pages/AiReviewPage';
 import ProfilePage from './pages/ProfilePage';
 import NotificationPreferencesPage from './pages/NotificationPreferencesPage';
 
@@ -41,6 +42,7 @@ export default function FrontendRoutes() {
       <Route path="/chart-of-accounts" element={<ChartOfAccountsPage />} />
       <Route path="/journals" element={<JournalsPage />} />
       <Route path="/approvals" element={<ApprovalsPage />} />
+      <Route path="/ai-review" element={<AiReviewPage />} />
       <Route path="/partner-onboarding" element={<PartnerOnboardingPage />} />
       <Route path="/notifications" element={<NotificationsPage />} />
       <Route path="/notification-preferences" element={<NotificationPreferencesPage />} />
