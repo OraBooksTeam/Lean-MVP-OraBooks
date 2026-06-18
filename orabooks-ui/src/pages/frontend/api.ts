@@ -167,6 +167,8 @@ export const api = {
     api.post('orabooks_2fa_challenge', { temp_token: tempToken, otp_code: otp, backup_code: backup }),
   getPartnerInfo: () =>
     api.post('orabooks_get_partner_info'),
+  partnerOnboarding: () =>
+    api.get('orabooks_partner_onboarding'),
   requestReactivation: (orgId: number, reason: string) =>
     api.post('orabooks_request_reactivation', { org_id: orgId, reason }),
   partnerCodeCopied: (source = 'dashboard') =>

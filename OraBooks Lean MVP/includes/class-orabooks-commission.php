@@ -1689,13 +1689,9 @@ class OraBooks_Commission {
     }
 
     public function ajax_escrow_schedule() {
-        $user_id = get_current_user_id();
-        $org_id = intval($_GET['org_id'] ?? 0);
-        
-        if (!OraBooks_RBAC::require_permission($user_id, $org_id, 'partner_commission_access')) {
-            orabooks_json_error('Permission denied', 403);
-        }
-        
+        $context = $this->require_partner_commission_user();
+        $user_id = $context['user_id'];
+
         $partner_user_id = intval($_GET['partner_user_id'] ?? $user_id);
         $escrows = self::get_escrow_schedule($partner_user_id);
         
