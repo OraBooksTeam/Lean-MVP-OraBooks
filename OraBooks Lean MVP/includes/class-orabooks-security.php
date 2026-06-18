@@ -273,7 +273,17 @@ class OraBooks_Security {
 
         $csp = apply_filters(
             'orabooks_content_security_policy',
-            "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: https:; frame-ancestors 'self';"
+            implode(' ', [
+                "default-src 'self' data: blob: https:;",
+                // unsafe-eval only in script-src (legacy accounting Tailwind CDN); not in script-src-elem.
+                "script-src 'self' 'unsafe-inline' 'unsafe-eval' https: blob:;",
+                "script-src-elem 'self' 'unsafe-inline' https: blob:;",
+                "style-src 'self' 'unsafe-inline' https:;",
+                "img-src 'self' data: blob: https:;",
+                "font-src 'self' data: https:;",
+                "connect-src 'self' https:;",
+                "frame-ancestors 'self';",
+            ])
         );
         header('Content-Security-Policy: ' . $csp);
 
