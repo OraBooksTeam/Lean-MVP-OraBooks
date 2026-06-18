@@ -169,6 +169,8 @@ export const api = {
     api.post('orabooks_forgot_password', { email }),
   resetPassword: (token: string, password: string) =>
     api.post('orabooks_reset_password', { token, password }),
+  verifyEmailToken: (token: string) =>
+    api.post('orabooks_verify_email_token', { token }),
   getPartnerInfo: () =>
     api.post('orabooks_get_partner_info'),
   partnerOnboarding: () =>
@@ -670,6 +672,28 @@ export const api = {
     api.post('orabooks_notification_admin_policy_save', { org_id: orgId, ...data }),
   notificationProviderHealth: (orgId: number) =>
     api.get('orabooks_notification_admin_provider_health', { org_id: orgId }),
+  notificationAuditExport: async (orgId: number, startDate: string, endDate: string) => {
+    const qs = new URLSearchParams();
+    const token = getStoredToken();
+    qs.set('action', 'orabooks_notification_admin_audit_export');
+    qs.set('_ajax_nonce', ORABOOKS_NONCE);
+    qs.set('org_id', String(orgId));
+    qs.set('start_date', startDate);
+    qs.set('end_date', endDate);
+    if (token) qs.set('orabooks_token', token);
+    if (ORABOOKS_USER_ID) qs.set('current_user_id', String(ORABOOKS_USER_ID));
+
+    try {
+      const res = await fetch(`${ORABOOKS_URL}?${qs.toString()}`);
+      const json = await res.json();
+      if (!res.ok || json?.success === false) {
+        return { error: extractError(json, 'Audit export failed.') };
+      }
+      return { data: json?.data ?? json };
+    } catch (error) {
+      return { error: error instanceof Error ? error.message : 'Audit export failed.' };
+    }
+  },
 
   // Exports
   exportRequest: (exportType: string, format: 'csv' | 'pdf', parameters?: Record<string, any>) =>

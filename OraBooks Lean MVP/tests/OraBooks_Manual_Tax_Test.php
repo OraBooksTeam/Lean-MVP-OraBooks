@@ -223,4 +223,125 @@ class OraBooks_Manual_Tax_Test extends TestCase
         $this->assertInstanceOf(WP_Error::class, $result);
         $this->assertEquals('tax_locked', $result->get_error_code());
     }
+
+    private function mockExpense(array $overrides = []): object
+    {
+        return (object) array_merge([
+            'id' => 200,
+            'org_id' => 5,
+            'vendor' => 'Acme Supplies',
+            'transaction_date' => '2026-06-01',
+            'subtotal' => '100.00',
+            'total_amount' => '115.00',
+            'tax_amount' => '15.00',
+            'tax_rate' => '15.00',
+            'workflow_status' => 'draft',
+            'currency' => 'USD',
+        ], $overrides);
+    }
+
+    #[Test]
+    public function test_expense_schema_contains_manual_tax_override_columns()
+    {
+        $sql = implode("\n", OraBooks_Expenses::get_create_table_sql());
+
+        $this->assertStringContainsString('tax_override_reason VARCHAR(64)', $sql);
+        $this->assertStringContainsString('tax_override_by BIGINT UNSIGNED', $sql);
+        $this->assertStringContainsString('tax_override_at TIMESTAMP NULL', $sql);
+    }
+
+    #[Test]
+    public function test_override_expense_tax_updates_draft_expense()
+    {
+        global $wpdb;
+
+        $wpdb->test_get_row_callback = function ($query) {
+            if (stripos($query, 'orabooks_expenses') !== false) {
+                return $this->mockExpense();
+            }
+            if (stripos($query, 'fiscal_periods') !== false) {
+                return (object) ['status' => 'open'];
+            }
+            if (stripos($query, 'orabooks_tax_configs') !== false) {
+                return (object) [
+                    'id' => 1,
+                    'default_tax_rate' => '15.0000',
+                    'tax_type' => 'VAT',
+                    'override_reasons' => json_encode(['WRONG_AI_CLASSIFICATION']),
+                ];
+            }
+            return null;
+        };
+
+        $result = OraBooks_Expenses::override_expense_tax(
+            5,
+            200,
+            5,
+            'WRONG_AI_CLASSIFICATION',
+            7,
+            'BD'
+        );
+
+        $this->assertIsArray($result);
+        $this->assertEquals(5.0, $result['tax_rate']);
+        $this->assertEquals(5.0, $result['tax_amount']);
+        $this->assertEquals(105.0, $result['total_amount']);
+        $this->assertEquals('WRONG_AI_CLASSIFICATION', $result['tax_override_reason']);
+        $this->assertEquals(7, $result['tax_override_by']);
+    }
+
+    #[Test]
+    public function test_override_expense_tax_blocks_submitted_expense()
+    {
+        global $wpdb;
+
+        $wpdb->test_get_row_callback = function ($query) {
+            if (stripos($query, 'orabooks_expenses') !== false) {
+                return $this->mockExpense(['workflow_status' => 'submitted']);
+            }
+            return null;
+        };
+
+        $result = OraBooks_Expenses::override_expense_tax(
+            5,
+            200,
+            5,
+            'LOCAL_TAX_RULE',
+            7,
+            'BD'
+        );
+
+        $this->assertInstanceOf(WP_Error::class, $result);
+        $this->assertEquals('invalid_status', $result->get_error_code());
+    }
+
+    #[Test]
+    public function test_clear_expense_tax_override_recalculates_from_tax_engine()
+    {
+        global $wpdb;
+
+        $wpdb->test_get_row_callback = function ($query) {
+            if (stripos($query, 'orabooks_expenses') !== false) {
+                return $this->mockExpense([
+                    'tax_override_reason' => 'LOCAL_TAX_RULE',
+                    'tax_override_by' => 7,
+                    'tax_override_at' => '2026-06-01 10:00:00',
+                ]);
+            }
+            if (stripos($query, 'orabooks_tax_configs') !== false) {
+                return (object) [
+                    'id' => 1,
+                    'default_tax_rate' => '10.0000',
+                    'tax_type' => 'VAT',
+                    'override_reasons' => json_encode(['LOCAL_TAX_RULE']),
+                ];
+            }
+            return null;
+        };
+
+        $result = OraBooks_Expenses::clear_expense_tax_override(5, 200, 7, 'US');
+
+        $this->assertIsArray($result);
+        $this->assertNull($result['tax_override_reason']);
+    }
 }
