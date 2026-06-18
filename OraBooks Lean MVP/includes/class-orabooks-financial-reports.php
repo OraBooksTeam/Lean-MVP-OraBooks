@@ -976,18 +976,20 @@ class OraBooks_Financial_Reports {
 
         foreach ($order as $name) {
             if ($name === 'ledger_summary') {
-                $results[$name] = self::replay_ledger_summary($args);
+                $result = self::replay_ledger_summary($args);
             } else {
-                $results[$name] = [
+                $result = [
                     'projection_name' => $name,
                     'skipped' => true,
                     'reason' => 'Dependent projection replay not required in MVP',
                 ];
             }
 
-            if (is_wp_error($results[$name])) {
-                return $results[$name];
+            if (is_wp_error($result)) {
+                return $result;
             }
+
+            $results[$name] = $result;
         }
 
         if (class_exists('OraBooks_Posting') && method_exists('OraBooks_Posting', 'bump_read_model_version')) {
