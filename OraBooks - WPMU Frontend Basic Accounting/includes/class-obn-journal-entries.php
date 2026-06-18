@@ -146,7 +146,12 @@ class OBN_Journal_Entries {
         $id = intval( $_POST['id'] ?? 0 );
         if ( $id <= 0 ) wp_send_json_error('Invalid ID');
 
-        $entry = $wpdb->get_row( $wpdb->prepare( "SELECT organization_id, store_id, entry_date FROM $je_table WHERE id = %d", $id ) );
+        $entry = $wpdb->get_row( $wpdb->prepare(
+            "SELECT organization_id, store_id, entry_date FROM $je_table WHERE id = %d AND (organization_id = %d OR store_id = %d)",
+            $id,
+            obn_current_org_id(),
+            obn_current_org_id()
+        ) );
         if ( ! $entry ) {
             wp_send_json_error('Journal Entry not found.');
         }

@@ -120,4 +120,44 @@ class OraBooks_Fiscal_Test extends TestCase
 
         $this->assertTrue(OraBooks_Fiscal::is_period_hard_closed(2, '2026-05-15'));
     }
+
+    #[Test]
+    public function test_override_reopen_period_requires_hard_closed()
+    {
+        global $wpdb;
+
+        $wpdb->test_get_row_callback = function () {
+            return (object) [
+                'id' => 10,
+                'org_id' => 2,
+                'period_start' => '2026-05-01',
+                'period_end' => '2026-05-31',
+                'status' => 'open',
+            ];
+        };
+
+        $result = OraBooks_Fiscal::override_reopen_period(10, 2, 1, 'Audit correction');
+        $this->assertInstanceOf(WP_Error::class, $result);
+        $this->assertSame('invalid_status', $result->get_error_code());
+    }
+
+    #[Test]
+    public function test_paginate_periods_filters_by_status()
+    {
+        global $wpdb;
+
+        $wpdb->test_get_results_callback = function ($query) {
+            if (stripos($query, 'fiscal_periods') !== false) {
+                return [
+                    (object) ['id' => 1, 'org_id' => 2, 'period_start' => '2026-06-01', 'period_end' => '2026-06-30', 'status' => 'open'],
+                    (object) ['id' => 2, 'org_id' => 2, 'period_start' => '2026-05-01', 'period_end' => '2026-05-31', 'status' => 'soft_closed'],
+                ];
+            }
+            return [];
+        };
+
+        $result = OraBooks_Fiscal::paginate_periods(2, ['status' => 'OPEN']);
+        $this->assertCount(1, $result['items']);
+        $this->assertSame('OPEN', $result['items'][0]['status']);
+    }
 }
