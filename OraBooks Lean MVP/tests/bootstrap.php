@@ -986,13 +986,6 @@ if (!file_exists($exports_file)) {
 }
 require_once $exports_file;
 
-$helpers_file = __DIR__ . '/../includes/helpers.php';
-if (!file_exists($helpers_file)) {
-    echo "ERROR: Cannot find helpers.php at {$helpers_file}\n";
-    exit(1);
-}
-require_once $helpers_file;
-
 $auth_file = __DIR__ . '/../includes/class-orabooks-auth.php';
 if (!file_exists($auth_file)) {
     echo "ERROR: Cannot find class-orabooks-auth.php at {$auth_file}\n";
