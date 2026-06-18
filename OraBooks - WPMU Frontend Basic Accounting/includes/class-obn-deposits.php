@@ -75,7 +75,7 @@ class OBN_Deposits
 
             // Insert into Transactions table
             $wpdb->insert($wpdb->prefix . 'orabooks_ac_transactions', array(
-                'store_id' => get_current_blog_id(),
+                'store_id' => obn_current_org_id(),
                 'payment_code' => $reference_no,
                 'transaction_date' => $deposit_date,
                 'transaction_type' => 'Money Deposit',
@@ -122,7 +122,7 @@ class OBN_Deposits
         if (!$old_data)
             wp_send_json_error('Deposit not found.');
         if (class_exists('OBN_Fiscal_Period_Posting_Guard')) {
-            $modification_allowed = OBN_Fiscal_Period_Posting_Guard::can_modify(get_current_blog_id(), $old_data->deposit_date);
+            $modification_allowed = OBN_Fiscal_Period_Posting_Guard::can_modify(obn_current_org_id(), $old_data->deposit_date);
             if (is_wp_error($modification_allowed)) {
                 wp_send_json_error($modification_allowed->get_error_message(), 409);
             }
@@ -184,7 +184,7 @@ class OBN_Deposits
         if (!$data)
             wp_send_json_error('Deposit not found.');
         if (class_exists('OBN_Fiscal_Period_Posting_Guard')) {
-            $modification_allowed = OBN_Fiscal_Period_Posting_Guard::can_modify(get_current_blog_id(), $data->deposit_date);
+            $modification_allowed = OBN_Fiscal_Period_Posting_Guard::can_modify(obn_current_org_id(), $data->deposit_date);
             if (is_wp_error($modification_allowed)) {
                 wp_send_json_error($modification_allowed->get_error_message(), 409);
             }
@@ -223,7 +223,7 @@ class OBN_Deposits
             wp_send_json_error('Deposit not found.');
         }
         if (class_exists('OBN_Fiscal_Period_Posting_Guard')) {
-            $modification_allowed = OBN_Fiscal_Period_Posting_Guard::can_modify(get_current_blog_id(), $data->deposit_date);
+            $modification_allowed = OBN_Fiscal_Period_Posting_Guard::can_modify(obn_current_org_id(), $data->deposit_date);
             if (is_wp_error($modification_allowed)) {
                 wp_send_json_error($modification_allowed->get_error_message(), 409);
             }

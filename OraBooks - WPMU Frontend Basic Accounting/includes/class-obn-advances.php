@@ -88,7 +88,7 @@ class OBN_Advances {
         if (class_exists('OBN_Fiscal_Period_Posting_Guard')) {
             $existing_advance = $wpdb->get_row( $wpdb->prepare( "SELECT payment_date FROM {$table} WHERE id = %d", $id ) );
             if ( ! $existing_advance ) wp_send_json_error('Advance not found.');
-            $modification_allowed = OBN_Fiscal_Period_Posting_Guard::can_modify(get_current_blog_id(), $existing_advance->payment_date);
+            $modification_allowed = OBN_Fiscal_Period_Posting_Guard::can_modify(obn_current_org_id(), $existing_advance->payment_date);
             if (is_wp_error($modification_allowed)) {
                 wp_send_json_error($modification_allowed->get_error_message(), 409);
             }
@@ -121,7 +121,7 @@ class OBN_Advances {
         $data = $wpdb->get_row( $wpdb->prepare( "SELECT payment_date FROM {$table} WHERE id = %d", $id ) );
         if ( ! $data ) wp_send_json_error('Advance not found.');
         if (class_exists('OBN_Fiscal_Period_Posting_Guard')) {
-            $modification_allowed = OBN_Fiscal_Period_Posting_Guard::can_modify(get_current_blog_id(), $data->payment_date);
+            $modification_allowed = OBN_Fiscal_Period_Posting_Guard::can_modify(obn_current_org_id(), $data->payment_date);
             if (is_wp_error($modification_allowed)) {
                 wp_send_json_error($modification_allowed->get_error_message(), 409);
             }
@@ -147,7 +147,7 @@ class OBN_Advances {
         $data = $wpdb->get_row( $wpdb->prepare( "SELECT payment_date FROM {$table} WHERE id = %d", $id ) );
         if ( ! $data ) wp_send_json_error('Advance not found.');
         if (class_exists('OBN_Fiscal_Period_Posting_Guard')) {
-            $modification_allowed = OBN_Fiscal_Period_Posting_Guard::can_modify(get_current_blog_id(), $data->payment_date);
+            $modification_allowed = OBN_Fiscal_Period_Posting_Guard::can_modify(obn_current_org_id(), $data->payment_date);
             if (is_wp_error($modification_allowed)) {
                 wp_send_json_error($modification_allowed->get_error_message(), 409);
             }

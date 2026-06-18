@@ -73,7 +73,7 @@ class OBN_Journal_Entries {
         $lines        = $data['lines'] ?? array();
         $source_type  = $data['source_type'] ?? '';
         $source_id    = $data['source_id'] ?? null;
-        $org_id       = intval($data['organization_id'] ?? get_current_blog_id());
+        $org_id       = intval($data['organization_id'] ?? obn_current_org_id());
 
         if ( class_exists('OBN_Fiscal_Period_Posting_Guard') ) {
             $posting_allowed = OBN_Fiscal_Period_Posting_Guard::can_post($org_id, $entry_date);
@@ -98,7 +98,7 @@ class OBN_Journal_Entries {
         }
 
         $inserted = $wpdb->insert( $je_table, array(
-            'store_id'     => get_current_blog_id(),
+            'store_id'     => obn_current_org_id(),
             'organization_id' => $org_id,
             'entry_date'   => $entry_date,
             'posting_date' => $entry_date,
@@ -152,7 +152,7 @@ class OBN_Journal_Entries {
         }
 
         if ( class_exists('OBN_Fiscal_Period_Posting_Guard') ) {
-            $org_id = intval($entry->organization_id ?: $entry->store_id ?: get_current_blog_id());
+            $org_id = intval($entry->organization_id ?: $entry->store_id ?: obn_current_org_id());
             $modification_allowed = OBN_Fiscal_Period_Posting_Guard::can_modify($org_id, $entry->entry_date);
             if ( is_wp_error($modification_allowed) ) {
                 wp_send_json_error($modification_allowed->get_error_message());

@@ -46,7 +46,7 @@ class OBN_Money_Transfer {
         $code_data = $this->generate_transfer_code();
 
 		$data = array(
-            'store_id' => get_current_blog_id(),
+            'store_id' => obn_current_org_id(),
 			'count_id' => $code_data['count_id'],
 			'transfer_code' => $code_data['code'],
 			'transfer_date' => $transfer_date,
@@ -144,7 +144,7 @@ class OBN_Money_Transfer {
 			wp_send_json_error( 'Transfer not found.' );
 		}
         if ( class_exists('OBN_Fiscal_Period_Posting_Guard') ) {
-            $modification_allowed = OBN_Fiscal_Period_Posting_Guard::can_modify(get_current_blog_id(), $old_transfer->transfer_date);
+            $modification_allowed = OBN_Fiscal_Period_Posting_Guard::can_modify(obn_current_org_id(), $old_transfer->transfer_date);
             if ( is_wp_error($modification_allowed) ) {
                 wp_send_json_error($modification_allowed->get_error_message(), 409);
             }
@@ -207,7 +207,7 @@ class OBN_Money_Transfer {
             wp_send_json_error( 'Transfer not found.' );
         }
         if ( class_exists('OBN_Fiscal_Period_Posting_Guard') ) {
-            $modification_allowed = OBN_Fiscal_Period_Posting_Guard::can_modify(get_current_blog_id(), $transfer->transfer_date);
+            $modification_allowed = OBN_Fiscal_Period_Posting_Guard::can_modify(obn_current_org_id(), $transfer->transfer_date);
             if ( is_wp_error($modification_allowed) ) {
                 wp_send_json_error($modification_allowed->get_error_message(), 409);
             }

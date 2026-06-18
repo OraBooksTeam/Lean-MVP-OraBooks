@@ -69,7 +69,7 @@ class OBN_Fiscal_Year {
         }
 
         $inserted = $wpdb->insert( $table, [
-            'store_id' => get_current_blog_id(),
+            'store_id' => obn_current_org_id(),
             'fiscal_year_name' => $name,
             'start_date' => $start_date,
             'end_date' => $end_date,

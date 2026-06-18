@@ -22,7 +22,7 @@ class OBN_Reimbursement_Service {
             if (!empty($data['id'])) {
                 $existing = $this->repository->find_by_id(intval($data['id']));
                 if ($existing) {
-                    $modification_allowed = OBN_Fiscal_Period_Posting_Guard::can_modify(get_current_blog_id(), $existing->date);
+                    $modification_allowed = OBN_Fiscal_Period_Posting_Guard::can_modify(obn_current_org_id(), $existing->date);
                     if (is_wp_error($modification_allowed)) {
                         throw new Exception($modification_allowed->get_error_message());
                     }
@@ -113,7 +113,7 @@ class OBN_Reimbursement_Service {
         }
 
         if (class_exists('OBN_Fiscal_Period_Posting_Guard')) {
-            $modification_allowed = OBN_Fiscal_Period_Posting_Guard::can_modify(get_current_blog_id(), $reimbursement->date);
+            $modification_allowed = OBN_Fiscal_Period_Posting_Guard::can_modify(obn_current_org_id(), $reimbursement->date);
             if (is_wp_error($modification_allowed)) {
                 throw new Exception($modification_allowed->get_error_message());
             }
@@ -122,7 +122,7 @@ class OBN_Reimbursement_Service {
 
     private function assert_postable_date($entry_date) {
         if (class_exists('OBN_Fiscal_Period_Posting_Guard')) {
-            $posting_allowed = OBN_Fiscal_Period_Posting_Guard::can_post(get_current_blog_id(), $entry_date);
+            $posting_allowed = OBN_Fiscal_Period_Posting_Guard::can_post(obn_current_org_id(), $entry_date);
             if (is_wp_error($posting_allowed)) {
                 throw new Exception($posting_allowed->get_error_message());
             }
@@ -136,15 +136,15 @@ class OBN_Reimbursement_Service {
         $entry_date = current_time('Y-m-d');
 
         if (class_exists('OBN_Fiscal_Period_Posting_Guard')) {
-            $posting_allowed = OBN_Fiscal_Period_Posting_Guard::can_post(get_current_blog_id(), $entry_date);
+            $posting_allowed = OBN_Fiscal_Period_Posting_Guard::can_post(obn_current_org_id(), $entry_date);
             if (is_wp_error($posting_allowed)) {
                 throw new Exception($posting_allowed->get_error_message());
             }
         }
 
         $wpdb->insert($je_table, [
-            'store_id' => get_current_blog_id(),
-            'organization_id' => get_current_blog_id(),
+            'store_id' => obn_current_org_id(),
+            'organization_id' => obn_current_org_id(),
             'entry_date' => $entry_date,
             'posting_date' => $entry_date,
             'reference_no' => $reimbursement->reimbursement_no,
@@ -189,15 +189,15 @@ class OBN_Reimbursement_Service {
         $entry_date = current_time('Y-m-d');
 
         if (class_exists('OBN_Fiscal_Period_Posting_Guard')) {
-            $posting_allowed = OBN_Fiscal_Period_Posting_Guard::can_post(get_current_blog_id(), $entry_date);
+            $posting_allowed = OBN_Fiscal_Period_Posting_Guard::can_post(obn_current_org_id(), $entry_date);
             if (is_wp_error($posting_allowed)) {
                 throw new Exception($posting_allowed->get_error_message());
             }
         }
 
         $wpdb->insert($je_table, [
-            'store_id' => get_current_blog_id(),
-            'organization_id' => get_current_blog_id(),
+            'store_id' => obn_current_org_id(),
+            'organization_id' => obn_current_org_id(),
             'entry_date' => $entry_date,
             'posting_date' => $entry_date,
             'reference_no' => 'PAY-' . $reimbursement->reimbursement_no,

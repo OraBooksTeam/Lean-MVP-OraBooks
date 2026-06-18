@@ -109,7 +109,7 @@ class OBN_Fiscal_Period_Policy {
             return OBN_Lean_MVP_Bridge::current_org_id();
         }
 
-        return get_current_blog_id();
+        return obn_current_org_id();
     }
 
     public static function is_super_admin() {
@@ -521,7 +521,7 @@ class OBN_Fiscal_Period_Posting_Guard {
     }
 
     public static function assert_can_post_or_fail($transaction_date, $org_id = null) {
-        $org_id = $org_id ?: get_current_blog_id();
+        $org_id = $org_id ?: obn_current_org_id();
         $allowed = self::can_post($org_id, $transaction_date);
 
         if (is_wp_error($allowed)) {
@@ -556,7 +556,7 @@ class OBN_Fiscal_Period_Posting_Guard {
             return true;
         }
 
-        $org_id = intval($entry->organization_id ?: $entry->store_id ?: get_current_blog_id());
+        $org_id = intval($entry->organization_id ?: $entry->store_id ?: obn_current_org_id());
         return self::can_modify($org_id, $entry->entry_date);
     }
 

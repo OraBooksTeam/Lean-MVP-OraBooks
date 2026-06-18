@@ -193,7 +193,7 @@ class OraBooks_Ai_Review {
             'explanation'   => $reasons
                 ? 'AI could not classify confidently because: ' . implode(', ', $reasons)
                 : 'Standard journal entry passed automated checks',
-            'model_version' => self::MODEL_VERSION,
+            'model_version' => self::active_model_version(),
         ];
     }
 
@@ -230,7 +230,7 @@ class OraBooks_Ai_Review {
             'risk_level'        => sanitize_text_field($evaluation['risk_level'] ?? 'medium'),
             'escalation_reason' => sanitize_text_field($evaluation['escalation_reason'] ?? 'low_confidence'),
             'explanation'       => sanitize_textarea_field($evaluation['explanation'] ?? ''),
-            'model_version'     => sanitize_text_field($evaluation['model_version'] ?? self::MODEL_VERSION),
+            'model_version'     => sanitize_text_field($evaluation['model_version'] ?? self::active_model_version()),
             'total_amount'      => (float) $total_amount,
             'priority_score'    => $priority,
             'status'            => 'pending',
@@ -532,7 +532,7 @@ class OraBooks_Ai_Review {
             'confidence'        => $confidence,
             'risk_level'        => $confidence < 50 ? 'high' : 'medium',
             'explanation'       => sprintf('CSV import row %d flagged for manual review', $row_index + 1),
-            'model_version'     => self::MODEL_VERSION,
+            'model_version'     => self::active_model_version(),
             'escalation_reason' => 'csv_low_confidence',
         ], 0);
     }

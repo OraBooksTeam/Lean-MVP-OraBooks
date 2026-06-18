@@ -48,7 +48,7 @@ class OBN_Opening_Balances {
             $entry_date = sanitize_text_field($_POST['entry_date'] ?? date('Y-m-d'));
 
             if (class_exists('OBN_Fiscal_Period_Posting_Guard')) {
-                $posting_allowed = OBN_Fiscal_Period_Posting_Guard::can_post(get_current_blog_id(), $entry_date);
+                $posting_allowed = OBN_Fiscal_Period_Posting_Guard::can_post(obn_current_org_id(), $entry_date);
                 if (is_wp_error($posting_allowed)) {
                     throw new Exception($posting_allowed->get_error_message());
                 }
@@ -233,7 +233,7 @@ class OBN_Opening_Balances {
         $jl_table = $wpdb->prefix . 'orabooks_ac_journal_line';
 
         if (class_exists('OBN_Fiscal_Period_Posting_Guard')) {
-            $posting_allowed = OBN_Fiscal_Period_Posting_Guard::can_post(get_current_blog_id(), $entry_date);
+            $posting_allowed = OBN_Fiscal_Period_Posting_Guard::can_post(obn_current_org_id(), $entry_date);
             if (is_wp_error($posting_allowed)) {
                 throw new Exception($posting_allowed->get_error_message());
             }
@@ -258,7 +258,7 @@ class OBN_Opening_Balances {
         // Create Header
         $wpdb->insert($je_table, array(
             'store_id' => $store_id,
-            'organization_id' => get_current_blog_id(),
+            'organization_id' => obn_current_org_id(),
             'entry_date' => $entry_date,
             'posting_date' => $entry_date,
             'entry_number' => 'OB-' . date('Ymd'),

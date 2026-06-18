@@ -74,7 +74,7 @@ class OBN_Expenses
             wp_send_json_error('Expense not found');
         }
         if (class_exists('OBN_Fiscal_Period_Posting_Guard')) {
-            $modification_allowed = OBN_Fiscal_Period_Posting_Guard::can_modify(get_current_blog_id(), $expense->expense_date);
+            $modification_allowed = OBN_Fiscal_Period_Posting_Guard::can_modify(obn_current_org_id(), $expense->expense_date);
             if (is_wp_error($modification_allowed)) {
                 wp_send_json_error($modification_allowed->get_error_message(), 409);
             }
@@ -171,7 +171,7 @@ class OBN_Expenses
             if (!$existing_expense) {
                 wp_send_json_error('Expense not found');
             }
-            $modification_allowed = OBN_Fiscal_Period_Posting_Guard::can_modify(get_current_blog_id(), $existing_expense->expense_date);
+            $modification_allowed = OBN_Fiscal_Period_Posting_Guard::can_modify(obn_current_org_id(), $existing_expense->expense_date);
             if (is_wp_error($modification_allowed)) {
                 wp_send_json_error($modification_allowed->get_error_message(), 409);
             }
@@ -353,7 +353,7 @@ class OBN_Expenses
             wp_send_json_error('Expense not found');
         }
         if (class_exists('OBN_Fiscal_Period_Posting_Guard')) {
-            $modification_allowed = OBN_Fiscal_Period_Posting_Guard::can_modify(get_current_blog_id(), $expense->expense_date);
+            $modification_allowed = OBN_Fiscal_Period_Posting_Guard::can_modify(obn_current_org_id(), $expense->expense_date);
             if (is_wp_error($modification_allowed)) {
                 wp_send_json_error($modification_allowed->get_error_message(), 409);
             }

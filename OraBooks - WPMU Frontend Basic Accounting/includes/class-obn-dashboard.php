@@ -5932,7 +5932,7 @@ class OBN_Dashboard
 			// Ensure obn_ajax is defined for inline scripts in case footer scripts haven't loaded yet
 			if (typeof obn_ajax === 'undefined') {
 				var obn_ajax = {
-					ajax_url: '<?php echo get_admin_url(get_current_blog_id(), "admin-ajax.php"); ?>',
+					ajax_url: '<?php echo get_admin_url(obn_current_org_id(), "admin-ajax.php"); ?>',
 					nonce: '<?php echo wp_create_nonce("frontend_ajax_nonce"); ?>',
 					auth_nonce: '<?php echo wp_create_nonce("obn_auth_nonce"); ?>',
 					expense_nonce: '<?php echo wp_create_nonce("obn_expense_action_nonce"); ?>',

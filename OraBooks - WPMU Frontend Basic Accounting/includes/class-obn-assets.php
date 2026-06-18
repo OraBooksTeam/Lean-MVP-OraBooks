@@ -40,7 +40,7 @@ class OBN_Assets {
         }
 
         $data = array(
-            'store_id' => get_current_blog_id(), // Or however store_id is handled
+            'store_id' => obn_current_org_id(), // Or however store_id is handled
             'name' => sanitize_text_field($_POST['name']),
             'category' => sanitize_text_field($_POST['category']),
             'purchase_date' => $purchase_date,
@@ -271,7 +271,7 @@ class OBN_Assets {
         $entry_date = $params['entry_date'];
 
         if (class_exists('OBN_Fiscal_Period_Posting_Guard')) {
-            $posting_allowed = OBN_Fiscal_Period_Posting_Guard::can_post(get_current_blog_id(), $entry_date);
+            $posting_allowed = OBN_Fiscal_Period_Posting_Guard::can_post(obn_current_org_id(), $entry_date);
             if (is_wp_error($posting_allowed)) {
                 return false;
             }
@@ -283,8 +283,8 @@ class OBN_Assets {
         }
 
         $inserted = $wpdb->insert($je_table, array(
-            'store_id' => get_current_blog_id(),
-            'organization_id' => get_current_blog_id(),
+            'store_id' => obn_current_org_id(),
+            'organization_id' => obn_current_org_id(),
             'entry_date' => $entry_date,
             'posting_date' => $entry_date,
             'source_type' => $params['source_type'],
@@ -342,7 +342,7 @@ class OBN_Assets {
         }
 
         if (class_exists('OBN_Fiscal_Period_Posting_Guard')) {
-            $modification_allowed = OBN_Fiscal_Period_Posting_Guard::can_modify(get_current_blog_id(), $asset->purchase_date);
+            $modification_allowed = OBN_Fiscal_Period_Posting_Guard::can_modify(obn_current_org_id(), $asset->purchase_date);
             if (is_wp_error($modification_allowed)) {
                 error_log($modification_allowed->get_error_message());
                 return false;
@@ -524,7 +524,7 @@ class OBN_Assets {
             if (!$asset) {
                 wp_send_json_error('Asset not found.');
             }
-            $modification_allowed = OBN_Fiscal_Period_Posting_Guard::can_modify(get_current_blog_id(), $asset->purchase_date);
+            $modification_allowed = OBN_Fiscal_Period_Posting_Guard::can_modify(obn_current_org_id(), $asset->purchase_date);
             if (is_wp_error($modification_allowed)) {
                 wp_send_json_error($modification_allowed->get_error_message(), 409);
             }
@@ -563,7 +563,7 @@ class OBN_Assets {
             if (!$existing_asset) {
                 wp_send_json_error('Asset not found.');
             }
-            $modification_allowed = OBN_Fiscal_Period_Posting_Guard::can_modify(get_current_blog_id(), $existing_asset->purchase_date);
+            $modification_allowed = OBN_Fiscal_Period_Posting_Guard::can_modify(obn_current_org_id(), $existing_asset->purchase_date);
             if (is_wp_error($modification_allowed)) {
                 wp_send_json_error($modification_allowed->get_error_message(), 409);
             }
@@ -609,7 +609,7 @@ class OBN_Assets {
             wp_send_json_error('Asset not found.');
         }
         if (class_exists('OBN_Fiscal_Period_Posting_Guard')) {
-            $modification_allowed = OBN_Fiscal_Period_Posting_Guard::can_modify(get_current_blog_id(), $asset->purchase_date);
+            $modification_allowed = OBN_Fiscal_Period_Posting_Guard::can_modify(obn_current_org_id(), $asset->purchase_date);
             if (is_wp_error($modification_allowed)) {
                 wp_send_json_error($modification_allowed->get_error_message(), 409);
             }
@@ -705,7 +705,7 @@ class OBN_Assets {
             }
         } else {
             // Insert new category
-            $data['store_id'] = get_current_blog_id();
+            $data['store_id'] = obn_current_org_id();
             $data['created_by'] = get_current_user_id();
             $data['created_date'] = current_time('Y-m-d');
             $data['created_time'] = current_time('H:i:s');

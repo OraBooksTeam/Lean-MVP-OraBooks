@@ -67,7 +67,7 @@ class OBN_Reports {
             wp_send_json_error('Transaction not found.');
         }
         if (class_exists('OBN_Fiscal_Period_Posting_Guard')) {
-            $modification_allowed = OBN_Fiscal_Period_Posting_Guard::can_modify(get_current_blog_id(), $payment_date);
+            $modification_allowed = OBN_Fiscal_Period_Posting_Guard::can_modify(obn_current_org_id(), $payment_date);
             if (is_wp_error($modification_allowed)) {
                 wp_send_json_error($modification_allowed->get_error_message(), 409);
             }
