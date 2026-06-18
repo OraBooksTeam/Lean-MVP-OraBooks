@@ -15,6 +15,8 @@
         </testsuite>
         <testsuite name="OraBooks SL-304 Fiscal Tests">
             <file>OraBooks_Fiscal_Test.php</file>
+            <file>OraBooks_Rest_Api_Test.php</file>
+            <file>OraBooks_Pwa_Test.php</file>
         </testsuite>
         <testsuite name="OraBooks SL-114 Export Tests">
             <file>OraBooks_Exports_Test.php</file>

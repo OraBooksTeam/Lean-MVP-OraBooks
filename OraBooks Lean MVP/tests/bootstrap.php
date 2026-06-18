@@ -1242,6 +1242,20 @@ if (!file_exists($fiscal_file)) {
 }
 require_once $fiscal_file;
 
+$pwa_file = __DIR__ . '/../includes/class-orabooks-pwa.php';
+if (!file_exists($pwa_file)) {
+    echo "ERROR: Cannot find class-orabooks-pwa.php at {$pwa_file}\n";
+    exit(1);
+}
+require_once $pwa_file;
+
+$rest_api_file = __DIR__ . '/../includes/class-orabooks-rest-api.php';
+if (!file_exists($rest_api_file)) {
+    echo "ERROR: Cannot find class-orabooks-rest-api.php at {$rest_api_file}\n";
+    exit(1);
+}
+require_once $rest_api_file;
+
 if (!function_exists('get_users')) {
     function get_users($args = []) {
         return [];

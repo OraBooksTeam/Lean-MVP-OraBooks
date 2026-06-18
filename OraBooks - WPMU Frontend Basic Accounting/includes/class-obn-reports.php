@@ -32,10 +32,9 @@ class OBN_Reports {
 
     public function filter_cash_transactions() {
         check_ajax_referer('frontend_ajax_nonce', 'security');
-
-        $auth = new OBN_Auth();
-        if ( ! is_user_logged_in() || ! $auth->can_access_accounting() ) {
-            wp_send_json_error('Access denied.');
+        $check = OBN_Org_Context::require_accounting_access('view_reports');
+        if (is_wp_error($check)) {
+            wp_send_json_error($check->get_error_message());
         }
 
         ob_start();
@@ -47,10 +46,9 @@ class OBN_Reports {
 
     public function delete_cash_transaction() {
         check_ajax_referer('frontend_ajax_nonce', 'security');
-
-        $auth = new OBN_Auth();
-        if ( ! is_user_logged_in() || ! $auth->can_access_accounting() ) {
-            wp_send_json_error('Access denied.');
+        $check = OBN_Org_Context::require_accounting_access('submit_transaction');
+        if (is_wp_error($check)) {
+            wp_send_json_error($check->get_error_message());
         }
 
         global $wpdb;
@@ -500,18 +498,14 @@ class OBN_Reports {
 
     public function handle_search_ledger_report() {
         check_ajax_referer('frontend_ajax_nonce', 'security');
-
-        $auth = new OBN_Auth();
-        if ( ! is_user_logged_in() || ! $auth->can_access_accounting() ) {
-            echo '<tr><td colspan="6" class="px-6 py-10 text-center text-red-500">Access denied.</td></tr>';
-            wp_die();
-        }
+        OBN_Org_Context::require_accounting_access_or_die('html', 'view_financial_reports');
 
         global $wpdb;
 
         $account_id = isset($_POST['account_id']) ? intval($_POST['account_id']) : 0;
         $start_date = isset($_POST['start_date']) ? sanitize_text_field($_POST['start_date']) : date('Y-m-01');
         $end_date   = isset($_POST['end_date']) ? sanitize_text_field($_POST['end_date']) : date('Y-m-d');
+        $org_id = obn_current_org_id();
 
         if (!$account_id) {
             echo '<tr><td colspan="6" class="px-6 py-10 text-center text-gray-500">Please select an account.</td></tr>';
