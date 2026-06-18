@@ -3,6 +3,7 @@ import Button from '@/components/Button';
 import { api } from '../api';
 import ClientShell from '../components/ClientShell';
 import { Mail, RefreshCw, UserPlus, Users } from 'lucide-react';
+import NotificationPolicyPanel from '@/components/NotificationPolicyPanel';
 
 const fieldClass =
   'w-full rounded-lg border border-border bg-white px-3.5 py-2.5 text-sm text-ink shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20';
@@ -119,6 +120,7 @@ export default function TeamPage() {
   const invites = data?.pending_invites || [];
   const stats = data?.stats || {};
   const isPartner = data?.context?.organization?.organization_type === 'partner';
+  const canManageNotificationPolicy = ['owner', 'admin'].includes(data?.context?.role);
 
   return (
     <ClientShell
@@ -323,6 +325,10 @@ export default function TeamPage() {
               </tbody>
             </table>
           </div>
+        )}
+
+        {canManageNotificationPolicy && orgId && !isPartner && (
+          <NotificationPolicyPanel orgId={orgId} />
         )}
       </div>
     </ClientShell>
