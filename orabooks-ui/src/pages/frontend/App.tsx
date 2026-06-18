@@ -27,6 +27,7 @@ import FiscalPeriodsPage from './pages/FiscalPeriodsPage';
 import TaxSettingsPage from './pages/TaxSettingsPage';
 import ProfilePage from './pages/ProfilePage';
 import NotificationPreferencesPage from './pages/NotificationPreferencesPage';
+import ResetPasswordPage from './pages/ResetPasswordPage';
 
 export default function FrontendRoutes() {
   return (
@@ -34,6 +35,7 @@ export default function FrontendRoutes() {
       <Route path="/" element={<LoginPage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
+      <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route path="/tier-selection" element={<TierSelectionPage />} />
       <Route path="/dashboard" element={<DashboardPage />} />
       <Route path="/customers" element={<CustomersPage />} />

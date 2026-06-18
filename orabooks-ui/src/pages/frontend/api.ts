@@ -165,6 +165,10 @@ export const api = {
     api.post('orabooks_oidc_callback', { code, state }),
   twoFactorChallenge: (tempToken: string, otp: string, backup = '') =>
     api.post('orabooks_2fa_challenge', { temp_token: tempToken, otp_code: otp, backup_code: backup }),
+  forgotPassword: (email: string) =>
+    api.post('orabooks_forgot_password', { email }),
+  resetPassword: (token: string, password: string) =>
+    api.post('orabooks_reset_password', { token, password }),
   getPartnerInfo: () =>
     api.post('orabooks_get_partner_info'),
   partnerOnboarding: () =>
@@ -668,4 +672,14 @@ export const api = {
   exportCancel: (exportId: number) => api.post('orabooks_export_cancel', { export_id: exportId }),
   exportDownload: (exportId: number) => api.get('orabooks_export_download', { export_id: exportId }),
   csvImportsDashboard: () => api.get('orabooks_csv_imports_dashboard'),
+
+  commissionConfigGet: () => api.get('orabooks_commission_config'),
+  commissionConfigUpdate: (data: Record<string, any>) =>
+    api.post('orabooks_commission_update_config', {
+      ...data,
+      yearly_percentages:
+        typeof data.yearly_percentages === 'string'
+          ? data.yearly_percentages
+          : JSON.stringify(data.yearly_percentages ?? []),
+    }),
 };
