@@ -109,7 +109,7 @@ class OBN_Fiscal_Period_Policy {
             return OBN_Lean_MVP_Bridge::current_org_id();
         }
 
-        return obn_current_org_id();
+        return (int) get_current_blog_id();
     }
 
     public static function is_super_admin() {
