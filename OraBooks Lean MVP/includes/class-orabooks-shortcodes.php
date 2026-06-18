@@ -397,7 +397,10 @@ class OraBooks_Shortcodes {
      * payout breakdown (Gross/Fee/Net), attribution table, and reactivation.
      */
     public function partner_dashboard() {
-        return $this->react_app('/dashboard', 'Loading partner program...');
+        if (!get_current_user_id()) {
+            return OraBooks_Views::require_login_message();
+        }
+        return $this->render_view('partner-program');
     }
     
     /**
@@ -413,9 +416,9 @@ class OraBooks_Shortcodes {
      */
     public function notification_center() {
         if (!get_current_user_id()) {
-            return '<p>' . __('Please log in to view notifications.', 'orabooks') . '</p>';
+            return OraBooks_Views::require_login_message();
         }
-        return $this->react_app('/notifications', 'Loading notifications...');
+        return $this->render_view('notifications');
     }
 
     /**
@@ -424,9 +427,9 @@ class OraBooks_Shortcodes {
      */
     public function notification_preferences() {
         if (!get_current_user_id()) {
-            return '<p>' . __('Please log in to manage notification preferences.', 'orabooks') . '</p>';
+            return OraBooks_Views::require_login_message();
         }
-        return $this->react_app('/notification-preferences', 'Loading notification preferences...');
+        return $this->render_view('notification-preferences');
     }
 
     /**
@@ -638,11 +641,10 @@ class OraBooks_Shortcodes {
      * Shows "My Exports" table with status, download, cancel.
      */
     public function export_status() {
-        $user_id = get_current_user_id();
-        if (!$user_id) {
-            return '<p>' . __('Please log in to view your exports.', 'orabooks') . '</p>';
+        if (!get_current_user_id()) {
+            return OraBooks_Views::require_login_message();
         }
-        return $this->react_app('/my-exports', 'Loading exports...');
+        return $this->render_view('exports');
     }
 
     /**
