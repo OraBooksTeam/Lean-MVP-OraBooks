@@ -352,14 +352,21 @@ class OraBooks_Posting {
         }
         
         // Fiscal period check
-        $table_fiscal = OraBooks_Database::table('fiscal_periods');
-        $fiscal = $wpdb->get_row($wpdb->prepare(
-            "SELECT * FROM {$table_fiscal} WHERE org_id = %d AND period_start <= %s AND period_end >= %s",
-            $journal->org_id, $journal->transaction_date, $journal->transaction_date
-        ));
-        
-        if ($fiscal && ($fiscal->status === 'soft_closed' || $fiscal->status === 'hard_closed')) {
-            return new WP_Error('fiscal_closed', 'Fiscal period is closed. Cannot post.');
+        if (class_exists('OraBooks_Fiscal') && method_exists('OraBooks_Fiscal', 'can_post')) {
+            $fiscal_check = OraBooks_Fiscal::can_post($journal->org_id, $journal->transaction_date);
+            if (is_wp_error($fiscal_check)) {
+                return $fiscal_check;
+            }
+        } else {
+            $table_fiscal = OraBooks_Database::table('fiscal_periods');
+            $fiscal = $wpdb->get_row($wpdb->prepare(
+                "SELECT * FROM {$table_fiscal} WHERE org_id = %d AND period_start <= %s AND period_end >= %s",
+                $journal->org_id, $journal->transaction_date, $journal->transaction_date
+            ));
+
+            if ($fiscal && ($fiscal->status === 'soft_closed' || $fiscal->status === 'hard_closed')) {
+                return new WP_Error('fiscal_closed', 'Fiscal period is closed. Cannot post.');
+            }
         }
         
         // Double-entry check
