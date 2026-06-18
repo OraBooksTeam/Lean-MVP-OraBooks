@@ -128,7 +128,7 @@ $search_nonce = wp_create_nonce('frontend_ajax_nonce');
             };
 
             $.ajax({
-                url: typeof obn_ajax !== 'undefined' ? obn_ajax.ajax_url : (typeof obn_accounting_ajax !== 'undefined' ? obn_accounting_ajax.ajax_url : '<?php echo get_admin_url(obn_current_org_id(), "admin-ajax.php"); ?>'),
+                url: typeof obn_ajax !== 'undefined' ? obn_ajax.ajax_url : (typeof obn_accounting_ajax !== 'undefined' ? obn_accounting_ajax.ajax_url : '<?php echo esc_url(obn_ajax_admin_url()); ?>'),
                 type: 'POST',
                 data: ajaxData,
                 beforeSend: function () {

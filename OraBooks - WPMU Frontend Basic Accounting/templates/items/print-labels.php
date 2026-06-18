@@ -45,7 +45,7 @@ jQuery(document).ready(function($) {
 
     // Use the current site's AJAX endpoint directly for this frontend template.
     // This avoids stale/wrong localized ajax_url values on WPMU/subsite pages.
-    let ajaxurl = '<?php echo esc_url(get_admin_url(obn_current_org_id(), "admin-ajax.php")); ?>';
+    let ajaxurl = '<?php echo esc_url(obn_ajax_admin_url()); ?>';
     if (window.location.protocol === 'https:' && ajaxurl.indexOf('http:') === 0) {
         ajaxurl = ajaxurl.replace(/^http:/, 'https:');
     }
