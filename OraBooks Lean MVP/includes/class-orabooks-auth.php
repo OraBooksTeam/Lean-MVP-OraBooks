@@ -127,15 +127,20 @@ class OraBooks_Auth {
         
         $user_id = $wpdb->insert_id;
         if (!$user_id) {
-            return new WP_Error('creation_failed', 'Failed to create user');
+            $db_error = $wpdb->last_error ? ' Database: ' . $wpdb->last_error : '';
+            return new WP_Error(
+                'creation_failed',
+                'Failed to create user. Deactivate and reactivate the OraBooks plugin, then try again.' . $db_error
+            );
         }
         
         $email_result = self::send_verification_email($email, $verification_token);
+        $email_warning = '';
         if (is_wp_error($email_result)) {
             orabooks_log_event('verification_email_failed', "Verification email failed for $email", 'error', [
                 'error' => $email_result->get_error_message()
             ], $user_id, null);
-            return $email_result;
+            $email_warning = $email_result->get_error_message();
         }
         
         // Store partner type and org name in session for later use
@@ -161,7 +166,9 @@ class OraBooks_Auth {
         if ($user_type === 'customer' && !empty($partner_code)) {
             $attribution_result = self::process_attribution($user_id, $partner_code, $email);
             if (is_wp_error($attribution_result)) {
-                return $attribution_result;
+                orabooks_log_event('partner_attribution_failed', $attribution_result->get_error_message(), 'warning', [
+                    'partner_code' => $partner_code
+                ], $user_id, null);
             }
         }
         

@@ -321,6 +321,20 @@ function orabooks_activate() {
     add_option('orabooks_refresh_token_expiry', 604800); // 7 days
 }
 
+/**
+ * Ensure database tables exist (e.g. plugin uploaded without re-activation).
+ */
+function orabooks_ensure_database() {
+    global $wpdb;
+
+    $table_users = $wpdb->prefix . 'orabooks_users';
+    $table_exists = $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table_users));
+
+    if ($table_exists !== $table_users || get_option('orabooks_db_version') !== ORABOOKS_DB_VERSION) {
+        OraBooks_Database::install();
+    }
+}
+
 // Deactivation hook
 register_deactivation_hook(__FILE__, 'orabooks_deactivate');
 function orabooks_deactivate() {
