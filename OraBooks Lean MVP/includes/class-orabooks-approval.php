@@ -262,20 +262,12 @@ class OraBooks_Approval {
             return new WP_Error('mfa_required', 'High-value approval requires two-factor authentication');
         }
 
-        if (!class_exists('OraBooks_Auth')) {
-            return new WP_Error('mfa_unavailable', 'Authentication module unavailable');
+        $secret = get_user_meta((int) $user_id, 'orabooks_2fa_secret', true);
+        if (!$secret) {
+            return new WP_Error('2fa_not_enabled', 'Two-factor authentication is not enabled for this user');
         }
 
-        $auth = OraBooks_Auth::get_instance();
-        if (!$auth || !method_exists($auth, 'verify_user_totp')) {
-            return new WP_Error('mfa_unavailable', 'TOTP verification unavailable');
-        }
-
-        $verified = $auth->verify_user_totp($user_id, $otp);
-        if (is_wp_error($verified)) {
-            return $verified;
-        }
-        if (!$verified) {
+        if (!class_exists('OraBooks_Secrets') || !OraBooks_Secrets::verify_totp($secret, $otp)) {
             return new WP_Error('mfa_invalid', 'Invalid two-factor authentication code');
         }
 
