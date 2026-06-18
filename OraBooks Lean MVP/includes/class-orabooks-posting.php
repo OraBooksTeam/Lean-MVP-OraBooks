@@ -1084,6 +1084,7 @@ class OraBooks_Posting {
             'approved_by'          => !empty($journal->approved_by) ? (int) $journal->approved_by : null,
             'posted_by'            => !empty($journal->posted_by) ? (int) $journal->posted_by : null,
             'approval_round'       => (int) ($journal->approval_round ?? 0),
+            'revision_number'      => (int) ($journal->revision_number ?? 1),
             'approval_expires_at'  => $journal->approval_expires_at ?? null,
             'approval_stale'       => (int) ($journal->approval_stale ?? 0),
             'rejected_reason'      => $journal->rejected_reason ?? null,
