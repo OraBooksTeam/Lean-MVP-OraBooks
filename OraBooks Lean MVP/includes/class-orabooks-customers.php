@@ -34,6 +34,7 @@ class OraBooks_Customers {
             add_action('wp_ajax_orabooks_invoice_create', [self::$instance, 'ajax_invoice_create']);
             add_action('wp_ajax_orabooks_invoice_get', [self::$instance, 'ajax_invoice_get']);
             add_action('wp_ajax_orabooks_invoice_override_tax', [self::$instance, 'ajax_invoice_override_tax']);
+            add_action('wp_ajax_nopriv_orabooks_invoice_override_tax', [self::$instance, 'ajax_invoice_override_tax']);
             add_action('wp_ajax_orabooks_invoice_record_payment', [self::$instance, 'ajax_record_payment']);
             add_action('wp_ajax_orabooks_customer_stats', [self::$instance, 'ajax_customer_stats']);
 
@@ -472,7 +473,7 @@ class OraBooks_Customers {
             return new WP_Error('not_found', 'Invoice not found');
         }
 
-        if (!in_array($invoice->workflow_status, ['draft', 'submitted'], true)) {
+        if (!in_array($invoice->workflow_status, ['draft', 'sent'], true)) {
             return new WP_Error('invalid_status', 'Tax can only be overridden before posting');
         }
 
