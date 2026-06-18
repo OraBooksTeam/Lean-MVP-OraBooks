@@ -498,6 +498,22 @@ class OBN_Fiscal_Period_Posting_Guard {
     const LOCKED_MESSAGE = 'Fiscal period is locked. Only report and list views are allowed.';
 
     public static function can_post($org_id, $transaction_date) {
+        if (class_exists('OBN_Fiscal_Adapter')) {
+            return OBN_Fiscal_Adapter::can_post($org_id, $transaction_date);
+        }
+
+        if (class_exists('OraBooks_Fiscal') && method_exists('OraBooks_Fiscal', 'can_post')) {
+            $result = OraBooks_Fiscal::can_post((int) $org_id, $transaction_date);
+            if (is_wp_error($result)) {
+                return new WP_Error('fiscal_period_locked', $result->get_error_message(), ['status' => 409]);
+            }
+            return true;
+        }
+
+        return self::can_post_legacy($org_id, $transaction_date);
+    }
+
+    public static function can_post_legacy($org_id, $transaction_date) {
         $repo = new OBN_Fiscal_Period_Repository();
         $periods = $repo->find_all_by_date($org_id, $transaction_date);
 

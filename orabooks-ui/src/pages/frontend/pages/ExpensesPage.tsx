@@ -70,6 +70,48 @@ export default function ExpensesPage() {
     void load();
   }, []);
 
+  const refreshOfflineQueue = async () => {
+    try {
+      const items = await listQueuedReceipts();
+      setOfflineQueueCount(items.length);
+    } catch {
+      setOfflineQueueCount(0);
+    }
+  };
+
+  const syncOfflineQueue = async () => {
+    if (!orgId || syncingOffline) return;
+    setSyncingOffline(true);
+    try {
+      const result = await syncQueuedReceipts((oid, file, key) =>
+        api.uploadExpenseReceipt(oid, file, key)
+      );
+      await refreshOfflineQueue();
+      if (result.synced > 0) {
+        setSuccess(`Synced ${result.synced} offline receipt${result.synced === 1 ? '' : 's'}.`);
+        await load();
+      }
+      if (result.failed > 0) {
+        setError(`${result.failed} offline receipt(s) could not sync yet.`);
+      }
+    } finally {
+      setSyncingOffline(false);
+    }
+  };
+
+  useEffect(() => {
+    void refreshOfflineQueue();
+    return onOnline(() => {
+      void syncOfflineQueue();
+    });
+  }, [orgId]);
+
+  useEffect(() => {
+    if (orgId && offlineQueueCount > 0 && !isOffline()) {
+      void syncOfflineQueue();
+    }
+  }, [orgId, offlineQueueCount]);
+
   useEffect(() => {
     if (!orgId) return;
     void api.taxListConfigs(orgId).then((res) => {
@@ -171,8 +213,9 @@ export default function ExpensesPage() {
     }
   };
 
-  const handleUpload = async () => {
-    if (!orgId || !selectedFile) {
+  const handleUpload = async (fileOverride?: File | null) => {
+    const file = fileOverride ?? selectedFile;
+    if (!orgId || !file) {
       setError('Select a receipt file to upload.');
       return;
     }
@@ -184,18 +227,38 @@ export default function ExpensesPage() {
         ? crypto.randomUUID()
         : `receipt-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
-    const res = await api.uploadExpenseReceipt(orgId, selectedFile, idempotencyKey);
+    if (isOffline()) {
+      await queueReceipt(orgId, file, idempotencyKey);
+      setSelectedFile(null);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      if (cameraInputRef.current) cameraInputRef.current.value = '';
+      await refreshOfflineQueue();
+      setSuccess('Offline — receipt saved locally and will sync when you are back online.');
+      setUploading(false);
+      return;
+    }
+
+    const res = await api.uploadExpenseReceipt(orgId, file, idempotencyKey);
     if (res.error) {
       setError(res.error);
     } else {
       setSelectedFile(null);
       if (fileInputRef.current) fileInputRef.current.value = '';
+      if (cameraInputRef.current) cameraInputRef.current.value = '';
       setSuccess('Receipt uploaded. OCR fields extracted.');
       await load();
       const expense = (res as any).data?.expense;
       if (expense?.id) void loadExpense(expense.id);
     }
     setUploading(false);
+  };
+
+  const handleCameraCapture = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0] || null;
+    if (file) {
+      setSelectedFile(file);
+      void handleUpload(file);
+    }
   };
 
   const handleConfirm = async () => {

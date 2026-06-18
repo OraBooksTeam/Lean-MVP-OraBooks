@@ -181,8 +181,8 @@ function obn_accounting_enforce_dependency()
 		$plugin_file = plugin_basename(__FILE__);
 		if (is_plugin_active($plugin_file)) {
 			deactivate_plugins($plugin_file);
-			add_action('admin_notices', 'obn_accounting_membership_notice');
-			add_action('network_admin_notices', 'obn_accounting_membership_notice');
+			add_action('admin_notices', 'obn_accounting_core_notice');
+			add_action('network_admin_notices', 'obn_accounting_core_notice');
 			// Suppress the "Plugin activated" message
 			if (isset($_GET['activate'])) {
 				unset($_GET['activate']);
@@ -388,6 +388,8 @@ function run_obn_frontend_accounting()
 	}
 
 	require_once OBN_ACCOUNTING_PLUGIN_DIR . 'includes/class-obn-lean-mvp-bridge.php';
+	require_once OBN_ACCOUNTING_PLUGIN_DIR . 'includes/adapters/class-obn-org-context.php';
+	require_once OBN_ACCOUNTING_PLUGIN_DIR . 'includes/adapters/class-obn-lean-mvp-adapters.php';
 
 	require_once OBN_ACCOUNTING_PLUGIN_DIR . 'includes/class-obn-activator.php';
 	OBN_Activator::maybe_upgrade_schema();

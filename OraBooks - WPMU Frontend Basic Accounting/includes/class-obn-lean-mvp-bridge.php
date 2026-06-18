@@ -10,6 +10,33 @@ if (!defined('ABSPATH')) {
 }
 
 class OBN_Lean_MVP_Bridge {
+    private static $accounting_ajax_prefixes = [
+        'obn_',
+        'frontend_',
+        'search_',
+        'insert_acc_',
+        'insert_purchase',
+        'insert_purchasereturn',
+        'insert_salesreturn',
+        'update_sale',
+        'update_purchase',
+        'update_purchasereturn',
+        'update_salesreturn',
+        'delete_sale',
+        'delete_purchase',
+        'delete_purchasereturn',
+        'delete_salesreturn',
+        'generate_sales',
+        'generate_purchase',
+        'generate_purchasereturn',
+        'generate_salesreturn',
+        'get_purchase',
+        'get_salesreturn',
+        'approve_',
+        'reject_',
+        'orabooks_accounting',
+    ];
+
     public static function init() {
         add_action('init', [__CLASS__, 'guard_accounting_ajax'], 0);
     }
@@ -21,9 +48,21 @@ class OBN_Lean_MVP_Bridge {
             && class_exists('OraBooks_Organization');
     }
 
-    /**
-     * Resolve org_id from Lean MVP tenant context, with legacy blog fallback.
-     */
+    public static function is_accounting_ajax_action($action) {
+        $action = sanitize_key((string) $action);
+        if ($action === '') {
+            return false;
+        }
+
+        foreach (self::$accounting_ajax_prefixes as $prefix) {
+            if (strpos($action, $prefix) === 0) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     public static function current_org_id() {
         if (self::is_available() && function_exists('orabooks_get_current_org_id')) {
             $org_id = (int) orabooks_get_current_org_id();
@@ -53,9 +92,6 @@ class OBN_Lean_MVP_Bridge {
         return $org && ($org->organization_type ?? '') === 'partner';
     }
 
-    /**
-     * SL-013 requireCustomerOrg middleware for accounting surfaces.
-     */
     public static function require_customer_org($user_id = 0, $org_id = 0) {
         if (!self::is_available()) {
             return true;
@@ -114,7 +150,7 @@ class OBN_Lean_MVP_Bridge {
         }
 
         $action = sanitize_key($_REQUEST['action'] ?? '');
-        if ($action === '' || (strpos($action, 'obn_') !== 0 && strpos($action, 'orabooks_accounting') !== 0)) {
+        if (!self::is_accounting_ajax_action($action)) {
             return;
         }
 
