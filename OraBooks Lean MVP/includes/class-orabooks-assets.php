@@ -9,6 +9,37 @@ if (!defined('ABSPATH')) {
 
 class OraBooks_Assets {
     /**
+     * WordPress script handles that load the React bundles.
+     *
+     * @return string[]
+     */
+    public static function get_react_script_handles() {
+        return [
+            'orabooks-react-frontend',
+            'orabooks-react-admin',
+        ];
+    }
+
+    /**
+     * Load React bundles as classic scripts (IIFE output, no import.meta).
+     *
+     * @param string $tag    Script tag HTML.
+     * @param string $handle Script handle.
+     * @param string $src    Script source URL.
+     */
+    public static function filter_react_script_tag($tag, $handle, $src) {
+        if (!in_array($handle, self::get_react_script_handles(), true)) {
+            return $tag;
+        }
+
+        if (strpos($tag, ' type=') === false) {
+            $tag = str_replace('<script ', '<script defer ', $tag);
+        }
+
+        return $tag;
+    }
+
+    /**
      * Shortcodes that mount the React frontend SPA.
      *
      * @return string[]
