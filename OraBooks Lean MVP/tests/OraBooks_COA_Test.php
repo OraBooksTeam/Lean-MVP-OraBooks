@@ -86,12 +86,15 @@ class OraBooks_COA_Test extends TestCase
             return (object) ['organization_type' => 'partner'];
         };
 
-        $wpdb->test_get_results_callback = function () {
-            $this->fail('Partner orgs should not query accounts.');
+        $queried = false;
+        $wpdb->test_get_results_callback = function () use (&$queried) {
+            $queried = true;
+            return [];
         };
 
         $accounts = OraBooks_COA::get_accounts(3);
         $this->assertSame([], $accounts);
+        $this->assertFalse($queried);
     }
 
     #[Test]
