@@ -762,7 +762,10 @@ class OraBooks_Shortcodes {
             }
             function loadObservability() {
                 $.post(orabooks_ajax.ajax_url, { action: 'orabooks_observability_dashboard', nonce: orabooks_ajax.nonce, hours: 24 }, function(resp){
-                    if (resp && resp.success) { renderObservability(resp.data); }
+                    if (resp && !resp.error && resp.data) { renderObservability(resp.data); }
+                    else { $('#orabooks-obs-health-body').html('<tr><td colspan="3"><?php echo esc_js(__('Unable to load observability data.', 'orabooks')); ?></td></tr>'); }
+                }).fail(function() {
+                    $('#orabooks-obs-health-body').html('<tr><td colspan="3"><?php echo esc_js(__('Unable to load observability data.', 'orabooks')); ?></td></tr>');
                 });
             }
             $('#orabooks-obs-refresh').on('click', loadObservability);

@@ -182,7 +182,45 @@ jQuery(document).ready(function($) {
                     '</tr>';
                 });
                 $tbody.html(html || '<tr><td colspan="8">No organizations found</td></tr>');
+            } else {
+                $tbody.html('<tr><td colspan="8">Unable to load organizations. Please refresh.</td></tr>');
             }
+        }).fail(function() {
+            $tbody.html('<tr><td colspan="8">Unable to load organizations. Please refresh.</td></tr>');
+        });
+    };
+
+    // Load users list
+    window.orabooksLoadUsers = function() {
+        var $tbody = $('#orabooks-users-table-body');
+        if (!$tbody.length) {
+            return;
+        }
+
+        $tbody.html('<tr><td colspan="7">Loading...</td></tr>');
+
+        $.get(orabooks_ajax.ajax_url, {
+            action: 'orabooks_list_users'
+        }, function(response) {
+            if (!response.error && response.data) {
+                var html = '';
+                $.each(response.data, function(i, user) {
+                    html += '<tr>' +
+                        '<td>' + user.id + '</td>' +
+                        '<td>' + user.email + '</td>' +
+                        '<td>' + (user.is_partner ? 'Partner' : 'Customer') + '</td>' +
+                        '<td>' + (user.is_email_verified ? 'Yes' : 'No') + '</td>' +
+                        '<td>' + (user.is_2fa_enabled ? 'Yes' : 'No') + '</td>' +
+                        '<td>' + (user.org_id || '—') + '</td>' +
+                        '<td>' + (user.created_at || '—') + '</td>' +
+                    '</tr>';
+                });
+                $tbody.html(html || '<tr><td colspan="7">No users found</td></tr>');
+            } else {
+                $tbody.html('<tr><td colspan="7">Unable to load users. Please refresh.</td></tr>');
+            }
+        }).fail(function() {
+            $tbody.html('<tr><td colspan="7">Unable to load users. Please refresh.</td></tr>');
         });
     };
     
@@ -212,7 +250,11 @@ jQuery(document).ready(function($) {
                     '</tr>';
                 });
                 $tbody.html(html || '<tr><td colspan="7">No logs found</td></tr>');
+            } else {
+                $tbody.html('<tr><td colspan="7">Unable to load audit logs. Please refresh.</td></tr>');
             }
+        }).fail(function() {
+            $tbody.html('<tr><td colspan="7">Unable to load audit logs. Please refresh.</td></tr>');
         });
     };
     
@@ -1327,6 +1369,9 @@ jQuery(document).ready(function($) {
     // Auto-load tables on page load
     if ($('#orabooks-orgs-table-body').length) {
         orabooksLoadOrgs();
+    }
+    if ($('#orabooks-users-table-body').length) {
+        orabooksLoadUsers();
     }
     if ($('#orabooks-audit-table-body').length) {
         orabooksLoadAuditLogs();
