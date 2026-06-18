@@ -71,31 +71,38 @@ jQuery(document).ready(function($) {
         $msg.hide();
         $form.find('button').prop('disabled', true).text('Creating...');
         
-        $.post(orabooks_ajax.ajax_url, {
-            action: 'orabooks_register',
-            email: $('#reg-email').val(),
-            password: $('#reg-password').val(),
-            user_type: $('#reg-user-type').val(),
-            partner_type: $('#reg-partner-type').val(),
-            organization_name: $('#reg-org-name').val(),
-            partner_code: $('#reg-partner-code').val(),
-            accept_terms: $('#reg-accept-terms').is(':checked') ? 1 : 0
-        }, function(response) {
-            if (response.error) {
-                $msg.removeClass('success').addClass('error').text(response.message).show();
-                $form.find('button').prop('disabled', false).text('Create Account');
-            } else {
-                $msg.removeClass('error').addClass('success').text('Registration successful! Verification email sent. Check your inbox.').show();
-                $form.find('button').prop('disabled', false).text('Create Account');
+        $.ajax({
+            url: orabooks_ajax.ajax_url,
+            type: 'POST',
+            dataType: 'json',
+            data: {
+                action: 'orabooks_register',
+                email: $('#reg-email').val(),
+                password: $('#reg-password').val(),
+                user_type: $('#reg-user-type').val(),
+                partner_type: $('#reg-partner-type').val(),
+                organization_name: $('#reg-org-name').val(),
+                partner_code: $('#reg-partner-code').val(),
+                accept_terms: $('#reg-accept-terms').is(':checked') ? 1 : 0
             }
+        }).done(function(response) {
+            orabooksHandleAjaxResponse(response, $msg, function(message) {
+                $msg.removeClass('success').addClass('error').text(message).show();
+                $form.find('button').prop('disabled', false).text('Create Account');
+            }, function(response) {
+                var successText = 'Registration successful! Verification email sent. Check your inbox.';
+                if (response.data && response.data.email_warning) {
+                    successText = 'Account created, but the verification email could not be sent. ' +
+                        response.data.email_warning + ' Contact the site administrator to configure email/SMTP.';
+                } else if (response.message) {
+                    successText = response.message;
+                }
+                $msg.removeClass('error').addClass('success').text(successText).show();
+                $form.find('button').prop('disabled', false).text('Create Account');
+            });
         }).fail(function(xhr) {
-            var message = 'An error occurred. Please try again.';
-            if (xhr.responseJSON && xhr.responseJSON.message) {
-                message = xhr.responseJSON.message;
-            } else if (xhr.responseText === '0' || xhr.responseText === '-1') {
-                message = 'Registration is unavailable. Confirm the OraBooks plugin is active, then try again.';
-            }
-            $msg.removeClass('success').addClass('error').text(message).show();
+            $msg.removeClass('success').addClass('error')
+                .text(orabooksAjaxErrorMessage(xhr, 'An error occurred. Please try again.')).show();
             $form.find('button').prop('disabled', false).text('Create Account');
         });
     });
