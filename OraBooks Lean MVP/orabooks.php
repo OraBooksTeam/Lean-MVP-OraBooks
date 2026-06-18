@@ -49,6 +49,7 @@ require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-observability.php';
 require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-csv-imports.php';
 require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-attachments.php';
 require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-ai-review.php';
+require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-expenses.php';
 require_once ORABOOKS_PLUGIN_DIR . 'includes/helpers.php';
 
 // Initialize plugin

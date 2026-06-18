@@ -895,6 +895,18 @@ class OraBooks_Database {
             wp_schedule_event(time(), 'daily', 'orabooks_ai_review_purge');
         }
 
+        // ============================================================
+        // SL-028: Expenses OCR
+        // ============================================================
+        $expense_tables = OraBooks_Expenses::get_create_table_sql();
+        foreach ($expense_tables as $sql) {
+            dbDelta($sql);
+        }
+
+        if (!wp_next_scheduled('orabooks_expenses_ocr_process')) {
+            wp_schedule_event(time(), 'every_5_minutes', 'orabooks_expenses_ocr_process');
+        }
+
         update_option('orabooks_db_version', ORABOOKS_DB_VERSION);
     }
     
