@@ -301,12 +301,26 @@ export default function ExpensesPage() {
                 <p className="text-sm text-slate-600">
                   Expense #{selectedExpense.id} · {selectedExpense.workflow_status}
                 </p>
+                {selectedExpense.tax_override_reason && (
+                  <span
+                    className="mt-1 inline-block rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800"
+                    title={`Override: ${selectedExpense.tax_override_reason}`}
+                  >
+                    Tax Overridden
+                  </span>
+                )}
               </div>
               <div className="flex flex-wrap gap-2">
                 {selectedExpense.ocr_confidence != null && (
                   <ConfidenceBadge value={selectedExpense.ocr_confidence} threshold={threshold} />
                 )}
                 {selectedExpense.ocr_risk_level && <RiskBadge level={selectedExpense.ocr_risk_level} />}
+                {selectedExpense.tax_rate != null && (
+                  <span className="inline-flex items-center gap-1 rounded-full border border-border bg-white px-2 py-0.5 text-xs text-slate-600">
+                    <Percent className="h-3 w-3" />
+                    {Number(selectedExpense.tax_rate).toFixed(2)}%
+                  </span>
+                )}
               </div>
             </div>
 
@@ -413,6 +427,12 @@ export default function ExpensesPage() {
                 <Button onClick={() => void handleConfirm()} disabled={confirming}>
                   <CheckCircle2 className="h-4 w-4" />
                   {confirming ? 'Submitting...' : 'Confirm & Submit'}
+                </Button>
+              )}
+              {selectedExpense.workflow_status === 'draft' && (caps.submit || caps.approve) && (
+                <Button size="sm" variant="secondary" onClick={() => void openOverride(selectedExpense)}>
+                  <Percent className="h-3.5 w-3.5" />
+                  Override tax
                 </Button>
               )}
               {caps.approve &&
