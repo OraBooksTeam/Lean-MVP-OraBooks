@@ -1204,4 +1204,82 @@ class OraBooks_Customers_Test extends TestCase
 
         $this->assertEquals(2, $count);
     }
+
+    #[Test]
+    public function test_create_invoice_calculates_tax_from_subtotal()
+    {
+        global $wpdb;
+
+        $wpdb->test_get_var_callback = function ($query) {
+            if (stripos($query, 'SELECT id FROM') !== false) {
+                return 0;
+            }
+            return 0;
+        };
+
+        $callCount = 0;
+        $wpdb->test_get_row_callback = function ($query) use (&$callCount) {
+            $callCount++;
+            if ($callCount === 1) {
+                return (object) ['id' => 1];
+            }
+            if (stripos($query, 'tax_configs') !== false) {
+                return (object) [
+                    'id' => 1,
+                    'default_tax_rate' => '10.0000',
+                    'tax_type' => 'Sales Tax',
+                    'override_reasons' => null,
+                ];
+            }
+            return $this->mockInvoice([
+                'id' => 201,
+                'total_amount' => '110.00',
+                'tax_amount' => '10.00',
+                'tax_rate' => '10.0000',
+            ]);
+        };
+        $wpdb->test_get_results_callback = function () {
+            return [];
+        };
+        $GLOBALS['orabooks_test_use_insert_id'] = 201;
+
+        $result = OraBooks_Customers::create_invoice(5, [
+            'customer_id' => 1,
+            'subtotal_amount' => 100,
+            'jurisdiction' => 'US',
+        ]);
+
+        $this->assertIsObject($result);
+        $this->assertEquals('110.00', $result->total_amount);
+    }
+
+    #[Test]
+    public function test_get_list_includes_wallet_balance()
+    {
+        global $wpdb;
+
+        $wpdb->test_get_results_callback = function ($query) {
+            if (stripos($query, 'wallet_balance') !== false) {
+                return [
+                    (object) [
+                        'id' => 1,
+                        'email' => 'ar@example.com',
+                        'is_active' => 1,
+                        'invoice_count' => 2,
+                        'total_paid' => '300.00',
+                        'wallet_balance' => '150.00',
+                    ],
+                ];
+            }
+            return [];
+        };
+        $wpdb->test_get_var_callback = function () {
+            return 1;
+        };
+
+        $result = OraBooks_Customers::get_list(5, ['limit' => 10, 'offset' => 0]);
+
+        $this->assertCount(1, $result['customers']);
+        $this->assertEquals('150.00', $result['customers'][0]->wallet_balance);
+    }
 }
