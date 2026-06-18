@@ -641,3 +641,48 @@
     color: #5f2120;
     border-radius: 2px;
 }
+
+/* =============================================
+   REACT WP-ADMIN DASHBOARD
+   ============================================= */
+.orabooks-admin-react.wrap {
+    max-width: 1400px;
+    margin-top: 12px;
+}
+
+.orabooks-admin-root {
+    min-height: 200px;
+}
+
+.orabooks-admin-root-loading {
+    color: #42627f;
+    font-size: 14px;
+    padding: 24px 0;
+}
+
+#orabooks-admin-root:empty + .orabooks-admin-root-loading,
+#orabooks-admin-root:not(:empty) ~ .orabooks-admin-root-loading {
+    display: none;
+}
+
+/* Brand alignment for legacy admin pages */
+.orabooks-admin .orabooks-stat-icon-orgs {
+    background: linear-gradient(135deg, #e9f2fb 0%, #d8e6f3 100%);
+}
+.orabooks-admin .orabooks-stat-icon-orgs .dashicons { color: #1A69B4; }
+.orabooks-admin .orabooks-stat-icon-partners {
+    background: linear-gradient(135deg, #eaf8ec 0%, #d4f0d9 100%);
+}
+.orabooks-admin .orabooks-stat-icon-partners .dashicons { color: #3AB54A; }
+.orabooks-admin .orabooks-panel-link {
+    color: #1A69B4;
+}
+.orabooks-admin .orabooks-panel-link:hover {
+    color: #145694;
+}
+.orabooks-admin .orabooks-btn-primary {
+    background: #1A69B4;
+}
+.orabooks-admin .orabooks-btn-primary:hover {
+    background: #145694;
+}
