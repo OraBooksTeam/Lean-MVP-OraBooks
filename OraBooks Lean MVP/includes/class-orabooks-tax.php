@@ -225,6 +225,10 @@ class OraBooks_Tax {
             return new WP_Error('invalid_config', 'Organization and jurisdiction are required');
         }
 
+        if (self::is_tax_locked($org_id, ['transaction_date' => $data['transaction_date'] ?? current_time('Y-m-d')])) {
+            return new WP_Error('tax_locked', 'Tax configuration is locked for closed fiscal periods');
+        }
+
         if ($rate < 0 || $rate > 100) {
             return new WP_Error('invalid_rate', 'Tax rate must be between 0 and 100');
         }
