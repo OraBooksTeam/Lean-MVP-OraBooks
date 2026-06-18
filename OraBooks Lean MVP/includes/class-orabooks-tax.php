@@ -360,6 +360,137 @@ class OraBooks_Tax {
         return [
             'snapshot_id' => $snapshot_id,
             'calculation' => $calculation,
+            'existing' => false,
+        ];
+    }
+
+    /**
+     * Create or return an immutable tax snapshot for a posted invoice.
+     */
+    public static function snapshot_for_invoice($invoice, $user_id = null) {
+        if (!$invoice) {
+            return new WP_Error('invalid_invoice', 'Invoice is required for tax snapshot');
+        }
+
+        $tax_base = max(0, round(floatval($invoice->total_amount ?? 0) - floatval($invoice->tax_amount ?? 0), 2));
+        $payload = [
+            'org_id' => (int) $invoice->org_id,
+            'transaction_id' => (int) $invoice->id,
+            'transaction_type' => 'invoice',
+            'amount' => $tax_base,
+            'jurisdiction' => sanitize_text_field($invoice->tax_jurisdiction ?? 'US'),
+            'transaction_date' => $invoice->invoice_date ?? current_time('Y-m-d'),
+            'tax_type' => sanitize_text_field($invoice->tax_type ?? 'Sales Tax'),
+        ];
+
+        if (!empty($invoice->tax_override_reason)) {
+            $payload['override'] = true;
+            $payload['override_tax_rate'] = floatval($invoice->tax_rate ?? 0);
+            $payload['override_reason'] = $invoice->tax_override_reason;
+        } else {
+            $payload['override'] = false;
+        }
+
+        return self::create_snapshot($payload, $user_id);
+    }
+
+    public static function list_configs($org_id) {
+        global $wpdb;
+
+        $table = OraBooks_Database::table('tax_configs');
+        $rows = $wpdb->get_results($wpdb->prepare(
+            "SELECT * FROM {$table} WHERE org_id = %d ORDER BY jurisdiction ASC",
+            intval($org_id)
+        ));
+
+        return array_map([self::class, 'format_config'], $rows ?: []);
+    }
+
+    public static function list_jurisdictions() {
+        global $wpdb;
+
+        $table = OraBooks_Database::table('tax_jurisdictions');
+        $rows = $wpdb->get_results(
+            "SELECT jurisdiction_code, name, tax_rules FROM {$table} ORDER BY name ASC"
+        );
+
+        return array_map(function ($row) {
+            $rules = !empty($row->tax_rules) ? json_decode($row->tax_rules, true) : [];
+            return [
+                'jurisdiction_code' => $row->jurisdiction_code,
+                'name' => $row->name,
+                'default_tax_rate' => floatval($rules['default_rate'] ?? 0),
+                'tax_type' => $rules['tax_type'] ?? 'Sales Tax',
+            ];
+        }, $rows ?: []);
+    }
+
+    public static function get_snapshot($org_id, $transaction_type, $transaction_id) {
+        global $wpdb;
+
+        $table = OraBooks_Database::table('tax_snapshots');
+        $row = $wpdb->get_row($wpdb->prepare(
+            "SELECT * FROM {$table}
+             WHERE org_id = %d AND transaction_type = %s AND transaction_id = %d",
+            intval($org_id),
+            sanitize_text_field($transaction_type),
+            intval($transaction_id)
+        ));
+
+        return $row ? self::format_snapshot($row) : null;
+    }
+
+    public static function get_lock_status($org_id, $transaction_date = null) {
+        $date = $transaction_date ?: current_time('Y-m-d');
+        $locked = self::is_tax_locked((int) $org_id, ['transaction_date' => $date]);
+
+        return [
+            'org_id' => (int) $org_id,
+            'transaction_date' => $date,
+            'tax_locked' => $locked,
+            'message' => $locked
+                ? 'Tax settings are locked for closed fiscal periods.'
+                : 'Tax changes are allowed for this period.',
+        ];
+    }
+
+    public static function format_config($config) {
+        $override_reasons = self::DEFAULT_OVERRIDE_REASONS;
+        if (!empty($config->override_reasons)) {
+            $decoded = json_decode($config->override_reasons, true);
+            if (is_array($decoded) && $decoded) {
+                $override_reasons = $decoded;
+            }
+        }
+
+        return [
+            'id' => (int) $config->id,
+            'org_id' => (int) $config->org_id,
+            'jurisdiction' => $config->jurisdiction,
+            'default_tax_rate' => (float) $config->default_tax_rate,
+            'tax_type' => $config->tax_type,
+            'exemption_certificate_url' => $config->exemption_certificate_url,
+            'override_reasons' => $override_reasons,
+            'is_active' => (int) $config->is_active,
+            'updated_at' => $config->updated_at ?? null,
+        ];
+    }
+
+    public static function format_snapshot($snapshot) {
+        return [
+            'id' => (int) $snapshot->id,
+            'org_id' => (int) $snapshot->org_id,
+            'transaction_id' => (int) $snapshot->transaction_id,
+            'transaction_type' => $snapshot->transaction_type,
+            'taxable_amount' => (float) $snapshot->taxable_amount,
+            'tax_rate' => (float) $snapshot->tax_rate,
+            'tax_amount' => (float) $snapshot->tax_amount,
+            'jurisdiction' => $snapshot->jurisdiction,
+            'tax_type' => $snapshot->tax_type,
+            'rule_id' => $snapshot->rule_id,
+            'override_reason' => $snapshot->override_reason,
+            'override_note' => $snapshot->override_note,
+            'created_at' => $snapshot->created_at,
         ];
     }
 
