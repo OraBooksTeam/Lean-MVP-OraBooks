@@ -104,7 +104,7 @@ class OraBooks_COA_Test extends TestCase
     {
         global $wpdb;
 
-        $wpdb->test_get_row_callback = function () {
+        $GLOBALS['orabooks_test_org_callback'] = function () {
             return (object) ['organization_type' => 'customer'];
         };
 
@@ -127,6 +127,8 @@ class OraBooks_COA_Test extends TestCase
         $accounts = OraBooks_COA::get_accounts(7);
         $this->assertCount(1, $accounts);
         $this->assertSame(1, (int) $accounts[0]->has_journal_entries);
+
+        unset($GLOBALS['orabooks_test_org_callback']);
     }
 
     #[Test]
