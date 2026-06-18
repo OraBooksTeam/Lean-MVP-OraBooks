@@ -546,7 +546,29 @@ class OraBooks_Ajax {
 
         if (current_user_can('manage_options')) {
             global $wpdb;
-            $table = Oabooks_Database::table('csv_imports');
+            $table = OraBooks_Database::table('csv_imports');
+            $imports = $wpdb->get_results(
+                "SELECT * FROM {$table} ORDER BY created_at DESC LIMIT 50"
+            );
+            $formatted = class_exists('OraBooks_Csv_Imports')
+                ? array_map([OraBooks_Csv_Imports::class, 'format_import'], $imports ?: [])
+                : [];
+
+            orabooks_json_success([
+                'imports' => $formatted,
+                'recent_imports' => $formatted,
+                'is_platform_admin' => true,
+                'timestamp' => current_time('mysql'),
+            ]);
+            return;
+        }
+
+        $context = $this->get_current_orabooks_context();
+        if (is_wp_error($context)) {
+            orabooks_json_error($context->get_error_message(), 401);
+        }
+
+        $org = $context['organization'];
         $org_id = $org ? (int) $org['id'] : 0;
         if (!$org_id) {
             orabooks_json_error('Organization is not set up yet.', 400);
@@ -556,7 +578,7 @@ class OraBooks_Ajax {
             orabooks_json_error('Partner accounts cannot perform accounting operations.', 403);
         }
 
-        if (!current_user_can('manage_options') && !OraBooks_RBAC::require_permission($context['user_id'], $org_id, 'submit_transaction')) {
+        if (!OraBooks_RBAC::require_permission($context['user_id'], $org_id, 'submit_transaction')) {
             orabooks_json_error('Permission denied', 403);
         }
 
@@ -596,6 +618,9 @@ class OraBooks_Ajax {
             'context' => $context,
             'stats' => $stats,
             'recent_imports' => $recent_imports,
+            'imports' => $recent_imports,
+            'is_platform_admin' => false,
+            'org_id' => $org_id,
             'resource_types' => $resource_types,
             'limits' => class_exists('OraBooks_Csv_Imports') ? [
                 'max_file_size' => OraBooks_Csv_Imports::MAX_FILE_SIZE,
@@ -1072,47 +1097,5 @@ class OraBooks_Ajax {
             'jwt_expiry' => $jwt_expiry,
             'refresh_token_expiry' => $refresh_token_expiry,
         ], 'Settings saved');
-    }
-
-    public function ajax_csv_imports_dashboard() {
-        $user_id = orabooks_get_current_user_id();
-        if (!$user_id) {
-            orabooks_json_error('Not authenticated', 401);
-        }
-
-        if (current_user_can('manage_options')) {
-            global $wpdb;
-            $table = OraBooks_Database::table('csv_imports');
-            $imports = $wpdb->get_results(
-                "SELECT * FROM {$table} ORDER BY created_at DESC LIMIT 50"
-            );
-
-            orabooks_json_success([
-                'imports' => array_map([OraBooks_Csv_Imports::class, 'format_import'], $imports ?: []),
-                'is_platform_admin' => true,
-            ]);
-            return;
-        }
-
-        $context = $this->get_current_orabooks_context();
-        if (is_wp_error($context)) {
-            orabooks_json_error($context->get_error_message(), 403);
-        }
-
-        $org_id = (int) ($context['organization']['id'] ?? 0);
-        if (!$org_id) {
-            orabooks_json_error('No organization context', 403);
-        }
-
-        if (!OraBooks_RBAC::require_permission($user_id, $org_id, 'submit_transaction')) {
-            orabooks_json_error('Permission denied', 403);
-        }
-
-        $imports = OraBooks_Csv_Imports::list_imports($org_id, 0, 50);
-        orabooks_json_success([
-            'imports' => array_map([OraBooks_Csv_Imports::class, 'format_import'], $imports ?: []),
-            'org_id' => $org_id,
-            'is_platform_admin' => false,
-        ]);
     }
 }
