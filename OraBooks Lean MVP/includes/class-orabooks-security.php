@@ -530,10 +530,32 @@ class OraBooks_Security {
         }
 
         $controls = $wpdb->get_results(
-            "SELECT owasp_id, control_name, implemented_in_sl, status, last_verified
+            "SELECT owasp_id, control_name, implemented_in_sl, validation_note, status, last_verified
              FROM {$controls_table}
              ORDER BY owasp_id ASC"
         );
+
+        $catalog = self::get_owasp_catalog();
+        $merged_controls = [];
+        $controls_by_id = [];
+        foreach ($controls as $row) {
+            $controls_by_id[$row->owasp_id] = $row;
+        }
+        foreach ($catalog as $owasp_id => $meta) {
+            $db_row = $controls_by_id[$owasp_id] ?? null;
+            $merged_controls[] = [
+                'owasp_id'          => $owasp_id,
+                'control_name'      => $db_row->control_name ?? $meta['control_name'],
+                'implemented_in_sl' => $db_row->implemented_in_sl ?? $meta['implemented_in_sl'],
+                'validation_note'   => $db_row->validation_note ?? $meta['validation_note'],
+                'status'            => $db_row->status ?? 'pending',
+                'last_verified'     => $db_row->last_verified ?? null,
+                'mitigations'       => $meta['mitigations'],
+                'user_message'      => $meta['user_message'],
+            ];
+        }
+
+        $ssrf_blocks = (int) ($by_type['ssrf_blocked'] ?? 0);
 
         $latest_scans = $wpdb->get_results(
             "SELECT s1.*
