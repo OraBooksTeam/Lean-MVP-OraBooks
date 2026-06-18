@@ -1206,7 +1206,7 @@ class OraBooks_Posting {
         $journal_id = intval($_POST['journal_id'] ?? 0);
         $org_id = $this->require_journal_access($user_id, $journal_id);
 
-        if (!OraBooks_RBAC::require_permission($user_id, $org_id, 'submit_transaction')) {
+        if (!OraBooks_RBAC::require_permission($user_id, $org_id, 'approve_journal')) {
             orabooks_json_error('Permission denied', 403);
         }
         
@@ -1269,5 +1269,23 @@ class OraBooks_Posting {
             'lines'   => array_map([self::class, 'format_journal_line'], $lines ?: []),
             'approval_history' => array_map([self::class, 'format_approval_history_row'], $history ?: []),
         ]);
+    }
+
+    public function ajax_reverse_journal() {
+        $user_id = $this->current_user_id();
+        $journal_id = intval($_POST['journal_id'] ?? 0);
+        $reason = sanitize_textarea_field($_POST['reason'] ?? '');
+        $org_id = $this->require_journal_access($user_id, $journal_id);
+
+        if (!OraBooks_RBAC::require_permission($user_id, $org_id, 'reverse_journal')) {
+            orabooks_json_error('Permission denied', 403);
+        }
+
+        $result = self::reverse_journal($journal_id, $org_id, $user_id, $reason);
+        if (is_wp_error($result)) {
+            orabooks_json_error($result->get_error_message(), 409);
+        }
+
+        orabooks_json_success($result, 'Reversal journal created');
     }
 }
