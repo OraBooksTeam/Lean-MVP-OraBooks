@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import Button from '@/components/Button';
 import { api } from '../api';
 import ClientShell from '../components/ClientShell';
-import { Camera, CheckCircle2, Receipt, RefreshCw, Upload, XCircle } from 'lucide-react';
+import { Camera, CheckCircle2, Receipt, RefreshCw, Sparkles, Upload, XCircle } from 'lucide-react';
 
 const fieldClass =
   'w-full rounded-lg border border-border bg-white px-3.5 py-2.5 text-sm text-ink shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20';
@@ -18,6 +18,7 @@ export default function ExpensesPage() {
   const [editFields, setEditFields] = useState<Record<string, string>>({});
   const [confirming, setConfirming] = useState(false);
   const [actionId, setActionId] = useState<number | null>(null);
+  const [classifying, setClassifying] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const orgId = data?.context?.organization?.id;
@@ -247,6 +248,37 @@ export default function ExpensesPage() {
                   <strong>Category:</strong> {selectedExpense.category || '—'}
                 </p>
               </div>
+            )}
+
+            {selectedExpense.classification && (
+              <ClassificationPanel
+                classification={selectedExpense.classification}
+                threshold={threshold}
+                canManage={!!caps.submit}
+                loading={classifying}
+                onApply={async () => {
+                  if (!selectedExpense?.id) return;
+                  setClassifying(true);
+                  const res = await api.classificationApply('expense', selectedExpense.id);
+                  if (res.error) setError(res.error);
+                  else {
+                    setSuccess('AI suggestions applied.');
+                    await loadExpense(selectedExpense.id);
+                  }
+                  setClassifying(false);
+                }}
+                onRerun={async () => {
+                  if (!selectedExpense?.id) return;
+                  setClassifying(true);
+                  const res = await api.classificationRun('expense', selectedExpense.id, false);
+                  if (res.error) setError(res.error);
+                  else {
+                    setSuccess('Classification refreshed.');
+                    await loadExpense(selectedExpense.id);
+                  }
+                  setClassifying(false);
+                }}
+              />
             )}
 
             <div className="mt-4 flex flex-wrap gap-2">

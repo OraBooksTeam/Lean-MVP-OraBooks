@@ -365,6 +365,17 @@ export const api = {
     api.post('orabooks_expense_reject', { org_id: orgId, expense_id: expenseId, reason }),
   expensePost: (orgId: number, expenseId: number) =>
     api.post('orabooks_expense_post', { org_id: orgId, expense_id: expenseId }),
+  classificationRun: (recordType: string, recordId: number, async = true) =>
+    api.post('orabooks_classification_run', { record_type: recordType, record_id: recordId, async: async ? 1 : 0 }),
+  classificationApply: (recordType: string, recordId: number) =>
+    api.post('orabooks_classification_apply', { record_type: recordType, record_id: recordId }),
+  classificationOverride: (recordType: string, recordId: number, accountCode: string, taxRate?: number) =>
+    api.post('orabooks_classification_override', {
+      record_type: recordType,
+      record_id: recordId,
+      account_code: accountCode,
+      ...(taxRate != null ? { tax_rate: taxRate } : {}),
+    }),
   voiceDashboard: () =>
     api.get('orabooks_voice_dashboard'),
   uploadVoice: (orgId: number, file: File, idempotencyKey = '') => {

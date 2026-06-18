@@ -265,9 +265,7 @@ class OraBooks_Classification {
 
         if (function_exists('orabooks_publish_event')) {
             orabooks_publish_event('classification_requested', $record_id, $payload);
-        }
-
-        if (class_exists('OraBooks_AsyncQueue')) {
+        } elseif (class_exists('OraBooks_AsyncQueue')) {
             OraBooks_AsyncQueue::enqueue('classify_transaction', $payload, ['priority' => 4]);
         } else {
             self::run($record_type, $record_id, $org_id);
