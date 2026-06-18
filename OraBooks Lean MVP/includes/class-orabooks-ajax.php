@@ -858,6 +858,58 @@ class OraBooks_Ajax {
             'timestamp' => current_time('mysql'),
         ]);
     }
+
+    public function ajax_ai_review_dashboard() {
+        $context = $this->get_current_orabooks_context();
+        if (is_wp_error($context)) {
+            orabooks_json_error($context->get_error_message(), 401);
+        }
+
+        $org = $context['organization'];
+        $org_id = $org ? (int) $org['id'] : 0;
+        if (!$org_id) {
+            orabooks_json_error('Organization is not set up yet.', 400);
+        }
+
+        if (($org['organization_type'] ?? '') === 'partner') {
+            orabooks_json_error('Partner accounts cannot perform accounting operations.', 403);
+        }
+
+        if (!OraBooks_RBAC::require_permission($context['user_id'], $org_id, 'view_ai_review_queue')) {
+            orabooks_json_error('Permission denied', 403);
+        }
+
+        $stats = [
+            'pending'    => 0,
+            'processing' => 0,
+            'escalated'  => 0,
+            'resolved'   => 0,
+            'total_open' => 0,
+        ];
+        $escalated = [];
+        $pending = [];
+
+        if (class_exists('OraBooks_Ai_Review')) {
+            $stats = OraBooks_Ai_Review::get_queue_stats($org_id);
+            $escalated_rows = OraBooks_Ai_Review::list_queue($org_id, ['statuses' => ['escalated'], 'limit' => 25]);
+            $pending_rows = OraBooks_Ai_Review::list_queue($org_id, ['statuses' => ['pending', 'processing'], 'limit' => 15]);
+
+            $escalated = array_map([OraBooks_Ai_Review::class, 'format_queue_item'], $escalated_rows ?: []);
+            $pending = array_map([OraBooks_Ai_Review::class, 'format_queue_item'], $pending_rows ?: []);
+        }
+
+        orabooks_json_success([
+            'context' => $context,
+            'stats' => $stats,
+            'escalated' => $escalated,
+            'pending' => $pending,
+            'threshold' => OraBooks_Ai_Review::CONFIDENCE_THRESHOLD,
+            'capabilities' => [
+                'review' => OraBooks_RBAC::require_permission($context['user_id'], $org_id, 'approve_journal'),
+            ],
+            'timestamp' => current_time('mysql'),
+        ]);
+    }
     
     public function ajax_list_orgs() {
         if (!current_user_can('manage_options')) {

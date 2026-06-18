@@ -36,6 +36,7 @@ class OraBooks_Shortcodes {
             add_shortcode('orabooks_team', [self::$instance, 'team_page']);
             add_shortcode('orabooks_attachments', [self::$instance, 'attachments_page']);
             add_shortcode('orabooks_approvals', [self::$instance, 'approvals_page']);
+            add_shortcode('orabooks_ai_review', [self::$instance, 'ai_review_page']);
             add_shortcode('orabooks_export_button', [self::$instance, 'export_button']);
             add_shortcode('orabooks_customers', [self::$instance, 'customers_page']);
             add_shortcode('orabooks_vendors', [self::$instance, 'vendors_page']);
@@ -216,6 +217,14 @@ class OraBooks_Shortcodes {
             return '<p>' . __('Please log in to manage approvals.', 'orabooks') . '</p>';
         }
         return $this->react_app('/approvals', 'Loading approvals...');
+    }
+
+    public function ai_review_page() {
+        $user_id = get_current_user_id();
+        if (!$user_id) {
+            return '<p>' . __('Please log in to view the AI review queue.', 'orabooks') . '</p>';
+        }
+        return $this->react_app('/ai-review', 'Loading AI review queue...');
     }
     
     /**
