@@ -63,10 +63,10 @@ export default function ApprovalsPage() {
     }
   };
 
-  const handleSubmit = async (journalId: number) => {
+  const handleSubmit = async (journalId: number, approvalRound = 0) => {
     setActionId(journalId);
     setError('');
-    const res = await api.submitJournal(journalId);
+    const res = approvalRound > 0 ? await api.resubmitJournal(journalId) : await api.submitJournal(journalId);
     if (res.error) setError(res.error);
     else {
       const aiReview = (res as any).data?.ai_review;
@@ -76,10 +76,19 @@ export default function ApprovalsPage() {
     setActionId(null);
   };
 
-  const handleApprove = async (journalId: number) => {
+  const handleApprove = async (journalId: number, amount = 0, mfaThreshold = 10000) => {
     setActionId(journalId);
     setError('');
-    const res = await api.approveJournal(journalId);
+    let mfaOtp: string | undefined;
+    if (amount >= mfaThreshold) {
+      const code = window.prompt('This approval exceeds the MFA threshold. Enter your 6-digit 2FA code:');
+      if (!code?.trim()) {
+        setActionId(null);
+        return;
+      }
+      mfaOtp = code.trim();
+    }
+    const res = await api.approveJournal(journalId, mfaOtp);
     if (res.error) setError(res.error);
     else {
       setSuccess('Journal approved.');
