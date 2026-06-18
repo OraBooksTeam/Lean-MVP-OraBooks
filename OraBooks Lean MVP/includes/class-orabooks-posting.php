@@ -176,32 +176,91 @@ class OraBooks_Posting {
     }
     
     /**
-     * Submit journal for approval
+     * Submit journal for approval (may queue SL-076 AI review first)
      */
     public static function submit_journal($journal_id, $user_id) {
         global $wpdb;
-        
+
         $table = OraBooks_Database::table('journals');
         $journal = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$table} WHERE id = %d FOR UPDATE", $journal_id));
-        
+
         if (!$journal || $journal->status !== 'draft') {
             return new WP_Error('invalid_status', 'Only draft journals can be submitted');
         }
-        
-        // Check double-entry
-        $table_lines = OraBooks_Database::table('journal_lines');
-        $totals = $wpdb->get_row($wpdb->prepare(
-            "SELECT SUM(debit_amount) as total_debit, SUM(credit_amount) as total_credit FROM {$table_lines} WHERE journal_id = %d",
-            $journal_id
-        ));
-        
-        if (abs($totals->total_debit - $totals->total_credit) > 0.01) {
-            return new WP_Error('unbalanced', 'Journal is unbalanced. Debits must equal credits.');
+
+        $balance_check = self::validate_journal_balance($journal_id);
+        if (is_wp_error($balance_check)) {
+            return $balance_check;
         }
-        
+
+        if (class_exists('OraBooks_Ai_Review')) {
+            $evaluation = OraBooks_Ai_Review::evaluate_journal($journal_id, (int) $journal->org_id);
+            if (!OraBooks_Ai_Review::passes_threshold($evaluation)) {
+                $enqueued = OraBooks_Ai_Review::enqueue(
+                    (int) $journal->org_id,
+                    'journal',
+                    (int) $journal_id,
+                    (int) $journal_id,
+                    array_merge($evaluation, ['escalation_reason' => 'low_confidence']),
+                    (float) $journal->total_amount
+                );
+
+                if (is_wp_error($enqueued) && $enqueued->get_error_code() !== 'duplicate') {
+                    return $enqueued;
+                }
+
+                $queue_id = is_wp_error($enqueued)
+                    ? (int) ($enqueued->get_error_data()['queue_id'] ?? 0)
+                    : (int) $enqueued['id'];
+
+                orabooks_log_event('journal_ai_review_queued', "Journal #$journal_id queued for AI review", 'info', [
+                    'journal_id' => $journal_id,
+                    'queue_id'   => $queue_id,
+                    'confidence' => $evaluation['confidence'] ?? 0,
+                    'risk_level' => $evaluation['risk_level'] ?? 'medium',
+                ], $user_id, $journal->org_id);
+
+                return [
+                    'ai_review' => true,
+                    'queue_id'  => $queue_id,
+                ];
+            }
+        }
+
+        return self::promote_to_review_pending($journal_id, $user_id, $journal);
+    }
+
+    /**
+     * Move a balanced draft journal into review_pending (SL-002 / SL-076 worker)
+     */
+    public static function promote_to_review_pending($journal_id, $user_id, $journal = null) {
+        global $wpdb;
+
+        $table = OraBooks_Database::table('journals');
+        if (!$journal) {
+            $journal = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$table} WHERE id = %d FOR UPDATE", $journal_id));
+        }
+
+        if (!$journal) {
+            return new WP_Error('not_found', 'Journal not found');
+        }
+
+        if ($journal->status === 'review_pending') {
+            return true;
+        }
+
+        if ($journal->status !== 'draft') {
+            return new WP_Error('invalid_status', 'Only draft journals can enter review');
+        }
+
+        $balance_check = self::validate_journal_balance($journal_id);
+        if (is_wp_error($balance_check)) {
+            return $balance_check;
+        }
+
         $new_round = $journal->approval_round + 1;
         $snapshot_hash = self::compute_snapshot_hash($journal_id);
-        
+
         $wpdb->update($table, [
             'status' => 'review_pending',
             'approval_round' => $new_round,
@@ -211,19 +270,32 @@ class OraBooks_Posting {
             'approved_snapshot_hash' => $snapshot_hash,
             'rejected_reason' => null
         ], ['id' => $journal_id], ['%s', '%d', '%s', '%d', '%d', '%s', null], ['%d']);
-        
-        // Record in approval history
+
         self::record_approval_history($journal_id, 'submit', $user_id, $snapshot_hash, $new_round, $journal->revision_number);
-        
-        // Record state transition
         self::transition('journal', $journal_id, 'submit', $user_id);
-        
+
         orabooks_log_event('journal_submitted', "Journal #$journal_id submitted for approval", 'info', [
             'journal_id' => $journal_id,
             'org_id' => $journal->org_id,
             'amount' => $journal->total_amount
         ], $user_id, $journal->org_id);
-        
+
+        return true;
+    }
+
+    private static function validate_journal_balance($journal_id) {
+        global $wpdb;
+
+        $table_lines = OraBooks_Database::table('journal_lines');
+        $totals = $wpdb->get_row($wpdb->prepare(
+            "SELECT SUM(debit_amount) as total_debit, SUM(credit_amount) as total_credit FROM {$table_lines} WHERE journal_id = %d",
+            $journal_id
+        ));
+
+        if (abs($totals->total_debit - $totals->total_credit) > 0.01) {
+            return new WP_Error('unbalanced', 'Journal is unbalanced. Debits must equal credits.');
+        }
+
         return true;
     }
     
@@ -265,6 +337,10 @@ class OraBooks_Posting {
         orabooks_log_event('journal_approved', "Journal #$journal_id approved by user $user_id", 'info', [
             'journal_id' => $journal_id
         ], $user_id, $journal->org_id);
+
+        if (class_exists('OraBooks_Ai_Review')) {
+            OraBooks_Ai_Review::resolve_ai_review($journal_id, (int) $journal->org_id, $user_id);
+        }
         
         return true;
     }
@@ -301,6 +377,10 @@ class OraBooks_Posting {
             'journal_id' => $journal_id,
             'reason' => $reason
         ], $user_id, $journal->org_id);
+
+        if (class_exists('OraBooks_Ai_Review')) {
+            OraBooks_Ai_Review::resolve_ai_review($journal_id, (int) $journal->org_id, $user_id);
+        }
         
         return true;
     }
