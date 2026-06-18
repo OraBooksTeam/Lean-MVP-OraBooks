@@ -1062,17 +1062,28 @@ class OraBooks_Csv_Imports {
     // AJAX
     // ================================================================
 
-    public function ajax_upload() {
-        check_ajax_referer('orabooks_ajax', 'nonce');
+    private function current_user_id() {
+        return orabooks_get_current_user_id();
+    }
 
-        $user_id = get_current_user_id();
+    private function require_customer_org_access($user_id, $org_id) {
+        if (!$user_id) {
+            orabooks_json_error('Not authenticated', 401);
+        }
+
+        $isolation = OraBooks_Auth::require_customer_org($user_id, $org_id);
+        if (is_wp_error($isolation)) {
+            orabooks_json_error($isolation->get_error_message(), 403);
+        }
+    }
+
+    public function ajax_upload() {
+        $user_id = $this->current_user_id();
         $org_id = intval($_POST['org_id'] ?? 0);
         $resource_type = sanitize_text_field($_POST['resource_type'] ?? '');
         $idempotency_key = sanitize_text_field($_POST['idempotency_key'] ?? '');
 
-        if (!$user_id || !$org_id) {
-            orabooks_json_error('Authentication required', 401);
-        }
+        $this->require_customer_org_access($user_id, $org_id);
 
         if (empty($_FILES['csv_file']['tmp_name'])) {
             orabooks_json_error('CSV file is required', 400);
@@ -1091,19 +1102,18 @@ class OraBooks_Csv_Imports {
     }
 
     public function ajax_get_import() {
-        check_ajax_referer('orabooks_ajax', 'nonce');
+        $user_id = $this->current_user_id();
+        $org_id = intval($_POST['org_id'] ?? $_GET['org_id'] ?? 0);
+        $import_id = intval($_POST['import_id'] ?? $_GET['import_id'] ?? 0);
 
-        $user_id = get_current_user_id();
-        $org_id = intval($_POST['org_id'] ?? 0);
-        $import_id = intval($_POST['import_id'] ?? 0);
+        $this->require_customer_org_access($user_id, $org_id);
 
-        if (!$user_id || !$org_id || !$import_id) {
+        if (!$import_id) {
             orabooks_json_error('Missing parameters', 400);
         }
 
-        $perm = OraBooks_RBAC::require_permission($user_id, $org_id, 'submit_transaction');
-        if (is_wp_error($perm)) {
-            orabooks_json_error($perm->get_error_message(), 403);
+        if (!OraBooks_RBAC::require_permission($user_id, $org_id, 'submit_transaction')) {
+            orabooks_json_error('Permission denied', 403);
         }
 
         $preview = self::get_import_preview($import_id, $org_id);
@@ -1115,9 +1125,7 @@ class OraBooks_Csv_Imports {
     }
 
     public function ajax_confirm() {
-        check_ajax_referer('orabooks_ajax', 'nonce');
-
-        $user_id = get_current_user_id();
+        $user_id = $this->current_user_id();
         $org_id = intval($_POST['org_id'] ?? 0);
         $import_id = intval($_POST['import_id'] ?? 0);
         $confirm_key = sanitize_text_field($_POST['idempotency_key'] ?? '');
@@ -1130,7 +1138,9 @@ class OraBooks_Csv_Imports {
             $overrides['rows'] = json_decode(stripslashes($_POST['row_overrides']), true);
         }
 
-        if (!$user_id || !$org_id || !$import_id || $confirm_key === '') {
+        $this->require_customer_org_access($user_id, $org_id);
+
+        if (!$import_id || $confirm_key === '') {
             orabooks_json_error('Missing parameters', 400);
         }
 
@@ -1147,18 +1157,13 @@ class OraBooks_Csv_Imports {
     }
 
     public function ajax_list_imports() {
-        check_ajax_referer('orabooks_ajax', 'nonce');
+        $user_id = $this->current_user_id();
+        $org_id = intval($_POST['org_id'] ?? $_GET['org_id'] ?? 0);
 
-        $user_id = get_current_user_id();
-        $org_id = intval($_POST['org_id'] ?? 0);
+        $this->require_customer_org_access($user_id, $org_id);
 
-        if (!$user_id || !$org_id) {
-            orabooks_json_error('Authentication required', 401);
-        }
-
-        $perm = OraBooks_RBAC::require_permission($user_id, $org_id, 'submit_transaction');
-        if (is_wp_error($perm)) {
-            orabooks_json_error($perm->get_error_message(), 403);
+        if (!OraBooks_RBAC::require_permission($user_id, $org_id, 'submit_transaction')) {
+            orabooks_json_error('Permission denied', 403);
         }
 
         $imports = self::list_imports($org_id, $user_id);
