@@ -819,26 +819,14 @@ function orabooks_admin_enqueue($hook) {
     wp_enqueue_style('orabooks-admin', ORABOOKS_PLUGIN_URL . 'assets/css/admin.css', [], ORABOOKS_VERSION);
     wp_enqueue_style('orabooks-frontend', ORABOOKS_PLUGIN_URL . 'assets/css/frontend.css', [], ORABOOKS_VERSION);
 
-    $ajax_config = [
-        'ajax_url' => admin_url('admin-ajax.php'),
-        'nonce' => wp_create_nonce('orabooks_nonce'),
-        'admin_base' => admin_url('admin.php'),
-        'is_admin' => current_user_can('manage_options'),
-        'current_user_id' => get_current_user_id(),
-        'logout_url' => wp_logout_url(home_url('/login/')),
-    ];
+    $ajax_config = OraBooks_Assets::get_ajax_config('admin');
 
-    wp_enqueue_script('orabooks-admin', ORABOOKS_PLUGIN_URL . 'assets/js/admin.js', ['jquery'], ORABOOKS_VERSION, true);
-    wp_localize_script('orabooks-admin', 'orabooks_ajax', $ajax_config);
+    if (OraBooks_Assets::should_enqueue_admin_react($hook)) {
+        OraBooks_Assets::enqueue_admin_react($ajax_config);
+        return;
+    }
 
-    wp_enqueue_script(
-        'orabooks-frontend-jquery',
-        ORABOOKS_PLUGIN_URL . 'assets/js/frontend.js',
-        ['jquery', 'orabooks-admin'],
-        ORABOOKS_VERSION,
-        true
-    );
-    wp_localize_script('orabooks-frontend-jquery', 'orabooks_ajax', $ajax_config);
+    OraBooks_Assets::enqueue_legacy_admin_scripts($ajax_config);
 }
 
 // Enqueue frontend assets
@@ -854,15 +842,16 @@ function orabooks_frontend_enqueue() {
     }
 
     wp_enqueue_style('orabooks-frontend', ORABOOKS_PLUGIN_URL . 'assets/css/frontend.css', [], ORABOOKS_VERSION);
-    wp_enqueue_script('orabooks-frontend', ORABOOKS_PLUGIN_URL . 'assets/js/frontend.js', ['jquery'], ORABOOKS_VERSION, true);
 
-    wp_localize_script('orabooks-frontend', 'orabooks_ajax', [
-        'ajax_url' => admin_url('admin-ajax.php'),
-        'nonce' => wp_create_nonce('orabooks_nonce'),
-        'current_user_id' => get_current_user_id(),
-        'logout_url' => wp_logout_url(home_url('/login/')),
-        'admin_base' => admin_url('admin.php'),
-    ]);
+    $ajax_config = OraBooks_Assets::get_ajax_config('frontend');
+
+    if (OraBooks_Assets::should_enqueue_frontend_react($post->post_content)) {
+        OraBooks_Assets::enqueue_frontend_react($ajax_config);
+    }
+
+    if (OraBooks_Assets::should_enqueue_legacy_frontend($post->post_content)) {
+        OraBooks_Assets::enqueue_legacy_frontend_scripts($ajax_config);
+    }
 }
 
 // Add body classes on OraBooks frontend pages for full-width layout
