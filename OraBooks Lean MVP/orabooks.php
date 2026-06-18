@@ -55,6 +55,7 @@ require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-expenses.php';
 require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-voice.php';
 require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-security.php';
 require_once ORABOOKS_PLUGIN_DIR . 'includes/helpers.php';
+require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-views.php';
 
 // Initialize plugin
 add_action('plugins_loaded', 'orabooks_init');
