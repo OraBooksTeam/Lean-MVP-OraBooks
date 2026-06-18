@@ -574,15 +574,35 @@ class OraBooks_Security {
             'failed_logins'      => $failed_logins,
             'rate_limit_hits'    => (int) ($by_type['rate_limit_exceeded'] ?? 0),
             'access_denied'      => (int) ($by_type['access_denied'] ?? 0),
+            'ssrf_blocks'        => $ssrf_blocks,
             'audit_volume'       => $audit_volume,
-            'owasp_controls'     => $controls,
+            'owasp_controls'     => $merged_controls,
+            'input_schemas'      => array_keys(self::$input_schemas),
             'latest_scans'       => $latest_scans,
             'rate_limits'        => self::get_rate_limit_config(),
             'headers_status'     => self::get_headers_status(),
             'webhook_allowlist'  => get_option('orabooks_webhook_url_allowlist', self::$default_webhook_allowlist),
+            'secrets_rotation'   => self::get_secret_rotation_status(),
             'timestamp'          => current_time('mysql'),
         ];
     }
+
+    /**
+     * Secret rotation status for dashboard.
+     */
+    public static function get_secret_rotation_status() {
+        $last_rotated = get_option('orabooks_secrets_last_rotated', '');
+        if ($last_rotated === '') {
+            $last_rotated = get_option('orabooks_installed_at', current_time('mysql', true));
+        }
+        $days_since = (int) floor((time() - strtotime($last_rotated)) / DAY_IN_SECONDS);
+
+        return [
+            'last_rotated' => $last_rotated,
+            'days_since'   => $days_since,
+            'due'          => $days_since >= self::SECRET_ROTATION_DAYS,
+            'days_until'   => max(0, self::SECRET_ROTATION_DAYS - $days_since),
+        ];
 
     public static function store_scan_result($scan_type, $status, $summary, $details = []) {
         global $wpdb;
@@ -609,6 +629,7 @@ class OraBooks_Security {
             'X-Frame-Options'           => true,
             'X-Content-Type-Options'    => true,
             'Referrer-Policy'           => true,
+            'Permissions-Policy'        => true,
         ];
 
         return [
