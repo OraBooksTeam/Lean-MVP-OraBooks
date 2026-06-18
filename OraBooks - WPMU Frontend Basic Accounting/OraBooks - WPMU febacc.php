@@ -127,19 +127,17 @@ if (!function_exists('orabooks_can_access_accounting')) {
 
 function obn_accounting_check_dependency()
 {
-	// 1. Check for common OraBooks functions/classes (Best)
+	// Lean MVP core plugin is the required host platform.
 	if (
-		function_exists('orabooks_register_addon') ||
-		function_exists('orabooks_is_feature_enabled') ||
-		class_exists('OraBooks') ||
-		defined('ORABOOKS_VERSION')
+		defined('ORABOOKS_VERSION') ||
+		class_exists('OraBooks_Database') ||
+		class_exists('OraBooks_Auth')
 	) {
 		return true;
 	}
 
-	// 2. Fallback check for active plugins list
 	if (!function_exists('is_plugin_active')) {
-		include_once(ABSPATH . 'wp-admin/includes/plugin.php');
+		include_once ABSPATH . 'wp-admin/includes/plugin.php';
 	}
 
 	$active_plugins = (array) get_option('active_plugins', array());
@@ -149,12 +147,10 @@ function obn_accounting_check_dependency()
 	}
 
 	foreach ($active_plugins as $plugin_path) {
-		// Look for membership plugin specifically
-		if (stripos($plugin_path, 'taxora') !== false && stripos($plugin_path, 'membership') !== false) {
+		if (stripos($plugin_path, 'orabooks') !== false && stripos($plugin_path, 'lean') !== false) {
 			return true;
 		}
-		// Broad search for any "OraBooks" core plugin if membership is integrated
-		if (stripos($plugin_path, 'taxora-membership') !== false) {
+		if (basename(dirname($plugin_path)) === 'OraBooks Lean MVP') {
 			return true;
 		}
 	}
@@ -164,7 +160,9 @@ function obn_accounting_check_dependency()
 
 function obn_accounting_membership_notice()
 {
-	echo '<div class="notice notice-error is-dismissible"><p>' . esc_html__('OraBooks - WPMU Frontend Basic Accounting requires the TaxOra - WPMU Membership Subscription Panel to be installed and activated.', 'wpmu tob febacc') . '</p></div>';
+	echo '<div class="notice notice-error is-dismissible"><p>' .
+		esc_html__('OraBooks - WPMU Frontend Basic Accounting requires the OraBooks Lean MVP plugin to be installed and activated.', 'wpmu tob febacc') .
+		'</p></div>';
 }
 
 /**
