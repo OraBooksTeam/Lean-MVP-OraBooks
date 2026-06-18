@@ -427,6 +427,8 @@ export const api = {
     api.post('orabooks_reject_journal', { journal_id: journalId, reason }),
   postJournal: (journalId: number) =>
     api.post('orabooks_post_journal', { journal_id: journalId }),
+  reverseJournal: (orgId: number, journalId: number, reason: string) =>
+    api.post('orabooks_reverse_journal', { org_id: orgId, journal_id: journalId, reason }),
   auditLogs: (filters = {}) =>
     api.get('orabooks_get_audit_logs', filters),
   exportAuditLogs: (filters = {}) => {

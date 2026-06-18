@@ -507,6 +507,9 @@ class OraBooks_Database {
         ) {$charset_collate};";
         dbDelta($sql);
 
+        if (!wp_next_scheduled('orabooks_monthly_fiscal_period_rollover')) {
+            wp_schedule_event(time(), 'monthly', 'orabooks_monthly_fiscal_period_rollover');
+        }
         if (!wp_next_scheduled('orabooks_daily_ledger_integrity_check')) {
             wp_schedule_event(time(), 'daily', 'orabooks_daily_ledger_integrity_check');
         }
