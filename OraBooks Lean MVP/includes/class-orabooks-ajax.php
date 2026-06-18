@@ -25,10 +25,12 @@ class OraBooks_Ajax {
             add_action('wp_ajax_orabooks_customer_dashboard', [self::$instance, 'ajax_customer_dashboard']);
             add_action('wp_ajax_orabooks_vendor_dashboard', [self::$instance, 'ajax_vendor_dashboard']);
             add_action('wp_ajax_orabooks_inventory_dashboard', [self::$instance, 'ajax_inventory_dashboard']);
+            add_action('wp_ajax_orabooks_bank_dashboard', [self::$instance, 'ajax_bank_dashboard']);
             add_action('wp_ajax_nopriv_orabooks_frontend_context', [self::$instance, 'ajax_frontend_context']);
             add_action('wp_ajax_nopriv_orabooks_customer_dashboard', [self::$instance, 'ajax_customer_dashboard']);
             add_action('wp_ajax_nopriv_orabooks_vendor_dashboard', [self::$instance, 'ajax_vendor_dashboard']);
             add_action('wp_ajax_nopriv_orabooks_inventory_dashboard', [self::$instance, 'ajax_inventory_dashboard']);
+            add_action('wp_ajax_nopriv_orabooks_bank_dashboard', [self::$instance, 'ajax_bank_dashboard']);
             
             // Register settings
             add_action('admin_init', [self::$instance, 'register_settings']);
@@ -328,6 +330,87 @@ class OraBooks_Ajax {
             ],
             'recent_products' => $recent_products,
             'recent_movements' => $recent_movements,
+            'timestamp' => current_time('mysql'),
+        ]);
+    }
+
+    public function ajax_bank_dashboard() {
+        global $wpdb;
+
+        $context = $this->get_current_orabooks_context();
+        if (is_wp_error($context)) {
+            orabooks_json_error($context->get_error_message(), 401);
+        }
+
+        $org = $context['organization'];
+        $org_id = $org ? (int) $org['id'] : 0;
+        if (!$org_id) {
+            orabooks_json_error('Organization is not set up yet.', 400);
+        }
+
+        if (($org['organization_type'] ?? '') === 'partner') {
+            orabooks_json_error('Partner accounts cannot perform accounting operations.', 403);
+        }
+
+        if (!current_user_can('manage_options') && !OraBooks_RBAC::require_permission($context['user_id'], $org_id, 'view_reports')) {
+            orabooks_json_error('Permission denied', 403);
+        }
+
+        $accounts_table = OraBooks_Database::table('bank_accounts');
+        $transactions_table = OraBooks_Database::table('bank_transactions');
+
+        $account_stats = $wpdb->get_row($wpdb->prepare(
+            "SELECT
+                COUNT(*) AS total_accounts,
+                COALESCE(SUM(current_balance), 0) AS total_balance
+             FROM {$accounts_table}
+             WHERE org_id = %d AND is_active = 1",
+            $org_id
+        ));
+
+        $transaction_stats = $wpdb->get_results($wpdb->prepare(
+            "SELECT status, COUNT(*) AS total
+             FROM {$transactions_table}
+             WHERE org_id = %d
+             GROUP BY status",
+            $org_id
+        ));
+
+        $status_counts = [
+            'unmatched' => 0,
+            'matched' => 0,
+            'reconciled' => 0,
+            'skipped' => 0,
+        ];
+        foreach ($transaction_stats ?: [] as $row) {
+            $status_counts[$row->status] = (int) $row->total;
+        }
+
+        $accounts = class_exists('OraBooks_Bank_Reconciliation')
+            ? OraBooks_Bank_Reconciliation::get_accounts_list($org_id)
+            : [];
+
+        $recent_transactions = class_exists('OraBooks_Bank_Reconciliation')
+            ? OraBooks_Bank_Reconciliation::get_recent_transactions($org_id, ['limit' => 25, 'offset' => 0])
+            : [];
+
+        $recent_reconciliations = class_exists('OraBooks_Bank_Reconciliation')
+            ? OraBooks_Bank_Reconciliation::get_recent_reconciliation_log($org_id, ['limit' => 10])
+            : [];
+
+        orabooks_json_success([
+            'context' => $context,
+            'stats' => [
+                'total_accounts' => (int) ($account_stats->total_accounts ?? 0),
+                'total_balance' => (float) ($account_stats->total_balance ?? 0),
+                'unmatched_count' => $status_counts['unmatched'],
+                'matched_count' => $status_counts['matched'],
+                'reconciled_count' => $status_counts['reconciled'],
+                'skipped_count' => $status_counts['skipped'],
+            ],
+            'accounts' => $accounts,
+            'recent_transactions' => $recent_transactions,
+            'recent_reconciliations' => $recent_reconciliations,
             'timestamp' => current_time('mysql'),
         ]);
     }
