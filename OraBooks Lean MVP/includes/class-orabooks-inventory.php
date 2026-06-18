@@ -22,9 +22,13 @@ class OraBooks_Inventory {
             self::$instance = new self();
 
             add_action('wp_ajax_orabooks_inventory_products_list', [self::$instance, 'ajax_products_list']);
+            add_action('wp_ajax_nopriv_orabooks_inventory_products_list', [self::$instance, 'ajax_products_list']);
             add_action('wp_ajax_orabooks_inventory_product_create', [self::$instance, 'ajax_product_create']);
+            add_action('wp_ajax_nopriv_orabooks_inventory_product_create', [self::$instance, 'ajax_product_create']);
             add_action('wp_ajax_orabooks_inventory_product_adjust', [self::$instance, 'ajax_adjust_stock']);
+            add_action('wp_ajax_nopriv_orabooks_inventory_product_adjust', [self::$instance, 'ajax_adjust_stock']);
             add_action('wp_ajax_orabooks_inventory_movements', [self::$instance, 'ajax_movements']);
+            add_action('wp_ajax_nopriv_orabooks_inventory_movements', [self::$instance, 'ajax_movements']);
 
             add_action('orabooks_vendor_bill_posted', [self::$instance, 'on_vendor_bill_posted'], 10, 2);
             add_action('orabooks_invoice_posted', [self::$instance, 'on_invoice_posted'], 10, 2);
@@ -431,6 +435,27 @@ class OraBooks_Inventory {
              LIMIT %d OFFSET %d",
             intval($org_id),
             intval($product_id),
+            $limit,
+            $offset
+        ));
+    }
+
+    public static function get_recent_movements($org_id, $args = []) {
+        global $wpdb;
+
+        $table_movements = OraBooks_Database::table('inventory_movements');
+        $table_products = OraBooks_Database::table('products');
+        $limit = intval($args['limit'] ?? 25);
+        $offset = intval($args['offset'] ?? 0);
+
+        return $wpdb->get_results($wpdb->prepare(
+            "SELECT m.*, p.sku, p.name AS product_name
+             FROM {$table_movements} m
+             JOIN {$table_products} p ON m.product_id = p.id
+             WHERE m.org_id = %d
+             ORDER BY m.created_at DESC, m.id DESC
+             LIMIT %d OFFSET %d",
+            intval($org_id),
             $limit,
             $offset
         ));
