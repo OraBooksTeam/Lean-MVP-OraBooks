@@ -561,3 +561,44 @@ function orabooks_is_feature_enabled($feature_id) {
 
     return false;
 }
+
+/**
+ * Customer orgs use the merged PHP accounting workspace (WPMU module inside Lean MVP).
+ * Partner orgs keep the React partner program only.
+ */
+function orabooks_uses_merged_accounting_workspace($user_id = 0) {
+    $user_id = $user_id ?: orabooks_get_current_user_id();
+    if (!$user_id) {
+        return false;
+    }
+
+    if (class_exists('OraBooks_Organization')) {
+        $org_id = orabooks_get_current_org_id($user_id);
+        if ($org_id) {
+            $org = OraBooks_Organization::get($org_id);
+            if ($org && ($org->organization_type ?? 'customer') === 'partner') {
+                return false;
+            }
+        }
+    }
+
+    return true;
+}
+
+/**
+ * Render the merged accounting workspace shortcode output.
+ */
+function orabooks_render_merged_accounting_workspace($view = '') {
+    if (!is_user_logged_in()) {
+        if (class_exists('OraBooks_Views')) {
+            return OraBooks_Views::require_login_message();
+        }
+        return '<p>Please log in to continue.</p>';
+    }
+
+    if ($view !== '') {
+        $_GET['view'] = sanitize_key($view);
+    }
+
+    return do_shortcode('[orabooks_accounting]');
+}
