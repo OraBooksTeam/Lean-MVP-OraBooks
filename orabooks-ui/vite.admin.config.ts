@@ -12,11 +12,11 @@ export default defineConfig({
     outDir: path.resolve(__dirname, '../OraBooks Lean MVP/assets/react'),
     emptyOutDir: false,
     cssCodeSplit: false,
+    codeSplitting: false,
     rollupOptions: {
       input: path.resolve(__dirname, 'src/pages/admin/main.tsx'),
       output: {
         entryFileNames: 'admin.js',
-        inlineDynamicImports: true,
         assetFileNames: 'assets/[name]-[hash].[ext]',
       },
     },
