@@ -268,6 +268,7 @@ class OraBooks_Expenses {
             'posted_by'        => $row->posted_by ? (int) $row->posted_by : null,
             'approved_at'      => $row->approved_at,
             'posted_at'        => $row->posted_at,
+            'created_at'       => $row->created_at,
             'updated_at'       => $row->updated_at,
             'tax_override_reason' => $row->tax_override_reason ?? null,
             'tax_override_by'     => !empty($row->tax_override_by) ? (int) $row->tax_override_by : null,
