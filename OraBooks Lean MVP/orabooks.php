@@ -34,6 +34,7 @@ require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-fiscal.php';
 require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-tax.php';
 require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-workflow.php';
 require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-posting.php';
+require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-approval.php';
 require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-ajax.php';
 require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-shortcodes.php';
 require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-assets.php';
@@ -84,6 +85,7 @@ function orabooks_init() {
     OraBooks_Tax::init();
     OraBooks_Workflow::init();
     OraBooks_Posting::init();
+    OraBooks_Approval::init();
     OraBooks_Ajax::init();
     OraBooks_Shortcodes::init();
     OraBooks_Commission::init();
@@ -377,6 +379,9 @@ function orabooks_deactivate() {
     wp_clear_scheduled_hook('orabooks_security_purge');
     wp_clear_scheduled_hook('orabooks_monthly_fiscal_period_rollover');
     wp_clear_scheduled_hook('orabooks_daily_ledger_integrity_check');
+    wp_clear_scheduled_hook('orabooks_approval_expire_stale');
+    wp_clear_scheduled_hook('orabooks_approval_escalate_overdue');
+    wp_clear_scheduled_hook('orabooks_approval_expiry_reminders');
 }
 
 // Add custom cron schedule for every_minute
