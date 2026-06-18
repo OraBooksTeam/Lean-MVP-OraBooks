@@ -227,6 +227,17 @@ export default function VoicePage() {
               </p>
             )}
 
+            {orgId && selectedVoice?.id && (
+              <div className="mt-4">
+                <ResourceAttachmentsPanel
+                  orgId={orgId}
+                  resourceType="voice_input"
+                  resourceId={selectedVoice.id}
+                  title="Audio files"
+                />
+              </div>
+            )}
+
             {caps.confirm && selectedVoice.status === 'processed' && (
               <div className="mt-4 flex flex-wrap gap-2">
                 <Link to={`/attachments?resource_type=voice_input&resource_id=${selectedVoice.id}`}>

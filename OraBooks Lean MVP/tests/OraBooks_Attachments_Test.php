@@ -41,6 +41,7 @@ class OraBooks_Attachments_Test extends TestCase
     public function test_resource_types_include_common_entities()
     {
         $this->assertContains('invoice', OraBooks_Attachments::RESOURCE_TYPES);
+        $this->assertContains('bill', OraBooks_Attachments::RESOURCE_TYPES);
         $this->assertContains('expense', OraBooks_Attachments::RESOURCE_TYPES);
         $this->assertContains('csv_import', OraBooks_Attachments::RESOURCE_TYPES);
         $this->assertContains('general', OraBooks_Attachments::RESOURCE_TYPES);
