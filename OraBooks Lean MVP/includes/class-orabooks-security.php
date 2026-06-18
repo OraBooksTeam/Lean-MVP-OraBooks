@@ -603,6 +603,7 @@ class OraBooks_Security {
             'due'          => $days_since >= self::SECRET_ROTATION_DAYS,
             'days_until'   => max(0, self::SECRET_ROTATION_DAYS - $days_since),
         ];
+    }
 
     public static function store_scan_result($scan_type, $status, $summary, $details = []) {
         global $wpdb;
