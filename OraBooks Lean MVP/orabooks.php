@@ -379,6 +379,7 @@ function orabooks_deactivate() {
     wp_clear_scheduled_hook('orabooks_security_purge');
     wp_clear_scheduled_hook('orabooks_monthly_fiscal_period_rollover');
     wp_clear_scheduled_hook('orabooks_daily_ledger_integrity_check');
+    wp_clear_scheduled_hook('orabooks_monthly_balance_snapshot');
     wp_clear_scheduled_hook('orabooks_approval_expire_stale');
     wp_clear_scheduled_hook('orabooks_approval_escalate_overdue');
     wp_clear_scheduled_hook('orabooks_approval_expiry_reminders');

@@ -1162,6 +1162,39 @@ class OraBooks_Posting {
         }
     }
 
+    /**
+     * Monthly checkpoint: capture end-of-period balance snapshots for all active orgs.
+     */
+    public static function cron_capture_balance_snapshots() {
+        global $wpdb;
+
+        $table = OraBooks_Database::table('organizations');
+        $org_ids = $wpdb->get_col(
+            "SELECT id FROM {$table} WHERE organization_type = 'customer' AND status = 'active'"
+        );
+
+        $snapshot_date = gmdate('Y-m-d', strtotime('last day of previous month'));
+        $captured = 0;
+
+        foreach ($org_ids as $org_id) {
+            $result = self::capture_balance_snapshot((int) $org_id, $snapshot_date);
+            if (!empty($result['accounts'])) {
+                $captured++;
+            }
+        }
+
+        orabooks_log_event('balance_snapshot_batch', 'Monthly balance snapshots captured', 'info', [
+            'snapshot_date' => $snapshot_date,
+            'org_count' => count($org_ids),
+            'captured' => $captured,
+        ], null, null);
+
+        return [
+            'snapshot_date' => $snapshot_date,
+            'captured' => $captured,
+        ];
+    }
+
     private static function begin_transaction() {
         global $wpdb;
         $wpdb->query('START TRANSACTION');
