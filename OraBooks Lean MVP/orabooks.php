@@ -669,64 +669,69 @@ function orabooks_admin_include($file) {
     include $path;
 }
 
+function orabooks_admin_react_page($route) {
+    $orabooks_admin_route = $route;
+    orabooks_admin_include('app.php');
+}
+
 function orabooks_admin_commissions() {
     if (current_user_can('manage_options')) {
         $shortcodes = OraBooks_Shortcodes::init();
         echo '<div class="wrap orabooks-admin">' . $shortcodes->commission_admin() . '</div>';
         return;
     }
-    echo '<div class="wrap orabooks-admin">' . OraBooks_Views::render('frontend/partner-program') . '</div>';
+    orabooks_admin_react_page('/admin/commissions');
 }
 function orabooks_admin_notifications() {
-    orabooks_admin_include('notifications.php');
+    orabooks_admin_react_page('/admin/notifications');
 }
 function orabooks_admin_job_queue() {
-    orabooks_admin_include('job-queue.php');
+    orabooks_admin_react_page('/admin/job-queue');
 }
 function orabooks_admin_observability() {
-    orabooks_admin_include('observability.php');
+    orabooks_admin_react_page('/admin/observability');
 }
 function orabooks_admin_exports() {
-    orabooks_admin_include('exports.php');
+    orabooks_admin_react_page('/admin/exports');
 }
 function orabooks_admin_csv_imports() {
-    orabooks_admin_include('csv-imports.php');
+    orabooks_admin_react_page('/admin/csv-imports');
 }
 function orabooks_admin_coa() {
-    orabooks_admin_include('coa.php');
+    orabooks_admin_react_page('/admin/coa');
 }
 
 function orabooks_admin_customers() {
-    orabooks_admin_include('customers.php');
+    orabooks_admin_react_page('/admin/customers');
 }
 function orabooks_admin_dashboard() {
     if (current_user_can('manage_options')) {
-        orabooks_admin_include('dashboard.php');
+        orabooks_admin_react_page('/admin/dashboard');
     } elseif (orabooks_user_can_see_partner_program()) {
-        orabooks_admin_commissions();
+        orabooks_admin_react_page('/admin/commissions');
     } else {
-        orabooks_admin_notifications();
+        orabooks_admin_react_page('/admin/notifications');
     }
 }
 
 function orabooks_admin_partners() {
-    orabooks_admin_include('partners.php');
+    orabooks_admin_react_page('/admin/partners');
 }
 
 function orabooks_admin_orgs() {
-    orabooks_admin_include('organizations.php');
+    orabooks_admin_react_page('/admin/organizations');
 }
 
 function orabooks_admin_users() {
-    orabooks_admin_include('users.php');
+    orabooks_admin_react_page('/admin/users');
 }
 
 function orabooks_admin_audit() {
-    orabooks_admin_include('audit.php');
+    orabooks_admin_react_page('/admin/audit');
 }
 
 function orabooks_admin_settings() {
-    orabooks_admin_include('settings.php');
+    orabooks_admin_react_page('/admin/settings');
 }
 
 // ============================================
