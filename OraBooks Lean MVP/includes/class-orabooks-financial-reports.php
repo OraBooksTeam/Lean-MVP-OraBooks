@@ -906,9 +906,25 @@ class OraBooks_Financial_Reports {
         return null;
     }
 
+    private function current_user_id() {
+        return orabooks_get_current_user_id();
+    }
+
+    private function require_customer_org_access($user_id, $org_id) {
+        if (!$user_id) {
+            orabooks_json_error('Not authenticated', 401);
+        }
+
+        $isolation = OraBooks_Auth::require_customer_org($user_id, $org_id);
+        if (is_wp_error($isolation)) {
+            orabooks_json_error($isolation->get_error_message(), 403);
+        }
+    }
+
     public function ajax_generate_report() {
-        $user_id = get_current_user_id();
+        $user_id = $this->current_user_id();
         $org_id = intval($_REQUEST['org_id'] ?? 0);
+        $this->require_customer_org_access($user_id, $org_id);
         if (!OraBooks_RBAC::require_permission($user_id, $org_id, 'view_financial_reports')) {
             orabooks_json_error('Permission denied', 403);
         }
@@ -933,8 +949,9 @@ class OraBooks_Financial_Reports {
     }
 
     public function ajax_request_export() {
-        $user_id = get_current_user_id();
+        $user_id = $this->current_user_id();
         $org_id = intval($_POST['org_id'] ?? 0);
+        $this->require_customer_org_access($user_id, $org_id);
         if (!OraBooks_RBAC::require_permission($user_id, $org_id, 'export_reports')) {
             orabooks_json_error('Permission denied', 403);
         }
@@ -963,8 +980,10 @@ class OraBooks_Financial_Reports {
     }
 
     public function ajax_sign_report() {
-        $user_id = get_current_user_id();
-        if (!OraBooks_RBAC::require_permission($user_id, intval($_POST['org_id'] ?? 0), 'sign_report')) {
+        $user_id = $this->current_user_id();
+        $org_id = intval($_POST['org_id'] ?? 0);
+        $this->require_customer_org_access($user_id, $org_id);
+        if (!OraBooks_RBAC::require_permission($user_id, $org_id, 'sign_report')) {
             orabooks_json_error('Permission denied', 403);
         }
 

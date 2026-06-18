@@ -745,6 +745,7 @@ function orabooks_frontend_enqueue() {
         'current_user_id' => get_current_user_id(),
         'logout_url' => wp_logout_url(home_url('/login/')),
         'admin_base' => admin_url('admin.php'),
+        'react_base' => ORABOOKS_PLUGIN_URL . 'assets/react/',
     ];
     wp_localize_script('orabooks-frontend', 'orabooks_ajax', $ajax_config);
 

@@ -21,8 +21,11 @@ class OraBooks_Operational_Reports {
             self::$instance = new self();
 
             add_action('wp_ajax_orabooks_operational_report', [self::$instance, 'ajax_generate_report']);
+            add_action('wp_ajax_nopriv_orabooks_operational_report', [self::$instance, 'ajax_generate_report']);
             add_action('wp_ajax_orabooks_operational_export', [self::$instance, 'ajax_request_export']);
+            add_action('wp_ajax_nopriv_orabooks_operational_export', [self::$instance, 'ajax_request_export']);
             add_action('wp_ajax_orabooks_inventory_reorder_level', [self::$instance, 'ajax_update_reorder_level']);
+            add_action('wp_ajax_nopriv_orabooks_inventory_reorder_level', [self::$instance, 'ajax_update_reorder_level']);
 
             add_action('orabooks_invoice_posted', [self::$instance, 'project_invoice_posted'], 10, 2);
             add_action('orabooks_payment_recorded', [self::$instance, 'project_invoice_posted'], 10, 2);
