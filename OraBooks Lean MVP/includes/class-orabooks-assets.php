@@ -17,6 +17,7 @@ class OraBooks_Assets {
         return [
             'orabooks_login',
             'orabooks_register',
+            'orabooks_reset_password',
             'orabooks_tier_selection',
             'orabooks_dashboard',
             'orabooks_customers',
@@ -54,7 +55,6 @@ class OraBooks_Assets {
     public static function get_legacy_shortcode_tags() {
         return [
             'orabooks_verify_email',
-            'orabooks_reset_password',
             'orabooks_commission_admin',
             'orabooks_notification_admin',
             'orabooks_async_queue_dashboard',
@@ -240,14 +240,6 @@ class OraBooks_Assets {
      * @param string $hook_suffix
      */
     public static function should_enqueue_admin_react($hook_suffix) {
-        if (strpos($hook_suffix, 'orabooks') === false) {
-            return false;
-        }
-
-        if ($hook_suffix === 'orabooks_page_orabooks-commissions' && current_user_can('manage_options')) {
-            return false;
-        }
-
-        return true;
+        return strpos($hook_suffix, 'orabooks') !== false;
     }
 }

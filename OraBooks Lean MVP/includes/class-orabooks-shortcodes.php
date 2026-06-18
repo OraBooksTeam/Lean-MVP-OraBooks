@@ -116,49 +116,7 @@ class OraBooks_Shortcodes {
     }
     
     public function reset_password() {
-        $token = sanitize_text_field($_GET['token'] ?? '');
-        ob_start();
-        ?>
-        <div class="orabooks-auth-shell">
-        <div class="orabooks-form-container">
-            <h2><?php esc_html_e('Reset Password', 'orabooks'); ?></h2>
-            <?php if (empty($token)) : ?>
-                <p><?php esc_html_e('Enter your email address and we will send you a password reset link.', 'orabooks'); ?></p>
-                <form id="orabooks-forgot-password-form" class="orabooks-form">
-                    <div class="orabooks-form-group">
-                        <label for="forgot-email"><?php esc_html_e('Email', 'orabooks'); ?></label>
-                        <input type="email" id="forgot-email" required autocomplete="email">
-                    </div>
-                    <div class="orabooks-form-actions">
-                        <button type="submit" class="orabooks-btn orabooks-btn-primary">
-                            <?php esc_html_e('Send Reset Link', 'orabooks'); ?>
-                        </button>
-                    </div>
-                </form>
-                <div id="orabooks-forgot-password-message" class="orabooks-message"></div>
-            <?php else : ?>
-                <form id="orabooks-reset-password-form" class="orabooks-form">
-                    <input type="hidden" id="reset-token" value="<?php echo esc_attr($token); ?>">
-                    <div class="orabooks-form-group">
-                        <label for="reset-password"><?php esc_html_e('New Password', 'orabooks'); ?></label>
-                        <input type="password" id="reset-password" required autocomplete="new-password">
-                    </div>
-                    <div class="orabooks-form-group">
-                        <label for="reset-confirm-password"><?php esc_html_e('Confirm New Password', 'orabooks'); ?></label>
-                        <input type="password" id="reset-confirm-password" required autocomplete="new-password">
-                    </div>
-                    <div class="orabooks-form-actions">
-                        <button type="submit" class="orabooks-btn orabooks-btn-primary">
-                            <?php esc_html_e('Reset Password', 'orabooks'); ?>
-                        </button>
-                    </div>
-                </form>
-                <div id="orabooks-reset-password-message" class="orabooks-message"></div>
-            <?php endif; ?>
-        </div>
-        </div>
-        <?php
-        return ob_get_clean();
+        return $this->react_page('/reset-password', false);
     }
     
     public function partner_onboarding() {
