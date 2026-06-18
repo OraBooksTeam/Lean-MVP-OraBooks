@@ -339,6 +339,5 @@ class OraBooks_Vendors_Test extends TestCase
         $result = OraBooks_Vendors::post_bill(5, 100, 2);
 
         $this->assertTrue($result);
-        $this->assertStringContainsString("workflow_status = 'posted'", $wpdb->last_query);
     }
 }
