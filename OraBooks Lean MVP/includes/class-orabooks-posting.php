@@ -13,7 +13,6 @@ if (!defined('ABSPATH')) {
 class OraBooks_Posting {
     
     private static $instance = null;
-    private static $state_machine = [];
     
     public static function init() {
         if (self::$instance === null) {
@@ -32,75 +31,16 @@ class OraBooks_Posting {
             add_action('wp_ajax_nopriv_orabooks_get_journals', [self::$instance, 'ajax_get_journals']);
             add_action('wp_ajax_orabooks_get_journal', [self::$instance, 'ajax_get_journal']);
             add_action('wp_ajax_nopriv_orabooks_get_journal', [self::$instance, 'ajax_get_journal']);
-            
-            // Initialize state machine config
-            self::init_state_machine();
         }
         return self::$instance;
     }
     
-    private static function init_state_machine() {
-        self::$state_machine = [
-            'journal' => [
-                'states' => ['draft', 'review_pending', 'approved', 'posted', 'locked', 'reversed'],
-                'transitions' => [
-                    'submit'   => ['from' => 'draft', 'to' => 'review_pending'],
-                    'approve'  => ['from' => 'review_pending', 'to' => 'approved'],
-                    'reject'   => ['from' => 'review_pending', 'to' => 'draft'],
-                    'post'     => ['from' => 'approved', 'to' => 'posted'],
-                    'lock'     => ['from' => 'posted', 'to' => 'locked'],
-                    'reverse'  => ['from' => ['posted', 'locked'], 'to' => 'reversed'],
-                    'edit'     => ['from' => ['draft', 'approved'], 'to' => 'draft'],
-                ]
-            ]
-        ];
-    }
-    
     public static function transition($record_type, $record_id, $event, $user_id, $reason = null) {
-        global $wpdb;
-        
-        $sm = self::$state_machine[$record_type] ?? null;
-        if (!$sm) {
-            return new WP_Error('invalid_type', 'Unknown record type');
+        if (class_exists('OraBooks_Workflow')) {
+            return OraBooks_Workflow::record_transition($record_type, $record_id, $event, $user_id, $reason);
         }
-        
-        $transition = $sm['transitions'][$event] ?? null;
-        if (!$transition) {
-            return new WP_Error('invalid_event', 'Unknown event for this record type');
-        }
-        
-        // Get current state
-        $table = $record_type === 'journal' ? OraBooks_Database::table('journals') : null;
-        if (!$table) return new WP_Error('invalid_type', 'Unknown table');
-        
-        $record = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$table} WHERE id = %d", $record_id));
-        if (!$record) return new WP_Error('not_found', 'Record not found');
-        
-        $from_states = is_array($transition['from']) ? $transition['from'] : [$transition['from']];
-        if (!in_array($record->status, $from_states)) {
-            return new WP_Error('invalid_state', "Cannot transition from state: {$record->status}");
-        }
-        
-        $to_state = $transition['to'];
-        
-        // Log state transition
-        $table_sm = OraBooks_Database::table('state_machine_transitions');
-        $wpdb->insert($table_sm, [
-            'record_type' => $record_type,
-            'record_id' => $record_id,
-            'from_state' => $record->status,
-            'to_state' => $to_state,
-            'event' => $event,
-            'triggered_by' => $user_id,
-            'reason' => $reason,
-            'metadata' => null
-        ], ['%s', '%d', '%s', '%s', '%s', '%d', '%s', '%s']);
-        
-        return [
-            'from_state' => $record->status,
-            'to_state' => $to_state,
-            'event' => $event
-        ];
+
+        return new WP_Error('workflow_unavailable', 'Workflow engine unavailable');
     }
     
     /**
