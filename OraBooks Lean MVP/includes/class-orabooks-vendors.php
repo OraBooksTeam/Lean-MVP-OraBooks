@@ -338,7 +338,7 @@ class OraBooks_Vendors {
                 'payment_status' => 'unpaid',
                 'lock_status' => 'unlocked',
                 'idempotency_key' => $data['idempotency_key'] ?? orabooks_uuid(),
-                'created_by' => get_current_user_id(),
+                'created_by' => orabooks_get_current_user_id(),
                 'rendered_copy' => !empty($data['rendered_copy']) ? wp_json_encode($data['rendered_copy']) : null,
             ],
             ['%d', '%d', '%s', '%s', '%s', '%s', '%s', '%f', '%f', '%f', '%f', '%s', '%f', '%s', '%s', '%s', '%s', '%d', '%s']
@@ -600,7 +600,7 @@ class OraBooks_Vendors {
                 'is_adjustment' => !empty($data['is_adjustment']) ? 1 : 0,
                 'adjustment_account_code' => !empty($data['is_adjustment']) ? $adjustment_account : null,
                 'workflow_status' => 'draft',
-                'created_by' => get_current_user_id(),
+                'created_by' => orabooks_get_current_user_id(),
             ],
             ['%d', '%d', '%d', '%s', '%s', '%f', '%s', '%d', '%s', '%s', '%d']
         );
@@ -881,19 +881,36 @@ class OraBooks_Vendors {
         return intval($snapshot['snapshot_id']);
     }
 
+    private function current_user_id() {
+        return orabooks_get_current_user_id();
+    }
+
+    private function require_customer_org_access($user_id, $org_id) {
+        if (!$user_id) {
+            orabooks_json_error('Not authenticated', 401);
+        }
+
+        $isolation = OraBooks_Auth::require_customer_org($user_id, $org_id);
+        if (is_wp_error($isolation)) {
+            orabooks_json_error($isolation->get_error_message(), 403);
+        }
+    }
+
     public function ajax_vendors_list() {
-        check_ajax_referer('orabooks_nonce', 'nonce');
+        $user_id = $this->current_user_id();
         $org_id = intval($_GET['org_id'] ?? 0);
-        if (!OraBooks_RBAC::require_permission(get_current_user_id(), $org_id, 'view_reports')) {
+        $this->require_customer_org_access($user_id, $org_id);
+        if (!OraBooks_RBAC::require_permission($user_id, $org_id, 'view_reports')) {
             orabooks_json_error('Permission denied', 403);
         }
         orabooks_json_success(self::get_vendors_list($org_id, $_GET));
     }
 
     public function ajax_vendor_create() {
-        check_ajax_referer('orabooks_nonce', 'nonce');
+        $user_id = $this->current_user_id();
         $org_id = intval($_POST['org_id'] ?? 0);
-        if (!OraBooks_RBAC::require_permission(get_current_user_id(), $org_id, 'manage_org_settings')) {
+        $this->require_customer_org_access($user_id, $org_id);
+        if (!OraBooks_RBAC::require_permission($user_id, $org_id, 'manage_org_settings')) {
             orabooks_json_error('Permission denied', 403);
         }
         $result = self::create_vendor($org_id, $_POST);
@@ -904,18 +921,20 @@ class OraBooks_Vendors {
     }
 
     public function ajax_bills_list() {
-        check_ajax_referer('orabooks_nonce', 'nonce');
+        $user_id = $this->current_user_id();
         $org_id = intval($_GET['org_id'] ?? 0);
-        if (!OraBooks_RBAC::require_permission(get_current_user_id(), $org_id, 'view_reports')) {
+        $this->require_customer_org_access($user_id, $org_id);
+        if (!OraBooks_RBAC::require_permission($user_id, $org_id, 'view_reports')) {
             orabooks_json_error('Permission denied', 403);
         }
         orabooks_json_success(self::get_bills_list($org_id, $_GET));
     }
 
     public function ajax_bill_create() {
-        check_ajax_referer('orabooks_nonce', 'nonce');
+        $user_id = $this->current_user_id();
         $org_id = intval($_POST['org_id'] ?? 0);
-        if (!OraBooks_RBAC::require_permission(get_current_user_id(), $org_id, 'submit_transaction')) {
+        $this->require_customer_org_access($user_id, $org_id);
+        if (!OraBooks_RBAC::require_permission($user_id, $org_id, 'submit_transaction')) {
             orabooks_json_error('Permission denied', 403);
         }
         $result = self::create_bill($org_id, $_POST);
@@ -926,8 +945,10 @@ class OraBooks_Vendors {
     }
 
     public function ajax_bill_submit() {
-        check_ajax_referer('orabooks_nonce', 'nonce');
-        $result = self::submit_bill(intval($_POST['org_id'] ?? 0), intval($_POST['bill_id'] ?? 0), get_current_user_id());
+        $user_id = $this->current_user_id();
+        $org_id = intval($_POST['org_id'] ?? 0);
+        $this->require_customer_org_access($user_id, $org_id);
+        $result = self::submit_bill($org_id, intval($_POST['bill_id'] ?? 0), $user_id);
         if (is_wp_error($result)) {
             orabooks_json_error($result->get_error_message(), 400);
         }
@@ -935,12 +956,13 @@ class OraBooks_Vendors {
     }
 
     public function ajax_bill_approve() {
-        check_ajax_referer('orabooks_nonce', 'nonce');
+        $user_id = $this->current_user_id();
         $org_id = intval($_POST['org_id'] ?? 0);
-        if (!OraBooks_RBAC::require_permission(get_current_user_id(), $org_id, 'approve_journal')) {
+        $this->require_customer_org_access($user_id, $org_id);
+        if (!OraBooks_RBAC::require_permission($user_id, $org_id, 'approve_journal')) {
             orabooks_json_error('Permission denied', 403);
         }
-        $result = self::approve_bill($org_id, intval($_POST['bill_id'] ?? 0), get_current_user_id());
+        $result = self::approve_bill($org_id, intval($_POST['bill_id'] ?? 0), $user_id);
         if (is_wp_error($result)) {
             orabooks_json_error($result->get_error_message(), 400);
         }
@@ -948,9 +970,10 @@ class OraBooks_Vendors {
     }
 
     public function ajax_record_payment() {
-        check_ajax_referer('orabooks_nonce', 'nonce');
+        $user_id = $this->current_user_id();
         $org_id = intval($_POST['org_id'] ?? 0);
-        if (!OraBooks_RBAC::require_permission(get_current_user_id(), $org_id, 'manage_billing')) {
+        $this->require_customer_org_access($user_id, $org_id);
+        if (!OraBooks_RBAC::require_permission($user_id, $org_id, 'manage_billing')) {
             orabooks_json_error('Permission denied', 403);
         }
         $result = self::record_payment($org_id, intval($_POST['vendor_id'] ?? 0), $_POST);
@@ -961,9 +984,10 @@ class OraBooks_Vendors {
     }
 
     public function ajax_create_credit_note() {
-        check_ajax_referer('orabooks_nonce', 'nonce');
+        $user_id = $this->current_user_id();
         $org_id = intval($_POST['org_id'] ?? 0);
-        if (!OraBooks_RBAC::require_permission(get_current_user_id(), $org_id, 'manage_billing')) {
+        $this->require_customer_org_access($user_id, $org_id);
+        if (!OraBooks_RBAC::require_permission($user_id, $org_id, 'manage_billing')) {
             orabooks_json_error('Permission denied', 403);
         }
         $result = self::create_credit_note($org_id, $_POST);
@@ -974,9 +998,10 @@ class OraBooks_Vendors {
     }
 
     public function ajax_ap_aging() {
-        check_ajax_referer('orabooks_nonce', 'nonce');
+        $user_id = $this->current_user_id();
         $org_id = intval($_GET['org_id'] ?? 0);
-        if (!OraBooks_RBAC::require_permission(get_current_user_id(), $org_id, 'view_reports')) {
+        $this->require_customer_org_access($user_id, $org_id);
+        if (!OraBooks_RBAC::require_permission($user_id, $org_id, 'view_reports')) {
             orabooks_json_error('Permission denied', 403);
         }
         orabooks_json_success(self::get_ap_aging($org_id, $_GET['as_of_date'] ?? null));
