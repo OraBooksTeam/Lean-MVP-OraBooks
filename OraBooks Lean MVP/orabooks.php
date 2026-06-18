@@ -868,6 +868,10 @@ function orabooks_body_class($classes) {
 
     $classes[] = 'orabooks-page';
 
+    if (OraBooks_Assets::should_enqueue_frontend_react($post->post_content)) {
+        $classes[] = 'orabooks-react-page';
+    }
+
     $auth_shortcodes = ['orabooks_login', 'orabooks_register', 'orabooks_tier_selection', 'orabooks_reset_password'];
     foreach ($auth_shortcodes as $shortcode) {
         if (has_shortcode($post->post_content, $shortcode)) {
