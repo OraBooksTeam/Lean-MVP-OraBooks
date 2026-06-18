@@ -559,7 +559,7 @@ class OraBooks_Financial_Reports {
             'watermark' => $export_meta['watermark'],
             'board_approved' => $export_meta['board_approved'],
             'signature' => $export_meta['signature'],
-            'retention_days' => self::get_org_report_config((int) $snapshot->org_id)['snapshot_retention_days'],
+            'retention_days' => self::get_org_report_config((int) ($snapshot->org_id ?? 0))['snapshot_retention_days'],
         ];
     }
 
