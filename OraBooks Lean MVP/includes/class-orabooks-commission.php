@@ -1396,38 +1396,21 @@ class OraBooks_Commission {
         
         $expired_count = 0;
         foreach ($expired_earned as $earned) {
-            // Reverse the liability
-            if ($config && $config->expiry_accounting_action === 'reverse_expense') {
-                // Dr Commission Payable, Cr Commission Expense (reverse)
-                $wpdb->query($wpdb->prepare(
-                    "INSERT INTO {$table_balances} (org_id, account_id, balance) 
-                     VALUES (%d, (SELECT id FROM {$table_accounts} WHERE org_id = %d AND code = '2000'), %f)
-                     ON DUPLICATE KEY UPDATE balance = balance + %f",
-                    $earned->org_id, $earned->org_id, $earned->amount, $earned->amount
-                ));
-                
-                $wpdb->query($wpdb->prepare(
-                    "INSERT INTO {$table_balances} (org_id, account_id, balance) 
-                     VALUES (%d, (SELECT id FROM {$table_accounts} WHERE org_id = %d AND code = '5000'), %f)
-                     ON DUPLICATE KEY UPDATE balance = balance - %f",
-                    $earned->org_id, $earned->org_id, $earned->amount, $earned->amount
-                ));
-            } else {
-                // Dr Commission Payable, Cr Expired Commission Income
-                // Use account 3000 (Owner's Equity) as income proxy for MVP
-                $wpdb->query($wpdb->prepare(
-                    "INSERT INTO {$table_balances} (org_id, account_id, balance) 
-                     VALUES (%d, (SELECT id FROM {$table_accounts} WHERE org_id = %d AND code = '2000'), %f)
-                     ON DUPLICATE KEY UPDATE balance = balance + %f",
-                    $earned->org_id, $earned->org_id, $earned->amount, $earned->amount
-                ));
-                
-                $wpdb->query($wpdb->prepare(
-                    "INSERT INTO {$table_balances} (org_id, account_id, balance) 
-                     VALUES (%d, (SELECT id FROM {$table_accounts} WHERE org_id = %d AND code = '3000'), %f)
-                     ON DUPLICATE KEY UPDATE balance = balance - %f",
-                    $earned->org_id, $earned->org_id, $earned->amount, $earned->amount
-                ));
+            $journal_result = self::post_system_journal(
+                current_time('Y-m-d'),
+                'commission_expiry',
+                (int) $earned->id,
+                self::build_expiry_reversal_lines((float) $earned->amount, $expiry_action),
+                [
+                    'earned_id' => (int) $earned->id,
+                    'partner_user_id' => (int) $earned->partner_user_id,
+                    'customer_id' => (int) $earned->customer_id,
+                    'expiry_action' => $expiry_action,
+                ]
+            );
+
+            if (is_wp_error($journal_result)) {
+                continue;
             }
             
             $wpdb->update(
