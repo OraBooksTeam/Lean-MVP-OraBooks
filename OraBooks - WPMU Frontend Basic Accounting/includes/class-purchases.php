@@ -70,7 +70,7 @@ if (!class_exists('Frontend_Accounting_Purchases')) {
                 if (!$existing_purchase) {
                     wp_send_json_error('Purchase not found');
                 }
-                $modification_allowed = OBN_Fiscal_Period_Posting_Guard::can_modify(get_current_blog_id(), $existing_purchase->purchase_date);
+                $modification_allowed = OBN_Fiscal_Period_Posting_Guard::can_modify(obn_current_org_id(), $existing_purchase->purchase_date);
                 if (is_wp_error($modification_allowed)) {
                     wp_send_json_error($modification_allowed->get_error_message(), 409);
                 }
@@ -412,7 +412,7 @@ if (!class_exists('Frontend_Accounting_Purchases')) {
                 wp_send_json_error('Purchase not found');
             }
             if (class_exists('OBN_Fiscal_Period_Posting_Guard')) {
-                $modification_allowed = OBN_Fiscal_Period_Posting_Guard::can_modify(get_current_blog_id(), $purchase->purchase_date);
+                $modification_allowed = OBN_Fiscal_Period_Posting_Guard::can_modify(obn_current_org_id(), $purchase->purchase_date);
                 if (is_wp_error($modification_allowed)) {
                     wp_send_json_error($modification_allowed->get_error_message(), 409);
                 }
@@ -482,7 +482,7 @@ if (!class_exists('Frontend_Accounting_Purchases')) {
                 wp_send_json_error('Purchase not found');
             }
             if (class_exists('OBN_Fiscal_Period_Posting_Guard')) {
-                $modification_allowed = OBN_Fiscal_Period_Posting_Guard::can_modify(get_current_blog_id(), $purchase->purchase_date);
+                $modification_allowed = OBN_Fiscal_Period_Posting_Guard::can_modify(obn_current_org_id(), $purchase->purchase_date);
                 if (is_wp_error($modification_allowed)) {
                     wp_send_json_error($modification_allowed->get_error_message(), 409);
                 }
@@ -995,7 +995,7 @@ if (!class_exists('Frontend_Accounting_Purchases')) {
             $purchase_date = $purchase->purchase_date;
 
             if (class_exists('OBN_Fiscal_Period_Posting_Guard')) {
-                $posting_allowed = OBN_Fiscal_Period_Posting_Guard::can_post(get_current_blog_id(), $purchase_date);
+                $posting_allowed = OBN_Fiscal_Period_Posting_Guard::can_post(obn_current_org_id(), $purchase_date);
                 if (is_wp_error($posting_allowed)) {
                     wp_send_json_error($posting_allowed->get_error_message(), 409);
                 }
@@ -1095,7 +1095,7 @@ if (!class_exists('Frontend_Accounting_Purchases')) {
             // 2. Insert Journal Entry (wpf_orabooks_ac_journal_entry)
             $entry_data = [
                 'store_id' => $store_id,
-                'organization_id' => get_current_blog_id(),
+                'organization_id' => obn_current_org_id(),
                 'entry_number' => $entry_number,
                 'entry_date' => $purchase_date,
                 'posting_date' => $purchase_date,

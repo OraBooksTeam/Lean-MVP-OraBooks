@@ -634,7 +634,7 @@ class OBN_Accounting_Contacts
                 if (!$existing_payment) {
                     wp_send_json_error('Payment not found');
                 }
-                $modification_allowed = OBN_Fiscal_Period_Posting_Guard::can_modify(get_current_blog_id(), $existing_payment->payment_date);
+                $modification_allowed = OBN_Fiscal_Period_Posting_Guard::can_modify(obn_current_org_id(), $existing_payment->payment_date);
                 if (is_wp_error($modification_allowed)) {
                     wp_send_json_error($modification_allowed->get_error_message(), 409);
                 }
@@ -787,7 +787,7 @@ class OBN_Accounting_Contacts
             wp_send_json_error('Payment not found');
         }
         if (class_exists('OBN_Fiscal_Period_Posting_Guard')) {
-            $modification_allowed = OBN_Fiscal_Period_Posting_Guard::can_modify(get_current_blog_id(), $payment->payment_date);
+            $modification_allowed = OBN_Fiscal_Period_Posting_Guard::can_modify(obn_current_org_id(), $payment->payment_date);
             if (is_wp_error($modification_allowed)) {
                 wp_send_json_error($modification_allowed->get_error_message(), 409);
             }
@@ -854,7 +854,7 @@ class OBN_Accounting_Contacts
             wp_send_json_error('Payment not found');
         }
         if (class_exists('OBN_Fiscal_Period_Posting_Guard')) {
-            $modification_allowed = OBN_Fiscal_Period_Posting_Guard::can_modify(get_current_blog_id(), $payment->payment_date);
+            $modification_allowed = OBN_Fiscal_Period_Posting_Guard::can_modify(obn_current_org_id(), $payment->payment_date);
             if (is_wp_error($modification_allowed)) {
                 wp_send_json_error($modification_allowed->get_error_message(), 409);
             }
@@ -905,7 +905,7 @@ class OBN_Accounting_Contacts
                 if (!$existing_payment) {
                     wp_send_json_error('Payment not found');
                 }
-                $modification_allowed = OBN_Fiscal_Period_Posting_Guard::can_modify(get_current_blog_id(), $existing_payment->payment_date);
+                $modification_allowed = OBN_Fiscal_Period_Posting_Guard::can_modify(obn_current_org_id(), $existing_payment->payment_date);
                 if (is_wp_error($modification_allowed)) {
                     wp_send_json_error($modification_allowed->get_error_message(), 409);
                 }
@@ -1066,7 +1066,7 @@ class OBN_Accounting_Contacts
             wp_send_json_error('Payment not found');
         }
         if (class_exists('OBN_Fiscal_Period_Posting_Guard')) {
-            $modification_allowed = OBN_Fiscal_Period_Posting_Guard::can_modify(get_current_blog_id(), $payment->payment_date);
+            $modification_allowed = OBN_Fiscal_Period_Posting_Guard::can_modify(obn_current_org_id(), $payment->payment_date);
             if (is_wp_error($modification_allowed)) {
                 wp_send_json_error($modification_allowed->get_error_message(), 409);
             }
@@ -1134,7 +1134,7 @@ class OBN_Accounting_Contacts
             wp_send_json_error('Payment not found');
         }
         if (class_exists('OBN_Fiscal_Period_Posting_Guard')) {
-            $modification_allowed = OBN_Fiscal_Period_Posting_Guard::can_modify(get_current_blog_id(), $payment->payment_date);
+            $modification_allowed = OBN_Fiscal_Period_Posting_Guard::can_modify(obn_current_org_id(), $payment->payment_date);
             if (is_wp_error($modification_allowed)) {
                 wp_send_json_error($modification_allowed->get_error_message(), 409);
             }
@@ -1262,7 +1262,7 @@ class OBN_Accounting_Contacts
         }
 
         if (class_exists('OBN_Fiscal_Period_Posting_Guard')) {
-            $posting_allowed = OBN_Fiscal_Period_Posting_Guard::can_post(get_current_blog_id(), $payment_date);
+            $posting_allowed = OBN_Fiscal_Period_Posting_Guard::can_post(obn_current_org_id(), $payment_date);
             if (is_wp_error($posting_allowed)) {
                 wp_send_json_error($posting_allowed->get_error_message(), 409);
             }
@@ -1271,7 +1271,7 @@ class OBN_Accounting_Contacts
         // Insert Journal Entry
         $entry_data = [
             'store_id' => $store_id,
-            'organization_id' => get_current_blog_id(),
+            'organization_id' => obn_current_org_id(),
             'entry_number' => $entry_number,
             'entry_date' => $payment_date,
             'posting_date' => $payment_date,
@@ -1414,7 +1414,7 @@ class OBN_Accounting_Contacts
         }
 
         if (class_exists('OBN_Fiscal_Period_Posting_Guard')) {
-            $posting_allowed = OBN_Fiscal_Period_Posting_Guard::can_post(get_current_blog_id(), $payment_date);
+            $posting_allowed = OBN_Fiscal_Period_Posting_Guard::can_post(obn_current_org_id(), $payment_date);
             if (is_wp_error($posting_allowed)) {
                 wp_send_json_error($posting_allowed->get_error_message(), 409);
             }
@@ -1423,7 +1423,7 @@ class OBN_Accounting_Contacts
         // Insert Journal Entry
         $entry_data = [
             'store_id' => $store_id,
-            'organization_id' => get_current_blog_id(),
+            'organization_id' => obn_current_org_id(),
             'entry_number' => $entry_number,
             'entry_date' => $payment_date,
             'posting_date' => $payment_date,

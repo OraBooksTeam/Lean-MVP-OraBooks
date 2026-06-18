@@ -284,7 +284,7 @@ class Frontend_Accounting_SalesReturn {
         $existing_return = $wpdb->get_row($wpdb->prepare("SELECT return_status, sales_id, return_date FROM {$wpdb->prefix}orabooks_db_salesreturn WHERE id=%d", $id));
         if(!$existing_return) wp_send_json_error('Return not found');
         if (class_exists('OBN_Fiscal_Period_Posting_Guard')) {
-            $modification_allowed = OBN_Fiscal_Period_Posting_Guard::can_modify(get_current_blog_id(), $existing_return->return_date);
+            $modification_allowed = OBN_Fiscal_Period_Posting_Guard::can_modify(obn_current_org_id(), $existing_return->return_date);
             if (is_wp_error($modification_allowed)) {
                 wp_send_json_error($modification_allowed->get_error_message(), 409);
             }
@@ -411,7 +411,7 @@ class Frontend_Accounting_SalesReturn {
         $return_data = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$wpdb->prefix}orabooks_db_salesreturn WHERE id=%d", $id));
         if(!$return_data) wp_send_json_error('Return not found.');
         if (class_exists('OBN_Fiscal_Period_Posting_Guard')) {
-            $modification_allowed = OBN_Fiscal_Period_Posting_Guard::can_modify(get_current_blog_id(), $return_data->return_date);
+            $modification_allowed = OBN_Fiscal_Period_Posting_Guard::can_modify(obn_current_org_id(), $return_data->return_date);
             if (is_wp_error($modification_allowed)) {
                 wp_send_json_error($modification_allowed->get_error_message(), 409);
             }
@@ -442,7 +442,7 @@ class Frontend_Accounting_SalesReturn {
         $return_data = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$wpdb->prefix}orabooks_db_salesreturn WHERE id=%d", $id));
         if(!$return_data) wp_send_json_error('Return not found');
         if (class_exists('OBN_Fiscal_Period_Posting_Guard')) {
-            $modification_allowed = OBN_Fiscal_Period_Posting_Guard::can_modify(get_current_blog_id(), $return_data->return_date);
+            $modification_allowed = OBN_Fiscal_Period_Posting_Guard::can_modify(obn_current_org_id(), $return_data->return_date);
             if (is_wp_error($modification_allowed)) {
                 wp_send_json_error($modification_allowed->get_error_message(), 409);
             }
@@ -539,7 +539,7 @@ class Frontend_Accounting_SalesReturn {
         $return_data = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$wpdb->prefix}orabooks_db_salesreturn WHERE id=%d", $id));
         if(!$return_data) wp_send_json_error('Return not found');
         if (class_exists('OBN_Fiscal_Period_Posting_Guard')) {
-            $modification_allowed = OBN_Fiscal_Period_Posting_Guard::can_modify(get_current_blog_id(), $return_data->return_date);
+            $modification_allowed = OBN_Fiscal_Period_Posting_Guard::can_modify(obn_current_org_id(), $return_data->return_date);
             if (is_wp_error($modification_allowed)) {
                 wp_send_json_error($modification_allowed->get_error_message(), 409);
             }
@@ -614,7 +614,7 @@ class Frontend_Accounting_SalesReturn {
         $return_date = $return_data->return_date;
 
         if (class_exists('OBN_Fiscal_Period_Posting_Guard')) {
-            $posting_allowed = OBN_Fiscal_Period_Posting_Guard::can_post(get_current_blog_id(), $return_date);
+            $posting_allowed = OBN_Fiscal_Period_Posting_Guard::can_post(obn_current_org_id(), $return_date);
             if (is_wp_error($posting_allowed)) {
                 wp_send_json_error($posting_allowed->get_error_message(), 409);
             }
@@ -642,7 +642,7 @@ class Frontend_Accounting_SalesReturn {
 
         $entry_data = [
             'store_id'        => $store_id,
-            'organization_id' => get_current_blog_id(),
+            'organization_id' => obn_current_org_id(),
             'entry_number'    => $entry_number,
             'entry_date'      => $return_date,
             'posting_date'    => $return_date,

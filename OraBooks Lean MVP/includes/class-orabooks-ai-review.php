@@ -23,6 +23,12 @@ class OraBooks_Ai_Review {
     const LEASE_SECONDS        = 300;
     const MODEL_VERSION        = 'mvp-stub-1.0';
 
+    public static function active_model_version() {
+        return class_exists('OraBooks_Ai_Providers')
+            ? OraBooks_Ai_Providers::model_version('classification')
+            : self::MODEL_VERSION;
+    }
+
     private static $instance = null;
 
     public static function init() {
@@ -141,7 +147,7 @@ class OraBooks_Ai_Review {
                 'confidence'   => 50.0,
                 'risk_level'   => 'high',
                 'explanation'  => 'Journal not found for evaluation',
-                'model_version'=> self::MODEL_VERSION,
+                'model_version'=> self::active_model_version(),
             ];
         }
 
