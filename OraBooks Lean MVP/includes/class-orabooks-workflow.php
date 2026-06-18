@@ -100,11 +100,10 @@ class OraBooks_Workflow {
                 ],
             ],
             'commission' => [
-                'states' => ['pending', 'verified', 'paid', 'blocked'],
+                'states' => ['earned', 'paid', 'expired'],
                 'transitions' => [
-                    'verify' => ['from' => 'pending', 'to' => 'verified'],
-                    'pay'    => ['from' => 'verified', 'to' => 'paid'],
-                    'block'  => ['from' => ['pending', 'verified'], 'to' => 'blocked'],
+                    'pay'    => ['from' => 'earned', 'to' => 'paid'],
+                    'expire' => ['from' => 'earned', 'to' => 'expired'],
                 ],
             ],
         ]);
