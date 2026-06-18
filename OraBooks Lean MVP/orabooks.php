@@ -908,4 +908,9 @@ function orabooks_body_class($classes) {
     foreach ($auth_shortcodes as $shortcode) {
         if (has_shortcode($post->post_content, $shortcode)) {
             $classes[] = 'orabooks-auth-page';
-    
+            break;
+        }
+    }
+
+    return $classes;
+}
