@@ -60,6 +60,88 @@ export default function ExpensesPage() {
     void load();
   }, []);
 
+  useEffect(() => {
+    if (!orgId) return;
+    void api.taxListConfigs(orgId).then((res) => {
+      const configs = (res as any).data?.configs || [];
+      setTaxConfigs(configs);
+    });
+  }, [orgId]);
+
+  const reasonOptions = useMemo(() => {
+    const cfg = taxConfigs.find((c) => c.jurisdiction === overrideJurisdiction);
+    const reasons = cfg?.override_reasons?.length ? cfg.override_reasons : DEFAULT_REASONS;
+    return reasons;
+  }, [taxConfigs, overrideJurisdiction]);
+
+  const formatReason = (code: string) => code.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
+
+  const openOverride = async (expense: any) => {
+    setOverrideExpense(expense);
+    setOverrideRate(String(Number(expense.tax_rate || 0)));
+    setOverrideReason('');
+    setOverrideJurisdiction(taxConfigs[0]?.jurisdiction || 'US');
+    setError('');
+
+    if (orgId) {
+      const lockRes = await api.taxLockStatus(orgId, expense.transaction_date);
+      setTaxLocked(Boolean((lockRes as any).data?.tax_locked));
+    } else {
+      setTaxLocked(false);
+    }
+  };
+
+  const overridePreview = useMemo(() => {
+    if (!overrideExpense) return null;
+    const total = Number(overrideExpense.total_amount || 0);
+    const tax = Number(overrideExpense.tax_amount || 0);
+    const taxBase = Math.max(0, Math.round((total - tax) * 100) / 100);
+    const rate = parseFloat(overrideRate) || 0;
+    const newTax = Math.round(taxBase * (rate / 100) * 100) / 100;
+    return { taxBase, newTax, newTotal: Math.round((taxBase + newTax) * 100) / 100 };
+  }, [overrideExpense, overrideRate]);
+
+  const handleApplyOverride = async () => {
+    if (!orgId || !overrideExpense || !overrideReason) {
+      setError('A reason code is required for tax overrides.');
+      return;
+    }
+
+    setSaving(true);
+    setError('');
+    const res = await api.expenseOverrideTax(
+      orgId,
+      overrideExpense.id,
+      parseFloat(overrideRate) || 0,
+      overrideReason,
+      overrideJurisdiction
+    );
+
+    if (res.error) setError(res.error);
+    else {
+      setSuccess('Tax override applied.');
+      setOverrideExpense(null);
+      await load();
+      if (selectedExpense?.id === overrideExpense.id) void loadExpense(overrideExpense.id);
+    }
+    setSaving(false);
+  };
+
+  const handleClearOverride = async () => {
+    if (!orgId || !overrideExpense) return;
+    setSaving(true);
+    setError('');
+    const res = await api.expenseClearTaxOverride(orgId, overrideExpense.id, overrideJurisdiction);
+    if (res.error) setError(res.error);
+    else {
+      setSuccess('Tax override cleared.');
+      setOverrideExpense(null);
+      await load();
+      if (selectedExpense?.id === overrideExpense.id) void loadExpense(overrideExpense.id);
+    }
+    setSaving(false);
+  };
+
   const loadExpense = async (expenseId: number) => {
     if (!orgId) return;
     const res = await api.expenseGet(orgId, expenseId);
