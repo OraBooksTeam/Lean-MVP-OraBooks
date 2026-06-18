@@ -66,6 +66,45 @@ function orabooks_validate_subdomain($subdomain) {
 }
 
 /**
+ * Get the tenant base domain from the current request host.
+ * Strips an org subdomain prefix when present (e.g. mycompany.example.com -> example.com).
+ */
+function orabooks_get_tenant_base_domain($host = '') {
+    if ($host === '') {
+        $host = $_SERVER['HTTP_HOST'] ?? '';
+    }
+
+    $host = strtolower(trim(preg_replace('/:\d+$/', '', $host)));
+    if ($host === '') {
+        return '';
+    }
+
+    $parts = explode('.', $host);
+    $reserved = ['www', 'mail', 'admin'];
+
+    if (count($parts) >= 3 && !in_array($parts[0], $reserved, true)) {
+        return implode('.', array_slice($parts, 1));
+    }
+
+    return $host;
+}
+
+/**
+ * Build a full organization URL from a stored subdomain identifier.
+ */
+function orabooks_build_org_url($subdomain, $path = '/') {
+    $base_domain = orabooks_get_tenant_base_domain();
+    if ($base_domain === '') {
+        return home_url(ltrim($path, '/'));
+    }
+
+    $scheme = is_ssl() ? 'https' : 'http';
+    $path = '/' . ltrim($path, '/');
+
+    return $scheme . '://' . $subdomain . '.' . $base_domain . $path;
+}
+
+/**
  * Get client IP address
  */
 function orabooks_get_client_ip() {

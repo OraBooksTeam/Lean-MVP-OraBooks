@@ -595,7 +595,7 @@ function orabooks_oidc_route_handler() {
         } elseif (!empty($result['org_id'])) {
             $org = OraBooks_Organization::get($result['org_id']);
             if ($org) {
-                $redirect = 'https://' . $org->subdomain . '.orabooks.app/dashboard';
+                $redirect = orabooks_build_org_url($org->subdomain, '/dashboard');
             }
         }
         
