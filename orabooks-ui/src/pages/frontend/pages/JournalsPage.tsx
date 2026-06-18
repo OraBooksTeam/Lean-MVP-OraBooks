@@ -1,19 +1,56 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Button from '@/components/Button';
+import Input from '@/components/Input';
 import { api } from '../api';
 import ClientShell from '../components/ClientShell';
-import { Landmark, RefreshCw } from 'lucide-react';
+import { Bot, Landmark, RefreshCw } from 'lucide-react';
+
+type Journal = {
+  id: number;
+  journal_number?: string | null;
+  transaction_date?: string;
+  status: string;
+  source_type?: string;
+  total_amount?: number;
+  created_by?: number;
+  ai_confidence?: number | null;
+  reversal_of_id?: number | null;
+  reversal_reason?: string | null;
+  rejected_reason?: string | null;
+};
+
+type JournalLine = {
+  id: number;
+  account_code: string;
+  debit_amount: number;
+  credit_amount: number;
+  description?: string;
+};
 
 export default function JournalsPage() {
   const [context, setContext] = useState<any>(null);
-  const [journals, setJournals] = useState<any[]>([]);
+  const [journals, setJournals] = useState<Journal[]>([]);
+  const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [detail, setDetail] = useState<any>(null);
   const [status, setStatus] = useState('');
   const [loading, setLoading] = useState(true);
+  const [detailLoading, setDetailLoading] = useState(false);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+  const [rejectReason, setRejectReason] = useState('');
+  const [reverseReason, setReverseReason] = useState('');
+  const [actionLoading, setActionLoading] = useState(false);
+
+  const orgId = context?.organization?.id;
+  const currentUserId = context?.user?.id;
+  const role = context?.role;
+  const canApprove = ['owner', 'admin', 'approver'].includes(role);
+  const canReverse = ['owner', 'admin'].includes(role);
 
   const load = async (nextStatus = status) => {
     setLoading(true);
     setError('');
+    setSuccess('');
     const ctx = await api.frontendContext();
     if (ctx.error) {
       setError(ctx.error || 'Unable to load account context.');
@@ -23,24 +60,66 @@ export default function JournalsPage() {
 
     const nextContext = (ctx as any).data;
     setContext(nextContext);
-    const orgId = nextContext?.organization?.id;
-    if (!orgId) {
+    const nextOrgId = nextContext?.organization?.id;
+    if (!nextOrgId) {
       setError('Organization is not set up yet.');
       setLoading(false);
       return;
     }
 
-    const res = await api.journalsList(orgId, { status: nextStatus });
+    const res = await api.journalsList(nextOrgId, { status: nextStatus });
     if (res.error) setError(res.error || 'Unable to load journals.');
-    else setJournals((res as any).data?.journals || (res as any).data || []);
+    else setJournals((res as any).data?.journals || []);
     setLoading(false);
+  };
+
+  const loadDetail = async (journalId: number, nextOrgId = orgId) => {
+    if (!nextOrgId || !journalId) return;
+    setDetailLoading(true);
+    const res = await api.journalGet(nextOrgId, journalId);
+    if (res.error) setError(res.error);
+    else setDetail((res as any).data);
+    setDetailLoading(false);
   };
 
   useEffect(() => { void load(''); }, []);
 
+  useEffect(() => {
+    if (selectedId && orgId) void loadDetail(selectedId, orgId);
+  }, [selectedId, orgId]);
+
+  const selectedJournal: Journal | undefined = useMemo(
+    () => detail?.journal || journals.find((j) => j.id === selectedId),
+    [detail, journals, selectedId]
+  );
+
+  const lines: JournalLine[] = detail?.lines || [];
+
+  const runAction = async (action: () => Promise<any>, successMessage: string) => {
+    setActionLoading(true);
+    setError('');
+    setSuccess('');
+    const res = await action();
+    if (res.error) {
+      setError(res.error);
+    } else {
+      setSuccess(successMessage);
+      await load();
+      if (selectedId) await loadDetail(selectedId);
+    }
+    setActionLoading(false);
+  };
+
   return (
     <ClientShell title="Journals" eyebrow="Posting workflow" organization={context?.organization}>
       <div className="space-y-5">
+        <div className="flex items-start gap-3 rounded-xl border border-sky-200 bg-sky-50/80 p-4 text-sm text-sky-900">
+          <Landmark className="mt-0.5 h-4 w-4 shrink-0" />
+          <p>
+            Approving locks a journal. Posting is atomic and updates the ledger. Reversals require a reason and create a new draft journal with opposite entries.
+          </p>
+        </div>
+
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <select
             value={status}
@@ -48,7 +127,7 @@ export default function JournalsPage() {
               setStatus(event.target.value);
               void load(event.target.value);
             }}
-            className="rounded-lg border border-border bg-white px-3.5 py-2.5 text-sm text-ink shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+            className="rounded-lg border border-border bg-white px-3.5 py-2.5 text-sm text-ink shadow-sm"
           >
             <option value="">All statuses</option>
             <option value="draft">Draft</option>
@@ -63,43 +142,189 @@ export default function JournalsPage() {
             Refresh
           </Button>
         </div>
+
         {error && <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-medium text-red-700">{error}</div>}
-        <div className="glass-panel overflow-hidden">
-          <table className="min-w-full text-left text-sm">
-            <thead>
-              <tr className="border-b border-border bg-slate-50/70 text-xs uppercase text-slate-500">
-                <th className="px-5 py-3 font-semibold">Journal</th>
-                <th className="px-5 py-3 font-semibold">Date</th>
-                <th className="px-5 py-3 font-semibold">Status</th>
-                <th className="px-5 py-3 font-semibold">Source</th>
-                <th className="px-5 py-3 text-right font-semibold">Amount</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {loading ? (
-                <tr><td colSpan={5} className="px-5 py-8 text-center text-slate-500">Loading journals...</td></tr>
-              ) : journals.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="px-5 py-10 text-center">
-                    <Landmark className="mx-auto h-8 w-8 text-slate-300" />
-                    <p className="mt-2 text-sm text-slate-500">No journals found.</p>
-                  </td>
+        {success && <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-medium text-emerald-700">{success}</div>}
+
+        <div className="grid gap-5 xl:grid-cols-[1.2fr_1fr]">
+          <div className="glass-panel overflow-hidden">
+            <table className="min-w-full text-left text-sm">
+              <thead>
+                <tr className="border-b border-border bg-slate-50/70 text-xs uppercase text-slate-500">
+                  <th className="px-5 py-3 font-semibold">Journal</th>
+                  <th className="px-5 py-3 font-semibold">Date</th>
+                  <th className="px-5 py-3 font-semibold">Status</th>
+                  <th className="px-5 py-3 font-semibold">Source</th>
+                  <th className="px-5 py-3 text-right font-semibold">Amount</th>
                 </tr>
-              ) : journals.map((journal) => (
-                <tr key={journal.id} className="hover:bg-slate-50/70">
-                  <td className="px-5 py-3 font-semibold text-ink">{journal.journal_number || `Journal #${journal.id}`}</td>
-                  <td className="px-5 py-3 text-slate-600">{journal.transaction_date || 'Not set'}</td>
-                  <td className="px-5 py-3"><span className="badge border border-border bg-slate-50 text-slate-700">{journal.status}</span></td>
-                  <td className="px-5 py-3 text-slate-600">{journal.source_type || 'Manual'}</td>
-                  <td className="px-5 py-3 text-right font-bold text-ink">{money(journal.total_amount)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {loading ? (
+                  <tr><td colSpan={5} className="px-5 py-8 text-center text-slate-500">Loading journals...</td></tr>
+                ) : journals.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="px-5 py-10 text-center">
+                      <Landmark className="mx-auto h-8 w-8 text-slate-300" />
+                      <p className="mt-2 text-sm text-slate-500">No journals found.</p>
+                    </td>
+                  </tr>
+                ) : journals.map((journal) => (
+                  <tr
+                    key={journal.id}
+                    className={`cursor-pointer hover:bg-slate-50/70 ${selectedId === journal.id ? 'bg-sky-50/70' : ''}`}
+                    onClick={() => setSelectedId(journal.id)}
+                  >
+                    <td className="px-5 py-3 font-semibold text-ink">{journal.journal_number || `Journal #${journal.id}`}</td>
+                    <td className="px-5 py-3 text-slate-600">{journal.transaction_date || 'Not set'}</td>
+                    <td className="px-5 py-3"><StatusBadge status={journal.status} /></td>
+                    <td className="px-5 py-3 text-slate-600">{journal.source_type || 'Manual'}</td>
+                    <td className="px-5 py-3 text-right font-bold text-ink">{money(journal.total_amount)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="glass-panel p-5">
+            {!selectedJournal ? (
+              <p className="text-sm text-slate-500">Select a journal to view lines and workflow actions.</p>
+            ) : detailLoading ? (
+              <p className="text-sm text-slate-500">Loading journal detail...</p>
+            ) : (
+              <div className="space-y-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <h3 className="text-lg font-bold text-ink">
+                      {selectedJournal.journal_number || `Journal #${selectedJournal.id}`}
+                    </h3>
+                    <p className="text-sm text-slate-500">{selectedJournal.transaction_date}</p>
+                  </div>
+                  <StatusBadge status={selectedJournal.status} />
+                </div>
+
+                {selectedJournal.ai_confidence != null ? (
+                  <div className="inline-flex items-center gap-2 rounded-lg border border-violet-200 bg-violet-50 px-3 py-2 text-xs font-medium text-violet-800">
+                    <Bot className="h-3.5 w-3.5" />
+                    AI confidence: {selectedJournal.ai_confidence}% — human approval required
+                  </div>
+                ) : null}
+
+                {selectedJournal.rejected_reason ? (
+                  <p className="text-sm text-amber-700">Rejected: {selectedJournal.rejected_reason}</p>
+                ) : null}
+
+                <div className="overflow-hidden rounded-xl border border-border">
+                  <table className="min-w-full text-left text-sm">
+                    <thead>
+                      <tr className="border-b border-border bg-slate-50/70 text-xs uppercase text-slate-500">
+                        <th className="px-4 py-2 font-semibold">Account</th>
+                        <th className="px-4 py-2 text-right font-semibold">Debit</th>
+                        <th className="px-4 py-2 text-right font-semibold">Credit</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border">
+                      {lines.map((line) => (
+                        <tr key={line.id}>
+                          <td className="px-4 py-2">
+                            <div className="font-mono font-semibold text-ink">{line.account_code}</div>
+                            {line.description ? <div className="text-xs text-slate-500">{line.description}</div> : null}
+                          </td>
+                          <td className="px-4 py-2 text-right text-slate-700">{line.debit_amount ? money(line.debit_amount) : '—'}</td>
+                          <td className="px-4 py-2 text-right text-slate-700">{line.credit_amount ? money(line.credit_amount) : '—'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  {selectedJournal.status === 'draft' && (
+                    <Button
+                      size="sm"
+                      disabled={actionLoading}
+                      onClick={() => runAction(() => api.submitJournal(selectedJournal.id), 'Journal submitted for approval.')}
+                    >
+                      Submit for Approval
+                    </Button>
+                  )}
+                  {canApprove && selectedJournal.status === 'review_pending' && selectedJournal.created_by !== currentUserId && (
+                    <>
+                      <Button
+                        size="sm"
+                        disabled={actionLoading}
+                        onClick={() => runAction(() => api.approveJournal(selectedJournal.id), 'Journal approved.')}
+                      >
+                        Approve
+                      </Button>
+                      <div className="w-full space-y-2">
+                        <Input
+                          value={rejectReason}
+                          onChange={(e) => setRejectReason(e.target.value)}
+                          placeholder="Rejection reason"
+                        />
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          disabled={actionLoading || !rejectReason.trim()}
+                          onClick={() => runAction(
+                            () => api.rejectJournal(selectedJournal.id, rejectReason.trim()),
+                            'Journal rejected and returned to draft.'
+                          )}
+                        >
+                          Reject
+                        </Button>
+                      </div>
+                    </>
+                  )}
+                  {canApprove && selectedJournal.status === 'approved' && (
+                    <Button
+                      size="sm"
+                      disabled={actionLoading}
+                      onClick={() => runAction(() => api.postJournal(selectedJournal.id), 'Journal posted to ledger.')}
+                    >
+                      Post to Ledger
+                    </Button>
+                  )}
+                  {canReverse && ['posted', 'locked'].includes(selectedJournal.status) && (
+                    <div className="w-full space-y-2">
+                      <Input
+                        value={reverseReason}
+                        onChange={(e) => setReverseReason(e.target.value)}
+                        placeholder="Reversal reason (required)"
+                      />
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        disabled={actionLoading || !reverseReason.trim() || !orgId}
+                        onClick={() => runAction(
+                          () => api.reverseJournal(orgId!, selectedJournal.id, reverseReason.trim()),
+                          'Reversal journal created as draft.'
+                        )}
+                      >
+                        Reverse Journal
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </ClientShell>
   );
+}
+
+function StatusBadge({ status }: { status: string }) {
+  const map: Record<string, string> = {
+    draft: 'border-slate-200 bg-slate-50 text-slate-700',
+    review_pending: 'border-amber-200 bg-amber-50 text-amber-700',
+    approved: 'border-sky-200 bg-sky-50 text-sky-700',
+    posted: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+    locked: 'border-emerald-300 bg-emerald-100 text-emerald-800',
+    reversed: 'border-rose-200 bg-rose-50 text-rose-700',
+  };
+  return <span className={`badge border ${map[status] || map.draft}`}>{status.replace(/_/g, ' ')}</span>;
 }
 
 function money(value?: string | number) {
