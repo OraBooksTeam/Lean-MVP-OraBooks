@@ -41,6 +41,12 @@ export default function JournalsPage() {
   const [rejectReason, setRejectReason] = useState('');
   const [reverseReason, setReverseReason] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
+  const [showCreate, setShowCreate] = useState(false);
+  const [createDate, setCreateDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [debitAccount, setDebitAccount] = useState('');
+  const [creditAccount, setCreditAccount] = useState('');
+  const [entryAmount, setEntryAmount] = useState('');
+  const [entryDescription, setEntryDescription] = useState('');
 
   const orgId = context?.organization?.id;
   const currentUserId = context?.user?.id;
@@ -107,6 +113,42 @@ export default function JournalsPage() {
       setSuccess(successMessage);
       await load();
       if (selectedId) await loadDetail(selectedId);
+    }
+    setActionLoading(false);
+  };
+
+  const createJournal = async () => {
+    if (!orgId) return;
+    const amount = Number(entryAmount);
+    if (!debitAccount.trim() || !creditAccount.trim() || !amount || amount <= 0) {
+      setError('Enter debit account, credit account, and a positive amount.');
+      return;
+    }
+
+    setActionLoading(true);
+    setError('');
+    setSuccess('');
+    const res = await api.journalCreate(orgId, {
+      transaction_date: createDate,
+      source_type: 'manual',
+      description: entryDescription,
+      lines: [
+        { account_code: debitAccount.trim(), debit_amount: amount, description: entryDescription },
+        { account_code: creditAccount.trim(), credit_amount: amount, description: entryDescription },
+      ],
+    });
+    if (res.error) {
+      setError(res.error);
+    } else {
+      setSuccess('Draft journal created.');
+      setShowCreate(false);
+      setDebitAccount('');
+      setCreditAccount('');
+      setEntryAmount('');
+      setEntryDescription('');
+      const journalId = (res as any).data?.journal_id;
+      await load();
+      if (journalId) setSelectedId(Number(journalId));
     }
     setActionLoading(false);
   };
