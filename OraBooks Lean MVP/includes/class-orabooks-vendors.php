@@ -29,6 +29,8 @@ class OraBooks_Vendors {
             add_action('wp_ajax_nopriv_orabooks_bill_submit', [self::$instance, 'ajax_bill_submit']);
             add_action('wp_ajax_orabooks_bill_approve', [self::$instance, 'ajax_bill_approve']);
             add_action('wp_ajax_nopriv_orabooks_bill_approve', [self::$instance, 'ajax_bill_approve']);
+            add_action('wp_ajax_orabooks_bill_post', [self::$instance, 'ajax_bill_post']);
+            add_action('wp_ajax_nopriv_orabooks_bill_post', [self::$instance, 'ajax_bill_post']);
             add_action('wp_ajax_orabooks_vendor_payment_record', [self::$instance, 'ajax_record_payment']);
             add_action('wp_ajax_nopriv_orabooks_vendor_payment_record', [self::$instance, 'ajax_record_payment']);
             add_action('wp_ajax_orabooks_vendor_credit_note_create', [self::$instance, 'ajax_create_credit_note']);
