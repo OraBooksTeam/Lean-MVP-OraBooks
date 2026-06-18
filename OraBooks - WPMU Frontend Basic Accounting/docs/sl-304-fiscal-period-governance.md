@@ -32,7 +32,7 @@ flowchart TD
 Table: `{prefix}fiscal_periods`
 
 - `id` bigint unsigned primary key
-- `org_id` bigint unsigned, scoped to `get_current_blog_id()`
+- `org_id` bigint unsigned, scoped to `obn_current_org_id()` (Lean MVP tenant org)
 - `period_type` varchar: `MONTH`, `QUARTER`, `FISCAL_YEAR`
 - `period_name` varchar
 - `period_start` date
