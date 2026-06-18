@@ -281,7 +281,10 @@ class OraBooks_Customers {
 
         $sql = "SELECT c.*, u.email, o.name as org_name,
                        (SELECT COUNT(*) FROM {$table_invoices} WHERE customer_id = c.id) as invoice_count,
-                       (SELECT COALESCE(SUM(total_amount), 0) FROM {$table_invoices} WHERE customer_id = c.id AND payment_status IN ('paid', 'partial')) as total_paid
+                       (SELECT COALESCE(SUM(total_amount), 0) FROM {$table_invoices} WHERE customer_id = c.id AND payment_status IN ('paid', 'partial')) as total_paid,
+                       (SELECT COALESCE(SUM(total_amount - COALESCE(paid_amount, 0)), 0)
+                        FROM {$table_invoices}
+                        WHERE customer_id = c.id AND payment_status IN ('unpaid', 'partial', 'overdue')) as wallet_balance
                 FROM {$table} c
                 JOIN {$table_users} u ON c.user_id = u.id
                 LEFT JOIN {$table_orgs} o ON c.org_id = o.id
