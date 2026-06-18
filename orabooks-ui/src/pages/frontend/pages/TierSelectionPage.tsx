@@ -2,8 +2,10 @@ import { useState, type FormEvent } from 'react';
 import Button from '@/components/Button';
 import Input from '@/components/Input';
 import { api } from '@/pages/frontend/api';
+import { getTenantDomainSuffix } from '@/lib/utils';
 
 export default function TierSelectionPage() {
+  const tenantDomainSuffix = getTenantDomainSuffix();
   const [tier, setTier] = useState<'free' | 'premium' | 'enterprise'>('free');
   const [subdomain, setSubdomain] = useState('');
   const [checking, setChecking] = useState(false);
@@ -67,7 +69,7 @@ export default function TierSelectionPage() {
                 Check availability
               </Button>
             </div>
-            <p className="mt-1.5 text-xs text-slate-500">.orabooks.app</p>
+            <p className="mt-1.5 text-xs text-slate-500">{tenantDomainSuffix}</p>
             {available !== null && (
               <p className={`mt-1.5 text-xs font-medium ${available ? 'text-success' : 'text-danger'}`}>
                 {available ? '✓ Available' : `✗ ${msg || 'Not available'}`}
