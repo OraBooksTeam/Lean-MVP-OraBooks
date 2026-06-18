@@ -727,8 +727,20 @@ class OraBooks_Attachments {
         $versions = self::list_versions($attachment_id, $org_id);
         $current = self::get_version((int) $attachment->current_version_id, $org_id);
 
+        $row = (object) array_merge((array) $attachment, [
+            'version_id'         => $current ? (int) $current->id : null,
+            'version_number'     => $current ? (int) $current->version_number : null,
+            'file_name'          => $current ? $current->file_name : null,
+            'file_size'          => $current ? (int) $current->file_size : null,
+            'file_hash'          => $current ? $current->file_hash : null,
+            'mime_type'          => $current ? $current->mime_type : null,
+            'uploaded_by'        => $current ? (int) $current->uploaded_by : null,
+            'uploaded_at'        => $current ? $current->uploaded_at : null,
+            'virus_scan_status'  => $current ? $current->virus_scan_status : null,
+        ]);
+
         orabooks_json_success([
-            'attachment' => self::format_attachment_row((object) array_merge((array) $attachment, (array) ($current ?: (object) []))),
+            'attachment' => self::format_attachment_row($row),
             'versions'   => array_map([self::class, 'format_version'], $versions ?: []),
             'capabilities' => [
                 'download' => self::can_download($user_id, $org_id),
