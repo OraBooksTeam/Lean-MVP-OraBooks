@@ -651,11 +651,10 @@ class OraBooks_Shortcodes {
      * CSV Import page shortcode (SL-113).
      */
     public function csv_import_page() {
-        $user_id = get_current_user_id();
-        if (!$user_id) {
-            return '<p>' . __('Please log in to import CSV data.', 'orabooks') . '</p>';
+        if (!get_current_user_id()) {
+            return OraBooks_Views::require_login_message();
         }
-        return $this->react_app('/csv-imports', 'Loading CSV imports...');
+        return $this->ajax_dashboard_page(__('CSV Imports', 'orabooks'), 'orabooks_csv_imports_dashboard');
     }
 
     /**
