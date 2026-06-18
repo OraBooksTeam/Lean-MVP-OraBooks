@@ -242,13 +242,16 @@ class OraBooks_Financial_Reports_Test extends TestCase
             }
             return [(object) ['org_id' => 10]];
         };
-        $wpdb->test_get_var_callback = function ($query) use (&$getVarCalls) {
-            static $getVarCalls = 0;
-            $getVarCalls++;
+        $wpdb->test_get_var_callback = function ($query) {
+            static $ledgerCalls = 0;
             if (stripos($query, 'organizations') !== false && stripos($query, 'config') !== false) {
                 return null;
             }
-            return $getVarCalls === 2 ? 100.00 : 99.50;
+            if (stripos($query, 'ledger_entries') !== false) {
+                $ledgerCalls++;
+                return $ledgerCalls === 1 ? 100.00 : 99.50;
+            }
+            return null;
         };
         $wpdb->test_insert_callback = function ($table, $data) use (&$inserts) {
             $inserts[] = [$table, $data];
@@ -291,31 +294,36 @@ class OraBooks_Financial_Reports_Test extends TestCase
         $inserted = [];
 
         $wpdb->test_get_var_callback = function ($query) {
+            if (stripos($query, 'fiscal_periods') !== false) {
+                return null;
+            }
             if (stripos($query, 'organizations') !== false) {
                 return wp_json_encode(['report_config' => ['encrypt_snapshots' => true]]);
             }
+            if (stripos($query, 'report_snapshots') !== false) {
+                return null;
+            }
             return null;
         };
+        $wpdb->test_get_row_callback = fn() => null;
+        $wpdb->test_get_results_callback = fn() => $this->ledgerRows();
         $wpdb->test_insert_callback = function ($table, $data) use (&$inserted) {
-            $inserted = $data;
+            if ($table === 'wp_test_orabooks_report_snapshots') {
+                $inserted = $data;
+            }
         };
         $GLOBALS['orabooks_test_use_insert_id'] = 202;
 
-        $snapshot = OraBooks_Financial_Reports::create_snapshot(
-            10,
-            'profit_loss',
-            '2026-01-01',
-            '2026-01-31',
-            ['report_type' => 'profit_loss', 'net_income' => 10],
-            5,
-            'corr-enc',
-            false
-        );
+        $result = OraBooks_Financial_Reports::generate_report(10, 'profit_loss', '2026-01-01', '2026-01-31', [
+            'generated_by' => 5,
+            'correlation_id' => 'corr-enc',
+        ]);
 
         $this->assertEquals(1, $inserted['is_encrypted']);
         $this->assertNotEmpty($inserted['encryption_key_id']);
         $this->assertNotEquals($inserted['snapshot_hash'], $inserted['snapshot_data']);
-        $this->assertEquals(202, $snapshot->id);
+        $this->assertEquals(202, $result['snapshot_id']);
+        $this->assertTrue($result['is_encrypted']);
     }
 
     #[Test]
