@@ -16,6 +16,7 @@ import BankReconciliationPage from './pages/BankReconciliationPage';
 import ReportsPage from './pages/ReportsPage';
 import CsvImportsPage from './pages/CsvImportsPage';
 import TeamPage from './pages/TeamPage';
+import AttachmentsPage from './pages/AttachmentsPage';
 import ProfilePage from './pages/ProfilePage';
 import NotificationPreferencesPage from './pages/NotificationPreferencesPage';
 
@@ -34,6 +35,7 @@ export default function FrontendRoutes() {
       <Route path="/reports" element={<ReportsPage />} />
       <Route path="/csv-imports" element={<CsvImportsPage />} />
       <Route path="/team" element={<TeamPage />} />
+      <Route path="/attachments" element={<AttachmentsPage />} />
       <Route path="/invoices" element={<InvoicesPage />} />
       <Route path="/chart-of-accounts" element={<ChartOfAccountsPage />} />
       <Route path="/journals" element={<JournalsPage />} />
