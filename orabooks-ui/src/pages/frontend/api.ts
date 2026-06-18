@@ -365,6 +365,24 @@ export const api = {
     api.post('orabooks_expense_reject', { org_id: orgId, expense_id: expenseId, reason }),
   expensePost: (orgId: number, expenseId: number) =>
     api.post('orabooks_expense_post', { org_id: orgId, expense_id: expenseId }),
+  voiceDashboard: () =>
+    api.get('orabooks_voice_dashboard'),
+  uploadVoice: (orgId: number, file: File, idempotencyKey = '') => {
+    const formData = new FormData();
+    formData.set('org_id', String(orgId));
+    formData.set('voice_file', file);
+    if (idempotencyKey) formData.set('idempotency_key', idempotencyKey);
+    return uploadRequest('orabooks_voice_upload', formData);
+  },
+  voiceGet: (orgId: number, voiceId: number) =>
+    api.get('orabooks_voice_get', { org_id: orgId, voice_id: voiceId }),
+  voiceConfirm: (orgId: number, voiceId: number, idempotencyKey: string, editedFields: Record<string, unknown>) =>
+    api.post('orabooks_voice_confirm', {
+      org_id: orgId,
+      voice_id: voiceId,
+      idempotency_key: idempotencyKey,
+      edited_fields: editedFields,
+    }),
   submitJournal: (journalId: number) =>
     api.post('orabooks_submit_journal', { journal_id: journalId }),
   approveJournal: (journalId: number) =>

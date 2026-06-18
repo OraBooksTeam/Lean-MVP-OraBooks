@@ -156,6 +156,13 @@ function QueueSection({
                           Review
                         </Button>
                       </Link>
+                    ) : item.resource_type === 'voice_input' ? (
+                      <Link to="/voice">
+                        <Button size="sm">
+                          <ShieldCheck className="h-3.5 w-3.5" />
+                          Review
+                        </Button>
+                      </Link>
                     ) : (
                       <span className="text-xs text-slate-500">N/A</span>
                     )}
