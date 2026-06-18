@@ -1,0 +1,311 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "OraBooks API",
+    "version": "1.0.0",
+    "description": "REST API for OraBooks Lean MVP. Authenticated WordPress session or application password required. Pass org context via org_id query parameter or X-OraBooks-Org-Id header."
+  },
+  "servers": [
+    {
+      "url": "/wp-json/api"
+    }
+  ],
+  "tags": [
+    { "name": "Meta", "description": "API discovery" },
+    { "name": "Fiscal", "description": "SL-304 fiscal period governance" },
+    { "name": "Expenses", "description": "SL-028 receipt OCR and expense workflow" },
+    { "name": "PWA", "description": "Progressive Web App metadata" }
+  ],
+  "paths": {
+    "/openapi.json": {
+      "get": {
+        "tags": ["Meta"],
+        "summary": "OpenAPI specification",
+        "responses": {
+          "200": { "description": "This document" }
+        }
+      }
+    },
+    "/pwa/manifest": {
+      "get": {
+        "tags": ["PWA"],
+        "summary": "Web app manifest",
+        "responses": {
+          "200": { "description": "PWA manifest JSON" }
+        }
+      }
+    },
+    "/fiscal-periods": {
+      "get": {
+        "tags": ["Fiscal"],
+        "summary": "List fiscal periods",
+        "parameters": [
+          { "in": "query", "name": "org_id", "required": true, "schema": { "type": "integer" } },
+          { "in": "query", "name": "status", "schema": { "type": "string", "enum": ["OPEN", "SOFT_CLOSED", "HARD_CLOSED"] } },
+          { "in": "query", "name": "year", "schema": { "type": "integer" } },
+          { "in": "query", "name": "month", "schema": { "type": "integer", "minimum": 1, "maximum": 12 } },
+          { "in": "query", "name": "page", "schema": { "type": "integer", "minimum": 1, "default": 1 } },
+          { "in": "query", "name": "per_page", "schema": { "type": "integer", "minimum": 1, "maximum": 100, "default": 20 } }
+        ],
+        "responses": {
+          "200": { "description": "Paged fiscal periods" },
+          "403": { "description": "Forbidden" }
+        }
+      },
+      "post": {
+        "tags": ["Fiscal"],
+        "summary": "Create fiscal period",
+        "parameters": [
+          { "in": "query", "name": "org_id", "required": true, "schema": { "type": "integer" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/FiscalPeriodCreate" }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Created" },
+          "422": { "description": "Duplicate or overlapping fiscal period" }
+        }
+      }
+    },
+    "/fiscal-periods/{id}": {
+      "get": {
+        "tags": ["Fiscal"],
+        "summary": "Get fiscal period",
+        "parameters": [
+          { "$ref": "#/components/parameters/PeriodId" },
+          { "in": "query", "name": "org_id", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": {
+          "200": { "description": "Fiscal period" },
+          "404": { "description": "Not found or cross-tenant access blocked" }
+        }
+      }
+    },
+    "/fiscal-periods/{id}/close": {
+      "post": {
+        "tags": ["Fiscal"],
+        "summary": "Close fiscal period",
+        "parameters": [
+          { "$ref": "#/components/parameters/PeriodId" },
+          { "in": "query", "name": "org_id", "required": true, "schema": { "type": "integer" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["closeType"],
+                "properties": {
+                  "closeType": { "type": "string", "enum": ["soft", "hard"] },
+                  "note": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Closed" },
+          "409": { "description": "Period is not open or transition is illegal" }
+        }
+      }
+    },
+    "/fiscal-periods/{id}/reopen": {
+      "post": {
+        "tags": ["Fiscal"],
+        "summary": "Reopen soft-closed fiscal period",
+        "parameters": [
+          { "$ref": "#/components/parameters/PeriodId" },
+          { "in": "query", "name": "org_id", "required": true, "schema": { "type": "integer" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["reason"],
+                "properties": {
+                  "reason": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Reopened" },
+          "409": { "description": "Only soft-closed periods can be reopened here" }
+        }
+      }
+    },
+    "/fiscal-periods/{id}/override-reopen": {
+      "post": {
+        "tags": ["Fiscal"],
+        "summary": "Super Admin override reopen for hard-closed fiscal period",
+        "parameters": [
+          { "$ref": "#/components/parameters/PeriodId" },
+          { "in": "query", "name": "org_id", "required": true, "schema": { "type": "integer" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["justification"],
+                "properties": {
+                  "justification": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Override reopened" },
+          "403": { "description": "Super Admin permission required" },
+          "422": { "description": "Justification missing" }
+        }
+      }
+    },
+    "/expenses": {
+      "get": {
+        "tags": ["Expenses"],
+        "summary": "List expenses",
+        "parameters": [
+          { "in": "query", "name": "org_id", "required": true, "schema": { "type": "integer" } },
+          { "in": "query", "name": "workflow_status", "schema": { "type": "string" } },
+          { "in": "query", "name": "page", "schema": { "type": "integer", "minimum": 1, "default": 1 } },
+          { "in": "query", "name": "per_page", "schema": { "type": "integer", "minimum": 1, "maximum": 100, "default": 20 } }
+        ],
+        "responses": {
+          "200": { "description": "Paged expenses" }
+        }
+      }
+    },
+    "/expenses/upload-receipt": {
+      "post": {
+        "tags": ["Expenses"],
+        "summary": "Upload receipt and start OCR",
+        "parameters": [
+          { "in": "query", "name": "org_id", "required": true, "schema": { "type": "integer" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": ["receipt_file"],
+                "properties": {
+                  "receipt_file": { "type": "string", "format": "binary" },
+                  "idempotency_key": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Draft expense created and OCR queued" },
+          "400": { "description": "Invalid file" }
+        }
+      }
+    },
+    "/expenses/{id}": {
+      "get": {
+        "tags": ["Expenses"],
+        "summary": "Get expense",
+        "parameters": [
+          { "$ref": "#/components/parameters/ExpenseId" },
+          { "in": "query", "name": "org_id", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": {
+          "200": { "description": "Expense with OCR fields" },
+          "404": { "description": "Not found" }
+        }
+      }
+    },
+    "/expenses/{id}/confirm-submit": {
+      "post": {
+        "tags": ["Expenses"],
+        "summary": "Confirm OCR result and submit for approval or AI review",
+        "parameters": [
+          { "$ref": "#/components/parameters/ExpenseId" },
+          { "in": "query", "name": "org_id", "required": true, "schema": { "type": "integer" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["idempotency_key"],
+                "properties": {
+                  "idempotency_key": { "type": "string" },
+                  "edited_fields": { "type": "object", "additionalProperties": true }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Submitted or escalated to AI review" },
+          "409": { "description": "Duplicate idempotency key" }
+        }
+      }
+    }
+  },
+  "components": {
+    "parameters": {
+      "PeriodId": {
+        "in": "path",
+        "name": "id",
+        "required": true,
+        "schema": { "type": "integer" }
+      },
+      "ExpenseId": {
+        "in": "path",
+        "name": "id",
+        "required": true,
+        "schema": { "type": "integer" }
+      }
+    },
+    "schemas": {
+      "FiscalPeriodCreate": {
+        "type": "object",
+        "required": ["period_start", "period_end"],
+        "properties": {
+          "period_name": { "type": "string" },
+          "period_start": { "type": "string", "format": "date" },
+          "period_end": { "type": "string", "format": "date" }
+        }
+      },
+      "FiscalPeriod": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" },
+          "org_id": { "type": "integer" },
+          "period_start": { "type": "string", "format": "date" },
+          "period_end": { "type": "string", "format": "date" },
+          "status": { "type": "string", "enum": ["OPEN", "SOFT_CLOSED", "HARD_CLOSED"] }
+        }
+      },
+      "Expense": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" },
+          "org_id": { "type": "integer" },
+          "vendor": { "type": "string" },
+          "total_amount": { "type": "number" },
+          "workflow_status": { "type": "string" },
+          "ocr_confidence": { "type": "number" },
+          "ocr_risk_level": { "type": "string" }
+        }
+      }
+    }
+  }
+}
