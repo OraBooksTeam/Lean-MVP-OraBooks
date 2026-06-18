@@ -44,7 +44,24 @@ class FrontendErrorBoundary extends React.Component<
   }
 }
 
+function bootExportWidgets() {
+  document.querySelectorAll<HTMLElement>('.orabooks-export-trigger-root').forEach((el) => {
+    if (el.dataset.orabooksMounted === '1') {
+      return;
+    }
+    el.dataset.orabooksMounted = '1';
+    const exportType = el.dataset.exportType || 'report';
+    const format = (el.dataset.format === 'pdf' ? 'pdf' : 'csv') as 'csv' | 'pdf';
+    const label = el.dataset.label || 'Export CSV';
+    ReactDOM.createRoot(el).render(
+      <ExportTriggerButton exportType={exportType} format={format} label={label} />
+    );
+  });
+}
+
 function bootFrontend() {
+  bootExportWidgets();
+
   const root = document.getElementById('orabooks-app-root');
   if (!root) {
     return;

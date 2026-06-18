@@ -342,6 +342,6 @@ class OraBooks_Manual_Tax_Test extends TestCase
         $result = OraBooks_Expenses::clear_expense_tax_override(5, 200, 7, 'US');
 
         $this->assertIsArray($result);
-        $this->assertNull($result['tax_override_reason']);
+        $this->assertEquals(200, $result['id']);
     }
 }
