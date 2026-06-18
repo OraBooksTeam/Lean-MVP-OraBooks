@@ -64,6 +64,8 @@ add_action('plugins_loaded', 'orabooks_init');
 function orabooks_init() {
     // Load text domain
     load_plugin_textdomain('orabooks', false, dirname(plugin_basename(__FILE__)) . '/languages');
+
+    orabooks_ensure_database();
     
     // Initialize core classes
     OraBooks_Database::init();
