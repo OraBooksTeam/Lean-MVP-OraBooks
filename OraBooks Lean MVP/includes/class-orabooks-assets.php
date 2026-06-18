@@ -237,17 +237,6 @@ class OraBooks_Assets {
     }
 
     /**
-     * wp-admin hooks that still render legacy PHP (not React).
-     *
-     * @return string[]
-     */
-    public static function get_legacy_admin_hooks() {
-        return [
-            'orabooks_page_orabooks-commissions',
-        ];
-    }
-
-    /**
      * @param string $hook_suffix
      */
     public static function should_enqueue_admin_react($hook_suffix) {
@@ -255,7 +244,10 @@ class OraBooks_Assets {
             return false;
         }
 
-        return !in_array($hook_suffix, self::get_legacy_admin_hooks(), true)
-            || !current_user_can('manage_options');
+        if ($hook_suffix === 'orabooks_page_orabooks-commissions' && current_user_can('manage_options')) {
+            return false;
+        }
+
+        return true;
     }
 }
