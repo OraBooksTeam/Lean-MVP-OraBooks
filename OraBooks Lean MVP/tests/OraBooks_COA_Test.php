@@ -52,7 +52,7 @@ class OraBooks_COA_Test extends TestCase
         $balance_inserts = 0;
         $next_id = 100;
 
-        $wpdb->test_query_callback = function ($query) use (&$inserts, &$next_id) {
+        $wpdb->test_query_callback = function ($query) use (&$inserts, &$next_id, &$wpdb) {
             if (stripos($query, 'INSERT IGNORE INTO') !== false) {
                 $inserts[] = $query;
                 $next_id++;
