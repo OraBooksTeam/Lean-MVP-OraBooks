@@ -1217,12 +1217,7 @@ class OraBooks_Customers_Test extends TestCase
             return 0;
         };
 
-        $callCount = 0;
-        $wpdb->test_get_row_callback = function ($query) use (&$callCount) {
-            $callCount++;
-            if ($callCount === 1) {
-                return (object) ['id' => 1];
-            }
+        $wpdb->test_get_row_callback = function ($query) {
             if (stripos($query, 'tax_configs') !== false) {
                 return (object) [
                     'id' => 1,
@@ -1230,6 +1225,9 @@ class OraBooks_Customers_Test extends TestCase
                     'tax_type' => 'Sales Tax',
                     'override_reasons' => null,
                 ];
+            }
+            if (stripos($query, 'customers') !== false && stripos($query, 'SELECT id') !== false) {
+                return (object) ['id' => 1];
             }
             return $this->mockInvoice([
                 'id' => 201,
