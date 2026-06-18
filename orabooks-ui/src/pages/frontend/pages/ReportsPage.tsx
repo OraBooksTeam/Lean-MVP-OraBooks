@@ -8,6 +8,8 @@ const FINANCIAL_DEFAULT = 'profit_loss';
 const OPERATIONAL_DEFAULT = 'ar_aging';
 
 const fieldClass = 'w-full rounded-lg border border-border bg-white px-3.5 py-2.5 text-sm text-ink shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20';
+
+export default function ReportsPage() {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -100,10 +102,10 @@ const fieldClass = 'w-full rounded-lg border border-border bg-white px-3.5 py-2.
                 </select>
               </Field>
               <Field label="Period start">
-                <input type="date" className="input-field" value={periodStart} onChange={(e) => setPeriodStart(e.target.value)} />
+                <input type="date" className={fieldClass} value={periodStart} onChange={(e) => setPeriodStart(e.target.value)} />
               </Field>
               <Field label="Period end">
-                <input type="date" className="input-field" value={periodEnd} onChange={(e) => setPeriodEnd(e.target.value)} />
+                <input type="date" className={fieldClass} value={periodEnd} onChange={(e) => setPeriodEnd(e.target.value)} />
               </Field>
             </div>
             <div className="mt-4">
@@ -119,14 +121,14 @@ const fieldClass = 'w-full rounded-lg border border-border bg-white px-3.5 py-2.
             <p className="mt-1 text-sm text-slate-600">AR/AP aging, inventory, bank reconciliation, sales and purchase summaries.</p>
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
               <Field label="Report">
-                <select className="input-field" value={operationalType} onChange={(e) => setOperationalType(e.target.value)}>
+                <select className={fieldClass} value={operationalType} onChange={(e) => setOperationalType(e.target.value)}>
                   {(data?.operational_types || []).map((item: any) => (
                     <option key={item.id} value={item.id}>{item.label}</option>
                   ))}
                 </select>
               </Field>
               <Field label="As of date">
-                <input type="date" className="input-field" value={asOfDate} onChange={(e) => setAsOfDate(e.target.value)} />
+                <input type="date" className={fieldClass} value={asOfDate} onChange={(e) => setAsOfDate(e.target.value)} />
               </Field>
             </div>
             <div className="mt-4">

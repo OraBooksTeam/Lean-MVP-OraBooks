@@ -17,6 +17,7 @@ import AdminCommissions from '@/pages/admin/AdminCommissions';
 export default function AdminRoutes() {
   return (
     <div className="orabooks-wp-admin min-h-[640px] rounded-xl bg-muted/40 p-1 text-ink">
+      <AdminSubnav />
       <Routes>
         <Route path="/admin/dashboard" element={<AdminDashboard />} />
         <Route path="/admin/organizations" element={<AdminOrganizations />} />

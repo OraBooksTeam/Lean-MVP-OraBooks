@@ -492,6 +492,76 @@ function orabooks_admin_menu() {
     );
 }
 
+/**
+ * Nav items for React admin subnav (capability-filtered).
+ */
+function orabooks_get_admin_nav_items() {
+    $items = [];
+
+    if (current_user_can('manage_options')) {
+        $items = array_merge($items, [
+            ['slug' => 'orabooks', 'label' => __('Dashboard', 'orabooks'), 'route' => '/admin/dashboard'],
+            ['slug' => 'orabooks-orgs', 'label' => __('Organizations', 'orabooks'), 'route' => '/admin/organizations'],
+            ['slug' => 'orabooks-users', 'label' => __('Users', 'orabooks'), 'route' => '/admin/users'],
+            ['slug' => 'orabooks-audit', 'label' => __('Audit', 'orabooks'), 'route' => '/admin/audit'],
+            ['slug' => 'orabooks-partners', 'label' => __('Partners', 'orabooks'), 'route' => '/admin/partners'],
+            ['slug' => 'orabooks-job-queue', 'label' => __('Job Queue', 'orabooks'), 'route' => '/admin/job-queue'],
+            ['slug' => 'orabooks-observability', 'label' => __('Observability', 'orabooks'), 'route' => '/admin/observability'],
+            ['slug' => 'orabooks-coa', 'label' => __('Chart of Accounts', 'orabooks'), 'route' => '/admin/coa'],
+            ['slug' => 'orabooks-customers', 'label' => __('Customers', 'orabooks'), 'route' => '/admin/customers'],
+            ['slug' => 'orabooks-settings', 'label' => __('Settings', 'orabooks'), 'route' => '/admin/settings'],
+        ]);
+    }
+
+    if (current_user_can('read')) {
+        $items = array_merge($items, [
+            ['slug' => 'orabooks-commissions', 'label' => __('Partner Program', 'orabooks'), 'route' => '/admin/commissions'],
+            ['slug' => 'orabooks-notifications', 'label' => __('Notifications', 'orabooks'), 'route' => '/admin/notifications'],
+            ['slug' => 'orabooks-exports', 'label' => __('My Exports', 'orabooks'), 'route' => '/admin/exports'],
+            ['slug' => 'orabooks-csv-imports', 'label' => __('CSV Imports', 'orabooks'), 'route' => '/admin/csv-imports'],
+        ]);
+    }
+
+    // De-dupe by slug (admin items first).
+    $seen = [];
+    $unique = [];
+    foreach ($items as $item) {
+        if (isset($seen[$item['slug']])) {
+            continue;
+        }
+        $seen[$item['slug']] = true;
+        $unique[] = $item;
+    }
+
+    return $unique;
+}
+
+add_action('admin_menu', 'orabooks_admin_menu_tweaks', 999);
+function orabooks_admin_menu_tweaks() {
+    global $submenu;
+    if (isset($submenu['orabooks'][0][0])) {
+        $submenu['orabooks'][0][0] = __('Dashboard', 'orabooks');
+    }
+}
+
+add_filter('parent_file', 'orabooks_admin_parent_file');
+function orabooks_admin_parent_file($parent_file) {
+    global $plugin_page;
+    if (!empty($plugin_page) && strpos($plugin_page, 'orabooks') !== false) {
+        return 'orabooks';
+    }
+    return $parent_file;
+}
+
+add_filter('submenu_file', 'orabooks_admin_submenu_file');
+function orabooks_admin_submenu_file($submenu_file) {
+    global $plugin_page;
+    if (!empty($plugin_page) && strpos($plugin_page, 'orabooks') !== false) {
+        return $plugin_page;
+    }
+    return $submenu_file;
+}
+
 // Admin page render functions
 function orabooks_admin_render_app($route) {
     $orabooks_admin_route = $route;
@@ -710,6 +780,7 @@ function orabooks_admin_enqueue($hook) {
         'nonce' => wp_create_nonce('orabooks_nonce'),
         'admin_base' => admin_url('admin.php'),
         'react_base' => ORABOOKS_PLUGIN_URL . 'assets/react/',
+        'admin_nav' => orabooks_get_admin_nav_items(),
         'current_user_id' => get_current_user_id(),
         'logout_url' => wp_logout_url(home_url('/login/')),
     ];

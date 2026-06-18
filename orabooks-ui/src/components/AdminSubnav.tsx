@@ -13,8 +13,8 @@ function adminUrl(slug: string) {
 }
 
 export default function AdminSubnav() {
-  const location = useLocation();
-  const currentRoute = location.hash?.replace(/^#/, '') || '/admin/dashboard';
+  const { pathname } = useLocation();
+  const currentRoute = pathname || '/admin/dashboard';
 
   const items = useMemo(() => {
     const nav = (window as any).orabooks_ajax?.admin_nav as AdminNavItem[] | undefined;

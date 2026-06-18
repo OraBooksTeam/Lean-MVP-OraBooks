@@ -1,6 +1,7 @@
 import { Link, useLocation } from 'react-router-dom';
 import type { ReactNode } from 'react';
 import {
+  BarChart3,
   Bell,
   BookOpen,
   Building2,
@@ -36,6 +37,7 @@ const customerNav = [
   { label: 'Vendors & Bills', href: '/vendors', icon: Building2 },
   { label: 'Inventory', href: '/inventory', icon: Package },
   { label: 'Bank Reconciliation', href: '/bank-reconciliation', icon: Wallet },
+  { label: 'Reports', href: '/reports', icon: BarChart3 },
   { label: 'Chart of Accounts', href: '/chart-of-accounts', icon: BookOpen },
   { label: 'Journals', href: '/journals', icon: Landmark },
   { label: 'Notifications', href: '/notifications', icon: Bell },
