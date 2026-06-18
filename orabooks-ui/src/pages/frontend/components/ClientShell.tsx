@@ -43,6 +43,7 @@ interface ClientShellProps {
 
 const customerNav = [
   { label: 'Dashboard', href: '/dashboard', icon: Home },
+  { label: 'Advanced Accounting', href: '/accounting/', icon: Landmark, external: true },
   { label: 'Customers', href: '/customers', icon: Users },
   { label: 'Invoices', href: '/invoices', icon: FileText },
   { label: 'Vendors & Bills', href: '/vendors', icon: Building2 },
