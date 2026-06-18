@@ -257,7 +257,7 @@ jQuery(document).ready(function ($) {
 window.obn_switch_view = function (target) {
     const $ = jQuery;
     target = (target || '').replace(/^obn-view-/, '');
-    if (!target) {
+    if (!target || !$('.obn-dashboard-wrapper').length) {
         return;
     }
 
