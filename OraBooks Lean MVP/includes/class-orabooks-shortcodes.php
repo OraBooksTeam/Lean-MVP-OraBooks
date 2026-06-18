@@ -618,7 +618,7 @@ class OraBooks_Shortcodes {
         if (!$user_id) {
             return '<p>' . __('Please log in to import CSV data.', 'orabooks') . '</p>';
         }
-        return $this->react_app('/csv-imports', 'Loading CSV import...');
+        return $this->react_app('/my-exports', 'Loading CSV imports...');
     }
 
     /**
