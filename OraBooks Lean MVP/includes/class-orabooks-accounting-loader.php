@@ -175,23 +175,11 @@ class OraBooks_Accounting {
         require_once OBN_ACCOUNTING_PLUGIN_DIR . 'includes/class-obn-fiscal-year.php';
         require_once OBN_ACCOUNTING_PLUGIN_DIR . 'includes/class-obn-fiscal-periods.php';
         require_once OBN_ACCOUNTING_PLUGIN_DIR . 'includes/class-obn-opening-balance.php';
-        require_once OBN_ACCOUNTING_PLUGIN_DIR . 'includes/class-obn-coa.php';
-        require_once OBN_ACCOUNTING_PLUGIN_DIR . 'includes/class-obn-coa-types.php';
-        require_once OBN_ACCOUNTING_PLUGIN_DIR . 'includes/class-obn-coa-list.php';
-        require_once OBN_ACCOUNTING_PLUGIN_DIR . 'includes/class-obn-inventory.php';
-        require_once OBN_ACCOUNTING_PLUGIN_DIR . 'includes/class-obn-purchase.php';
-        require_once OBN_ACCOUNTING_PLUGIN_DIR . 'includes/class-obn-sales.php';
-        require_once OBN_ACCOUNTING_PLUGIN_DIR . 'includes/class-obn-salesreturn.php';
-        require_once OBN_ACCOUNTING_PLUGIN_DIR . 'includes/class-obn-purchasereturn.php';
-        require_once OBN_ACCOUNTING_PLUGIN_DIR . 'includes/class-obn-stockadjustment.php';
-        require_once OBN_ACCOUNTING_PLUGIN_DIR . 'includes/class-obn-stocktransfer.php';
-        require_once OBN_ACCOUNTING_PLUGIN_DIR . 'includes/class-obn-stockentry.php';
         require_once OBN_ACCOUNTING_PLUGIN_DIR . 'includes/class-obn-warehouse.php';
-        require_once OBN_ACCOUNTING_PLUGIN_DIR . 'includes/class-obn-brands.php';
-        require_once OBN_ACCOUNTING_PLUGIN_DIR . 'includes/class-obn-category.php';
-        require_once OBN_ACCOUNTING_PLUGIN_DIR . 'includes/class-obn-units.php';
-        require_once OBN_ACCOUNTING_PLUGIN_DIR . 'includes/class-taxes.php';
+        require_once OBN_ACCOUNTING_PLUGIN_DIR . 'includes/class-categories.php';
+        require_once OBN_ACCOUNTING_PLUGIN_DIR . 'includes/class-brands.php';
         require_once OBN_ACCOUNTING_PLUGIN_DIR . 'includes/class-units.php';
+        require_once OBN_ACCOUNTING_PLUGIN_DIR . 'includes/class-taxes.php';
         require_once OBN_ACCOUNTING_PLUGIN_DIR . 'includes/class-obn-sidebar.php';
         require_once OBN_ACCOUNTING_PLUGIN_DIR . 'includes/class-obn-dashboard.php';
         require_once OBN_ACCOUNTING_PLUGIN_DIR . 'includes/class-contacts.php';
@@ -252,8 +240,8 @@ class OraBooks_Accounting {
             $_SESSION['obn_accountant_logged_in'] = 0;
         }
 
-        new OBN_Dashboard();
-        new OBN_Shortcodes($auth, new OBN_Dashboard());
+        $dashboard = new OBN_Dashboard();
+        new OBN_Shortcodes($auth, $dashboard);
     }
 
     public static function enqueue_select2_for_sales() {

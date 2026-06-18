@@ -2,7 +2,7 @@
 /**
  * Plugin Name: OraBooks - Multi-Tenant Accounting & Partner Platform
  * Plugin URI: https://orabooks.app
- * Description: Complete multi-tenant accounting platform with partner/commission system, multi-org support, and tier-based access control.
+ * Description: Complete multi-tenant accounting platform with full GL workspace (sales, purchase, inventory, reports), partner/commission system, multi-org support, and tier-based access control.
  * Version: 1.0.0
  * Author: OraBooks Team
  * Text Domain: orabooks
@@ -62,6 +62,7 @@ require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-security.php';
 require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-pwa.php';
 require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-rest-api.php';
 require_once ORABOOKS_PLUGIN_DIR . 'includes/helpers.php';
+require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-accounting-loader.php';
 
 add_filter('script_loader_tag', ['OraBooks_Assets', 'filter_react_script_tag'], 10, 3);
 
@@ -230,8 +231,10 @@ function orabooks_init() {
     OraBooks_AsyncQueue::register_handler('generate_export', ['OraBooks_Exports', 'generate_export_job']);
     OraBooks_AsyncQueue::register_handler('parse_csv_import', ['OraBooks_Csv_Imports', 'parse_csv_import_job']);
 
+    OraBooks_Accounting::init();
+
     /**
-     * Allow addon plugins (e.g. Frontend Basic Accounting) to register themselves.
+     * Allow optional extensions to register additional features.
      */
     do_action('orabooks_register_addons');
 }
@@ -326,6 +329,9 @@ function orabooks_activate() {
     
     // Create required frontend pages with shortcodes
     orabooks_create_required_pages();
+
+    // Install legacy accounting tables (sales, purchase, inventory, GL UI)
+    OraBooks_Accounting::activate(is_multisite() && isset($_GET['networkwide']));
     
     // Set default options
     add_option('orabooks_db_version', ORABOOKS_DB_VERSION);
