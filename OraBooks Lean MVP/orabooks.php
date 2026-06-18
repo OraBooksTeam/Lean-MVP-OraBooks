@@ -625,6 +625,7 @@ function orabooks_flush_rewrites() {
 add_action('admin_enqueue_scripts', 'orabooks_admin_enqueue');
 
 function orabooks_enqueue_react_bundle_styles($handle_prefix = 'orabooks-react') {
+    $handles = [];
     foreach (glob(ORABOOKS_PLUGIN_DIR . 'assets/react/assets/*.css') ?: [] as $css_file) {
         $handle = $handle_prefix . '-' . sanitize_key(basename($css_file, '.css'));
         wp_enqueue_style(
@@ -633,7 +634,9 @@ function orabooks_enqueue_react_bundle_styles($handle_prefix = 'orabooks-react')
             [],
             filemtime($css_file)
         );
+        $handles[] = $handle;
     }
+    return $handles;
 }
 
 function orabooks_enqueue_react_frontend_bundle($ajax_config) {
@@ -642,12 +645,12 @@ function orabooks_enqueue_react_frontend_bundle($ajax_config) {
         return;
     }
 
-    orabooks_enqueue_react_bundle_styles('orabooks-react');
+    $style_handles = orabooks_enqueue_react_bundle_styles('orabooks-react');
 
     wp_enqueue_script(
         'orabooks-react-frontend',
         ORABOOKS_PLUGIN_URL . 'assets/react/frontend.js',
-        [],
+        $style_handles,
         filemtime($react_entry),
         true
     );
@@ -667,12 +670,12 @@ function orabooks_enqueue_react_admin_bundle($ajax_config) {
         return;
     }
 
-    orabooks_enqueue_react_bundle_styles('orabooks-react-admin');
+    $style_handles = orabooks_enqueue_react_bundle_styles('orabooks-react-admin');
 
     wp_enqueue_script(
         'orabooks-react-admin',
         ORABOOKS_PLUGIN_URL . 'assets/react/admin.js',
-        [],
+        $style_handles,
         filemtime($react_entry),
         true
     );

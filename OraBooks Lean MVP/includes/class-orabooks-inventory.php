@@ -150,7 +150,7 @@ class OraBooks_Inventory {
                 'reason' => 'Opening balance',
                 'note' => null,
                 'journal_id' => null,
-                'created_by' => get_current_user_id(),
+                'created_by' => orabooks_get_current_user_id(),
             ]);
         }
 
@@ -158,7 +158,7 @@ class OraBooks_Inventory {
             'product_id' => $product_id,
             'sku' => $sku,
             'initial_stock' => $initial_stock,
-        ], get_current_user_id(), $org_id);
+        ], orabooks_get_current_user_id(), $org_id);
 
         return self::get_product($product_id, $org_id);
     }
@@ -267,7 +267,7 @@ class OraBooks_Inventory {
             'reason' => 'Purchase receipt',
             'note' => null,
             'journal_id' => null,
-            'created_by' => $user_id ? intval($user_id) : get_current_user_id(),
+            'created_by' => $user_id ? intval($user_id) : orabooks_get_current_user_id(),
         ]);
 
         orabooks_log_event('inventory_purchase_received', 'Inventory purchase received', 'info', [
@@ -275,7 +275,7 @@ class OraBooks_Inventory {
             'quantity' => $quantity,
             'average_cost' => $new_average_cost,
             'movement_id' => $movement_id,
-        ], $user_id ?: get_current_user_id(), intval($org_id));
+        ], $user_id ?: orabooks_get_current_user_id(), intval($org_id));
 
         return [
             'product_id' => intval($product_id),
@@ -331,7 +331,7 @@ class OraBooks_Inventory {
             'reason' => 'Sale',
             'note' => null,
             'journal_id' => is_wp_error($journal_id) ? null : $journal_id,
-            'created_by' => $user_id ? intval($user_id) : get_current_user_id(),
+            'created_by' => $user_id ? intval($user_id) : orabooks_get_current_user_id(),
         ]);
 
         orabooks_log_event('inventory_sale_recorded', 'Inventory sale recorded', 'info', [
@@ -340,7 +340,7 @@ class OraBooks_Inventory {
             'cogs_amount' => $cogs_amount,
             'movement_id' => $movement_id,
             'journal_id' => is_wp_error($journal_id) ? null : $journal_id,
-        ], $user_id ?: get_current_user_id(), intval($org_id));
+        ], $user_id ?: orabooks_get_current_user_id(), intval($org_id));
 
         return [
             'product_id' => intval($product_id),
@@ -401,7 +401,7 @@ class OraBooks_Inventory {
             'reason' => $reason,
             'note' => sanitize_textarea_field($note),
             'journal_id' => null,
-            'created_by' => $user_id ? intval($user_id) : get_current_user_id(),
+            'created_by' => $user_id ? intval($user_id) : orabooks_get_current_user_id(),
         ]);
 
         orabooks_log_event('inventory_adjusted', 'Inventory stock adjusted', 'warning', [
@@ -411,7 +411,7 @@ class OraBooks_Inventory {
             'stock_after' => $stock_after,
             'reason' => $reason,
             'movement_id' => $movement_id,
-        ], $user_id ?: get_current_user_id(), intval($org_id));
+        ], $user_id ?: orabooks_get_current_user_id(), intval($org_id));
 
         return [
             'product_id' => intval($product_id),
@@ -535,7 +535,7 @@ class OraBooks_Inventory {
                 'sku' => $product->sku,
                 'quantity' => floatval($quantity),
             ],
-        ], $user_id ?: get_current_user_id());
+        ], $user_id ?: orabooks_get_current_user_id());
 
         if (is_wp_error($journal_id)) {
             return $journal_id;
@@ -560,7 +560,7 @@ class OraBooks_Inventory {
     }
 
     private function current_user_id() {
-        return get_current_user_id();
+        return orabooks_get_current_user_id();
     }
 
     private function require_customer_org_access($user_id, $org_id) {

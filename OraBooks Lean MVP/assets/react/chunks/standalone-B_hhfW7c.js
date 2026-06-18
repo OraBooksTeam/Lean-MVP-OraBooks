@@ -1,0 +1,1 @@
+import{f as e,n as t,s as n,t as r,u as i}from"./styles-CgG8iCon.js";import{t as a}from"../admin.js";var o=e(i(),1),s=r();function c(e){let r=n([{path:`/admin/*`,element:(0,s.jsx)(a,{})}]);o.createRoot(e).render((0,s.jsx)(t,{router:r}))}export{c as mountStandaloneApp};
