@@ -526,6 +526,18 @@ if (!function_exists('home_url')) {
     function home_url($path = '') { return 'http://example.com' . $path; }
 }
 
+if (!function_exists('is_ssl')) {
+    function is_ssl() {
+        return false;
+    }
+}
+
+if (!function_exists('wp_next_scheduled')) {
+    function wp_next_scheduled($hook, $args = []) {
+        return false;
+    }
+}
+
 if (!function_exists('admin_url')) {
     function admin_url($path = '') { return 'http://example.com/wp-admin/' . $path; }
 }
