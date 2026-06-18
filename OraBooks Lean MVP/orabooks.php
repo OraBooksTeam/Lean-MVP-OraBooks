@@ -624,6 +624,14 @@ function orabooks_flush_rewrites() {
 // Enqueue admin assets
 add_action('admin_enqueue_scripts', 'orabooks_admin_enqueue');
 
+function orabooks_localize_react_script($handle, $ajax_config) {
+    wp_add_inline_script(
+        $handle,
+        'window.orabooks_ajax = ' . wp_json_encode($ajax_config) . ';',
+        'before'
+    );
+}
+
 function orabooks_enqueue_react_bundle_styles($handle_prefix = 'orabooks-react') {
     $handles = [];
     foreach (glob(ORABOOKS_PLUGIN_DIR . 'assets/react/assets/*.css') ?: [] as $css_file) {
@@ -650,12 +658,12 @@ function orabooks_enqueue_react_frontend_bundle($ajax_config) {
     wp_enqueue_script(
         'orabooks-react-frontend',
         ORABOOKS_PLUGIN_URL . 'assets/react/frontend.js',
-        $style_handles,
+        [],
         filemtime($react_entry),
         true
     );
     wp_script_add_data('orabooks-react-frontend', 'type', 'module');
-    wp_localize_script('orabooks-react-frontend', 'orabooks_ajax', $ajax_config);
+    orabooks_localize_react_script('orabooks-react-frontend', $ajax_config);
 
     wp_add_inline_script(
         'orabooks-react-frontend',
@@ -670,17 +678,17 @@ function orabooks_enqueue_react_admin_bundle($ajax_config) {
         return;
     }
 
-    $style_handles = orabooks_enqueue_react_bundle_styles('orabooks-react-admin');
+    orabooks_enqueue_react_bundle_styles('orabooks-react-admin');
 
     wp_enqueue_script(
         'orabooks-react-admin',
         ORABOOKS_PLUGIN_URL . 'assets/react/admin.js',
-        $style_handles,
+        [],
         filemtime($react_entry),
         true
     );
     wp_script_add_data('orabooks-react-admin', 'type', 'module');
-    wp_localize_script('orabooks-react-admin', 'orabooks_ajax', $ajax_config);
+    orabooks_localize_react_script('orabooks-react-admin', $ajax_config);
 
     wp_add_inline_script(
         'orabooks-react-admin',
@@ -769,7 +777,7 @@ function orabooks_body_class($classes) {
 
 add_filter('script_loader_tag', 'orabooks_react_module_script_tag', 10, 3);
 function orabooks_react_module_script_tag($tag, $handle, $src) {
-    if ($handle !== 'orabooks-react-frontend' && $handle !== 'orabooks-react-admin') {
+    if (strpos($handle, 'orabooks-react') === false) {
         return $tag;
     }
 

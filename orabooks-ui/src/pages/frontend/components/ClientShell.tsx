@@ -12,6 +12,7 @@ import {
   Menu,
   Package,
   Users,
+  Wallet,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -34,6 +35,7 @@ const customerNav = [
   { label: 'Invoices', href: '/invoices', icon: FileText },
   { label: 'Vendors & Bills', href: '/vendors', icon: Building2 },
   { label: 'Inventory', href: '/inventory', icon: Package },
+  { label: 'Bank Reconciliation', href: '/bank-reconciliation', icon: Wallet },
   { label: 'Chart of Accounts', href: '/chart-of-accounts', icon: BookOpen },
   { label: 'Journals', href: '/journals', icon: Landmark },
   { label: 'Notifications', href: '/notifications', icon: Bell },
