@@ -726,19 +726,60 @@ class OraBooks_Security {
             "SELECT COUNT(*) FROM {$audit_table} WHERE created_at >= DATE_SUB(NOW(), INTERVAL 24 HOUR)"
         );
 
+        $ledger_checks = [];
+        $integrity_ok = true;
+        $hash_chain_issues = 0;
+
+        if (class_exists('OraBooks_Posting')) {
+            $orgs_table = OraBooks_Database::table('organizations');
+            $org_ids = $wpdb->get_col(
+                "SELECT id FROM {$orgs_table}
+                 WHERE organization_type = 'customer' AND status = 'active'
+                 ORDER BY id ASC LIMIT 10"
+            );
+
+            foreach ($org_ids as $org_id) {
+                $result = OraBooks_Posting::validate_ledger_integrity((int) $org_id);
+                $ledger_checks[] = [
+                    'org_id' => (int) $org_id,
+                    'ok'     => !empty($result['ok']),
+                    'issues' => count($result['issues'] ?? []),
+                ];
+                if (empty($result['ok'])) {
+                    $integrity_ok = false;
+                    foreach ($result['issues'] ?? [] as $issue) {
+                        if (($issue['type'] ?? '') === 'hash_chain_break') {
+                            $hash_chain_issues++;
+                        }
+                    }
+                }
+            }
+        }
+
         $details = [
-            'total_entries'  => $total,
-            'entries_24h'    => $recent,
-            'hash_chain'     => 'mvp_stub_verified',
-            'integrity_ok'   => true,
+            'total_entries'    => $total,
+            'entries_24h'      => $recent,
+            'ledger_checks'    => $ledger_checks,
+            'hash_chain_issues'=> $hash_chain_issues,
+            'integrity_ok'     => $integrity_ok && $recent > 0,
         ];
 
-        self::store_scan_result(
-            'audit_integrity',
-            'pass',
-            sprintf('Audit log integrity OK (%d total, %d in 24h)', $total, $recent),
-            $details
-        );
+        $scan_status = $integrity_ok ? 'pass' : 'fail';
+        $summary = $integrity_ok
+            ? sprintf('Audit & ledger integrity OK (%d audit entries, %d in 24h)', $total, $recent)
+            : sprintf('Integrity issues detected (%d hash chain break(s))', $hash_chain_issues);
+
+        self::store_scan_result('audit_integrity', $scan_status, $summary, $details);
+
+        if (!$integrity_ok) {
+            self::record_incident('audit_integrity_failure', 'critical', $details);
+            self::notify_platform_admins('platform_audit_integrity_failure', [
+                'title'    => __('Audit/Ledger Integrity Failure', 'orabooks'),
+                'message'  => __('Ledger hash chain or balance integrity check failed.', 'orabooks'),
+                'priority' => 'critical',
+                'correlation_id' => 'sec_audit_' . current_time('YmdH'),
+            ]);
+        }
     }
 
     public function cron_secret_rotation_reminder() {
