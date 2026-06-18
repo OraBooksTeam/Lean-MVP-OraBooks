@@ -738,15 +738,44 @@ class OraBooks_Commission {
         
         $system_org_id = $wpdb->insert_id;
         
-        // Create essential accounts for commission tracking
-        $accounts = [
-            ['code' => '5000', 'name' => 'Commission Expense', 'type' => 'expense', 'normal_balance' => 'debit'],
+        self::ensure_system_accounts($system_org_id);
+        
+        return $system_org_id;
+    }
+
+    /**
+     * Platform CoA accounts used for commission accrual, payout, and expiry journals.
+     */
+    private static function system_account_definitions() {
+        return [
+            ['code' => '1000', 'name' => 'Operating Bank', 'type' => 'asset', 'normal_balance' => 'debit'],
             ['code' => '2000', 'name' => 'Commission Payable', 'type' => 'liability', 'normal_balance' => 'credit'],
             ['code' => '2100', 'name' => 'Commission Fee Payable', 'type' => 'liability', 'normal_balance' => 'credit'],
             ['code' => '4000', 'name' => 'Expired Commission Income', 'type' => 'revenue', 'normal_balance' => 'credit'],
+            ['code' => '5000', 'name' => 'Commission Expense', 'type' => 'expense', 'normal_balance' => 'debit'],
         ];
-        
-        foreach ($accounts as $acc) {
+    }
+
+    /**
+     * Ensure all platform commission accounts exist on the system org.
+     */
+    private static function ensure_system_accounts($system_org_id) {
+        global $wpdb;
+
+        $table_accounts = OraBooks_Database::table('accounts');
+        $table_balances = OraBooks_Database::table('account_balances');
+
+        foreach (self::system_account_definitions() as $acc) {
+            $account_id = $wpdb->get_var($wpdb->prepare(
+                "SELECT id FROM {$table_accounts} WHERE org_id = %d AND code = %s LIMIT 1",
+                $system_org_id,
+                $acc['code']
+            ));
+
+            if ($account_id) {
+                continue;
+            }
+
             $wpdb->insert(
                 $table_accounts,
                 [
@@ -756,11 +785,11 @@ class OraBooks_Commission {
                     'type' => $acc['type'],
                     'normal_balance' => $acc['normal_balance'],
                     'system_generated' => 1,
-                    'is_active' => 1
+                    'is_active' => 1,
                 ],
                 ['%d', '%s', '%s', '%s', '%s', '%d', '%d']
             );
-            
+
             $account_id = $wpdb->insert_id;
             $wpdb->insert(
                 $table_balances,
@@ -768,8 +797,167 @@ class OraBooks_Commission {
                 ['%d', '%d', '%f']
             );
         }
-        
-        return $system_org_id;
+    }
+
+    /**
+     * Build balanced journal lines for monthly commission accrual.
+     */
+    public static function build_accrual_lines($amount, $description = 'Commission monthly release') {
+        $amt = round((float) $amount, 2);
+
+        return [
+            ['account_code' => '5000', 'debit' => $amt, 'credit' => 0, 'description' => $description],
+            ['account_code' => '2000', 'debit' => 0, 'credit' => $amt, 'description' => $description],
+        ];
+    }
+
+    /**
+     * Build balanced journal lines for payout settlement (SL-031 webhook).
+     * Dr Commission Payable (gross), Cr Bank (net), Cr Commission Fee Payable (fee).
+     */
+    public static function build_payout_settlement_lines($gross_amount, $fee_amount) {
+        $gross = round((float) $gross_amount, 2);
+        $fee = round((float) $fee_amount, 2);
+        $net = round($gross - $fee, 2);
+
+        return [
+            ['account_code' => '2000', 'debit' => $gross, 'credit' => 0, 'description' => 'Commission payout settlement'],
+            ['account_code' => '1000', 'debit' => 0, 'credit' => $net, 'description' => 'Bank transfer to partner (net)'],
+            ['account_code' => '2100', 'debit' => 0, 'credit' => $fee, 'description' => 'Gateway fee payable'],
+        ];
+    }
+
+    /**
+     * Build balanced journal lines when the gateway charges the fee separately.
+     * Dr Commission Fee Payable, Cr Bank.
+     */
+    public static function build_gateway_fee_payment_lines($fee_amount) {
+        $fee = round((float) $fee_amount, 2);
+
+        return [
+            ['account_code' => '2100', 'debit' => $fee, 'credit' => 0, 'description' => 'Gateway fee payment'],
+            ['account_code' => '1000', 'debit' => 0, 'credit' => $fee, 'description' => 'Bank fee charge'],
+        ];
+    }
+
+    /**
+     * Build balanced journal lines for earned commission expiry.
+     */
+    public static function build_expiry_reversal_lines($amount, $expiry_action = 'reverse_expense') {
+        $amt = round((float) $amount, 2);
+        $description = 'Commission expiry';
+
+        if ($expiry_action === 'income') {
+            return [
+                ['account_code' => '2000', 'debit' => $amt, 'credit' => 0, 'description' => $description],
+                ['account_code' => '4000', 'debit' => 0, 'credit' => $amt, 'description' => $description],
+            ];
+        }
+
+        return [
+            ['account_code' => '2000', 'debit' => $amt, 'credit' => 0, 'description' => $description],
+            ['account_code' => '5000', 'debit' => 0, 'credit' => $amt, 'description' => $description],
+        ];
+    }
+
+    /**
+     * Compute payout gateway fee from config (percentage or flat).
+     */
+    public static function calculate_payout_fee($gross_amount, $config) {
+        $gross = round((float) $gross_amount, 2);
+        if (!$config) {
+            return 0.0;
+        }
+
+        if (($config->payout_fee_type ?? 'percentage') === 'percentage') {
+            return round($gross * ((float) ($config->payout_fee_rate ?? 0) / 100), 2);
+        }
+
+        return round((float) ($config->payout_fee_rate ?? 0), 2);
+    }
+
+    /**
+     * Verify journal lines balance to two decimal places.
+     */
+    public static function validate_journal_lines_balance(array $lines) {
+        $debits = 0.0;
+        $credits = 0.0;
+
+        foreach ($lines as $line) {
+            $debits += (float) ($line['debit'] ?? 0);
+            $credits += (float) ($line['credit'] ?? 0);
+        }
+
+        if (round($debits - $credits, 2) !== 0.0) {
+            return new WP_Error('unbalanced', 'Journal lines do not balance');
+        }
+
+        return true;
+    }
+
+    /**
+     * Post a balanced journal in the platform system org via SL-001 posting engine.
+     */
+    private static function post_system_journal($transaction_date, $source_type, $source_id, array $lines, array $metadata = []) {
+        $balance_check = self::validate_journal_lines_balance($lines);
+        if (is_wp_error($balance_check)) {
+            return $balance_check;
+        }
+
+        if (!empty($GLOBALS['orabooks_test_commission_skip_posting'])) {
+            $entry = [
+                'transaction_date' => $transaction_date,
+                'source_type' => $source_type,
+                'source_id' => $source_id,
+                'lines' => $lines,
+                'metadata' => $metadata,
+            ];
+            $GLOBALS['orabooks_test_commission_journal_posts'][] = $entry;
+            return $entry;
+        }
+
+        $system_org_id = self::get_or_create_system_org();
+        self::ensure_system_accounts($system_org_id);
+
+        if (!class_exists('OraBooks_Posting') || !method_exists('OraBooks_Posting', 'create_journal')) {
+            return self::create_direct_ledger_lines($system_org_id, $lines, $metadata);
+        }
+
+        foreach ($lines as $line) {
+            $account = OraBooks_COA::get_account_by_code($system_org_id, $line['account_code']);
+            if (!$account) {
+                return new WP_Error('no_account', 'Account ' . $line['account_code'] . ' not found in system org');
+            }
+        }
+
+        $journal_id = OraBooks_Posting::create_journal([
+            'org_id' => $system_org_id,
+            'transaction_date' => $transaction_date,
+            'source_type' => $source_type,
+            'source_id' => $source_id,
+            'metadata' => $metadata,
+        ], 0);
+
+        if (is_wp_error($journal_id)) {
+            return $journal_id;
+        }
+
+        $result = OraBooks_Posting::add_lines($journal_id, $lines);
+        if (is_wp_error($result)) {
+            return $result;
+        }
+
+        $approve = OraBooks_Posting::approve_journal($journal_id, 0, ['mfa_verified' => true]);
+        if (is_wp_error($approve)) {
+            return $approve;
+        }
+
+        $post = OraBooks_Posting::post_journal($journal_id, 0);
+        if (is_wp_error($post)) {
+            return $post;
+        }
+
+        return array_merge(is_array($post) ? $post : [], ['journal_id' => $journal_id]);
     }
 
     /**
@@ -778,130 +966,65 @@ class OraBooks_Commission {
      * not the partner's org (which has no CoA per SL-017).
      */
     private static function create_commission_journal_entry($org_id, $release_month, $amount, $partner_user_id, $description) {
-        $system_org_id = self::get_or_create_system_org();
-        
-        // Check if posting engine exists
-        if (class_exists('OraBooks_Posting') && method_exists('OraBooks_Posting', 'create_journal')) {
-            // Find commission expense account
-            $expense_account = OraBooks_COA::get_account_by_code($system_org_id, '5000');
-            if (!$expense_account) {
-                return new WP_Error('no_account', 'Commission expense account not found in system org');
-            }
-            
-            // Find commission payable account
-            $payable_account = OraBooks_COA::get_account_by_code($system_org_id, '2000');
-            if (!$payable_account) {
-                return new WP_Error('no_account', 'Commission payable account not found in system org');
-            }
-            
-            // Create journal via posting engine
-            $journal_id = OraBooks_Posting::create_journal([
-                'org_id' => $system_org_id,
-                'transaction_date' => $release_month,
-                'source_type' => 'commission_release',
-                'source_id' => $partner_user_id,
-                'metadata' => [
-                    'description' => $description,
-                    'amount' => $amount,
-                    'partner_user_id' => $partner_user_id,
-                    'original_org_id' => $org_id
-                ]
-            ], 0); // System user
-            
-            if (is_wp_error($journal_id)) {
-                return $journal_id;
-            }
-            
-            // Add double-entry lines
-            $result = OraBooks_Posting::add_lines($journal_id, [
-                [
-                    'account_code' => '5000', // Commission Expense
-                    'debit' => $amount,
-                    'credit' => 0,
-                    'description' => $description
-                ],
-                [
-                    'account_code' => '2000', // Commission Payable
-                    'debit' => 0,
-                    'credit' => $amount,
-                    'description' => $description
-                ]
-            ]);
-            
-            if (is_wp_error($result)) {
-                return $result;
-            }
-            
-            // Auto-approve and post (system journal)
-            $approve = OraBooks_Posting::approve_journal($journal_id, 0);
-            if (is_wp_error($approve)) {
-                return $approve;
-            }
-            
-            $post = OraBooks_Posting::post_journal($journal_id, 0);
-            if (is_wp_error($post)) {
-                return $post;
-            }
-            
-            return $post;
-        }
-        
-        // Fallback: direct ledger entry when posting engine not available
-        return self::create_direct_ledger_entry($system_org_id, $release_month, $amount, $partner_user_id, $description);
+        return self::post_system_journal(
+            $release_month,
+            'commission_release',
+            $partner_user_id,
+            self::build_accrual_lines($amount, $description),
+            [
+                'description' => $description,
+                'amount' => $amount,
+                'partner_user_id' => $partner_user_id,
+                'original_org_id' => $org_id,
+            ]
+        );
     }
 
     /**
-     * Fallback: direct ledger entry when posting engine not available
+     * Fallback: direct ledger entry when posting engine not available.
      */
-    private static function create_direct_ledger_entry($org_id, $release_month, $amount, $partner_user_id, $description) {
+    private static function create_direct_ledger_lines($org_id, array $lines, array $metadata = []) {
         global $wpdb;
-        
+
         $table_balances = OraBooks_Database::table('account_balances');
-        $table_accounts = $wpdb->prefix . 'orabooks_accounts';
-        
-        // Find or create commission expense account (5000)
-        $expense_account = $wpdb->get_row($wpdb->prepare(
-            "SELECT id FROM {$table_accounts} WHERE org_id = %d AND code = '5000'",
-            $org_id
-        ));
-        
-        // Find or create commission payable account (2000)
-        $payable_account = $wpdb->get_row($wpdb->prepare(
-            "SELECT id FROM {$table_accounts} WHERE org_id = %d AND code = '2000'",
-            $org_id
-        ));
-        
-        if (!$expense_account || !$payable_account) {
-            return new WP_Error('no_accounts', 'Required accounts not found for commission entry in system org');
+        $table_accounts = OraBooks_Database::table('accounts');
+
+        foreach ($lines as $line) {
+            $account = $wpdb->get_row($wpdb->prepare(
+                "SELECT id, normal_balance FROM {$table_accounts} WHERE org_id = %d AND code = %s LIMIT 1",
+                $org_id,
+                $line['account_code']
+            ));
+
+            if (!$account) {
+                return new WP_Error('no_accounts', 'Required account ' . $line['account_code'] . ' not found in system org');
+            }
+
+            $debit = round((float) ($line['debit'] ?? 0), 2);
+            $credit = round((float) ($line['credit'] ?? 0), 2);
+            $delta = ($account->normal_balance === 'debit') ? ($debit - $credit) : ($credit - $debit);
+
+            $wpdb->query($wpdb->prepare(
+                "INSERT INTO {$table_balances} (org_id, account_id, balance)
+                 VALUES (%d, %d, %f)
+                 ON DUPLICATE KEY UPDATE balance = balance + %f",
+                $org_id,
+                $account->id,
+                $delta,
+                $delta
+            ));
         }
-        
-        // Update balances directly (simplified for MVP)
-        // Dr Commission Expense (debit normal → increase debit)
-        $wpdb->query($wpdb->prepare(
-            "INSERT INTO {$table_balances} (org_id, account_id, balance) 
-             VALUES (%d, %d, %f)
-             ON DUPLICATE KEY UPDATE balance = balance + %f",
-            $org_id, $expense_account->id, $amount, $amount
-        ));
-        
-        // Cr Commission Payable (credit normal → increase credit)
-        $wpdb->query($wpdb->prepare(
-            "INSERT INTO {$table_balances} (org_id, account_id, balance) 
-             VALUES (%d, %d, %f)
-             ON DUPLICATE KEY UPDATE balance = balance - %f",
-            $org_id, $payable_account->id, -$amount, -$amount
-        ));
-        
-        orabooks_log_event('commission_direct_ledger', 
-            "Direct ledger entry: Dr Expense {$amount}, Cr Payable {$amount}", 
-            'info', [
-                'org_id' => $org_id,
-                'amount' => $amount,
-                'expense_account' => $expense_account->id,
-                'payable_account' => $payable_account->id
-            ], $partner_user_id, $org_id);
-        
-        return ['expense_account' => $expense_account->id, 'payable_account' => $payable_account->id];
+
+        orabooks_log_event(
+            'commission_direct_ledger',
+            'Direct ledger entry posted in system org',
+            'info',
+            array_merge(['org_id' => $org_id, 'lines' => $lines], $metadata),
+            null,
+            $org_id
+        );
+
+        return ['org_id' => $org_id, 'lines' => $lines];
     }
 
     /**
