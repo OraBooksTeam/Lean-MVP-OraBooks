@@ -1,6 +1,7 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useState } from 'react';
 import ClientShell from '../components/ClientShell';
 import JobQueuePanel from '@/components/platform/JobQueuePanel';
+import { api } from '../api';
 
 const ORABOOKS_AJAX = (window as any).orabooks_ajax || {};
 
@@ -9,10 +10,8 @@ export default function JobQueuePage() {
 
   useEffect(() => {
     if (!ORABOOKS_AJAX.is_admin) return;
-    import('../api').then(({ api }) => {
-      api.frontendContext().then((res: any) => {
-        if (!res.error) setContext(res.data);
-      });
+    api.frontendContext().then((res: any) => {
+      if (!res.error) setContext(res.data);
     });
   }, []);
 
