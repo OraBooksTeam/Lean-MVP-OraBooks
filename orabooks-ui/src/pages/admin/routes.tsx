@@ -15,8 +15,12 @@ import AdminCsvImports from '@/pages/admin/AdminCsvImports';
 import AdminCommissions from '@/pages/admin/AdminCommissions';
 import AdminSettings from '@/pages/admin/AdminSettings';
 
-const defaultAdminRoute =
-  (window as any).orabooks_ajax?.is_admin ? '/admin/dashboard' : '/admin/commissions';
+const defaultAdminRoute = (() => {
+  const ajax = (window as any).orabooks_ajax;
+  if (ajax?.is_admin) return '/admin/dashboard';
+  const nav = ajax?.admin_nav as { route: string }[] | undefined;
+  return nav?.[0]?.route || '/admin/notifications';
+})();
 
 export default function AdminRoutes() {
   return (

@@ -38,12 +38,14 @@ export default function AdminNotifications() {
       actions={
         <div className="flex gap-2">
           {tab === 'feed' && (
-            <Button onClick={markAllRead} variant="secondary" size="sm">Mark all read</Button>
+            <>
+              <Button onClick={markAllRead} variant="secondary" size="sm">Mark all read</Button>
+              <Button onClick={load} variant="secondary" size="sm">
+                <RefreshCw className="h-4 w-4" />
+                Refresh
+              </Button>
+            </>
           )}
-          <Button onClick={tab === 'feed' ? load : undefined} variant="secondary" size="sm" onClick={tab === 'feed' ? load : undefined}>
-            <RefreshCw className="h-4 w-4" />
-            Refresh
-          </Button>
         </div>
       }
     >

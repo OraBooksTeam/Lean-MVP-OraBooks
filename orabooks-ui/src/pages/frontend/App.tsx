@@ -14,7 +14,7 @@ import VendorsPage from './pages/VendorsPage';
 import InventoryPage from './pages/InventoryPage';
 import BankReconciliationPage from './pages/BankReconciliationPage';
 import ReportsPage from './pages/ReportsPage';
-import ProfilePage from './pages/ProfilePage';
+import NotificationPreferencesPage from './pages/NotificationPreferencesPage';
 
 export default function FrontendRoutes() {
   return (
@@ -34,6 +34,7 @@ export default function FrontendRoutes() {
       <Route path="/journals" element={<JournalsPage />} />
       <Route path="/partner-onboarding" element={<PartnerOnboardingPage />} />
       <Route path="/notifications" element={<NotificationsPage />} />
+      <Route path="/notification-preferences" element={<NotificationPreferencesPage />} />
       <Route path="/my-exports" element={<ExportStatusPage />} />
       <Route path="/profile" element={<ProfilePage />} />
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
