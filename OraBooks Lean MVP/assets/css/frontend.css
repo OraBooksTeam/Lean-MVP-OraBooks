@@ -1468,7 +1468,10 @@
 .entry-content .orabooks-auth-shell,
 .wp-block-post-content .orabooks-react-page,
 .wp-block-post-content .orabooks-page-shell,
-.wp-block-post-content .orabooks-auth-shell {
+.wp-block-post-content .orabooks-auth-shell,
+.et_pb_column .orabooks-react-page,
+.et_pb_column .orabooks-auth-shell,
+.et_pb_column .orabooks-page-shell {
     width: 100vw;
     max-width: 100vw;
     margin-left: calc(50% - 50vw);
@@ -1509,6 +1512,18 @@ body.orabooks-page #et-main-area {
     padding-right: 0 !important;
     margin-left: 0 !important;
     margin-right: 0 !important;
+}
+
+/* Divi: prefer full width without 100vw (see divi-compat.css for overrides) */
+body.orabooks-divi-theme .entry-content .orabooks-react-page,
+body.orabooks-divi-theme .entry-content .orabooks-page-shell,
+body.orabooks-divi-theme .entry-content .orabooks-auth-shell,
+body.orabooks-divi-theme .et_pb_column .orabooks-react-page,
+body.orabooks-divi-theme .et_pb_column .orabooks-auth-shell {
+    width: 100%;
+    max-width: 100%;
+    margin-left: 0;
+    margin-right: 0;
 }
 
 body.orabooks-page .orabooks-partner-dashboard,
