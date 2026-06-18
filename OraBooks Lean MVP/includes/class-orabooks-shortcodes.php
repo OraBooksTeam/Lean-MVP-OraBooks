@@ -348,70 +348,7 @@ class OraBooks_Shortcodes {
         if (!get_current_user_id()) {
             return '<p>' . __('Please log in to manage notification preferences.', 'orabooks') . '</p>';
         }
-        ob_start();
-        ?>
-        <div class="orabooks-page-shell">
-        <div class="orabooks-page-shell-inner">
-        <div class="orabooks-notification-preferences">
-            <h2><?php _e('Notification Preferences', 'orabooks'); ?></h2>
-            
-            <form id="orabooks-nc-prefs-form" class="orabooks-form">
-                <div class="orabooks-form-group">
-                    <label><?php _e('Notification Channels', 'orabooks'); ?></label>
-                    <div class="orabooks-checkbox-group">
-                        <label><input type="checkbox" name="channels[]" value="email"> <?php _e('Email', 'orabooks'); ?></label>
-                        <label><input type="checkbox" name="channels[]" value="push"> <?php _e('Push', 'orabooks'); ?></label>
-                        <label><input type="checkbox" name="channels[]" value="inapp"> <?php _e('In-App', 'orabooks'); ?></label>
-                    </div>
-                    <small><?php _e('🌍 "Email routed via nearest region for faster delivery."', 'orabooks'); ?></small>
-                </div>
-                
-                <div class="orabooks-form-group">
-                    <label><?php _e('Quiet Hours', 'orabooks'); ?></label>
-                    <div class="orabooks-time-range">
-                        <input type="time" id="prefs-quiet-start" name="quiet_hours_start" placeholder="22:00">
-                        <span><?php _e('to', 'orabooks'); ?></span>
-                        <input type="time" id="prefs-quiet-end" name="quiet_hours_end" placeholder="08:00">
-                    </div>
-                    <small>🌙 <?php _e('No notifications during this period (except critical).', 'orabooks'); ?></small>
-                </div>
-                
-                <div class="orabooks-form-group">
-                    <label for="prefs-digest"><?php _e('Digest Frequency', 'orabooks'); ?></label>
-                    <select id="prefs-digest" name="digest">
-                        <option value="none"><?php _e('None (Real-time)', 'orabooks'); ?></option>
-                        <option value="daily"><?php _e('Daily Summary', 'orabooks'); ?></option>
-                        <option value="weekly"><?php _e('Weekly Summary', 'orabooks'); ?></option>
-                    </select>
-                </div>
-                
-                <div class="orabooks-form-group">
-                    <label for="prefs-language"><?php _e('Language', 'orabooks'); ?></label>
-                    <select id="prefs-language" name="language">
-                        <option value="en">English</option>
-                        <option value="bn">বাংলা</option>
-                        <option value="ar">العربية</option>
-                    </select>
-                </div>
-                
-                <div class="orabooks-form-group">
-                    <label>
-                        <input type="checkbox" name="escalation_enabled" value="1">
-                        <?php _e('Enable Cross-Channel Escalation', 'orabooks'); ?>
-                    </label>
-                    <small>🔁 <?php _e('"If email not read in 10 min, send push."', 'orabooks'); ?></small>
-                </div>
-                
-                <div class="orabooks-form-actions">
-                    <button type="submit" class="orabooks-btn orabooks-btn-primary"><?php _e('Save Preferences', 'orabooks'); ?></button>
-                </div>
-            </form>
-            <div id="orabooks-nc-prefs-message" class="orabooks-message"></div>
-        </div>
-        </div>
-        </div>
-        <?php
-        return ob_get_clean();
+        return $this->react_app('/notification-preferences', 'Loading notification preferences...');
     }
 
     /**

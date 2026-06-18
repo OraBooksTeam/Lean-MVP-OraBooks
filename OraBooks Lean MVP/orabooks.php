@@ -495,6 +495,47 @@ function orabooks_admin_menu() {
 /**
  * Nav items for React admin subnav (capability-filtered).
  */
+function orabooks_user_can_see_partner_program() {
+    if (current_user_can('manage_options')) {
+        return true;
+    }
+
+    $user_id = orabooks_get_current_user_id();
+    if (!$user_id) {
+        return false;
+    }
+
+    global $wpdb;
+    $table_users = OraBooks_Database::table('users');
+    $user = $wpdb->get_row($wpdb->prepare(
+        "SELECT is_partner, org_id FROM {$table_users} WHERE id = %d",
+        $user_id
+    ));
+
+    if (!$user) {
+        return false;
+    }
+
+    if ((bool) $user->is_partner) {
+        return true;
+    }
+
+    $org_id = (int) $user->org_id;
+    if (!$org_id) {
+        $table_user_org = OraBooks_Database::table('user_org');
+        $org_id = (int) $wpdb->get_var($wpdb->prepare(
+            "SELECT org_id FROM {$table_user_org} WHERE user_id = %d ORDER BY joined_at ASC LIMIT 1",
+            $user_id
+        ));
+    }
+
+    if ($org_id && class_exists('OraBooks_RBAC')) {
+        return OraBooks_RBAC::has_partner_commission_access($user_id, $org_id);
+    }
+
+    return false;
+}
+
 function orabooks_get_admin_nav_items() {
     $items = [];
 
@@ -514,12 +555,19 @@ function orabooks_get_admin_nav_items() {
     }
 
     if (current_user_can('read')) {
-        $items = array_merge($items, [
-            ['slug' => 'orabooks-commissions', 'label' => __('Partner Program', 'orabooks'), 'route' => '/admin/commissions'],
+        $read_items = [
             ['slug' => 'orabooks-notifications', 'label' => __('Notifications', 'orabooks'), 'route' => '/admin/notifications'],
             ['slug' => 'orabooks-exports', 'label' => __('My Exports', 'orabooks'), 'route' => '/admin/exports'],
             ['slug' => 'orabooks-csv-imports', 'label' => __('CSV Imports', 'orabooks'), 'route' => '/admin/csv-imports'],
-        ]);
+        ];
+
+        if (orabooks_user_can_see_partner_program()) {
+            $read_items = array_merge([
+                ['slug' => 'orabooks-commissions', 'label' => __('Partner Program', 'orabooks'), 'route' => '/admin/commissions'],
+            ], $read_items);
+        }
+
+        $items = array_merge($items, $read_items);
     }
 
     // De-dupe by slug (admin items first).
@@ -596,8 +644,10 @@ function orabooks_admin_customers() {
 function orabooks_admin_dashboard() {
     if (current_user_can('manage_options')) {
         orabooks_admin_render_app('/admin/dashboard');
-    } else {
+    } elseif (orabooks_user_can_see_partner_program()) {
         orabooks_admin_render_app('/admin/commissions');
+    } else {
+        orabooks_admin_render_app('/admin/notifications');
     }
 }
 

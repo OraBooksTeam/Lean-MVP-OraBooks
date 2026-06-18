@@ -773,4 +773,46 @@ class OraBooks_Ajax {
             'refresh_token_expiry' => $refresh_token_expiry,
         ], 'Settings saved');
     }
+
+    public function ajax_csv_imports_dashboard() {
+        $user_id = orabooks_get_current_user_id();
+        if (!$user_id) {
+            orabooks_json_error('Not authenticated', 401);
+        }
+
+        if (current_user_can('manage_options')) {
+            global $wpdb;
+            $table = OraBooks_Database::table('csv_imports');
+            $imports = $wpdb->get_results(
+                "SELECT * FROM {$table} ORDER BY created_at DESC LIMIT 50"
+            );
+
+            orabooks_json_success([
+                'imports' => array_map([OraBooks_Csv_Imports::class, 'format_import'], $imports ?: []),
+                'is_platform_admin' => true,
+            ]);
+            return;
+        }
+
+        $context = $this->get_current_orabooks_context();
+        if (is_wp_error($context)) {
+            orabooks_json_error($context->get_error_message(), 403);
+        }
+
+        $org_id = (int) ($context['organization']['id'] ?? 0);
+        if (!$org_id) {
+            orabooks_json_error('No organization context', 403);
+        }
+
+        if (!OraBooks_RBAC::require_permission($user_id, $org_id, 'submit_transaction')) {
+            orabooks_json_error('Permission denied', 403);
+        }
+
+        $imports = OraBooks_Csv_Imports::list_imports($org_id, 0, 50);
+        orabooks_json_success([
+            'imports' => array_map([OraBooks_Csv_Imports::class, 'format_import'], $imports ?: []),
+            'org_id' => $org_id,
+            'is_platform_admin' => false,
+        ]);
+    }
 }
