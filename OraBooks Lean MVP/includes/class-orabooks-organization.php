@@ -120,6 +120,10 @@ class OraBooks_Organization {
         if ($organization_type === 'customer' && class_exists('OraBooks_COA') && method_exists('OraBooks_COA', 'load_chart_of_accounts')) {
             OraBooks_COA::load_chart_of_accounts($org_id, $tier, $organization_type);
         }
+
+        if ($organization_type === 'customer' && class_exists('OraBooks_Fiscal') && method_exists('OraBooks_Fiscal', 'ensure_periods_for_org')) {
+            OraBooks_Fiscal::ensure_periods_for_org($org_id);
+        }
         
         // Audit log
         $event_type = $organization_type === 'partner' ? 'partner_org_created' : 'org_created';

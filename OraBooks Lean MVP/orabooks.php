@@ -75,6 +75,7 @@ function orabooks_init() {
     OraBooks_Audit::init();
     OraBooks_Partner::init();
     OraBooks_COA::init();
+    OraBooks_Fiscal::init();
     OraBooks_Tax::init();
     OraBooks_Workflow::init();
     OraBooks_Posting::init();
@@ -268,6 +269,7 @@ function orabooks_create_required_pages() {
         'customers'           => ['Customers', '[orabooks_customers]'],
         'invoices'            => ['Invoices', '[orabooks_invoices]'],
         'chart-of-accounts'   => ['Chart of Accounts', '[orabooks_chart_of_accounts]'],
+        'fiscal-periods'      => ['Fiscal Periods', '[orabooks_fiscal_periods]'],
         'journals'            => ['Journals', '[orabooks_journals]'],
         'profile'             => ['Profile', '[orabooks_profile]'],
         
@@ -353,6 +355,7 @@ function orabooks_deactivate() {
     wp_clear_scheduled_hook('orabooks_security_audit_integrity');
     wp_clear_scheduled_hook('orabooks_security_secret_rotation_reminder');
     wp_clear_scheduled_hook('orabooks_security_purge');
+    wp_clear_scheduled_hook('orabooks_monthly_fiscal_period_rollover');
 }
 
 // Add custom cron schedule for every_minute
