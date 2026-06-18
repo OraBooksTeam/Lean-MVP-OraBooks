@@ -50,6 +50,7 @@ require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-observability.php';
 require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-csv-imports.php';
 require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-attachments.php';
 require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-ai-review.php';
+require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-classification.php';
 require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-expenses.php';
 require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-voice.php';
 require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-security.php';
@@ -94,6 +95,7 @@ function orabooks_init() {
     OraBooks_Csv_Imports::init();
     OraBooks_Attachments::init();
     OraBooks_Ai_Review::init();
+    OraBooks_Classification::init();
     OraBooks_Expenses::init();
     OraBooks_Voice::init();
     OraBooks_Security::init();

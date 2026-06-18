@@ -141,6 +141,10 @@ class OraBooks_EventBus {
             do_action('orabooks_csv_row_escalated', $event->aggregate_id, $payload);
             return true;
         });
+
+        if (class_exists('OraBooks_Classification')) {
+            OraBooks_Classification::register_event_consumer();
+        }
     }
 
     /**
