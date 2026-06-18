@@ -4,7 +4,7 @@ import Button from '@/components/Button';
 import Input from '@/components/Input';
 import { api } from '../api';
 import ClientShell from '../components/ClientShell';
-import { Info, Paperclip, RefreshCw, Users } from 'lucide-react';
+import { Info, Paperclip, Pencil, RefreshCw, Upload, Users } from 'lucide-react';
 
 type Customer = {
   id: number;
@@ -24,6 +24,10 @@ export default function CustomersPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
+  const [editing, setEditing] = useState<Customer | null>(null);
+  const [editNotes, setEditNotes] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [success, setSuccess] = useState('');
 
   const load = async () => {
     setLoading(true);
@@ -65,6 +69,26 @@ export default function CustomersPage() {
   useEffect(() => { void load(); }, []);
 
   const handleSearch = () => { void load(); };
+
+  const openEdit = (customer: Customer) => {
+    setEditing(customer);
+    setEditNotes(customer.notes || '');
+    setSuccess('');
+  };
+
+  const saveNotes = async () => {
+    if (!editing) return;
+    setSaving(true);
+    setSuccess('');
+    const res = await api.customerUpdate(editing.id, { notes: editNotes });
+    if (res.error) setError(typeof res.error === 'string' ? res.error : 'Unable to update customer.');
+    else {
+      setSuccess('Customer notes saved.');
+      setEditing(null);
+      await load();
+    }
+    setSaving(false);
+  };
 
   return (
     <ClientShell
