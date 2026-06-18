@@ -216,15 +216,6 @@ function DataList({
   );
 }
 
-function PartnerCard({ label, value }: { label: string; value: string | number }) {
-  return (
-    <div className="stat-card">
-      <p className="text-xs font-bold uppercase tracking-wide text-slate-500">{label}</p>
-      <p className="mt-2 text-3xl font-black text-ink">{value}</p>
-    </div>
-  );
-}
-
 function StatRow({ label, value }: { label: string; value: string | number }) {
   return (
     <div className="flex items-center justify-between rounded-lg border border-border bg-white px-4 py-2.5">
