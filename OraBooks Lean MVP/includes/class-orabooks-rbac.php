@@ -124,6 +124,7 @@ class OraBooks_RBAC {
             'view_reports',
             'submit_transaction',
             'approve_journal',
+            'reverse_journal',
             'view_coa',
             'manage_fiscal_periods',
             'create_invoice',

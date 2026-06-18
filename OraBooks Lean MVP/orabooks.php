@@ -356,6 +356,7 @@ function orabooks_deactivate() {
     wp_clear_scheduled_hook('orabooks_security_secret_rotation_reminder');
     wp_clear_scheduled_hook('orabooks_security_purge');
     wp_clear_scheduled_hook('orabooks_monthly_fiscal_period_rollover');
+    wp_clear_scheduled_hook('orabooks_daily_ledger_integrity_check');
 }
 
 // Add custom cron schedule for every_minute
