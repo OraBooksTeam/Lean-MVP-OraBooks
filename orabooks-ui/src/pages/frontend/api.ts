@@ -533,7 +533,23 @@ export const api = {
     api.get('orabooks_get_journals', { org_id: orgId, ...filters }),
   journalGet: (orgId: number, journalId: number) =>
     api.get('orabooks_get_journal', { org_id: orgId, journal_id: journalId }),
-  approvalDashboard: () =>
+  journalCreate: (
+    orgId: number,
+    data: {
+      transaction_date?: string;
+      source_type?: string;
+      description?: string;
+      lines?: { account_code: string; debit_amount?: number; credit_amount?: number; description?: string }[];
+    }
+  ) =>
+    api.post('orabooks_create_journal', {
+      org_id: orgId,
+      transaction_date: data.transaction_date,
+      source_type: data.source_type || 'manual',
+      description: data.description || '',
+      lines: data.lines ? JSON.stringify(data.lines) : '',
+    }),
+  journalSubmit: (orgId: number, journalId: number) =>
     api.get('orabooks_approval_dashboard'),
   aiReviewDashboard: () =>
     api.get('orabooks_ai_review_dashboard'),
