@@ -82,7 +82,7 @@ class OraBooks_COA_Test extends TestCase
     {
         global $wpdb;
 
-        $wpdb->test_get_row_callback = function () {
+        $GLOBALS['orabooks_test_org_callback'] = function () {
             return (object) ['organization_type' => 'partner'];
         };
 
@@ -95,6 +95,8 @@ class OraBooks_COA_Test extends TestCase
         $accounts = OraBooks_COA::get_accounts(3);
         $this->assertSame([], $accounts);
         $this->assertFalse($queried);
+
+        unset($GLOBALS['orabooks_test_org_callback']);
     }
 
     #[Test]
