@@ -1206,7 +1206,9 @@ class OraBooks_Posting {
         $journal_id = intval($_POST['journal_id'] ?? 0);
         $org_id = $this->require_journal_access($user_id, $journal_id);
 
-        if (!OraBooks_Approval::user_can_approve($user_id, $org_id)) {
+        if (class_exists('OraBooks_Approval') && !OraBooks_Approval::user_can_approve($user_id, $org_id)) {
+            orabooks_json_error('Permission denied', 403);
+        } elseif (!class_exists('OraBooks_Approval') && !OraBooks_RBAC::require_permission($user_id, $org_id, 'approve_journal')) {
             orabooks_json_error('Permission denied', 403);
         }
 
@@ -1231,7 +1233,9 @@ class OraBooks_Posting {
         $reason = sanitize_textarea_field($_POST['reason'] ?? '');
         $org_id = $this->require_journal_access($user_id, $journal_id);
 
-        if (!OraBooks_Approval::user_can_approve($user_id, $org_id)) {
+        if (class_exists('OraBooks_Approval') && !OraBooks_Approval::user_can_approve($user_id, $org_id)) {
+            orabooks_json_error('Permission denied', 403);
+        } elseif (!class_exists('OraBooks_Approval') && !OraBooks_RBAC::require_permission($user_id, $org_id, 'approve_journal')) {
             orabooks_json_error('Permission denied', 403);
         }
         
