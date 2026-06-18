@@ -47,21 +47,19 @@ type NavItem = {
   external?: boolean;
 };
 
-const acc = (view = '') => (view ? `/dashboard/?view=${view}` : '/dashboard/');
-
 const customerNav: NavItem[] = [
-  { label: 'Dashboard', href: acc(), icon: Home, external: true },
-  { label: 'Customers', href: acc('customers'), icon: Users, external: true },
-  { label: 'Invoices & Sales', href: acc('view-sales'), icon: FileText, external: true },
-  { label: 'Vendors & Bills', href: acc('suppliers'), icon: Building2, external: true },
-  { label: 'Inventory', href: acc('view-items'), icon: Package, external: true },
-  { label: 'Reports', href: acc('journal-report'), icon: BarChart3, external: true },
-  { label: 'Expenses', href: acc('expense-list'), icon: Receipt, external: true },
-  { label: 'Chart of Accounts', href: acc('coa-list'), icon: BookOpen, external: true },
-  { label: 'Fiscal Periods', href: acc('fiscal-periods'), icon: CalendarRange, external: true },
-  { label: 'Tax Settings', href: acc('setting-tax-list'), icon: Percent, external: true },
-  { label: 'Journals', href: acc('journal-entry-list'), icon: BookOpen, external: true },
-  { label: 'CSV Imports', href: acc('import-customers'), icon: Upload, external: true },
+  { label: 'Dashboard', href: '/dashboard', icon: Home },
+  { label: 'Customers', href: '/customers/', icon: Users, external: true },
+  { label: 'Invoices & Sales', href: '/invoices/', icon: FileText, external: true },
+  { label: 'Vendors & Bills', href: '/vendors/', icon: Building2, external: true },
+  { label: 'Inventory', href: '/inventory/', icon: Package, external: true },
+  { label: 'Reports', href: '/reports/', icon: BarChart3, external: true },
+  { label: 'Expenses', href: '/expenses/', icon: Receipt, external: true },
+  { label: 'Chart of Accounts', href: '/chart-of-accounts/', icon: BookOpen, external: true },
+  { label: 'Fiscal Periods', href: '/fiscal-periods/', icon: CalendarRange, external: true },
+  { label: 'Tax Settings', href: '/tax-settings/', icon: Percent, external: true },
+  { label: 'Journals', href: '/journals/', icon: BookOpen, external: true },
+  { label: 'CSV Imports', href: '/csv-imports/', icon: Upload, external: true },
   { label: 'Bank Reconciliation', href: '/bank-reconciliation', icon: Wallet },
   { label: 'Voice Input', href: '/voice', icon: Mic },
   { label: 'Attachments', href: '/attachments', icon: Paperclip },
