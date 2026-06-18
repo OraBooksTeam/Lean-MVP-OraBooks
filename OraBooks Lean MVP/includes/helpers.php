@@ -296,6 +296,10 @@ function orabooks_get_current_user_id() {
         $token = trim(substr($auth_header, 7));
     }
 
+    if (!$token && !empty($_COOKIE['orabooks_token'])) {
+        $token = sanitize_text_field(wp_unslash($_COOKIE['orabooks_token']));
+    }
+
     if (!$token && isset($_REQUEST['orabooks_token'])) {
         $token = sanitize_text_field(wp_unslash($_REQUEST['orabooks_token']));
     }
