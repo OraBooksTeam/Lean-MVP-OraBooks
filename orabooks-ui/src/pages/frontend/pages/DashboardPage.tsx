@@ -34,54 +34,17 @@ interface CustomerDashboardData {
   timestamp?: string;
 }
 
-interface FrontendContext {
-  user: { is_partner: boolean; email?: string };
-  organization: {
-    id: number;
-    name?: string;
-    tier?: string;
-    status?: string;
-    organization_type?: string;
-  } | null;
-  role?: string;
-}
-
-interface PartnerDashboardData {
-  partner_code: string;
-  partner_type?: string;
-  organization_name?: string;
-  code_status: string;
-  org_status: string;
-  org_name?: string;
-  active_customer_count: number;
-  is_dormant: boolean;
-  read_only: boolean;
-  payout_disabled: boolean;
-  can_reactivate: boolean;
-  attribution_stats: { total: number; verified: number; pending: number };
-  commission_summary: {
-    total_earned: number;
-    pending_payout: number;
-    paid: number;
-    expired: number;
-    currency: string;
-  };
-  payout_breakdown: Record<string, any>[];
-  attributions: Record<string, any>[];
-}
-
 export default function DashboardPage() {
   const [context, setContext] = useState<FrontendContext | null>(null);
   const [customerData, setCustomerData] = useState<CustomerDashboardData | null>(null);
-  const [partnerData, setPartnerData] = useState<PartnerDashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [isPartner, setIsPartner] = useState(false);
 
   const load = async () => {
     setLoading(true);
     setError('');
     setCustomerData(null);
-    setPartnerData(null);
 
     const ctx = await api.frontendContext();
     if (ctx.error) {
@@ -93,15 +56,16 @@ export default function DashboardPage() {
     const nextContext = (ctx as any).data as FrontendContext;
     setContext(nextContext);
 
-    const isPartner = nextContext.organization?.organization_type === 'partner' || nextContext.user?.is_partner;
-    const res = isPartner ? await api.partnerDashboard() : await api.customerDashboard();
-    if (res.error) {
-      setError(res.error || 'Failed to load dashboard.');
-    } else if (isPartner) {
-      setPartnerData((res as any).data);
-    } else {
-      setCustomerData((res as any).data);
+    const partner = nextContext.organization?.organization_type === 'partner' || nextContext.user?.is_partner;
+    setIsPartner(partner);
+    if (partner) {
+      setLoading(false);
+      return;
     }
+
+    const res = await api.customerDashboard();
+    if (res.error) setError(res.error || 'Failed to load dashboard.');
+    else setCustomerData((res as any).data);
     setLoading(false);
   };
 
@@ -133,8 +97,8 @@ export default function DashboardPage() {
     );
   }
 
-  if (partnerData) {
-    return <PartnerDashboard context={context} data={partnerData} onRefresh={load} />;
+  if (isPartner) {
+    return <PartnerProgramPage />;
   }
 
   const data = customerData;
