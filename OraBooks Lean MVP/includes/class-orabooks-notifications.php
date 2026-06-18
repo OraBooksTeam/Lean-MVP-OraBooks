@@ -1128,18 +1128,79 @@ class OraBooks_Notifications {
         );
     }
 
-    // ================================================================
+    // ============================================================
     // AJAX HANDLERS
-    // ================================================================
+    // ============================================================
+
+    private function require_notification_user() {
+        $user_id = orabooks_get_current_user_id();
+        if (!$user_id) {
+            orabooks_json_error('Not authenticated', 401);
+        }
+        return $user_id;
+    }
+
+    private function require_org_notification_admin($org_id) {
+        $user_id = $this->require_notification_user();
+        $org_id = intval($org_id);
+        if (!$org_id) {
+            orabooks_json_error('Organization required', 400);
+        }
+        if (!current_user_can('manage_options') && !OraBooks_RBAC::require_permission($user_id, $org_id, 'manage_org_settings')) {
+            orabooks_json_error('Permission denied', 403);
+        }
+        return $user_id;
+    }
+
+    public static function format_notification_for_api($row) {
+        if (!$row) {
+            return null;
+        }
+
+        $payload = [];
+        if (!empty($row->payload)) {
+            $decoded = json_decode($row->payload, true);
+            if (is_array($decoded)) {
+                $payload = $decoded;
+            }
+        }
+
+        $delivery_proof = null;
+        if (!empty($row->delivery_proof)) {
+            $delivery_proof = json_decode($row->delivery_proof, true);
+        }
+
+        $sla_breached = false;
+        if (($row->priority ?? '') === 'critical' && !empty($row->delivered_at) && !empty($row->created_at)) {
+            $latency_ms = (strtotime($row->delivered_at) - strtotime($row->created_at)) * 1000;
+            $sla_breached = $latency_ms > 5000;
+        }
+
+        return [
+            'id' => (int) $row->id,
+            'event_type' => $row->event_type,
+            'priority' => $row->priority,
+            'title' => $row->title ?: ($payload['title'] ?? $row->event_type),
+            'message' => $row->message ?: ($payload['message'] ?? ''),
+            'status' => $row->status,
+            'delivery_channel' => $row->delivery_channel,
+            'correlation_id' => $row->correlation_id,
+            'created_at' => $row->created_at,
+            'delivered_at' => $row->delivered_at,
+            'is_read' => !empty($row->is_read),
+            'read_at' => $row->read_at,
+            'sla_breached' => $sla_breached,
+            'has_delivery_proof' => !empty($delivery_proof),
+            'delivery_proof' => $delivery_proof,
+            'payload' => $payload,
+        ];
+    }
 
     /**
      * AJAX: List notifications for current user.
      */
     public function ajax_list_notifications() {
-        $user_id = orabooks_get_current_user_id();
-        if (!$user_id) {
-            orabooks_json_error('Not authenticated', 401);
-        }
+        $user_id = $this->require_notification_user();
 
         $args = [
             'status'         => sanitize_text_field($_GET['status'] ?? ''),
@@ -1148,11 +1209,16 @@ class OraBooks_Notifications {
             'correlation_id' => sanitize_text_field($_GET['correlation_id'] ?? ''),
             'from_date'      => sanitize_text_field($_GET['from_date'] ?? ''),
             'to_date'        => sanitize_text_field($_GET['to_date'] ?? ''),
+            'unread_only'    => !empty($_GET['unread_only']),
             'limit'          => intval($_GET['limit'] ?? 50),
             'offset'         => intval($_GET['offset'] ?? 0),
         ];
 
-        $notifications = self::get_notifications($user_id, $args);
+        $rows = self::get_notifications($user_id, $args);
+        $notifications = array_values(array_filter(array_map(
+            [self::class, 'format_notification_for_api'],
+            $rows ?: []
+        )));
         $unread_count = self::get_unread_count($user_id);
 
         orabooks_json_success([
