@@ -8,6 +8,7 @@ import AdminCoA from '@/pages/admin/AdminCoA';
 import AdminAudit from '@/pages/admin/AdminAudit';
 import AdminJobQueue from '@/pages/admin/AdminJobQueue';
 import AdminObservability from '@/pages/admin/AdminObservability';
+import AdminSecurity from '@/pages/admin/AdminSecurity';
 import AdminNotifications from '@/pages/admin/AdminNotifications';
 import AdminExports from '@/pages/admin/AdminExports';
 import AdminCustomers from '@/pages/admin/AdminCustomers';
@@ -35,6 +36,7 @@ export default function AdminRoutes() {
         <Route path="/admin/audit" element={<AdminAudit />} />
         <Route path="/admin/job-queue" element={<AdminJobQueue />} />
         <Route path="/admin/observability" element={<AdminObservability />} />
+        <Route path="/admin/security" element={<AdminSecurity />} />
         <Route path="/admin/notifications" element={<AdminNotifications />} />
         <Route path="/admin/exports" element={<AdminExports />} />
         <Route path="/admin/customers" element={<AdminCustomers />} />
