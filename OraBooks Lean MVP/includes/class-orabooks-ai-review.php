@@ -36,6 +36,8 @@ class OraBooks_Ai_Review {
 
             add_action('wp_ajax_orabooks_ai_review_list', [self::$instance, 'ajax_list']);
             add_action('wp_ajax_nopriv_orabooks_ai_review_list', [self::$instance, 'ajax_list']);
+            add_action('wp_ajax_orabooks_ai_review_resolve', [self::$instance, 'ajax_resolve']);
+            add_action('wp_ajax_nopriv_orabooks_ai_review_resolve', [self::$instance, 'ajax_resolve']);
         }
 
         return self::$instance;
