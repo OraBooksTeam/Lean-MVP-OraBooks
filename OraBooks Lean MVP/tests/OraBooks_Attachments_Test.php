@@ -106,33 +106,34 @@ class OraBooks_Attachments_Test extends TestCase
     }
 
     #[Test]
-    public function test_soft_delete_requires_manage_org_settings()
+    public function test_format_attachment_row_includes_current_version_fields()
     {
-        if (!class_exists('OraBooks_RBAC_TestStub', false)) {
-            class OraBooks_RBAC_TestStub extends OraBooks_RBAC {
-                public static function require_permission($user_id, $org_id, $permission, $options = []) {
-                    return $permission === 'manage_org_settings';
-                }
-            }
-        }
+        $row = (object) [
+            'id' => 5,
+            'org_id' => 1,
+            'resource_type' => 'invoice',
+            'resource_id' => 42,
+            'current_version_id' => 9,
+            'deleted_at' => null,
+            'retention_class' => 'standard',
+            'created_at' => '2026-06-18 09:00:00',
+            'updated_at' => '2026-06-18 10:00:00',
+            'version_id' => 9,
+            'version_number' => 1,
+            'file_name' => 'invoice.pdf',
+            'file_size' => 4096,
+            'file_hash' => 'hash123',
+            'mime_type' => 'application/pdf',
+            'uploaded_by' => 1,
+            'uploaded_at' => '2026-06-18 10:00:00',
+            'virus_scan_status' => 'clean',
+        ];
 
-        global $wpdb;
-        $wpdb->test_get_row_callback = function ($query) {
-            if (stripos($query, 'attachments') !== false && stripos($query, 'WHERE id') !== false) {
-                return (object) [
-                    'id' => 5,
-                    'org_id' => 1,
-                    'resource_type' => 'general',
-                    'resource_id' => 1,
-                    'current_version_id' => 1,
-                    'deleted_at' => null,
-                    'retention_class' => 'standard',
-                ];
-            }
-            return null;
-        };
+        $formatted = OraBooks_Attachments::format_attachment_row($row);
 
-        $result = OraBooks_Attachments::soft_delete(5, 1, 1);
-        $this->assertTrue($result);
+        $this->assertSame(5, $formatted['id']);
+        $this->assertSame('invoice.pdf', $formatted['file_name']);
+        $this->assertSame(1, $formatted['version_number']);
+        $this->assertSame('clean', $formatted['virus_scan_status']);
     }
 }

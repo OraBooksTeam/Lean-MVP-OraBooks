@@ -1053,6 +1053,13 @@ if (!file_exists($csv_imports_file)) {
 }
 require_once $csv_imports_file;
 
+$attachments_file = __DIR__ . '/../includes/class-orabooks-attachments.php';
+if (!file_exists($attachments_file)) {
+    echo "ERROR: Cannot find class-orabooks-attachments.php at {$attachments_file}\n";
+    exit(1);
+}
+require_once $attachments_file;
+
 if (!function_exists('get_users')) {
     function get_users($args = []) {
         return [];
