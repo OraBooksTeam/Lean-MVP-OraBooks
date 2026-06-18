@@ -962,23 +962,41 @@ class OraBooks_Vendors {
         }
     }
 
+    private function require_ap_permission($user_id, $org_id, $permissions) {
+        if (!$user_id) {
+            orabooks_json_error('Not authenticated', 401);
+        }
+
+        if ($org_id <= 0) {
+            orabooks_json_error('Organization ID required', 400);
+        }
+
+        $this->require_customer_org_access($user_id, $org_id);
+
+        if (current_user_can('manage_options')) {
+            return;
+        }
+
+        foreach ((array) $permissions as $permission) {
+            if (OraBooks_RBAC::require_permission($user_id, $org_id, $permission)) {
+                return;
+            }
+        }
+
+        orabooks_json_error('Permission denied', 403);
+    }
+
     public function ajax_vendors_list() {
         $user_id = $this->current_user_id();
         $org_id = intval($_GET['org_id'] ?? 0);
-        $this->require_customer_org_access($user_id, $org_id);
-        if (!OraBooks_RBAC::require_permission($user_id, $org_id, 'view_reports')) {
-            orabooks_json_error('Permission denied', 403);
-        }
+        $this->require_ap_permission($user_id, $org_id, ['view_reports']);
         orabooks_json_success(self::get_vendors_list($org_id, $_GET));
     }
 
     public function ajax_vendor_create() {
         $user_id = $this->current_user_id();
         $org_id = intval($_POST['org_id'] ?? 0);
-        $this->require_customer_org_access($user_id, $org_id);
-        if (!OraBooks_RBAC::require_permission($user_id, $org_id, 'manage_org_settings')) {
-            orabooks_json_error('Permission denied', 403);
-        }
+        $this->require_ap_permission($user_id, $org_id, ['manage_org_settings']);
         $result = self::create_vendor($org_id, $_POST);
         if (is_wp_error($result)) {
             orabooks_json_error($result->get_error_message(), 400);
@@ -989,20 +1007,14 @@ class OraBooks_Vendors {
     public function ajax_bills_list() {
         $user_id = $this->current_user_id();
         $org_id = intval($_GET['org_id'] ?? 0);
-        $this->require_customer_org_access($user_id, $org_id);
-        if (!OraBooks_RBAC::require_permission($user_id, $org_id, 'view_reports')) {
-            orabooks_json_error('Permission denied', 403);
-        }
+        $this->require_ap_permission($user_id, $org_id, ['view_reports']);
         orabooks_json_success(self::get_bills_list($org_id, $_GET));
     }
 
     public function ajax_bill_create() {
         $user_id = $this->current_user_id();
         $org_id = intval($_POST['org_id'] ?? 0);
-        $this->require_customer_org_access($user_id, $org_id);
-        if (!OraBooks_RBAC::require_permission($user_id, $org_id, 'submit_transaction')) {
-            orabooks_json_error('Permission denied', 403);
-        }
+        $this->require_ap_permission($user_id, $org_id, ['submit_transaction']);
         $result = self::create_bill($org_id, $_POST);
         if (is_wp_error($result)) {
             orabooks_json_error($result->get_error_message(), 400);
@@ -1013,7 +1025,7 @@ class OraBooks_Vendors {
     public function ajax_bill_submit() {
         $user_id = $this->current_user_id();
         $org_id = intval($_POST['org_id'] ?? 0);
-        $this->require_customer_org_access($user_id, $org_id);
+        $this->require_ap_permission($user_id, $org_id, ['submit_transaction']);
         $result = self::submit_bill($org_id, intval($_POST['bill_id'] ?? 0), $user_id);
         if (is_wp_error($result)) {
             orabooks_json_error($result->get_error_message(), 400);
@@ -1024,10 +1036,7 @@ class OraBooks_Vendors {
     public function ajax_bill_approve() {
         $user_id = $this->current_user_id();
         $org_id = intval($_POST['org_id'] ?? 0);
-        $this->require_customer_org_access($user_id, $org_id);
-        if (!OraBooks_RBAC::require_permission($user_id, $org_id, 'approve_journal')) {
-            orabooks_json_error('Permission denied', 403);
-        }
+        $this->require_ap_permission($user_id, $org_id, ['approve_journal']);
         $result = self::approve_bill($org_id, intval($_POST['bill_id'] ?? 0), $user_id);
         if (is_wp_error($result)) {
             orabooks_json_error($result->get_error_message(), 400);
@@ -1035,13 +1044,21 @@ class OraBooks_Vendors {
         orabooks_json_success([], 'Bill approved');
     }
 
+    public function ajax_bill_post() {
+        $user_id = $this->current_user_id();
+        $org_id = intval($_POST['org_id'] ?? 0);
+        $this->require_ap_permission($user_id, $org_id, ['approve_journal', 'manage_org_settings']);
+        $result = self::post_bill($org_id, intval($_POST['bill_id'] ?? 0), $user_id);
+        if (is_wp_error($result)) {
+            orabooks_json_error($result->get_error_message(), 400);
+        }
+        orabooks_json_success([], 'Bill posted');
+    }
+
     public function ajax_record_payment() {
         $user_id = $this->current_user_id();
         $org_id = intval($_POST['org_id'] ?? 0);
-        $this->require_customer_org_access($user_id, $org_id);
-        if (!OraBooks_RBAC::require_permission($user_id, $org_id, 'manage_billing')) {
-            orabooks_json_error('Permission denied', 403);
-        }
+        $this->require_ap_permission($user_id, $org_id, ['manage_org_settings', 'approve_journal', 'submit_transaction', 'manage_billing']);
         $result = self::record_payment($org_id, intval($_POST['vendor_id'] ?? 0), $_POST);
         if (is_wp_error($result)) {
             orabooks_json_error($result->get_error_message(), 400);
@@ -1052,10 +1069,7 @@ class OraBooks_Vendors {
     public function ajax_create_credit_note() {
         $user_id = $this->current_user_id();
         $org_id = intval($_POST['org_id'] ?? 0);
-        $this->require_customer_org_access($user_id, $org_id);
-        if (!OraBooks_RBAC::require_permission($user_id, $org_id, 'manage_billing')) {
-            orabooks_json_error('Permission denied', 403);
-        }
+        $this->require_ap_permission($user_id, $org_id, ['manage_org_settings', 'approve_journal', 'manage_billing']);
         $result = self::create_credit_note($org_id, $_POST);
         if (is_wp_error($result)) {
             orabooks_json_error($result->get_error_message(), 400);
