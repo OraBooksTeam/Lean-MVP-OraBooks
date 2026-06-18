@@ -4,6 +4,7 @@ import { RouterProvider, createHashRouter } from 'react-router-dom';
 import FrontendRoutes from './App';
 import ExportTriggerButton from '@/components/platform/ExportTriggerButton';
 import { registerOraBooksPwa } from '@/lib/pwa/register-pwa';
+import { syncInitialHashRoute } from './lib/auth-routing';
 import '@/styles/index.css';
 
 declare global {
@@ -78,8 +79,8 @@ function bootFrontend() {
   }
 
   const initialRoute = root.dataset.initialRoute;
-  if (initialRoute && (!window.location.hash || window.location.hash === '#')) {
-    window.location.hash = initialRoute;
+  if (initialRoute) {
+    syncInitialHashRoute(initialRoute);
   }
 
   try {

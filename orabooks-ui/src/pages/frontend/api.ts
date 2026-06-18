@@ -57,6 +57,10 @@ async function parseResponse<T = any>(res: Response): Promise<ApiResult<T>> {
   const text = await res.text();
 
   if (!res.ok) {
+    if (res.status === 401 || res.status === 403) {
+      window.localStorage.removeItem(TOKEN_KEY);
+      window.localStorage.removeItem(REFRESH_TOKEN_KEY);
+    }
     return { error: `OraBooks request failed with HTTP ${res.status}.` };
   }
 
