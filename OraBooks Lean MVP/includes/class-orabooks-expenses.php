@@ -1217,4 +1217,113 @@ class OraBooks_Expenses {
             }, $rows ?: []),
         ]);
     }
+
+    private function can_override_expense_tax($user_id, $org_id) {
+        return current_user_can('manage_options')
+            || OraBooks_RBAC::require_permission($user_id, $org_id, 'manage_org_settings')
+            || OraBooks_RBAC::require_permission($user_id, $org_id, 'approve_journal')
+            || OraBooks_RBAC::require_permission($user_id, $org_id, 'approve_expense');
+    }
+
+    public function ajax_override_tax() {
+        global $wpdb;
+
+        $user_id = orabooks_get_current_user_id();
+        $expense_id = intval($_POST['expense_id'] ?? 0);
+        $org_id = intval($_POST['org_id'] ?? 0);
+
+        if (!$user_id) {
+            orabooks_json_error('Not authenticated', 401);
+        }
+
+        if (!$expense_id) {
+            orabooks_json_error('Expense ID required', 400);
+        }
+
+        if (!$org_id) {
+            $table_expenses = OraBooks_Database::table(self::TABLE_EXPENSES);
+            $org_id = (int) $wpdb->get_var($wpdb->prepare(
+                "SELECT org_id FROM {$table_expenses} WHERE id = %d",
+                $expense_id
+            ));
+        }
+
+        if (!$org_id) {
+            orabooks_json_error('Organization ID required', 400);
+        }
+
+        $isolation = OraBooks_Auth::require_customer_org($user_id, $org_id);
+        if (is_wp_error($isolation)) {
+            orabooks_json_error($isolation->get_error_message(), 403);
+        }
+
+        if (!$this->can_override_expense_tax($user_id, $org_id)) {
+            orabooks_json_error('Permission denied', 403);
+        }
+
+        $result = self::override_expense_tax(
+            $org_id,
+            $expense_id,
+            floatval($_POST['new_tax_rate'] ?? 0),
+            sanitize_text_field($_POST['reason_code'] ?? ''),
+            $user_id,
+            sanitize_text_field($_POST['jurisdiction'] ?? 'US')
+        );
+
+        if (is_wp_error($result)) {
+            orabooks_json_error($result->get_error_message(), 400);
+        }
+
+        orabooks_json_success($result, 'Tax override applied');
+    }
+
+    public function ajax_clear_tax_override() {
+        global $wpdb;
+
+        $user_id = orabooks_get_current_user_id();
+        $expense_id = intval($_POST['expense_id'] ?? 0);
+        $org_id = intval($_POST['org_id'] ?? 0);
+
+        if (!$user_id) {
+            orabooks_json_error('Not authenticated', 401);
+        }
+
+        if (!$expense_id) {
+            orabooks_json_error('Expense ID required', 400);
+        }
+
+        if (!$org_id) {
+            $table_expenses = OraBooks_Database::table(self::TABLE_EXPENSES);
+            $org_id = (int) $wpdb->get_var($wpdb->prepare(
+                "SELECT org_id FROM {$table_expenses} WHERE id = %d",
+                $expense_id
+            ));
+        }
+
+        if (!$org_id) {
+            orabooks_json_error('Organization ID required', 400);
+        }
+
+        $isolation = OraBooks_Auth::require_customer_org($user_id, $org_id);
+        if (is_wp_error($isolation)) {
+            orabooks_json_error($isolation->get_error_message(), 403);
+        }
+
+        if (!$this->can_override_expense_tax($user_id, $org_id)) {
+            orabooks_json_error('Permission denied', 403);
+        }
+
+        $result = self::clear_expense_tax_override(
+            $org_id,
+            $expense_id,
+            $user_id,
+            sanitize_text_field($_POST['jurisdiction'] ?? 'US')
+        );
+
+        if (is_wp_error($result)) {
+            orabooks_json_error($result->get_error_message(), 400);
+        }
+
+        orabooks_json_success(['expense' => $result], 'Tax override cleared');
+    }
 }

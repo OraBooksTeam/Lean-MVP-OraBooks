@@ -565,6 +565,26 @@ export const api = {
     api.post('orabooks_expense_reject', { org_id: orgId, expense_id: expenseId, reason }),
   expensePost: (orgId: number, expenseId: number) =>
     api.post('orabooks_expense_post', { org_id: orgId, expense_id: expenseId }),
+  expenseOverrideTax: (
+    orgId: number,
+    expenseId: number,
+    newTaxRate: number,
+    reasonCode: string,
+    jurisdiction = 'US'
+  ) =>
+    api.post('orabooks_expense_override_tax', {
+      org_id: orgId,
+      expense_id: expenseId,
+      new_tax_rate: newTaxRate,
+      reason_code: reasonCode,
+      jurisdiction,
+    }),
+  expenseClearTaxOverride: (orgId: number, expenseId: number, jurisdiction = 'US') =>
+    api.post('orabooks_expense_clear_tax_override', {
+      org_id: orgId,
+      expense_id: expenseId,
+      jurisdiction,
+    }),
   classificationRun: (recordType: string, recordId: number, async = true) =>
     api.post('orabooks_classification_run', { record_type: recordType, record_id: recordId, async: async ? 1 : 0 }),
   classificationApply: (recordType: string, recordId: number) =>
