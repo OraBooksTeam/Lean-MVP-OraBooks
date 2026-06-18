@@ -808,6 +808,347 @@ class OraBooks_Posting {
         ];
     }
 
+    /**
+     * Projection names tracked in read_model_versions (SL-001 enterprise checklist).
+     */
+    public static function read_model_projection_names() {
+        return [
+            'ledger_summary',
+            'ar_aging',
+            'ap_aging',
+            'inventory_valuation',
+            'trial_balance',
+            'account_balances',
+        ];
+    }
+
+    /**
+     * Seed read-model version rows for all known projections.
+     */
+    public static function seed_read_model_versions() {
+        global $wpdb;
+
+        $table = OraBooks_Database::table('read_model_versions');
+        foreach (self::read_model_projection_names() as $projection_name) {
+            $exists = $wpdb->get_var($wpdb->prepare(
+                "SELECT projection_name FROM {$table} WHERE projection_name = %s",
+                $projection_name
+            ));
+            if ($exists) {
+                continue;
+            }
+
+            $wpdb->insert(
+                $table,
+                [
+                    'projection_name' => $projection_name,
+                    'version' => 1,
+                    'rebuild_version' => 1,
+                    'schema_version' => 1,
+                ],
+                ['%s', '%d', '%d', '%d']
+            );
+        }
+    }
+
+    /**
+     * Fetch version metadata for a single projection.
+     */
+    public static function get_read_model_version($projection_name) {
+        global $wpdb;
+
+        $projection_name = sanitize_text_field($projection_name);
+        self::ensure_read_model_version($projection_name);
+
+        $table = OraBooks_Database::table('read_model_versions');
+        return $wpdb->get_row($wpdb->prepare(
+            "SELECT * FROM {$table} WHERE projection_name = %s",
+            $projection_name
+        ));
+    }
+
+    /**
+     * List all projection version rows.
+     */
+    public static function list_read_model_versions() {
+        global $wpdb;
+
+        self::seed_read_model_versions();
+        $table = OraBooks_Database::table('read_model_versions');
+        return $wpdb->get_results("SELECT * FROM {$table} ORDER BY projection_name ASC");
+    }
+
+    /**
+     * Increment one or more version counters for a projection.
+     *
+     * @param string $projection_name
+     * @param array  $fields version|rebuild_version|schema_version
+     */
+    public static function bump_read_model_version($projection_name, array $fields = ['version']) {
+        global $wpdb;
+
+        $projection_name = sanitize_text_field($projection_name);
+        self::ensure_read_model_version($projection_name);
+
+        $allowed = ['version', 'rebuild_version', 'schema_version'];
+        $sets = [];
+        foreach ($fields as $field) {
+            if (in_array($field, $allowed, true)) {
+                $sets[] = "{$field} = {$field} + 1";
+            }
+        }
+        if (empty($sets)) {
+            $sets = ['version = version + 1'];
+        }
+
+        $table = OraBooks_Database::table('read_model_versions');
+        $wpdb->query($wpdb->prepare(
+            "UPDATE {$table} SET " . implode(', ', $sets) . " WHERE projection_name = %s",
+            $projection_name
+        ));
+
+        return self::get_read_model_version($projection_name);
+    }
+
+    /**
+     * Bump ledger-related read models after journal_posted.
+     */
+    public static function bump_read_models_for_journal_posted($org_id) {
+        $org_id = (int) $org_id;
+        $affected = ['ledger_summary', 'trial_balance', 'account_balances'];
+        $versions = [];
+
+        foreach ($affected as $projection_name) {
+            $versions[$projection_name] = self::bump_read_model_version($projection_name, ['version']);
+        }
+
+        if (class_exists('OraBooks_EventBus')) {
+            OraBooks_EventBus::publish('read_model_version_bumped', $org_id, [
+                'org_id' => $org_id,
+                'projections' => array_keys($versions),
+            ]);
+        }
+
+        return $versions;
+    }
+
+    private static function ensure_read_model_version($projection_name) {
+        global $wpdb;
+
+        $table = OraBooks_Database::table('read_model_versions');
+        $exists = $wpdb->get_var($wpdb->prepare(
+            "SELECT projection_name FROM {$table} WHERE projection_name = %s",
+            $projection_name
+        ));
+        if ($exists) {
+            return;
+        }
+
+        $wpdb->insert(
+            $table,
+            [
+                'projection_name' => $projection_name,
+                'version' => 1,
+                'rebuild_version' => 1,
+                'schema_version' => 1,
+            ],
+            ['%s', '%d', '%d', '%d']
+        );
+    }
+
+    /**
+     * Capture point-in-time account balances for fast ledger replay (SL-001).
+     */
+    public static function capture_balance_snapshot($org_id, $snapshot_date = null) {
+        global $wpdb;
+
+        $org_id = (int) $org_id;
+        $snapshot_date = $snapshot_date ?: gmdate('Y-m-d');
+        $table_snapshots = OraBooks_Database::table('balance_snapshots');
+        $table_balances = OraBooks_Database::table('account_balances');
+
+        $balances = $wpdb->get_results($wpdb->prepare(
+            "SELECT account_id, balance FROM {$table_balances} WHERE org_id = %d",
+            $org_id
+        ));
+
+        $count = 0;
+        foreach ($balances as $row) {
+            $wpdb->replace(
+                $table_snapshots,
+                [
+                    'org_id' => $org_id,
+                    'snapshot_date' => $snapshot_date,
+                    'account_id' => (int) $row->account_id,
+                    'balance' => round((float) $row->balance, 2),
+                ],
+                ['%d', '%s', '%d', '%f']
+            );
+            $count++;
+        }
+
+        orabooks_log_event('balance_snapshot_captured', 'Balance snapshot captured', 'info', [
+            'org_id' => $org_id,
+            'snapshot_date' => $snapshot_date,
+            'account_count' => $count,
+        ], null, $org_id);
+
+        return [
+            'org_id' => $org_id,
+            'snapshot_date' => $snapshot_date,
+            'accounts' => $count,
+        ];
+    }
+
+    /**
+     * Latest snapshot date on or before the given date.
+     */
+    public static function get_latest_balance_snapshot_date($org_id, $before_date = null) {
+        global $wpdb;
+
+        $table = OraBooks_Database::table('balance_snapshots');
+        $before_date = $before_date ?: gmdate('Y-m-d');
+
+        return $wpdb->get_var($wpdb->prepare(
+            "SELECT MAX(snapshot_date) FROM {$table} WHERE org_id = %d AND snapshot_date <= %s",
+            (int) $org_id,
+            $before_date
+        ));
+    }
+
+    /**
+     * Load balances captured on a specific snapshot date.
+     */
+    public static function get_balance_snapshot($org_id, $snapshot_date) {
+        global $wpdb;
+
+        $table = OraBooks_Database::table('balance_snapshots');
+        $rows = $wpdb->get_results($wpdb->prepare(
+            "SELECT account_id, balance FROM {$table}
+             WHERE org_id = %d AND snapshot_date = %s",
+            (int) $org_id,
+            $snapshot_date
+        ));
+
+        $balances = [];
+        foreach ($rows as $row) {
+            $balances[(int) $row->account_id] = (float) $row->balance;
+        }
+
+        return [
+            'org_id' => (int) $org_id,
+            'snapshot_date' => $snapshot_date,
+            'balances' => $balances,
+        ];
+    }
+
+    /**
+     * Recompute balances from the latest snapshot plus ledger entries since checkpoint.
+     */
+    public static function replay_balances_from_snapshot($org_id, $through_date = null) {
+        global $wpdb;
+
+        $org_id = (int) $org_id;
+        $through_date = $through_date ?: gmdate('Y-m-d');
+        $snapshot_date = self::get_latest_balance_snapshot_date($org_id, $through_date);
+        $balances = [];
+
+        if ($snapshot_date) {
+            $snapshot = self::get_balance_snapshot($org_id, $snapshot_date);
+            $balances = $snapshot['balances'];
+            $replay_from = $snapshot_date;
+        } else {
+            $replay_from = '1970-01-01';
+        }
+
+        $table_ledger = OraBooks_Database::table('ledger_entries');
+        $table_accounts = OraBooks_Database::table('accounts');
+
+        $entries = $wpdb->get_results($wpdb->prepare(
+            "SELECT le.account_id, le.debit_amount, le.credit_amount, a.normal_balance
+             FROM {$table_ledger} le
+             INNER JOIN {$table_accounts} a ON a.id = le.account_id AND a.org_id = le.org_id
+             WHERE le.org_id = %d
+               AND DATE(le.posted_at) > %s
+               AND DATE(le.posted_at) <= %s",
+            $org_id,
+            $replay_from,
+            $through_date
+        ));
+
+        foreach ($entries as $entry) {
+            $account_id = (int) $entry->account_id;
+            if (!isset($balances[$account_id])) {
+                $balances[$account_id] = 0.0;
+            }
+
+            $delta = $entry->normal_balance === 'debit'
+                ? ((float) $entry->debit_amount - (float) $entry->credit_amount)
+                : ((float) $entry->credit_amount - (float) $entry->debit_amount);
+            $balances[$account_id] = round($balances[$account_id] + $delta, 2);
+        }
+
+        return [
+            'org_id' => $org_id,
+            'snapshot_date' => $snapshot_date,
+            'through_date' => $through_date,
+            'balances' => $balances,
+        ];
+    }
+
+    /**
+     * Compare replayed balances (snapshot + delta) against stored account_balances.
+     */
+    public static function validate_snapshot_replay($org_id, $through_date = null) {
+        global $wpdb;
+
+        $org_id = (int) $org_id;
+        $replay = self::replay_balances_from_snapshot($org_id, $through_date);
+        $issues = [];
+
+        if (!$replay['snapshot_date']) {
+            return [
+                'org_id' => $org_id,
+                'ok' => true,
+                'issues' => [],
+                'snapshot_date' => null,
+            ];
+        }
+
+        $table_balances = OraBooks_Database::table('account_balances');
+        $stored = $wpdb->get_results($wpdb->prepare(
+            "SELECT account_id, balance FROM {$table_balances} WHERE org_id = %d",
+            $org_id
+        ));
+
+        $stored_map = [];
+        foreach ($stored as $row) {
+            $stored_map[(int) $row->account_id] = (float) $row->balance;
+        }
+
+        $account_ids = array_unique(array_merge(array_keys($replay['balances']), array_keys($stored_map)));
+        foreach ($account_ids as $account_id) {
+            $replayed = (float) ($replay['balances'][$account_id] ?? 0);
+            $current = (float) ($stored_map[$account_id] ?? 0);
+            if (abs($replayed - $current) > 0.01) {
+                $issues[] = [
+                    'type' => 'snapshot_replay_mismatch',
+                    'account_id' => (int) $account_id,
+                    'snapshot_date' => $replay['snapshot_date'],
+                    'replayed_balance' => $replayed,
+                    'stored_balance' => $current,
+                ];
+            }
+        }
+
+        return [
+            'org_id' => $org_id,
+            'ok' => empty($issues),
+            'issues' => $issues,
+            'snapshot_date' => $replay['snapshot_date'],
+        ];
+    }
+
     public static function cron_validate_all_orgs() {
         global $wpdb;
 
