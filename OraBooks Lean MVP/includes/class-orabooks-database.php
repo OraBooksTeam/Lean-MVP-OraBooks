@@ -879,6 +879,22 @@ class OraBooks_Database {
             wp_schedule_event(time(), 'monthly', 'orabooks_attachments_purge');
         }
 
+        // ============================================================
+        // SL-076: AI Review Queue
+        // ============================================================
+        $ai_review_tables = OraBooks_Ai_Review::get_create_table_sql();
+        foreach ($ai_review_tables as $sql) {
+            dbDelta($sql);
+        }
+
+        if (!wp_next_scheduled('orabooks_ai_review_process')) {
+            wp_schedule_event(time(), 'five_minutes', 'orabooks_ai_review_process');
+        }
+
+        if (!wp_next_scheduled('orabooks_ai_review_purge')) {
+            wp_schedule_event(time(), 'daily', 'orabooks_ai_review_purge');
+        }
+
         update_option('orabooks_db_version', ORABOOKS_DB_VERSION);
     }
     

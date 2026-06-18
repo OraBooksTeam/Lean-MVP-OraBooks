@@ -845,6 +845,9 @@ class OraBooks_Posting {
         if (is_wp_error($result)) {
             orabooks_json_error($result->get_error_message(), 400);
         }
+        if (is_array($result) && !empty($result['ai_review'])) {
+            orabooks_json_success($result, 'Journal queued for AI review');
+        }
         orabooks_json_success([], 'Journal submitted for approval');
     }
     

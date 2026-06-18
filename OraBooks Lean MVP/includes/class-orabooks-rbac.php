@@ -29,6 +29,7 @@ class OraBooks_RBAC {
     private static function define_permissions() {
         self::$permissions = [
             'view_reports'                => ['owner', 'admin', 'approver', 'staff', 'viewer'],
+            'view_ai_review_queue'        => ['owner', 'admin', 'approver'],
             'submit_transaction'          => ['owner', 'admin', 'staff'],
             'approve_journal'             => ['owner', 'admin', 'approver'],
             'invite_user'                 => ['owner', 'admin'],

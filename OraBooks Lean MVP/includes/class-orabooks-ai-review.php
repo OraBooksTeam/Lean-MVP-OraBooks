@@ -467,6 +467,10 @@ class OraBooks_Ai_Review {
 
         self::record_history((int) $item->id, (int) $item->org_id, 'escalate', 0, $evaluation);
 
+        if ($item->journal_id && class_exists('OraBooks_Posting')) {
+            OraBooks_Posting::promote_to_review_pending((int) $item->journal_id, 0);
+        }
+
         if (function_exists('orabooks_publish_event')) {
             orabooks_publish_event('ai_review_escalated', (int) ($item->journal_id ?: $item->resource_id), [
                 'queue_id'      => (int) $item->id,
