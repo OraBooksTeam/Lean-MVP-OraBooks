@@ -7,6 +7,9 @@
          failOnRisky="true"
          cacheResult="false">
     <testsuites>
+        <testsuite name="OraBooks SL-001 Posting Tests">
+            <file>OraBooks_Posting_Test.php</file>
+        </testsuite>
         <testsuite name="OraBooks SL-017 CoA Tests">
             <file>OraBooks_COA_Test.php</file>
         </testsuite>
