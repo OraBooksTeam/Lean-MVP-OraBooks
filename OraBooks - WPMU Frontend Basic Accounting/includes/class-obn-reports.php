@@ -516,7 +516,7 @@ class OBN_Reports {
         $jl_table    = "{$wpdb->prefix}orabooks_ac_journal_line";
         $coa_table   = "{$wpdb->prefix}orabooks_ac_coa_list";
 
-        $opening_sql = $wpdb->prepare("\n            SELECT \n                coal.coa_type_id,\n                COALESCE(SUM(CASE WHEN je.status = 'Posted' AND je.entry_date < %s THEN jl.debit ELSE 0 END), 0) as total_debit,\n                COALESCE(SUM(CASE WHEN je.status = 'Posted' AND je.entry_date < %s THEN jl.credit ELSE 0 END), 0) as total_credit\n            FROM $coa_table coal\n            LEFT JOIN $jl_table jl ON coal.id = jl.account_id\n            LEFT JOIN $je_table je ON jl.journal_entry_id = je.id\n            WHERE coal.id = %d\n            GROUP BY coal.id\n        ", $start_date, $start_date, $account_id);
+        $opening_sql = $wpdb->prepare("\n            SELECT \n                coal.coa_type_id,\n                COALESCE(SUM(CASE WHEN je.status = 'Posted' AND je.entry_date < %s THEN jl.debit ELSE 0 END), 0) as total_debit,\n                COALESCE(SUM(CASE WHEN je.status = 'Posted' AND je.entry_date < %s THEN jl.credit ELSE 0 END), 0) as total_credit\n            FROM $coa_table coal\n            LEFT JOIN $jl_table jl ON coal.id = jl.account_id\n            LEFT JOIN $je_table je ON jl.journal_entry_id = je.id AND (je.organization_id = %d OR je.store_id = %d)\n            WHERE coal.id = %d AND (coal.store_id = %d OR coal.organization_id = %d OR coal.store_id IS NULL)\n            GROUP BY coal.id\n        ", $start_date, $start_date, $org_id, $org_id, $account_id, $org_id, $org_id);
         
         $opening = $wpdb->get_row($opening_sql);
         $total_opening = 0;
@@ -545,8 +545,9 @@ class OBN_Reports {
               AND je.status = 'Posted' 
               AND je.entry_date >= %s 
               AND je.entry_date <= %s
+              AND (je.organization_id = %d OR je.store_id = %d)
             ORDER BY je.entry_date ASC, je.id ASC
-        ", $account_id, $start_date, $end_date);
+        ", $account_id, $start_date, $end_date, $org_id, $org_id);
         
         $rows = $wpdb->get_results($sql);
 
