@@ -59,6 +59,8 @@ require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-classification.php';
 require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-expenses.php';
 require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-voice.php';
 require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-security.php';
+require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-pwa.php';
+require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-rest-api.php';
 require_once ORABOOKS_PLUGIN_DIR . 'includes/helpers.php';
 
 add_filter('script_loader_tag', ['OraBooks_Assets', 'filter_react_script_tag'], 10, 3);
@@ -110,6 +112,8 @@ function orabooks_init() {
     OraBooks_Expenses::init();
     OraBooks_Voice::init();
     OraBooks_Security::init();
+    OraBooks_Pwa::init();
+    OraBooks_Rest_Api::init();
     OraBooks_Exports::register_report_provider('coa', function($params) {
         // Reuse OraBooks_COA if available
         if (class_exists('OraBooks_COA') && method_exists('OraBooks_COA', 'get_accounts')) {
@@ -904,9 +908,4 @@ function orabooks_body_class($classes) {
     foreach ($auth_shortcodes as $shortcode) {
         if (has_shortcode($post->post_content, $shortcode)) {
             $classes[] = 'orabooks-auth-page';
-            break;
-        }
-    }
-
-    return $classes;
-}
+    

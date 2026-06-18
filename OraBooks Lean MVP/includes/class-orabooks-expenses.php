@@ -191,21 +191,24 @@ class OraBooks_Expenses {
         $table = OraBooks_Database::table(self::TABLE_EXPENSES);
         $org_id = intval($org_id);
         $limit = max(1, min(100, intval($args['limit'] ?? 25)));
-        $status = sanitize_text_field($args['status'] ?? '');
+        $offset = max(0, intval($args['offset'] ?? 0));
+        $status = sanitize_text_field($args['status'] ?? $args['workflow_status'] ?? '');
 
         if ($status !== '') {
             return $wpdb->get_results($wpdb->prepare(
-                "SELECT * FROM {$table} WHERE org_id = %d AND workflow_status = %s ORDER BY created_at DESC LIMIT %d",
+                "SELECT * FROM {$table} WHERE org_id = %d AND workflow_status = %s ORDER BY created_at DESC LIMIT %d OFFSET %d",
                 $org_id,
                 $status,
-                $limit
+                $limit,
+                $offset
             ));
         }
 
         return $wpdb->get_results($wpdb->prepare(
-            "SELECT * FROM {$table} WHERE org_id = %d ORDER BY created_at DESC LIMIT %d",
+            "SELECT * FROM {$table} WHERE org_id = %d ORDER BY created_at DESC LIMIT %d OFFSET %d",
             $org_id,
-            $limit
+            $limit,
+            $offset
         ));
     }
 

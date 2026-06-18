@@ -172,7 +172,7 @@ class OraBooks_Assets {
             $config['admin_nav'] = orabooks_get_admin_nav_items();
         }
 
-        return $config;
+        return apply_filters('orabooks_ajax_config', $config);
     }
 
     /**
