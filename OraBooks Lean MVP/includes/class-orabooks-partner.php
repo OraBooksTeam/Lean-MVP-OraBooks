@@ -21,6 +21,7 @@ class OraBooks_Partner {
             add_action('wp_ajax_orabooks_get_partner_info', [self::$instance, 'ajax_get_partner_info']);
             add_action('wp_ajax_nopriv_orabooks_get_partner_info', [self::$instance, 'ajax_get_partner_info']);
             add_action('wp_ajax_orabooks_partner_onboarding', [self::$instance, 'ajax_partner_onboarding']);
+            add_action('wp_ajax_nopriv_orabooks_partner_onboarding', [self::$instance, 'ajax_partner_onboarding']);
             add_action('wp_ajax_orabooks_request_reactivation', [self::$instance, 'ajax_request_reactivation']);
             add_action('wp_ajax_nopriv_orabooks_request_reactivation', [self::$instance, 'ajax_request_reactivation']);
             
@@ -844,7 +845,10 @@ class OraBooks_Partner {
     }
 
     public function ajax_partner_onboarding() {
-        $user_id = get_current_user_id();
+        $user_id = orabooks_get_current_user_id();
+        if (!$user_id) {
+            orabooks_json_error('Not authenticated', 401);
+        }
 
         if (!orabooks_check_rate_limit('partner_onboarding_' . $user_id, 60, 60)) {
             orabooks_json_error('Too many requests', 429);
