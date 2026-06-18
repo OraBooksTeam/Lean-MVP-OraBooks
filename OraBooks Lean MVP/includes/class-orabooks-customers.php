@@ -1279,15 +1279,10 @@ class OraBooks_Customers {
      * List invoices.
      */
     public function ajax_invoices_list() {
-        $user_id = get_current_user_id();
-        $org_id = intval($_GET['org_id'] ?? 0);
-
-        if (!current_user_can('manage_options') && !OraBooks_RBAC::require_permission($user_id, $org_id, 'view_invoices')) {
-            orabooks_json_error('Permission denied', 403);
-        }
+        $user_id = orabooks_get_current_user_id();
+        $org_id = intval($_GET['org_id'] ?? $_POST['org_id'] ?? 0);
 
         if (!$org_id) {
-            // Try to get from user's org
             global $wpdb;
             $table_users = OraBooks_Database::table('users');
             $org_id = (int) $wpdb->get_var($wpdb->prepare(
@@ -1299,6 +1294,8 @@ class OraBooks_Customers {
         if (!$org_id) {
             orabooks_json_error('Organization ID required', 400);
         }
+
+        $this->require_customer_access($user_id, $org_id, 'view_invoices');
 
         $args = [
             'customer_id'      => intval($_GET['customer_id'] ?? 0),
