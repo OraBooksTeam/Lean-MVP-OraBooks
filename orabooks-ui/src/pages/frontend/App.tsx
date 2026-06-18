@@ -22,6 +22,7 @@ import AiReviewPage from './pages/AiReviewPage';
 import ExpensesPage from './pages/ExpensesPage';
 import VoicePage from './pages/VoicePage';
 import FiscalPeriodsPage from './pages/FiscalPeriodsPage';
+import ProfilePage from './pages/ProfilePage';
 import NotificationPreferencesPage from './pages/NotificationPreferencesPage';
 
 export default function FrontendRoutes() {
