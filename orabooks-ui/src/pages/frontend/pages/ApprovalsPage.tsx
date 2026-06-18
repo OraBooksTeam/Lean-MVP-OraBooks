@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import Button from '@/components/Button';
 import { api } from '../api';
 import ClientShell from '../components/ClientShell';
@@ -290,7 +290,15 @@ function JournalSection({
                 <td className="px-5 py-3 text-slate-600">{journal.source_type || 'manual'}</td>
                 <td className="px-5 py-3 text-right font-bold text-ink">{money(journal.total_amount)}</td>
                 <td className="px-5 py-3">
-                  <div className="flex flex-wrap gap-2">{actions(journal)}</div>
+                  <div className="flex flex-wrap gap-2">
+                    {actions(journal)}
+                    <Link to={`/attachments?resource_type=journal&resource_id=${journal.id}`}>
+                      <Button variant="secondary" size="sm">
+                        <Paperclip className="h-3.5 w-3.5" />
+                        Files
+                      </Button>
+                    </Link>
+                  </div>
                 </td>
               </tr>
             ))
