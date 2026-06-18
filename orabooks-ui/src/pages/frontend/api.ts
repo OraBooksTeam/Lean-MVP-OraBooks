@@ -179,6 +179,24 @@ export const api = {
     api.get('orabooks_customer_dashboard'),
   vendorDashboard: () =>
     api.get('orabooks_vendor_dashboard'),
+  vendorsList: (orgId: number, filters: Record<string, unknown> = {}) =>
+    api.get('orabooks_vendors_list', { org_id: orgId, ...filters }),
+  vendorCreate: (orgId: number, data: Record<string, unknown>) =>
+    api.post('orabooks_vendor_create', { org_id: orgId, ...data }),
+  billsList: (orgId: number, filters: Record<string, unknown> = {}) =>
+    api.get('orabooks_bills_list', { org_id: orgId, ...filters }),
+  billCreate: (orgId: number, data: Record<string, unknown>) =>
+    api.post('orabooks_bill_create', { org_id: orgId, ...data }),
+  billSubmit: (orgId: number, billId: number) =>
+    api.post('orabooks_bill_submit', { org_id: orgId, bill_id: billId }),
+  billApprove: (orgId: number, billId: number) =>
+    api.post('orabooks_bill_approve', { org_id: orgId, bill_id: billId }),
+  billPost: (orgId: number, billId: number) =>
+    api.post('orabooks_bill_post', { org_id: orgId, bill_id: billId }),
+  vendorPaymentRecord: (orgId: number, data: Record<string, unknown>) =>
+    api.post('orabooks_vendor_payment_record', { org_id: orgId, ...data }),
+  apAging: (orgId: number, asOfDate?: string) =>
+    api.get('orabooks_ap_aging', { org_id: orgId, ...(asOfDate ? { as_of_date: asOfDate } : {}) }),
   inventoryDashboard: () =>
     api.get('orabooks_inventory_dashboard'),
   bankDashboard: () =>
