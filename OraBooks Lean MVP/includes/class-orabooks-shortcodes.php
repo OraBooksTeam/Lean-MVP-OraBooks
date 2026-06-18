@@ -214,6 +214,13 @@ class OraBooks_Shortcodes {
         return $this->ajax_dashboard_page(__('Chart of Accounts', 'orabooks'), 'orabooks_customer_dashboard', __('Account summary for your organization.', 'orabooks'));
     }
 
+    public function fiscal_periods_page() {
+        if (!get_current_user_id()) {
+            return OraBooks_Views::require_login_message();
+        }
+        return $this->ajax_dashboard_page(__('Fiscal Periods', 'orabooks'), 'orabooks_frontend_context', __('Manage fiscal period close and reopen governance.', 'orabooks'));
+    }
+
     public function journals_page() {
         if (!get_current_user_id()) {
             return OraBooks_Views::require_login_message();
