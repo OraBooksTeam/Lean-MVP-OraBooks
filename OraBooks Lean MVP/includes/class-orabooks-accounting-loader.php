@@ -21,8 +21,9 @@ class OraBooks_Accounting {
         self::define_constants();
         define('ORABOOKS_ACCOUNTING_LOADED', true);
 
-        add_action('plugins_loaded', [__CLASS__, 'declare_fallbacks'], 1);
-        add_action('plugins_loaded', [__CLASS__, 'load_modules'], 5);
+        self::declare_fallbacks();
+        self::load_modules();
+
         add_action('init', [__CLASS__, 'init_sessions'], 1);
         add_action('init', [__CLASS__, 'init_logic'], 20);
         add_action('wpmu_new_blog', [__CLASS__, 'on_new_blog'], 10, 6);
