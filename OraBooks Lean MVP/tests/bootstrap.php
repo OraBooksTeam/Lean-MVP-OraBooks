@@ -277,6 +277,14 @@ if (!class_exists('wpdb', false)) {
             return $this->insert_id;
         }
 
+        public function replace($table, $data, $format = []) {
+            if ($this->test_insert_callback !== null) {
+                ($this->test_insert_callback)($table, $data, $format);
+            }
+            $this->insert_id = rand(100, 999);
+            return 1;
+        }
+
         public function update($table, $data, $where, $format = [], $where_format = []) {
             if ($this->test_update_callback !== null) {
                 return ($this->test_update_callback)($table, $data, $where, $format, $where_format);
