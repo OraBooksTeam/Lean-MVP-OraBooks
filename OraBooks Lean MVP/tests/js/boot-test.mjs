@@ -1,10 +1,10 @@
 import { JSDOM } from 'jsdom';
 import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
-const js = fs.readFileSync(
-  new URL('../../assets/react/frontend.js', import.meta.url),
-  'utf8'
-);
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const js = fs.readFileSync(path.join(__dirname, '../../assets/react/frontend.js'), 'utf8');
 
 const dom = new JSDOM(
   `<!DOCTYPE html><html><body>
@@ -35,5 +35,4 @@ const root = window.document.getElementById('orabooks-app-root');
 console.log('mounted:', window.orabooksReactMounted);
 console.log('is-mounted:', root?.classList.contains('is-mounted'));
 console.log('hash:', window.location.hash);
-console.log('loading visible:', root?.querySelector('.orabooks-app-root-loading')?.textContent);
 console.log('root text sample:', root?.textContent?.slice(0, 120));
