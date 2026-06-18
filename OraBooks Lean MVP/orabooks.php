@@ -319,7 +319,7 @@ function orabooks_create_required_pages() {
 
 // Activation hook
 register_activation_hook(__FILE__, 'orabooks_activate');
-function orabooks_activate() {
+function orabooks_activate($network_wide = false) {
     require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-database.php';
     OraBooks_Database::install();
     
@@ -331,7 +331,7 @@ function orabooks_activate() {
     orabooks_create_required_pages();
 
     // Install legacy accounting tables (sales, purchase, inventory, GL UI)
-    OraBooks_Accounting::activate(is_multisite() && isset($_GET['networkwide']));
+    OraBooks_Accounting::activate((bool) $network_wide);
     
     // Set default options
     add_option('orabooks_db_version', ORABOOKS_DB_VERSION);
@@ -908,6 +908,10 @@ function orabooks_body_class($classes) {
 
     if (OraBooks_Assets::should_enqueue_frontend_react($post->post_content)) {
         $classes[] = 'orabooks-react-page';
+    }
+
+    if (has_shortcode($post->post_content, 'orabooks_accounting')) {
+        $classes[] = 'orabooks-accounting-page';
     }
 
     $auth_shortcodes = ['orabooks_login', 'orabooks_register', 'orabooks_tier_selection', 'orabooks_reset_password'];

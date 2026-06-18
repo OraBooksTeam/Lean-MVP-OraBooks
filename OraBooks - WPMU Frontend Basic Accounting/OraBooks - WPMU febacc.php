@@ -1,8 +1,8 @@
 <?php
 /**
- * Plugin Name: OraBooks - WPMU Frontend Basic Accounting
+ * Plugin Name: OraBooks - WPMU Frontend Basic Accounting (Deprecated)
  * Plugin URI: https://www.enest.com.bd/plugins/wpmu-tob-febacc
- * Description: Advanced accounting workspace addon for OraBooks Lean MVP (sales, purchase, inventory, GL).
+ * Description: DEPRECATED — merged into OraBooks Lean MVP. Deactivate this plugin and use the unified OraBooks plugin only.
  * Version: 1/25
  * Author: Engr. AnwarIT CASDP and Farid Ahmed
  * Author URI: https://www.anwarit.com
@@ -23,6 +23,30 @@
 // If this file is called directly, abort.
 if (!defined('WPINC')) {
 	die;
+}
+
+/**
+ * This plugin has been merged into OraBooks Lean MVP (single unified plugin).
+ * Deactivate this standalone copy to avoid duplicate handlers and shortcodes.
+ */
+if (defined('ORABOOKS_ACCOUNTING_LOADED')) {
+	add_action('admin_notices', function () {
+		if (!current_user_can('activate_plugins')) {
+			return;
+		}
+		echo '<div class="notice notice-warning is-dismissible"><p>' .
+			esc_html__('OraBooks - WPMU Frontend Basic Accounting is now built into OraBooks Lean MVP. Please deactivate this standalone plugin.', 'wpmu tob febacc') .
+			'</p></div>';
+	});
+	add_action('network_admin_notices', function () {
+		if (!current_user_can('activate_plugins')) {
+			return;
+		}
+		echo '<div class="notice notice-warning is-dismissible"><p>' .
+			esc_html__('OraBooks - WPMU Frontend Basic Accounting is now built into OraBooks Lean MVP. Please deactivate this standalone plugin.', 'wpmu tob febacc') .
+			'</p></div>';
+	});
+	return;
 }
 
 /**
