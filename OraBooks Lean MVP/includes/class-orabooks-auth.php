@@ -23,6 +23,8 @@ class OraBooks_Auth {
             add_action('wp_ajax_orabooks_login', [self::$instance, 'ajax_login']);
             add_action('wp_ajax_nopriv_orabooks_verify_email', [self::$instance, 'ajax_verify_email']);
             add_action('wp_ajax_orabooks_verify_email', [self::$instance, 'ajax_verify_email']);
+            add_action('wp_ajax_nopriv_orabooks_verify_email_token', [self::$instance, 'ajax_verify_email_token']);
+            add_action('wp_ajax_orabooks_verify_email_token', [self::$instance, 'ajax_verify_email_token']);
             add_action('wp_ajax_nopriv_orabooks_resend_verification', [self::$instance, 'ajax_resend_verification']);
             add_action('wp_ajax_orabooks_resend_verification', [self::$instance, 'ajax_resend_verification']);
             add_action('wp_ajax_nopriv_orabooks_forgot_password', [self::$instance, 'ajax_forgot_password']);
