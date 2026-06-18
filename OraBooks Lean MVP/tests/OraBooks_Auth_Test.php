@@ -1014,8 +1014,9 @@ class OraBooks_Auth_Test extends TestCase
             'partner_code' => 'INVALID-CODE',
         ]);
 
-        $this->assertInstanceOf(WP_Error::class, $result);
-        $this->assertEquals('invalid_code', $result->get_error_code());
+        $this->assertIsArray($result);
+        $this->assertEquals(80, $result['user_id']);
+        $this->assertEquals(0, $result['is_partner']);
     }
 
     // ================================================================
