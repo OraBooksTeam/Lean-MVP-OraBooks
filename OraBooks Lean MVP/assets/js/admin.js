@@ -959,10 +959,16 @@ jQuery(document).ready(function($) {
             action: 'orabooks_customer_stats',
             org_id: 0
         }, function(r) {
-            if (r.success !== false) {
+            if (!r.error && r.data) {
                 orabooksLoadCustomers();
                 orabooksLoadReports(r.data);
+            } else {
+                $('#orabooks-cust-loading').hide();
+                $('#orabooks-customers-content').show();
             }
+        }).fail(function() {
+            $('#orabooks-cust-loading').hide();
+            $('#orabooks-customers-content').show();
         });
     }
 

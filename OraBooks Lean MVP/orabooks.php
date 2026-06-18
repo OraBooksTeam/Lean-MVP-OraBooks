@@ -540,7 +540,7 @@ function orabooks_admin_users() {
 }
 
 function orabooks_admin_audit() {
-    include ORABOOKS_PLUGIN_DIR . 'admin/audit.php';
+    orabooks_admin_render_app('/admin/audit');
 }
 
 function orabooks_admin_settings() {

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import AdminPageShell from '@/components/AdminPageShell';
 import { api } from '../api';
 import Button from '@/components/Button';
 import { UserCheck, Mail, Shield } from 'lucide-react';
@@ -28,11 +29,7 @@ export default function AdminUsers() {
   useEffect(() => { load(); }, []);
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-ink">Users & Teams</h1>
-        <Button variant="secondary" onClick={load}>Refresh</Button>
-      </div>
+    <AdminPageShell title="Users & Teams" description="Platform user accounts, verification, and security posture." actions={<Button variant="secondary" onClick={load}>Refresh</Button>}>
       <div className="glass-panel overflow-hidden">
         <table className="min-w-full text-left text-sm">
           <thead>
@@ -65,6 +62,6 @@ export default function AdminUsers() {
           </tbody>
         </table>
       </div>
-    </div>
+    </AdminPageShell>
   );
 }

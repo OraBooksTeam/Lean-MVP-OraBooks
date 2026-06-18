@@ -1,5 +1,13 @@
-<div class="wrap orabooks-admin">
-    <h1><?php _e('OraBooks Settings', 'orabooks'); ?></h1>
+<div class="wrap orabooks-admin orabooks-admin-settings">
+    <div class="orabooks-settings-hero">
+        <div class="orabooks-settings-accent"></div>
+        <div class="orabooks-settings-hero-body">
+            <p class="orabooks-settings-eyebrow"><?php esc_html_e('OraBooks Admin', 'orabooks'); ?></p>
+            <h1><?php esc_html_e('Platform Settings', 'orabooks'); ?></h1>
+            <p class="orabooks-settings-desc"><?php esc_html_e('Security, authentication, and audit retention defaults.', 'orabooks'); ?></p>
+        </div>
+    </div>
+    <div class="orabooks-settings-card">
     <form method="post" action="options.php">
         <?php settings_fields('orabooks_settings'); ?>
         <table class="form-table">
@@ -43,6 +51,7 @@
                 </td>
             </tr>
         </table>
-        <?php submit_button(); ?>
+        <?php submit_button(__('Save Settings', 'orabooks'), 'primary', 'submit', true, ['class' => 'orabooks-btn-premium']); ?>
     </form>
+    </div>
 </div>
