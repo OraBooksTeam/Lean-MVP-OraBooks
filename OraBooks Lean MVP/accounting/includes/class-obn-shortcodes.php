@@ -115,9 +115,8 @@ class OBN_Shortcodes
 	public function render_dashboard()
 	{
 		// If not logged in at all, redirect to login
-		if (!is_user_logged_in()) {
-			// Option: Redirect automatically
-			wp_redirect(wp_login_url(get_permalink()));
+		if (!function_exists('orabooks_is_user_logged_in') || !orabooks_is_user_logged_in()) {
+			wp_redirect(home_url('/login/'));
 			exit;
 		}
 

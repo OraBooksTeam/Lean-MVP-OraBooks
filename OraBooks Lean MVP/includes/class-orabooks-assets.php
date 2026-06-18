@@ -139,7 +139,8 @@ class OraBooks_Assets {
 
             if (
                 function_exists('orabooks_uses_merged_accounting_workspace')
-                && is_user_logged_in()
+                && function_exists('orabooks_is_user_logged_in')
+                && orabooks_is_user_logged_in()
                 && orabooks_uses_merged_accounting_workspace()
                 && function_exists('orabooks_merged_accounting_shortcodes')
                 && in_array($tag, orabooks_merged_accounting_shortcodes(), true)

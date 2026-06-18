@@ -112,7 +112,8 @@ class OBN_Lean_MVP_Bridge {
     }
 
     public static function can_access_accounting($user_id = 0) {
-        if (!is_user_logged_in() && !$user_id) {
+        $user_id = $user_id ?: (function_exists('orabooks_get_current_user_id') ? orabooks_get_current_user_id() : get_current_user_id());
+        if (!$user_id) {
             return false;
         }
 
