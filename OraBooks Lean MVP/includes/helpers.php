@@ -8,6 +8,25 @@ if (!defined('ABSPATH')) {
 }
 
 /**
+ * Whether the active theme is Divi (parent or child).
+ */
+function orabooks_is_divi_theme() {
+    if (defined('ET_BUILDER_VERSION')) {
+        return true;
+    }
+
+    $theme = wp_get_theme();
+    if (!$theme) {
+        return false;
+    }
+
+    $template = $theme->get_template();
+    $stylesheet = $theme->get_stylesheet();
+
+    return in_array('Divi', [$template, $stylesheet], true);
+}
+
+/**
  * Generate a cryptographically secure random string
  */
 function orabooks_random_string($length = 32) {
