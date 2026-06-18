@@ -99,6 +99,10 @@ class OraBooks_Organization {
             );
         }
         
+        if ($organization_type === 'customer' && class_exists('OraBooks_Approval')) {
+            OraBooks_Approval::ensure_policy($org_id);
+        }
+        
         // Update user's org_id
         $table_users = OraBooks_Database::table('users');
         $wpdb->update(

@@ -636,6 +636,20 @@ class OraBooks_Database {
             FOREIGN KEY (org_id) REFERENCES {$table_organizations}(id) ON DELETE CASCADE
         ) {$charset_collate};";
         dbDelta($sql);
+
+        if (class_exists('OraBooks_Approval')) {
+            OraBooks_Approval::install_history_guards();
+        }
+
+        if (!wp_next_scheduled('orabooks_approval_expire_stale')) {
+            wp_schedule_event(time(), 'hourly', 'orabooks_approval_expire_stale');
+        }
+        if (!wp_next_scheduled('orabooks_approval_escalate_overdue')) {
+            wp_schedule_event(time(), 'hourly', 'orabooks_approval_escalate_overdue');
+        }
+        if (!wp_next_scheduled('orabooks_approval_expiry_reminders')) {
+            wp_schedule_event(time(), 'hourly', 'orabooks_approval_expiry_reminders');
+        }
         
         // ============================================================
         // SL-303: async_jobs table
