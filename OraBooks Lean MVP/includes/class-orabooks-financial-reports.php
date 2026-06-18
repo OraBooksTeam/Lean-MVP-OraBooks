@@ -1455,9 +1455,32 @@ class OraBooks_Financial_Reports {
         }
 
         $result = self::rebuild_projection($_POST['projection_name'] ?? '', [
+            'org_id' => intval($_POST['org_id'] ?? 0),
             'batch_size' => intval($_POST['batch_size'] ?? 1000),
             'throttle_per_sec' => intval($_POST['throttle_per_sec'] ?? 100),
+            'period_start' => sanitize_text_field($_POST['period_start'] ?? ''),
+            'period_end' => sanitize_text_field($_POST['period_end'] ?? ''),
             'use_queue' => !empty($_POST['use_queue']),
+            'skip_throttle' => !empty($_POST['skip_throttle']),
+        ]);
+        if (is_wp_error($result)) {
+            orabooks_json_error($result->get_error_message(), 400);
+        }
+        orabooks_json_success($result);
+    }
+
+    public function ajax_replay_projection() {
+        if (!current_user_can('manage_options')) {
+            orabooks_json_error('Permission denied', 403);
+        }
+
+        $result = self::replay_projection($_POST['projection_name'] ?? 'ledger_summary', [
+            'org_id' => intval($_POST['org_id'] ?? 0),
+            'batch_size' => intval($_POST['batch_size'] ?? 1000),
+            'throttle_per_sec' => intval($_POST['throttle_per_sec'] ?? 100),
+            'period_start' => sanitize_text_field($_POST['period_start'] ?? ''),
+            'period_end' => sanitize_text_field($_POST['period_end'] ?? ''),
+            'skip_throttle' => !empty($_POST['skip_throttle']),
         ]);
         if (is_wp_error($result)) {
             orabooks_json_error($result->get_error_message(), 400);
