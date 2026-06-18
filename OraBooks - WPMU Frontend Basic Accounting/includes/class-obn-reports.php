@@ -84,12 +84,7 @@ class OBN_Reports {
 
     public function handle_search_journal_report() {
         check_ajax_referer('frontend_ajax_nonce', 'security');
-
-        $auth = new OBN_Auth();
-        if ( ! is_user_logged_in() || ! $auth->can_access_accounting() ) {
-            echo '<tr><td colspan="8" class="px-6 py-10 text-center text-red-500">Access denied.</td></tr>';
-            wp_die();
-        }
+        OBN_Org_Context::require_accounting_access_or_die('html', 'view_financial_reports');
 
         global $wpdb;
 
@@ -220,6 +215,7 @@ class OBN_Reports {
         }
 
         // We fetch all accounts and their summed debits/credits within the date range
+        $org_id = obn_current_org_id();
         $sql = $wpdb->prepare("
             SELECT 
                 coal.account_name, 
@@ -228,11 +224,15 @@ class OBN_Reports {
                 COALESCE(SUM(jl.credit), 0) as total_credit
             FROM $coa_table coal
             LEFT JOIN $jl_table jl ON coal.id = jl.account_id
-            LEFT JOIN $je_table je ON jl.journal_entry_id = je.id AND je.status = 'Posted' AND je.entry_date >= %s AND je.entry_date <= %s
+            LEFT JOIN $je_table je ON jl.journal_entry_id = je.id
+                AND je.status = 'Posted'
+                AND je.entry_date >= %s AND je.entry_date <= %s
+                AND (je.organization_id = %d OR je.store_id = %d)
+            WHERE (coal.store_id = %d OR coal.organization_id = %d OR coal.store_id IS NULL)
             GROUP BY coal.id
             HAVING (total_debit != 0 OR total_credit != 0)
             ORDER BY coal.account_code ASC
-        ", $start_date, $end_date);
+        ", $start_date, $end_date, $org_id, $org_id, $org_id, $org_id);
         
         $rows = $wpdb->get_results($sql);
 

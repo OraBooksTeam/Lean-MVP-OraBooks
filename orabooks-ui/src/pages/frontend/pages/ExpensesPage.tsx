@@ -337,9 +337,25 @@ export default function ExpensesPage() {
 
         {caps.upload && (
           <div className="glass-panel p-5">
-            <div className="flex items-center gap-2 border-b border-border pb-4">
-              <Upload className="h-5 w-5 text-primary" />
-              <h2 className="font-bold text-ink">Upload Receipt</h2>
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-4">
+              <div className="flex items-center gap-2">
+                <Upload className="h-5 w-5 text-primary" />
+                <h2 className="font-bold text-ink">Upload Receipt</h2>
+              </div>
+              {offlineQueueCount > 0 && (
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-3 py-1 text-xs font-medium text-amber-800">
+                  <CloudOff className="h-3.5 w-3.5" />
+                  {offlineQueueCount} queued offline
+                  <button
+                    type="button"
+                    className="ml-1 underline"
+                    disabled={syncingOffline || isOffline()}
+                    onClick={() => void syncOfflineQueue()}
+                  >
+                    {syncingOffline ? 'Syncing…' : 'Sync now'}
+                  </button>
+                </span>
+              )}
             </div>
             <p className="mt-3 text-sm text-slate-600">
               Supported: PDF, JPG, PNG. Max {maxMb}MB. AI extracts vendor, amount, date, and category.
@@ -358,10 +374,27 @@ export default function ExpensesPage() {
                 <Receipt className="h-4 w-4" />
                 {uploading ? 'Processing...' : 'Upload Receipt'}
               </Button>
+              <Button
+                variant="secondary"
+                onClick={() => cameraInputRef.current?.click()}
+                disabled={uploading}
+                title="Take a photo of receipt."
+              >
+                <Camera className="h-4 w-4" />
+                Scan with Camera
+              </Button>
+              <input
+                ref={cameraInputRef}
+                type="file"
+                accept="image/*"
+                capture="environment"
+                className="hidden"
+                onChange={handleCameraCapture}
+              />
             </div>
             <p className="mt-2 flex items-center gap-1.5 text-xs text-slate-500">
               <Camera className="h-3.5 w-3.5" />
-              Mobile camera scan supported via file picker.
+              PWA camera scan on mobile; receipts queue offline until connectivity returns.
             </p>
           </div>
         )}

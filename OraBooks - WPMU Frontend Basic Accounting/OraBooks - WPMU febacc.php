@@ -158,7 +158,7 @@ function obn_accounting_check_dependency()
 	return false;
 }
 
-function obn_accounting_membership_notice()
+function obn_accounting_core_notice()
 {
 	echo '<div class="notice notice-error is-dismissible"><p>' .
 		esc_html__('OraBooks - WPMU Frontend Basic Accounting requires the OraBooks Lean MVP plugin to be installed and activated.', 'wpmu tob febacc') .

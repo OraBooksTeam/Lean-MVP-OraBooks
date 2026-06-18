@@ -252,7 +252,7 @@ class OBN_Accounting_Contacts
         $table = $wpdb->prefix . 'orabooks_db_customers';
         $store_table = $wpdb->prefix . 'orabooks_db_store';
 
-        $store_id = 1; // Default
+        $store_id = obn_store_id(); // Tenant-scoped store/org id
         $prefix = 'CUS-';
         $store = $wpdb->get_row("SELECT id, customer_init FROM $store_table LIMIT 1");
         if ($store) {
@@ -525,7 +525,7 @@ class OBN_Accounting_Contacts
         $table = $wpdb->prefix . 'orabooks_db_suppliers';
         $store_table = $wpdb->prefix . 'orabooks_db_store';
 
-        $store_id = 1;
+        $store_id = obn_store_id();
         $prefix = 'SUP-';
         $store = $wpdb->get_row("SELECT id, supplier_init FROM $store_table LIMIT 1");
         if ($store) {
@@ -1204,7 +1204,7 @@ class OBN_Accounting_Contacts
         $customer = $wpdb->get_row($wpdb->prepare("SELECT store_id, customer_name FROM {$wpdb->prefix}orabooks_db_customers WHERE id = %d", $customer_id));
         $store_id = $customer ? $customer->store_id : 1;
         if (!$store_id)
-            $store_id = 1;
+            $store_id = obn_store_id();
 
         $currency_code = $wpdb->get_var($wpdb->prepare("SELECT currency_code FROM {$wpdb->prefix}orabooks_db_currency WHERE id = (SELECT currency_id FROM {$wpdb->prefix}orabooks_db_store WHERE id = %d LIMIT 1)", $store_id));
         if (!$currency_code)
@@ -1350,7 +1350,7 @@ class OBN_Accounting_Contacts
         $supplier = $wpdb->get_row($wpdb->prepare("SELECT store_id, supplier_name FROM {$wpdb->prefix}orabooks_db_suppliers WHERE id = %d", $supplier_id));
         $store_id = $supplier ? $supplier->store_id : 1;
         if (!$store_id)
-            $store_id = 1;
+            $store_id = obn_store_id();
 
         $currency_code = $wpdb->get_var($wpdb->prepare("SELECT currency_code FROM {$wpdb->prefix}orabooks_db_currency WHERE id = (SELECT currency_id FROM {$wpdb->prefix}orabooks_db_store WHERE id = %d LIMIT 1)", $store_id));
         if (!$currency_code)

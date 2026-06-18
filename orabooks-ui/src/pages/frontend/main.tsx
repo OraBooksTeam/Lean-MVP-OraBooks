@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client';
 import { RouterProvider, createHashRouter } from 'react-router-dom';
 import FrontendRoutes from './App';
 import ExportTriggerButton from '@/components/platform/ExportTriggerButton';
+import { registerOraBooksPwa } from '@/lib/pwa/register-pwa';
 import '@/styles/index.css';
 
 declare global {
@@ -68,6 +69,7 @@ function showFrontendBootError(root: HTMLElement, message: string) {
 }
 
 function bootFrontend() {
+  registerOraBooksPwa();
   bootExportWidgets();
 
   const root = document.getElementById('orabooks-app-root');
