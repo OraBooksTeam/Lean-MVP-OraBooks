@@ -910,6 +910,22 @@ class OraBooks_Database {
             dbDelta($sql);
         }
 
+        $table_expenses = $wpdb->prefix . 'orabooks_expenses';
+        $expense_cols = $wpdb->get_results("SHOW COLUMNS FROM {$table_expenses}");
+        $existing_expense_cols = [];
+        foreach ($expense_cols as $col) {
+            $existing_expense_cols[] = $col->Field;
+        }
+        if (!in_array('tax_override_reason', $existing_expense_cols)) {
+            $wpdb->query("ALTER TABLE {$table_expenses} ADD COLUMN tax_override_reason VARCHAR(64) NULL AFTER posted_at");
+        }
+        if (!in_array('tax_override_by', $existing_expense_cols)) {
+            $wpdb->query("ALTER TABLE {$table_expenses} ADD COLUMN tax_override_by BIGINT UNSIGNED NULL AFTER tax_override_reason");
+        }
+        if (!in_array('tax_override_at', $existing_expense_cols)) {
+            $wpdb->query("ALTER TABLE {$table_expenses} ADD COLUMN tax_override_at TIMESTAMP NULL AFTER tax_override_by");
+        }
+
         if (!wp_next_scheduled('orabooks_expenses_ocr_process')) {
             wp_schedule_event(time(), 'every_5_minutes', 'orabooks_expenses_ocr_process');
         }
