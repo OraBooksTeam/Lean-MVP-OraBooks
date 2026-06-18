@@ -504,11 +504,14 @@ export default function InvoicesPage() {
   );
 }
 
-function Modal({ title, children, onClose }: { title: string; children: React.ReactNode; onClose: () => void }) {
+function Modal({ title, children, onClose }: { title: string; children: ReactNode; onClose: () => void }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4">
-      <div className="w-full max-w-lg rounded-2xl border border-border bg-white p-6 shadow-xl">
-        <h3 className="text-lg font-semibold text-ink">{title}</h3>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4" onClick={onClose}>
+      <div className="w-full max-w-lg rounded-2xl border border-border bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between gap-3">
+          <h3 className="text-lg font-semibold text-ink">{title}</h3>
+          <button type="button" onClick={onClose} className="text-sm text-slate-500 hover:text-slate-700">Close</button>
+        </div>
         <div className="mt-4">{children}</div>
       </div>
     </div>
