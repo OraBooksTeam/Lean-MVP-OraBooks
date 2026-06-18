@@ -284,14 +284,26 @@ function orabooks_create_required_pages() {
         'partner-onboarding'  => ['Partner Onboarding', '[orabooks_partner_onboarding]'],
         'partner-program'     => ['Partner Program', '[orabooks_partner_dashboard]'],
         
-        // Dashboard
+        // Customer workspace (Lean MVP React)
         'dashboard'           => ['Dashboard', '[orabooks_dashboard]'],
         'customers'           => ['Customers', '[orabooks_customers]'],
+        'vendors'             => ['Vendors', '[orabooks_vendors]'],
+        'inventory'           => ['Inventory', '[orabooks_inventory]'],
         'invoices'            => ['Invoices', '[orabooks_invoices]'],
+        'reports'             => ['Reports', '[orabooks_reports]'],
+        'expenses'            => ['Expenses', '[orabooks_expenses]'],
+        'csv-imports'         => ['CSV Imports', '[orabooks_csv_import]'],
+        'bank-reconciliation' => ['Bank Reconciliation', '[orabooks_bank_reconciliation]'],
         'chart-of-accounts'   => ['Chart of Accounts', '[orabooks_chart_of_accounts]'],
         'fiscal-periods'      => ['Fiscal Periods', '[orabooks_fiscal_periods]'],
         'tax-settings'        => ['Tax Settings', '[orabooks_tax_settings]'],
         'journals'            => ['Journals', '[orabooks_journals]'],
+        'team'                => ['Team', '[orabooks_team]'],
+        'attachments'         => ['Attachments', '[orabooks_attachments]'],
+        'approvals'           => ['Approvals', '[orabooks_approvals]'],
+        'ai-review'           => ['AI Review', '[orabooks_ai_review]'],
+        'voice'               => ['Voice Input', '[orabooks_voice]'],
+        'commissions'         => ['Commissions', '[orabooks_commission]'],
         'profile'             => ['Profile', '[orabooks_profile]'],
         
         // Notification pages
