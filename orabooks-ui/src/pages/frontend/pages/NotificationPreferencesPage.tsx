@@ -20,7 +20,14 @@ export default function NotificationPreferencesPage() {
       organization={context?.organization}
       isPartner={context?.organization?.organization_type === 'partner' || context?.user?.is_partner}
     >
-      <NotificationPreferencesForm />
+      <div className="space-y-4">
+        <div className="flex justify-end">
+          <Link to="/notifications" className="text-sm font-medium text-primary hover:text-primary-dark">
+            ← Back to Notification Center
+          </Link>
+        </div>
+        <NotificationPreferencesForm />
+      </div>
     </ClientShell>
   );
 }
