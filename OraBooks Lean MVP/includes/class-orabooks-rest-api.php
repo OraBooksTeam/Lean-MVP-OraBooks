@@ -157,33 +157,25 @@ class OraBooks_Rest_Api {
         return ['user_id' => $user_id, 'org_id' => $org_id];
     }
 
-    public static function can_view_fiscal() {
-        return !is_wp_error(self::require_org_access(self::request_from_globals(), 'manage_fiscal_periods'));
+    public static function can_view_fiscal($request) {
+        return !is_wp_error(self::require_org_access($request, 'manage_fiscal_periods'));
     }
 
-    public static function can_manage_fiscal() {
-        return self::can_view_fiscal();
+    public static function can_manage_fiscal($request) {
+        return self::can_view_fiscal($request);
     }
 
-    public static function can_override_fiscal() {
+    public static function can_override_fiscal($request) {
         $user_id = self::current_user_id();
         return $user_id > 0 && current_user_can('manage_options');
     }
 
-    public static function can_view_expenses() {
-        return !is_wp_error(self::require_org_access(self::request_from_globals(), 'view_expenses'));
+    public static function can_view_expenses($request) {
+        return !is_wp_error(self::require_org_access($request, 'view_expenses'));
     }
 
-    public static function can_manage_expenses() {
-        return !is_wp_error(self::require_org_access(self::request_from_globals(), 'manage_expenses'));
-    }
-
-    private static function request_from_globals() {
-        if (class_exists('WP_REST_Request')) {
-            return new WP_REST_Request($_SERVER['REQUEST_METHOD'] ?? 'GET');
-        }
-
-        return null;
+    public static function can_manage_expenses($request) {
+        return !is_wp_error(self::require_org_access($request, 'manage_expenses'));
     }
 
     public static function rest_list_fiscal_periods(WP_REST_Request $request) {
