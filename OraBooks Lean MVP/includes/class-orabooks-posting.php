@@ -482,34 +482,19 @@ class OraBooks_Posting {
                 }
             }
         }
-        
-        // Compute hash chain
-        $canonical = [
-            'org_id' => $journal->org_id,
-            'journal_number' => $journal_number,
-            'transaction_date' => $journal->transaction_date,
-            'lines' => array_map(function($l) {
-                return [
-                    'account_id' => $l->account_id,
-                    'account_code' => $l->account_code,
-                    'debit' => (float)$l->debit_amount,
-                    'credit' => (float)$l->credit_amount
-                ];
-            }, $lines),
-            'previous_hash' => $previous_hash
-        ];
-        $journal_hash = hash('sha256', json_encode($canonical, JSON_UNESCAPED_SLASHES));
-        
-        // Update journal
+
+        $posted_at = gmdate('Y-m-d H:i:s');
+
+        // Update journal — posted entries are immediately locked (immutable)
         $wpdb->update($table_journals, [
-            'status' => 'posted',
+            'status' => 'locked',
             'posted_by' => $user_id,
-            'posted_at' => current_time('mysql'),
+            'posted_at' => $posted_at,
             'journal_number' => $journal_number,
             'journal_hash' => $journal_hash,
             'previous_hash' => $previous_hash
         ], ['id' => $journal_id], ['%s', '%d', '%s', '%s', '%s', '%s'], ['%d']);
-        
+
         // Publish event via Event Bus (SL-302)
         if (class_exists('OraBooks_EventBus')) {
             OraBooks_EventBus::publish('journal_posted', $journal_id, [
@@ -520,7 +505,6 @@ class OraBooks_Posting {
                 'created_by' => $user_id,
             ]);
         } else {
-            // Fallback: direct outbox insert
             $wpdb->insert($table_outbox, [
                 'event_type' => 'journal_posted',
                 'aggregate_id' => $journal_id,
@@ -532,19 +516,356 @@ class OraBooks_Posting {
                 ])
             ], ['%s', '%d', '%s']);
         }
-        
+
+        self::maybe_emit_fraud_hooks($journal, $lines);
+
         self::transition('journal', $journal_id, 'post', $user_id);
-        
+        self::transition('journal', $journal_id, 'lock', $user_id);
+
         orabooks_log_event('journal_posted', "Journal #$journal_number posted to ledger", 'info', [
             'journal_id' => $journal_id,
             'journal_number' => $journal_number,
             'org_id' => $journal->org_id
         ], $user_id, $journal->org_id);
-        
+
         return [
             'journal_number' => $journal_number,
-            'journal_hash' => $journal_hash
+            'journal_hash' => $journal_hash,
+            'status' => 'locked',
         ];
+    }
+
+    /**
+     * Reverse a posted/locked journal by creating an opposite draft entry.
+     */
+    public static function reverse_journal($journal_id, $org_id, $user_id, $reason) {
+        global $wpdb;
+
+        $reason = trim((string) $reason);
+        if ($reason === '') {
+            return new WP_Error('reason_required', 'Reversal reason is required.');
+        }
+
+        $table_journals = OraBooks_Database::table('journals');
+        $journal = $wpdb->get_row($wpdb->prepare(
+            "SELECT * FROM {$table_journals} WHERE id = %d AND org_id = %d FOR UPDATE",
+            $journal_id,
+            $org_id
+        ));
+
+        if (!$journal) {
+            return new WP_Error('not_found', 'Journal not found.');
+        }
+
+        if (!in_array($journal->status, ['posted', 'locked'], true)) {
+            return new WP_Error('invalid_status', 'Only posted journals can be reversed.');
+        }
+
+        $lines = self::get_journal_lines($journal_id);
+        if (empty($lines)) {
+            return new WP_Error('no_lines', 'Journal has no lines to reverse.');
+        }
+
+        self::begin_transaction();
+
+        $reversal_id = self::create_journal([
+            'org_id' => (int) $journal->org_id,
+            'transaction_date' => $journal->transaction_date,
+            'source_type' => 'reversal',
+            'source_id' => (int) $journal_id,
+            'reversal_of_id' => (int) $journal_id,
+            'reversal_reason' => $reason,
+            'idempotency_key' => 'reversal-' . $journal_id . '-' . orabooks_uuid(),
+            'metadata' => [
+                'reverses_journal_number' => $journal->journal_number,
+            ],
+        ], $user_id);
+
+        if (!$reversal_id) {
+            self::rollback_transaction();
+            return new WP_Error('reversal_failed', 'Failed to create reversal journal.');
+        }
+
+        $reversal_lines = array_map(function ($line) {
+            return [
+                'account_code' => $line->account_code,
+                'debit' => (float) $line->credit_amount,
+                'credit' => (float) $line->debit_amount,
+                'description' => 'Reversal: ' . ($line->description ?: $line->account_code),
+            ];
+        }, $lines);
+
+        $line_result = self::add_lines($reversal_id, $reversal_lines);
+        if (is_wp_error($line_result)) {
+            self::rollback_transaction();
+            return $line_result;
+        }
+
+        $wpdb->update(
+            $table_journals,
+            ['status' => 'reversed'],
+            ['id' => $journal_id, 'org_id' => $org_id],
+            ['%s'],
+            ['%d', '%d']
+        );
+
+        self::transition('journal', $journal_id, 'reverse', $user_id, $reason);
+
+        if (class_exists('OraBooks_EventBus')) {
+            OraBooks_EventBus::publish('journal_reversed', $journal_id, [
+                'journal_id' => $journal_id,
+                'reversal_journal_id' => $reversal_id,
+                'org_id' => (int) $journal->org_id,
+                'reason' => $reason,
+            ]);
+        }
+
+        self::maybe_emit_reversal_fraud_hook($journal, $reason);
+
+        orabooks_log_event('journal_reversed', "Journal #{$journal->journal_number} reversed", 'warning', [
+            'journal_id' => $journal_id,
+            'reversal_journal_id' => $reversal_id,
+            'reason' => $reason,
+        ], $user_id, $org_id);
+
+        self::commit_transaction();
+
+        return [
+            'reversal_journal_id' => (int) $reversal_id,
+            'original_journal_id' => (int) $journal_id,
+            'status' => 'reversed',
+        ];
+    }
+
+    /**
+     * Deterministic canonical hash for immutable ledger chain (SL-001).
+     */
+    public static function compute_canonical_hash($org_id, $transaction_date, $lines, $previous_hash = null, $journal_number = null) {
+        $sorted_lines = $lines;
+        usort($sorted_lines, function ($a, $b) {
+            $aid = is_object($a) ? (int) $a->account_id : (int) ($a['account_id'] ?? 0);
+            $bid = is_object($b) ? (int) $b->account_id : (int) ($b['account_id'] ?? 0);
+            return $aid <=> $bid;
+        });
+
+        $canonical_lines = [];
+        foreach ($sorted_lines as $line) {
+            $debit = is_object($line) ? (float) $line->debit_amount : (float) ($line['debit'] ?? $line['debit_amount'] ?? 0);
+            $credit = is_object($line) ? (float) $line->credit_amount : (float) ($line['credit'] ?? $line['credit_amount'] ?? 0);
+            $canonical_lines[] = [
+                'account_code' => (string) (is_object($line) ? $line->account_code : ($line['account_code'] ?? '')),
+                'account_id' => (int) (is_object($line) ? $line->account_id : ($line['account_id'] ?? 0)),
+                'credit' => number_format($credit, 2, '.', ''),
+                'debit' => number_format($debit, 2, '.', ''),
+            ];
+        }
+
+        $canonical = [
+            'lines' => $canonical_lines,
+            'org_id' => (int) $org_id,
+            'previous_hash' => $previous_hash,
+            'transaction_date' => $transaction_date,
+        ];
+
+        if ($journal_number) {
+            $canonical['journal_number'] = $journal_number;
+        }
+
+        ksort($canonical);
+        return hash('sha256', json_encode($canonical, JSON_UNESCAPED_SLASHES));
+    }
+
+    public static function validate_ledger_integrity($org_id) {
+        global $wpdb;
+
+        $issues = [];
+        $table_journals = OraBooks_Database::table('journals');
+        $table_lines = OraBooks_Database::table('journal_lines');
+        $table_balances = OraBooks_Database::table('account_balances');
+        $table_ledger = OraBooks_Database::table('ledger_entries');
+        $table_accounts = $wpdb->prefix . 'orabooks_accounts';
+
+        $unbalanced = $wpdb->get_results($wpdb->prepare(
+            "SELECT j.id
+             FROM {$table_journals} j
+             INNER JOIN {$table_lines} jl ON jl.journal_id = j.id
+             WHERE j.org_id = %d AND j.status IN ('posted', 'locked', 'reversed')
+             GROUP BY j.id
+             HAVING ABS(SUM(jl.debit_amount) - SUM(jl.credit_amount)) > 0.01",
+            $org_id
+        ));
+
+        foreach ($unbalanced as $row) {
+            $issues[] = [
+                'type' => 'unbalanced_journal',
+                'journal_id' => (int) $row->id,
+            ];
+        }
+
+        $posted = $wpdb->get_results($wpdb->prepare(
+            "SELECT id, journal_hash, previous_hash, journal_number
+             FROM {$table_journals}
+             WHERE org_id = %d AND status IN ('posted', 'locked')
+             ORDER BY posted_at ASC, id ASC",
+            $org_id
+        ));
+
+        $expected_previous = null;
+        foreach ($posted as $journal) {
+            if ($journal->previous_hash !== $expected_previous) {
+                $issues[] = [
+                    'type' => 'hash_chain_break',
+                    'journal_id' => (int) $journal->id,
+                    'expected_previous_hash' => $expected_previous,
+                    'actual_previous_hash' => $journal->previous_hash,
+                ];
+            }
+            $expected_previous = $journal->journal_hash;
+        }
+
+        $accounts = $wpdb->get_results($wpdb->prepare(
+            "SELECT a.id, a.normal_balance, COALESCE(ab.balance, 0) AS stored_balance
+             FROM {$table_accounts} a
+             LEFT JOIN {$table_balances} ab ON ab.account_id = a.id AND ab.org_id = a.org_id
+             WHERE a.org_id = %d AND a.is_active = 1",
+            $org_id
+        ));
+
+        foreach ($accounts as $account) {
+            $ledger = $wpdb->get_row($wpdb->prepare(
+                "SELECT
+                    COALESCE(SUM(debit_amount), 0) AS total_debit,
+                    COALESCE(SUM(credit_amount), 0) AS total_credit
+                 FROM {$table_ledger}
+                 WHERE org_id = %d AND account_id = %d",
+                $org_id,
+                $account->id
+            ));
+
+            $computed = $account->normal_balance === 'debit'
+                ? ((float) $ledger->total_debit - (float) $ledger->total_credit)
+                : ((float) $ledger->total_credit - (float) $ledger->total_debit);
+
+            if (abs($computed - (float) $account->stored_balance) > 0.01) {
+                $issues[] = [
+                    'type' => 'balance_mismatch',
+                    'account_id' => (int) $account->id,
+                    'stored_balance' => (float) $account->stored_balance,
+                    'computed_balance' => $computed,
+                ];
+            }
+        }
+
+        if (!empty($issues)) {
+            orabooks_log_event('ledger_integrity_failed', 'Ledger integrity check found issues', 'error', [
+                'org_id' => $org_id,
+                'issue_count' => count($issues),
+                'issues' => $issues,
+            ], null, $org_id);
+        } else {
+            orabooks_log_event('ledger_integrity_ok', 'Ledger integrity check passed', 'info', [
+                'org_id' => $org_id,
+            ], null, $org_id);
+        }
+
+        return [
+            'org_id' => $org_id,
+            'ok' => empty($issues),
+            'issues' => $issues,
+        ];
+    }
+
+    public static function cron_validate_all_orgs() {
+        global $wpdb;
+
+        $table = OraBooks_Database::table('organizations');
+        $org_ids = $wpdb->get_col(
+            "SELECT id FROM {$table} WHERE organization_type = 'customer' AND status = 'active'"
+        );
+
+        foreach ($org_ids as $org_id) {
+            self::validate_ledger_integrity((int) $org_id);
+        }
+    }
+
+    private static function begin_transaction() {
+        global $wpdb;
+        $wpdb->query('START TRANSACTION');
+    }
+
+    private static function commit_transaction() {
+        global $wpdb;
+        $wpdb->query('COMMIT');
+    }
+
+    private static function rollback_transaction() {
+        global $wpdb;
+        $wpdb->query('ROLLBACK');
+    }
+
+    private static function maybe_enqueue_posting_retry($journal_id, $error_message) {
+        global $wpdb;
+
+        $transient_markers = ['lock wait timeout', 'deadlock', 'try again'];
+        $is_transient = false;
+        foreach ($transient_markers as $marker) {
+            if (stripos($error_message, $marker) !== false) {
+                $is_transient = true;
+                break;
+            }
+        }
+
+        $table = OraBooks_Database::table('posting_retry_queue');
+        $wpdb->insert($table, [
+            'journal_id' => $journal_id,
+            'error_message' => $error_message,
+            'status' => $is_transient ? 'pending' : 'manual_review',
+        ], ['%d', '%s', '%s']);
+    }
+
+    private static function maybe_emit_fraud_hooks($journal, $lines) {
+        $total = (float) $journal->total_amount;
+        if ($total >= 100000) {
+            self::publish_fraud_event((int) $journal->id, 'unusual_amount', [
+                'amount' => $total,
+                'org_id' => (int) $journal->org_id,
+            ]);
+        }
+    }
+
+    private static function maybe_emit_reversal_fraud_hook($journal, $reason) {
+        if (empty($journal->posted_at)) {
+            return;
+        }
+
+        $posted_ts = strtotime($journal->posted_at . ' UTC');
+        if ($posted_ts && (time() - $posted_ts) < DAY_IN_SECONDS) {
+            self::publish_fraud_event((int) $journal->id, 'rapid_reversal', [
+                'org_id' => (int) $journal->org_id,
+                'reason' => $reason,
+            ]);
+        }
+    }
+
+    private static function publish_fraud_event($journal_id, $risk_type, $payload) {
+        if (class_exists('OraBooks_EventBus')) {
+            OraBooks_EventBus::publish('fraud_risk_detected', $journal_id, array_merge($payload, [
+                'journal_id' => $journal_id,
+                'risk_type' => $risk_type,
+            ]));
+            return;
+        }
+
+        global $wpdb;
+        $table_outbox = OraBooks_Database::table('outbox_messages');
+        $wpdb->insert($table_outbox, [
+            'event_type' => 'fraud_risk_detected',
+            'aggregate_id' => $journal_id,
+            'payload' => json_encode(array_merge($payload, [
+                'journal_id' => $journal_id,
+                'risk_type' => $risk_type,
+            ])),
+        ], ['%s', '%d', '%s']);
     }
     
     /**
