@@ -61,7 +61,7 @@ class OBN_Accounting_Contacts
             wp_send_json_error(array('message' => 'Customer Name is required'));
         }
 
-        $store_id = isset($_POST['store_id']) ? intval($_POST['store_id']) : 1;
+        $store_id = isset($_POST['store_id']) ? intval($_POST['store_id']) : obn_store_id();
         $count_id = 0;
         $customer_code = '';
 
@@ -363,7 +363,7 @@ class OBN_Accounting_Contacts
             wp_send_json_error(array('message' => 'Supplier Name is required'));
         }
 
-        $store_id = isset($_POST['store_id']) ? intval($_POST['store_id']) : 1;
+        $store_id = isset($_POST['store_id']) ? intval($_POST['store_id']) : obn_store_id();
         $count_id = 0;
         $supplier_code = '';
 
@@ -1202,7 +1202,7 @@ class OBN_Accounting_Contacts
         $reference_no = $payment->reference_no;
 
         $customer = $wpdb->get_row($wpdb->prepare("SELECT store_id, customer_name FROM {$wpdb->prefix}orabooks_db_customers WHERE id = %d", $customer_id));
-        $store_id = $customer ? $customer->store_id : 1;
+        $store_id = $customer ? (int) $customer->store_id : obn_store_id();
         if (!$store_id)
             $store_id = obn_store_id();
 
@@ -1348,7 +1348,7 @@ class OBN_Accounting_Contacts
         $reference_no = $payment->reference_no;
 
         $supplier = $wpdb->get_row($wpdb->prepare("SELECT store_id, supplier_name FROM {$wpdb->prefix}orabooks_db_suppliers WHERE id = %d", $supplier_id));
-        $store_id = $supplier ? $supplier->store_id : 1;
+        $store_id = $supplier ? (int) $supplier->store_id : obn_store_id();
         if (!$store_id)
             $store_id = obn_store_id();
 
