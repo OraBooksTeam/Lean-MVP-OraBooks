@@ -25,8 +25,19 @@ class OraBooks_Tax {
         if (self::$instance === null) {
             self::$instance = new self();
             add_action('wp_ajax_orabooks_tax_calculate', [self::$instance, 'ajax_calculate']);
+            add_action('wp_ajax_nopriv_orabooks_tax_calculate', [self::$instance, 'ajax_calculate']);
             add_action('wp_ajax_orabooks_tax_save_config', [self::$instance, 'ajax_save_config']);
+            add_action('wp_ajax_nopriv_orabooks_tax_save_config', [self::$instance, 'ajax_save_config']);
+            add_action('wp_ajax_orabooks_tax_configs_list', [self::$instance, 'ajax_list_configs']);
+            add_action('wp_ajax_nopriv_orabooks_tax_configs_list', [self::$instance, 'ajax_list_configs']);
+            add_action('wp_ajax_orabooks_tax_jurisdictions_list', [self::$instance, 'ajax_list_jurisdictions']);
+            add_action('wp_ajax_nopriv_orabooks_tax_jurisdictions_list', [self::$instance, 'ajax_list_jurisdictions']);
+            add_action('wp_ajax_orabooks_tax_lock_status', [self::$instance, 'ajax_lock_status']);
+            add_action('wp_ajax_nopriv_orabooks_tax_lock_status', [self::$instance, 'ajax_lock_status']);
             add_action('wp_ajax_orabooks_tax_snapshot', [self::$instance, 'ajax_create_snapshot']);
+            add_action('wp_ajax_nopriv_orabooks_tax_snapshot', [self::$instance, 'ajax_create_snapshot']);
+            add_action('wp_ajax_orabooks_tax_get_snapshot', [self::$instance, 'ajax_get_snapshot']);
+            add_action('wp_ajax_nopriv_orabooks_tax_get_snapshot', [self::$instance, 'ajax_get_snapshot']);
         }
         return self::$instance;
     }
