@@ -44,8 +44,24 @@ class OraBooks_Auth {
             add_action('wp_ajax_nopriv_orabooks_oidc_callback', [self::$instance, 'ajax_oidc_callback']);
             add_action('wp_ajax_orabooks_oidc_callback', [self::$instance, 'ajax_oidc_callback']);
             // SL-003: Admin partner approval endpoints registered in OraBooks_Partner
+
+            if (function_exists('is_multisite') && is_multisite()) {
+                add_action('wpmu_activate_user', [self::$instance, 'handle_multisite_user_activation'], 10, 3);
+                add_action('wpmu_activate_blog', [self::$instance, 'handle_multisite_blog_activation'], 10, 5);
+            }
         }
         return self::$instance;
+    }
+
+    /**
+     * After multisite signup activation, link pending OraBooks metadata if present.
+     */
+    public function handle_multisite_user_activation($user_id, $password, $meta) {
+        self::sync_orabooks_user_after_wp_activation((int) $user_id, is_array($meta) ? $meta : []);
+    }
+
+    public function handle_multisite_blog_activation($blog_id, $user_id, $password, $title, $meta) {
+        self::sync_orabooks_user_after_wp_activation((int) $user_id, is_array($meta) ? $meta : []);
     }
     
     /**
