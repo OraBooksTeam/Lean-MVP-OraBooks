@@ -141,7 +141,16 @@ class OraBooks_Tax_Test extends TestCase
         global $wpdb;
 
         $captured = [];
+        $wpdb->test_get_var_callback = function ($query) {
+            if (stripos($query, 'tax_snapshots') !== false) {
+                return null;
+            }
+            return null;
+        };
         $wpdb->test_get_row_callback = function ($query) {
+            if (stripos($query, 'fiscal_periods') !== false) {
+                return (object) ['status' => 'open'];
+            }
             if (stripos($query, 'tax_configs') !== false) {
                 return (object) [
                     'id' => 1,
