@@ -669,17 +669,22 @@ class OraBooks_Financial_Reports {
 
         $table_snapshots = OraBooks_Database::table('report_snapshots');
         $table_signatures = OraBooks_Database::table('report_signatures');
-        $snapshot = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$table_snapshots} WHERE id = %d AND archived = 0", intval($snapshot_id)));
+        $snapshot = $wpdb->get_row($wpdb->prepare(
+            "SELECT * FROM {$table_snapshots} WHERE id = %d AND archived = 0",
+            intval($snapshot_id)
+        ));
         if (!$snapshot) {
             return new WP_Error('snapshot_not_found', 'Report snapshot not found.');
         }
 
+        $existing = self::get_report_signature((int) $snapshot_id);
+        if ($existing) {
+            return new WP_Error('already_signed', 'Report snapshot is already signed.');
+        }
+
+        $plaintext = self::decode_snapshot_payload($snapshot);
         $signed_at = current_time('mysql');
-        $signature_hash = hash_hmac(
-            'sha256',
-            ($snapshot->snapshot_data ?? '') . '|' . $snapshot->snapshot_hash . '|' . $user_id . '|' . $signed_at,
-            defined('ORABOOKS_JWT_SECRET') ? ORABOOKS_JWT_SECRET : 'orabooks-report-signature'
-        );
+        $signature_hash = self::compute_signature_hash($plaintext, $snapshot->snapshot_hash, $user_id, $signed_at);
 
         $wpdb->insert($table_signatures, [
             'report_snapshot_id' => intval($snapshot_id),
@@ -692,12 +697,114 @@ class OraBooks_Financial_Reports {
         orabooks_log_event('financial_report_signed', 'Financial report signed', 'info', [
             'snapshot_id' => intval($snapshot_id),
             'signature_hash' => $signature_hash,
+            'board_approval_reference' => sanitize_text_field($board_approval_reference),
         ], intval($user_id), intval($snapshot->org_id));
 
         return [
             'signature_id' => (int) $wpdb->insert_id,
             'signature_hash' => $signature_hash,
             'watermark' => 'APPROVED',
+            'board_approved' => true,
+            'signed_at' => $signed_at,
+        ];
+    }
+
+    public static function get_report_signature($snapshot_id) {
+        global $wpdb;
+
+        $table = OraBooks_Database::table('report_signatures');
+        return $wpdb->get_row($wpdb->prepare(
+            "SELECT * FROM {$table} WHERE report_snapshot_id = %d ORDER BY signed_at DESC LIMIT 1",
+            (int) $snapshot_id
+        ));
+    }
+
+    public static function compute_signature_hash($snapshot_data, $snapshot_hash, $user_id, $signed_at) {
+        return hash_hmac(
+            'sha256',
+            ($snapshot_data ?? '') . '|' . $snapshot_hash . '|' . (int) $user_id . '|' . $signed_at,
+            defined('ORABOOKS_JWT_SECRET') ? ORABOOKS_JWT_SECRET : 'orabooks-report-signature'
+        );
+    }
+
+    public static function verify_report_signature($snapshot_id) {
+        global $wpdb;
+
+        $table_snapshots = OraBooks_Database::table('report_snapshots');
+        $snapshot = $wpdb->get_row($wpdb->prepare(
+            "SELECT * FROM {$table_snapshots} WHERE id = %d",
+            (int) $snapshot_id
+        ));
+        if (!$snapshot) {
+            return new WP_Error('snapshot_not_found', 'Report snapshot not found.');
+        }
+
+        $signature = self::get_report_signature((int) $snapshot_id);
+        if (!$signature) {
+            return new WP_Error('not_signed', 'Report snapshot is not signed.');
+        }
+
+        $plaintext = self::decode_snapshot_payload($snapshot);
+        $expected = self::compute_signature_hash(
+            $plaintext,
+            $snapshot->snapshot_hash,
+            (int) $signature->signed_by,
+            $signature->signed_at
+        );
+
+        $valid = hash_equals($expected, (string) $signature->signature_hash);
+        return [
+            'valid' => $valid,
+            'signature_id' => (int) $signature->id,
+            'signed_by' => (int) $signature->signed_by,
+            'signed_at' => $signature->signed_at,
+            'board_approval_reference' => $signature->board_approval_reference,
+        ];
+    }
+
+    public static function get_snapshot_export_metadata($snapshot_id) {
+        global $wpdb;
+
+        $table = OraBooks_Database::table('report_snapshots');
+        $snapshot = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$table} WHERE id = %d", (int) $snapshot_id));
+        if (!$snapshot) {
+            return new WP_Error('snapshot_not_found', 'Report snapshot not found.');
+        }
+
+        $signature = self::get_report_signature((int) $snapshot_id);
+        return self::build_export_watermark($snapshot, $signature);
+    }
+
+    public static function build_export_watermark($snapshot, $signature = null) {
+        if ($signature) {
+            return [
+                'watermark' => 'APPROVED',
+                'board_approved' => true,
+                'signature' => [
+                    'signature_id' => (int) $signature->id,
+                    'signed_by' => (int) $signature->signed_by,
+                    'signed_at' => $signature->signed_at,
+                    'signature_hash' => $signature->signature_hash,
+                    'board_approval_reference' => $signature->board_approval_reference,
+                ],
+                'correlation_id' => $snapshot->correlation_id ?? null,
+            ];
+        }
+
+        if (!empty($snapshot->frozen)) {
+            return [
+                'watermark' => 'CONFIDENTIAL',
+                'board_approved' => false,
+                'signature' => null,
+                'correlation_id' => $snapshot->correlation_id ?? null,
+            ];
+        }
+
+        return [
+            'watermark' => 'DRAFT',
+            'board_approved' => false,
+            'signature' => null,
+            'correlation_id' => $snapshot->correlation_id ?? null,
         ];
     }
 
@@ -705,30 +812,63 @@ class OraBooks_Financial_Reports {
         global $wpdb;
 
         $table = OraBooks_Database::table('report_snapshots');
-        $retention_days = $retention_days !== null ? intval($retention_days) : 365;
+        $default_retention = $retention_days !== null ? intval($retention_days) : 365;
 
-        $snapshots = $wpdb->get_results($wpdb->prepare(
-            "SELECT id, org_id, snapshot_hash FROM {$table}
-             WHERE archived = 0 AND frozen = 0 AND created_at < DATE_SUB(NOW(), INTERVAL %d DAY)
-             LIMIT 500",
-            $retention_days
-        ));
+        $snapshots = $wpdb->get_results(
+            "SELECT id, org_id, snapshot_hash, snapshot_data, created_at
+             FROM {$table}
+             WHERE archived = 0 AND frozen = 0
+             ORDER BY created_at ASC
+             LIMIT 500"
+        );
 
+        $archived = 0;
         foreach ($snapshots as $snapshot) {
-            $archive_uri = 'cold://orabooks/reports/' . intval($snapshot->org_id) . '/' . $snapshot->snapshot_hash . '.json';
-            $wpdb->update($table, [
-                'archived' => 1,
-                'snapshot_data_archive_uri' => $archive_uri,
-                'snapshot_data' => null,
-            ], ['id' => intval($snapshot->id)], ['%d', '%s', null], ['%d']);
+            $org_retention = self::get_org_report_config((int) $snapshot->org_id)['snapshot_retention_days'];
+            $retention = $retention_days !== null ? $default_retention : (int) $org_retention;
+            $cutoff = strtotime('-' . max(1, $retention) . ' days');
+            if (strtotime($snapshot->created_at) >= $cutoff) {
+                continue;
+            }
+
+            self::archive_snapshot_record($snapshot);
+            $archived++;
         }
 
         orabooks_log_event('financial_report_snapshots_archived', 'Old financial report snapshots archived', 'info', [
-            'count' => count($snapshots),
-            'retention_days' => $retention_days,
+            'count' => $archived,
+            'default_retention_days' => $default_retention,
         ], null, null);
 
-        return ['archived' => count($snapshots)];
+        return ['archived' => $archived];
+    }
+
+    public static function archive_snapshot_record($snapshot) {
+        global $wpdb;
+
+        $table = OraBooks_Database::table('report_snapshots');
+        $archive_uri = self::build_archive_uri((int) $snapshot->org_id, (string) $snapshot->snapshot_hash);
+
+        $wpdb->update(
+            $table,
+            [
+                'archived' => 1,
+                'snapshot_data_archive_uri' => $archive_uri,
+                'snapshot_data' => null,
+            ],
+            ['id' => (int) $snapshot->id],
+            ['%d', '%s', '%s'],
+            ['%d']
+        );
+
+        return [
+            'snapshot_id' => (int) $snapshot->id,
+            'archive_uri' => $archive_uri,
+        ];
+    }
+
+    public static function build_archive_uri($org_id, $snapshot_hash) {
+        return 'cold://orabooks/reports/' . (int) $org_id . '/' . sanitize_text_field($snapshot_hash) . '.json';
     }
 
     public static function run_integrity_checks($org_id = null, $check_date = null) {
