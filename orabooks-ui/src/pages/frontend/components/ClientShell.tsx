@@ -46,6 +46,7 @@ const customerNav = [
   { label: 'Attachments', href: '/attachments', icon: Paperclip },
   { label: 'Chart of Accounts', href: '/chart-of-accounts', icon: BookOpen },
   { label: 'Journals', href: '/journals', icon: Landmark },
+  { label: 'Approvals', href: '/approvals', icon: ShieldCheck },
   { label: 'Notifications', href: '/notifications', icon: Bell },
   { label: 'My Exports', href: '/my-exports', icon: Download },
   { label: 'Team', href: '/team', icon: UserCog },
