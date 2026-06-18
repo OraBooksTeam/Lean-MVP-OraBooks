@@ -481,21 +481,34 @@ class OraBooks_Financial_Reports {
         ];
         $json = wp_json_encode($payload);
         $hash = hash('sha256', $json);
+        $stored_data = $json;
+        $encryption_key_id = null;
+        $is_encrypted = 0;
+
+        $report_config = self::get_org_report_config($org_id);
+        if (!empty($report_config['encrypt_snapshots'])) {
+            $encrypted = self::encrypt_snapshot_payload($org_id, $json);
+            $stored_data = $encrypted['ciphertext'];
+            $encryption_key_id = $encrypted['encryption_key_id'];
+            $is_encrypted = 1;
+        }
 
         $wpdb->insert($table, [
             'org_id' => $org_id,
             'report_type' => $report_type,
             'period_start' => $period_start,
             'period_end' => $period_end,
-            'snapshot_data' => $json,
+            'snapshot_data' => $stored_data,
             'snapshot_hash' => $hash,
+            'encryption_key_id' => $encryption_key_id,
+            'is_encrypted' => $is_encrypted,
             'generated_by' => $generated_by,
             'correlation_id' => $correlation_id,
             'report_schema_version' => self::SCHEMA_VERSION,
             'frozen' => $frozen ? 1 : 0,
             'archived' => 0,
             'expires_at' => $frozen ? null : date('Y-m-d H:i:s', time() + self::SNAPSHOT_TTL_SECONDS),
-        ], ['%d', '%s', '%s', '%s', '%s', '%s', '%d', '%s', '%d', '%d', '%d', '%s']);
+        ], ['%d', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%d', '%d', '%s', '%d', '%d', '%d', '%s']);
 
         $snapshot = (object) [
             'id' => (int) $wpdb->insert_id,
@@ -505,6 +518,8 @@ class OraBooks_Financial_Reports {
             'period_end' => $period_end,
             'snapshot_data' => $json,
             'snapshot_hash' => $hash,
+            'encryption_key_id' => $encryption_key_id,
+            'is_encrypted' => $is_encrypted,
             'generated_by' => $generated_by,
             'correlation_id' => $correlation_id,
             'frozen' => $frozen ? 1 : 0,
