@@ -189,7 +189,8 @@ class OraBooks_Auth {
         return [
             'user_id' => $user_id,
             'email' => $email,
-            'message' => 'Verification email sent',
+            'message' => $email_warning ? 'Account created, but verification email could not be sent.' : 'Verification email sent',
+            'email_warning' => $email_warning,
             'token' => $jwt,
             'is_partner' => ($user_type === 'partner') ? 1 : 0
         ];
