@@ -9,9 +9,11 @@ const fieldClass =
   'w-full rounded-lg border border-border bg-white px-3.5 py-2.5 text-sm text-ink shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20';
 
 export default function CsvImportsPage() {
+  const [searchParams] = useSearchParams();
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [resourceType, setResourceType] = useState('inventory_item');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -26,6 +28,7 @@ export default function CsvImportsPage() {
   const load = async () => {
     setLoading(true);
     setError('');
+    setSuccess('');
     const res = await api.csvImportsDashboard();
     if (res.error) setError(res.error || 'Unable to load CSV imports.');
     else {
@@ -41,6 +44,13 @@ export default function CsvImportsPage() {
   useEffect(() => {
     void load();
   }, []);
+
+  useEffect(() => {
+    const importId = Number(searchParams.get('import_id') || 0);
+    if (importId > 0 && orgId) {
+      void loadPreview(importId);
+    }
+  }, [searchParams, orgId]);
 
   const loadPreview = async (importId: number) => {
     if (!orgId) return;
@@ -93,6 +103,13 @@ export default function CsvImportsPage() {
     if (res.error) {
       setError(res.error);
     } else {
+      const result = (res as any).data;
+      const processed = result?.processed_rows ?? result?.row_counts?.processed;
+      setSuccess(
+        processed != null
+          ? `Import confirmed. ${processed} row(s) processed.`
+          : 'Import confirmed successfully.',
+      );
       await load();
       await loadPreview(selectedImportId);
     }
