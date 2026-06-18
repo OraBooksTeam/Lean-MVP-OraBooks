@@ -2,51 +2,45 @@ import { useState, useEffect, type FormEvent } from 'react';
 import Button from '@/components/Button';
 import Input from '@/components/Input';
 import { api } from '../api';
-import { Flame } from 'lucide-react';
-
-function normalizeAppPath(path: string) {
-  const trimmed = path.trim();
-  if (!trimmed) {
-    return '/dashboard/';
-  }
-  if (trimmed.startsWith('http')) {
-    return trimmed;
-  }
-  const withLeadingSlash = trimmed.startsWith('/') ? trimmed : `/${trimmed}`;
-  return withLeadingSlash.endsWith('/') ? withLeadingSlash : `${withLeadingSlash}/`;
-}
+import {
+  clearRedirectGuard,
+  normalizeWpAppPath,
+  replaceAppLocation,
+} from '../lib/auth-routing';
 
 function redirectAfterLogin(data: any) {
   if (data?.needs_tier_selection) {
-    window.location.href = '/tier-selection/';
+    replaceAppLocation('/tier-selection/', '/tier-selection');
     return;
   }
 
   const redirectTo = String(data?.redirect_to || '').trim();
   if (redirectTo.includes('/partner/onboarding') || redirectTo.includes('/partner-onboarding')) {
-    window.location.href = redirectTo.startsWith('http')
-      ? redirectTo
-      : normalizeAppPath(redirectTo);
+    replaceAppLocation(redirectTo, '/partner-onboarding');
     return;
   }
 
   if (redirectTo.startsWith('http')) {
-    window.location.href = redirectTo;
+    window.location.replace(redirectTo);
     return;
   }
 
   if (redirectTo.startsWith('#/')) {
-    window.location.href = normalizeAppPath(redirectTo.slice(1));
+    replaceAppLocation('/dashboard/', redirectTo.slice(1));
     return;
   }
 
   if (redirectTo.startsWith('/')) {
-    window.location.href = normalizeAppPath(redirectTo);
+    const wpPath = normalizeWpAppPath(redirectTo);
+    const hashRoute = redirectTo.replace(/\/$/, '') || '/dashboard';
+    replaceAppLocation(wpPath, hashRoute);
     return;
   }
 
-  window.location.href = '/dashboard/';
+  replaceAppLocation('/dashboard/', '/dashboard');
 }
+
+import { Flame } from 'lucide-react';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -58,6 +52,12 @@ export default function LoginPage() {
   const [otp, setOtp] = useState('');
 
   useEffect(() => {
+    api.frontendContext().then((res) => {
+      if (!res.error) {
+        replaceAppLocation('/dashboard/', '/dashboard');
+      }
+    });
+
     const url = new URL(window.location.href);
     const code = url.searchParams.get('code');
     const state = url.searchParams.get('state');
