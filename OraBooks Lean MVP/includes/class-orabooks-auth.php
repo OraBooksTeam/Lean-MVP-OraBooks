@@ -436,14 +436,43 @@ class OraBooks_Auth {
         if (!function_exists('wp_mail')) {
             return true;
         }
-        
-        $headers = ['Content-Type: text/plain; charset=UTF-8'];
-        $sent = wp_mail($to, $subject, $message, $headers);
-        
-        if (!$sent) {
-            return new WP_Error($error_code, 'Email could not be sent. Please check the site mail/SMTP configuration.');
+
+        $from_email = get_option('admin_email');
+        if (function_exists('is_multisite') && is_multisite()) {
+            $network_email = get_site_option('admin_email');
+            if (!empty($network_email) && is_email($network_email)) {
+                $from_email = $network_email;
+            }
         }
-        
+
+        $from_name = self::site_name();
+        $headers = [
+            'Content-Type: text/plain; charset=UTF-8',
+            sprintf('From: %s <%s>', $from_name, $from_email),
+        ];
+
+        $content_type_filter = static function () {
+            return 'text/plain';
+        };
+        add_filter('wp_mail_content_type', $content_type_filter);
+
+        $sent = wp_mail($to, $subject, $message, $headers);
+
+        remove_filter('wp_mail_content_type', $content_type_filter);
+
+        if (!$sent) {
+            global $phpmailer;
+            $detail = '';
+            if (isset($phpmailer) && is_object($phpmailer) && !empty($phpmailer->ErrorInfo)) {
+                $detail = ' ' . $phpmailer->ErrorInfo;
+            }
+
+            return new WP_Error(
+                $error_code,
+                __('Email could not be sent. Configure WordPress mail (SMTP plugin recommended) or check spam filters.', 'orabooks') . $detail
+            );
+        }
+
         return true;
     }
     
@@ -679,6 +708,28 @@ class OraBooks_Auth {
             ['%d', null, null],
             ['%d']
         );
+
+        if (!empty($user->wp_user_id) && function_exists('wp_update_user')) {
+            wp_update_user([
+                'ID' => (int) $user->wp_user_id,
+                'user_activation_key' => '',
+            ]);
+        } elseif (function_exists('get_user_by')) {
+            $wp_user = get_user_by('email', $user->email);
+            if ($wp_user) {
+                $wpdb->update(
+                    $table_users,
+                    ['wp_user_id' => (int) $wp_user->ID],
+                    ['id' => $user->id],
+                    ['%d'],
+                    ['%d']
+                );
+                wp_update_user([
+                    'ID' => (int) $wp_user->ID,
+                    'user_activation_key' => '',
+                ]);
+            }
+        }
         
         orabooks_log_event('email_verified', "Email verified: {$user->email}", 'info', [], $user->id, $user->org_id);
         
