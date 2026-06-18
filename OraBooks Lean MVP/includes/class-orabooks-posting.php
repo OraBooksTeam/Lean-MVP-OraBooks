@@ -65,9 +65,11 @@ class OraBooks_Posting {
             'created_by' => $user_id,
             'source_type' => $data['source_type'] ?? 'manual',
             'source_id' => $data['source_id'] ?? null,
+            'reversal_of_id' => $data['reversal_of_id'] ?? null,
+            'reversal_reason' => $data['reversal_reason'] ?? null,
             'metadata' => isset($data['metadata']) ? json_encode($data['metadata']) : null,
             'total_amount' => 0
-        ], ['%d', '%s', '%s', '%s', '%d', '%s', '%d', '%s', '%f']);
+        ], ['%d', '%s', '%s', '%s', '%d', '%s', '%d', '%d', '%s', '%s', '%f']);
         
         return $wpdb->insert_id;
     }
@@ -332,6 +334,25 @@ class OraBooks_Posting {
      * Post journal to ledger (atomic posting)
      */
     public static function post_journal($journal_id, $user_id) {
+        global $wpdb;
+
+        self::begin_transaction();
+
+        $result = self::post_journal_atomic($journal_id, $user_id);
+        if (is_wp_error($result)) {
+            self::rollback_transaction();
+            self::maybe_enqueue_posting_retry($journal_id, $result->get_error_message());
+            return $result;
+        }
+
+        self::commit_transaction();
+        return $result;
+    }
+
+    /**
+     * Core atomic posting logic (must run inside a DB transaction).
+     */
+    private static function post_journal_atomic($journal_id, $user_id) {
         global $wpdb;
         
         $table_journals = OraBooks_Database::table('journals');
