@@ -1486,7 +1486,9 @@ body.orabooks-page.orabooks-auth-page {
 body.orabooks-page .entry-header,
 body.orabooks-page .page-header,
 body.orabooks-page .entry-title,
-body.orabooks-page .page-title {
+body.orabooks-page .page-title,
+body.orabooks-page .et_pb_title_container,
+body.orabooks-page .et_post_meta_wrapper {
     display: none;
 }
 
@@ -1496,7 +1498,11 @@ body.orabooks-page .content-area,
 body.orabooks-page .entry-content,
 body.orabooks-page .wp-block-post-content,
 body.orabooks-page #primary,
-body.orabooks-page #content {
+body.orabooks-page #content,
+body.orabooks-page #main-content,
+body.orabooks-page #left-area,
+body.orabooks-page #content-area,
+body.orabooks-page #et-main-area {
     max-width: none !important;
     width: 100% !important;
     padding-left: 0 !important;
