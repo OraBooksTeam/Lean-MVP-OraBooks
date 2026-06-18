@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import Button from '@/components/Button';
 import { api } from '../api';
 import ClientShell from '../components/ClientShell';
+import ResourceAttachmentsPanel from '../components/ResourceAttachmentsPanel';
 import { CheckCircle2, Mic, Paperclip, RefreshCw, Square } from 'lucide-react';
 
 const fieldClass =
