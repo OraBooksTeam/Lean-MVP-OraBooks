@@ -1,6 +1,9 @@
 import AdminPageShell from '@/components/AdminPageShell';
 
 export default function AdminCsvImports() {
+  const adminBase = (window as any).orabooks_ajax?.admin_base || '/wp-admin/admin.php';
+  const jobQueueUrl = `${adminBase}?page=orabooks-job-queue`;
+
   return (
     <AdminPageShell
       title="CSV Imports"
@@ -15,7 +18,7 @@ export default function AdminCsvImports() {
           Admin-wide import management is coming soon. For now, monitor job queue status for import parsing tasks.
         </p>
         <a
-          href="admin.php?page=orabooks-job-queue"
+          href={jobQueueUrl}
           className="mt-6 inline-flex items-center rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-primary-dark"
         >
           Open Job Queue

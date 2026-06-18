@@ -695,3 +695,77 @@
 .orabooks-admin .orabooks-btn-primary:hover {
     background: #145694;
 }
+
+/* Premium settings page */
+.orabooks-admin-settings {
+    max-width: 860px;
+}
+
+.orabooks-settings-hero {
+    position: relative;
+    overflow: hidden;
+    border-radius: 16px;
+    border: 1px solid #e2e8f0;
+    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+    box-shadow: 0 4px 24px rgba(26, 105, 180, 0.06);
+    margin-bottom: 24px;
+}
+
+.orabooks-settings-accent {
+    height: 6px;
+    background: linear-gradient(90deg, #1A69B4 0%, #3AB54A 100%);
+}
+
+.orabooks-settings-hero-body {
+    padding: 28px 32px;
+}
+
+.orabooks-settings-eyebrow {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: #1A69B4;
+    margin: 0 0 8px;
+}
+
+.orabooks-settings-hero h1 {
+    font-size: 28px;
+    font-weight: 700;
+    color: #0f172a;
+    margin: 0;
+    padding: 0;
+    line-height: 1.2;
+}
+
+.orabooks-settings-desc {
+    margin: 8px 0 0;
+    color: #64748b;
+    font-size: 14px;
+}
+
+.orabooks-settings-card {
+    border-radius: 16px;
+    border: 1px solid #e2e8f0;
+    background: #fff;
+    padding: 24px 28px;
+    box-shadow: 0 2px 12px rgba(15, 23, 42, 0.04);
+}
+
+.orabooks-settings-card .form-table th {
+    font-weight: 600;
+    color: #334155;
+}
+
+.orabooks-btn-premium.button-primary {
+    background: linear-gradient(135deg, #1A69B4 0%, #145694 100%) !important;
+    border: none !important;
+    border-radius: 8px !important;
+    padding: 8px 24px !important;
+    font-weight: 600 !important;
+    box-shadow: 0 2px 8px rgba(26, 105, 180, 0.25) !important;
+}
+
+.orabooks-btn-premium.button-primary:hover {
+    background: linear-gradient(135deg, #145694 0%, #0f4a7a 100%) !important;
+}

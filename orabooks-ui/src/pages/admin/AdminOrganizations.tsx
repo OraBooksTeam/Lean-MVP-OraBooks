@@ -17,16 +17,18 @@ interface Org {
 export default function AdminOrganizations() {
   const [orgs, setOrgs] = useState<Org[]>([]);
   const [loading, setLoading] = useState(true);
+  const [typeFilter, setTypeFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
 
   const load = () => {
     setLoading(true);
-    api.listOrgs().then((res) => {
+    api.listOrgs(typeFilter, statusFilter).then((res) => {
       if (!res.error) setOrgs((res as any).data || []);
       setLoading(false);
     });
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); }, [typeFilter, statusFilter]);
 
   const suspend = (id: number) => {
     if (!confirm('Suspend this organization?')) return;
@@ -45,12 +47,20 @@ export default function AdminOrganizations() {
       actions={<Button variant="secondary" onClick={load}>Refresh</Button>}
     >
       <div className="flex flex-wrap gap-2">
-        <select className="rounded-lg border border-border bg-white px-3 py-2 text-sm">
+        <select
+          value={typeFilter}
+          onChange={(e) => setTypeFilter(e.target.value)}
+          className="rounded-lg border border-border bg-white px-3 py-2 text-sm"
+        >
           <option value="">All Types</option>
           <option value="customer">Customer</option>
           <option value="partner">Partner</option>
         </select>
-        <select className="rounded-lg border border-border bg-white px-3 py-2 text-sm">
+        <select
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+          className="rounded-lg border border-border bg-white px-3 py-2 text-sm"
+        >
           <option value="">All Statuses</option>
           <option value="active">Active</option>
           <option value="pending_setup">Pending Setup</option>
