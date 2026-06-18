@@ -56,7 +56,7 @@ const customerNav = [
   { label: 'Chart of Accounts', href: '/chart-of-accounts', icon: BookOpen },
   { label: 'Fiscal Periods', href: '/fiscal-periods', icon: CalendarRange },
   { label: 'Tax Settings', href: '/tax-settings', icon: Percent },
-  { label: 'Advanced Accounting', href: '/accounting/', icon: Landmark },
+  { label: 'Advanced Accounting', href: '/accounting/', icon: Landmark, external: true },
   { label: 'Journals', href: '/journals', icon: BookOpen },
   { label: 'AI Review', href: '/ai-review', icon: Bot },
   { label: 'Approvals', href: '/approvals', icon: ShieldCheck },
@@ -111,16 +111,23 @@ export default function ClientShell({
         <nav className="mt-6 space-y-1.5">
           {nav.map((item) => {
             const Icon = item.icon;
-            const active = location.pathname === item.href;
+            const active = !item.external && location.pathname === item.href;
+            const className = cn(
+              'flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition',
+              active ? 'bg-accent text-white shadow-sm' : 'text-white/75 hover:bg-white/10 hover:text-white'
+            );
+
+            if (item.external) {
+              return (
+                <a key={item.href} href={item.href} className={className}>
+                  <Icon className="h-4 w-4" />
+                  {item.label}
+                </a>
+              );
+            }
+
             return (
-              <Link
-                key={item.href}
-                to={item.href}
-                className={cn(
-                  'flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition',
-                  active ? 'bg-accent text-white shadow-sm' : 'text-white/75 hover:bg-white/10 hover:text-white'
-                )}
-              >
+              <Link key={item.href} to={item.href} className={className}>
                 <Icon className="h-4 w-4" />
                 {item.label}
               </Link>
@@ -158,16 +165,23 @@ export default function ClientShell({
           <nav className="flex gap-2 overflow-x-auto px-4 pb-3">
             {nav.map((item) => {
               const Icon = item.icon;
-              const active = location.pathname === item.href;
+              const active = !item.external && location.pathname === item.href;
+              const className = cn(
+                'flex shrink-0 items-center gap-2 rounded-full px-3 py-2 text-xs font-bold transition',
+                active ? 'bg-accent text-white' : 'bg-primary/10 text-primary hover:bg-primary hover:text-white'
+              );
+
+              if (item.external) {
+                return (
+                  <a key={item.href} href={item.href} className={className}>
+                    <Icon className="h-3.5 w-3.5" />
+                    {item.label}
+                  </a>
+                );
+              }
+
               return (
-                <Link
-                  key={item.href}
-                  to={item.href}
-                  className={cn(
-                    'flex shrink-0 items-center gap-2 rounded-full px-3 py-2 text-xs font-bold transition',
-                    active ? 'bg-accent text-white' : 'bg-primary/10 text-primary hover:bg-primary hover:text-white'
-                  )}
-                >
+                <Link key={item.href} to={item.href} className={className}>
                   <Icon className="h-3.5 w-3.5" />
                   {item.label}
                 </Link>

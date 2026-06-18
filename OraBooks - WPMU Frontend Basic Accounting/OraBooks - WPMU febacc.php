@@ -2,7 +2,7 @@
 /**
  * Plugin Name: OraBooks - WPMU Frontend Basic Accounting
  * Plugin URI: https://www.enest.com.bd/plugins/wpmu-tob-febacc
- * Description: A Basic Accounting Management System for Orabooks Membership System. Access Limited to Users with the 'Accounting' Feature Enabled.
+ * Description: Advanced accounting workspace addon for OraBooks Lean MVP (sales, purchase, inventory, GL).
  * Version: 1/25
  * Author: Engr. AnwarIT CASDP and Farid Ahmed
  * Author URI: https://www.anwarit.com
@@ -201,7 +201,7 @@ function obn_register_accounting_addon()
 		orabooks_register_addon(array(
 			'id' => 'accounting',
 			'name' => 'Frontend Accounting',
-			'description' => 'Complete double-entry accounting system for founder users.',
+			'description' => 'Full double-entry accounting workspace aligned with OraBooks Lean MVP tenancy and RBAC.',
 			'version' => OBN_ACCOUNTING_VERSION,
 			'plugin_file' => __FILE__,
 			'author' => 'Orabooks',
