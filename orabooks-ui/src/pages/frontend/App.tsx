@@ -21,7 +21,7 @@ import ApprovalsPage from './pages/ApprovalsPage';
 import AiReviewPage from './pages/AiReviewPage';
 import ExpensesPage from './pages/ExpensesPage';
 import VoicePage from './pages/VoicePage';
-import ProfilePage from './pages/ProfilePage';
+import FiscalPeriodsPage from './pages/FiscalPeriodsPage';
 import NotificationPreferencesPage from './pages/NotificationPreferencesPage';
 
 export default function FrontendRoutes() {
@@ -42,6 +42,7 @@ export default function FrontendRoutes() {
       <Route path="/attachments" element={<AttachmentsPage />} />
       <Route path="/invoices" element={<InvoicesPage />} />
       <Route path="/chart-of-accounts" element={<ChartOfAccountsPage />} />
+      <Route path="/fiscal-periods" element={<FiscalPeriodsPage />} />
       <Route path="/journals" element={<JournalsPage />} />
       <Route path="/approvals" element={<ApprovalsPage />} />
       <Route path="/ai-review" element={<AiReviewPage />} />

@@ -333,6 +333,31 @@ export const api = {
   // CoA / Audit
   coaGet: (orgId: number) =>
     api.get('orabooks_get_coa', { org_id: orgId }),
+  coaExport: (orgId: number) => {
+    const qs = new URLSearchParams();
+    const token = getStoredToken();
+    qs.set('action', 'orabooks_export_coa');
+    qs.set('_ajax_nonce', ORABOOKS_NONCE);
+    qs.set('org_id', String(orgId));
+    if (token) qs.set('orabooks_token', token);
+    if (ORABOOKS_USER_ID) qs.set('current_user_id', String(ORABOOKS_USER_ID));
+    window.location.href = `${ORABOOKS_URL}?${qs.toString()}`;
+  },
+  fiscalPeriodsList: (orgId: number) =>
+    api.get('orabooks_fiscal_periods_list', { org_id: orgId }),
+  fiscalPeriodClose: (orgId: number, periodId: number, closeType: 'soft' | 'hard', note = '') =>
+    api.post('orabooks_fiscal_period_close', {
+      org_id: orgId,
+      period_id: periodId,
+      close_type: closeType,
+      note,
+    }),
+  fiscalPeriodReopen: (orgId: number, periodId: number, reason: string) =>
+    api.post('orabooks_fiscal_period_reopen', {
+      org_id: orgId,
+      period_id: periodId,
+      reason,
+    }),
   journalsList: (orgId: number, filters = {}) =>
     api.get('orabooks_get_journals', { org_id: orgId, ...filters }),
   journalGet: (orgId: number, journalId: number) =>
