@@ -74,6 +74,163 @@ class OraBooks_Fiscal {
         ));
     }
 
+    public static function format_period_for_api($row) {
+        if (!$row) {
+            return [];
+        }
+
+        $status = strtoupper((string) $row->status);
+        if ($status === 'OPEN' || $status === 'SOFT_CLOSED' || $status === 'HARD_CLOSED') {
+            $api_status = $status;
+        } else {
+            $api_status = strtoupper(str_replace('_', '_', (string) $row->status));
+            $map = [
+                'OPEN'         => 'OPEN',
+                'SOFT_CLOSED'  => 'SOFT_CLOSED',
+                'HARD_CLOSED'  => 'HARD_CLOSED',
+            ];
+            $normalized = strtoupper(str_replace('_', '_', (string) $row->status));
+            $api_status = $map[$normalized] ?? strtoupper((string) $row->status);
+            if ($row->status === 'open') {
+                $api_status = 'OPEN';
+            } elseif ($row->status === 'soft_closed') {
+                $api_status = 'SOFT_CLOSED';
+            } elseif ($row->status === 'hard_closed') {
+                $api_status = 'HARD_CLOSED';
+            }
+        }
+
+        return [
+            'id'            => (int) $row->id,
+            'org_id'        => (int) $row->org_id,
+            'period_start'  => $row->period_start,
+            'period_end'    => $row->period_end,
+            'status'        => $api_status,
+            'closed_by'     => isset($row->closed_by) ? (int) $row->closed_by : null,
+            'closed_at'     => $row->closed_at ?? null,
+            'reopened_by'   => isset($row->reopened_by) ? (int) $row->reopened_by : null,
+            'reopened_at'   => $row->reopened_at ?? null,
+            'reopen_reason' => $row->reopen_reason ?? null,
+        ];
+    }
+
+    public static function paginate_periods($org_id, array $args = []) {
+        $rows = self::list_periods($org_id);
+        $status_filter = strtoupper(sanitize_text_field($args['status'] ?? ''));
+        $year = (int) ($args['year'] ?? 0);
+        $month = (int) ($args['month'] ?? 0);
+        $page = max(1, (int) ($args['page'] ?? 1));
+        $per_page = min(100, max(1, (int) ($args['per_page'] ?? 20)));
+
+        $filtered = [];
+        foreach ($rows ?: [] as $row) {
+            $formatted = self::format_period_for_api($row);
+            if ($status_filter !== '' && $formatted['status'] !== $status_filter) {
+                continue;
+            }
+            if ($year > 0 && (int) substr((string) $row->period_start, 0, 4) !== $year) {
+                continue;
+            }
+            if ($month > 0 && (int) substr((string) $row->period_start, 5, 2) !== $month) {
+                continue;
+            }
+            $filtered[] = $formatted;
+        }
+
+        $total = count($filtered);
+        $offset = ($page - 1) * $per_page;
+
+        return [
+            'items'    => array_slice($filtered, $offset, $per_page),
+            'page'     => $page,
+            'per_page' => $per_page,
+            'total'    => $total,
+        ];
+    }
+
+    public static function create_period($org_id, $period_start, $period_end, $period_name = '') {
+        global $wpdb;
+
+        $period_start = sanitize_text_field($period_start);
+        $period_end = sanitize_text_field($period_end);
+        if ($period_start === '' || $period_end === '') {
+            return new WP_Error('invalid_period', 'period_start and period_end are required.');
+        }
+        if ($period_start > $period_end) {
+            return new WP_Error('invalid_period', 'period_start must be before period_end.');
+        }
+
+        $table = OraBooks_Database::table('fiscal_periods');
+        $overlap = $wpdb->get_var($wpdb->prepare(
+            "SELECT id FROM {$table}
+             WHERE org_id = %d AND period_start <= %s AND period_end >= %s
+             LIMIT 1",
+            $org_id,
+            $period_end,
+            $period_start
+        ));
+
+        if ($overlap) {
+            return new WP_Error('duplicate_period', 'Overlapping fiscal period already exists.');
+        }
+
+        $inserted = $wpdb->insert($table, [
+            'org_id'       => (int) $org_id,
+            'period_start' => $period_start,
+            'period_end'   => $period_end,
+            'status'       => 'open',
+        ], ['%d', '%s', '%s', '%s']);
+
+        if (!$inserted) {
+            return new WP_Error('db_error', 'Failed to create fiscal period.');
+        }
+
+        return (int) $wpdb->insert_id;
+    }
+
+    public static function override_reopen_period($period_id, $org_id, $user_id, $justification) {
+        global $wpdb;
+
+        $justification = trim((string) $justification);
+        if ($justification === '') {
+            return new WP_Error('justification_required', 'Mandatory justification is required.');
+        }
+
+        $period = self::get_period($period_id, $org_id);
+        if (!$period) {
+            return new WP_Error('not_found', 'Fiscal period not found.');
+        }
+
+        if ($period->status !== 'hard_closed') {
+            return new WP_Error('invalid_status', 'Only hard-closed periods can be override-reopened.');
+        }
+
+        $table = OraBooks_Database::table('fiscal_periods');
+        $updated = $wpdb->update(
+            $table,
+            [
+                'status'        => 'open',
+                'reopened_by'   => $user_id,
+                'reopened_at'   => current_time('mysql', true),
+                'reopen_reason' => $justification,
+            ],
+            ['id' => $period_id, 'org_id' => $org_id],
+            ['%s', '%d', '%s', '%s'],
+            ['%d', '%d']
+        );
+
+        if ($updated === false) {
+            return new WP_Error('update_failed', 'Failed to override-reopen fiscal period.');
+        }
+
+        orabooks_log_event('period_override_reopened', "Fiscal period {$period->period_start} override-reopened", 'warning', [
+            'period_id'     => $period_id,
+            'justification' => $justification,
+        ], $user_id, $org_id);
+
+        return true;
+    }
+
     public static function get_period($period_id, $org_id) {
         global $wpdb;
 
