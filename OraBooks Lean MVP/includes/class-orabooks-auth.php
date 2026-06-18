@@ -252,11 +252,56 @@ class OraBooks_Auth {
         return [
             'user_id' => $user_id,
             'email' => $email,
-            'message' => $email_warning ? 'Account created, but verification email could not be sent.' : 'Verification email sent',
+            'message' => $email_warning
+                ? 'Account created, but verification email could not be sent.'
+                : ($pending_wp_signup
+                    ? 'Registration started. Check your email to activate your WordPress account and verify OraBooks.'
+                    : 'Verification email sent'),
             'email_warning' => $email_warning,
             'token' => $jwt,
-            'is_partner' => ($user_type === 'partner') ? 1 : 0
+            'is_partner' => ($user_type === 'partner') ? 1 : 0,
+            'pending_wp_activation' => $pending_wp_signup ? 1 : 0,
+            'wp_user_id' => $wp_user_id,
         ];
+    }
+
+    /**
+     * Link an OraBooks user after WordPress multisite signup activation.
+     */
+    private static function sync_orabooks_user_after_wp_activation($wp_user_id, $meta) {
+        if (!$wp_user_id || empty($meta['orabooks_user_id'])) {
+            return;
+        }
+
+        global $wpdb;
+        $table_users = OraBooks_Database::table('users');
+        $orabooks_user_id = (int) $meta['orabooks_user_id'];
+
+        $wpdb->update(
+            $table_users,
+            ['wp_user_id' => $wp_user_id],
+            ['id' => $orabooks_user_id],
+            ['%d'],
+            ['%d']
+        );
+
+        if (function_exists('wp_update_user')) {
+            wp_update_user([
+                'ID' => $wp_user_id,
+                'role' => 'subscriber',
+            ]);
+        }
+
+        if (function_exists('is_multisite') && is_multisite() && function_exists('add_user_to_blog')) {
+            $blog_id = get_current_blog_id();
+            if (!is_user_member_of_blog($wp_user_id, $blog_id)) {
+                add_user_to_blog($blog_id, $wp_user_id, 'subscriber');
+            }
+        }
+
+        orabooks_log_event('wp_user_activated', 'WordPress multisite user activated for OraBooks account', 'info', [
+            'wp_user_id' => $wp_user_id,
+        ], $orabooks_user_id, null);
     }
     
     /**

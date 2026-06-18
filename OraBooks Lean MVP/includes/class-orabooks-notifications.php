@@ -64,13 +64,19 @@ class OraBooks_Notifications {
 
             // AJAX: Preferences
             add_action('wp_ajax_orabooks_notification_preferences_get', [self::$instance, 'ajax_get_preferences']);
+            add_action('wp_ajax_nopriv_orabooks_notification_preferences_get', [self::$instance, 'ajax_get_preferences']);
             add_action('wp_ajax_orabooks_notification_preferences_save', [self::$instance, 'ajax_save_preferences']);
+            add_action('wp_ajax_nopriv_orabooks_notification_preferences_save', [self::$instance, 'ajax_save_preferences']);
 
             // AJAX: Admin (Owner only)
             add_action('wp_ajax_orabooks_notification_admin_policy_get', [self::$instance, 'ajax_get_org_policy']);
+            add_action('wp_ajax_nopriv_orabooks_notification_admin_policy_get', [self::$instance, 'ajax_get_org_policy']);
             add_action('wp_ajax_orabooks_notification_admin_policy_save', [self::$instance, 'ajax_save_org_policy']);
+            add_action('wp_ajax_nopriv_orabooks_notification_admin_policy_save', [self::$instance, 'ajax_save_org_policy']);
             add_action('wp_ajax_orabooks_notification_admin_provider_health', [self::$instance, 'ajax_provider_health']);
+            add_action('wp_ajax_nopriv_orabooks_notification_admin_provider_health', [self::$instance, 'ajax_provider_health']);
             add_action('wp_ajax_orabooks_notification_admin_audit_export', [self::$instance, 'ajax_audit_export']);
+            add_action('wp_ajax_nopriv_orabooks_notification_admin_audit_export', [self::$instance, 'ajax_audit_export']);
 
             // AJAX: Mobile device registration
             add_action('wp_ajax_orabooks_register_device', [self::$instance, 'ajax_register_device']);
