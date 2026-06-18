@@ -1081,6 +1081,10 @@ class OraBooks_Notifications {
             $params[] = $args['to_date'];
         }
 
+        if (!empty($args['unread_only'])) {
+            $where .= " AND is_read = 0 AND status = 'delivered'";
+        }
+
         $limit = min((int)($args['limit'] ?? 50), 200);
         $offset = (int)($args['offset'] ?? 0);
 
