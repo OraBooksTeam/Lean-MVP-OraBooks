@@ -63,15 +63,15 @@ export default function DashboardPage() {
       return;
     }
 
-    const onDashboardPage = /\/dashboard\/?$/.test(window.location.pathname);
-    if (onDashboardPage) {
+    const dash = await api.customerDashboard();
+    if (dash.error) {
+      setError(dash.error);
       setLoading(false);
       return;
     }
 
-    // Customer orgs use the merged PHP accounting workspace on /dashboard/.
-    window.location.replace('/dashboard/' + window.location.search);
-    return;
+    setCustomerData((dash as any).data);
+    setLoading(false);
   };
 
   useEffect(() => { void load(); }, []);
