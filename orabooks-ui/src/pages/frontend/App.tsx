@@ -4,6 +4,8 @@ import RegisterPage from './pages/RegisterPage';
 import TierSelectionPage from './pages/TierSelectionPage';
 import DashboardPage from './pages/DashboardPage';
 import PartnerOnboardingPage from './pages/PartnerOnboardingPage';
+import PartnerProgramPage from './pages/PartnerProgramPage';
+import CommissionsPage from './pages/CommissionsPage';
 import NotificationsPage from './pages/NotificationsPage';
 import ExportStatusPage from './pages/ExportStatusPage';
 import InvoicesPage from './pages/InvoicesPage';
@@ -52,6 +54,8 @@ export default function FrontendRoutes() {
       <Route path="/expenses" element={<ExpensesPage />} />
       <Route path="/voice" element={<VoicePage />} />
       <Route path="/partner-onboarding" element={<PartnerOnboardingPage />} />
+      <Route path="/partner-program" element={<PartnerProgramPage />} />
+      <Route path="/commissions" element={<CommissionsPage />} />
       <Route path="/notifications" element={<NotificationsPage />} />
       <Route path="/notification-preferences" element={<NotificationPreferencesPage />} />
       <Route path="/my-exports" element={<ExportStatusPage />} />

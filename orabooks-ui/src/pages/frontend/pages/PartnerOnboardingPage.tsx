@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import Button from '@/components/Button';
 import { api } from '../api';
 import ClientShell from '../components/ClientShell';
@@ -8,29 +9,32 @@ export default function PartnerOnboardingPage() {
   const [info, setInfo] = useState<any>(null);
   const [context, setContext] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     api.frontendContext().then((res) => {
       if (!res.error) setContext((res as any).data);
     });
-    api.getPartnerInfo().then((res) => {
-      if (!res.error) setInfo((res as any).data);
+    api.partnerOnboarding().then((res) => {
+      if (res.error) setError(res.error);
+      else setInfo((res as any).data);
       setLoading(false);
     });
   }, []);
 
-  const copy = () => {
+  const copy = async () => {
     if (!info?.partner_code) return;
-    navigator.clipboard.writeText(info.partner_code);
+    await navigator.clipboard.writeText(info.partner_code);
     setCopied(true);
+    void api.partnerCodeCopied('onboarding');
     setTimeout(() => setCopied(false), 2000);
   };
 
   const organization = context?.organization || {
-    name: info?.organization_name,
+    name: info?.org_name || info?.organization_name,
     organization_type: 'partner',
-    status: info?.status,
+    status: info?.org_status,
     tier: 'partner',
   };
 
@@ -43,6 +47,8 @@ export default function PartnerOnboardingPage() {
     >
       {loading ? (
         <div className="glass-panel p-6 text-sm text-slate-500">Loading…</div>
+      ) : error ? (
+        <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-medium text-red-700">{error}</div>
       ) : (
         <div className="mx-auto max-w-2xl">
           <div className="glass-panel overflow-hidden">
@@ -65,22 +71,27 @@ export default function PartnerOnboardingPage() {
                 </div>
 
                 <div className="rounded-xl border border-border bg-slate-50 p-4 text-sm text-slate-700">
-                  <p><span className="font-semibold text-ink">Type:</span> {info?.partner_type}</p>
+                  <p><span className="font-semibold text-ink">Type:</span> {info?.partner_type || 'individual'}</p>
                   {info?.organization_name && (
                     <p><span className="font-semibold text-ink">Organization:</span> {info.organization_name}</p>
                   )}
-                  <p><span className="font-semibold text-ink">Active Customers:</span> {info?.active_customers ?? 0}</p>
-                  <p><span className="font-semibold text-ink">Total Attributions:</span> {info?.total_attributions ?? 0}</p>
+                  <p><span className="font-semibold text-ink">Code Status:</span> {info?.code_status || info?.status}</p>
                 </div>
+
+                {info?.status_message && (
+                  <div className="rounded-xl border border-primary/20 bg-primary/10 p-4 text-sm font-medium text-primary-dark">
+                    {info.status_message}
+                  </div>
+                )}
 
                 <div className="flex items-center justify-between rounded-xl border border-border bg-white p-4">
                   <span className="text-sm font-medium text-slate-700">Status</span>
-                  <StatusBadge status={info?.status} />
+                  <StatusBadge status={info?.code_status || info?.status} />
                 </div>
 
-                <Button onClick={() => (window.location.hash = '/dashboard')} className="w-full">
-                  Continue to Dashboard
-                </Button>
+                <Link to="/dashboard">
+                  <Button className="w-full">Continue to Dashboard</Button>
+                </Link>
               </div>
             </div>
           </div>

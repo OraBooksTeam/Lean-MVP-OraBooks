@@ -20,6 +20,7 @@ import {
   Receipt,
   RefreshCw,
   ShieldCheck,
+  TrendingUp,
   Upload,
   UserCog,
   Users,
@@ -65,7 +66,8 @@ const customerNav = [
 ];
 
 const partnerNav = [
-  { label: 'Dashboard', href: '/dashboard', icon: Home },
+  { label: 'Partner Program', href: '/dashboard', icon: Home },
+  { label: 'Commissions', href: '/commissions', icon: TrendingUp },
   { label: 'Onboarding', href: '/partner-onboarding', icon: Users },
   { label: 'Notifications', href: '/notifications', icon: Bell },
   { label: 'My Exports', href: '/my-exports', icon: Download },
