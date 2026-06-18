@@ -669,7 +669,15 @@ export const api = {
   notificationPolicyGet: (orgId = 0) =>
     api.get('orabooks_notification_admin_policy_get', { org_id: orgId }),
   notificationPolicySave: (orgId: number, data: Record<string, any>) =>
-    api.post('orabooks_notification_admin_policy_save', { org_id: orgId, ...data }),
+    api.post('orabooks_notification_admin_policy_save', {
+      org_id: orgId,
+      monthly_budget: data.monthly_budget,
+      mandatory_event_types: data.mandatory_event_types,
+      prohibited_channels: data.prohibited_channels,
+      retention_override_days: data.retention_override_days,
+      max_escalation_attempts: data.max_escalation_attempts,
+      escalation_fallback_chain: data.escalation_fallback_chain,
+    }),
   notificationProviderHealth: (orgId: number) =>
     api.get('orabooks_notification_admin_provider_health', { org_id: orgId }),
   notificationAuditExport: async (orgId: number, startDate: string, endDate: string) => {
