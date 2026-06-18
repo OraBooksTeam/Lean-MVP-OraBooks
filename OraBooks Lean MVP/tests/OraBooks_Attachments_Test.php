@@ -42,6 +42,8 @@ class OraBooks_Attachments_Test extends TestCase
     {
         $this->assertContains('invoice', OraBooks_Attachments::RESOURCE_TYPES);
         $this->assertContains('bill', OraBooks_Attachments::RESOURCE_TYPES);
+        $this->assertContains('inventory_item', OraBooks_Attachments::RESOURCE_TYPES);
+        $this->assertContains('bank_account', OraBooks_Attachments::RESOURCE_TYPES);
         $this->assertContains('expense', OraBooks_Attachments::RESOURCE_TYPES);
         $this->assertContains('csv_import', OraBooks_Attachments::RESOURCE_TYPES);
         $this->assertContains('general', OraBooks_Attachments::RESOURCE_TYPES);
