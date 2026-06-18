@@ -21,6 +21,7 @@ class OraBooks_Attachments {
 
     const RESOURCE_TYPES = [
         'invoice',
+        'bill',
         'expense',
         'voice_input',
         'csv_import',

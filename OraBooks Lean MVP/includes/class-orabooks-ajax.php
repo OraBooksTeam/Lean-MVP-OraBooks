@@ -756,6 +756,7 @@ class OraBooks_Ajax {
 
             $labels = [
                 'invoice'          => 'Invoice',
+                'bill'             => 'Bill',
                 'expense'          => 'Expense',
                 'voice_input'      => 'Voice Input',
                 'csv_import'       => 'CSV Import',
