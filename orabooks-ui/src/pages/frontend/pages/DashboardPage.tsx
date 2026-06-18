@@ -5,10 +5,8 @@ import { api } from '../api';
 import ClientShell from '../components/ClientShell';
 import PartnerProgramPage from './PartnerProgramPage';
 import {
-  ArrowRight,
   Banknote,
   FileText,
-  Landmark,
   RefreshCw,
   TrendingUp,
   Users,
@@ -65,10 +63,9 @@ export default function DashboardPage() {
       return;
     }
 
-    const res = await api.customerDashboard();
-    if (res.error) setError(res.error || 'Failed to load dashboard.');
-    else setCustomerData((res as any).data);
-    setLoading(false);
+    // Customer orgs use the merged PHP accounting workspace on /dashboard/.
+    window.location.replace('/dashboard/' + window.location.search);
+    return;
   };
 
   useEffect(() => { void load(); }, []);
@@ -116,29 +113,6 @@ export default function DashboardPage() {
   return (
     <ClientShell title="Client Dashboard" eyebrow="Accounting workspace" organization={organization}>
       <div className="space-y-6">
-        <section className="rounded-2xl border border-primary/20 bg-gradient-to-r from-primary to-primary/85 p-6 text-white shadow-lg shadow-primary/20">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-              <div className="mb-2 inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1 text-xs font-bold uppercase tracking-wide">
-                <Landmark className="h-4 w-4" />
-                Full Accounting Suite
-              </div>
-              <h2 className="text-2xl font-black">Advanced Accounting Workspace</h2>
-              <p className="mt-2 max-w-2xl text-sm text-white/85">
-                Sales, purchases, inventory, GL, journal entries, assets, and financial reports live in the
-                dedicated accounting workspace — separate from this Lean MVP summary dashboard.
-              </p>
-            </div>
-            <a
-              href="/accounting/"
-              className="inline-flex items-center justify-center gap-2 rounded-xl bg-white px-5 py-3 text-sm font-bold text-primary transition hover:bg-white/90"
-            >
-              Open Advanced Accounting
-              <ArrowRight className="h-4 w-4" />
-            </a>
-          </div>
-        </section>
-
         <div className="flex justify-end">
           <Button onClick={load} variant="secondary" size="sm">
             <RefreshCw className="h-4 w-4" />

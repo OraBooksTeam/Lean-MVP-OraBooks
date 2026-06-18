@@ -10,7 +10,6 @@ import {
   Download,
   FileText,
   Home,
-  Landmark,
   LogOut,
   Menu,
   Mic,
@@ -41,23 +40,31 @@ interface ClientShellProps {
   isPartner?: boolean;
 }
 
-const customerNav = [
-  { label: 'Dashboard', href: '/dashboard', icon: Home },
-  { label: 'Advanced Accounting', href: '/accounting/', icon: Landmark, external: true },
-  { label: 'Customers', href: '/customers', icon: Users },
-  { label: 'Invoices', href: '/invoices', icon: FileText },
-  { label: 'Vendors & Bills', href: '/vendors', icon: Building2 },
-  { label: 'Inventory', href: '/inventory', icon: Package },
+type NavItem = {
+  label: string;
+  href: string;
+  icon: typeof Home;
+  external?: boolean;
+};
+
+const acc = (view = '') => (view ? `/dashboard/?view=${view}` : '/dashboard/');
+
+const customerNav: NavItem[] = [
+  { label: 'Dashboard', href: acc(), icon: Home, external: true },
+  { label: 'Customers', href: acc('customers'), icon: Users, external: true },
+  { label: 'Invoices & Sales', href: acc('view-sales'), icon: FileText, external: true },
+  { label: 'Vendors & Bills', href: acc('suppliers'), icon: Building2, external: true },
+  { label: 'Inventory', href: acc('view-items'), icon: Package, external: true },
+  { label: 'Reports', href: acc('journal-report'), icon: BarChart3, external: true },
+  { label: 'Expenses', href: acc('expense-list'), icon: Receipt, external: true },
+  { label: 'Chart of Accounts', href: acc('coa-list'), icon: BookOpen, external: true },
+  { label: 'Fiscal Periods', href: acc('fiscal-periods'), icon: CalendarRange, external: true },
+  { label: 'Tax Settings', href: acc('setting-tax-list'), icon: Percent, external: true },
+  { label: 'Journals', href: acc('journal-entry-list'), icon: BookOpen, external: true },
+  { label: 'CSV Imports', href: acc('import-customers'), icon: Upload, external: true },
   { label: 'Bank Reconciliation', href: '/bank-reconciliation', icon: Wallet },
-  { label: 'Reports', href: '/reports', icon: BarChart3 },
-  { label: 'CSV Imports', href: '/csv-imports', icon: Upload },
-  { label: 'Expenses', href: '/expenses', icon: Receipt },
   { label: 'Voice Input', href: '/voice', icon: Mic },
   { label: 'Attachments', href: '/attachments', icon: Paperclip },
-  { label: 'Chart of Accounts', href: '/chart-of-accounts', icon: BookOpen },
-  { label: 'Fiscal Periods', href: '/fiscal-periods', icon: CalendarRange },
-  { label: 'Tax Settings', href: '/tax-settings', icon: Percent },
-  { label: 'Journals', href: '/journals', icon: BookOpen },
   { label: 'AI Review', href: '/ai-review', icon: Bot },
   { label: 'Approvals', href: '/approvals', icon: ShieldCheck },
   { label: 'Notifications', href: '/notifications', icon: Bell },
@@ -97,7 +104,7 @@ export default function ClientShell({
             </div>
             <div>
               <p className="text-sm font-bold text-white">OraBooks</p>
-              <p className="text-xs text-white/70">{isPartner ? 'Partner Account' : 'Client Workspace'}</p>
+              <p className="text-xs text-white/70">{isPartner ? 'Partner Account' : 'Accounting Workspace'}</p>
             </div>
           </div>
 
@@ -159,7 +166,7 @@ export default function ClientShell({
               </div>
               <div>
                 <p className="text-sm font-bold text-ink">OraBooks</p>
-                <p className="text-xs text-ink-secondary">{isPartner ? 'Partner Account' : 'Client Workspace'}</p>
+                <p className="text-xs text-ink-secondary">{isPartner ? 'Partner Account' : 'Accounting Workspace'}</p>
               </div>
             </div>
             <Menu className="h-5 w-5 text-primary" />
@@ -197,13 +204,8 @@ export default function ClientShell({
             <div className="flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 {eyebrow && <p className="text-xs font-bold uppercase tracking-wide text-primary">{eyebrow}</p>}
-                <h1 className="mt-1 text-2xl font-bold text-ink">{title}</h1>
+                <h1 className="text-2xl font-black text-ink sm:text-3xl">{title}</h1>
               </div>
-              {organization?.organization_type && (
-                <span className="badge border border-primary/20 bg-primary/10 text-primary">
-                  {organization.organization_type === 'partner' ? 'Partner Account (Commission)' : 'Customer Account'}
-                </span>
-              )}
             </div>
           </header>
           {children}
