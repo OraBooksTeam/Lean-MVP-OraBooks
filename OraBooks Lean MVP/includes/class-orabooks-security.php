@@ -44,6 +44,126 @@ class OraBooks_Security {
         'amount' => ['type' => 'number', 'min' => 0],
     ];
 
+    /**
+     * OWASP Top-10 (2021) catalog — source of truth for matrix + admin UI.
+     */
+    public static function get_owasp_catalog() {
+        return [
+            'A01' => [
+                'control_name'      => 'Broken Access Control',
+                'implemented_in_sl' => 'SL-003, SL-004',
+                'validation_note'   => 'RBAC deny-by-default with org_id scoping',
+                'mitigations'       => [
+                    'Role-based access control (RBAC)',
+                    'org_id tenant isolation on every query',
+                    'require_permission middleware',
+                ],
+                'user_message'      => 'Access denied. Your role does not allow this action.',
+            ],
+            'A02' => [
+                'control_name'      => 'Cryptographic Failures',
+                'implemented_in_sl' => 'SL-008, SL-017, SL-203',
+                'validation_note'   => 'TLS, encrypted secrets, bcrypt passwords',
+                'mitigations'       => [
+                    'TLS 1.2+ (HSTS when SSL)',
+                    'Encrypted secrets via OraBooks_Secrets',
+                    'bcrypt password hashing',
+                    'JWT signing with rotated secrets',
+                ],
+                'user_message'      => null,
+            ],
+            'A03' => [
+                'control_name'      => 'Injection',
+                'implemented_in_sl' => 'All SL',
+                'validation_note'   => 'Prepared statements and input allowlist validation',
+                'mitigations'       => [
+                    '$wpdb->prepare() on all SQL',
+                    'JSON schema input validation',
+                    'Centralized rate limiting',
+                ],
+                'user_message'      => 'Invalid input format.',
+            ],
+            'A04' => [
+                'control_name'      => 'Insecure Design',
+                'implemented_in_sl' => 'Architecture',
+                'validation_note'   => 'Central posting engine and immutable ledger',
+                'mitigations'       => [
+                    'Central double-entry posting engine',
+                    'Immutable journal hash chain',
+                    'Deny-by-default RBAC',
+                ],
+                'user_message'      => null,
+            ],
+            'A05' => [
+                'control_name'      => 'Security Misconfiguration',
+                'implemented_in_sl' => 'SL-008, SL-099',
+                'validation_note'   => 'Security headers and secrets in environment',
+                'mitigations'       => [
+                    'HSTS, CSP, X-Frame-Options headers',
+                    'Secrets stored outside source code',
+                    'Debug mode disabled in production',
+                ],
+                'user_message'      => null,
+            ],
+            'A06' => [
+                'control_name'      => 'Vulnerable Components',
+                'implemented_in_sl' => 'DevOps, SL-099',
+                'validation_note'   => 'Weekly dependency scan job',
+                'mitigations'       => [
+                    'Weekly dependency scan cron',
+                    'SBOM inventory tracking',
+                    'Alert on critical vulnerabilities (SL-250)',
+                ],
+                'user_message'      => null,
+            ],
+            'A07' => [
+                'control_name'      => 'Authentication Failures',
+                'implemented_in_sl' => 'SL-013',
+                'validation_note'   => 'JWT, 2FA, rate limits, password policy',
+                'mitigations'       => [
+                    'TOTP two-factor authentication',
+                    'Login failure rate limiting',
+                    'Password complexity policy',
+                    'Session/JWT expiry',
+                ],
+                'user_message'      => 'Two-factor authentication required.',
+            ],
+            'A08' => [
+                'control_name'      => 'Software & Data Integrity',
+                'implemented_in_sl' => 'SL-001, SL-009',
+                'validation_note'   => 'Outbox pattern and audit logging',
+                'mitigations'       => [
+                    'Immutable audit log',
+                    'Journal hash chain integrity checks',
+                    'Event outbox for reliable delivery',
+                ],
+                'user_message'      => null,
+            ],
+            'A09' => [
+                'control_name'      => 'Security Logging Failures',
+                'implemented_in_sl' => 'SL-009, SL-250',
+                'validation_note'   => 'Centralized audit and alerting',
+                'mitigations'       => [
+                    'All security events audit-logged',
+                    'Incident tracking table',
+                    'SL-250 notification alerts',
+                ],
+                'user_message'      => null,
+            ],
+            'A10' => [
+                'control_name'      => 'SSRF',
+                'implemented_in_sl' => 'SL-250, SL-099',
+                'validation_note'   => 'Webhook URL allowlist validation',
+                'mitigations'       => [
+                    'HTTPS-only outbound URLs',
+                    'Private/local host blocking',
+                    'Configurable webhook allowlist patterns',
+                ],
+                'user_message'      => null,
+            ],
+        ];
+    }
+
     public static function init() {
         if (self::$instance === null) {
             self::$instance = new self();
