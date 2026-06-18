@@ -48,6 +48,7 @@ class OraBooks_Shortcodes {
             add_shortcode('orabooks_invoices', [self::$instance, 'invoices_page']);
             add_shortcode('orabooks_chart_of_accounts', [self::$instance, 'chart_of_accounts_page']);
             add_shortcode('orabooks_fiscal_periods', [self::$instance, 'fiscal_periods_page']);
+            add_shortcode('orabooks_tax_settings', [self::$instance, 'tax_settings_page']);
             add_shortcode('orabooks_journals', [self::$instance, 'journals_page']);
             add_shortcode('orabooks_profile', [self::$instance, 'profile_page']);
         }

@@ -1346,11 +1346,13 @@ class OraBooks_Customers {
     public function ajax_invoice_override_tax() {
         global $wpdb;
 
-        check_ajax_referer('orabooks_nonce', 'nonce');
-
-        $user_id = get_current_user_id();
+        $user_id = orabooks_get_current_user_id();
         $invoice_id = intval($_POST['invoice_id'] ?? 0);
         $org_id = intval($_POST['org_id'] ?? 0);
+
+        if (!$user_id) {
+            orabooks_json_error('Not authenticated', 401);
+        }
 
         if (!$invoice_id) {
             orabooks_json_error('Invoice ID required', 400);
@@ -1366,6 +1368,11 @@ class OraBooks_Customers {
 
         if (!$org_id) {
             orabooks_json_error('Organization ID required', 400);
+        }
+
+        $isolation = OraBooks_Auth::require_customer_org($user_id, $org_id);
+        if (is_wp_error($isolation)) {
+            orabooks_json_error($isolation->get_error_message(), 403);
         }
 
         $can_override = current_user_can('manage_options')
