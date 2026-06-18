@@ -4,10 +4,6 @@ import Input from '@/components/Input';
 import { api } from '../api';
 import { Flame } from 'lucide-react';
 
-function goToFrontendRoute(route = '/dashboard') {
-  window.location.hash = route;
-}
-
 function normalizeAppPath(path: string) {
   const trimmed = path.trim();
   if (!trimmed) {
