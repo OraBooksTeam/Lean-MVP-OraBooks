@@ -358,6 +358,27 @@ export const api = {
       period_id: periodId,
       reason,
     }),
+  taxListConfigs: (orgId: number) =>
+    api.get('orabooks_tax_configs_list', { org_id: orgId }),
+  taxListJurisdictions: (orgId: number) =>
+    api.get('orabooks_tax_jurisdictions_list', { org_id: orgId }),
+  taxLockStatus: (orgId: number, transactionDate?: string) =>
+    api.get('orabooks_tax_lock_status', {
+      org_id: orgId,
+      ...(transactionDate ? { transaction_date: transactionDate } : {}),
+    }),
+  taxCalculate: (payload: Record<string, unknown>) =>
+    api.post('orabooks_tax_calculate', payload),
+  taxSaveConfig: (orgId: number, data: Record<string, unknown>) =>
+    api.post('orabooks_tax_save_config', { org_id: orgId, ...data }),
+  taxCreateSnapshot: (payload: Record<string, unknown>) =>
+    api.post('orabooks_tax_snapshot', payload),
+  taxGetSnapshot: (orgId: number, transactionType: string, transactionId: number) =>
+    api.get('orabooks_tax_get_snapshot', {
+      org_id: orgId,
+      transaction_type: transactionType,
+      transaction_id: transactionId,
+    }),
   journalsList: (orgId: number, filters = {}) =>
     api.get('orabooks_get_journals', { org_id: orgId, ...filters }),
   journalGet: (orgId: number, journalId: number) =>
