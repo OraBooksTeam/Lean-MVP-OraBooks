@@ -377,6 +377,9 @@ export default function InvoicesPage() {
                   <td className="px-5 py-3 text-right font-bold text-ink">{money(invoice.total_amount, invoice.currency)}</td>
                   <td className="px-5 py-3">
                     <div className="flex flex-wrap gap-1">
+                      <Button size="sm" variant="secondary" onClick={() => setSelectedInvoice(invoice)}>
+                        View
+                      </Button>
                       {canPay(invoice) && (
                         <Button size="sm" variant="secondary" onClick={() => openPayment(invoice)}>
                           <Wallet className="h-3.5 w-3.5" />
