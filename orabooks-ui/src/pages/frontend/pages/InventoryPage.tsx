@@ -1,9 +1,11 @@
 import { useEffect, useState, type ReactNode } from 'react';
+import { Link } from 'react-router-dom';
 import Button from '@/components/Button';
 import Input from '@/components/Input';
 import { api } from '../api';
 import ClientShell from '../components/ClientShell';
-import { Info, Package, Plus, RefreshCw, TrendingDown } from 'lucide-react';
+import ResourceAttachmentsPanel from '../components/ResourceAttachmentsPanel';
+import { Info, Package, Paperclip, Plus, RefreshCw, TrendingDown } from 'lucide-react';
 
 type Product = {
   id: number;
@@ -46,6 +48,7 @@ export default function InventoryPage() {
   });
 
   const [adjustProduct, setAdjustProduct] = useState<Product | null>(null);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [adjustForm, setAdjustForm] = useState({
     quantity_change: '',
     reason: 'PHYSICAL_COUNT',
