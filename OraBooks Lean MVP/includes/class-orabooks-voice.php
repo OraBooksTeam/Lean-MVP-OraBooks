@@ -402,6 +402,8 @@ class OraBooks_Voice {
             'confidence_avg'      => round($confidence_avg, 2),
             'risk_scores'         => $risk_scores,
             'overall_risk_level'  => $overall_risk,
+            'provider'            => OraBooks_Ai_Providers::STUB_PROVIDER,
+            'model_version'       => OraBooks_Ai_Providers::STUB_MODEL_VERSION,
         ];
     }
 

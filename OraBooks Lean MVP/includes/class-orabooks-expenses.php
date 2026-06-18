@@ -586,6 +586,8 @@ class OraBooks_Expenses {
                 'total_amount'    => $subtotal,
                 'line_confidence' => round($field_confidences['category'], 2),
             ]],
+            'provider'           => OraBooks_Ai_Providers::STUB_PROVIDER,
+            'model_version'      => OraBooks_Ai_Providers::STUB_MODEL_VERSION,
         ];
     }
 
@@ -881,7 +883,7 @@ class OraBooks_Expenses {
                     'confidence'        => $confidence,
                     'risk_level'        => $risk,
                     'explanation'       => 'Expense OCR confidence below threshold or elevated risk',
-                    'model_version'     => self::OCR_MODEL_VERSION,
+                    'model_version'     => OraBooks_Ai_Providers::model_version('ocr'),
                     'escalation_reason' => 'expense_low_confidence',
                 ],
                 (float) $expense->total_amount
