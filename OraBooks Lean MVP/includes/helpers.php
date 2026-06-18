@@ -306,10 +306,35 @@ function orabooks_check_rate_limit($key, $max_attempts, $period_seconds = 3600) 
     }
     
     if ($attempts >= $max_attempts) {
+        if (class_exists('OraBooks_Security')) {
+            OraBooks_Security::record_incident('rate_limit_exceeded', 'warning', [
+                'key'    => sanitize_text_field(substr($key, 0, 64)),
+                'max'    => (int) $max_attempts,
+                'period' => (int) $period_seconds,
+            ]);
+        }
         return false;
     }
     
     set_transient($transient_key, $attempts + 1, $period_seconds);
+    return true;
+}
+
+/**
+ * Validate input against SL-099 schema; sends 400 JSON error on failure.
+ *
+ * @return true Exits via orabooks_json_error on invalid input.
+ */
+function orabooks_validate_schema($schema_key, $value) {
+    if (!class_exists('OraBooks_Security')) {
+        return true;
+    }
+
+    $result = OraBooks_Security::validate_input($schema_key, $value);
+    if (is_wp_error($result)) {
+        orabooks_json_error(__('Invalid input format.', 'orabooks'), 400);
+    }
+
     return true;
 }
 
