@@ -1162,6 +1162,13 @@ if (!file_exists($posting_file)) {
     echo "ERROR: Cannot find class-orabooks-posting.php at {$posting_file}\n";
     exit(1);
 }
+
+$approval_file = __DIR__ . '/../includes/class-orabooks-approval.php';
+if (!file_exists($approval_file)) {
+    echo "ERROR: Cannot find class-orabooks-approval.php at {$approval_file}\n";
+    exit(1);
+}
+require_once $approval_file;
 require_once $posting_file;
 
 $coa_file = __DIR__ . '/../includes/class-orabooks-coa.php';
