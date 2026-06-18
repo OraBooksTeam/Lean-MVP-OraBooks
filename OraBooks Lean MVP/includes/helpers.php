@@ -128,19 +128,23 @@ function orabooks_get_user_agent() {
  * Whether public registration is allowed (single site or multisite network setting).
  */
 function orabooks_users_can_register() {
-    if (function_exists('is_multisite') && is_multisite()) {
+    if (function_exists('is_multisite') && is_multisite() && function_exists('get_site_option')) {
         $registration = get_site_option('registration', 'none');
         return in_array($registration, ['user', 'all'], true);
     }
 
-    return (bool) get_option('users_can_register');
+    if (function_exists('get_option')) {
+        return (bool) get_option('users_can_register');
+    }
+
+    return true;
 }
 
 /**
  * Multisite networks that require email activation via wp-signup / wp-activate.
  */
 function orabooks_multisite_uses_signup_activation() {
-    if (!function_exists('is_multisite') || !is_multisite()) {
+    if (!function_exists('is_multisite') || !is_multisite() || !function_exists('get_site_option')) {
         return false;
     }
 
