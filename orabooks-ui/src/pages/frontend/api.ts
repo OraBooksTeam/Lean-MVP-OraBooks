@@ -447,6 +447,10 @@ export const api = {
   asyncQueueReplay: (jobId: number) => api.post('orabooks_async_queue_replay', { job_id: jobId }),
   observabilityDashboard: (hours = 24) =>
     api.post('orabooks_observability_dashboard', { hours }),
+  securityDashboard: (hours = 24) =>
+    api.post('orabooks_security_dashboard', { hours }),
+  securityVerifyControls: () =>
+    api.post('orabooks_security_verify_controls'),
   exportsList: (page = 1) => api.get('orabooks_exports_list', { page }),
   csvImportsDashboard: () => api.get('orabooks_csv_imports_dashboard'),
 };
