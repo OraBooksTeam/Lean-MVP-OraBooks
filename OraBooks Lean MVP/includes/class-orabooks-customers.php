@@ -476,6 +476,12 @@ class OraBooks_Customers {
             return new WP_Error('invalid_status', 'Tax can only be overridden before posting');
         }
 
+        if (class_exists('OraBooks_Tax') && OraBooks_Tax::is_tax_locked($org_id, [
+            'transaction_date' => $invoice->invoice_date ?? current_time('Y-m-d'),
+        ])) {
+            return new WP_Error('tax_locked', 'Tax is locked for this transaction period');
+        }
+
         if (class_exists('OraBooks_Tax')) {
             $validation = OraBooks_Tax::validate_override($org_id, $jurisdiction, $new_tax_rate, $reason_code);
             if (is_wp_error($validation)) {
@@ -763,6 +769,17 @@ class OraBooks_Customers {
             $invoice->invoice_number,
             get_current_user_id()
         );
+
+        if (in_array($new_status, ['paid', 'partial'], true) && class_exists('OraBooks_Tax')) {
+            $posted_invoice = $wpdb->get_row($wpdb->prepare(
+                "SELECT * FROM {$table_invoices} WHERE id = %d AND org_id = %d",
+                $invoice_id,
+                $org_id
+            ));
+            if ($posted_invoice) {
+                OraBooks_Tax::snapshot_for_invoice($posted_invoice, get_current_user_id());
+            }
+        }
 
         // Fire event for SL-250 notification system
         do_action('orabooks_payment_recorded', $payment_id, [
