@@ -718,7 +718,8 @@ class OraBooks_Commission {
         );
         
         if ($system_org) {
-            return $system_org->id;
+            self::ensure_system_accounts((int) $system_org->id);
+            return (int) $system_org->id;
         }
         
         // Create system org for platform accounting
