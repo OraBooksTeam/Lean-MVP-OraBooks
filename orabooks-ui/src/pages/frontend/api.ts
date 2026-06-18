@@ -618,8 +618,13 @@ export const api = {
     }),
   submitJournal: (journalId: number) =>
     api.post('orabooks_submit_journal', { journal_id: journalId }),
-  approveJournal: (journalId: number) =>
-    api.post('orabooks_approve_journal', { journal_id: journalId }),
+  approveJournal: (journalId: number, mfaOtp?: string) =>
+    api.post('orabooks_approve_journal', {
+      journal_id: journalId,
+      ...(mfaOtp ? { mfa_otp: mfaOtp } : {}),
+    }),
+  resubmitJournal: (journalId: number) =>
+    api.post('orabooks_resubmit_journal', { journal_id: journalId }),
   rejectJournal: (journalId: number, reason: string) =>
     api.post('orabooks_reject_journal', { journal_id: journalId, reason }),
   postJournal: (journalId: number) =>
