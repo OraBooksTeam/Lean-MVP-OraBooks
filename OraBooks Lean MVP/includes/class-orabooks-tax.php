@@ -602,23 +602,45 @@ class OraBooks_Tax {
         return true;
     }
 
-    private static function is_tax_locked($org_id, $data) {
-        if (class_exists('OraBooks_Fiscal') && method_exists('OraBooks_Fiscal', 'is_period_hard_closed')) {
-            $date = $data['transaction_date'] ?? current_time('Y-m-d');
-            return OraBooks_Fiscal::is_period_hard_closed($org_id, $date);
+    public static function is_tax_locked($org_id, $data = []) {
+        $date = $data['transaction_date'] ?? current_time('Y-m-d');
+
+        if (class_exists('OraBooks_Fiscal')) {
+            if (method_exists('OraBooks_Fiscal', 'is_period_hard_closed')
+                && OraBooks_Fiscal::is_period_hard_closed($org_id, $date)) {
+                return true;
+            }
+
+            if (method_exists('OraBooks_Fiscal', 'can_post')) {
+                $can_post = OraBooks_Fiscal::can_post($org_id, $date);
+                if (is_wp_error($can_post)) {
+                    return true;
+                }
+            }
         }
 
         return false;
     }
 
-    public function ajax_calculate() {
-        check_ajax_referer('orabooks_nonce', 'nonce');
+    private function require_tax_access($user_id, $org_id, $permission = 'manage_org_settings') {
+        if (!$user_id) {
+            orabooks_json_error('Not authenticated', 401);
+        }
 
-        $user_id = get_current_user_id();
-        $org_id = intval($_POST['org_id'] ?? 0);
-        if (!OraBooks_RBAC::require_permission($user_id, $org_id, 'create_invoice')) {
+        $isolation = OraBooks_Auth::require_customer_org($user_id, $org_id);
+        if (is_wp_error($isolation)) {
+            orabooks_json_error($isolation->get_error_message(), 403);
+        }
+
+        if (!OraBooks_RBAC::require_permission($user_id, $org_id, $permission)) {
             orabooks_json_error('Permission denied', 403);
         }
+    }
+
+    public function ajax_calculate() {
+        $user_id = orabooks_get_current_user_id();
+        $org_id = intval($_POST['org_id'] ?? $_GET['org_id'] ?? 0);
+        $this->require_tax_access($user_id, $org_id, 'create_invoice');
 
         $result = self::calculate($_POST);
         if (is_wp_error($result)) {
@@ -629,36 +651,76 @@ class OraBooks_Tax {
     }
 
     public function ajax_save_config() {
-        check_ajax_referer('orabooks_nonce', 'nonce');
-
-        $user_id = get_current_user_id();
+        $user_id = orabooks_get_current_user_id();
         $org_id = intval($_POST['org_id'] ?? 0);
-        if (!OraBooks_RBAC::require_permission($user_id, $org_id, 'manage_org_settings')) {
-            orabooks_json_error('Permission denied', 403);
-        }
+        $this->require_tax_access($user_id, $org_id, 'manage_org_settings');
 
         $result = self::save_config($org_id, $_POST, $user_id);
         if (is_wp_error($result)) {
             orabooks_json_error($result->get_error_message(), 400);
         }
 
-        orabooks_json_success(['config' => $result]);
+        orabooks_json_success(['config' => self::format_config($result)]);
+    }
+
+    public function ajax_list_configs() {
+        $user_id = orabooks_get_current_user_id();
+        $org_id = intval($_GET['org_id'] ?? $_POST['org_id'] ?? 0);
+        $this->require_tax_access($user_id, $org_id, 'manage_org_settings');
+
+        orabooks_json_success([
+            'configs' => self::list_configs($org_id),
+            'override_reasons' => self::DEFAULT_OVERRIDE_REASONS,
+            'lock_status' => self::get_lock_status($org_id),
+        ]);
+    }
+
+    public function ajax_list_jurisdictions() {
+        $user_id = orabooks_get_current_user_id();
+        $org_id = intval($_GET['org_id'] ?? $_POST['org_id'] ?? 0);
+        if ($org_id > 0) {
+            $this->require_tax_access($user_id, $org_id, 'view_reports');
+        } elseif (!$user_id) {
+            orabooks_json_error('Not authenticated', 401);
+        }
+
+        orabooks_json_success(['jurisdictions' => self::list_jurisdictions()]);
+    }
+
+    public function ajax_lock_status() {
+        $user_id = orabooks_get_current_user_id();
+        $org_id = intval($_GET['org_id'] ?? $_POST['org_id'] ?? 0);
+        $date = sanitize_text_field($_GET['transaction_date'] ?? $_POST['transaction_date'] ?? '');
+        $this->require_tax_access($user_id, $org_id, 'manage_org_settings');
+
+        orabooks_json_success(self::get_lock_status($org_id, $date ?: null));
     }
 
     public function ajax_create_snapshot() {
-        check_ajax_referer('orabooks_nonce', 'nonce');
-
-        $user_id = get_current_user_id();
+        $user_id = orabooks_get_current_user_id();
         $org_id = intval($_POST['org_id'] ?? 0);
-        if (!OraBooks_RBAC::require_permission($user_id, $org_id, 'submit_transaction')) {
-            orabooks_json_error('Permission denied', 403);
-        }
+        $this->require_tax_access($user_id, $org_id, 'submit_transaction');
 
         $result = self::create_snapshot($_POST, $user_id);
         if (is_wp_error($result)) {
-            orabooks_json_error($result->get_error_message(), 400);
+            orabooks_json_error($result->get_error_message(), 409);
         }
 
         orabooks_json_success($result);
+    }
+
+    public function ajax_get_snapshot() {
+        $user_id = orabooks_get_current_user_id();
+        $org_id = intval($_GET['org_id'] ?? $_POST['org_id'] ?? 0);
+        $transaction_type = sanitize_text_field($_GET['transaction_type'] ?? $_POST['transaction_type'] ?? '');
+        $transaction_id = intval($_GET['transaction_id'] ?? $_POST['transaction_id'] ?? 0);
+        $this->require_tax_access($user_id, $org_id, 'view_reports');
+
+        $snapshot = self::get_snapshot($org_id, $transaction_type, $transaction_id);
+        if (!$snapshot) {
+            orabooks_json_error('Tax snapshot not found', 404);
+        }
+
+        orabooks_json_success(['snapshot' => $snapshot]);
     }
 }
