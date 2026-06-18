@@ -503,7 +503,7 @@ class OraBooks_Expenses {
             'expense_id'     => (int) $item->expense_id,
             'avg_confidence' => $ocr['ocr_confidence'],
             'risk_level'     => $ocr['ocr_risk_level'],
-            'provider'       => self::OCR_PROVIDER,
+            'provider'       => $ocr['provider'] ?? OraBooks_Ai_Providers::provider_name('ocr'),
         ], 0, (int) $item->org_id);
 
         if (class_exists('OraBooks_Classification')) {
@@ -629,8 +629,8 @@ class OraBooks_Expenses {
             'ocr_confidence'    => $confidence !== null ? (float) $confidence : null,
             'ocr_risk_level'    => sanitize_text_field($risk_level),
             'ocr_data'          => wp_json_encode(['source' => 'voice', 'fields' => $extracted]),
-            'ocr_provider'      => 'voice-nlu',
-            'ocr_model_version' => 'mvp-stub-1.0',
+            'ocr_provider'      => OraBooks_Ai_Providers::provider_name('speech'),
+            'ocr_model_version' => OraBooks_Ai_Providers::model_version('speech'),
             'workflow_status'   => 'draft',
             'payment_status'    => 'unpaid',
             'lock_status'       => 'unlocked',
