@@ -1,13 +1,24 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import Button from '@/components/Button';
+import Input from '@/components/Input';
 import { api } from '../api';
 import ClientShell from '../components/ClientShell';
 import ResourceAttachmentsPanel from '../components/ResourceAttachmentsPanel';
-import { Camera, CheckCircle2, Paperclip, Receipt, RefreshCw, Sparkles, Upload, XCircle } from 'lucide-react';
+import { Camera, CheckCircle2, Paperclip, Percent, Receipt, RefreshCw, Sparkles, Upload, XCircle } from 'lucide-react';
 
 const fieldClass =
   'w-full rounded-lg border border-border bg-white px-3.5 py-2.5 text-sm text-ink shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20';
+
+type TaxConfig = { jurisdiction: string; override_reasons?: string[] };
+
+const DEFAULT_REASONS = [
+  'WRONG_AI_CLASSIFICATION',
+  'LOCAL_TAX_RULE',
+  'MANUAL_JURISDICTION_ADJUSTMENT',
+  'CUSTOMER_EXEMPTION',
+  'REGIONAL_COMPLIANCE_OVERRIDE',
+];
 
 export default function ExpensesPage() {
   const [data, setData] = useState<any>(null);
@@ -21,6 +32,13 @@ export default function ExpensesPage() {
   const [confirming, setConfirming] = useState(false);
   const [actionId, setActionId] = useState<number | null>(null);
   const [classifying, setClassifying] = useState(false);
+  const [taxConfigs, setTaxConfigs] = useState<TaxConfig[]>([]);
+  const [overrideExpense, setOverrideExpense] = useState<any>(null);
+  const [overrideRate, setOverrideRate] = useState('');
+  const [overrideReason, setOverrideReason] = useState('');
+  const [overrideJurisdiction, setOverrideJurisdiction] = useState('US');
+  const [taxLocked, setTaxLocked] = useState(false);
+  const [saving, setSaving] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const orgId = data?.context?.organization?.id;
