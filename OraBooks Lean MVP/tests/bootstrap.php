@@ -1074,6 +1074,13 @@ if (!file_exists($expenses_file)) {
 }
 require_once $expenses_file;
 
+$voice_file = __DIR__ . '/../includes/class-orabooks-voice.php';
+if (!file_exists($voice_file)) {
+    echo "ERROR: Cannot find class-orabooks-voice.php at {$voice_file}\n";
+    exit(1);
+}
+require_once $voice_file;
+
 $posting_file = __DIR__ . '/../includes/class-orabooks-posting.php';
 if (!file_exists($posting_file)) {
     echo "ERROR: Cannot find class-orabooks-posting.php at {$posting_file}\n";
