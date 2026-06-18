@@ -20,6 +20,7 @@ import AttachmentsPage from './pages/AttachmentsPage';
 import ApprovalsPage from './pages/ApprovalsPage';
 import AiReviewPage from './pages/AiReviewPage';
 import ExpensesPage from './pages/ExpensesPage';
+import VoicePage from './pages/VoicePage';
 import ProfilePage from './pages/ProfilePage';
 import NotificationPreferencesPage from './pages/NotificationPreferencesPage';
 
@@ -45,6 +46,7 @@ export default function FrontendRoutes() {
       <Route path="/approvals" element={<ApprovalsPage />} />
       <Route path="/ai-review" element={<AiReviewPage />} />
       <Route path="/expenses" element={<ExpensesPage />} />
+      <Route path="/voice" element={<VoicePage />} />
       <Route path="/partner-onboarding" element={<PartnerOnboardingPage />} />
       <Route path="/notifications" element={<NotificationsPage />} />
       <Route path="/notification-preferences" element={<NotificationPreferencesPage />} />
