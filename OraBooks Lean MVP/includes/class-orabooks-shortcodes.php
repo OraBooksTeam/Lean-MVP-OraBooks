@@ -36,6 +36,7 @@ class OraBooks_Shortcodes {
             add_shortcode('orabooks_export_button', [self::$instance, 'export_button']);
             add_shortcode('orabooks_customers', [self::$instance, 'customers_page']);
             add_shortcode('orabooks_vendors', [self::$instance, 'vendors_page']);
+            add_shortcode('orabooks_inventory', [self::$instance, 'inventory_page']);
             add_shortcode('orabooks_invoices', [self::$instance, 'invoices_page']);
             add_shortcode('orabooks_chart_of_accounts', [self::$instance, 'chart_of_accounts_page']);
             add_shortcode('orabooks_journals', [self::$instance, 'journals_page']);
@@ -158,6 +159,10 @@ class OraBooks_Shortcodes {
 
     public function vendors_page() {
         return $this->react_app('/vendors', 'Loading vendors & bills...');
+    }
+
+    public function inventory_page() {
+        return $this->react_app('/inventory', 'Loading inventory...');
     }
 
     public function invoices_page() {

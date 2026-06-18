@@ -152,6 +152,8 @@ export const api = {
     api.get('orabooks_customer_dashboard'),
   vendorDashboard: () =>
     api.get('orabooks_vendor_dashboard'),
+  inventoryDashboard: () =>
+    api.get('orabooks_inventory_dashboard'),
   dashboardStats: () =>
     api.get('orabooks_dashboard_stats'),
   customerStats: (orgId = 0) =>

@@ -10,6 +10,7 @@ import {
   Landmark,
   LogOut,
   Menu,
+  Package,
   Users,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -32,6 +33,7 @@ const customerNav = [
   { label: 'Customers', href: '/customers', icon: Users },
   { label: 'Invoices', href: '/invoices', icon: FileText },
   { label: 'Vendors & Bills', href: '/vendors', icon: Building2 },
+  { label: 'Inventory', href: '/inventory', icon: Package },
   { label: 'Chart of Accounts', href: '/chart-of-accounts', icon: BookOpen },
   { label: 'Journals', href: '/journals', icon: Landmark },
   { label: 'Notifications', href: '/notifications', icon: Bell },
