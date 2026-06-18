@@ -626,10 +626,36 @@ function orabooks_admin_enqueue($hook) {
     wp_enqueue_style('orabooks-admin', ORABOOKS_PLUGIN_URL . 'assets/css/admin.css', [], ORABOOKS_VERSION);
     wp_enqueue_script('orabooks-admin', ORABOOKS_PLUGIN_URL . 'assets/js/admin.js', ['jquery'], ORABOOKS_VERSION, true);
     
-    wp_localize_script('orabooks-admin', 'orabooks_ajax', [
+    $ajax_config = [
         'ajax_url' => admin_url('admin-ajax.php'),
-        'nonce' => wp_create_nonce('orabooks_nonce')
-    ]);
+        'nonce' => wp_create_nonce('orabooks_nonce'),
+        'admin_base' => admin_url('admin.php'),
+    ];
+
+    wp_localize_script('orabooks-admin', 'orabooks_ajax', $ajax_config);
+
+    $react_admin_entry = ORABOOKS_PLUGIN_DIR . 'assets/react/admin.js';
+    if ($hook === 'toplevel_page_orabooks' && file_exists($react_admin_entry)) {
+        foreach (glob(ORABOOKS_PLUGIN_DIR . 'assets/react/assets/*.css') ?: [] as $css_file) {
+            $handle = 'orabooks-react-admin-' . sanitize_key(basename($css_file, '.css'));
+            wp_enqueue_style(
+                $handle,
+                ORABOOKS_PLUGIN_URL . 'assets/react/assets/' . basename($css_file),
+                [],
+                filemtime($css_file)
+            );
+        }
+
+        wp_enqueue_script(
+            'orabooks-react-admin',
+            ORABOOKS_PLUGIN_URL . 'assets/react/admin.js',
+            [],
+            filemtime($react_admin_entry),
+            true
+        );
+        wp_script_add_data('orabooks-react-admin', 'type', 'module');
+        wp_localize_script('orabooks-react-admin', 'orabooks_ajax', $ajax_config);
+    }
 }
 
 // Enqueue frontend assets
@@ -706,7 +732,7 @@ function orabooks_body_class($classes) {
 
 add_filter('script_loader_tag', 'orabooks_react_module_script_tag', 10, 3);
 function orabooks_react_module_script_tag($tag, $handle, $src) {
-    if ($handle !== 'orabooks-react-frontend') {
+    if ($handle !== 'orabooks-react-frontend' && $handle !== 'orabooks-react-admin') {
         return $tag;
     }
 

@@ -254,18 +254,9 @@ export default function AdminDashboard() {
             <h2 className="text-sm font-bold text-ink">Recent Activity (7 days)</h2>
           </div>
           <div className="divide-y divide-border">
-            <ActivityRow
-              icon={Building2}
-              text={`${orgs?.recent_7d ?? 0} new organizations`}
-            />
-            <ActivityRow
-              icon={Users}
-              text={`${users?.recent_7d ?? 0} new users registered`}
-            />
-            <ActivityRow
-              icon={Link2}
-              text={`${attrs?.recent_7d ?? 0} new attributions`}
-            />
+            <ActivityRow icon={Building2} count={orgs?.recent_7d ?? 0} label="new organizations" />
+            <ActivityRow icon={Users} count={users?.recent_7d ?? 0} label="new users registered" />
+            <ActivityRow icon={Link2} count={attrs?.recent_7d ?? 0} label="new attributions" />
           </div>
         </section>
 
@@ -340,15 +331,22 @@ function DetailPanel({
   );
 }
 
-function ActivityRow({ icon: Icon, text }: { icon: typeof Building2; text: string }) {
+function ActivityRow({
+  icon: Icon,
+  count,
+  label,
+}: {
+  icon: typeof Building2;
+  count: number;
+  label: string;
+}) {
   return (
     <div className="flex items-center gap-3 px-5 py-3">
       <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
         <Icon className="h-4 w-4" />
       </div>
       <p className="text-sm text-slate-600">
-        <strong className="font-bold text-ink">{text.split(' ')[0]}</strong>
-        {text.slice(text.indexOf(' '))}
+        <strong className="font-bold text-ink">{count}</strong> {label}
       </p>
     </div>
   );
