@@ -120,15 +120,15 @@ class OraBooks_Shortcodes {
     }
 
     public function customers_page() {
-        return $this->merged_or_react('customers', '/customers');
+        return $this->customer_react_page('/customers');
     }
 
     public function vendors_page() {
-        return $this->merged_or_react('suppliers', '/vendors');
+        return $this->customer_react_page('/vendors');
     }
 
     public function inventory_page() {
-        return $this->merged_or_react('view-items', '/inventory');
+        return $this->customer_react_page('/inventory');
     }
 
     public function bank_reconciliation_page() {
@@ -136,27 +136,27 @@ class OraBooks_Shortcodes {
     }
 
     public function reports_page() {
-        return $this->merged_or_react('journal-report', '/reports');
+        return $this->customer_react_page('/reports');
     }
 
     public function invoices_page() {
-        return $this->merged_or_react('view-sales', '/invoices');
+        return $this->customer_react_page('/invoices');
     }
 
     public function chart_of_accounts_page() {
-        return $this->merged_or_react('coa-list', '/chart-of-accounts');
+        return $this->customer_react_page('/chart-of-accounts');
     }
 
     public function fiscal_periods_page() {
-        return $this->merged_or_react('fiscal-periods', '/fiscal-periods');
+        return $this->customer_react_page('/fiscal-periods');
     }
 
     public function tax_settings_page() {
-        return $this->merged_or_react('setting-tax-list', '/tax-settings');
+        return $this->customer_react_page('/tax-settings');
     }
 
     public function journals_page() {
-        return $this->merged_or_react('journal-entry-list', '/journals');
+        return $this->customer_react_page('/journals');
     }
 
     public function profile_page() {
@@ -180,7 +180,7 @@ class OraBooks_Shortcodes {
     }
 
     public function expenses_page() {
-        return $this->merged_or_react('expense-list', '/expenses');
+        return $this->customer_react_page('/expenses');
     }
 
     public function voice_page() {
@@ -257,7 +257,7 @@ class OraBooks_Shortcodes {
      * CSV Import page shortcode (SL-113).
      */
     public function csv_import_page() {
-        return $this->merged_or_react('import-customers', '/csv-imports');
+        return $this->customer_react_page('/csv-imports');
     }
 
     /**
