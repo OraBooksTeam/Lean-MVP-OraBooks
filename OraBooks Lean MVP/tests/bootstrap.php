@@ -561,6 +561,63 @@ if (!function_exists('trailingslashit')) {
     }
 }
 
+if (!class_exists('WP_REST_Server')) {
+    class WP_REST_Server {
+        const READABLE = 'GET';
+        const CREATABLE = 'POST';
+        const EDITABLE = 'POST, PUT, PATCH';
+        const DELETABLE = 'DELETE';
+        const ALLMETHODS = 'GET, POST, PUT, PATCH, DELETE';
+    }
+}
+
+if (!class_exists('WP_REST_Request')) {
+    class WP_REST_Request {
+        private $params = [];
+        private $headers = [];
+
+        public function __construct($method = 'GET', $route = '', $attributes = []) {
+            $this->params = is_array($attributes) ? $attributes : [];
+        }
+
+        public function __get($key) {
+            return $this->params[$key] ?? null;
+        }
+
+        public function get_param($key) {
+            return $this->params[$key] ?? null;
+        }
+
+        public function set_param($key, $value) {
+            $this->params[$key] = $value;
+        }
+
+        public function get_header($key) {
+            return $this->headers[$key] ?? null;
+        }
+
+        public function set_header($key, $value) {
+            $this->headers[$key] = $value;
+        }
+
+        public function get_file_params() {
+            return $_FILES ?? [];
+        }
+    }
+}
+
+if (!function_exists('register_rest_route')) {
+    function register_rest_route($namespace, $route, $args = [], $override = false) {
+        return true;
+    }
+}
+
+if (!function_exists('rest_ensure_response')) {
+    function rest_ensure_response($data) {
+        return $data;
+    }
+}
+
 if (!function_exists('is_ssl')) {
     function is_ssl() {
         return false;
