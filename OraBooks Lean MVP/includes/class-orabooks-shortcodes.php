@@ -59,6 +59,22 @@ class OraBooks_Shortcodes {
         return OraBooks_Views::render('frontend/' . $view, $vars);
     }
 
+    /**
+     * Mount the React frontend SPA at a hash route.
+     *
+     * @param string $route Hash route e.g. /dashboard
+     * @param bool   $require_login Whether a logged-in user is required.
+     */
+    private function react_page($route, $require_login = true) {
+        if ($require_login && !get_current_user_id()) {
+            return OraBooks_Views::require_login_message();
+        }
+
+        return $this->render_view('react-app', [
+            'initial_route' => $route,
+        ]);
+    }
+
     private function ajax_dashboard_page($title, $ajax_action, $description = '') {
         return $this->render_view('ajax-dashboard', [
             'title' => $title,
@@ -68,11 +84,11 @@ class OraBooks_Shortcodes {
     }
     
     public function login_form() {
-        return $this->render_view('login');
+        return $this->react_page('/login', false);
     }
     
     public function register_form() {
-        return $this->render_view('register');
+        return $this->react_page('/register', false);
     }
     
     public function verify_email() {
