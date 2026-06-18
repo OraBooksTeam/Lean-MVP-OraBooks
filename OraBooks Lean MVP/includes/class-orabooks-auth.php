@@ -1901,12 +1901,17 @@ class OraBooks_Auth {
         $refresh_token = orabooks_random_string(32);
         self::store_refresh_token($user->id, $org_result['org_id'], $refresh_token);
         
-        orabooks_json_success([
+        $tier_result = [
             'token' => $jwt,
             'refresh_token' => $refresh_token,
             'org_id' => $org_result['org_id'],
             'subdomain' => $org_result['subdomain'],
-            'redirect_to' => '#/dashboard'
-        ], 'Organization created successfully');
+            'user_id' => $user->id,
+            'redirect_to' => '/dashboard/',
+        ];
+
+        orabooks_persist_login_session($tier_result);
+
+        orabooks_json_success($tier_result, 'Organization created successfully');
     }
 }

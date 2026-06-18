@@ -830,7 +830,8 @@ function orabooks_oidc_route_handler() {
         
         // Store token in cookie for the frontend to pick up
         if (!empty($result['token'])) {
-            setcookie('orabooks_token', $result['token'], time() + 900, '/', '', is_ssl(), true);
+            orabooks_set_auth_token_cookie($result['token']);
+            orabooks_persist_login_session($result);
         }
         
         wp_redirect($redirect);
