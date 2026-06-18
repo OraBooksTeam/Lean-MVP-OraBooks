@@ -20,12 +20,19 @@ class OraBooks_Bank_Reconciliation {
             self::$instance = new self();
 
             add_action('wp_ajax_orabooks_bank_accounts_list', [self::$instance, 'ajax_accounts_list']);
+            add_action('wp_ajax_nopriv_orabooks_bank_accounts_list', [self::$instance, 'ajax_accounts_list']);
             add_action('wp_ajax_orabooks_bank_account_create', [self::$instance, 'ajax_account_create']);
+            add_action('wp_ajax_nopriv_orabooks_bank_account_create', [self::$instance, 'ajax_account_create']);
             add_action('wp_ajax_orabooks_bank_import_rows', [self::$instance, 'ajax_import_rows']);
+            add_action('wp_ajax_nopriv_orabooks_bank_import_rows', [self::$instance, 'ajax_import_rows']);
             add_action('wp_ajax_orabooks_bank_transactions_list', [self::$instance, 'ajax_transactions_list']);
+            add_action('wp_ajax_nopriv_orabooks_bank_transactions_list', [self::$instance, 'ajax_transactions_list']);
             add_action('wp_ajax_orabooks_bank_match', [self::$instance, 'ajax_manual_match']);
+            add_action('wp_ajax_nopriv_orabooks_bank_match', [self::$instance, 'ajax_manual_match']);
             add_action('wp_ajax_orabooks_bank_skip', [self::$instance, 'ajax_skip_transaction']);
+            add_action('wp_ajax_nopriv_orabooks_bank_skip', [self::$instance, 'ajax_skip_transaction']);
             add_action('wp_ajax_orabooks_bank_reconcile', [self::$instance, 'ajax_finalize_reconciliation']);
+            add_action('wp_ajax_nopriv_orabooks_bank_reconcile', [self::$instance, 'ajax_finalize_reconciliation']);
         }
         return self::$instance;
     }
@@ -156,7 +163,7 @@ class OraBooks_Bank_Reconciliation {
         orabooks_log_event('bank_account_created', 'Bank account created', 'info', [
             'bank_account_id' => $account_id,
             'account_name' => $name,
-        ], get_current_user_id(), $org_id);
+        ], orabooks_get_current_user_id(), $org_id);
 
         return self::get_bank_account($account_id, $org_id);
     }
@@ -245,7 +252,7 @@ class OraBooks_Bank_Reconciliation {
             }
         }
 
-        orabooks_log_event('bank_statement_imported', 'Bank statement rows imported', 'info', $summary, $user_id ?: get_current_user_id(), $org_id);
+        orabooks_log_event('bank_statement_imported', 'Bank statement rows imported', 'info', $summary, $user_id ?: orabooks_get_current_user_id(), $org_id);
         return $summary;
     }
 
@@ -459,6 +466,46 @@ class OraBooks_Bank_Reconciliation {
         ));
     }
 
+    public static function get_recent_transactions($org_id, $args = []) {
+        global $wpdb;
+
+        $table_transactions = OraBooks_Database::table('bank_transactions');
+        $table_accounts = OraBooks_Database::table('bank_accounts');
+        $limit = intval($args['limit'] ?? 25);
+        $offset = intval($args['offset'] ?? 0);
+
+        return $wpdb->get_results($wpdb->prepare(
+            "SELECT t.*, a.account_name
+             FROM {$table_transactions} t
+             JOIN {$table_accounts} a ON t.bank_account_id = a.id
+             WHERE t.org_id = %d
+             ORDER BY t.transaction_date DESC, t.id DESC
+             LIMIT %d OFFSET %d",
+            intval($org_id),
+            $limit,
+            $offset
+        ));
+    }
+
+    public static function get_recent_reconciliation_log($org_id, $args = []) {
+        global $wpdb;
+
+        $table = OraBooks_Database::table('reconciliation_log');
+        $table_accounts = OraBooks_Database::table('bank_accounts');
+        $limit = intval($args['limit'] ?? 10);
+
+        return $wpdb->get_results($wpdb->prepare(
+            "SELECT l.*, a.account_name
+             FROM {$table} l
+             JOIN {$table_accounts} a ON l.bank_account_id = a.id
+             WHERE l.org_id = %d
+             ORDER BY l.statement_date DESC, l.id DESC
+             LIMIT %d",
+            intval($org_id),
+            $limit
+        ));
+    }
+
     private static function transaction_exists($bank_account_id, $date, $amount, $reference) {
         global $wpdb;
 
@@ -539,7 +586,7 @@ class OraBooks_Bank_Reconciliation {
     public function ajax_accounts_list() {
         check_ajax_referer('orabooks_nonce', 'nonce');
         $org_id = intval($_GET['org_id'] ?? 0);
-        if (!OraBooks_RBAC::require_permission(get_current_user_id(), $org_id, 'view_reports')) {
+        if (!OraBooks_RBAC::require_permission(orabooks_get_current_user_id(), $org_id, 'view_reports')) {
             orabooks_json_error('Permission denied', 403);
         }
         orabooks_json_success(['accounts' => self::get_accounts_list($org_id)]);
@@ -548,7 +595,7 @@ class OraBooks_Bank_Reconciliation {
     public function ajax_account_create() {
         check_ajax_referer('orabooks_nonce', 'nonce');
         $org_id = intval($_POST['org_id'] ?? 0);
-        if (!OraBooks_RBAC::require_permission(get_current_user_id(), $org_id, 'manage_org_settings')) {
+        if (!OraBooks_RBAC::require_permission(orabooks_get_current_user_id(), $org_id, 'manage_org_settings')) {
             orabooks_json_error('Permission denied', 403);
         }
         $result = self::create_bank_account($org_id, $_POST);
@@ -561,11 +608,11 @@ class OraBooks_Bank_Reconciliation {
     public function ajax_import_rows() {
         check_ajax_referer('orabooks_nonce', 'nonce');
         $org_id = intval($_POST['org_id'] ?? 0);
-        if (!OraBooks_RBAC::require_permission(get_current_user_id(), $org_id, 'submit_transaction')) {
+        if (!OraBooks_RBAC::require_permission(orabooks_get_current_user_id(), $org_id, 'submit_transaction')) {
             orabooks_json_error('Permission denied', 403);
         }
         $rows = json_decode(stripslashes($_POST['rows_json'] ?? '[]'), true);
-        $result = self::import_rows($org_id, intval($_POST['bank_account_id'] ?? 0), is_array($rows) ? $rows : [], get_current_user_id());
+        $result = self::import_rows($org_id, intval($_POST['bank_account_id'] ?? 0), is_array($rows) ? $rows : [], orabooks_get_current_user_id());
         if (is_wp_error($result)) {
             orabooks_json_error($result->get_error_message(), 400);
         }
@@ -575,7 +622,7 @@ class OraBooks_Bank_Reconciliation {
     public function ajax_transactions_list() {
         check_ajax_referer('orabooks_nonce', 'nonce');
         $org_id = intval($_GET['org_id'] ?? 0);
-        if (!OraBooks_RBAC::require_permission(get_current_user_id(), $org_id, 'view_reports')) {
+        if (!OraBooks_RBAC::require_permission(orabooks_get_current_user_id(), $org_id, 'view_reports')) {
             orabooks_json_error('Permission denied', 403);
         }
         orabooks_json_success(['transactions' => self::get_transactions_list($org_id, intval($_GET['bank_account_id'] ?? 0), $_GET)]);
@@ -584,10 +631,10 @@ class OraBooks_Bank_Reconciliation {
     public function ajax_manual_match() {
         check_ajax_referer('orabooks_nonce', 'nonce');
         $org_id = intval($_POST['org_id'] ?? 0);
-        if (!OraBooks_RBAC::require_permission(get_current_user_id(), $org_id, 'submit_transaction')) {
+        if (!OraBooks_RBAC::require_permission(orabooks_get_current_user_id(), $org_id, 'submit_transaction')) {
             orabooks_json_error('Permission denied', 403);
         }
-        $result = self::manual_match($org_id, intval($_POST['bank_transaction_id'] ?? 0), $_POST['transaction_type'] ?? '', intval($_POST['transaction_id'] ?? 0), get_current_user_id());
+        $result = self::manual_match($org_id, intval($_POST['bank_transaction_id'] ?? 0), $_POST['transaction_type'] ?? '', intval($_POST['transaction_id'] ?? 0), orabooks_get_current_user_id());
         if (is_wp_error($result)) {
             orabooks_json_error($result->get_error_message(), 400);
         }
@@ -597,10 +644,10 @@ class OraBooks_Bank_Reconciliation {
     public function ajax_skip_transaction() {
         check_ajax_referer('orabooks_nonce', 'nonce');
         $org_id = intval($_POST['org_id'] ?? 0);
-        if (!OraBooks_RBAC::require_permission(get_current_user_id(), $org_id, 'submit_transaction')) {
+        if (!OraBooks_RBAC::require_permission(orabooks_get_current_user_id(), $org_id, 'submit_transaction')) {
             orabooks_json_error('Permission denied', 403);
         }
-        $result = self::skip_transaction($org_id, intval($_POST['bank_transaction_id'] ?? 0), $_POST['reason'] ?? '', get_current_user_id());
+        $result = self::skip_transaction($org_id, intval($_POST['bank_transaction_id'] ?? 0), $_POST['reason'] ?? '', orabooks_get_current_user_id());
         if (is_wp_error($result)) {
             orabooks_json_error($result->get_error_message(), 400);
         }
@@ -610,7 +657,7 @@ class OraBooks_Bank_Reconciliation {
     public function ajax_finalize_reconciliation() {
         check_ajax_referer('orabooks_nonce', 'nonce');
         $org_id = intval($_POST['org_id'] ?? 0);
-        if (!OraBooks_RBAC::require_permission(get_current_user_id(), $org_id, 'manage_org_settings')) {
+        if (!OraBooks_RBAC::require_permission(orabooks_get_current_user_id(), $org_id, 'manage_org_settings')) {
             orabooks_json_error('Permission denied', 403);
         }
         $result = self::finalize_reconciliation(
@@ -618,7 +665,7 @@ class OraBooks_Bank_Reconciliation {
             intval($_POST['bank_account_id'] ?? 0),
             sanitize_text_field($_POST['statement_date'] ?? ''),
             floatval($_POST['ending_balance'] ?? 0),
-            get_current_user_id(),
+            orabooks_get_current_user_id(),
             !empty($_POST['force']),
             sanitize_textarea_field($_POST['note'] ?? '')
         );
