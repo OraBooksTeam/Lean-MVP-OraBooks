@@ -84,21 +84,24 @@ class OraBooks_Shortcodes {
     }
 
     /**
-     * Route customer orgs to merged accounting workspace; partners/admins keep React routes.
+     * Lean MVP customer workspace routes use the React SPA (SL-021+).
+     * Legacy PHP accounting remains available via [orabooks_accounting] only.
      */
-    private function merged_or_react($accounting_view, $react_route, $require_login = true) {
-        if ($require_login && !orabooks_is_user_logged_in()) {
-            return OraBooks_Views::require_login_message();
-        }
-
-        if (function_exists('orabooks_uses_merged_accounting_workspace') && orabooks_uses_merged_accounting_workspace()) {
-            return orabooks_render_merged_accounting_workspace($accounting_view);
-        }
-
-        return $this->react_page($react_route, $require_login);
+    private function customer_react_page($route, $require_login = true) {
+        return $this->react_page($route, $require_login);
     }
-    
-    public function login_form() {
+
+    public function customers_page() {
+        return $this->customer_react_page('/customers');
+    }
+
+    public function vendors_page() {
+        return $this->customer_react_page('/vendors');
+    }
+
+    public function inventory_page() {
+        return $this->customer_react_page('/inventory');
+    }
         return $this->react_page('/login', false);
     }
     
