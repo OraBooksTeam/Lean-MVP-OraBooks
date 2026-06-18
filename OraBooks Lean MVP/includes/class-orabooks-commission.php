@@ -1310,9 +1310,71 @@ class OraBooks_Commission {
     }
 
     /**
+     * Record gateway fee bank charge after payout settlement (SL-031 follow-up webhook).
+     * Dr Commission Fee Payable, Cr Bank.
+     */
+    public static function settle_gateway_fee($payout_id, $bank_transaction_id, $settlement_date = null) {
+        global $wpdb;
+
+        $table_payouts = OraBooks_Database::table('commission_payouts');
+        $payout = $wpdb->get_row($wpdb->prepare(
+            "SELECT * FROM {$table_payouts} WHERE id = %d",
+            $payout_id
+        ));
+
+        if (!$payout) {
+            return new WP_Error('not_found', 'Payout not found');
+        }
+
+        if ($payout->status !== 'settled') {
+            return new WP_Error('invalid_status', 'Gateway fee can only be recorded for settled payouts');
+        }
+
+        $fee_amount = (float) $payout->fee_amount;
+        if ($fee_amount <= 0) {
+            return true;
+        }
+
+        $settlement_date = $settlement_date ?: current_time('Y-m-d');
+        $journal_result = self::post_system_journal(
+            $settlement_date,
+            'commission_gateway_fee',
+            (int) $payout_id,
+            self::build_gateway_fee_payment_lines($fee_amount),
+            [
+                'payout_id' => (int) $payout_id,
+                'partner_user_id' => (int) $payout->partner_user_id,
+                'bank_transaction_id' => (int) $bank_transaction_id,
+                'fee_amount' => $fee_amount,
+            ]
+        );
+
+        if (is_wp_error($journal_result)) {
+            return $journal_result;
+        }
+
+        orabooks_log_event(
+            'commission_gateway_fee_settled',
+            "Gateway fee recorded for payout #{$payout_id}: fee={$fee_amount}",
+            'info',
+            [
+                'payout_id' => (int) $payout_id,
+                'bank_transaction_id' => (int) $bank_transaction_id,
+                'fee_amount' => $fee_amount,
+                'journal' => $journal_result,
+            ],
+            (int) $payout->partner_user_id,
+            (int) $payout->org_id
+        );
+
+        return true;
+    }
+
+    /**
      * ============================================================
      * EXPIRY JOB (Daily)
      * ============================================================
+     */
      */
     public static function process_expiry() {
         global $wpdb;
@@ -1320,10 +1382,9 @@ class OraBooks_Commission {
         $table_earned = OraBooks_Database::table('commissions_earned');
         $table_escrow = OraBooks_Database::table('commission_escrow_schedule');
         $table_release = OraBooks_Database::table('commission_release_schedule');
-        $table_balances = OraBooks_Database::table('account_balances');
-        $table_accounts = OraBooks_Database::table('accounts');
         
         $config = self::get_config();
+        $expiry_action = ($config && $config->expiry_accounting_action === 'income') ? 'income' : 'reverse_expense';
         
         // PART A: Expire earned commissions where expires_at has passed
         $expired_earned = $wpdb->get_results(
