@@ -237,12 +237,6 @@ class OraBooks_Approval_Test extends TestCase
             return [];
         };
 
-        if (!function_exists('get_user_meta')) {
-            function get_user_meta($user_id, $key, $single = false) {
-                return $GLOBALS['orabooks_test_totp_secret'] ?? '';
-            }
-        }
-
         $result = OraBooks_Approval::approve_journal(10, 2, ['mfa_otp' => '123456']);
         $this->assertTrue($result);
     }
