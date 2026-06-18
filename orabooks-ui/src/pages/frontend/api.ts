@@ -217,6 +217,47 @@ export const api = {
     api.post('orabooks_resend_invite', { org_id: orgId, invite_id: inviteId }),
   cancelTeamInvite: (orgId: number, inviteId: number) =>
     api.post('orabooks_cancel_invite', { org_id: orgId, invite_id: inviteId }),
+  attachmentsDashboard: () =>
+    api.get('orabooks_attachments_dashboard'),
+  uploadAttachment: (
+    orgId: number,
+    resourceType: string,
+    resourceId: number,
+    file: File,
+    attachmentId = 0,
+    idempotencyKey = ''
+  ) => {
+    const formData = new FormData();
+    formData.set('org_id', String(orgId));
+    formData.set('resource_type', resourceType);
+    formData.set('resource_id', String(resourceId));
+    formData.set('attachment_file', file);
+    if (attachmentId) formData.set('attachment_id', String(attachmentId));
+    if (idempotencyKey) formData.set('idempotency_key', idempotencyKey);
+    return uploadRequest('orabooks_attachment_upload', formData);
+  },
+  attachmentGet: (orgId: number, attachmentId: number) =>
+    api.get('orabooks_attachment_get', { org_id: orgId, attachment_id: attachmentId }),
+  attachmentDelete: (orgId: number, attachmentId: number) =>
+    api.post('orabooks_attachment_delete', { org_id: orgId, attachment_id: attachmentId }),
+  attachmentsList: (orgId: number, resourceType = '', resourceId = 0) =>
+    api.get('orabooks_attachments_list', {
+      org_id: orgId,
+      ...(resourceType ? { resource_type: resourceType } : {}),
+      ...(resourceId ? { resource_id: resourceId } : {}),
+    }),
+  attachmentDownloadUrl: (orgId: number, attachmentId: number, versionId = 0) => {
+    const token = getStoredToken();
+    const qs = new URLSearchParams();
+    qs.set('action', 'orabooks_attachment_download');
+    qs.set('_ajax_nonce', ORABOOKS_NONCE);
+    qs.set('org_id', String(orgId));
+    qs.set('attachment_id', String(attachmentId));
+    if (versionId) qs.set('version_id', String(versionId));
+    if (token) qs.set('orabooks_token', token);
+    if (ORABOOKS_USER_ID) qs.set('current_user_id', String(ORABOOKS_USER_ID));
+    return `${ORABOOKS_URL}?${qs.toString()}`;
+  },
   generateFinancialReport: (orgId: number, reportType: string, periodStart: string, periodEnd: string) =>
     api.get('orabooks_financial_report_generate', {
       org_id: orgId,
