@@ -1033,6 +1033,8 @@ class OraBooks_Auth {
         if (is_array($result) && !empty($subdomain)) {
             $result['detected_subdomain'] = $subdomain;
         }
+
+        orabooks_persist_login_session($result, $password);
         
         orabooks_json_success($result, 'Login successful');
     }
@@ -1303,15 +1305,19 @@ class OraBooks_Auth {
         self::store_refresh_token($user->id, $user->org_id, $refresh_token);
         
         orabooks_log_event('login_success', "2FA login successful for user $user_id", 'info', ['method' => !empty($otp) ? 'totp' : 'backup_code'], $user_id, $user->org_id);
-        
-        orabooks_json_success([
+
+        $login_result = [
             'token' => $jwt,
             'refresh_token' => $refresh_token,
             'user_id' => $user->id,
             'org_id' => $user->org_id,
             'role' => $role,
             'is_partner' => $user->is_partner
-        ]);
+        ];
+
+        orabooks_persist_login_session($login_result);
+        
+        orabooks_json_success($login_result);
     }
     
     public function ajax_logout() {
