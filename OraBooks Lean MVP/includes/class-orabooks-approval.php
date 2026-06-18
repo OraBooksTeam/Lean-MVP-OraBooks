@@ -593,7 +593,7 @@ class OraBooks_Approval {
             ]);
 
             if (class_exists('OraBooks_Notifications') && (int) $journal->created_by > 0) {
-                OraBooks_Notifications::notify_user(
+                OraBooks_Notifications::notify(
                     (int) $journal->created_by,
                     'journal_approval_expired',
                     [
@@ -626,7 +626,7 @@ class OraBooks_Approval {
 
         foreach ($rows as $journal) {
             if (class_exists('OraBooks_Notifications') && (int) $journal->approved_by > 0) {
-                OraBooks_Notifications::notify_user(
+                OraBooks_Notifications::notify(
                     (int) $journal->approved_by,
                     'journal_approval_expiring',
                     [
@@ -673,7 +673,7 @@ class OraBooks_Approval {
             ]);
 
             if (class_exists('OraBooks_Notifications')) {
-                OraBooks_Notifications::notify_org_admins(
+                self::notify_org_admins(
                     (int) $journal->org_id,
                     'journal_approval_escalated',
                     [
