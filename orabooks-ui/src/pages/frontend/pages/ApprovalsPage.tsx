@@ -372,6 +372,210 @@ function JournalSection({
   );
 }
 
+function JournalDetailPanel({
+  journalId,
+  detail,
+  loading,
+  caps,
+  actionId,
+  onClose,
+  onApprove,
+  onReject,
+  onPost,
+  onSubmit,
+}: {
+  journalId: number;
+  detail: any;
+  loading: boolean;
+  caps: Record<string, boolean>;
+  actionId: number | null;
+  onClose: () => void;
+  onApprove: (id: number) => void;
+  onReject: (id: number) => void;
+  onPost: (id: number) => void;
+  onSubmit: (id: number) => void;
+}) {
+  const journal = detail?.journal;
+  const lines = detail?.lines || [];
+  const history = detail?.approval_history || [];
+  const status = journal?.status || '';
+
+  return (
+    <div className="glass-panel overflow-hidden">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-5 py-4">
+        <div>
+          <h2 className="font-bold text-ink">
+            Journal Detail — {journal?.journal_number || `#${journalId}`}
+          </h2>
+          <p className="mt-1 text-sm text-slate-600">
+            {journal?.transaction_date || '—'} · {journal?.source_type || 'manual'}
+            {journal?.source_id ? ` #${journal.source_id}` : ''}
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          {journal?.status && <JournalStatusBadge status={journal.status} />}
+          <Button variant="secondary" size="sm" onClick={onClose}>
+            Close
+          </Button>
+        </div>
+      </div>
+
+      {loading ? (
+        <p className="px-5 py-8 text-center text-sm text-slate-500">Loading journal detail...</p>
+      ) : !journal ? (
+        <p className="px-5 py-8 text-center text-sm text-slate-500">Journal not found.</p>
+      ) : (
+        <div className="space-y-4 p-5">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 text-sm">
+            <p>
+              <span className="text-slate-500">Amount:</span>{' '}
+              <strong className="text-ink">{money(journal.total_amount)}</strong>
+            </p>
+            <p>
+              <span className="text-slate-500">Round:</span> {journal.approval_round ?? 0}
+            </p>
+            <p>
+              <span className="text-slate-500">Created:</span> {formatDate(journal.created_at)}
+            </p>
+            {journal.ai_confidence != null && (
+              <p>
+                <span className="text-slate-500">AI confidence:</span>{' '}
+                <strong>{Number(journal.ai_confidence).toFixed(1)}%</strong>
+              </p>
+            )}
+          </div>
+
+          {journal.rejected_reason && (
+            <p className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+              Rejected: {journal.rejected_reason}
+            </p>
+          )}
+
+          <div className="overflow-hidden rounded-xl border border-border">
+            <table className="min-w-full text-left text-sm">
+              <thead>
+                <tr className="border-b border-border bg-slate-50/70 text-xs uppercase text-slate-500">
+                  <th className="px-4 py-2 font-semibold">Account</th>
+                  <th className="px-4 py-2 text-right font-semibold">Debit</th>
+                  <th className="px-4 py-2 text-right font-semibold">Credit</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {lines.length === 0 ? (
+                  <tr>
+                    <td colSpan={3} className="px-4 py-6 text-center text-slate-500">
+                      No journal lines.
+                    </td>
+                  </tr>
+                ) : (
+                  lines.map((line: any) => (
+                    <tr key={line.id}>
+                      <td className="px-4 py-2">
+                        <div className="font-mono font-semibold text-ink">{line.account_code}</div>
+                        {line.description && (
+                          <div className="text-xs text-slate-500">{line.description}</div>
+                        )}
+                      </td>
+                      <td className="px-4 py-2 text-right text-slate-700">
+                        {line.debit_amount ? money(line.debit_amount) : '—'}
+                      </td>
+                      <td className="px-4 py-2 text-right text-slate-700">
+                        {line.credit_amount ? money(line.credit_amount) : '—'}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {history.length > 0 && (
+            <div>
+              <h3 className="mb-2 text-sm font-bold text-ink">Approval History</h3>
+              <div className="overflow-hidden rounded-xl border border-border">
+                <table className="min-w-full text-left text-sm">
+                  <thead>
+                    <tr className="border-b border-border bg-slate-50/70 text-xs uppercase text-slate-500">
+                      <th className="px-4 py-2 font-semibold">Action</th>
+                      <th className="px-4 py-2 font-semibold">Round</th>
+                      <th className="px-4 py-2 font-semibold">Reason</th>
+                      <th className="px-4 py-2 font-semibold">When</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {history.map((row: any) => (
+                      <tr key={row.id}>
+                        <td className="px-4 py-2">
+                          <ActionBadge action={row.action} />
+                        </td>
+                        <td className="px-4 py-2 font-mono text-xs">{row.approval_round}</td>
+                        <td className="px-4 py-2 text-slate-600">{row.reason || '—'}</td>
+                        <td className="px-4 py-2 text-slate-600">{formatDate(row.created_at)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          <div className="flex flex-wrap gap-2 border-t border-border pt-4">
+            {caps.approve && status === 'review_pending' && (
+              <>
+                <Button size="sm" disabled={actionId === journalId} onClick={() => onApprove(journalId)}>
+                  <CheckCircle2 className="h-3.5 w-3.5" />
+                  Approve
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  disabled={actionId === journalId}
+                  onClick={() => onReject(journalId)}
+                >
+                  <XCircle className="h-3.5 w-3.5" />
+                  Reject
+                </Button>
+              </>
+            )}
+            {caps.post && status === 'approved' && (
+              <Button size="sm" disabled={actionId === journalId} onClick={() => onPost(journalId)}>
+                <Send className="h-3.5 w-3.5" />
+                Post
+              </Button>
+            )}
+            {caps.submit && status === 'draft' && (
+              <Button size="sm" disabled={actionId === journalId} onClick={() => onSubmit(journalId)}>
+                Submit for Approval
+              </Button>
+            )}
+            <Link to={`/attachments?resource_type=journal&resource_id=${journalId}`}>
+              <Button variant="secondary" size="sm">
+                <Paperclip className="h-3.5 w-3.5" />
+                Attachments
+              </Button>
+            </Link>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function JournalStatusBadge({ status }: { status: string }) {
+  const styles: Record<string, string> = {
+    draft: 'border-slate-200 bg-slate-50 text-slate-700',
+    review_pending: 'border-amber-200 bg-amber-50 text-amber-800',
+    approved: 'border-emerald-200 bg-emerald-50 text-emerald-800',
+    posted: 'border-primary/20 bg-primary/10 text-primary',
+    reversed: 'border-red-200 bg-red-50 text-red-800',
+  };
+  return (
+    <span className={`badge border capitalize ${styles[status] || styles.draft}`}>
+      {status.replace(/_/g, ' ')}
+    </span>
+  );
+}
+
 function Metric({
   label,
   value,

@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { Link } from 'react-router-dom';
 import Button from '@/components/Button';
 import Input from '@/components/Input';
 import { api } from '../api';
 import ClientShell from '../components/ClientShell';
-import { FileText, Info, Percent, Plus, RefreshCw, Wallet } from 'lucide-react';
+import { FileText, Info, Paperclip, Percent, Plus, RefreshCw, Wallet } from 'lucide-react';
 
 type Invoice = {
   id: number;
