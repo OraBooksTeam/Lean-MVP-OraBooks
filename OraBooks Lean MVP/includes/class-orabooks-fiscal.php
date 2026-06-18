@@ -79,33 +79,19 @@ class OraBooks_Fiscal {
             return [];
         }
 
-        $status = strtoupper((string) $row->status);
-        if ($status === 'OPEN' || $status === 'SOFT_CLOSED' || $status === 'HARD_CLOSED') {
-            $api_status = $status;
-        } else {
-            $api_status = strtoupper(str_replace('_', '_', (string) $row->status));
-            $map = [
-                'OPEN'         => 'OPEN',
-                'SOFT_CLOSED'  => 'SOFT_CLOSED',
-                'HARD_CLOSED'  => 'HARD_CLOSED',
-            ];
-            $normalized = strtoupper(str_replace('_', '_', (string) $row->status));
-            $api_status = $map[$normalized] ?? strtoupper((string) $row->status);
-            if ($row->status === 'open') {
-                $api_status = 'OPEN';
-            } elseif ($row->status === 'soft_closed') {
-                $api_status = 'SOFT_CLOSED';
-            } elseif ($row->status === 'hard_closed') {
-                $api_status = 'HARD_CLOSED';
-            }
-        }
+        $map = [
+            'open'         => 'OPEN',
+            'soft_closed'  => 'SOFT_CLOSED',
+            'hard_closed'  => 'HARD_CLOSED',
+        ];
+        $db_status = strtolower((string) $row->status);
 
         return [
             'id'            => (int) $row->id,
             'org_id'        => (int) $row->org_id,
             'period_start'  => $row->period_start,
             'period_end'    => $row->period_end,
-            'status'        => $api_status,
+            'status'        => $map[$db_status] ?? strtoupper($db_status),
             'closed_by'     => isset($row->closed_by) ? (int) $row->closed_by : null,
             'closed_at'     => $row->closed_at ?? null,
             'reopened_by'   => isset($row->reopened_by) ? (int) $row->reopened_by : null,
