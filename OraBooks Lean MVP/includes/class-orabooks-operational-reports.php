@@ -772,8 +772,17 @@ class OraBooks_Operational_Reports {
     }
 
     public function ajax_generate_report() {
-        $user_id = get_current_user_id();
+        $user_id = orabooks_get_current_user_id();
         $org_id = intval($_REQUEST['org_id'] ?? 0);
+        if (!$user_id) {
+            orabooks_json_error('Not authenticated', 401);
+        }
+
+        $isolation = OraBooks_Auth::require_customer_org($user_id, $org_id);
+        if (is_wp_error($isolation)) {
+            orabooks_json_error($isolation->get_error_message(), 403);
+        }
+
         if (!OraBooks_RBAC::require_permission($user_id, $org_id, 'view_operational_reports')) {
             orabooks_json_error('Permission denied', 403);
         }
@@ -786,8 +795,17 @@ class OraBooks_Operational_Reports {
     }
 
     public function ajax_request_export() {
-        $user_id = get_current_user_id();
+        $user_id = orabooks_get_current_user_id();
         $org_id = intval($_POST['org_id'] ?? 0);
+        if (!$user_id) {
+            orabooks_json_error('Not authenticated', 401);
+        }
+
+        $isolation = OraBooks_Auth::require_customer_org($user_id, $org_id);
+        if (is_wp_error($isolation)) {
+            orabooks_json_error($isolation->get_error_message(), 403);
+        }
+
         if (!OraBooks_RBAC::require_permission($user_id, $org_id, 'export_reports')) {
             orabooks_json_error('Permission denied', 403);
         }
@@ -809,8 +827,17 @@ class OraBooks_Operational_Reports {
     }
 
     public function ajax_update_reorder_level() {
-        $user_id = get_current_user_id();
+        $user_id = orabooks_get_current_user_id();
         $org_id = intval($_POST['org_id'] ?? 0);
+        if (!$user_id) {
+            orabooks_json_error('Not authenticated', 401);
+        }
+
+        $isolation = OraBooks_Auth::require_customer_org($user_id, $org_id);
+        if (is_wp_error($isolation)) {
+            orabooks_json_error($isolation->get_error_message(), 403);
+        }
+
         if (!OraBooks_RBAC::require_permission($user_id, $org_id, 'manage_inventory')) {
             orabooks_json_error('Permission denied', 403);
         }
