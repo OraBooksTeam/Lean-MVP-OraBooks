@@ -144,99 +144,129 @@ class OraBooks_Shortcodes {
     }
     
     public function partner_onboarding() {
-        return $this->react_app('/partner-onboarding', 'Loading partner onboarding...');
+        if (!get_current_user_id()) {
+            return OraBooks_Views::require_login_message();
+        }
+        return $this->render_view('partner-onboarding');
     }
     
     public function tier_selection() {
-        return $this->react_app('/tier-selection', 'Loading plan selection...');
+        if (!get_current_user_id()) {
+            return OraBooks_Views::require_login_message();
+        }
+        return $this->render_view('tier-selection');
     }
     
     public function dashboard() {
-        return $this->react_app('/dashboard', 'Loading OraBooks dashboard...');
+        if (!get_current_user_id()) {
+            return OraBooks_Views::require_login_message();
+        }
+        return $this->render_view('dashboard');
     }
 
     public function customers_page() {
-        return $this->react_app('/customers', 'Loading customers...');
+        if (!get_current_user_id()) {
+            return OraBooks_Views::require_login_message();
+        }
+        return $this->ajax_dashboard_page(__('Customers', 'orabooks'), 'orabooks_customer_dashboard');
     }
 
     public function vendors_page() {
-        return $this->react_app('/vendors', 'Loading vendors & bills...');
+        if (!get_current_user_id()) {
+            return OraBooks_Views::require_login_message();
+        }
+        return $this->ajax_dashboard_page(__('Vendors & Bills', 'orabooks'), 'orabooks_vendor_dashboard');
     }
 
     public function inventory_page() {
-        return $this->react_app('/inventory', 'Loading inventory...');
+        if (!get_current_user_id()) {
+            return OraBooks_Views::require_login_message();
+        }
+        return $this->ajax_dashboard_page(__('Inventory', 'orabooks'), 'orabooks_inventory_dashboard');
     }
 
     public function bank_reconciliation_page() {
-        return $this->react_app('/bank-reconciliation', 'Loading bank reconciliation...');
+        if (!get_current_user_id()) {
+            return OraBooks_Views::require_login_message();
+        }
+        return $this->ajax_dashboard_page(__('Bank Reconciliation', 'orabooks'), 'orabooks_bank_dashboard');
     }
 
     public function reports_page() {
-        return $this->react_app('/reports', 'Loading reports...');
+        if (!get_current_user_id()) {
+            return OraBooks_Views::require_login_message();
+        }
+        return $this->ajax_dashboard_page(__('Reports', 'orabooks'), 'orabooks_reports_dashboard');
     }
 
     public function invoices_page() {
-        return $this->react_app('/invoices', 'Loading invoices...');
+        if (!get_current_user_id()) {
+            return OraBooks_Views::require_login_message();
+        }
+        return $this->ajax_dashboard_page(__('Invoices', 'orabooks'), 'orabooks_customer_dashboard', __('Invoice summary for your organization.', 'orabooks'));
     }
 
     public function chart_of_accounts_page() {
-        return $this->react_app('/chart-of-accounts', 'Loading chart of accounts...');
+        if (!get_current_user_id()) {
+            return OraBooks_Views::require_login_message();
+        }
+        return $this->ajax_dashboard_page(__('Chart of Accounts', 'orabooks'), 'orabooks_customer_dashboard', __('Account summary for your organization.', 'orabooks'));
     }
 
     public function journals_page() {
-        return $this->react_app('/journals', 'Loading journals...');
+        if (!get_current_user_id()) {
+            return OraBooks_Views::require_login_message();
+        }
+        return $this->ajax_dashboard_page(__('Journals', 'orabooks'), 'orabooks_customer_dashboard', __('Journal activity for your organization.', 'orabooks'));
     }
 
     public function profile_page() {
-        return $this->react_app('/profile', 'Loading profile...');
+        if (!get_current_user_id()) {
+            return OraBooks_Views::require_login_message();
+        }
+        return $this->ajax_dashboard_page(__('Profile', 'orabooks'), 'orabooks_frontend_context');
     }
 
     public function team_page() {
-        $user_id = get_current_user_id();
-        if (!$user_id) {
-            return '<p>' . __('Please log in to manage your team.', 'orabooks') . '</p>';
+        if (!get_current_user_id()) {
+            return OraBooks_Views::require_login_message();
         }
-        return $this->react_app('/team', 'Loading team...');
+        return $this->ajax_dashboard_page(__('Team', 'orabooks'), 'orabooks_team_dashboard');
     }
 
     public function attachments_page() {
-        $user_id = get_current_user_id();
-        if (!$user_id) {
-            return '<p>' . __('Please log in to manage attachments.', 'orabooks') . '</p>';
+        if (!get_current_user_id()) {
+            return OraBooks_Views::require_login_message();
         }
-        return $this->react_app('/attachments', 'Loading attachments...');
+        return $this->ajax_dashboard_page(__('Attachments', 'orabooks'), 'orabooks_attachments_dashboard');
     }
 
     public function approvals_page() {
-        $user_id = get_current_user_id();
-        if (!$user_id) {
-            return '<p>' . __('Please log in to manage approvals.', 'orabooks') . '</p>';
+        if (!get_current_user_id()) {
+            return OraBooks_Views::require_login_message();
         }
-        return $this->react_app('/approvals', 'Loading approvals...');
+        return $this->ajax_dashboard_page(__('Approvals', 'orabooks'), 'orabooks_approval_dashboard');
     }
 
     public function ai_review_page() {
-        $user_id = get_current_user_id();
-        if (!$user_id) {
-            return '<p>' . __('Please log in to view the AI review queue.', 'orabooks') . '</p>';
+        if (!get_current_user_id()) {
+            return OraBooks_Views::require_login_message();
         }
-        return $this->react_app('/ai-review', 'Loading AI review queue...');
+        return $this->ajax_dashboard_page(__('AI Review Queue', 'orabooks'), 'orabooks_ai_review_dashboard');
     }
 
     public function expenses_page() {
-        $user_id = get_current_user_id();
-        if (!$user_id) {
-            return '<p>' . __('Please log in to manage expenses.', 'orabooks') . '</p>';
+        if (!get_current_user_id()) {
+            return OraBooks_Views::require_login_message();
         }
-        return $this->react_app('/expenses', 'Loading expenses...');
+        return $this->ajax_dashboard_page(__('Expenses', 'orabooks'), 'orabooks_expenses_dashboard');
     }
 
     public function voice_page() {
-        $user_id = get_current_user_id();
-        if (!$user_id) {
-            return '<p>' . __('Please log in to use voice input.', 'orabooks') . '</p>';
+        if (!get_current_user_id()) {
+            return OraBooks_Views::require_login_message();
         }
-        return $this->react_app('/voice', 'Loading voice input...');
+        return $this->ajax_dashboard_page(__('Voice Input', 'orabooks'), 'orabooks_voice_dashboard');
     }
     
     /**
