@@ -96,7 +96,7 @@ export default function ClientShell({
 
   return (
     <div className="min-h-screen brand-page-bg">
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-72 flex-col bg-primary p-5 text-white shadow-xl shadow-primary/20 lg:flex">
+      <aside className="fixed inset-y-0 left-0 z-[100] hidden w-72 flex-col bg-primary p-5 text-white shadow-xl shadow-primary/20 lg:flex">
         <div className="shrink-0">
           <div className="flex items-center gap-3">
             <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-base font-black text-primary">
@@ -158,7 +158,7 @@ export default function ClientShell({
       </aside>
 
       <main className="min-w-0 lg:pl-72">
-        <div className="sticky top-0 z-20 border-b border-primary/10 bg-white/95 shadow-sm shadow-primary/5 backdrop-blur lg:hidden">
+        <div className="sticky top-0 z-[99] border-b border-primary/10 bg-white/95 shadow-sm shadow-primary/5 backdrop-blur lg:hidden">
           <div className="flex items-center justify-between px-4 py-3">
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-sm font-black text-white">
