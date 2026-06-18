@@ -225,6 +225,60 @@ export const api = {
     }),
   bankDashboard: () =>
     api.get('orabooks_bank_dashboard'),
+  bankAccountsList: (orgId: number) =>
+    api.get('orabooks_bank_accounts_list', { org_id: orgId }),
+  bankAccountCreate: (orgId: number, data: Record<string, unknown>) =>
+    api.post('orabooks_bank_account_create', { org_id: orgId, ...data }),
+  bankTransactionsList: (
+    orgId: number,
+    bankAccountId = 0,
+    filters: Record<string, unknown> = {}
+  ) =>
+    api.get('orabooks_bank_transactions_list', {
+      org_id: orgId,
+      ...(bankAccountId ? { bank_account_id: bankAccountId } : {}),
+      ...filters,
+    }),
+  bankImportRows: (orgId: number, bankAccountId: number, rows: Array<Record<string, unknown>>) =>
+    api.post('orabooks_bank_import_rows', {
+      org_id: orgId,
+      bank_account_id: bankAccountId,
+      rows_json: JSON.stringify(rows),
+    }),
+  bankManualMatch: (
+    orgId: number,
+    bankTransactionId: number,
+    transactionType: 'payment' | 'expense' | 'journal',
+    transactionId: number
+  ) =>
+    api.post('orabooks_bank_match', {
+      org_id: orgId,
+      bank_transaction_id: bankTransactionId,
+      transaction_type: transactionType,
+      transaction_id: transactionId,
+    }),
+  bankSkip: (orgId: number, bankTransactionId: number, reason: string) =>
+    api.post('orabooks_bank_skip', {
+      org_id: orgId,
+      bank_transaction_id: bankTransactionId,
+      reason,
+    }),
+  bankReconcile: (
+    orgId: number,
+    bankAccountId: number,
+    statementDate: string,
+    endingBalance: number,
+    force = false,
+    note = ''
+  ) =>
+    api.post('orabooks_bank_reconcile', {
+      org_id: orgId,
+      bank_account_id: bankAccountId,
+      statement_date: statementDate,
+      ending_balance: endingBalance,
+      force: force ? 1 : 0,
+      note,
+    }),
   reportsDashboard: () =>
     api.get('orabooks_reports_dashboard'),
   csvImportsDashboard: () =>

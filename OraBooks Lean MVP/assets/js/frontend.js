@@ -3,6 +3,32 @@
  */
 jQuery(document).ready(function($) {
 
+    function orabooksAjaxErrorMessage(xhr, fallback) {
+        if (xhr && xhr.responseJSON && xhr.responseJSON.message) {
+            return xhr.responseJSON.message;
+        }
+        if (xhr && xhr.responseText) {
+            try {
+                var parsed = JSON.parse(xhr.responseText);
+                if (parsed && parsed.message) {
+                    return parsed.message;
+                }
+            } catch (e) {}
+            if (xhr.responseText === '0' || xhr.responseText === '-1') {
+                return 'Registration is unavailable. Confirm the OraBooks plugin is active, then try again.';
+            }
+        }
+        return fallback || 'An error occurred. Please try again.';
+    }
+
+    function orabooksHandleAjaxResponse(response, $msg, onError, onSuccess) {
+        if (!response || response.error) {
+            onError((response && response.message) ? response.message : 'An error occurred. Please try again.');
+            return;
+        }
+        onSuccess(response);
+    }
+
     // SL-013 OIDC: Remove inline onclick from Google button to prevent race condition.
     // The inline onclick starts navigation to /orabooks-google-login before the AJAX
     // call in our jQuery handler can complete. We override it here at the start of ready().
