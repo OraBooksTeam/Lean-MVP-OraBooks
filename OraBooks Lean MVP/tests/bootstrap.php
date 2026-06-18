@@ -548,7 +548,8 @@ if (!function_exists('home_url')) {
 
 if (!function_exists('rest_url')) {
     function rest_url($path = '') {
-        return home_url('/wp-json' . $path);
+        $path = ltrim((string) $path, '/');
+        return home_url('/wp-json/' . $path);
     }
 }
 
