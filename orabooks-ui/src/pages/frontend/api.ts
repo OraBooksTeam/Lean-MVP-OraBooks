@@ -173,6 +173,22 @@ export const api = {
     }),
   dashboardStats: () =>
     api.get('orabooks_dashboard_stats'),
+  platformSettingsGet: () =>
+    api.get('orabooks_platform_settings_get'),
+  platformSettingsSave: (data: {
+    block_same_email_domain: boolean;
+    partner_commission_for_staff_viewer: boolean;
+    audit_retention_days: number;
+    jwt_expiry: number;
+    refresh_token_expiry: number;
+  }) =>
+    api.post('orabooks_platform_settings_save', {
+      block_same_email_domain: data.block_same_email_domain ? 1 : 0,
+      partner_commission_for_staff_viewer: data.partner_commission_for_staff_viewer ? 1 : 0,
+      audit_retention_days: data.audit_retention_days,
+      jwt_expiry: data.jwt_expiry,
+      refresh_token_expiry: data.refresh_token_expiry,
+    }),
   customerStats: (orgId = 0) =>
     api.get('orabooks_customer_stats', { org_id: orgId }),
   partnerDashboard: () =>

@@ -358,7 +358,7 @@ function orabooks_admin_menu() {
     add_menu_page(
         'OraBooks',
         'OraBooks',
-        'manage_options',
+        'read',
         'orabooks',
         'orabooks_admin_dashboard',
         'dashicons-chart-area',
@@ -594,7 +594,11 @@ function orabooks_admin_customers() {
     orabooks_admin_render_app('/admin/customers');
 }
 function orabooks_admin_dashboard() {
-    orabooks_admin_render_app('/admin/dashboard');
+    if (current_user_can('manage_options')) {
+        orabooks_admin_render_app('/admin/dashboard');
+    } else {
+        orabooks_admin_render_app('/admin/commissions');
+    }
 }
 
 function orabooks_admin_partners() {
@@ -614,7 +618,7 @@ function orabooks_admin_audit() {
 }
 
 function orabooks_admin_settings() {
-    include ORABOOKS_PLUGIN_DIR . 'admin/settings.php';
+    orabooks_admin_render_app('/admin/settings');
 }
 
 // ============================================
@@ -781,6 +785,7 @@ function orabooks_admin_enqueue($hook) {
         'admin_base' => admin_url('admin.php'),
         'react_base' => ORABOOKS_PLUGIN_URL . 'assets/react/',
         'admin_nav' => orabooks_get_admin_nav_items(),
+        'is_admin' => current_user_can('manage_options'),
         'current_user_id' => get_current_user_id(),
         'logout_url' => wp_logout_url(home_url('/login/')),
     ];
@@ -798,10 +803,7 @@ function orabooks_admin_enqueue($hook) {
     );
     wp_localize_script('orabooks-frontend-jquery', 'orabooks_ajax', $ajax_config);
 
-    // React admin UI on all OraBooks pages except native WP settings form.
-    if ($hook !== 'orabooks_page_orabooks-settings') {
-        orabooks_enqueue_react_admin_bundle($ajax_config);
-    }
+    orabooks_enqueue_react_admin_bundle($ajax_config);
 }
 
 // Enqueue frontend assets

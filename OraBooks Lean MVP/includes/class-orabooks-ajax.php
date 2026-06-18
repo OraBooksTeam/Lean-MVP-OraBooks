@@ -21,6 +21,8 @@ class OraBooks_Ajax {
             add_action('wp_ajax_orabooks_activate_org', [self::$instance, 'ajax_activate_org']);
             add_action('wp_ajax_orabooks_list_users', [self::$instance, 'ajax_list_users']);
             add_action('wp_ajax_orabooks_dashboard_stats', [self::$instance, 'ajax_dashboard_stats']);
+            add_action('wp_ajax_orabooks_platform_settings_get', [self::$instance, 'ajax_platform_settings_get']);
+            add_action('wp_ajax_orabooks_platform_settings_save', [self::$instance, 'ajax_platform_settings_save']);
             add_action('wp_ajax_orabooks_frontend_context', [self::$instance, 'ajax_frontend_context']);
             add_action('wp_ajax_orabooks_customer_dashboard', [self::$instance, 'ajax_customer_dashboard']);
             add_action('wp_ajax_orabooks_vendor_dashboard', [self::$instance, 'ajax_vendor_dashboard']);
@@ -730,5 +732,45 @@ class OraBooks_Ajax {
         ];
         
         orabooks_json_success($stats);
+    }
+
+    public function ajax_platform_settings_get() {
+        if (!current_user_can('manage_options')) {
+            orabooks_json_error('Permission denied', 403);
+        }
+
+        orabooks_json_success([
+            'block_same_email_domain' => (bool) get_option('orabooks_block_same_email_domain', 0),
+            'partner_commission_for_staff_viewer' => (bool) get_option('orabooks_partner_commission_for_staff_viewer', 0),
+            'audit_retention_days' => (int) get_option('orabooks_audit_retention_days', 365),
+            'jwt_expiry' => (int) get_option('orabooks_jwt_expiry', 900),
+            'refresh_token_expiry' => (int) get_option('orabooks_refresh_token_expiry', 604800),
+        ]);
+    }
+
+    public function ajax_platform_settings_save() {
+        if (!current_user_can('manage_options')) {
+            orabooks_json_error('Permission denied', 403);
+        }
+
+        $block_same_email_domain = !empty($_POST['block_same_email_domain']) ? 1 : 0;
+        $partner_commission_for_staff_viewer = !empty($_POST['partner_commission_for_staff_viewer']) ? 1 : 0;
+        $audit_retention_days = max(30, min(3650, intval($_POST['audit_retention_days'] ?? 365)));
+        $jwt_expiry = max(60, min(86400, intval($_POST['jwt_expiry'] ?? 900)));
+        $refresh_token_expiry = max(3600, min(2592000, intval($_POST['refresh_token_expiry'] ?? 604800)));
+
+        update_option('orabooks_block_same_email_domain', $block_same_email_domain);
+        update_option('orabooks_partner_commission_for_staff_viewer', $partner_commission_for_staff_viewer);
+        update_option('orabooks_audit_retention_days', $audit_retention_days);
+        update_option('orabooks_jwt_expiry', $jwt_expiry);
+        update_option('orabooks_refresh_token_expiry', $refresh_token_expiry);
+
+        orabooks_json_success([
+            'block_same_email_domain' => (bool) $block_same_email_domain,
+            'partner_commission_for_staff_viewer' => (bool) $partner_commission_for_staff_viewer,
+            'audit_retention_days' => $audit_retention_days,
+            'jwt_expiry' => $jwt_expiry,
+            'refresh_token_expiry' => $refresh_token_expiry,
+        ], 'Settings saved');
     }
 }

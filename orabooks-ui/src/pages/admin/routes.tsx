@@ -13,6 +13,10 @@ import AdminExports from '@/pages/admin/AdminExports';
 import AdminCustomers from '@/pages/admin/AdminCustomers';
 import AdminCsvImports from '@/pages/admin/AdminCsvImports';
 import AdminCommissions from '@/pages/admin/AdminCommissions';
+import AdminSettings from '@/pages/admin/AdminSettings';
+
+const defaultAdminRoute =
+  (window as any).orabooks_ajax?.is_admin ? '/admin/dashboard' : '/admin/commissions';
 
 export default function AdminRoutes() {
   return (
@@ -32,7 +36,8 @@ export default function AdminRoutes() {
         <Route path="/admin/customers" element={<AdminCustomers />} />
         <Route path="/admin/csv-imports" element={<AdminCsvImports />} />
         <Route path="/admin/commissions" element={<AdminCommissions />} />
-        <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />
+        <Route path="/admin/settings" element={<AdminSettings />} />
+        <Route path="*" element={<Navigate to={defaultAdminRoute} replace />} />
       </Routes>
     </div>
   );
