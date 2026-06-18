@@ -637,6 +637,14 @@ if (!function_exists('orabooks_enqueue_job')) {
 
 if (!function_exists('orabooks_log_event')) {
     function orabooks_log_event($event_type, $description, $severity = 'info', $metadata = null, $user_id = null, $org_id = null) {
+        $GLOBALS['orabooks_test_log_events'][] = [
+            'event_type' => $event_type,
+            'description' => $description,
+            'severity' => $severity,
+            'metadata' => $metadata,
+            'user_id' => $user_id,
+            'org_id' => $org_id,
+        ];
         return true;
     }
 }
@@ -1124,6 +1132,20 @@ if (!file_exists($posting_file)) {
     exit(1);
 }
 require_once $posting_file;
+
+$coa_file = __DIR__ . '/../includes/class-orabooks-coa.php';
+if (!file_exists($coa_file)) {
+    echo "ERROR: Cannot find class-orabooks-coa.php at {$coa_file}\n";
+    exit(1);
+}
+require_once $coa_file;
+
+$fiscal_file = __DIR__ . '/../includes/class-orabooks-fiscal.php';
+if (!file_exists($fiscal_file)) {
+    echo "ERROR: Cannot find class-orabooks-fiscal.php at {$fiscal_file}\n";
+    exit(1);
+}
+require_once $fiscal_file;
 
 if (!function_exists('get_users')) {
     function get_users($args = []) {
