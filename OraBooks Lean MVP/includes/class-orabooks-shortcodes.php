@@ -87,7 +87,7 @@ class OraBooks_Shortcodes {
      * Route customer orgs to merged accounting workspace; partners/admins keep React routes.
      */
     private function merged_or_react($accounting_view, $react_route, $require_login = true) {
-        if ($require_login && !get_current_user_id()) {
+        if ($require_login && !orabooks_is_user_logged_in()) {
             return OraBooks_Views::require_login_message();
         }
 
