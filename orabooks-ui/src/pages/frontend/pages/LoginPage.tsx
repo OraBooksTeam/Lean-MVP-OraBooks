@@ -8,15 +8,29 @@ function goToFrontendRoute(route = '/dashboard') {
   window.location.hash = route;
 }
 
+function normalizeAppPath(path: string) {
+  const trimmed = path.trim();
+  if (!trimmed) {
+    return '/dashboard/';
+  }
+  if (trimmed.startsWith('http')) {
+    return trimmed;
+  }
+  const withLeadingSlash = trimmed.startsWith('/') ? trimmed : `/${trimmed}`;
+  return withLeadingSlash.endsWith('/') ? withLeadingSlash : `${withLeadingSlash}/`;
+}
+
 function redirectAfterLogin(data: any) {
   if (data?.needs_tier_selection) {
-    goToFrontendRoute('/tier-selection');
+    window.location.href = '/tier-selection/';
     return;
   }
 
-  const redirectTo = String(data?.redirect_to || '');
+  const redirectTo = String(data?.redirect_to || '').trim();
   if (redirectTo.includes('/partner/onboarding') || redirectTo.includes('/partner-onboarding')) {
-    goToFrontendRoute('/partner-onboarding');
+    window.location.href = redirectTo.startsWith('http')
+      ? redirectTo
+      : normalizeAppPath(redirectTo);
     return;
   }
 
@@ -25,7 +39,17 @@ function redirectAfterLogin(data: any) {
     return;
   }
 
-  goToFrontendRoute('/dashboard');
+  if (redirectTo.startsWith('#/')) {
+    window.location.href = normalizeAppPath(redirectTo.slice(1));
+    return;
+  }
+
+  if (redirectTo.startsWith('/')) {
+    window.location.href = normalizeAppPath(redirectTo);
+    return;
+  }
+
+  window.location.href = '/dashboard/';
 }
 
 export default function LoginPage() {
