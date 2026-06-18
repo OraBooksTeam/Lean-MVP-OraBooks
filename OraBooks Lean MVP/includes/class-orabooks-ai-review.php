@@ -595,7 +595,7 @@ class OraBooks_Ai_Review {
         $this->require_queue_access($user_id, $org_id);
 
         $status = sanitize_text_field($_GET['status'] ?? $_POST['status'] ?? '');
-        $args = ['limit' => intval($_GET['limit'] ?? 25)];
+        $args = ['limit' => intval($_GET['limit'] ?? $_POST['limit'] ?? 25)];
         if ($status !== '') {
             $args['statuses'] = [$status];
         }
@@ -603,6 +603,61 @@ class OraBooks_Ai_Review {
         $rows = self::list_queue($org_id, $args);
         orabooks_json_success([
             'items' => array_map([self::class, 'format_queue_item'], $rows ?: []),
+        ]);
+    }
+
+    public function ajax_resolve() {
+        $user_id = $this->current_user_id();
+        $org_id = intval($_POST['org_id'] ?? $_GET['org_id'] ?? 0);
+        $queue_id = intval($_POST['queue_id'] ?? $_GET['queue_id'] ?? 0);
+        $journal_id = intval($_POST['journal_id'] ?? $_GET['journal_id'] ?? 0);
+        $resource_type = sanitize_text_field($_POST['resource_type'] ?? $_GET['resource_type'] ?? '');
+        $resource_id = intval($_POST['resource_id'] ?? $_GET['resource_id'] ?? 0);
+
+        $this->require_queue_access($user_id, $org_id);
+
+        if (!OraBooks_RBAC::require_permission($user_id, $org_id, 'approve_journal')) {
+            orabooks_json_error('Permission denied', 403);
+        }
+
+        $resolved = 0;
+
+        if ($queue_id > 0) {
+            global $wpdb;
+            $table = OraBooks_Database::table(self::TABLE_QUEUE);
+            $item = $wpdb->get_row($wpdb->prepare(
+                "SELECT * FROM {$table} WHERE id = %d AND org_id = %d",
+                $queue_id,
+                $org_id
+            ));
+
+            if (!$item) {
+                orabooks_json_error('Queue item not found', 404);
+            }
+
+            if ($item->journal_id) {
+                $resolved = self::resolve_ai_review((int) $item->journal_id, $org_id, $user_id);
+            } else {
+                $resolved = self::resolve_ai_review_by_resource(
+                    $org_id,
+                    $item->resource_type,
+                    (int) $item->resource_id,
+                    $user_id
+                );
+            }
+        } elseif ($journal_id > 0) {
+            $resolved = self::resolve_ai_review($journal_id, $org_id, $user_id);
+        } elseif ($resource_type !== '' && $resource_id > 0) {
+            $resolved = self::resolve_ai_review_by_resource($org_id, $resource_type, $resource_id, $user_id);
+        } else {
+            orabooks_json_error('Missing parameters', 400);
+        }
+
+        orabooks_json_success([
+            'resolved_count' => $resolved,
+            'message'        => $resolved > 0
+                ? sprintf('%d AI review item(s) marked resolved.', $resolved)
+                : 'No open AI review items matched.',
         ]);
     }
 }

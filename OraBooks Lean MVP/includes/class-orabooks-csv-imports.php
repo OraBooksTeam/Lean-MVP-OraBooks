@@ -1121,6 +1121,11 @@ class OraBooks_Csv_Imports {
             orabooks_json_error('Import not found', 404);
         }
 
+        $summary = self::get_import_summary($import_id, $org_id);
+        if (!is_wp_error($summary) && !empty($summary['row_counts'])) {
+            $preview['row_counts'] = $summary['row_counts'];
+        }
+
         orabooks_json_success($preview);
     }
 
