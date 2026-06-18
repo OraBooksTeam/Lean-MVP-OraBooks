@@ -1759,4 +1759,82 @@ jQuery(document).ready(function($) {
             );
         });
     }
+
+    // =============================================
+    // GENERIC AJAX DASHBOARD PAGES (PHP/jQuery)
+    // =============================================
+    function orabooksRenderAjaxDashboardData($panel, data) {
+        if (!data || typeof data !== 'object') {
+            $panel.html('<p>No data returned.</p>');
+            return;
+        }
+
+        var html = '<div class="orabooks-commission-stats">';
+        $.each(data, function(key, value) {
+            if (value === null || value === undefined) {
+                return;
+            }
+            if (typeof value === 'object' && !Array.isArray(value)) {
+                html += '<div class="orabooks-stat-card"><h3>' + $('<span>').text(String(key)).html() + '</h3>';
+                html += '<ul class="orabooks-dashboard-kv">';
+                $.each(value, function(subKey, subVal) {
+                    if (typeof subVal === 'object') {
+                        subVal = JSON.stringify(subVal);
+                    }
+                    html += '<li><strong>' + $('<span>').text(String(subKey)).html() + ':</strong> ' +
+                        $('<span>').text(String(subVal)).html() + '</li>';
+                });
+                html += '</ul></div>';
+            } else if (Array.isArray(value)) {
+                html += '<div class="orabooks-section"><h3>' + $('<span>').text(String(key)).html() + '</h3>';
+                if (!value.length) {
+                    html += '<p>None</p>';
+                } else if (typeof value[0] === 'object') {
+                    html += '<table class="orabooks-table"><thead><tr>';
+                    $.each(value[0], function(col) {
+                        html += '<th>' + $('<span>').text(String(col)).html() + '</th>';
+                    });
+                    html += '</tr></thead><tbody>';
+                    $.each(value, function(i, row) {
+                        html += '<tr>';
+                        $.each(row, function(_, cell) {
+                            html += '<td>' + $('<span>').text(cell == null ? '' : String(cell)).html() + '</td>';
+                        });
+                        html += '</tr>';
+                    });
+                    html += '</tbody></table>';
+                } else {
+                    html += '<p>' + $('<span>').text(value.join(', ')).html() + '</p>';
+                }
+                html += '</div>';
+            } else {
+                html += '<div class="orabooks-stat-card"><h3>' + $('<span>').text(String(key)).html() + '</h3>' +
+                    '<p>' + $('<span>').text(String(value)).html() + '</p></div>';
+            }
+        });
+        html += '</div>';
+        $panel.html(html);
+    }
+
+    $('.orabooks-ajax-dashboard').each(function() {
+        var $root = $(this);
+        var action = $root.data('ajax-action');
+        var $panel = $root.find('.orabooks-ajax-dashboard-content');
+        if (!action || !$panel.length) {
+            return;
+        }
+
+        $.get(orabooks_ajax.ajax_url, {
+            action: action,
+            nonce: orabooks_ajax.nonce
+        }, function(response) {
+            if (response.error) {
+                $panel.html('<div class="orabooks-message error">' + (response.message || 'Unable to load data.') + '</div>');
+                return;
+            }
+            orabooksRenderAjaxDashboardData($panel, response.data || response);
+        }).fail(function() {
+            $panel.html('<div class="orabooks-message error">Network error. Please try again.</div>');
+        });
+    });
 });
