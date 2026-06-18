@@ -871,7 +871,7 @@ class OraBooks_Financial_Reports {
         return 'cold://orabooks/reports/' . (int) $org_id . '/' . sanitize_text_field($snapshot_hash) . '.json';
     }
 
-    public static function run_integrity_checks($org_id = null, $check_date = null) {
+    public static function run_integrity_checks($org_id = null, $check_date = null, $auto_repair = true) {
         global $wpdb;
 
         $table_ledger = OraBooks_Database::table('ledger_entries');
@@ -894,6 +894,27 @@ class OraBooks_Financial_Reports {
             ));
             $difference = round($ledger_total - $projection_total, 2);
             $status = abs($difference) > 0.01 ? 'fail' : 'pass';
+            $repaired_at = null;
+
+            if ($status === 'fail' && $auto_repair) {
+                $repair = self::replay_projection('ledger_summary', [
+                    'org_id' => intval($oid),
+                    'batch_size' => 1000,
+                    'throttle_per_sec' => 100,
+                    'skip_throttle' => true,
+                ]);
+                if (!is_wp_error($repair)) {
+                    $projection_total = (float) $wpdb->get_var($wpdb->prepare(
+                        "SELECT COALESCE(SUM(balance), 0) FROM {$table_summary} WHERE org_id = %d",
+                        intval($oid)
+                    ));
+                    $difference = round($ledger_total - $projection_total, 2);
+                    if (abs($difference) <= 0.01) {
+                        $status = 'repaired';
+                        $repaired_at = current_time('mysql');
+                    }
+                }
+            }
 
             $wpdb->insert($table_integrity, [
                 'org_id' => intval($oid),
@@ -903,7 +924,8 @@ class OraBooks_Financial_Reports {
                 'projection_total' => $projection_total,
                 'difference' => $difference,
                 'status' => $status,
-            ], ['%d', '%s', '%s', '%f', '%f', '%f', '%s']);
+                'repaired_at' => $repaired_at,
+            ], ['%d', '%s', '%s', '%f', '%f', '%f', '%s', '%s']);
 
             if ($status === 'fail' && function_exists('orabooks_publish_event')) {
                 orabooks_publish_event('projection_integrity_failed', intval($oid), [
@@ -913,42 +935,307 @@ class OraBooks_Financial_Reports {
                 ]);
             }
 
-            $results[] = ['org_id' => intval($oid), 'status' => $status, 'difference' => $difference];
+            $results[] = [
+                'org_id' => intval($oid),
+                'status' => $status,
+                'difference' => $difference,
+                'repaired_at' => $repaired_at,
+            ];
         }
 
         return ['checks' => $results, 'org_filter' => $where];
     }
 
     public static function rebuild_projection($projection_name, $args = []) {
+        if (!empty($args['use_queue'])) {
+            return self::queue_projection_replay($projection_name, $args);
+        }
+
+        return self::replay_projection($projection_name, $args);
+    }
+
+    public static function queue_projection_replay($projection_name, $args = []) {
+        orabooks_log_event('financial_projection_replay_queued', 'Financial projection replay queued', 'info', [
+            'projection_name' => sanitize_text_field($projection_name),
+            'args' => $args,
+        ], get_current_user_id(), intval($args['org_id'] ?? 0) ?: null);
+
+        do_action('orabooks_financial_projection_replay_queued', $projection_name, $args);
+
+        return [
+            'projection_name' => sanitize_text_field($projection_name),
+            'queued' => true,
+            'batch_size' => max(1, min(10000, intval($args['batch_size'] ?? 1000))),
+            'throttle_per_sec' => max(1, intval($args['throttle_per_sec'] ?? 100)),
+        ];
+    }
+
+    public static function replay_projection($projection_name, $args = []) {
+        $order = self::resolve_replay_order($projection_name);
+        $results = [];
+
+        foreach ($order as $name) {
+            if ($name === 'ledger_summary') {
+                $results[$name] = self::replay_ledger_summary($args);
+            } else {
+                $results[$name] = [
+                    'projection_name' => $name,
+                    'skipped' => true,
+                    'reason' => 'Dependent projection replay not required in MVP',
+                ];
+            }
+
+            if (is_wp_error($results[$name])) {
+                return $results[$name];
+            }
+        }
+
+        if (class_exists('OraBooks_Posting') && method_exists('OraBooks_Posting', 'bump_read_model_version')) {
+            foreach ($order as $name) {
+                OraBooks_Posting::bump_read_model_version($name, ['rebuild_version']);
+            }
+        }
+
+        orabooks_log_event('financial_projection_replay_completed', 'Financial projection replay completed', 'info', [
+            'projection_name' => sanitize_text_field($projection_name),
+            'order' => $order,
+            'results' => $results,
+        ], get_current_user_id(), intval($args['org_id'] ?? 0) ?: null);
+
+        return [
+            'projection_name' => sanitize_text_field($projection_name),
+            'order' => $order,
+            'results' => $results,
+        ];
+    }
+
+    public static function resolve_replay_order($projection_name) {
         global $wpdb;
 
         $projection_name = sanitize_text_field($projection_name);
-        $batch_size = max(1, min(10000, intval($args['batch_size'] ?? 1000)));
-        $throttle_per_sec = max(1, intval($args['throttle_per_sec'] ?? 100));
-        $table_checkpoints = OraBooks_Database::table('projector_checkpoints');
+        $table = OraBooks_Database::table('projection_dependencies');
+        $rows = $wpdb->get_results("SELECT projection_name, depends_on, rebuild_order FROM {$table} ORDER BY rebuild_order ASC");
 
-        if ($projection_name !== 'ledger_summary') {
-            return new WP_Error('unsupported_projection', 'Only ledger_summary rebuild is supported in MVP.');
+        if (empty($rows)) {
+            self::seed_projection_dependencies();
+            $rows = $wpdb->get_results("SELECT projection_name, depends_on, rebuild_order FROM {$table} ORDER BY rebuild_order ASC");
         }
 
-        $wpdb->update($table_checkpoints, [
-            'status' => 'running',
-            'lag_seconds' => 0,
-            'last_processed_at' => current_time('mysql'),
-        ], ['projection_name' => $projection_name], ['%s', '%d', '%s'], ['%s']);
+        $graph = [];
+        foreach ($rows as $row) {
+            $graph[$row->projection_name] = $row->depends_on;
+        }
+        if (!isset($graph[$projection_name]) && $projection_name === 'ledger_summary') {
+            return ['ledger_summary'];
+        }
 
-        orabooks_log_event('financial_projection_rebuild_requested', 'Financial projection rebuild requested', 'info', [
-            'projection_name' => $projection_name,
-            'batch_size' => $batch_size,
-            'throttle_per_sec' => $throttle_per_sec,
-        ], get_current_user_id(), null);
+        $order = [];
+        $visited = [];
+        $visit = function ($name) use (&$visit, &$order, &$visited, $graph) {
+            if (isset($visited[$name])) {
+                return;
+            }
+            $visited[$name] = true;
+            if (!empty($graph[$name])) {
+                $visit($graph[$name]);
+            }
+            $order[] = $name;
+        };
+
+        $visit($projection_name);
+        return $order;
+    }
+
+    public static function replay_ledger_summary($args = []) {
+        global $wpdb;
+
+        $org_id = intval($args['org_id'] ?? 0);
+        if ($org_id <= 0) {
+            return new WP_Error('invalid_org', 'org_id is required for ledger_summary replay.');
+        }
+
+        $batch_size = max(1, min(10000, intval($args['batch_size'] ?? 1000)));
+        $throttle_per_sec = max(1, intval($args['throttle_per_sec'] ?? 100));
+        $period_start = !empty($args['period_start']) ? sanitize_text_field($args['period_start']) : null;
+        $period_end = !empty($args['period_end']) ? sanitize_text_field($args['period_end']) : null;
+        $skip_throttle = !empty($args['skip_throttle']);
+
+        $table_summary = OraBooks_Database::table('report_ledger_summary');
+        $table_ledger = OraBooks_Database::table('ledger_entries');
+        $table_journals = OraBooks_Database::table('journals');
+        $table_checkpoints = OraBooks_Database::table('projector_checkpoints');
+
+        $delete_sql = "DELETE FROM {$table_summary} WHERE org_id = %d";
+        $delete_params = [$org_id];
+        if ($period_start) {
+            $delete_sql .= ' AND period_date >= %s';
+            $delete_params[] = $period_start;
+        }
+        if ($period_end) {
+            $delete_sql .= ' AND period_date <= %s';
+            $delete_params[] = $period_end;
+        }
+        $wpdb->query($wpdb->prepare($delete_sql, $delete_params));
+
+        $where = "le.org_id = %d AND j.status IN ('posted', 'locked')";
+        $params = [$org_id];
+        if ($period_start) {
+            $where .= ' AND j.transaction_date >= %s';
+            $params[] = $period_start;
+        }
+        if ($period_end) {
+            $where .= ' AND j.transaction_date <= %s';
+            $params[] = $period_end;
+        }
+
+        $offset = 0;
+        $processed = 0;
+        $last_event_id = 0;
+
+        while (true) {
+            $sql = "SELECT le.id as event_id, le.account_id, le.debit_amount, le.credit_amount, j.transaction_date as period_date
+                    FROM {$table_ledger} le
+                    INNER JOIN {$table_journals} j ON j.id = le.journal_id
+                    WHERE {$where}
+                    ORDER BY le.id ASC
+                    LIMIT %d OFFSET %d";
+            $batch_params = array_merge($params, [$batch_size, $offset]);
+            $entries = $wpdb->get_results($wpdb->prepare($sql, $batch_params));
+
+            if (empty($entries)) {
+                break;
+            }
+
+            foreach ($entries as $entry) {
+                $debit = (float) $entry->debit_amount;
+                $credit = (float) $entry->credit_amount;
+                $event_id = (int) $entry->event_id;
+                $last_event_id = max($last_event_id, $event_id);
+
+                $wpdb->query($wpdb->prepare(
+                    "INSERT INTO {$table_summary} (org_id, account_id, period_date, debit_sum, credit_sum, balance, schema_version, last_event_id)
+                     VALUES (%d, %d, %s, %f, %f, %f, %d, %d)
+                     ON DUPLICATE KEY UPDATE
+                        debit_sum = debit_sum + VALUES(debit_sum),
+                        credit_sum = credit_sum + VALUES(credit_sum),
+                        balance = balance + VALUES(balance),
+                        last_event_id = GREATEST(COALESCE(last_event_id, 0), VALUES(last_event_id))",
+                    $org_id,
+                    (int) $entry->account_id,
+                    $entry->period_date,
+                    $debit,
+                    $credit,
+                    $debit - $credit,
+                    self::SCHEMA_VERSION,
+                    $event_id
+                ));
+                $processed++;
+            }
+
+            $offset += $batch_size;
+            if (!$skip_throttle && $throttle_per_sec > 0 && count($entries) > 0) {
+                usleep((int) ((1000000 / $throttle_per_sec) * count($entries)));
+            }
+        }
+
+        $wpdb->query($wpdb->prepare(
+            "INSERT INTO {$table_checkpoints} (projection_name, last_event_id, last_processed_at, status, lag_seconds)
+             VALUES ('ledger_summary', %d, %s, 'running', 0)
+             ON DUPLICATE KEY UPDATE last_event_id = VALUES(last_event_id), last_processed_at = VALUES(last_processed_at), status = 'running', lag_seconds = 0",
+            $last_event_id,
+            current_time('mysql')
+        ));
 
         return [
-            'projection_name' => $projection_name,
+            'projection_name' => 'ledger_summary',
+            'org_id' => $org_id,
+            'processed' => $processed,
+            'last_event_id' => $last_event_id,
             'batch_size' => $batch_size,
             'throttle_per_sec' => $throttle_per_sec,
-            'queued' => !empty($args['use_queue']),
         ];
+    }
+
+    public static function get_org_report_config($org_id) {
+        global $wpdb;
+
+        $table = OraBooks_Database::table('organizations');
+        $raw = $wpdb->get_var($wpdb->prepare("SELECT config FROM {$table} WHERE id = %d", (int) $org_id));
+        $parsed = $raw ? json_decode($raw, true) : [];
+        $report = is_array($parsed) && isset($parsed['report_config']) && is_array($parsed['report_config'])
+            ? $parsed['report_config']
+            : [];
+
+        return array_merge([
+            'cash_flow_method' => 'indirect',
+            'snapshot_retention_days' => 365,
+            'encrypt_snapshots' => false,
+        ], $report);
+    }
+
+    public static function kms_encryption_key_id($org_id) {
+        return 'orabooks-kms-v1-org-' . (int) $org_id;
+    }
+
+    public static function encrypt_snapshot_payload($org_id, $plaintext) {
+        $dek = class_exists('OraBooks_Secrets')
+            ? OraBooks_Secrets::get_encryption_key()
+            : wp_salt('auth');
+        $key = hash('sha256', $dek . '|' . (int) $org_id, true);
+        $iv = random_bytes(16);
+        $ciphertext = openssl_encrypt($plaintext, 'aes-256-cbc', $key, OPENSSL_RAW_DATA, $iv);
+
+        return [
+            'ciphertext' => base64_encode($iv . $ciphertext),
+            'encryption_key_id' => self::kms_encryption_key_id($org_id),
+            'is_encrypted' => true,
+        ];
+    }
+
+    public static function decrypt_snapshot_payload($org_id, $ciphertext, $encryption_key_id = null) {
+        if ($ciphertext === null || $ciphertext === '') {
+            return '';
+        }
+
+        $expected_key_id = self::kms_encryption_key_id($org_id);
+        if ($encryption_key_id && $encryption_key_id !== $expected_key_id) {
+            return new WP_Error('invalid_key_id', 'Snapshot encryption key ID mismatch.');
+        }
+
+        $raw = base64_decode($ciphertext, true);
+        if ($raw === false || strlen($raw) < 17) {
+            return $ciphertext;
+        }
+
+        $iv = substr($raw, 0, 16);
+        $encrypted = substr($raw, 16);
+        $dek = class_exists('OraBooks_Secrets')
+            ? OraBooks_Secrets::get_encryption_key()
+            : wp_salt('auth');
+        $key = hash('sha256', $dek . '|' . (int) $org_id, true);
+        $plaintext = openssl_decrypt($encrypted, 'aes-256-cbc', $key, OPENSSL_RAW_DATA, $iv);
+
+        return $plaintext === false ? $ciphertext : $plaintext;
+    }
+
+    private static function decode_snapshot_payload($snapshot) {
+        if (!empty($snapshot->archived) && empty($snapshot->snapshot_data) && !empty($snapshot->snapshot_data_archive_uri)) {
+            return new WP_Error('snapshot_archived', 'Snapshot payload is archived. Restore from cold storage first.');
+        }
+
+        if (!empty($snapshot->is_encrypted)) {
+            $decoded = self::decrypt_snapshot_payload(
+                (int) $snapshot->org_id,
+                $snapshot->snapshot_data,
+                $snapshot->encryption_key_id ?? null
+            );
+            if (is_wp_error($decoded)) {
+                return $decoded;
+            }
+            return $decoded;
+        }
+
+        return $snapshot->snapshot_data ?? '';
     }
 
     private static function correlation_id() {
