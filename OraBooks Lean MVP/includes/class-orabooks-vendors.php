@@ -421,13 +421,23 @@ class OraBooks_Vendors {
             return new WP_Error('invalid_status', 'Only draft bills can be submitted');
         }
 
-        $wpdb->update(
-            OraBooks_Database::table('bills'),
-            ['workflow_status' => 'submitted'],
-            ['id' => intval($bill_id), 'org_id' => intval($org_id)],
-            ['%s'],
-            ['%d', '%d']
-        );
+        if (class_exists('OraBooks_Workflow')) {
+            $result = OraBooks_Workflow::transition('bill', $bill_id, 'submit', [
+                'user_id' => (int) $user_id,
+                'org_id'  => (int) $org_id,
+            ]);
+            if (is_wp_error($result)) {
+                return $result;
+            }
+        } else {
+            $wpdb->update(
+                OraBooks_Database::table('bills'),
+                ['workflow_status' => 'submitted'],
+                ['id' => intval($bill_id), 'org_id' => intval($org_id)],
+                ['%s'],
+                ['%d', '%d']
+            );
+        }
 
         orabooks_log_event('vendor_bill_submitted', "Bill {$bill->bill_number} submitted", 'info', [
             'bill_id' => intval($bill_id),
@@ -444,15 +454,36 @@ class OraBooks_Vendors {
             return new WP_Error('invalid_status', 'Only submitted bills can be approved');
         }
 
+        if (class_exists('OraBooks_Workflow')) {
+            $result = OraBooks_Workflow::transition('bill', $bill_id, 'approve', [
+                'user_id' => (int) $user_id,
+                'org_id'  => (int) $org_id,
+            ]);
+            if (is_wp_error($result)) {
+                return $result;
+            }
+        } else {
+            $wpdb->update(
+                OraBooks_Database::table('bills'),
+                [
+                    'workflow_status' => 'approved',
+                    'approved_by' => intval($user_id),
+                    'approved_at' => current_time('mysql'),
+                ],
+                ['id' => intval($bill_id), 'org_id' => intval($org_id)],
+                ['%s', '%d', '%s'],
+                ['%d', '%d']
+            );
+        }
+
         $wpdb->update(
             OraBooks_Database::table('bills'),
             [
-                'workflow_status' => 'approved',
                 'approved_by' => intval($user_id),
                 'approved_at' => current_time('mysql'),
             ],
             ['id' => intval($bill_id), 'org_id' => intval($org_id)],
-            ['%s', '%d', '%s'],
+            ['%d', '%s'],
             ['%d', '%d']
         );
 
@@ -478,6 +509,17 @@ class OraBooks_Vendors {
 
         $journal_id = self::create_bill_journal($bill, $user_id);
         $tax_snapshot_id = self::snapshot_bill_tax($bill, $user_id);
+
+        if (class_exists('OraBooks_Workflow')) {
+            $result = OraBooks_Workflow::transition('bill', $bill_id, 'post', [
+                'user_id' => (int) $user_id,
+                'org_id'  => (int) $org_id,
+                'update_status' => false,
+            ]);
+            if (is_wp_error($result)) {
+                return $result;
+            }
+        }
 
         $wpdb->update(
             OraBooks_Database::table('bills'),
