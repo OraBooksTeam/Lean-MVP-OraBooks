@@ -165,8 +165,18 @@ class OBN_Shortcodes
 			footer,
 			.footer,
 			#colophon,
-			.site-footer {
+			.site-footer,
+			#main-header,
+			#top-header,
+			.et-l--header,
+			.et-l--footer,
+			#footer-bottom,
+			#et-footer-nav {
 				display: none !important;
+			}
+
+			body.orabooks-divi-theme #page-container {
+				padding-top: 0 !important;
 			}
 
 			/* Force Full Screen Dashboard */
