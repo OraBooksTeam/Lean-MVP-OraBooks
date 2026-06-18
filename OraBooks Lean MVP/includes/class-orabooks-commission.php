@@ -1368,7 +1368,6 @@ class OraBooks_Commission {
      * EXPIRY JOB (Daily)
      * ============================================================
      */
-     */
     public static function process_expiry() {
         global $wpdb;
         
