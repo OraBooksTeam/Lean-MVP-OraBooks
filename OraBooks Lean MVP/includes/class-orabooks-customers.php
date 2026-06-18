@@ -1501,11 +1501,22 @@ class OraBooks_Customers {
      * Customer stats for admin dashboard.
      */
     public function ajax_customer_stats() {
-        if (!current_user_can('manage_options')) {
-            orabooks_json_error('Permission denied', 403);
+        $user_id = orabooks_get_current_user_id();
+        $org_id = intval($_GET['org_id'] ?? $_POST['org_id'] ?? 0);
+
+        if (!$user_id) {
+            orabooks_json_error('Not authenticated', 401);
         }
 
-        $org_id = intval($_GET['org_id'] ?? 0);
+        if ($org_id > 0) {
+            $this->require_customer_access($user_id, $org_id, 'view_reports');
+            orabooks_json_success(self::get_customer_stats($org_id));
+            return;
+        }
+
+        if (!current_user_can('manage_options')) {
+            orabooks_json_error('Organization ID required', 400);
+        }
 
         // If no org specified, aggregate across all orgs
         if (!$org_id) {
@@ -1536,4 +1547,3 @@ class OraBooks_Customers {
         orabooks_json_success($stats);
     }
 }
-               
