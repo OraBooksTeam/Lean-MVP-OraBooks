@@ -828,7 +828,13 @@ class OraBooks_Ajax {
 
         if (class_exists('OraBooks_Posting')) {
             $stats = OraBooks_Posting::get_approval_stats($org_id);
-            $pending_rows = OraBooks_Posting::get_journals($org_id, ['status' => 'review_pending', 'limit' => 25]);
+            $sort = sanitize_text_field($_GET['sort'] ?? $_POST['sort'] ?? 'created_at');
+            $order = sanitize_text_field($_GET['order'] ?? $_POST['order'] ?? 'ASC');
+            if (class_exists('OraBooks_Approval')) {
+                $pending_rows = OraBooks_Approval::get_pending_queue($org_id, $sort, $order);
+            } else {
+                $pending_rows = OraBooks_Posting::get_journals($org_id, ['status' => 'review_pending', 'limit' => 25]);
+            }
             $approved_rows = OraBooks_Posting::get_journals($org_id, ['status' => 'approved', 'limit' => 25]);
             $draft_rows = OraBooks_Posting::get_journals($org_id, ['status' => 'draft', 'limit' => 15]);
 
