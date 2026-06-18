@@ -91,8 +91,18 @@ class OraBooks_Audit {
         global $wpdb;
         
         $table = OraBooks_Database::table('audit_logs');
-        $where = 'org_id = %d';
-        $params = [$org_id];
+        $params = [];
+        $all_orgs = !empty($args['all_orgs']);
+
+        if ($all_orgs) {
+            $where = '1=1';
+        } elseif ($org_id > 0) {
+            $where = 'org_id = %d';
+            $params[] = $org_id;
+        } else {
+            $where = 'org_id = %d';
+            $params[] = 0;
+        }
         
         if (!empty($args['event_type'])) {
             $where .= ' AND event_type = %s';
@@ -131,10 +141,10 @@ class OraBooks_Audit {
         // Log that audit was viewed (avoid infinite loop)
         if (!empty($args['event_type']) && $args['event_type'] === 'audit_log_viewed') {
             // Skip logging view events
-        } else {
+        } elseif (empty($args['skip_view_log'])) {
             self::log_event('audit_log_viewed', 'Audit log accessed', 'info', [
                 'filters' => $args
-            ], get_current_user_id(), $org_id);
+            ], get_current_user_id(), $all_orgs ? 0 : $org_id);
         }
         
         return $results;
@@ -211,11 +221,7 @@ class OraBooks_Audit {
     public function ajax_get_logs() {
         $user_id = get_current_user_id();
         $org_id = intval($_GET['org_id'] ?? 0);
-        
-        if (!OraBooks_RBAC::require_permission($user_id, $org_id, 'view_audit_logs')) {
-            orabooks_json_error('Permission denied', 403);
-        }
-        
+
         $args = [
             'event_type' => sanitize_text_field($_GET['event_type'] ?? ''),
             'user_id' => intval($_GET['user_id'] ?? 0),
@@ -224,28 +230,53 @@ class OraBooks_Audit {
             'to_date' => sanitize_text_field($_GET['to_date'] ?? ''),
             'correlation_id' => sanitize_text_field($_GET['correlation_id'] ?? ''),
             'limit' => intval($_GET['limit'] ?? 100),
-            'offset' => intval($_GET['offset'] ?? 0)
+            'offset' => intval($_GET['offset'] ?? 0),
         ];
-        
-        $logs = self::get_logs($org_id, $args);
+
+        if (current_user_can('manage_options')) {
+            if ($org_id <= 0) {
+                $args['all_orgs'] = true;
+            }
+            $logs = self::get_logs($org_id, $args);
+        } else {
+            if (!$org_id) {
+                orabooks_json_error('Organization is required', 400);
+            }
+            if (!OraBooks_RBAC::require_permission($user_id, $org_id, 'view_audit_logs')) {
+                orabooks_json_error('Permission denied', 403);
+            }
+            $logs = self::get_logs($org_id, $args);
+        }
+
         orabooks_json_success($logs);
     }
     
     public function ajax_export_logs() {
         $user_id = get_current_user_id();
         $org_id = intval($_GET['org_id'] ?? 0);
-        
-        if (!OraBooks_RBAC::require_permission($user_id, $org_id, 'view_audit_logs')) {
-            orabooks_json_error('Permission denied', 403);
-        }
-        
+
         $args = [
             'event_type' => sanitize_text_field($_GET['event_type'] ?? ''),
             'user_id' => intval($_GET['user_id'] ?? 0),
             'from_date' => sanitize_text_field($_GET['from_date'] ?? ''),
             'to_date' => sanitize_text_field($_GET['to_date'] ?? ''),
+            'limit' => 1000,
+            'skip_view_log' => true,
         ];
-        
-        self::export_csv($org_id, $args);
+
+        if (current_user_can('manage_options')) {
+            if ($org_id <= 0) {
+                $args['all_orgs'] = true;
+            }
+            self::export_csv($org_id, $args);
+        } else {
+            if (!$org_id) {
+                orabooks_json_error('Organization is required', 400);
+            }
+            if (!OraBooks_RBAC::require_permission($user_id, $org_id, 'view_audit_logs')) {
+                orabooks_json_error('Permission denied', 403);
+            }
+            self::export_csv($org_id, $args);
+        }
     }
 }
