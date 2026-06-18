@@ -626,7 +626,17 @@ function ExpenseTable({
           ) : (
             expenses.map((expense) => (
               <tr key={expense.id} className="hover:bg-slate-50/70">
-                <td className="px-5 py-3 font-semibold text-ink">{expense.vendor || '—'}</td>
+                <td className="px-5 py-3">
+                  <div className="font-semibold text-ink">{expense.vendor || '—'}</div>
+                  {expense.tax_override_reason && (
+                    <span
+                      className="mt-1 inline-block rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800"
+                      title={`Override: ${expense.tax_override_reason}`}
+                    >
+                      Overridden
+                    </span>
+                  )}
+                </td>
                 <td className="px-5 py-3 text-slate-600">{expense.transaction_date || '—'}</td>
                 <td className="px-5 py-3 text-right font-bold text-ink">{money(expense.total_amount)}</td>
                 <td className="px-5 py-3">
@@ -643,6 +653,11 @@ function ExpenseTable({
                     <Button size="sm" variant="secondary" onClick={() => onSelect(expense.id)}>
                       View
                     </Button>
+                    {canOverride && expense.workflow_status === 'draft' && onOverride && (
+                      <Button size="sm" variant="secondary" onClick={() => onOverride(expense)}>
+                        Tax
+                      </Button>
+                    )}
                     {onApprove && ['submitted', 'ai_review'].includes(expense.workflow_status) && (
                       <>
                         <Button size="sm" disabled={actionId === expense.id} onClick={() => onApprove(expense.id)}>
