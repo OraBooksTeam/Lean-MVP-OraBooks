@@ -12,6 +12,7 @@ import {
   LogOut,
   Menu,
   Package,
+  Upload,
   Users,
   Wallet,
 } from 'lucide-react';
@@ -38,6 +39,7 @@ const customerNav = [
   { label: 'Inventory', href: '/inventory', icon: Package },
   { label: 'Bank Reconciliation', href: '/bank-reconciliation', icon: Wallet },
   { label: 'Reports', href: '/reports', icon: BarChart3 },
+  { label: 'CSV Imports', href: '/csv-imports', icon: Upload },
   { label: 'Chart of Accounts', href: '/chart-of-accounts', icon: BookOpen },
   { label: 'Journals', href: '/journals', icon: Landmark },
   { label: 'Notifications', href: '/notifications', icon: Bell },
