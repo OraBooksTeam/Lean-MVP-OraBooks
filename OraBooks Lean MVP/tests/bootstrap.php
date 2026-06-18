@@ -1067,6 +1067,13 @@ if (!file_exists($ai_review_file)) {
 }
 require_once $ai_review_file;
 
+$expenses_file = __DIR__ . '/../includes/class-orabooks-expenses.php';
+if (!file_exists($expenses_file)) {
+    echo "ERROR: Cannot find class-orabooks-expenses.php at {$expenses_file}\n";
+    exit(1);
+}
+require_once $expenses_file;
+
 $posting_file = __DIR__ . '/../includes/class-orabooks-posting.php';
 if (!file_exists($posting_file)) {
     echo "ERROR: Cannot find class-orabooks-posting.php at {$posting_file}\n";
