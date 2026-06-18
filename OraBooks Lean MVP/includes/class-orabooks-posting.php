@@ -1029,6 +1029,14 @@ class OraBooks_Posting {
     }
 
     public static function format_journal($journal) {
+        $metadata = [];
+        if (!empty($journal->metadata)) {
+            $decoded = json_decode($journal->metadata, true);
+            if (is_array($decoded)) {
+                $metadata = $decoded;
+            }
+        }
+
         return [
             'id'                   => (int) $journal->id,
             'org_id'               => (int) $journal->org_id,
@@ -1038,12 +1046,19 @@ class OraBooks_Posting {
             'total_amount'         => (float) $journal->total_amount,
             'source_type'          => $journal->source_type,
             'source_id'            => $journal->source_id ? (int) $journal->source_id : null,
+            'reversal_of_id'       => $journal->reversal_of_id ? (int) $journal->reversal_of_id : null,
+            'reversal_reason'      => $journal->reversal_reason,
             'created_by'           => (int) $journal->created_by,
             'approved_by'          => $journal->approved_by ? (int) $journal->approved_by : null,
             'posted_by'            => $journal->posted_by ? (int) $journal->posted_by : null,
             'approval_round'       => (int) $journal->approval_round,
             'approval_expires_at'  => $journal->approval_expires_at,
+            'approval_stale'       => (int) $journal->approval_stale,
             'rejected_reason'      => $journal->rejected_reason,
+            'journal_hash'         => $journal->journal_hash,
+            'previous_hash'        => $journal->previous_hash,
+            'metadata'             => $metadata,
+            'ai_confidence'        => isset($metadata['ai_confidence']) ? (float) $metadata['ai_confidence'] : null,
             'created_at'           => $journal->created_at,
             'approved_at'          => $journal->approved_at,
             'posted_at'            => $journal->posted_at,
