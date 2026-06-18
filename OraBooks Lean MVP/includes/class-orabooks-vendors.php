@@ -235,7 +235,7 @@ class OraBooks_Vendors {
         $vendor_id = intval($wpdb->insert_id);
         orabooks_log_event('vendor_created', "Vendor created: {$name}", 'info', [
             'vendor_id' => $vendor_id,
-        ], get_current_user_id(), $org_id);
+        ], orabooks_get_current_user_id(), $org_id);
 
         return self::get_vendor($vendor_id, $org_id);
     }
@@ -338,7 +338,7 @@ class OraBooks_Vendors {
                 'payment_status' => 'unpaid',
                 'lock_status' => 'unlocked',
                 'idempotency_key' => $data['idempotency_key'] ?? orabooks_uuid(),
-                'created_by' => orabooks_get_current_user_id(),
+                'created_by' => orabooks_orabooks_get_current_user_id(),
                 'rendered_copy' => !empty($data['rendered_copy']) ? wp_json_encode($data['rendered_copy']) : null,
             ],
             ['%d', '%d', '%s', '%s', '%s', '%s', '%s', '%f', '%f', '%f', '%f', '%s', '%f', '%s', '%s', '%s', '%s', '%d', '%s']
@@ -349,7 +349,7 @@ class OraBooks_Vendors {
             'bill_id' => $bill_id,
             'vendor_id' => $vendor_id,
             'total_amount' => $total,
-        ], get_current_user_id(), $org_id);
+        ], orabooks_get_current_user_id(), $org_id);
 
         return self::get_bill($bill_id, $org_id);
     }
@@ -557,7 +557,7 @@ class OraBooks_Vendors {
             'vendor_id' => $vendor_id,
             'amount' => $amount,
             'unapplied_amount' => $remaining,
-        ], get_current_user_id(), $org_id);
+        ], orabooks_get_current_user_id(), $org_id);
 
         return [
             'payment_id' => $payment_id,
@@ -600,7 +600,7 @@ class OraBooks_Vendors {
                 'is_adjustment' => !empty($data['is_adjustment']) ? 1 : 0,
                 'adjustment_account_code' => !empty($data['is_adjustment']) ? $adjustment_account : null,
                 'workflow_status' => 'draft',
-                'created_by' => orabooks_get_current_user_id(),
+                'created_by' => orabooks_orabooks_get_current_user_id(),
             ],
             ['%d', '%d', '%d', '%s', '%s', '%f', '%s', '%d', '%s', '%s', '%d']
         );
@@ -611,7 +611,7 @@ class OraBooks_Vendors {
             'vendor_id' => $vendor_id,
             'amount' => $amount,
             'is_adjustment' => !empty($data['is_adjustment']),
-        ], get_current_user_id(), $org_id);
+        ], orabooks_get_current_user_id(), $org_id);
 
         return [
             'credit_note_id' => $credit_note_id,
@@ -882,7 +882,7 @@ class OraBooks_Vendors {
     }
 
     private function current_user_id() {
-        return orabooks_get_current_user_id();
+        return orabooks_orabooks_get_current_user_id();
     }
 
     private function require_customer_org_access($user_id, $org_id) {
