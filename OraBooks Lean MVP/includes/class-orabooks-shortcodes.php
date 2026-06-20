@@ -361,14 +361,10 @@ class OraBooks_Shortcodes {
         );
     }
 
-    public function commission_admin() {
-        return $this->react_page('/commission-admin');
-    }
-
-    /**
-     * Platform observability dashboard (SL-093, admin only).
-     */
     public function observability_dashboard() {
-        return $this->react_page('/observability');
+        return $this->resolve_frontend([
+            'route' => '/observability',
+            'react_only' => true,
+        ]);
     }
 }
