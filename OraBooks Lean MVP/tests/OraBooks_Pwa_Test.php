@@ -26,6 +26,7 @@ class OraBooks_Pwa_Test extends TestCase
 
         $this->assertTrue($config['pwa']['enabled']);
         $this->assertStringContainsString('/wp-json/api/pwa/manifest', $config['pwa']['manifest_url']);
+        $this->assertStringContainsString('/assets/pwa/', $config['pwa']['service_worker_scope']);
         $this->assertTrue($config['pwa']['offline_queue']);
     }
 }
