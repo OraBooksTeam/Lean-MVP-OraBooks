@@ -53,6 +53,7 @@ class OraBooks_Inventory {
                 brand_name VARCHAR(120) NULL,
                 category_name VARCHAR(120) NULL,
                 hsn VARCHAR(64) NULL,
+                stock_keeping_unit VARCHAR(120) NULL,
                 barcode VARCHAR(120) NULL,
                 description TEXT NULL,
                 item_image_url VARCHAR(500) NULL,
@@ -124,7 +125,8 @@ class OraBooks_Inventory {
             'brand_name' => "ALTER TABLE {$table} ADD COLUMN brand_name VARCHAR(120) NULL AFTER name",
             'category_name' => "ALTER TABLE {$table} ADD COLUMN category_name VARCHAR(120) NULL AFTER brand_name",
             'hsn' => "ALTER TABLE {$table} ADD COLUMN hsn VARCHAR(64) NULL AFTER category_name",
-            'barcode' => "ALTER TABLE {$table} ADD COLUMN barcode VARCHAR(120) NULL AFTER hsn",
+            'stock_keeping_unit' => "ALTER TABLE {$table} ADD COLUMN stock_keeping_unit VARCHAR(120) NULL AFTER hsn",
+            'barcode' => "ALTER TABLE {$table} ADD COLUMN barcode VARCHAR(120) NULL AFTER stock_keeping_unit",
             'description' => "ALTER TABLE {$table} ADD COLUMN description TEXT NULL AFTER barcode",
             'item_image_url' => "ALTER TABLE {$table} ADD COLUMN item_image_url VARCHAR(500) NULL AFTER description",
             'discount_type' => "ALTER TABLE {$table} ADD COLUMN discount_type ENUM('Percentage','Fixed') DEFAULT 'Percentage' AFTER item_image_url",
@@ -259,6 +261,7 @@ class OraBooks_Inventory {
                 'brand_name' => sanitize_text_field($data['brand_name'] ?? ''),
                 'category_name' => sanitize_text_field($data['category_name'] ?? ''),
                 'hsn' => sanitize_text_field($data['hsn'] ?? ''),
+                'stock_keeping_unit' => sanitize_text_field($data['stock_keeping_unit'] ?? ''),
                 'barcode' => sanitize_text_field($data['barcode'] ?? ''),
                 'description' => sanitize_textarea_field($data['description'] ?? ''),
                 'item_image_url' => esc_url_raw($data['item_image_url'] ?? ''),
@@ -280,7 +283,7 @@ class OraBooks_Inventory {
                 'low_stock_threshold' => isset($data['low_stock_threshold']) ? floatval($data['low_stock_threshold']) : null,
                 'is_active' => 1,
             ],
-            ['%d', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%f', '%f', '%f', '%f', '%f', '%f', '%s', '%f', '%s', '%s', '%s', '%f', '%f', '%f', '%f', '%d']
+            ['%d', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%f', '%f', '%f', '%f', '%f', '%f', '%s', '%f', '%s', '%s', '%s', '%f', '%f', '%f', '%f', '%d']
         );
 
         $product_id = intval($wpdb->insert_id);
