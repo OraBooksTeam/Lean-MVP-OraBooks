@@ -21,6 +21,8 @@ class OraBooks_Vendors {
             add_action('wp_ajax_nopriv_orabooks_vendors_list', [self::$instance, 'ajax_vendors_list']);
             add_action('wp_ajax_orabooks_vendor_create', [self::$instance, 'ajax_vendor_create']);
             add_action('wp_ajax_nopriv_orabooks_vendor_create', [self::$instance, 'ajax_vendor_create']);
+            add_action('wp_ajax_orabooks_vendor_update', [self::$instance, 'ajax_vendor_update']);
+            add_action('wp_ajax_nopriv_orabooks_vendor_update', [self::$instance, 'ajax_vendor_update']);
             add_action('wp_ajax_orabooks_bills_list', [self::$instance, 'ajax_bills_list']);
             add_action('wp_ajax_nopriv_orabooks_bills_list', [self::$instance, 'ajax_bills_list']);
             add_action('wp_ajax_orabooks_bill_create', [self::$instance, 'ajax_bill_create']);
@@ -236,6 +238,78 @@ class OraBooks_Vendors {
 
         $vendor_id = intval($wpdb->insert_id);
         orabooks_log_event('vendor_created', "Vendor created: {$name}", 'info', [
+            'vendor_id' => $vendor_id,
+        ], orabooks_get_current_user_id(), $org_id);
+
+        return self::get_vendor($vendor_id, $org_id);
+    }
+
+    public static function update_vendor($org_id, $vendor_id, $data) {
+        global $wpdb;
+
+        $org_id = intval($org_id);
+        $vendor_id = intval($vendor_id);
+        $vendor = self::get_vendor($vendor_id, $org_id);
+        if (!$vendor) {
+            return new WP_Error('not_found', 'Vendor not found');
+        }
+
+        $table = OraBooks_Database::table('vendors');
+        $updates = [];
+        $formats = [];
+
+        if (isset($data['name'])) {
+            $name = sanitize_text_field($data['name']);
+            if ($name === '') {
+                return new WP_Error('missing_field', 'Vendor name is required');
+            }
+            $updates['name'] = $name;
+            $formats[] = '%s';
+        }
+
+        if (array_key_exists('email', $data)) {
+            $updates['email'] = !empty($data['email']) ? sanitize_email($data['email']) : null;
+            $formats[] = '%s';
+        }
+
+        if (isset($data['tax_id'])) {
+            $updates['tax_id'] = !empty($data['tax_id']) ? sanitize_text_field($data['tax_id']) : null;
+            $formats[] = '%s';
+        }
+
+        if (isset($data['payment_terms'])) {
+            $updates['payment_terms'] = max(0, intval($data['payment_terms']));
+            $formats[] = '%d';
+        }
+
+        if (isset($data['default_currency'])) {
+            $updates['default_currency'] = strtoupper(sanitize_text_field($data['default_currency']));
+            $formats[] = '%s';
+        }
+
+        if (isset($data['auto_apply_credit'])) {
+            $updates['auto_apply_credit'] = (int) (bool) $data['auto_apply_credit'];
+            $formats[] = '%d';
+        }
+
+        if (isset($data['notes'])) {
+            $updates['notes'] = sanitize_textarea_field($data['notes']);
+            $formats[] = '%s';
+        }
+
+        if (empty($updates)) {
+            return self::get_vendor($vendor_id, $org_id);
+        }
+
+        $wpdb->update(
+            $table,
+            $updates,
+            ['id' => $vendor_id, 'org_id' => $org_id],
+            $formats,
+            ['%d', '%d']
+        );
+
+        orabooks_log_event('vendor_updated', "Vendor updated: {$vendor->name}", 'info', [
             'vendor_id' => $vendor_id,
         ], orabooks_get_current_user_id(), $org_id);
 
