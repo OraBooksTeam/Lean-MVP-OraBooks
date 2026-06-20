@@ -75,6 +75,7 @@ if (!class_exists('wpdb', false)) {
     public $test_query_callback       = null;
     public $test_insert_callback      = null;
     public $test_update_callback      = null;
+    public $test_get_col_callback     = null;
 
     /** Register SHOW COLUMNS results so dbDelta calls don't crash */
     private $show_columns_cache = [];
@@ -252,6 +253,9 @@ if (!class_exists('wpdb', false)) {
         public function get_col($query = null, $x = 0) {
             if ($query !== null) {
                 $this->last_query = $query;
+            }
+            if ($this->test_get_col_callback !== null) {
+                return ($this->test_get_col_callback)($query, $x);
             }
             if ($this->test_get_results_callback !== null) {
                 $rows = ($this->test_get_results_callback)($query, OBJECT);
@@ -675,6 +679,9 @@ if (!function_exists('is_ssl')) {
 
 if (!function_exists('wp_next_scheduled')) {
     function wp_next_scheduled($hook, $args = []) {
+        if (isset($GLOBALS['orabooks_test_wp_next_scheduled_hooks'][$hook])) {
+            return $GLOBALS['orabooks_test_wp_next_scheduled_hooks'][$hook];
+        }
         return false;
     }
 }

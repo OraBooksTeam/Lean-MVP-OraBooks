@@ -1300,4 +1300,15 @@ class OraBooks_Ajax {
             'refresh_token_expiry' => $refresh_token_expiry,
         ], 'Settings saved');
     }
+
+    /**
+     * Post-deploy verification checks (WP admin only).
+     */
+    public function ajax_deploy_checks() {
+        if (!current_user_can('manage_options')) {
+            orabooks_json_error('Permission denied', 403);
+        }
+
+        orabooks_json_success(OraBooks_DeployChecks::run());
+    }
 }
