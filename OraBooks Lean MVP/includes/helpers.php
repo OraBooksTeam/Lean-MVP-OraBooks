@@ -27,64 +27,37 @@ function orabooks_is_divi_theme() {
 }
 
 /**
- * Whether the React SPA should mount on the current frontend page.
- * Divi uses server-rendered PHP + jQuery accounting (compatible with builder layout).
+ * Lean MVP frontend is React-only (see document_extracted.txt / Model List v5.2).
  */
 function orabooks_should_use_react_frontend($user_id = 0) {
-    if (orabooks_is_divi_theme()) {
-        return (bool) apply_filters('orabooks_use_react_frontend', false, $user_id);
-    }
-
     return (bool) apply_filters('orabooks_use_react_frontend', true, $user_id);
 }
 
 /**
- * Map Lean MVP shortcodes to PHP accounting workspace view slugs.
+ * Legacy merged PHP accounting workspace — removed; always false.
+ *
+ * @deprecated
  */
-function orabooks_get_merged_accounting_view_for_shortcode($shortcode_tag) {
-    $map = [
-        'orabooks_dashboard' => 'dashboard',
-        'orabooks_customers' => 'customers',
-        'orabooks_vendors' => 'suppliers',
-        'orabooks_inventory' => 'view-items',
-        'orabooks_reports' => 'acc-report',
-        'orabooks_invoices' => 'view-sales',
-        'orabooks_chart_of_accounts' => 'coa-list',
-        'orabooks_fiscal_periods' => 'fiscal-periods',
-        'orabooks_tax_settings' => 'setting-tax-list',
-        'orabooks_journals' => 'journal-entry-list',
-        'orabooks_expenses' => 'expense-list',
-        'orabooks_csv_import' => 'import-customers',
-        'orabooks_bank_reconciliation' => 'accounts-deposit',
-    ];
-
-    return apply_filters(
-        'orabooks_merged_accounting_view',
-        $map[$shortcode_tag] ?? 'dashboard',
-        $shortcode_tag
-    );
+function orabooks_uses_merged_accounting_workspace($user_id = 0) {
+    return false;
 }
 
 /**
- * Whether page content should load the merged PHP accounting workspace (not React).
+ * @deprecated
  */
-function orabooks_page_uses_merged_accounting_workspace($content) {
-    if (!orabooks_uses_merged_accounting_workspace()) {
-        return false;
+function orabooks_render_merged_accounting_workspace($view = '') {
+    if (!orabooks_is_user_logged_in()) {
+        return OraBooks_Views::require_login_message();
     }
 
-    if (orabooks_should_use_react_frontend()) {
-        return false;
-    }
+    return OraBooks_Views::render('react-app', ['initial_route' => '/dashboard']);
+}
 
-    $tags = array_unique(array_merge(['orabooks_dashboard'], orabooks_merged_accounting_shortcodes()));
-    foreach ($tags as $tag) {
-        if (has_shortcode($content, $tag)) {
-            return true;
-        }
-    }
-
-    return false;
+/**
+ * @deprecated
+ */
+function orabooks_merged_accounting_shortcodes() {
+    return [];
 }
 
 /**
@@ -803,68 +776,4 @@ function orabooks_is_feature_enabled($feature_id) {
     }
 
     return false;
-}
-
-/**
- * Customer orgs use the merged PHP accounting workspace (WPMU module inside Lean MVP).
- * Partner orgs keep the React partner program only.
- */
-function orabooks_uses_merged_accounting_workspace($user_id = 0) {
-    $user_id = $user_id ?: orabooks_get_current_user_id();
-    if (!$user_id) {
-        return false;
-    }
-
-    if (class_exists('OraBooks_Organization')) {
-        $org_id = orabooks_get_current_org_id($user_id);
-        if ($org_id) {
-            $org = OraBooks_Organization::get($org_id);
-            if ($org && ($org->organization_type ?? 'customer') === 'partner') {
-                return false;
-            }
-        }
-    }
-
-    return true;
-}
-
-/**
- * Render the merged accounting workspace shortcode output.
- */
-function orabooks_render_merged_accounting_workspace($view = '') {
-    if (!orabooks_is_user_logged_in()) {
-        if (class_exists('OraBooks_Views')) {
-            return OraBooks_Views::require_login_message();
-        }
-        return '<p>Please log in to continue.</p>';
-    }
-
-    if ($view !== '') {
-        $_GET['view'] = sanitize_key($view);
-    }
-
-    return do_shortcode('[orabooks_accounting]');
-}
-
-/**
- * Shortcodes that render the merged PHP accounting workspace for customer orgs.
- *
- * @return string[]
- */
-function orabooks_merged_accounting_shortcodes() {
-    return [
-        'orabooks_dashboard',
-        'orabooks_customers',
-        'orabooks_vendors',
-        'orabooks_inventory',
-        'orabooks_reports',
-        'orabooks_invoices',
-        'orabooks_chart_of_accounts',
-        'orabooks_fiscal_periods',
-        'orabooks_tax_settings',
-        'orabooks_journals',
-        'orabooks_expenses',
-        'orabooks_csv_import',
-        'orabooks_accounting',
-    ];
 }
