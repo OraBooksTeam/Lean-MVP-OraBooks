@@ -841,6 +841,36 @@ class OraBooks_AsyncQueue {
         orabooks_json_success(['urls' => implode("\n", $urls)], 'Webhook settings saved');
     }
 
+    public function ajax_report_async_export() {
+        if (!self::current_user_can_manage_queue()) {
+            orabooks_json_error('Permission denied', 403);
+        }
+        $report_type = sanitize_key($_POST['report_type'] ?? '');
+        $allowed = ['journal', 'trial_balance', 'ledger', 'income_statement', 'balance_sheet'];
+        if (!in_array($report_type, $allowed, true)) {
+            orabooks_json_error('Unsupported report type', 400);
+        }
+        $org_id = function_exists('orabooks_get_current_org_id') ? (int) orabooks_get_current_org_id(get_current_user_id()) : 0;
+        $payload = [
+            'report_type' => $report_type,
+            'org_id' => $org_id,
+            'user_id' => get_current_user_id(),
+            'date_from' => sanitize_text_field($_POST['date_from'] ?? $_POST['start_date'] ?? ''),
+            'date_to' => sanitize_text_field($_POST['date_to'] ?? $_POST['end_date'] ?? ''),
+            'account_id' => intval($_POST['account_id'] ?? 0),
+        ];
+        $job_id = self::enqueue('export_report_async', $payload, [
+            'queue_name' => 'reports',
+            'priority' => 4,
+            'max_retries' => self::DEFAULT_MAX_RETRIES,
+            'idempotency_key' => hash('sha256', 'export:' . $report_type . ':' . wp_json_encode($payload)),
+        ]);
+        if (!$job_id) {
+            orabooks_json_error('Failed to queue export', 500);
+        }
+        orabooks_json_success(['job_id' => $job_id], 'Background CSV export queued');
+    }
+
     // ================================================================
     // DEFAULT HANDLERS
     // ================================================================
