@@ -106,6 +106,8 @@ function bootFrontend() {
 
   mountThemePortal(root);
 
+  absorbAuthTokensFromUrl();
+
   const initialRoute = root.dataset.initialRoute;
   if (initialRoute) {
     syncInitialHashRoute(initialRoute);
