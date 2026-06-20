@@ -384,6 +384,85 @@ function ReportOutput({ title, payload, kind }: { title: string; payload: any; k
     return (
       <div className="mt-5 rounded-xl border border-border bg-slate-50/70 p-4">
         <p className="text-sm font-bold text-ink">{title}</p>
+        <div className="mt-3 grid gap-2 sm:grid-cols-3 lg:grid-cols-6">
+          <SummaryLine label="Revenue" value={money(payload.report?.total_revenue)} />
+          <SummaryLine label="COGS" value={money(payload.report?.total_cogs)} />
+          <SummaryLine label="Gross profit" value={money(payload.report?.gross_profit)} />
+          <SummaryLine label="Operating exp." value={money(payload.report?.total_operating_expenses)} />
+          <SummaryLine label="Operating income" value={money(payload.report?.operating_income)} />
+          <SummaryLine label="Net income" value={money(payload.report?.net_income)} bold />
+        </div>
+      </div>
+    );
+  }
+
+  if (kind === 'financial' && payload?.report_type === 'trial_balance') {
+    const report = payload.report || {};
+    return (
+      <div className="mt-5 rounded-xl border border-border bg-slate-50/70 p-4">
+        <p className="text-sm font-bold text-ink">{title}</p>
+        <p className="mt-1 text-xs text-slate-500">Closing balance as of {report.period_end || payload.period_end}</p>
+        <div className={`mt-3 rounded-lg border px-3 py-2 text-sm ${report.balanced ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-amber-200 bg-amber-50 text-amber-900'}`}>
+          {report.balance_message || (report.balanced ? 'Balanced' : 'Unbalanced')}
+        </div>
+        <div className="mt-3 grid gap-2 sm:grid-cols-3">
+          <SummaryLine label="Total debits" value={money(report.total_debits)} />
+          <SummaryLine label="Total credits" value={money(report.total_credits)} />
+          <SummaryLine label="Difference" value={money(report.difference)} bold />
+        </div>
+        {(report.accounts || []).length > 0 && (
+          <div className="mt-4 overflow-auto">
+            <table className="min-w-full text-left text-sm">
+              <thead>
+                <tr className="border-b border-border text-xs uppercase text-slate-500">
+                  <th className="py-2 pr-3">Code</th>
+                  <th className="py-2 pr-3">Account</th>
+                  <th className="py-2 pr-3">Opening</th>
+                  <th className="py-2 pr-3">Closing</th>
+                  <th className="py-2 pr-3">Debit</th>
+                  <th className="py-2">Credit</th>
+                </tr>
+              </thead>
+              <tbody>
+                {report.accounts.slice(0, 30).map((row: any, idx: number) => (
+                  <tr key={idx} className="border-b border-border/60">
+                    <td className="py-2 pr-3">{row.code}</td>
+                    <td className="py-2 pr-3">{row.name}</td>
+                    <td className="py-2 pr-3">{formatCell(row.opening_balance)}</td>
+                    <td className="py-2 pr-3">{formatCell(row.closing_balance)}</td>
+                    <td className="py-2 pr-3">{formatCell(row.debit)}</td>
+                    <td className="py-2">{formatCell(row.credit)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  if (kind === 'financial' && payload?.report_type === 'balance_sheet') {
+    const report = payload.report || {};
+    return (
+      <div className="mt-5 rounded-xl border border-border bg-slate-50/70 p-4">
+        <p className="text-sm font-bold text-ink">{title}</p>
+        <div className={`mt-3 rounded-lg border px-3 py-2 text-sm ${report.balanced ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-amber-200 bg-amber-50 text-amber-900'}`}>
+          {report.balance_message || (report.balanced ? 'Balanced' : 'Unbalanced')}
+        </div>
+        <div className="mt-3 grid gap-2 sm:grid-cols-3">
+          <SummaryLine label="Total assets" value={money(report.total_assets)} />
+          <SummaryLine label="Total liabilities" value={money(report.total_liabilities)} />
+          <SummaryLine label="Total equity" value={money(report.total_equity)} bold />
+        </div>
+      </div>
+    );
+  }
+
+  if (kind === 'financial' && payload?.report_type === 'profit_loss') {
+    return (
+      <div className="mt-5 rounded-xl border border-border bg-slate-50/70 p-4">
+        <p className="text-sm font-bold text-ink">{title}</p>
         <div className="mt-3 grid gap-2 sm:grid-cols-3">
           <SummaryLine label="Revenue" value={money(payload.report?.total_revenue)} />
           <SummaryLine label="Expenses" value={money(payload.report?.total_expenses)} />
