@@ -778,7 +778,7 @@ class OraBooks_Customers {
             'customer_id'    => (int) $data['customer_id'],
             'total_amount'   => $data['total_amount'],
             'org_id'         => $org_id,
-        ], get_current_user_id(), $org_id);
+        ], orabooks_get_current_user_id(), $org_id);
 
         // Fire event for SL-250 notification system
         do_action('orabooks_invoice_created', $invoice_id, [
@@ -1102,7 +1102,7 @@ class OraBooks_Customers {
             $payment_amount,
             $payment_date,
             $invoice->invoice_number,
-            get_current_user_id()
+            orabooks_get_current_user_id()
         );
 
         if (in_array($new_status, ['paid', 'partial'], true) && class_exists('OraBooks_Tax')) {
@@ -1112,7 +1112,7 @@ class OraBooks_Customers {
                 $org_id
             ));
             if ($posted_invoice) {
-                OraBooks_Tax::snapshot_for_invoice($posted_invoice, get_current_user_id());
+                OraBooks_Tax::snapshot_for_invoice($posted_invoice, orabooks_get_current_user_id());
             }
         }
 
