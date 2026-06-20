@@ -818,6 +818,25 @@ class OraBooks_Partner_Test extends TestCase
     }
 
     // ================================================================
+    // dispatch_partner_activity_job() / process_partner_activity()
+    // ================================================================
+
+    #[Test]
+    public function test_dispatch_partner_activity_job_enqueues_async()
+    {
+        $GLOBALS['orabooks_test_log_events'] = [];
+
+        $partner = OraBooks_Partner::init();
+        $partner->dispatch_partner_activity_job();
+
+        $enqueued = array_filter(
+            $GLOBALS['orabooks_test_log_events'],
+            static fn($event) => ($event['event_type'] ?? '') === 'partner_activity_job_enqueued'
+        );
+        $this->assertNotEmpty($enqueued);
+    }
+
+    // ================================================================
     // process_partner_activity()
     // ================================================================
 
