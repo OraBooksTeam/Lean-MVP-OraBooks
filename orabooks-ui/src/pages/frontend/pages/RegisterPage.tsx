@@ -2,7 +2,7 @@ import { useState, type FormEvent } from 'react';
 import Button from '@/components/Button';
 import Input from '@/components/Input';
 import { api } from '../api';
-import { getNetworkLoginUrl } from '../lib/auth-routing';
+import { getNetworkAuthUrl } from '../lib/auth-routing';
 import { toWpUrl } from '../lib/wp-routing';
 import { UserPlus } from 'lucide-react';
 
@@ -35,7 +35,7 @@ export default function RegisterPage() {
       });
       if (res.error) setError(typeof res.error === 'string' ? res.error : 'Registration failed');
       else {
-        window.location.replace(toWpUrl('/verify-email/'));
+        window.location.replace(getNetworkAuthUrl('verify-email'));
       }
     } finally {
       setLoading(false);
@@ -109,7 +109,7 @@ export default function RegisterPage() {
           <Button type="submit" loading={loading} className="w-full">Create Account</Button>
         </form>
         <p className="mt-6 text-center text-sm text-slate-600">
-          Already have an account? <a href="/login/" className="font-semibold text-primary hover:text-primary-dark">Sign in</a>
+          Already have an account? <a href={getNetworkAuthUrl('login')} className="font-semibold text-primary hover:text-primary-dark">Sign in</a>
         </p>
         </div>
       </div>
