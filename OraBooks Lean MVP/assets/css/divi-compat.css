@@ -200,4 +200,109 @@ body.orabooks-page.orabooks-divi-theme.orabooks-auth-page .orabooks-auth-shell {
     min-height: 100dvh;
 }
 
+/* Break Divi builder transform/filter chains that break position:fixed sidebars */
+body.orabooks-page.orabooks-divi-theme.orabooks-react-page #page-container,
+body.orabooks-page.orabooks-divi-theme.orabooks-react-page #et-main-area,
+body.orabooks-page.orabooks-divi-theme.orabooks-react-page #main-content,
+body.orabooks-page.orabooks-divi-theme.orabooks-react-page #content-area,
+body.orabooks-page.orabooks-divi-theme.orabooks-react-page .et_pb_section,
+body.orabooks-page.orabooks-divi-theme.orabooks-react-page .et_pb_row,
+body.orabooks-page.orabooks-divi-theme.orabooks-react-page .et_pb_column,
+body.orabooks-page.orabooks-divi-theme.orabooks-react-page .et_pb_module {
+    transform: none !important;
+    filter: none !important;
+    perspective: none !important;
+    contain: none !important;
+    overflow: visible !important;
+}
+
+body.orabooks-page.orabooks-divi-theme.orabooks-react-page {
+    overflow-x: hidden;
+}
+
+/* Hide remaining Divi chrome on React workspace pages */
+body.orabooks-page.orabooks-divi-theme.orabooks-react-page #main-footer,
+body.orabooks-page.orabooks-divi-theme.orabooks-react-page footer#main-footer,
+body.orabooks-page.orabooks-divi-theme.orabooks-react-page #footer-bottom,
+body.orabooks-page.orabooks-divi-theme.orabooks-react-page #et-footer-nav,
+body.orabooks-page.orabooks-divi-theme.orabooks-react-page #et-secondary-nav,
+body.orabooks-page.orabooks-divi-theme.orabooks-react-page #et-top-navigation,
+body.orabooks-page.orabooks-divi-theme.orabooks-react-page .et_pb_section_0_tb_footer,
+body.orabooks-page.orabooks-divi-theme.orabooks-react-page .widget-area,
+body.orabooks-page.orabooks-divi-theme.orabooks-react-page #sidebar {
+    display: none !important;
+}
+
+/* Portal the React root to body so fixed sidebar/layout are viewport-relative */
+body.orabooks-page.orabooks-divi-theme.orabooks-react-page > #orabooks-app-root.orabooks-divi-portal,
+body.orabooks-page.orabooks-divi-theme.orabooks-react-page #orabooks-app-root.orabooks-divi-portal {
+    position: fixed;
+    top: var(--orabooks-divi-admin-bar);
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 99990;
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    overflow: auto;
+    background: #f4f8fc;
+}
+
+body.orabooks-page.orabooks-divi-theme.orabooks-react-page #orabooks-app-root aside.fixed {
+    width: 18rem !important;
+    min-width: 18rem !important;
+    max-width: 18rem !important;
+    flex: 0 0 18rem !important;
+    flex-shrink: 0 !important;
+    box-sizing: border-box !important;
+}
+
+body.orabooks-page.orabooks-divi-theme.orabooks-react-page #orabooks-app-root main {
+    min-width: 0 !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+}
+
+@media (min-width: 1024px) {
+    body.orabooks-page.orabooks-divi-theme.orabooks-react-page #orabooks-app-root main {
+        padding-left: 18rem !important;
+    }
+}
+
+/* Preserve Tailwind grid/flex inside Divi global resets */
+body.orabooks-page.orabooks-divi-theme #orabooks-app-root .grid {
+    display: grid !important;
+}
+
+body.orabooks-page.orabooks-divi-theme #orabooks-app-root .flex {
+    display: flex !important;
+}
+
+body.orabooks-page.orabooks-divi-theme #orabooks-app-root .hidden {
+    display: none !important;
+}
+
+@media (min-width: 1024px) {
+    body.orabooks-page.orabooks-divi-theme #orabooks-app-root .lg\:flex {
+        display: flex !important;
+    }
+
+    body.orabooks-page.orabooks-divi-theme #orabooks-app-root .lg\:hidden {
+        display: none !important;
+    }
+
+    body.orabooks-page.orabooks-divi-theme #orabooks-app-root .lg\:pl-72 {
+        padding-left: 18rem !important;
+    }
+}
+
+body.orabooks-page.orabooks-divi-theme #orabooks-app-root .fixed {
+    position: fixed !important;
+}
+
+body.orabooks-page.orabooks-divi-theme #orabooks-app-root .sticky {
+    position: sticky !important;
+}
+
 /* React workspace pages with Divi header visible (legacy PHP views only) */
