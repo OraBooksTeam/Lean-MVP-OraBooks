@@ -169,6 +169,7 @@ export const api = {
     api.post('orabooks_oidc_callback', { code, state }),
   twoFactorChallenge: (tempToken: string, otp: string, backup = '') =>
     api.post('orabooks_2fa_challenge', { temp_token: tempToken, otp_code: otp, backup_code: backup }),
+  logout: () => api.post('orabooks_logout'),
   forgotPassword: (email: string) =>
     api.post('orabooks_forgot_password', { email }),
   resetPassword: (token: string, password: string) =>

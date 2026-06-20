@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type MouseEvent } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import type { ReactNode } from 'react';
 import {
@@ -147,7 +147,7 @@ export default function ClientShell({
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
 
-  const handleLogout = async (event: React.MouseEvent<HTMLAnchorElement>) => {
+  const handleLogout = async (event: MouseEvent<HTMLAnchorElement>) => {
     event.preventDefault();
     if (loggingOut) {
       return;
