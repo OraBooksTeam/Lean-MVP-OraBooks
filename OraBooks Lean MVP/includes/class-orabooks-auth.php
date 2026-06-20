@@ -1194,25 +1194,29 @@ class OraBooks_Auth {
     }
     
     public function ajax_setup_2fa() {
-        if (!is_user_logged_in()) {
+        if (!orabooks_is_user_logged_in()) {
             orabooks_json_error('Not authenticated', 401);
         }
-        
-        $user_id = orabooks_get_current_user_id();
-        if (!$user_id) {
+
+        $orabooks_user_id = orabooks_get_current_user_id();
+        if (!$orabooks_user_id) {
             orabooks_json_error('Authentication required', 401);
         }
+
+        $wp_user_id = orabooks_get_wp_user_id_for_orabooks_user($orabooks_user_id);
+        if ($wp_user_id <= 0) {
+            orabooks_json_error('WordPress user link required for 2FA setup', 400);
+        }
+
         $secret = OraBooks_Secrets::generate_totp_secret();
-        
-        // Store secret temporarily
-        update_user_meta($user_id, 'orabooks_2fa_temp_secret', $secret);
-        
-        $email = wp_get_current_user()->user_email;
+
+        update_user_meta($wp_user_id, 'orabooks_2fa_temp_secret', $secret);
+
+        $email = get_userdata($wp_user_id)->user_email ?? '';
         $qr_url = OraBooks_Secrets::get_totp_qr_url($secret, $email);
         $backup_codes = OraBooks_Secrets::generate_backup_codes();
-        
-        // Store backup codes temporarily
-        update_user_meta($user_id, 'orabooks_2fa_temp_backup_codes', $backup_codes);
+
+        update_user_meta($wp_user_id, 'orabooks_2fa_temp_backup_codes', $backup_codes);
         
         orabooks_json_success([
             'secret' => $secret,
@@ -1222,13 +1226,18 @@ class OraBooks_Auth {
     }
     
     public function ajax_verify_2fa_setup() {
-        if (!is_user_logged_in()) {
+        if (!orabooks_is_user_logged_in()) {
             orabooks_json_error('Not authenticated', 401);
         }
-        
-        $user_id = get_current_user_id();
+
+        $orabooks_user_id = orabooks_get_current_user_id();
+        $wp_user_id = orabooks_get_wp_user_id_for_orabooks_user($orabooks_user_id);
+        if ($wp_user_id <= 0) {
+            orabooks_json_error('WordPress user link required for 2FA setup', 400);
+        }
+
         $otp = $_POST['otp_code'] ?? '';
-        $temp_secret = get_user_meta($user_id, 'orabooks_2fa_temp_secret', true);
+        $temp_secret = get_user_meta($wp_user_id, 'orabooks_2fa_temp_secret', true);
         
         if (!$temp_secret) {
             orabooks_json_error('2FA setup not initiated', 400);
@@ -1239,36 +1248,34 @@ class OraBooks_Auth {
         }
         
         // Store 2FA secret permanently
-        update_user_meta($user_id, 'orabooks_2fa_secret', $temp_secret);
-        delete_user_meta($user_id, 'orabooks_2fa_temp_secret');
-        
-        // Store backup code hashes
-        $backup_codes = get_user_meta($user_id, 'orabooks_2fa_temp_backup_codes', true);
+        update_user_meta($wp_user_id, 'orabooks_2fa_secret', $temp_secret);
+        delete_user_meta($wp_user_id, 'orabooks_2fa_temp_secret');
+
+        $backup_codes = get_user_meta($wp_user_id, 'orabooks_2fa_temp_backup_codes', true);
         if ($backup_codes) {
             global $wpdb;
             $table = OraBooks_Database::table('2fa_backup_codes');
             foreach ($backup_codes as $code) {
                 $wpdb->insert(
                     $table,
-                    ['user_id' => $user_id, 'code_hash' => OraBooks_Secrets::hash_password($code)],
+                    ['user_id' => $orabooks_user_id, 'code_hash' => OraBooks_Secrets::hash_password($code)],
                     ['%d', '%s']
                 );
             }
-            delete_user_meta($user_id, 'orabooks_2fa_temp_backup_codes');
+            delete_user_meta($wp_user_id, 'orabooks_2fa_temp_backup_codes');
         }
-        
-        // Enable 2FA
+
         global $wpdb;
         $table_users = OraBooks_Database::table('users');
         $wpdb->update(
             $table_users,
             ['is_2fa_enabled' => 1],
-            ['id' => $user_id],
+            ['id' => $orabooks_user_id],
             ['%d'],
             ['%d']
         );
-        
-        orabooks_log_event('2fa_enabled', "2FA enabled for user $user_id", 'info', [], $user_id, null);
+
+        orabooks_log_event('2fa_enabled', "2FA enabled for user $orabooks_user_id", 'info', [], $orabooks_user_id, null);
         orabooks_json_success([], '2FA enabled successfully');
     }
     
