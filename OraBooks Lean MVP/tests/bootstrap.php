@@ -451,6 +451,41 @@ if (!function_exists('orabooks_get_current_user_id')) {
         return get_current_user_id();
     }
 }
+
+if (!function_exists('orabooks_is_user_logged_in')) {
+    function orabooks_is_user_logged_in() {
+        return orabooks_get_current_user_id() > 0;
+    }
+}
+
+if (!function_exists('orabooks_set_auth_token_cookie')) {
+    function orabooks_set_auth_token_cookie($token) {
+        $GLOBALS['orabooks_test_auth_token_cookie'] = $token;
+    }
+}
+
+if (!function_exists('orabooks_clear_auth_token_cookie')) {
+    function orabooks_clear_auth_token_cookie() {
+        unset($GLOBALS['orabooks_test_auth_token_cookie']);
+    }
+}
+
+if (!function_exists('orabooks_persist_login_session')) {
+    function orabooks_persist_login_session($login_result, $password = '') {
+        if (is_array($login_result)) {
+            $GLOBALS['orabooks_test_persisted_login_session'] = $login_result;
+            if (!empty($login_result['token'])) {
+                orabooks_set_auth_token_cookie($login_result['token']);
+            }
+        }
+    }
+}
+
+if (!function_exists('wp_logout')) {
+    function wp_logout() {
+        $GLOBALS['orabooks_test_current_user_id'] = 0;
+    }
+}
 // Initialize the default
 $GLOBALS['orabooks_test_current_user_id'] = 1;
 
