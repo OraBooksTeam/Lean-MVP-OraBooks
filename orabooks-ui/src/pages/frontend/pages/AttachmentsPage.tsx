@@ -366,7 +366,7 @@ export default function AttachmentsPage() {
                       <p className="text-xs text-slate-500">{item.mime_type || 'unknown type'}</p>
                     </td>
                     <td className="px-5 py-3 text-slate-600">
-                      <Link
+                      <WpLink
                         to={`/attachments?resource_type=${item.resource_type}&resource_id=${item.resource_id}`}
                         className="hover:text-primary hover:underline"
                       >

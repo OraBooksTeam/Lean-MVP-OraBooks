@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-
+import WpLink from '../components/WpLink';
 import Button from '@/components/Button';
 import { api } from '../api';
 import ClientShell from '../components/ClientShell';
@@ -48,7 +48,7 @@ export default function CommissionsPage() {
     <ClientShell title="Commission Details" eyebrow="SL-068 read model" organization={context?.organization} isPartner>
       <div className="space-y-6">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <Link
+          <WpLink
             to="/dashboard"
             className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:text-primary-dark"
           >

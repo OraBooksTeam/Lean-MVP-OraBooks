@@ -162,7 +162,7 @@ export default function ReportsPage() {
         </div>
 
         <div className="flex flex-wrap items-center justify-end gap-2">
-          <Link
+          <WpLink
             to="/my-exports"
             className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
           >

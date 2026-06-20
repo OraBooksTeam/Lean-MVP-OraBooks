@@ -182,7 +182,7 @@ export default function PartnerProgramPage() {
                 <p className="mt-2 text-sm text-slate-600">
                   View earned commissions, escrow schedule, payout batches, and aging from SL-068.
                 </p>
-                <Link
+                <WpLink
                   to="/commissions"
                   className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-lg border border-border bg-white px-4 py-2.5 text-sm font-semibold text-primary shadow-sm transition hover:bg-slate-50"
                 >
