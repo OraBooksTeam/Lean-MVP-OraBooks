@@ -77,8 +77,8 @@ class OraBooks_Customers {
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
             UNIQUE KEY uk_user (user_id),
-            FOREIGN KEY (user_id) REFERENCES {$wpdb->prefix}orabooks_users(id) ON DELETE CASCADE,
-            FOREIGN KEY (org_id) REFERENCES {$wpdb->prefix}orabooks_organizations(id) ON DELETE CASCADE,
+            FOREIGN KEY (user_id) REFERENCES {$table_users}(id) ON DELETE CASCADE,
+            FOREIGN KEY (org_id) REFERENCES {$table_orgs}(id) ON DELETE CASCADE,
             INDEX idx_org (org_id),
             INDEX idx_active (is_active)
         ) {$charset_collate};";
@@ -111,7 +111,7 @@ class OraBooks_Customers {
             overdue_notified_at TIMESTAMP NULL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-            FOREIGN KEY (org_id) REFERENCES {$wpdb->prefix}orabooks_organizations(id) ON DELETE CASCADE,
+            FOREIGN KEY (org_id) REFERENCES {$table_orgs}(id) ON DELETE CASCADE,
             FOREIGN KEY (customer_id) REFERENCES {$table_customers}(id) ON DELETE CASCADE,
             UNIQUE KEY uk_org_invoice (org_id, invoice_number),
             UNIQUE KEY uk_idempotency (idempotency_key),
@@ -135,7 +135,7 @@ class OraBooks_Customers {
             notes TEXT NULL,
             idempotency_key VARCHAR(128),
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (org_id) REFERENCES {$wpdb->prefix}orabooks_organizations(id) ON DELETE CASCADE,
+            FOREIGN KEY (org_id) REFERENCES {$table_orgs}(id) ON DELETE CASCADE,
             FOREIGN KEY (invoice_id) REFERENCES {$table_invoices}(id) ON DELETE CASCADE,
             UNIQUE KEY uk_idempotency_payment (idempotency_key),
             INDEX idx_invoice (invoice_id),
@@ -457,10 +457,11 @@ class OraBooks_Customers {
     public static function get_by_user_id($user_id) {
         global $wpdb;
         $table = OraBooks_Database::table('customers');
+        $table_users = OraBooks_Database::table('users');
         return $wpdb->get_row($wpdb->prepare(
             "SELECT c.*, u.email, u.is_email_verified, u.created_at as user_created_at
              FROM {$table} c
-             JOIN {$wpdb->prefix}orabooks_users u ON c.user_id = u.id
+             JOIN {$table_users} u ON c.user_id = u.id
              WHERE c.user_id = %d",
             $user_id
         ));
@@ -472,10 +473,11 @@ class OraBooks_Customers {
     public static function get_by_id($customer_id) {
         global $wpdb;
         $table = OraBooks_Database::table('customers');
+        $table_users = OraBooks_Database::table('users');
         return $wpdb->get_row($wpdb->prepare(
             "SELECT c.*, u.email, u.is_email_verified, u.created_at as user_created_at
              FROM {$table} c
-             JOIN {$wpdb->prefix}orabooks_users u ON c.user_id = u.id
+             JOIN {$table_users} u ON c.user_id = u.id
              WHERE c.id = %d",
             $customer_id
         ));
@@ -558,6 +560,7 @@ class OraBooks_Customers {
 
         $table = OraBooks_Database::table('customers');
         $table_invoices = OraBooks_Database::table('invoices');
+        $table_payments = OraBooks_Database::table('payments');
         $config_table = OraBooks_Database::table('partner_commission_config');
 
         $customer = $wpdb->get_row($wpdb->prepare(
@@ -575,19 +578,38 @@ class OraBooks_Customers {
             $window_days = (int) $config->customer_active_window_days;
         }
 
-        $invoice = $wpdb->get_row($wpdb->prepare(
-            "SELECT MAX(transaction_date) AS last_paid
-             FROM {$table_invoices}
-             WHERE customer_id = %d
-               AND payment_status IN ('paid', 'partial')
-               AND workflow_status = 'posted'
-               AND transaction_date >= DATE_SUB(CURDATE(), INTERVAL %d DAY)",
-            $customer_id,
-            $window_days
-        ));
+        $last_paid = null;
+        $payments_exists = $wpdb->get_var("SHOW TABLES LIKE '{$table_payments}'");
+        if ($payments_exists) {
+            $payment = $wpdb->get_row($wpdb->prepare(
+                "SELECT MAX(p.payment_date) AS last_paid
+                 FROM {$table_payments} p
+                 INNER JOIN {$table_invoices} i ON i.id = p.invoice_id
+                 WHERE i.customer_id = %d
+                   AND i.workflow_status = 'posted'
+                   AND i.payment_status IN ('paid', 'partial')
+                   AND p.payment_date >= DATE_SUB(CURDATE(), INTERVAL %d DAY)",
+                $customer_id,
+                $window_days
+            ));
+            $last_paid = ($payment && $payment->last_paid) ? $payment->last_paid : null;
+        }
 
-        $is_active = ($invoice && $invoice->last_paid) ? 1 : 0;
-        $last_paid = ($invoice && $invoice->last_paid) ? $invoice->last_paid : null;
+        if (!$last_paid) {
+            $invoice = $wpdb->get_row($wpdb->prepare(
+                "SELECT MAX(COALESCE(last_payment_date, DATE(paid_at), transaction_date)) AS last_paid
+                 FROM {$table_invoices}
+                 WHERE customer_id = %d
+                   AND payment_status IN ('paid', 'partial')
+                   AND workflow_status = 'posted'
+                   AND COALESCE(last_payment_date, DATE(paid_at), transaction_date) >= DATE_SUB(CURDATE(), INTERVAL %d DAY)",
+                $customer_id,
+                $window_days
+            ));
+            $last_paid = ($invoice && $invoice->last_paid) ? $invoice->last_paid : null;
+        }
+
+        $is_active = $last_paid ? 1 : 0;
 
         return self::update_active_status($customer_id, (bool) $is_active, $last_paid);
     }
