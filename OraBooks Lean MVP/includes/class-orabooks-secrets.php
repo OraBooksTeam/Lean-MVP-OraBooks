@@ -293,4 +293,157 @@ class OraBooks_Secrets {
         }
         return $codes;
     }
+
+    /**
+     * Verify a Google OIDC id_token (RS256 + JWKS) and return claims.
+     *
+     * @param string $id_token
+     * @param string $client_id
+     * @return array<string, mixed>|false
+     */
+    public static function verify_google_id_token($id_token, $client_id) {
+        $parts = explode('.', (string) $id_token);
+        if (count($parts) !== 3) {
+            return false;
+        }
+
+        $header = json_decode(self::base64url_decode($parts[0]), true);
+        $payload = json_decode(self::base64url_decode($parts[1]), true);
+        if (!is_array($header) || !is_array($payload)) {
+            return false;
+        }
+
+        if (($header['alg'] ?? '') !== 'RS256') {
+            return false;
+        }
+
+        $public_key = self::get_google_oidc_public_key((string) ($header['kid'] ?? ''));
+        if (!$public_key) {
+            return false;
+        }
+
+        $signed = $parts[0] . '.' . $parts[1];
+        $signature = self::base64url_decode($parts[2]);
+        if ($signature === false || openssl_verify($signed, $signature, $public_key, OPENSSL_ALGO_SHA256) !== 1) {
+            return false;
+        }
+
+        $issuer = (string) ($payload['iss'] ?? '');
+        if (!in_array($issuer, ['accounts.google.com', 'https://accounts.google.com'], true)) {
+            return false;
+        }
+
+        if ((string) ($payload['aud'] ?? '') !== (string) $client_id) {
+            return false;
+        }
+
+        if (empty($payload['exp']) || (int) $payload['exp'] < time()) {
+            return false;
+        }
+
+        if (empty($payload['email'])) {
+            return false;
+        }
+
+        return $payload;
+    }
+
+    /**
+     * Resolve Google's RSA public key for a JWKS key id.
+     *
+     * @param string $kid
+     * @return resource|OpenSSLAsymmetricKey|false
+     */
+    private static function get_google_oidc_public_key($kid) {
+        if ($kid === '') {
+            return false;
+        }
+
+        $cache_key = 'orabooks_google_jwk_' . md5($kid);
+        $cached_pem = get_transient($cache_key);
+        if (is_string($cached_pem) && $cached_pem !== '') {
+            return openssl_pkey_get_public($cached_pem);
+        }
+
+        $response = wp_remote_get('https://www.googleapis.com/oauth2/v3/certs', [
+            'timeout' => 10,
+        ]);
+        if (is_wp_error($response)) {
+            return false;
+        }
+
+        $body = json_decode(wp_remote_retrieve_body($response), true);
+        if (empty($body['keys']) || !is_array($body['keys'])) {
+            return false;
+        }
+
+        foreach ($body['keys'] as $jwk) {
+            if (!is_array($jwk) || (string) ($jwk['kid'] ?? '') !== $kid) {
+                continue;
+            }
+
+            $pem = self::google_jwk_to_pem($jwk);
+            if (!$pem) {
+                return false;
+            }
+
+            set_transient($cache_key, $pem, HOUR_IN_SECONDS);
+            return openssl_pkey_get_public($pem);
+        }
+
+        return false;
+    }
+
+    /**
+     * Convert a Google RSA JWK to PEM for openssl_verify().
+     *
+     * @param array<string, mixed> $jwk
+     */
+    private static function google_jwk_to_pem(array $jwk) {
+        if (($jwk['kty'] ?? '') !== 'RSA' || empty($jwk['n']) || empty($jwk['e'])) {
+            return false;
+        }
+
+        $modulus = self::base64url_decode((string) $jwk['n']);
+        $exponent = self::base64url_decode((string) $jwk['e']);
+        if ($modulus === false || $exponent === false) {
+            return false;
+        }
+
+        $rsa_sequence = self::encode_asn1_sequence(
+            self::encode_asn1_integer($modulus) . self::encode_asn1_integer($exponent)
+        );
+        $bit_string = "\x00" . $rsa_sequence;
+        $bit_string_encoded = "\x03" . self::encode_asn1_length(strlen($bit_string)) . $bit_string;
+        $oid = hex2bin('300d06092a864886f70d0101010500');
+        $public_key_info = self::encode_asn1_sequence($oid . $bit_string_encoded);
+        $pem = "-----BEGIN PUBLIC KEY-----\n"
+            . chunk_split(base64_encode($public_key_info), 64, "\n")
+            . "-----END PUBLIC KEY-----\n";
+
+        return $pem;
+    }
+
+    private static function encode_asn1_length($length) {
+        if ($length < 0x80) {
+            return chr($length);
+        }
+
+        $temp = ltrim(pack('N', $length), "\x00");
+        return chr(0x80 | strlen($temp)) . $temp;
+    }
+
+    private static function encode_asn1_integer($data) {
+        if ($data === '') {
+            $data = "\x00";
+        } elseif ($data[0] === "\x00" || (ord($data[0]) & 0x80)) {
+            $data = "\x00" . $data;
+        }
+
+        return "\x02" . self::encode_asn1_length(strlen($data)) . $data;
+    }
+
+    private static function encode_asn1_sequence($data) {
+        return "\x30" . self::encode_asn1_length(strlen($data)) . $data;
+    }
 }
