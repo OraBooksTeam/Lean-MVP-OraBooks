@@ -788,7 +788,11 @@ function orabooks_oidc_route_handler() {
             orabooks_persist_login_session($result);
         }
         
-        wp_redirect($redirect);
+        wp_redirect(orabooks_append_auth_tokens_to_url(
+            $redirect,
+            (string) ($result['token'] ?? ''),
+            (string) ($result['refresh_token'] ?? '')
+        ));
         exit;
     }
 }

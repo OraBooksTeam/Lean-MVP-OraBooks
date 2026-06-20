@@ -591,10 +591,19 @@ function orabooks_enrich_login_response($login_result) {
     }
 
     if (!empty($login_result['redirect_to'])) {
-        return $login_result;
-    }
-
-    if (!empty($login_result['subdomain'])) {
+        if (strpos($login_result['redirect_to'], 'http') !== 0 && strpos($login_result['redirect_to'], '/') === 0) {
+            if (!empty($login_result['subdomain'])) {
+                $login_result['redirect_to'] = orabooks_build_org_url(
+                    $login_result['subdomain'],
+                    $login_result['redirect_to']
+                );
+            } else {
+                $login_result['redirect_to'] = orabooks_get_network_login_url(
+                    trim($login_result['redirect_to'], '/')
+                );
+            }
+        }
+    } elseif (!empty($login_result['subdomain'])) {
         $path = !empty($login_result['is_partner']) ? '/partner-onboarding/' : '/dashboard/';
         $login_result['redirect_to'] = orabooks_build_org_url($login_result['subdomain'], $path);
     } else {

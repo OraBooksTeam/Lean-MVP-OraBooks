@@ -41,6 +41,8 @@ class OraBooks_Auth {
             add_action('wp_ajax_nopriv_orabooks_logout', [self::$instance, 'ajax_logout']);
             add_action('wp_ajax_orabooks_select_tier', [self::$instance, 'ajax_select_tier']);
             add_action('wp_ajax_nopriv_orabooks_select_tier', [self::$instance, 'ajax_select_tier']);
+            add_action('wp_ajax_nopriv_orabooks_refresh_token', [self::$instance, 'ajax_refresh_token']);
+            add_action('wp_ajax_orabooks_refresh_token', [self::$instance, 'ajax_refresh_token']);
             // SL-013: Google OIDC endpoints
             add_action('wp_ajax_nopriv_orabooks_oidc_initiate', [self::$instance, 'ajax_oidc_initiate']);
             add_action('wp_ajax_orabooks_oidc_initiate', [self::$instance, 'ajax_oidc_initiate']);
@@ -668,7 +670,7 @@ class OraBooks_Auth {
             'role' => 'owner',
             'is_partner' => 1,
             'subdomain' => $org_result['subdomain'],
-            'redirect_to' => '/partner/onboarding'
+            'redirect_to' => '/partner-onboarding/'
         ]);
     }
     
@@ -1353,6 +1355,23 @@ class OraBooks_Auth {
         orabooks_json_success($login_result);
     }
     
+    public function ajax_refresh_token() {
+        $refresh = sanitize_text_field($_POST['refresh_token'] ?? $_REQUEST['refresh_token'] ?? '');
+        if ($refresh === '') {
+            orabooks_json_error('Refresh token required', 401);
+        }
+
+        $result = self::refresh_token($refresh);
+        if (is_wp_error($result)) {
+            orabooks_json_error($result->get_error_message(), 401);
+        }
+
+        $result = orabooks_enrich_login_response($result);
+        orabooks_persist_login_session($result);
+
+        orabooks_json_success($result, 'Session refreshed');
+    }
+
     public function ajax_logout() {
         if (!orabooks_is_user_logged_in()) {
             orabooks_clear_auth_token_cookie();
