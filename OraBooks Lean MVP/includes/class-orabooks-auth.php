@@ -1087,7 +1087,7 @@ class OraBooks_Auth {
             wp_die($result->get_error_message());
         }
         
-        wp_redirect(home_url('/login?verified=1'));
+        wp_redirect(add_query_arg('verified', '1', orabooks_get_network_login_url('login')));
         exit;
     }
 
@@ -1424,7 +1424,7 @@ class OraBooks_Auth {
             set_transient('orabooks_oidc_state_data_' . $state_hash, $encoded_state_data, 600);
         }
 
-        $redirect_uri = home_url('/login');
+        $redirect_uri = orabooks_get_network_login_url('login');
         $params = http_build_query([
             'client_id'     => $client_id,
             'redirect_uri'  => $redirect_uri,
@@ -1518,7 +1518,7 @@ class OraBooks_Auth {
                 'code'          => $code,
                 'client_id'     => $client_id,
                 'client_secret' => $client_secret,
-                'redirect_uri'  => home_url('/login'),
+                'redirect_uri'  => orabooks_get_network_login_url('login'),
                 'grant_type'    => 'authorization_code',
             ],
             'timeout' => 15,

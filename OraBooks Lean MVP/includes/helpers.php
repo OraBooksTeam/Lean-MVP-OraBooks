@@ -1161,6 +1161,7 @@ function orabooks_destroy_auth_session($user_id = 0, $log = true) {
     }
 
     unset($_COOKIE['orabooks_token']);
+    orabooks_set_logout_landing_cookie();
 
     if ($log && $user_id > 0) {
         orabooks_log_event('logout', 'User logged out', 'info', [], $user_id, null);
@@ -1176,6 +1177,7 @@ function orabooks_force_logout_cleanup() {
     }
 
     orabooks_destroy_auth_session(0, false);
+    orabooks_clear_logout_landing_cookie();
 }
 
 add_action('init', 'orabooks_force_logout_cleanup', 0);
@@ -1258,6 +1260,8 @@ function orabooks_persist_login_session($login_result, $password = '') {
     if (!is_array($login_result)) {
         return;
     }
+
+    orabooks_clear_logout_landing_cookie();
 
     if (!empty($login_result['token'])) {
         orabooks_set_auth_token_cookie($login_result['token']);

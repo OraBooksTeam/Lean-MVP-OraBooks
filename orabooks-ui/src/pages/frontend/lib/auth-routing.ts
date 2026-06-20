@@ -23,6 +23,10 @@ export function replaceAppLocation(wpPath: string) {
 }
 
 export function absorbAuthTokensFromUrl() {
+  if (isLogoutLanding()) {
+    return false;
+  }
+
   const params = new URLSearchParams(window.location.search);
   const token = params.get('ob_t');
   const refresh = params.get('ob_rt');
@@ -143,6 +147,28 @@ export function getNetworkLoginUrl() {
   return (window as any).orabooks_ajax?.login_url || '/login/';
 }
 
+type NetworkAuthPage = 'login' | 'register' | 'reset-password' | 'verify-email' | 'tier-selection';
+
+export function getNetworkAuthUrl(page: NetworkAuthPage) {
+  const cfg = (window as any).orabooks_ajax || {};
+  const configured =
+    page === 'login'
+      ? cfg.login_url
+      : page === 'register'
+        ? cfg.register_url
+        : page === 'reset-password'
+          ? cfg.reset_password_url
+          : page === 'verify-email'
+            ? cfg.verify_email_url
+            : cfg.tier_selection_url;
+
+  if (typeof configured === 'string' && configured.trim() !== '') {
+    return configured;
+  }
+
+  return toWpUrl(`/${page}/`);
+}
+
 export function isLogoutLanding() {
   const params = new URLSearchParams(window.location.search);
   return params.get(LOGOUT_QUERY_FLAG) === '1' || window.sessionStorage.getItem(LOGOUT_SESSION_FLAG) === '1';
@@ -152,15 +178,8 @@ export function markLogoutLanding() {
   window.sessionStorage.setItem(LOGOUT_SESSION_FLAG, '1');
 }
 
-export function clearLogoutLandingFlags() {
+export function clearLogoutSessionFlag() {
   window.sessionStorage.removeItem(LOGOUT_SESSION_FLAG);
-  const params = new URLSearchParams(window.location.search);
-  if (!params.has(LOGOUT_QUERY_FLAG)) {
-    return;
-  }
-  params.delete(LOGOUT_QUERY_FLAG);
-  const qs = params.toString();
-  window.history.replaceState(null, '', `${window.location.pathname}${qs ? `?${qs}` : ''}`);
 }
 
 function appendLogoutFlag(url: string) {
