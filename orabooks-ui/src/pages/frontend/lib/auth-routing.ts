@@ -3,7 +3,7 @@ import { clearPersistedAuthTokens } from '../api';
 import { normalizeAppRoute, toWpUrl } from './wp-routing';
 
 const TOKEN_KEY = 'orabooks_token';
-const REFRESH_TOKEN_KEY = 'orabooks_refresh_token';
+const TIER_SELECTION_TOKEN_KEY = 'orabooks_tier_selection_token';
 const REDIRECT_GUARD_KEY = 'orabooks_auth_redirect_ts';
 const LOGOUT_QUERY_FLAG = 'logged_out';
 const AUTH_RESET_QUERY_FLAG = 'auth_reset';
@@ -15,6 +15,18 @@ export function clearStoredAuthTokens() {
   clearPersistedAuthTokens();
 }
 
+export function storeTierSelectionToken(token: string) {
+  window.sessionStorage.setItem(TIER_SELECTION_TOKEN_KEY, token);
+}
+
+export function getTierSelectionToken() {
+  return window.sessionStorage.getItem(TIER_SELECTION_TOKEN_KEY) || '';
+}
+
+export function clearTierSelectionToken() {
+  window.sessionStorage.removeItem(TIER_SELECTION_TOKEN_KEY);
+}
+
 export function normalizeWpAppPath(path: string, fallback = '/dashboard/') {
   return toWpUrl(path || fallback);
 }
@@ -24,7 +36,7 @@ export function replaceAppLocation(wpPath: string) {
   window.location.replace(normalizeWpAppPath(wpPath));
 }
 
-export function absorbAuthTokensFromUrl() {
+export async function absorbAuthTokensFromUrl() {
   if (isLogoutLanding()) {
     return false;
   }
@@ -37,9 +49,6 @@ export function absorbAuthTokensFromUrl() {
   }
 
   window.localStorage.setItem(TOKEN_KEY, token);
-  if (refresh) {
-    window.localStorage.setItem(REFRESH_TOKEN_KEY, refresh);
-  }
 
   params.delete('ob_t');
   params.delete('ob_rt');
@@ -47,6 +56,10 @@ export function absorbAuthTokensFromUrl() {
   const next = `${window.location.pathname}${qs ? `?${qs}` : ''}`;
   window.history.replaceState(null, '', next);
   clearRedirectGuard();
+
+  const { api } = await import('../api');
+  await api.establishSession(token, refresh || '');
+
   return true;
 }
 
@@ -77,7 +90,7 @@ function appendCrossOriginAuthParams(url: string) {
   }
 
   target.searchParams.set('ob_t', token);
-  const refresh = window.localStorage.getItem(REFRESH_TOKEN_KEY);
+  const refresh = params.get('ob_rt');
   if (refresh) {
     target.searchParams.set('ob_rt', refresh);
   }
