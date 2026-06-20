@@ -46,9 +46,31 @@ class OraBooks_Posting_Test extends TestCase
 
         $hashA = OraBooks_Posting::compute_canonical_hash(5, '2026-06-15', $lines, null, 'JE-2026-000001');
         $hashB = OraBooks_Posting::compute_canonical_hash(5, '2026-06-15', array_reverse($lines), null, 'JE-2026-000001');
+        $hashC = OraBooks_Posting::compute_canonical_hash(5, '2026-06-15', $lines, null, 'JE-2026-999999');
 
         $this->assertSame($hashA, $hashB);
+        $this->assertSame($hashA, $hashC, 'Canonical journal hash must not depend on mutable sequence numbers.');
         $this->assertSame(64, strlen($hashA));
+    }
+
+    #[Test]
+    public function test_map_external_transaction_returns_canonical_payload()
+    {
+        $mapped = OraBooks_Posting::map_external_transaction('Stripe', [
+            'id' => 'evt_123',
+            'created_at' => '2026-06-20T08:00:00Z',
+            'lines' => [
+                ['account' => '1010', 'debit_amount' => '25.125', 'description' => 'Cash'],
+                ['account_code' => '4010', 'credit' => '25.125', 'description' => 'Revenue'],
+            ],
+        ]);
+
+        $this->assertSame('stripe', $mapped['source_type']);
+        $this->assertSame('evt_123', $mapped['source_id']);
+        $this->assertSame(64, strlen($mapped['source_hash']));
+        $this->assertSame('2026-06-20', $mapped['transaction_date']);
+        $this->assertSame(25.13, $mapped['lines'][0]['debit']);
+        $this->assertSame('4010', $mapped['lines'][1]['account_code']);
     }
 
     #[Test]
