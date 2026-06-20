@@ -153,11 +153,13 @@ class OraBooks_Customers {
     public static function ensure_schema() {
         global $wpdb;
 
+        if (self::schema_is_ready() && self::get_schema_flag('orabooks_sl021_schema_v2') === '1') {
+            return;
+        }
+
         require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 
-        foreach (self::get_create_table_sql() as $sql) {
-            dbDelta($sql);
-        }
+        self::ensure_payments_table();
 
         $table_invoices = OraBooks_Database::table('invoices');
         if ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table_invoices)) !== $table_invoices) {
@@ -189,10 +191,13 @@ class OraBooks_Customers {
 
         foreach ($additions as $column => $sql) {
             if (!in_array($column, $fields, true)) {
-                $wpdb->query($sql);
-                $fields[] = $column;
+                if ($wpdb->query($sql) !== false) {
+                    $fields[] = $column;
+                }
             }
         }
+
+        $fields = self::get_table_column_names($table_invoices);
 
         if (in_array('transaction_date', $fields, true) && in_array('invoice_date', $fields, true)) {
             $wpdb->query(
@@ -222,6 +227,123 @@ class OraBooks_Customers {
         if (!in_array('idx_transaction_date', $index_names, true) && in_array('transaction_date', $fields, true)) {
             $wpdb->query("ALTER TABLE {$table_invoices} ADD INDEX idx_transaction_date (transaction_date)");
         }
+
+        if (self::schema_is_ready()) {
+            self::set_schema_flag('orabooks_sl021_schema_v2', '1');
+        }
+    }
+
+    /**
+     * Run schema migration before SL-021 queries when bootstrap missed it.
+     */
+    private static function maybe_ensure_schema() {
+        static $ran = false;
+        if ($ran) {
+            return;
+        }
+        $ran = true;
+
+        if (self::schema_is_ready() && self::get_schema_flag('orabooks_sl021_schema_v2') === '1') {
+            return;
+        }
+
+        if (function_exists('orabooks_with_data_blog')) {
+            orabooks_with_data_blog([self::class, 'ensure_schema']);
+            return;
+        }
+
+        self::ensure_schema();
+    }
+
+    /**
+     * Create payments table without relying on dbDelta foreign keys.
+     */
+    private static function ensure_payments_table() {
+        global $wpdb;
+
+        $table_payments = OraBooks_Database::table('payments');
+        if ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table_payments)) === $table_payments) {
+            return;
+        }
+
+        require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+
+        $payments_sql = array_values(array_filter(
+            self::get_create_table_sql(),
+            function ($sql) {
+                return stripos($sql, 'orabooks_payments') !== false;
+            }
+        ));
+
+        if (!empty($payments_sql[0])) {
+            dbDelta($payments_sql[0]);
+        }
+
+        if ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table_payments)) === $table_payments) {
+            return;
+        }
+
+        $charset_collate = $wpdb->get_charset_collate();
+        $wpdb->query(
+            "CREATE TABLE IF NOT EXISTS {$table_payments} (
+                id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                org_id BIGINT UNSIGNED NOT NULL,
+                invoice_id BIGINT UNSIGNED NOT NULL,
+                payment_date DATE NOT NULL,
+                amount DECIMAL(20,2) NOT NULL,
+                payment_method ENUM('bank_transfer','credit_card','cash','check','other') DEFAULT 'bank_transfer',
+                reference VARCHAR(255) NULL,
+                notes TEXT NULL,
+                idempotency_key VARCHAR(128) NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                INDEX idx_invoice (invoice_id),
+                INDEX idx_payment_date (payment_date)
+            ) {$charset_collate}"
+        );
+    }
+
+    /**
+     * Whether SL-021 invoice/payment tables have the columns dashboard queries need.
+     */
+    public static function schema_is_ready() {
+        global $wpdb;
+
+        $table_invoices = OraBooks_Database::table('invoices');
+        $table_payments = OraBooks_Database::table('payments');
+
+        if ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table_payments)) !== $table_payments) {
+            return false;
+        }
+
+        if ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table_invoices)) !== $table_invoices) {
+            return false;
+        }
+
+        $fields = self::get_table_column_names($table_invoices);
+        foreach (['total_amount', 'transaction_date', 'paid_amount', 'payment_status'] as $required) {
+            if (!in_array($required, $fields, true)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static function get_schema_flag($key) {
+        if (function_exists('is_multisite') && is_multisite() && function_exists('get_site_option')) {
+            return get_site_option($key);
+        }
+
+        return get_option($key);
+    }
+
+    private static function set_schema_flag($key, $value) {
+        if (function_exists('is_multisite') && is_multisite() && function_exists('update_site_option')) {
+            update_site_option($key, $value);
+            return;
+        }
+
+        update_option($key, $value, false);
     }
 
     /**
@@ -351,6 +473,8 @@ class OraBooks_Customers {
      */
     public static function get_list($org_id, $args = []) {
         global $wpdb;
+
+        self::maybe_ensure_schema();
 
         $table = OraBooks_Database::table('customers');
         $table_users = OraBooks_Database::table('users');
@@ -1686,6 +1810,4 @@ class OraBooks_Customers {
         }
 
         $stats = self::get_customer_stats($org_id);
-        orabooks_json_success($stats);
-    }
-}
+        o
