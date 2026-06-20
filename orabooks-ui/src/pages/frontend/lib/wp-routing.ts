@@ -41,7 +41,16 @@ export function getCurrentAppRoute(): string {
 }
 
 /** Redirect legacy hash URLs (#/dashboard) to clean paths (/dashboard/). */
-export function migrateLegacyHashUrl() {
+export function replaceSearchParams(params: URLSearchParams) {
+  const qs = params.toString();
+  const url = qs ? `${window.location.pathname}?${qs}` : `${window.location.pathname}`;
+  window.history.replaceState(null, '', url);
+}
+
+export function getSearchParam(key: string): string {
+  return new URLSearchParams(window.location.search).get(key) || '';
+}
+
   const hash = window.location.hash;
   if (!hash.startsWith('#/')) {
     return;
