@@ -242,6 +242,18 @@ export default function NotificationsPage() {
   );
 }
 
+function resolveNotificationViewUrl(url: string) {
+  try {
+    const target = new URL(url, window.location.href);
+    if (target.origin === window.location.origin) {
+      return `${target.pathname}${target.search}`;
+    }
+    return url;
+  } catch {
+    return url;
+  }
+}
+
 function PriorityBadge({ priority }: { priority?: string }) {
   const map: Record<string, string> = {
     critical: 'bg-red-50 text-red-700 border-red-200',
