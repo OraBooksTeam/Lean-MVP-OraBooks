@@ -80,27 +80,27 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <div className="brand-page-bg min-h-screen p-6 lg:pl-80">
-        <div className="w-full space-y-6">
+      <ClientShell title="Client Dashboard" eyebrow="Lean MVP workspace" organization={context?.organization}>
+        <div className="space-y-6">
           <div className="h-10 w-48 animate-pulse rounded-lg bg-slate-200" />
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
             {[...Array(4)].map((_, i) => (
-              <div key={i} className="h-32 animate-pulse rounded-2xl bg-white border border-slate-200" />
+              <div key={i} className="h-32 animate-pulse rounded-2xl border border-border bg-white" />
             ))}
           </div>
         </div>
-      </div>
+      </ClientShell>
     );
   }
 
   if (error) {
     return (
-      <div className="brand-page-bg min-h-screen flex items-center justify-center">
+      <ClientShell title="Client Dashboard" eyebrow="Lean MVP workspace" organization={context?.organization}>
         <div className="glass-panel max-w-md p-6 text-center">
           <p className="font-medium text-danger">{error}</p>
           <Button onClick={load} variant="secondary" className="mt-4">Try again</Button>
         </div>
-      </div>
+      </ClientShell>
     );
   }
 

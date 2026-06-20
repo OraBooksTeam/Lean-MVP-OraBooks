@@ -142,7 +142,7 @@ export default function CustomersPage() {
           <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-medium text-red-700">{error}</div>
         )}
 
-        <div className="glass-panel overflow-hidden">
+        <div className="orabooks-table-scroll glass-panel overflow-hidden">
           <table className="min-w-full text-left text-sm">
             <thead>
               <tr className="border-b border-border bg-slate-50/70 text-xs uppercase text-slate-500">
