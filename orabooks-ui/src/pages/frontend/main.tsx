@@ -114,7 +114,7 @@ function bootFrontend() {
   try {
     const router = createHashRouter([
       {
-        path: '*',
+        path: '/*',
         element: <FrontendRoutes />,
       },
     ]);
