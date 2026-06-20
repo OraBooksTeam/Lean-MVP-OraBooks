@@ -1289,8 +1289,9 @@ class OraBooks_Auth {
             orabooks_json_error('Invalid or expired challenge token', 401);
         }
         
-        $user_id = $payload['user_id'];
-        $secret = get_user_meta($user_id, 'orabooks_2fa_secret', true);
+        $user_id = (int) $payload['user_id'];
+        $wp_user_id = orabooks_get_wp_user_id_for_orabooks_user($user_id);
+        $secret = $wp_user_id > 0 ? get_user_meta($wp_user_id, 'orabooks_2fa_secret', true) : '';
         
         if (!empty($otp) && OraBooks_Secrets::verify_totp($secret, $otp)) {
             // Valid OTP - proceed with login
