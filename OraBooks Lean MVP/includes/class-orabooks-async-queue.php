@@ -258,17 +258,10 @@ class OraBooks_AsyncQueue {
                 }
 
                 // Mark as processing
-                $wpdb->update(
-                    $table,
-                    [
-                        'status'         => 'processing',
-                        'started_at'     => current_time('mysql', true),
-                        'heartbeat_at'   => current_time('mysql', true),
-                    ],
-                    ['id' => $job->id],
-                    ['%s', '%s', '%s'],
-                    ['%d']
-                );
+                self::transition_job($locked, 'processing', [
+                    'started_at'     => current_time('mysql', true),
+                    'heartbeat_at'   => current_time('mysql', true),
+                ], 'claimed');
 
                 $wpdb->query("COMMIT");
 
@@ -300,17 +293,10 @@ class OraBooks_AsyncQueue {
                 $new_retry = (int)$job->retry_count + 1;
 
                 if ($job_success) {
-                    $wpdb->update(
-                        $table,
-                        [
-                            'status'       => 'completed',
-                            'completed_at' => current_time('mysql', true),
-                            'retry_count'  => $new_retry,
-                        ],
-                        ['id' => $job->id],
-                        ['%s', '%s', '%d'],
-                        ['%d']
-                    );
+                    self::transition_job($job, 'completed', [
+                        'completed_at' => current_time('mysql', true),
+                        'last_error'   => null,
+                    ], 'completed');
 
                     orabooks_log_event('job_completed', "Job #{$job->id} ({$job->job_type}) completed", 'info', [
                         'job_id'   => $job->id,
@@ -333,18 +319,11 @@ class OraBooks_AsyncQueue {
                     // Job failed
                     if ($new_retry >= (int)$job->max_retries) {
                         // Max retries exceeded — dead letter
-                        $wpdb->update(
-                            $table,
-                            [
-                                'status'         => 'dead_letter',
-                                'retry_count'    => $new_retry,
-                                'last_error'     => $error_msg,
-                                'last_attempt_at' => current_time('mysql', true),
-                            ],
-                            ['id' => $job->id],
-                            ['%s', '%d', '%s', '%s'],
-                            ['%d']
-                        );
+                        self::transition_job($job, 'dead_letter', [
+                            'retry_count'    => $new_retry,
+                            'last_error'     => $error_msg,
+                            'last_attempt_at' => current_time('mysql', true),
+                        ], 'dead_letter');
 
                         orabooks_log_event('job_dead_letter', "Job #{$job->id} ({$job->job_type}) dead-lettered after {$new_retry} retries", 'warning', [
                             'job_id'   => $job->id,
@@ -361,22 +340,15 @@ class OraBooks_AsyncQueue {
 
                     } else {
                         // Schedule retry with exponential backoff
-                        $delay = self::BACKOFF_INITIAL * pow(self::BACKOFF_FACTOR, $new_retry - 1);
+                        $delay = min(self::BACKOFF_MAX, self::BACKOFF_INITIAL * pow(self::BACKOFF_FACTOR, $new_retry - 1));
                         $next_retry = date('Y-m-d H:i:s', time() + $delay);
 
-                        $wpdb->update(
-                            $table,
-                            [
-                                'status'         => 'pending',
-                                'retry_count'    => $new_retry,
-                                'last_error'     => $error_msg,
-                                'last_attempt_at' => current_time('mysql', true),
-                                'next_retry_at'  => $next_retry,
-                            ],
-                            ['id' => $job->id],
-                            ['%s', '%d', '%s', '%s', '%s'],
-                            ['%d']
-                        );
+                        self::transition_job($job, 'pending', [
+                            'retry_count'    => $new_retry,
+                            'last_error'     => $error_msg,
+                            'last_attempt_at' => current_time('mysql', true),
+                            'next_retry_at'  => $next_retry,
+                        ], 'retry_scheduled');
 
                         orabooks_log_event('job_retry', "Job #{$job->id} ({$job->job_type}) retry {$new_retry}/{$job->max_retries} scheduled", 'info', [
                             'job_id'    => $job->id,
