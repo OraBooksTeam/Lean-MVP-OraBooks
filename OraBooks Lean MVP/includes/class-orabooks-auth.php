@@ -1151,6 +1151,10 @@ class OraBooks_Auth {
             $result['detected_subdomain'] = $subdomain;
         }
 
+        if (is_array($result) && !empty($result['requires_2fa'])) {
+            orabooks_json_success($result, 'Two-factor authentication required');
+        }
+
         $result = orabooks_enrich_login_response($result);
 
         orabooks_persist_login_session($result, $password);
@@ -1853,6 +1857,10 @@ class OraBooks_Auth {
                 $result->get_error_message(),
                 orabooks_auth_error_status_code($result->get_error_code())
             );
+        }
+
+        if (is_array($result) && !empty($result['requires_2fa'])) {
+            orabooks_json_success($result, 'Two-factor authentication required');
         }
 
         $result = orabooks_enrich_login_response($result);

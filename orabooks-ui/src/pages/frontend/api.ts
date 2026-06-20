@@ -231,6 +231,16 @@ async function uploadRequest<T = any>(
   }
 }
 
+function encodeOidcStateData(data: Record<string, unknown>): string {
+  const json = JSON.stringify(data);
+  const bytes = new TextEncoder().encode(json);
+  let binary = '';
+  bytes.forEach((byte) => {
+    binary += String.fromCharCode(byte);
+  });
+  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
 export const api = {
   get<T = any>(
     action: string,
