@@ -837,12 +837,6 @@
     background: #ffffff;
 }
 
-.orabooks-admin-react #orabooks-admin-root .orabooks-wp-admin .badge.bg-danger,
-.orabooks-admin-react #orabooks-admin-root .orabooks-wp-admin .orabooks-admin-action-link .badge {
-    background: #3AB54A;
-    color: #ffffff;
-}
-
 .orabooks-admin-react #orabooks-admin-root .orabooks-wp-admin .text-success {
     color: #3AB54A;
 }
@@ -855,23 +849,22 @@
     color: #3AB54A;
 }
 
-.orabooks-admin-react #orabooks-admin-root .orabooks-wp-admin button.bg-primary {
+.orabooks-admin-react #orabooks-admin-root .orabooks-wp-admin button[class*="bg-primary"] {
     background-color: #1A69B4;
     color: #ffffff;
     border-color: #1A69B4;
 }
 
-.orabooks-admin-react #orabooks-admin-root .orabooks-wp-admin button.bg-primary:hover {
+.orabooks-admin-react #orabooks-admin-root .orabooks-wp-admin button[class*="bg-primary"]:hover {
     background-color: #145694;
     color: #ffffff;
 }
 
-.orabooks-admin-react #orabooks-admin-root .orabooks-wp-admin button.border-primary\/30 {
+.orabooks-admin-react #orabooks-admin-root .orabooks-wp-admin button[class*="border-primary"] {
     color: #1A69B4;
-    border-color: rgba(26, 105, 180, 0.35);
 }
 
-.orabooks-admin-react #orabooks-admin-root .orabooks-wp-admin button.border-primary\/30:hover {
+.orabooks-admin-react #orabooks-admin-root .orabooks-wp-admin button[class*="border-primary"]:hover {
     background: rgba(26, 105, 180, 0.06);
     color: #1A69B4;
 }
