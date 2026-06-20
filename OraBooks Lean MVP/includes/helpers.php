@@ -281,6 +281,58 @@ function orabooks_build_org_url($subdomain, $path = '/') {
 }
 
 /**
+ * Blog ID that stores shared OraBooks tenant data on multisite networks.
+ */
+function orabooks_get_data_blog_id() {
+    if (function_exists('is_multisite') && is_multisite() && function_exists('get_main_site_id')) {
+        return (int) get_main_site_id();
+    }
+
+    return function_exists('get_current_blog_id') ? (int) get_current_blog_id() : 1;
+}
+
+/**
+ * Table prefix for shared OraBooks data (always the main network site on multisite).
+ */
+function orabooks_get_table_prefix() {
+    global $wpdb;
+
+    if (function_exists('is_multisite') && is_multisite() && function_exists('get_main_site_id')) {
+        $main_id = (int) get_main_site_id();
+        if ((int) get_current_blog_id() !== $main_id) {
+            return $wpdb->get_blog_prefix($main_id);
+        }
+    }
+
+    return $wpdb->prefix;
+}
+
+/**
+ * Run a callback while switched to the OraBooks data blog (no-op on single site).
+ *
+ * @return mixed
+ */
+function orabooks_with_data_blog(callable $callback) {
+    $switched = false;
+    $target_blog = orabooks_get_data_blog_id();
+
+    if (function_exists('is_multisite') && is_multisite() && function_exists('switch_to_blog')) {
+        if ((int) get_current_blog_id() !== $target_blog) {
+            switch_to_blog($target_blog);
+            $switched = true;
+        }
+    }
+
+    try {
+        return $callback();
+    } finally {
+        if ($switched && function_exists('restore_current_blog')) {
+            restore_current_blog();
+        }
+    }
+}
+
+/**
  * Main network site URL for shared auth pages (login, register, tier selection).
  */
 function orabooks_get_network_login_url($path = 'login') {
@@ -960,7 +1012,7 @@ function orabooks_log_event($event_type, $description, $severity = 'info', $meta
  */
 function orabooks_get_user_role($user_id, $org_id) {
     global $wpdb;
-    $table = $wpdb->prefix . 'orabooks_user_org';
+    $table = orabooks_get_table_prefix() . 'orabooks_user_org';
     return $wpdb->get_var($wpdb->prepare(
         "SELECT role FROM {$table} WHERE user_id = %d AND org_id = %d",
         $user_id,
