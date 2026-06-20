@@ -146,25 +146,12 @@ class OraBooks_Assets {
     }
 
     /**
-     * Whether the page uses PHP/jQuery frontend views (Divi-compatible).
+     * @deprecated Legacy PHP frontend removed; Lean MVP uses React only.
      *
      * @param string $content Post content.
      */
     public static function should_enqueue_php_frontend($content) {
-        if (function_exists('orabooks_should_use_react_frontend') && orabooks_should_use_react_frontend()) {
-            return false;
-        }
-
-        if (strpos($content, '[orabooks_') === false) {
-            return false;
-        }
-
-        if (function_exists('orabooks_page_uses_merged_accounting_workspace')
-            && orabooks_page_uses_merged_accounting_workspace($content)) {
-            return false;
-        }
-
-        return true;
+        return false;
     }
 
     /**
