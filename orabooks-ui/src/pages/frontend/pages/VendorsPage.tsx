@@ -258,6 +258,10 @@ export default function VendorsPage() {
       setBillForm({
         vendor_id: '',
         bill_date: new Date().toISOString().slice(0, 10),
+        due_date: '',
+        due_days: '30',
+        use_due_date: false,
+        currency: 'USD',
         subtotal_amount: '',
         jurisdiction: taxConfigs[0]?.jurisdiction || 'US',
         description: '',
@@ -293,6 +297,7 @@ export default function VendorsPage() {
       payment_date: new Date().toISOString().slice(0, 10),
       payment_method: 'bank_transfer',
       reference: '',
+      notes: '',
     });
     setError('');
   };
@@ -307,11 +312,36 @@ export default function VendorsPage() {
       payment_date: paymentForm.payment_date,
       payment_method: paymentForm.payment_method,
       reference: paymentForm.reference,
+      notes: paymentForm.notes,
     });
     if (res.error) setError(res.error);
     else {
       setSuccess('Vendor payment recorded (FIFO allocation).');
       setPaymentVendor(null);
+      await load();
+    }
+    setSaving(false);
+  };
+
+  const handleCreateCreditNote = async () => {
+    if (!orgId || !creditNoteVendor) return;
+    if (!creditNoteForm.amount || !creditNoteForm.reason.trim()) {
+      setError('Credit note amount and reason are required.');
+      return;
+    }
+    setSaving(true);
+    setError('');
+    const res = await api.vendorCreditNoteCreate(orgId, {
+      vendor_id: creditNoteVendor.id,
+      amount: parseFloat(creditNoteForm.amount) || 0,
+      reason: creditNoteForm.reason.trim(),
+      credit_date: creditNoteForm.credit_date,
+    });
+    if (res.error) setError(res.error);
+    else {
+      setSuccess('Vendor credit note created.');
+      setCreditNoteVendor(null);
+      setCreditNoteForm({ amount: '', reason: '', credit_date: new Date().toISOString().slice(0, 10) });
       await load();
     }
     setSaving(false);
@@ -364,7 +394,7 @@ export default function VendorsPage() {
           </Button>
         </div>
 
-        {error && !showVendorForm && !showBillForm && !paymentVendor && (
+        {error && !showVendorForm && !showBillForm && !paymentVendor && !editingVendor && !creditNoteVendor && (
           <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-medium text-red-700">{error}</div>
         )}
         {success && (
@@ -408,12 +438,18 @@ export default function VendorsPage() {
                   <td className="px-5 py-3 text-right text-slate-600">{money(vendor.credit_balance)}</td>
                   <td className="px-5 py-3">
                     <div className="flex flex-wrap gap-1">
+                      <Button size="sm" variant="secondary" onClick={() => { setEditingVendor(vendor); setVendorForm(vendorToForm(vendor)); setError(''); }}>
+                        Edit
+                      </Button>
                       {Number(vendor.payable_balance || 0) > 0 && (
                         <Button size="sm" variant="secondary" onClick={() => openPayment(vendor)}>
                           <Wallet className="h-3.5 w-3.5" />
                           Pay
                         </Button>
                       )}
+                      <Button size="sm" variant="secondary" onClick={() => { setCreditNoteVendor(vendor); setError(''); }}>
+                        Credit note
+                      </Button>
                       <WpLink to={`/attachments?resource_type=vendor&resource_id=${vendor.id}`}>
                         <Button size="sm" variant="secondary">
                           <Paperclip className="h-3.5 w-3.5" />
@@ -496,14 +532,21 @@ export default function VendorsPage() {
         {showVendorForm && (
           <Modal title="Add vendor" onClose={() => setShowVendorForm(false)}>
             {error && <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div>}
-            <div className="grid gap-4">
-              <Field label="Name"><Input value={vendorForm.name} onChange={(e) => setVendorForm((p) => ({ ...p, name: e.target.value }))} /></Field>
-              <Field label="Email"><Input type="email" value={vendorForm.email} onChange={(e) => setVendorForm((p) => ({ ...p, email: e.target.value }))} /></Field>
-              <Field label="Payment terms (days)"><Input type="number" min="1" value={vendorForm.payment_terms} onChange={(e) => setVendorForm((p) => ({ ...p, payment_terms: e.target.value }))} /></Field>
-            </div>
+            <VendorFields form={vendorForm} onChange={setVendorForm} />
             <div className="mt-6 flex justify-end gap-2">
               <Button variant="secondary" onClick={() => setShowVendorForm(false)}>Cancel</Button>
               <Button onClick={handleCreateVendor} disabled={saving}>Create vendor</Button>
+            </div>
+          </Modal>
+        )}
+
+        {editingVendor && (
+          <Modal title="Edit vendor" onClose={() => setEditingVendor(null)}>
+            {error && <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div>}
+            <VendorFields form={vendorForm} onChange={setVendorForm} />
+            <div className="mt-6 flex justify-end gap-2">
+              <Button variant="secondary" onClick={() => setEditingVendor(null)}>Cancel</Button>
+              <Button onClick={handleUpdateVendor} disabled={saving}>Save vendor</Button>
             </div>
           </Modal>
         )}
