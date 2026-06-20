@@ -278,6 +278,7 @@ class OraBooks_Customers {
             self::schema_is_ready()
             && self::get_schema_flag('orabooks_sl021_schema_v2') === '1'
             && self::get_schema_flag('orabooks_sl021_customer_contacts_v1') === '1'
+            && self::get_schema_flag('orabooks_sl021_customer_credit_v1') === '1'
         ) {
             return;
         }
@@ -336,6 +337,42 @@ class OraBooks_Customers {
         }
 
         self::set_schema_flag('orabooks_sl021_customer_contacts_v1', '1');
+    }
+
+    /**
+     * SL-021 credit/wallet columns on customers (credit_limit, credit_hold, etc.).
+     */
+    private static function ensure_customer_credit_schema() {
+        global $wpdb;
+
+        if (self::get_schema_flag('orabooks_sl021_customer_credit_v1') === '1') {
+            return;
+        }
+
+        $table = OraBooks_Database::table('customers');
+        if ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table)) !== $table) {
+            return;
+        }
+
+        $fields = self::get_table_column_names($table);
+        $additions = [
+            'payment_terms'     => "ALTER TABLE {$table} ADD COLUMN payment_terms INT DEFAULT 30 AFTER lifetime_value",
+            'default_currency'  => "ALTER TABLE {$table} ADD COLUMN default_currency CHAR(3) DEFAULT 'USD' AFTER payment_terms",
+            'credit_limit'      => "ALTER TABLE {$table} ADD COLUMN credit_limit DECIMAL(20,2) DEFAULT 0 AFTER default_currency",
+            'credit_hold'       => "ALTER TABLE {$table} ADD COLUMN credit_hold TINYINT(1) DEFAULT 0 AFTER credit_limit",
+            'auto_apply_credit' => "ALTER TABLE {$table} ADD COLUMN auto_apply_credit TINYINT(1) DEFAULT 1 AFTER credit_hold",
+            'credit_balance'    => "ALTER TABLE {$table} ADD COLUMN credit_balance DECIMAL(20,2) DEFAULT 0 AFTER auto_apply_credit",
+        ];
+
+        foreach ($additions as $column => $sql) {
+            if (!in_array($column, $fields, true)) {
+                if ($wpdb->query($sql) !== false) {
+                    $fields[] = $column;
+                }
+            }
+        }
+
+        self::set_schema_flag('orabooks_sl021_customer_credit_v1', '1');
     }
 
     /**
@@ -539,6 +576,13 @@ class OraBooks_Customers {
         $display_name = sanitize_text_field($data['display_name'] ?? $data['name'] ?? '');
         $contact_email = sanitize_email($data['email'] ?? $data['contact_email'] ?? '');
         $notes = isset($data['notes']) ? sanitize_textarea_field($data['notes']) : null;
+        $payment_terms = max(0, intval($data['payment_terms'] ?? 30));
+        $default_currency = strtoupper(sanitize_text_field($data['default_currency'] ?? 'USD'));
+        $credit_limit = round(floatval($data['credit_limit'] ?? 0), 2);
+        $credit_hold = isset($data['credit_hold']) ? (int) (bool) $data['credit_hold'] : 0;
+        $auto_apply_credit = array_key_exists('auto_apply_credit', $data)
+            ? (int) (bool) $data['auto_apply_credit']
+            : 1;
 
         if ($org_id <= 0 || $display_name === '') {
             return new WP_Error('missing_field', 'Organization and customer name are required');
@@ -567,13 +611,19 @@ class OraBooks_Customers {
         $inserted = $wpdb->insert(
             $table,
             [
-                'org_id'        => $org_id,
-                'display_name'  => $display_name,
-                'contact_email' => $contact_email !== '' ? $contact_email : null,
-                'notes'         => $notes,
-                'is_active'     => 0,
+                'org_id'            => $org_id,
+                'display_name'      => $display_name,
+                'contact_email'     => $contact_email !== '' ? $contact_email : null,
+                'notes'             => $notes,
+                'payment_terms'     => $payment_terms,
+                'default_currency'  => $default_currency !== '' ? $default_currency : 'USD',
+                'credit_limit'      => $credit_limit,
+                'credit_hold'       => $credit_hold,
+                'auto_apply_credit' => $auto_apply_credit,
+                'credit_balance'    => 0,
+                'is_active'         => 0,
             ],
-            ['%d', '%s', '%s', '%s', '%d']
+            ['%d', '%s', '%s', '%s', '%d', '%s', '%f', '%d', '%d', '%f', '%d']
         );
 
         if ($inserted === false) {
