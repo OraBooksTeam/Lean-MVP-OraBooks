@@ -281,6 +281,256 @@ function orabooks_build_org_url($subdomain, $path = '/') {
 }
 
 /**
+ * Main network site URL for shared auth pages (login, register, tier selection).
+ */
+function orabooks_get_network_login_url($path = 'login') {
+    $path = trim((string) $path, '/');
+    if ($path === '') {
+        $path = 'login';
+    }
+
+    if (function_exists('is_multisite') && is_multisite() && function_exists('get_site_url')) {
+        return trailingslashit(get_site_url(get_main_site_id(), $path));
+    }
+
+    return home_url('/' . $path . '/');
+}
+
+/**
+ * Whether a WordPress multisite blog already exists for an org subdomain.
+ */
+function orabooks_multisite_subdomain_taken($subdomain) {
+    if (!function_exists('is_multisite') || !is_multisite() || !function_exists('get_blog_details')) {
+        return false;
+    }
+
+    $base_domain = orabooks_get_tenant_base_domain();
+    if ($base_domain === '') {
+        return false;
+    }
+
+    $domain = strtolower(trim($subdomain)) . '.' . $base_domain;
+
+    return (bool) get_blog_details(['domain' => $domain, 'path' => '/'], false);
+}
+
+/**
+ * Resolve the linked WordPress user for an OraBooks user.
+ */
+function orabooks_get_wp_user_id_for_orabooks_user($orabooks_user_id) {
+    global $wpdb;
+
+    $table_users = OraBooks_Database::table('users');
+    $wp_user_id = (int) $wpdb->get_var($wpdb->prepare(
+        "SELECT wp_user_id FROM {$table_users} WHERE id = %d",
+        (int) $orabooks_user_id
+    ));
+
+    if ($wp_user_id > 0) {
+        return $wp_user_id;
+    }
+
+    $current = get_current_user_id();
+    if ($current > 0) {
+        return (int) $current;
+    }
+
+    return (int) get_current_user_id() ?: 1;
+}
+
+/**
+ * Create (or reuse) a WordPress multisite blog for a customer organization subdomain.
+ *
+ * @return int|true|WP_Error Blog ID, true when multisite is disabled, or error.
+ */
+function orabooks_provision_org_multisite($org_id, $subdomain, $title, $owner_user_id) {
+    if (!function_exists('is_multisite') || !is_multisite() || !function_exists('wpmu_create_blog')) {
+        return true;
+    }
+
+    $org_id = (int) $org_id;
+    $subdomain = strtolower(trim((string) $subdomain));
+    $title = $title !== '' ? $title : $subdomain;
+    $base_domain = orabooks_get_tenant_base_domain();
+
+    if ($subdomain === '' || $base_domain === '') {
+        return new WP_Error('invalid_subdomain', __('Unable to provision organization site.', 'orabooks'));
+    }
+
+    $domain = $subdomain . '.' . $base_domain;
+    $existing = get_blog_details(['domain' => $domain, 'path' => '/'], false);
+    if ($existing && !empty($existing->blog_id)) {
+        $blog_id = (int) $existing->blog_id;
+    } else {
+        $wp_user_id = orabooks_get_wp_user_id_for_orabooks_user($owner_user_id);
+        $blog_id = wpmu_create_blog($domain, '/', $title, $wp_user_id, ['public' => 1], get_current_network_id());
+
+        if (is_wp_error($blog_id)) {
+            orabooks_log_event('org_site_provision_failed', $blog_id->get_error_message(), 'error', [
+                'org_id' => $org_id,
+                'subdomain' => $subdomain,
+            ], (int) $owner_user_id, $org_id);
+
+            return $blog_id;
+        }
+
+        $blog_id = (int) $blog_id;
+    }
+
+    if ($blog_id > 0 && function_exists('orabooks_create_required_pages')) {
+        switch_to_blog($blog_id);
+        orabooks_create_required_pages();
+        restore_current_blog();
+    }
+
+    if ($org_id > 0) {
+        global $wpdb;
+        $table_orgs = OraBooks_Database::table('organizations');
+        $org = OraBooks_Organization::get($org_id);
+        $config = [];
+        if ($org && !empty($org->config)) {
+            $decoded = json_decode($org->config, true);
+            if (is_array($decoded)) {
+                $config = $decoded;
+            }
+        }
+        $config['wp_blog_id'] = $blog_id;
+        $wpdb->update(
+            $table_orgs,
+            ['config' => wp_json_encode($config)],
+            ['id' => $org_id],
+            ['%s'],
+            ['%d']
+        );
+    }
+
+    orabooks_log_event('org_site_provisioned', 'Organization WordPress site provisioned', 'info', [
+        'org_id' => $org_id,
+        'subdomain' => $subdomain,
+        'blog_id' => $blog_id,
+    ], (int) $owner_user_id, $org_id);
+
+    return $blog_id;
+}
+
+/**
+ * Ensure a multisite blog exists for an organization (idempotent).
+ */
+function orabooks_ensure_org_multisite_site($org_id) {
+    $org = OraBooks_Organization::get((int) $org_id);
+    if (!$org || empty($org->subdomain)) {
+        return true;
+    }
+
+    if (!empty($org->config)) {
+        $config = json_decode($org->config, true);
+        if (is_array($config) && !empty($config['wp_blog_id']) && get_blog_details((int) $config['wp_blog_id'])) {
+            return (int) $config['wp_blog_id'];
+        }
+    }
+
+    return orabooks_provision_org_multisite((int) $org->id, $org->subdomain, $org->name, (int) $org->owner_id);
+}
+
+/**
+ * Add subdomain + absolute redirect URL to login/auth API payloads.
+ */
+function orabooks_enrich_login_response($login_result) {
+    if (!is_array($login_result)) {
+        return $login_result;
+    }
+
+    if (!empty($login_result['needs_tier_selection'])) {
+        $login_result['redirect_to'] = orabooks_get_network_login_url('tier-selection');
+        return $login_result;
+    }
+
+    if (empty($login_result['subdomain']) && !empty($login_result['org_id']) && class_exists('OraBooks_Organization')) {
+        $org = OraBooks_Organization::get((int) $login_result['org_id']);
+        if ($org && !empty($org->subdomain)) {
+            $login_result['subdomain'] = $org->subdomain;
+        }
+    }
+
+    if (!empty($login_result['org_id'])) {
+        orabooks_ensure_org_multisite_site((int) $login_result['org_id']);
+    }
+
+    if (!empty($login_result['redirect_to'])) {
+        $redirect = (string) $login_result['redirect_to'];
+        if (strpos($redirect, 'http') !== 0 && !empty($login_result['subdomain'])) {
+            $login_result['redirect_to'] = orabooks_build_org_url($login_result['subdomain'], $redirect);
+        } elseif (strpos($redirect, 'http') !== 0) {
+            $login_result['redirect_to'] = home_url(ltrim($redirect, '/'));
+        }
+
+        return $login_result;
+    }
+
+    if (!empty($login_result['subdomain'])) {
+        $path = !empty($login_result['is_partner']) ? '/partner-onboarding/' : '/dashboard/';
+        $login_result['redirect_to'] = orabooks_build_org_url($login_result['subdomain'], $path);
+        return $login_result;
+    }
+
+    $login_result['redirect_to'] = orabooks_get_network_login_url('dashboard');
+
+    return $login_result;
+}
+
+/**
+ * Redirect logged-in customers from the main site to their org subdomain workspace.
+ */
+function orabooks_maybe_redirect_to_org_subdomain() {
+    if (!function_exists('orabooks_is_user_logged_in') || !orabooks_is_user_logged_in()) {
+        return;
+    }
+
+    if (!is_singular('page')) {
+        return;
+    }
+
+    $post = get_queried_object();
+    if (!$post || empty($post->post_name)) {
+        return;
+    }
+
+    $user_id = orabooks_get_current_user_id();
+    $org_id = orabooks_get_current_org_id($user_id);
+    if (!$org_id || !class_exists('OraBooks_Organization') || !class_exists('OraBooks_Auth')) {
+        return;
+    }
+
+    $org = OraBooks_Organization::get($org_id);
+    if (!$org || empty($org->subdomain) || $org->organization_type === 'partner') {
+        return;
+    }
+
+    $current_subdomain = OraBooks_Auth::detect_subdomain_from_host();
+    if (strtolower($current_subdomain) === strtolower($org->subdomain)) {
+        return;
+    }
+
+    $shared_auth_slugs = ['login', 'register', 'reset-password', 'verify-email', 'tier-selection'];
+    if (in_array($post->post_name, $shared_auth_slugs, true)) {
+        if ($post->post_name === 'login') {
+            wp_redirect(orabooks_build_org_url($org->subdomain, '/dashboard/'));
+            exit;
+        }
+        return;
+    }
+
+    if (!function_exists('orabooks_get_accounting_page_slugs') || !in_array($post->post_name, orabooks_get_accounting_page_slugs(), true)) {
+        return;
+    }
+
+    wp_redirect(orabooks_build_org_url($org->subdomain, '/' . $post->post_name . '/'));
+    exit;
+}
+
+add_action('template_redirect', 'orabooks_maybe_redirect_to_org_subdomain', 5);
+
+/**
  * Get client IP address
  */
 function orabooks_get_client_ip() {
