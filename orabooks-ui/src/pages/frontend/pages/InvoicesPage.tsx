@@ -433,7 +433,7 @@ export default function InvoicesPage() {
           </table>
         </div>
 
-        {showCreate && (
+        {showCreate && canCreateInvoice && (
           <Modal title="Create invoice" onClose={() => setShowCreate(false)}>
             {error && <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div>}
             <div className="grid gap-4">
