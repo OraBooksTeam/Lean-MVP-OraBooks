@@ -374,8 +374,8 @@ class OraBooks_Auth_Test extends TestCase
         $this->assertArrayHasKey('token', $result);
         $this->assertArrayHasKey('user_id', $result);
         $this->assertEquals(42, $result['user_id']);
-        $this->assertTrue($result['is_new']);
-        $this->assertEquals('viewer', $result['role']);
+        $this->assertTrue($result['needs_tier_selection']);
+        $this->assertArrayHasKey('refresh_token', $result);
 
         // Verify JWT payload
         $this->assertEquals(42, $GLOBALS['orabooks_test_last_jwt_payload']['user_id']);
@@ -425,7 +425,6 @@ class OraBooks_Auth_Test extends TestCase
         $this->assertNotInstanceOf(WP_Error::class, $result);
         $this->assertArrayHasKey('token', $result);
         $this->assertEquals(5, $result['user_id']);
-        $this->assertFalse($result['is_new']);
         $this->assertEquals(1, $result['org_id']);
     }
 
