@@ -418,6 +418,19 @@ function orabooks_get_network_login_url($path = 'login') {
 }
 
 /**
+ * Frontend URL for accepting a team invitation (SL-014).
+ */
+function orabooks_get_accept_invite_url($token = '') {
+    $url = orabooks_get_network_login_url('accept-invite');
+    $token = trim((string) $token);
+    if ($token === '') {
+        return $url;
+    }
+
+    return add_query_arg('token', rawurlencode($token), $url);
+}
+
+/**
  * Whether the current host is the network main site (no tenant subdomain).
  */
 function orabooks_is_network_auth_host() {
