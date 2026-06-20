@@ -16,6 +16,7 @@ final class OraBooks_AsyncQueue_Test extends TestCase
         $wpdb->test_insert_callback = null;
         $wpdb->test_update_callback = null;
         $GLOBALS['orabooks_test_options'] = [];
+        $GLOBALS['orabooks_test_use_insert_id'] = null;
     }
 
     #[Test]
@@ -73,10 +74,9 @@ final class OraBooks_AsyncQueue_Test extends TestCase
         global $wpdb;
         $inserted = [];
         $wpdb->test_get_var_callback = fn () => 0;
-        $wpdb->test_insert_callback = function ($table, $data) use (&$inserted, $wpdb) {
+        $GLOBALS['orabooks_test_use_insert_id'] = 101;
+        $wpdb->test_insert_callback = function ($table, $data) use (&$inserted) {
             $inserted[] = $data;
-            $wpdb->insert_id = 101;
-            return true;
         };
 
         OraBooks_Event_Module::consume_job_enqueue_bridge((object) [
