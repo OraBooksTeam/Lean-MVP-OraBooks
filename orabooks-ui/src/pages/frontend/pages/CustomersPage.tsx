@@ -694,6 +694,61 @@ function CustomerFields({
   );
 }
 
+function getStatesForCountry(countries: CountryStateOption[], countryName: string) {
+  if (!countryName) return [];
+  return countries.find((country) => country.name === countryName)?.states || [];
+}
+
+function CountrySelect({
+  value,
+  countries,
+  loading,
+  onChange,
+}: {
+  value: string;
+  countries: CountryStateOption[];
+  loading: boolean;
+  onChange: (value: string) => void;
+}) {
+  const hasSavedValue = value && !countries.some((country) => country.name === value);
+
+  return (
+    <select value={value} onChange={(e) => onChange(e.target.value)} className={selectClassName} disabled={loading && countries.length === 0}>
+      <option value="">{loading ? 'Loading countries...' : 'Select Country'}</option>
+      {hasSavedValue && <option value={value}>{value}</option>}
+      {countries.map((country) => (
+        <option key={country.name} value={country.name}>{country.name}</option>
+      ))}
+    </select>
+  );
+}
+
+function StateSelect({
+  value,
+  country,
+  states,
+  onChange,
+}: {
+  value: string;
+  country: string;
+  states: string[];
+  onChange: (value: string) => void;
+}) {
+  const hasSavedValue = value && !states.includes(value);
+  const disabled = !country || states.length === 0;
+
+  return (
+    <select value={value} onChange={(e) => onChange(e.target.value)} className={selectClassName} disabled={disabled && !hasSavedValue}>
+      <option value="">{country ? 'Select State' : 'Select Country First'}</option>
+      {hasSavedValue && <option value={value}>{value}</option>}
+      {states.map((state) => (
+        <option key={state} value={state}>{state}</option>
+      ))}
+      {country && states.length === 0 && !hasSavedValue && <option value="" disabled>No states found</option>}
+    </select>
+  );
+}
+
 function Modal({ title, children, onClose }: { title: string; children: ReactNode; onClose: () => void }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4" onClick={onClose}>
