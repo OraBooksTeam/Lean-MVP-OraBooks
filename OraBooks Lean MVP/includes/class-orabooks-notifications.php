@@ -1639,7 +1639,7 @@ class OraBooks_Notifications {
                 'overdue_count'  => $agg['count'],
                 'total_amount'   => $agg['total'],
                 'date_range'     => $date_range,
-                'view_url'       => self::get_admin_invoices_url($agg['first_invoice_id']),
+                'view_url'       => self::get_admin_invoices_url($agg['first_invoice_id'], $org_id),
                 'invoice_ids'    => $agg['invoice_ids'],
             ]);
         }
@@ -1711,7 +1711,7 @@ class OraBooks_Notifications {
             'total_amount'   => $total_amount,
             'customer_id'    => $customer_id,
             'due_date'       => $due_date,
-            'view_url'       => self::get_admin_invoices_url(),
+            'view_url'       => self::get_admin_invoices_url($invoice_id, $org_id),
         ]);
     }
 
