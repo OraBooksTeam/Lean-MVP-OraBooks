@@ -99,7 +99,9 @@ class OraBooks_Ajax {
         $role = $org ? orabooks_get_user_role($user_id, (int) $org->id) : null;
         $permissions = [];
         if ($role && class_exists('OraBooks_RBAC')) {
-            $permissions = OraBooks_RBAC::get_effective_permissions($role, $org ? (int) $org->id : null);
+            $permissions = class_exists('OBN_Access_Control')
+                ? OBN_Access_Control::get_effective_permissions($role, $org ? (int) $org->id : null)
+                : OraBooks_RBAC::get_effective_permissions($role, $org ? (int) $org->id : null);
         }
 
         return [
@@ -123,6 +125,7 @@ class OraBooks_Ajax {
             ] : null,
             'role' => $role,
             'permissions' => $permissions,
+            'permission_matrix' => class_exists('OBN_Access_Control') ? OBN_Access_Control::get_permission_matrix(true) : [],
             'is_admin' => current_user_can('manage_options'),
         ];
     }
@@ -154,7 +157,7 @@ class OraBooks_Ajax {
             orabooks_json_error('Partner accounts cannot perform accounting operations.', 403);
         }
 
-        if (!current_user_can('manage_options') && !OraBooks_RBAC::require_permission($context['user_id'], $org_id, 'view_reports')) {
+        if (!OraBooks_RBAC::require_permission($context['user_id'], $org_id, 'view_reports')) {
             orabooks_json_error('Permission denied', 403);
         }
 
