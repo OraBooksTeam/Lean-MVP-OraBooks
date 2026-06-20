@@ -260,7 +260,7 @@ export default function CsvImportsPage() {
                       <WpLink to="/ai-review" className="inline-flex items-center gap-1 font-semibold text-amber-700 hover:underline">
                         <AlertTriangle className="h-3.5 w-3.5" />
                         Review in AI Queue
-                      </Link>
+                      </WpLink>
                     )}
                   </div>
                 )}

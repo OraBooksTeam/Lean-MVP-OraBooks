@@ -25,7 +25,7 @@ export default function NotificationPreferencesPage() {
         <div className="flex justify-end">
           <WpLink to="/notifications" className="text-sm font-medium text-primary hover:text-primary-dark">
             ← Back to Notification Center
-          </Link>
+          </WpLink>
         </div>
         <NotificationPreferencesForm />
       </div>

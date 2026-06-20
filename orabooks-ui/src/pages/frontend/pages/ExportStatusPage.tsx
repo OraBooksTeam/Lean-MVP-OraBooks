@@ -126,7 +126,7 @@ export default function ExportStatusPage() {
           Exports are generated asynchronously and expire after 7 days. Financial and operational report exports from{' '}
           <WpLink to="/reports" className="font-semibold text-primary hover:underline">
             Reports
-          </Link>{' '}
+          </WpLink>{' '}
           also appear here when ready.
         </div>
 

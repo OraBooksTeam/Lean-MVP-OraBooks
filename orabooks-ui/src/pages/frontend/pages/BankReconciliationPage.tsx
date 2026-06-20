@@ -312,7 +312,7 @@ export default function BankReconciliationPage() {
                         <Paperclip className="h-3.5 w-3.5" />
                         Statements
                       </Button>
-                    </Link>
+                    </WpLink>
                   </td>
                 </tr>
               ))}
@@ -372,7 +372,7 @@ export default function BankReconciliationPage() {
                           <Paperclip className="h-3.5 w-3.5" />
                           Files
                         </Button>
-                      </Link>
+                      </WpLink>
                     </div>
                   </td>
                 </tr>
@@ -419,7 +419,7 @@ export default function BankReconciliationPage() {
                           <Paperclip className="h-3.5 w-3.5" />
                           Statement
                         </Button>
-                      </Link>
+                      </WpLink>
                     ) : (
                       <span className="text-xs text-slate-400">—</span>
                     )}

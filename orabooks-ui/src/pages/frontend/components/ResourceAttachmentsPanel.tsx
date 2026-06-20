@@ -52,7 +52,7 @@ export default function ResourceAttachmentsPanel({
         No files attached.{' '}
         <WpLink to={manageHref} className="font-semibold text-primary hover:underline">
           Upload in Attachments
-        </Link>
+        </WpLink>
       </div>
     );
   }
@@ -66,7 +66,7 @@ export default function ResourceAttachmentsPanel({
         </h3>
         <WpLink to={manageHref} className="text-xs font-semibold text-primary hover:underline">
           Manage all
-        </Link>
+        </WpLink>
       </div>
       <ul className="divide-y divide-border">
         {items.map((item) => (

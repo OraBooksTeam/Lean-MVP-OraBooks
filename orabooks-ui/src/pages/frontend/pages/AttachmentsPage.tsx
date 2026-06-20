@@ -371,7 +371,7 @@ export default function AttachmentsPage() {
                         className="hover:text-primary hover:underline"
                       >
                         {formatResourceType(item.resource_type, data?.resource_types)} #{item.resource_id}
-                      </Link>
+                      </WpLink>
                     </td>
                     <td className="px-5 py-3 font-mono text-xs">v{item.version_number ?? 1}</td>
                     <td className="px-5 py-3">

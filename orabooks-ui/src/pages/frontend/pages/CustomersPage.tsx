@@ -125,10 +125,10 @@ export default function CustomersPage() {
           <Button onClick={handleSearch} variant="secondary" size="sm">Search</Button>
           <WpLink to="/csv-imports">
             <Button variant="secondary" size="sm"><Upload className="h-4 w-4" />Import customers</Button>
-          </Link>
+          </WpLink>
           <WpLink to="/invoices">
             <Button size="sm">Create invoice</Button>
-          </Link>
+          </WpLink>
           <Button onClick={load} variant="secondary" size="sm">
             <RefreshCw className="h-4 w-4" />
             Refresh
@@ -192,12 +192,12 @@ export default function CustomersPage() {
                           <Paperclip className="h-3.5 w-3.5" />
                           Files
                         </Button>
-                      </Link>
+                      </WpLink>
                       <WpLink to="/invoices">
                         <Button size="sm" variant="secondary">
                           Invoices
                         </Button>
-                      </Link>
+                      </WpLink>
                     </div>
                   </td>
                 </tr>

@@ -246,7 +246,7 @@ export default function VoicePage() {
                     <Paperclip className="h-3.5 w-3.5" />
                     View Audio File
                   </Button>
-                </Link>
+                </WpLink>
                 <Button onClick={() => void handleConfirm()} disabled={confirming}>
                   <CheckCircle2 className="h-4 w-4" />
                   {confirming ? 'Submitting...' : 'Confirm & Submit'}

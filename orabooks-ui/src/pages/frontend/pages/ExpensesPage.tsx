@@ -521,14 +521,14 @@ export default function ExpensesPage() {
                   <Paperclip className="h-3.5 w-3.5" />
                   View Files
                 </Button>
-              </Link>
+              </WpLink>
               {selectedExpense.attachment_id && (
                 <WpLink to={`/attachments?attachment_id=${selectedExpense.attachment_id}`}>
                   <Button variant="secondary" size="sm">
                     <Receipt className="h-3.5 w-3.5" />
                     Receipt
                   </Button>
-                </Link>
+                </WpLink>
               )}
               {caps.submit && selectedExpense.workflow_status === 'draft' && selectedExpense.ocr_confidence != null && (
                 <Button onClick={() => void handleConfirm()} disabled={confirming}>

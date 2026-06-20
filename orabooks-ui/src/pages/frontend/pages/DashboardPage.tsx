@@ -123,11 +123,11 @@ export default function DashboardPage() {
       <div className="space-y-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex flex-wrap gap-2">
-            <WpLink to="/invoices"><Button size="sm"><Plus className="h-4 w-4" />New Invoice</Button></Link>
-            <WpLink to="/customers"><Button size="sm" variant="secondary">Customers</Button></Link>
-            <WpLink to="/expenses"><Button size="sm" variant="secondary">Expenses</Button></Link>
-            <WpLink to="/reports"><Button size="sm" variant="secondary">Reports</Button></Link>
-            <WpLink to="/csv-imports"><Button size="sm" variant="secondary">Import CSV</Button></Link>
+            <WpLink to="/invoices"><Button size="sm"><Plus className="h-4 w-4" />New Invoice</Button></WpLink>
+            <WpLink to="/customers"><Button size="sm" variant="secondary">Customers</Button></WpLink>
+            <WpLink to="/expenses"><Button size="sm" variant="secondary">Expenses</Button></WpLink>
+            <WpLink to="/reports"><Button size="sm" variant="secondary">Reports</Button></WpLink>
+            <WpLink to="/csv-imports"><Button size="sm" variant="secondary">Import CSV</Button></WpLink>
           </div>
           <Button onClick={load} variant="secondary" size="sm">
             <RefreshCw className="h-4 w-4" />

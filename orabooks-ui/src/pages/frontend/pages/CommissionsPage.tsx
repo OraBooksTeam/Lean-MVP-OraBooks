@@ -54,7 +54,7 @@ export default function CommissionsPage() {
           >
             <ArrowLeft className="h-4 w-4" />
             Back to Partner Program
-          </Link>
+          </WpLink>
           <Button onClick={load} variant="secondary" size="sm" disabled={loading}>
             <RefreshCw className="h-4 w-4" />
             Refresh

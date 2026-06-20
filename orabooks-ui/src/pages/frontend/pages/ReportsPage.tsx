@@ -168,7 +168,7 @@ export default function ReportsPage() {
           >
             <Download className="h-4 w-4" />
             My Exports
-          </Link>
+          </WpLink>
           <Button onClick={load} variant="secondary" size="sm">
             <RefreshCw className="h-4 w-4" />
             Refresh

@@ -370,7 +370,7 @@ function JournalSection({
                         <Paperclip className="h-3.5 w-3.5" />
                         Files
                       </Button>
-                    </Link>
+                    </WpLink>
                   </div>
                 </td>
               </tr>
@@ -565,7 +565,7 @@ function JournalDetailPanel({
                 <Paperclip className="h-3.5 w-3.5" />
                 Attachments
               </Button>
-            </Link>
+            </WpLink>
           </div>
         </div>
       )}

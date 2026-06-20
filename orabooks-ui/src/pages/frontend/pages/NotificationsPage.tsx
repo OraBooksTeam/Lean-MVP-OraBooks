@@ -99,7 +99,7 @@ export default function NotificationsPage() {
             >
               <Settings className="h-4 w-4" />
               Preferences
-            </Link>
+            </WpLink>
             <Button onClick={load} variant="secondary" size="sm" disabled={loading}>
               <RefreshCw className="h-4 w-4" />
               Refresh

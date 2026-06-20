@@ -284,7 +284,7 @@ export default function JournalsPage() {
                     <Paperclip className="h-3.5 w-3.5" />
                     View Attachments
                   </Button>
-                </Link>
+                </WpLink>
 
                 <div className="overflow-hidden rounded-xl border border-border">
                   <table className="min-w-full text-left text-sm">

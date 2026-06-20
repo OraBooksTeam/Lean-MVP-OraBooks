@@ -397,7 +397,7 @@ export default function InvoicesPage() {
                           <Paperclip className="h-3.5 w-3.5" />
                           Files
                         </Button>
-                      </Link>
+                      </WpLink>
                     </div>
                   </td>
                 </tr>

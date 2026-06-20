@@ -188,7 +188,7 @@ export default function PartnerProgramPage() {
                 >
                   <TrendingUp className="h-4 w-4" />
                   Open Commission Details
-                </Link>
+                </WpLink>
               </section>
             </div>
 

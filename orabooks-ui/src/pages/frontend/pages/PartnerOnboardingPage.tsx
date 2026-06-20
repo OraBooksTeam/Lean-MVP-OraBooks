@@ -91,7 +91,7 @@ export default function PartnerOnboardingPage() {
 
                 <WpLink to="/dashboard">
                   <Button className="w-full">Continue to Dashboard</Button>
-                </Link>
+                </WpLink>
               </div>
             </div>
           </div>

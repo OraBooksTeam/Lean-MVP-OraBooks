@@ -251,7 +251,7 @@ function QueueSection({
                               <ShieldCheck className="h-3.5 w-3.5" />
                               Review
                             </Button>
-                          </Link>
+                          </WpLink>
                         )}
                         {showReview && !href && (
                           <span className="text-xs text-slate-500">N/A</span>

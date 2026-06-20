@@ -342,7 +342,7 @@ export default function VendorsPage() {
                           <Paperclip className="h-3.5 w-3.5" />
                           Files
                         </Button>
-                      </Link>
+                      </WpLink>
                     </div>
                   </td>
                 </tr>
@@ -407,7 +407,7 @@ export default function VendorsPage() {
                           <Paperclip className="h-3.5 w-3.5" />
                           Files
                         </Button>
-                      </Link>
+                      </WpLink>
                     </div>
                   </td>
                 </tr>
