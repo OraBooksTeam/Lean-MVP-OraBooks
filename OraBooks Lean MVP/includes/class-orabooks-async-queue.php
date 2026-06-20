@@ -503,20 +503,14 @@ class OraBooks_AsyncQueue {
             return new \WP_Error('invalid_status', 'Job can only be retried from dead_letter, failed, or completed status');
         }
 
-        $wpdb->update(
-            $table,
-            [
-                'status'        => 'pending',
-                'retry_count'   => 0,
-                'last_error'    => null,
-                'next_retry_at' => current_time('mysql', true),
-                'started_at'    => null,
-                'completed_at'  => null,
-            ],
-            ['id' => $job->id],
-            ['%s', '%d', null, '%s', null, null],
-            ['%d']
-        );
+        self::transition_job($job, 'pending', [
+            'retry_count'   => 0,
+            'last_error'    => null,
+            'next_retry_at' => current_time('mysql', true),
+            'started_at'    => null,
+            'completed_at'  => null,
+            'cancelled_at'  => null,
+        ], 'manual_replay');
 
         orabooks_log_event('job_retry_manual', "Job #{$job->id} ({$job->job_type}) manually retried", 'info', [
             'job_id'   => $job->id,
@@ -524,6 +518,37 @@ class OraBooks_AsyncQueue {
             'previous_status' => $job->status,
         ], get_current_user_id());
 
+        return true;
+    }
+
+    public static function discard_job($job_id) {
+        global $wpdb;
+        $table = OraBooks_Database::table(self::TABLE_JOBS);
+        $job = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$table} WHERE id = %d", (int) $job_id));
+        if (!$job) {
+            return new \WP_Error('not_found', 'Job not found');
+        }
+        if (!in_array($job->status, ['dead_letter', 'failed'], true)) {
+            return new \WP_Error('invalid_status', 'Only failed or dead-letter jobs can be discarded');
+        }
+        self::transition_job($job, 'discarded', ['cancelled_at' => current_time('mysql', true)], 'discarded');
+        return true;
+    }
+
+    public static function cancel_job($job_id) {
+        global $wpdb;
+        $table = OraBooks_Database::table(self::TABLE_JOBS);
+        $job = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$table} WHERE id = %d", (int) $job_id));
+        if (!$job) {
+            return new \WP_Error('not_found', 'Job not found');
+        }
+        if ($job->status !== 'pending') {
+            return new \WP_Error('invalid_status', 'Only pending jobs can be cancelled');
+        }
+        self::transition_job($job, 'cancelled', [
+            'cancelled_at' => current_time('mysql', true),
+            'last_error' => 'Cancelled by user',
+        ], 'cancelled');
         return true;
     }
 
@@ -620,6 +645,98 @@ class OraBooks_AsyncQueue {
             : 0;
 
         return $stats;
+    }
+
+    public static function list_jobs($args = []) {
+        global $wpdb;
+        $table = OraBooks_Database::table(self::TABLE_JOBS);
+        $where = '1=1';
+        $params = [];
+
+        if (!empty($args['status'])) {
+            $where .= ' AND status = %s';
+            $params[] = sanitize_text_field($args['status']);
+        }
+        if (!empty($args['job_type'])) {
+            $where .= ' AND job_type = %s';
+            $params[] = sanitize_text_field($args['job_type']);
+        }
+        if (!empty($args['queue_name'])) {
+            $where .= ' AND queue_name = %s';
+            $params[] = sanitize_text_field($args['queue_name']);
+        }
+
+        $limit = min(100, max(1, (int) ($args['limit'] ?? 50)));
+        $sql = "SELECT id, queue_name, job_type, payload, status, priority, retry_count, max_retries,
+                       next_retry_at, created_at, started_at, completed_at, last_error, heartbeat_at,
+                       idempotency_key, cancelled_at
+                FROM {$table}
+                WHERE {$where}
+                ORDER BY FIELD(status, 'processing','pending','dead_letter','failed','completed','cancelled','discarded'),
+                         priority ASC, created_at DESC
+                LIMIT {$limit}";
+        return !empty($params) ? $wpdb->get_results($wpdb->prepare($sql, $params)) : $wpdb->get_results($sql);
+    }
+
+    public static function archive_completed_jobs() {
+        global $wpdb;
+        $table = OraBooks_Database::table(self::TABLE_JOBS);
+        $cutoff = date('Y-m-d H:i:s', time() - self::ARCHIVE_AFTER_DAYS * DAY_IN_SECONDS);
+        $jobs = $wpdb->get_results($wpdb->prepare(
+            "SELECT id, job_type, payload FROM {$table}
+             WHERE status = 'completed' AND completed_at < %s AND archived_at IS NULL
+             LIMIT 200",
+            $cutoff
+        ));
+
+        foreach ($jobs ?: [] as $job) {
+            $payload = json_decode((string) $job->payload, true) ?: [];
+            if (!empty($payload['file_path']) && file_exists($payload['file_path'])) {
+                @unlink($payload['file_path']);
+            }
+            $wpdb->update($table, ['archived_at' => current_time('mysql', true)], ['id' => (int) $job->id], ['%s'], ['%d']);
+            self::audit((int) $job->id, $job->job_type, 'archived', 'completed', ['cutoff' => $cutoff], 'completed');
+        }
+
+        return ['archived' => count($jobs ?: [])];
+    }
+
+    public static function get_webhook_urls($org_id = 0) {
+        $key = $org_id ? 'orabooks_webhook_urls_' . (int) $org_id : 'orabooks_webhook_urls';
+        $raw = get_option($key, '');
+        if (is_array($raw)) {
+            return array_values(array_filter(array_map('trim', $raw)));
+        }
+        return array_values(array_filter(array_map('trim', preg_split('/\r\n|\r|\n/', (string) $raw))));
+    }
+
+    public static function save_webhook_urls($urls, $org_id = 0) {
+        $clean = [];
+        foreach (preg_split('/\r\n|\r|\n/', (string) $urls) as $url) {
+            $url = trim($url);
+            if ($url !== '') {
+                $clean[] = esc_url_raw($url);
+            }
+        }
+        $key = $org_id ? 'orabooks_webhook_urls_' . (int) $org_id : 'orabooks_webhook_urls';
+        update_option($key, implode("\n", $clean));
+        return $clean;
+    }
+
+    private static function current_user_can_manage_queue() {
+        if (current_user_can('manage_options')) {
+            return true;
+        }
+        if (!function_exists('orabooks_get_current_user_id') || !function_exists('orabooks_get_current_org_id')) {
+            return false;
+        }
+        $user_id = (int) orabooks_get_current_user_id();
+        $org_id = (int) orabooks_get_current_org_id($user_id);
+        if (!$user_id || !$org_id || !class_exists('OraBooks_RBAC')) {
+            return false;
+        }
+        return OraBooks_RBAC::require_permission($user_id, $org_id, 'manage_settings')
+            || OraBooks_RBAC::require_permission($user_id, $org_id, 'manage_employees');
     }
 
     // ================================================================
