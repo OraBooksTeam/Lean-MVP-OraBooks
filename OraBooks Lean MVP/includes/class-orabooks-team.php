@@ -112,7 +112,7 @@ class OraBooks_Team {
         ];
     }
     
-    public static function accept_invite($raw_token) {
+    public static function accept_invite($raw_token, $expected_user_id = 0) {
         global $wpdb;
         
         $table_invites = OraBooks_Database::table('org_invites');
@@ -120,17 +120,22 @@ class OraBooks_Team {
         $table_user_org = OraBooks_Database::table('user_org');
         
         $token_hash = orabooks_hash_token($raw_token);
-        
+        $expected_user_id = (int) $expected_user_id;
+
+        $wpdb->query('START TRANSACTION');
+
         $invite = $wpdb->get_row($wpdb->prepare(
-            "SELECT * FROM {$table_invites} WHERE token_hash = %s AND used = 0 AND expires_at > NOW()",
+            "SELECT * FROM {$table_invites} WHERE token_hash = %s AND used = 0 AND expires_at > NOW() FOR UPDATE",
             $token_hash
         ));
         
         if (!$invite) {
+            $wpdb->query('ROLLBACK');
             return new WP_Error('invalid_invite', 'Invalid or expired invitation');
         }
         
         if (!self::is_invite_role($invite->role)) {
+            $wpdb->query('ROLLBACK');
             return new WP_Error('invalid_role', 'Invalid invite role');
         }
         
@@ -139,7 +144,16 @@ class OraBooks_Team {
         ));
         
         if (!$user) {
+            $wpdb->query('ROLLBACK');
             return new WP_Error('user_not_found', 'Please create an account first before accepting the invite');
+        }
+
+        if ($expected_user_id > 0 && (int) $user->id !== $expected_user_id) {
+            $wpdb->query('ROLLBACK');
+            return new WP_Error(
+                'invite_email_mismatch',
+                'This invitation was sent to a different email address. Please log in with the invited account.'
+            );
         }
         
         // Check existing membership
@@ -150,6 +164,7 @@ class OraBooks_Team {
         
         if ($existing) {
             $wpdb->update($table_invites, ['used' => 1], ['id' => $invite->id], ['%d'], ['%d']);
+            $wpdb->query('COMMIT');
             return new WP_Error('already_member', 'You are already a member of this organization');
         }
         
@@ -163,14 +178,22 @@ class OraBooks_Team {
             $wpdb->update($table_users, ['org_id' => $invite->org_id], ['id' => $user->id], ['%d'], ['%d']);
         }
         
-        $wpdb->update($table_invites, ['used' => 1, 'accepted_at' => current_time('mysql')], ['id' => $invite->id], ['%d', '%s'], ['%d']);
+        $wpdb->update(
+            $table_invites,
+            ['used' => 1, 'accepted_at' => current_time('mysql')],
+            ['id' => $invite->id],
+            ['%d', '%s'],
+            ['%d']
+        );
+
+        $wpdb->query('COMMIT');
         
         orabooks_log_event('invite_accepted', "User {$user->email} accepted invite to org {$invite->org_id}", 'info', [
             'role' => $invite->role
         ], $user->id, $invite->org_id);
         
         return [
-            'org_id' => $invite->org_id,
+            'org_id' => (int) $invite->org_id,
             'role' => $invite->role,
             'user_id' => (int) $user->id,
         ];
