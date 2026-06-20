@@ -178,6 +178,18 @@ class OraBooks_Shortcodes {
     }
     
     public function dashboard() {
+        if (
+            function_exists('orabooks_should_use_react_frontend')
+            && !orabooks_should_use_react_frontend()
+            && function_exists('orabooks_uses_merged_accounting_workspace')
+            && !orabooks_uses_merged_accounting_workspace()
+        ) {
+            return $this->resolve_frontend([
+                'route' => '/partner-program',
+                'php_view' => 'partner-program',
+            ]);
+        }
+
         return $this->customer_workspace_page('orabooks_dashboard', '/dashboard');
     }
 

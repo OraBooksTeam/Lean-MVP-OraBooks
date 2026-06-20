@@ -284,7 +284,7 @@ function orabooks_create_required_pages() {
         'partner-onboarding'  => ['Partner Onboarding', '[orabooks_partner_onboarding]'],
         'partner-program'     => ['Partner Program', '[orabooks_partner_dashboard]'],
         
-        // Customer workspace (Lean MVP React)
+        // Customer workspace (PHP accounting on Divi; React SPA on other themes)
         'dashboard'           => ['Dashboard', '[orabooks_dashboard]'],
         'customers'           => ['Customers', '[orabooks_customers]'],
         'vendors'             => ['Vendors', '[orabooks_vendors]'],
