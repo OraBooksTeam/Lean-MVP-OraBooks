@@ -9,8 +9,27 @@ import { Info, Paperclip, Pencil, Plus, RefreshCw, Upload, Users } from 'lucide-
 
 type Customer = {
   id: number;
+  customer_code?: string | null;
   display_name?: string | null;
   email?: string;
+  mobile?: string | null;
+  phone?: string | null;
+  gstin?: string | null;
+  tax_number?: string | null;
+  opening_balance?: string | number;
+  country_id?: string | null;
+  state_id?: string | null;
+  city?: string | null;
+  postcode?: string | null;
+  address?: string | null;
+  location_link?: string | null;
+  ship_country_id?: string | null;
+  ship_state_id?: string | null;
+  ship_city?: string | null;
+  ship_postcode?: string | null;
+  ship_address?: string | null;
+  price_level_type?: 'Increase' | 'Decrease' | string | null;
+  price_level?: string | number;
   is_active?: number;
   invoice_count?: number;
   total_paid?: string | number;
@@ -26,8 +45,27 @@ type Customer = {
 };
 
 type CustomerFormState = {
+  customer_code: string;
   name: string;
   email: string;
+  mobile: string;
+  phone: string;
+  gstin: string;
+  tax_number: string;
+  opening_balance: string;
+  country_id: string;
+  state_id: string;
+  city: string;
+  postcode: string;
+  address: string;
+  location_link: string;
+  ship_country_id: string;
+  ship_state_id: string;
+  ship_city: string;
+  ship_postcode: string;
+  ship_address: string;
+  price_level_type: 'Increase' | 'Decrease';
+  price_level: string;
   notes: string;
   payment_terms: string;
   default_currency: string;
@@ -37,8 +75,27 @@ type CustomerFormState = {
 };
 
 const emptyCustomerForm = (): CustomerFormState => ({
+  customer_code: '',
   name: '',
   email: '',
+  mobile: '',
+  phone: '',
+  gstin: '',
+  tax_number: '',
+  opening_balance: '0',
+  country_id: '',
+  state_id: '',
+  city: '',
+  postcode: '',
+  address: '',
+  location_link: '',
+  ship_country_id: '',
+  ship_state_id: '',
+  ship_city: '',
+  ship_postcode: '',
+  ship_address: '',
+  price_level_type: 'Increase',
+  price_level: '0',
   notes: '',
   payment_terms: '30',
   default_currency: 'USD',
@@ -53,8 +110,27 @@ function customerLabel(customer: Pick<Customer, 'id' | 'display_name' | 'email'>
 
 function customerToForm(customer: Customer): CustomerFormState {
   return {
+    customer_code: customer.customer_code || '',
     name: customer.display_name?.trim() || '',
     email: customer.email || '',
+    mobile: customer.mobile || '',
+    phone: customer.phone || '',
+    gstin: customer.gstin || '',
+    tax_number: customer.tax_number || '',
+    opening_balance: String(customer.opening_balance ?? 0),
+    country_id: customer.country_id || '',
+    state_id: customer.state_id || '',
+    city: customer.city || '',
+    postcode: customer.postcode || '',
+    address: customer.address || '',
+    location_link: customer.location_link || '',
+    ship_country_id: customer.ship_country_id || '',
+    ship_state_id: customer.ship_state_id || '',
+    ship_city: customer.ship_city || '',
+    ship_postcode: customer.ship_postcode || '',
+    ship_address: customer.ship_address || '',
+    price_level_type: customer.price_level_type === 'Decrease' ? 'Decrease' : 'Increase',
+    price_level: String(customer.price_level ?? 0),
     notes: customer.notes || '',
     payment_terms: String(customer.payment_terms ?? 30),
     default_currency: customer.default_currency || 'USD',
@@ -66,8 +142,27 @@ function customerToForm(customer: Customer): CustomerFormState {
 
 function customerFormPayload(form: CustomerFormState) {
   return {
+    customer_code: form.customer_code.trim(),
     display_name: form.name.trim(),
     email: form.email.trim(),
+    mobile: form.mobile.trim(),
+    phone: form.phone.trim(),
+    gstin: form.gstin.trim(),
+    tax_number: form.tax_number.trim(),
+    opening_balance: parseFloat(form.opening_balance) || 0,
+    country_id: form.country_id.trim(),
+    state_id: form.state_id.trim(),
+    city: form.city.trim(),
+    postcode: form.postcode.trim(),
+    address: form.address.trim(),
+    location_link: form.location_link.trim(),
+    ship_country_id: form.ship_country_id.trim(),
+    ship_state_id: form.ship_state_id.trim(),
+    ship_city: form.ship_city.trim(),
+    ship_postcode: form.ship_postcode.trim(),
+    ship_address: form.ship_address.trim(),
+    price_level_type: form.price_level_type,
+    price_level: parseFloat(form.price_level) || 0,
     notes: form.notes.trim(),
     payment_terms: parseInt(form.payment_terms, 10) || 30,
     default_currency: form.default_currency.trim() || 'USD',
