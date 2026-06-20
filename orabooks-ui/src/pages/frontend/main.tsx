@@ -10,6 +10,7 @@ import '@/styles/index.css';
 declare global {
   interface Window {
     orabooksReactMounted?: boolean;
+    orabooksBootFrontend?: () => void;
   }
 }
 
@@ -139,12 +140,4 @@ if (document.readyState === 'loading') {
 }
 
 window.addEventListener('load', bootFrontend);
-
-declare global {
-  interface Window {
-    orabooksReactMounted?: boolean;
-    orabooksBootFrontend?: () => void;
-  }
-}
-
 window.orabooksBootFrontend = bootFrontend;
