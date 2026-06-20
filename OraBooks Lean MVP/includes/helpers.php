@@ -932,7 +932,21 @@ function orabooks_set_auth_token_cookie($token) {
     $expiry = time() + orabooks_get_auth_token_cookie_ttl();
     $path = defined('COOKIEPATH') && COOKIEPATH ? COOKIEPATH : '/';
     $domain = orabooks_get_auth_cookie_domain();
-    setcookie('orabooks_token', $token, $expiry, $path, $domain, is_ssl(), true);
+    $secure = is_ssl();
+
+    if (PHP_VERSION_ID >= 70300) {
+        setcookie('orabooks_token', $token, [
+            'expires'  => $expiry,
+            'path'     => $path,
+            'domain'   => $domain,
+            'secure'   => $secure,
+            'httponly' => true,
+            'samesite' => 'Lax',
+        ]);
+    } else {
+        setcookie('orabooks_token', $token, $expiry, $path, $domain, $secure, true);
+    }
+
     $_COOKIE['orabooks_token'] = $token;
 }
 
@@ -946,7 +960,21 @@ function orabooks_clear_auth_token_cookie() {
 
     $path = defined('COOKIEPATH') && COOKIEPATH ? COOKIEPATH : '/';
     $domain = orabooks_get_auth_cookie_domain();
-    setcookie('orabooks_token', '', time() - 3600, $path, $domain, is_ssl(), true);
+    $secure = is_ssl();
+
+    if (PHP_VERSION_ID >= 70300) {
+        setcookie('orabooks_token', '', [
+            'expires'  => time() - 3600,
+            'path'     => $path,
+            'domain'   => $domain,
+            'secure'   => $secure,
+            'httponly' => true,
+            'samesite' => 'Lax',
+        ]);
+    } else {
+        setcookie('orabooks_token', '', time() - 3600, $path, $domain, $secure, true);
+    }
+
     unset($_COOKIE['orabooks_token']);
 }
 
