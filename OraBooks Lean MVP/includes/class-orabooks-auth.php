@@ -45,6 +45,9 @@ class OraBooks_Auth {
             add_action('wp_ajax_orabooks_oidc_initiate', [self::$instance, 'ajax_oidc_initiate']);
             add_action('wp_ajax_nopriv_orabooks_oidc_callback', [self::$instance, 'ajax_oidc_callback']);
             add_action('wp_ajax_orabooks_oidc_callback', [self::$instance, 'ajax_oidc_callback']);
+            // SL-013: ingress-level partner accounting isolation
+            add_action('template_redirect', [self::$instance, 'enforce_partner_accounting_isolation'], 1);
+            add_filter('rest_pre_dispatch', [self::$instance, 'enforce_partner_accounting_isolation_rest'], 10, 3);
             // SL-003: Admin partner approval endpoints registered in OraBooks_Partner
 
             if (function_exists('is_multisite') && is_multisite()) {
@@ -552,7 +555,12 @@ class OraBooks_Auth {
         // Normal login with org
         $org = OraBooks_Organization::get($user->org_id);
         if ($org && $org->status !== 'active') {
-            return new WP_Error('org_inactive', 'Your organization is not active. Please contact support.');
+            $partner_pending = $user->is_partner
+                && $org->organization_type === 'partner'
+                && $org->status === 'pending_setup';
+            if (!$partner_pending) {
+                return new WP_Error('org_inactive', 'Your organization is not active. Please contact support.');
+            }
         }
         
         // Subdomain mismatch check (if expected_subdomain is provided)
@@ -596,8 +604,12 @@ class OraBooks_Auth {
      * Handle partner first login - auto create org
      */
     private static function handle_partner_first_login($user) {
-        $partner_type = $_SESSION['orabooks_partner_type'] ?? 'individual';
-        $organization_name = $_SESSION['orabooks_partner_org_name'] ?? '';
+        $partner_type = $user->pending_partner_type
+            ?? $_SESSION['orabooks_partner_type']
+            ?? 'individual';
+        $organization_name = $user->pending_organization_name
+            ?? $_SESSION['orabooks_partner_org_name']
+            ?? '';
         
         // Create partner org
         $org_name = !empty($organization_name) ? $organization_name : 'Partner ' . $user->id;
