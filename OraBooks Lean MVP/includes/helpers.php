@@ -61,6 +61,20 @@ function orabooks_merged_accounting_shortcodes() {
 }
 
 /**
+ * @deprecated
+ */
+function orabooks_page_uses_merged_accounting_workspace($content) {
+    return false;
+}
+
+/**
+ * @deprecated
+ */
+function orabooks_get_merged_accounting_view_for_shortcode($shortcode_tag) {
+    return 'dashboard';
+}
+
+/**
  * Generate a cryptographically secure random string
  */
 function orabooks_random_string($length = 32) {
