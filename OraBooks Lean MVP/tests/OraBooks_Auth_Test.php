@@ -371,8 +371,7 @@ class OraBooks_Auth_Test extends TestCase
         $result = OraBooks_Auth::handle_google_callback('auth-code-new', 'test-state-new-user');
 
         $this->assertNotInstanceOf(WP_Error::class, $result);
-        $this->assertArrayHasKey('requires_email_verification', $result);
-        $this->assertTrue($result['requires_email_verification']);
+        $this->assertArrayHasKey('token', $result);
         $this->assertArrayHasKey('user_id', $result);
         $this->assertEquals(42, $result['user_id']);
         $this->assertTrue($result['is_new']);
@@ -424,8 +423,7 @@ class OraBooks_Auth_Test extends TestCase
         $result = OraBooks_Auth::handle_google_callback('auth-code-existing', 'test-state-existing');
 
         $this->assertNotInstanceOf(WP_Error::class, $result);
-        $this->assertArrayHasKey('requires_email_verification', $result);
-        $this->assertTrue($result['requires_email_verification']);
+        $this->assertArrayHasKey('token', $result);
         $this->assertEquals(5, $result['user_id']);
         $this->assertFalse($result['is_new']);
         $this->assertEquals(1, $result['org_id']);
@@ -520,8 +518,7 @@ class OraBooks_Auth_Test extends TestCase
         $result = OraBooks_Auth::handle_google_callback('auth-code-link', 'test-state-link');
 
         $this->assertNotInstanceOf(WP_Error::class, $result);
-        $this->assertArrayHasKey('requires_email_verification', $result);
-        $this->assertTrue($result['requires_email_verification']);
+        $this->assertArrayHasKey('token', $result);
         $this->assertEquals(15, $result['user_id']);
 
         // Verify the UPDATE query would set auth_provider to 'google' and is_email_verified to 1
@@ -663,8 +660,7 @@ class OraBooks_Auth_Test extends TestCase
         $result = OraBooks_Auth::login('user@example.com', 'Password1!', 'mycompany');
 
         $this->assertNotInstanceOf(WP_Error::class, $result);
-        $this->assertArrayHasKey('requires_email_verification', $result);
-        $this->assertTrue($result['requires_email_verification']);
+        $this->assertArrayHasKey('token', $result);
         $this->assertEquals(1, $result['org_id']);
     }
 
@@ -685,8 +681,7 @@ class OraBooks_Auth_Test extends TestCase
         $result = OraBooks_Auth::login('user@example.com', 'Password1!', 'MYCOMPANY'); // Uppercase
 
         $this->assertNotInstanceOf(WP_Error::class, $result);
-        $this->assertArrayHasKey('requires_email_verification', $result);
-        $this->assertTrue($result['requires_email_verification']);
+        $this->assertArrayHasKey('token', $result);
     }
 
     #[Test]
@@ -707,8 +702,7 @@ class OraBooks_Auth_Test extends TestCase
         $result = OraBooks_Auth::login('user@example.com', 'Password1!');
 
         $this->assertNotInstanceOf(WP_Error::class, $result);
-        $this->assertArrayHasKey('requires_email_verification', $result);
-        $this->assertTrue($result['requires_email_verification']);
+        $this->assertArrayHasKey('token', $result);
     }
 
     // ================================================================
@@ -837,8 +831,7 @@ class OraBooks_Auth_Test extends TestCase
         $this->assertIsArray($result);
         $this->assertEquals(42, $result['user_id']);
         $this->assertEquals('newuser@example.com', $result['email']);
-        $this->assertArrayHasKey('requires_email_verification', $result);
-        $this->assertTrue($result['requires_email_verification']);
+        $this->assertArrayHasKey('token', $result);
         $this->assertEquals(0, $result['is_partner']);
         $this->assertStringContainsString('Verification', $result['message']);
     }
@@ -1129,8 +1122,7 @@ class OraBooks_Auth_Test extends TestCase
         $result = OraBooks_Auth::login('partner@example.com', 'Password1!');
 
         $this->assertNotInstanceOf(WP_Error::class, $result);
-        $this->assertArrayHasKey('requires_email_verification', $result);
-        $this->assertTrue($result['requires_email_verification']);
+        $this->assertArrayHasKey('token', $result);
         $this->assertArrayHasKey('refresh_token', $result);
         $this->assertEquals(1, $result['user_id']);
         $this->assertEquals('owner', $result['role']);
@@ -1153,8 +1145,7 @@ class OraBooks_Auth_Test extends TestCase
 
         $this->assertNotInstanceOf(WP_Error::class, $result);
         $this->assertTrue($result['needs_tier_selection']);
-        $this->assertArrayHasKey('requires_email_verification', $result);
-        $this->assertTrue($result['requires_email_verification']);
+        $this->assertArrayHasKey('token', $result);
     }
 
     #[Test]
@@ -1172,8 +1163,7 @@ class OraBooks_Auth_Test extends TestCase
         $result = OraBooks_Auth::login('user@example.com', 'Password1!');
 
         $this->assertNotInstanceOf(WP_Error::class, $result);
-        $this->assertArrayHasKey('requires_email_verification', $result);
-        $this->assertTrue($result['requires_email_verification']);
+        $this->assertArrayHasKey('token', $result);
         $this->assertArrayHasKey('refresh_token', $result);
         $this->assertEquals(1, $result['user_id']);
         $this->assertEquals(1, $result['org_id']);
@@ -1650,8 +1640,7 @@ class OraBooks_Auth_Test extends TestCase
 
         $this->assertNotInstanceOf(WP_Error::class, $result);
         $this->assertEquals(1, $result['is_partner']);
-        $this->assertArrayHasKey('requires_email_verification', $result);
-        $this->assertTrue($result['requires_email_verification']);
+        $this->assertArrayHasKey('token', $result);
         $this->assertArrayHasKey('refresh_token', $result);
         $this->assertEquals('/partner/onboarding', $result['redirect_to']);
     }
@@ -1770,8 +1759,7 @@ class OraBooks_Auth_Test extends TestCase
         $result = OraBooks_Auth::refresh_token('valid-refresh-token');
 
         $this->assertIsArray($result);
-        $this->assertArrayHasKey('requires_email_verification', $result);
-        $this->assertTrue($result['requires_email_verification']);
+        $this->assertArrayHasKey('token', $result);
         $this->assertArrayHasKey('refresh_token', $result);
     }
 
@@ -1826,8 +1814,7 @@ class OraBooks_Auth_Test extends TestCase
         $this->assertNotInstanceOf(WP_Error::class, $result);
 
         // Should have the partner first login response shape
-        $this->assertArrayHasKey('requires_email_verification', $result);
-        $this->assertTrue($result['requires_email_verification']);
+        $this->assertArrayHasKey('token', $result);
         $this->assertArrayHasKey('refresh_token', $result);
         $this->assertEquals(30, $result['user_id']);
         $this->assertArrayHasKey('org_id', $result);
