@@ -1899,6 +1899,7 @@ function orabooks_persist_login_session($login_result, $password = '') {
 
     $user_id = !empty($login_result['user_id']) ? (int) $login_result['user_id'] : 0;
     if ($user_id > 0) {
+        orabooks_get_wp_user_id_for_orabooks_user($user_id);
         orabooks_establish_wp_session_for_orabooks_user($user_id, $password);
     }
 }
