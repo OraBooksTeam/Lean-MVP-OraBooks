@@ -972,6 +972,13 @@ function orabooks_establish_wp_session_for_orabooks_user($orabooks_user_id, $pas
     if (!empty($user->wp_user_id)) {
         $wp_user = get_user_by('id', (int) $user->wp_user_id);
         if ($wp_user) {
+            if (function_exists('is_multisite') && is_multisite() && function_exists('add_user_to_blog')) {
+                $blog_id = get_current_blog_id();
+                if ($blog_id > 0 && !is_user_member_of_blog($wp_user->ID, $blog_id)) {
+                    add_user_to_blog($blog_id, $wp_user->ID, 'subscriber');
+                }
+            }
+
             wp_set_current_user($wp_user->ID);
             wp_set_auth_cookie($wp_user->ID, true, is_ssl());
             do_action('wp_login', $wp_user->user_login, $wp_user);
