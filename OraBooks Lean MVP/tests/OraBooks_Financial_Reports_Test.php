@@ -199,7 +199,7 @@ class OraBooks_Financial_Reports_Test extends TestCase
     }
 
     #[Test]
-    public function test_sign_report_creates_signature_and_approved_watermark()
+    public function test_expense_pl_category_splits_cogs_from_operating()
     {
         global $wpdb;
         $inserted = [];
@@ -499,7 +499,145 @@ class OraBooks_Financial_Reports_Test extends TestCase
         $this->assertSame(['section', 'code', 'name', 'type', 'amount'], $flat['columns']);
         $this->assertCount(3, $flat['rows']);
         $this->assertEquals('Summary', $flat['rows'][2]['section']);
-        $this->assertEquals(650, $flat['rows'][2]['amount']);
+        $this->assertEquals(650, $flat['rows'][4]['amount']);
+    }
+
+    #[Test]
+    public function test_expense_pl_category_splits_cogs_from_operating()
+    {
+        $this->assertSame('cogs', OraBooks_Financial_Reports::expense_pl_category((object) [
+            'type' => 'expense',
+            'code' => '5100',
+            'name' => 'COGS',
+        ]));
+        $this->assertSame('operating', OraBooks_Financial_Reports::expense_pl_category((object) [
+            'type' => 'expense',
+            'code' => '5000',
+            'name' => 'Operating Expenses',
+        ]));
+    }
+
+    #[Test]
+    public function test_trial_balance_columns_follow_normal_balance()
+    {
+        $debit_asset = OraBooks_Financial_Reports::trial_balance_columns((object) [
+            'normal_balance' => 'debit',
+            'type' => 'asset',
+        ], 1000);
+        $this->assertEquals(1000, $debit_asset['debit']);
+        $this->assertEquals(0, $debit_asset['credit']);
+
+        $credit_liability = OraBooks_Financial_Reports::trial_balance_columns((object) [
+            'normal_balance' => 'credit',
+            'type' => 'liability',
+        ], 300);
+        $this->assertEquals(0, $credit_liability['debit']);
+        $this->assertEquals(300, $credit_liability['credit']);
+    }
+
+    #[Test]
+    public function test_generate_trial_balance_uses_closing_debit_credit_totals()
+    {
+        global $wpdb;
+
+        $wpdb->test_get_var_callback = function ($query) {
+            if (stripos($query, 'COUNT(*)') !== false && stripos($query, 'ledger_entries') !== false) {
+                return 1;
+            }
+            return null;
+        };
+        $wpdb->test_get_row_callback = fn() => null;
+        $wpdb->test_get_results_callback = function ($query) {
+            if (stripos($query, 'ledger_entries') !== false) {
+                return [
+                    (object) ['account_id' => 1, 'code' => '1000', 'name' => 'Cash', 'type' => 'asset', 'normal_balance' => 'debit', 'debit_sum' => 1000, 'credit_sum' => 0],
+                    (object) ['account_id' => 2, 'code' => '2000', 'name' => 'AP', 'type' => 'liability', 'normal_balance' => 'credit', 'debit_sum' => 0, 'credit_sum' => 400],
+                    (object) ['account_id' => 3, 'code' => '3000', 'name' => 'Equity', 'type' => 'equity', 'normal_balance' => 'credit', 'debit_sum' => 0, 'credit_sum' => 600],
+                ];
+            }
+            return [];
+        };
+        $wpdb->test_insert_callback = fn() => true;
+        $GLOBALS['orabooks_test_use_insert_id'] = 303;
+
+        $result = OraBooks_Financial_Reports::generate_report(10, 'trial_balance', '2026-01-01', '2026-01-31');
+
+        $this->assertTrue($result['report']['balanced']);
+        $this->assertEquals(1000.0, $result['report']['total_debits']);
+        $this->assertEquals(1000.0, $result['report']['total_credits']);
+        $this->assertSame('closing_balance_as_of', $result['report']['report_mode']);
+    }
+
+    #[Test]
+    public function test_generate_balance_sheet_adds_current_period_net_income_to_equity()
+    {
+        global $wpdb;
+
+        $wpdb->test_get_var_callback = function ($query) {
+            if (stripos($query, 'fiscal_periods') !== false) {
+                return null;
+            }
+            if (stripos($query, 'COUNT(*)') !== false && stripos($query, 'ledger_entries') !== false) {
+                return 1;
+            }
+            return null;
+        };
+        $wpdb->test_get_row_callback = fn() => null;
+        $wpdb->test_get_results_callback = function ($query) {
+            if (stripos($query, 'ledger_entries') === false) {
+                return [];
+            }
+            if (stripos($query, "a.type IN ('revenue','expense')") !== false || stripos($query, "'revenue'") !== false && stripos($query, "'expense'") !== false) {
+                return [
+                    (object) ['account_id' => 10, 'code' => '4000', 'name' => 'Sales', 'type' => 'revenue', 'normal_balance' => 'credit', 'debit_sum' => 0, 'credit_sum' => 500],
+                    (object) ['account_id' => 11, 'code' => '5000', 'name' => 'Rent', 'type' => 'expense', 'normal_balance' => 'debit', 'debit_sum' => 200, 'credit_sum' => 0],
+                ];
+            }
+            return [
+                (object) ['account_id' => 1, 'code' => '1000', 'name' => 'Cash', 'type' => 'asset', 'normal_balance' => 'debit', 'debit_sum' => 800, 'credit_sum' => 0],
+                (object) ['account_id' => 2, 'code' => '2000', 'name' => 'AP', 'type' => 'liability', 'normal_balance' => 'credit', 'debit_sum' => 0, 'credit_sum' => 100],
+                (object) ['account_id' => 3, 'code' => '3000', 'name' => 'Equity', 'type' => 'equity', 'normal_balance' => 'credit', 'debit_sum' => 0, 'credit_sum' => 400],
+            ];
+        };
+        $wpdb->test_insert_callback = fn() => true;
+        $GLOBALS['orabooks_test_use_insert_id'] = 304;
+
+        $result = OraBooks_Financial_Reports::generate_report(10, 'balance_sheet', '2026-01-01', '2026-01-31');
+
+        $this->assertEquals(800.0, $result['report']['total_assets']);
+        $this->assertEquals(300.0, $result['report']['current_period_net_income']);
+        $this->assertTrue($result['report']['balanced']);
+    }
+
+    #[Test]
+    public function test_project_journal_posted_accepts_locked_status()
+    {
+        global $wpdb;
+        $queries = [];
+
+        $wpdb->test_get_row_callback = function () {
+            return (object) [
+                'id' => 20,
+                'org_id' => 10,
+                'transaction_date' => '2026-01-15',
+                'status' => 'locked',
+            ];
+        };
+        $wpdb->test_get_results_callback = function () {
+            return [
+                (object) ['account_id' => 1, 'debit_sum' => 100, 'credit_sum' => 0],
+                (object) ['account_id' => 2, 'debit_sum' => 0, 'credit_sum' => 100],
+            ];
+        };
+        $wpdb->test_query_callback = function ($query) use (&$queries) {
+            $queries[] = $query;
+            return 1;
+        };
+
+        $result = OraBooks_Financial_Reports::project_journal_posted(20, ['org_id' => 10, 'event_id' => 99]);
+
+        $this->assertEquals(2, $result['projected_lines']);
+        $this->assertStringContainsString('report_ledger_summary', $queries[0]);
     }
 
     #[Test]
