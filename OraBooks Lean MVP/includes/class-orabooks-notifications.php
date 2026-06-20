@@ -1521,27 +1521,25 @@ class OraBooks_Notifications {
     }
 
     /**
-     * Get the customer-facing dashboard URL for view links in notifications.
-     * Optionally include an invoice ID for deep linking.
+     * Get the customer-facing workspace URL for notification view links.
+     * Invoice notifications deep-link to the invoices page when an ID is present.
      */
     private static function get_customer_dashboard_url(int $invoice_id = 0, int $org_id = 0): string
     {
         $query = $invoice_id > 0 ? ['invoice_id' => $invoice_id] : [];
+        $path = $invoice_id > 0 ? '/invoices/' : '/dashboard/';
 
-        return orabooks_get_org_workspace_url($org_id, '/dashboard/', $query);
+        return orabooks_get_org_workspace_url($org_id, $path, $query);
     }
 
     /**
-     * Get the admin invoices page URL for view links in notifications.
-     * Optionally include an invoice ID for deep linking.
+     * Get the org admin invoices page URL for view links in notifications.
      */
-    private static function get_admin_invoices_url(int $invoice_id = 0): string
+    private static function get_admin_invoices_url(int $invoice_id = 0, int $org_id = 0): string
     {
-        $url = admin_url('admin.php?page=orabooks-customers');
-        if ($invoice_id > 0) {
-            $url = add_query_arg('invoice_id', $invoice_id, $url);
-        }
-        return $url;
+        $query = $invoice_id > 0 ? ['invoice_id' => $invoice_id] : [];
+
+        return orabooks_get_org_workspace_url($org_id, '/invoices/', $query);
     }
 
     /**
