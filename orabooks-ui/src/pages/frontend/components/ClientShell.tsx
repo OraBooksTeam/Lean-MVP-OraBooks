@@ -27,6 +27,8 @@ import {
   X,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { api } from '../api';
+import { performLogout } from '../lib/auth-routing';
 
 interface ClientShellProps {
   title: string;
@@ -143,7 +145,16 @@ export default function ClientShell({
   const location = useLocation();
   const nav = isPartner ? partnerNav : customerNav;
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
-  const logoutUrl = (window as any).orabooks_ajax?.logout_url || '/wp-login.php?action=logout';
+  const [loggingOut, setLoggingOut] = useState(false);
+
+  const handleLogout = async (event: React.MouseEvent<HTMLAnchorElement>) => {
+    event.preventDefault();
+    if (loggingOut) {
+      return;
+    }
+    setLoggingOut(true);
+    await performLogout(() => api.logout());
+  };
 
   useEffect(() => {
     setMobileNavOpen(false);
@@ -182,15 +193,12 @@ export default function ClientShell({
 
   const logoutLink = (
     <a
-      href={logoutUrl}
-      onClick={() => {
-        window.localStorage.removeItem('orabooks_token');
-        window.localStorage.removeItem('orabooks_refresh_token');
-      }}
+      href="#"
+      onClick={handleLogout}
       className="mt-4 flex shrink-0 items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-white/70 hover:bg-white/10 hover:text-white"
     >
       <LogOut className="h-4 w-4 shrink-0" />
-      Log out
+      {loggingOut ? 'Logging out…' : 'Log out'}
     </a>
   );
 
