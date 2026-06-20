@@ -52,7 +52,7 @@
         </form>
         <div id="orabooks-register-message" class="orabooks-message"></div>
         <p class="orabooks-auth-links">
-            <a href="<?php echo esc_url(home_url('/login/')); ?>"><?php esc_html_e('Already have an account? Log in', 'orabooks'); ?></a>
+            <a href="<?php echo esc_url(orabooks_get_network_login_url('login')); ?>"><?php esc_html_e('Already have an account? Log in', 'orabooks'); ?></a>
         </p>
     </div>
 </div>
