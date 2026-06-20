@@ -8,6 +8,57 @@ if (!defined('ABSPATH')) {
 }
 
 class OraBooks_Assets {
+    /** @var bool */
+    private static $frontend_shortcode_rendered = false;
+
+    /**
+     * Called when an OraBooks frontend shortcode renders (late asset fallback).
+     */
+    public static function mark_frontend_shortcode_rendered() {
+        self::$frontend_shortcode_rendered = true;
+
+        if (!did_action('wp_enqueue_scripts')) {
+            return;
+        }
+
+        if (wp_script_is('orabooks-react-frontend', 'enqueued') || wp_script_is('orabooks-react-frontend', 'done')) {
+            return;
+        }
+
+        self::enqueue_frontend_react(self::get_ajax_config('frontend'));
+    }
+
+    /**
+     * Print styles in the footer when shortcodes rendered after wp_head.
+     */
+    public static function print_late_frontend_styles() {
+        if (!self::$frontend_shortcode_rendered) {
+            return;
+        }
+
+        $handles = ['orabooks-frontend', 'orabooks-theme-compat', 'orabooks-react', 'orabooks-divi-compat'];
+        foreach ($handles as $handle) {
+            if (wp_style_is($handle, 'enqueued') && !wp_style_is($handle, 'done')) {
+                wp_print_styles($handle);
+            }
+        }
+    }
+
+    /**
+     * Last-chance script enqueue if a shortcode rendered but assets were missed.
+     */
+    public static function maybe_enqueue_missed_frontend_assets() {
+        if (!self::$frontend_shortcode_rendered) {
+            return;
+        }
+
+        if (wp_script_is('orabooks-react-frontend', 'enqueued') || wp_script_is('orabooks-react-frontend', 'done')) {
+            return;
+        }
+
+        self::enqueue_frontend_react(self::get_ajax_config('frontend'));
+    }
+
     /**
      * WordPress script handles that load the React bundles.
      *

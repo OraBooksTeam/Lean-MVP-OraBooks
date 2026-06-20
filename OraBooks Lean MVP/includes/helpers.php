@@ -27,6 +27,91 @@ function orabooks_is_divi_theme() {
 }
 
 /**
+ * Slugs for WordPress pages created by OraBooks (Lean MVP frontend).
+ *
+ * @return string[]
+ */
+function orabooks_get_required_page_slugs() {
+    return [
+        'login',
+        'register',
+        'verify-email',
+        'reset-password',
+        'tier-selection',
+        'partner-onboarding',
+        'partner-program',
+        'dashboard',
+        'customers',
+        'vendors',
+        'inventory',
+        'invoices',
+        'reports',
+        'expenses',
+        'csv-imports',
+        'bank-reconciliation',
+        'chart-of-accounts',
+        'fiscal-periods',
+        'tax-settings',
+        'journals',
+        'team',
+        'attachments',
+        'approvals',
+        'ai-review',
+        'voice',
+        'commissions',
+        'profile',
+        'notifications',
+        'notification-preferences',
+        'my-exports',
+    ];
+}
+
+/**
+ * Whether the current (or given) page is an OraBooks frontend page.
+ *
+ * Detects shortcodes in post content, known page slugs, and stored page IDs.
+ *
+ * @param WP_Post|null $post
+ */
+function orabooks_is_registered_frontend_page($post = null) {
+    if ($post === null) {
+        if (!is_singular('page')) {
+            return false;
+        }
+        $post = get_queried_object();
+    }
+
+    if (!$post instanceof WP_Post || $post->post_type !== 'page') {
+        return false;
+    }
+
+    $content = (string) $post->post_content;
+    if ($content !== '' && strpos($content, '[orabooks_') !== false) {
+        return true;
+    }
+
+    if (in_array($post->post_name, orabooks_get_required_page_slugs(), true)) {
+        return true;
+    }
+
+    $page_ids = get_option('orabooks_pages', []);
+    if (is_array($page_ids) && in_array((int) $post->ID, array_map('intval', $page_ids), true)) {
+        return true;
+    }
+
+    return false;
+}
+
+/**
+ * Whether the page should load OraBooks frontend assets.
+ *
+ * @param WP_Post|null $post
+ */
+function orabooks_page_needs_frontend_assets($post = null) {
+    return orabooks_is_registered_frontend_page($post);
+}
+
+/**
  * Lean MVP frontend is React-only (see document_extracted.txt / Model List v5.2).
  */
 function orabooks_should_use_react_frontend($user_id = 0) {
