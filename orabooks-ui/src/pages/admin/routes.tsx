@@ -7,6 +7,7 @@ import AdminPartners from '@/pages/admin/AdminPartners';
 import AdminCoA from '@/pages/admin/AdminCoA';
 import AdminAudit from '@/pages/admin/AdminAudit';
 import AdminJobQueue from '@/pages/admin/AdminJobQueue';
+import AdminWebhookSettings from '@/pages/admin/AdminWebhookSettings';
 import AdminObservability from '@/pages/admin/AdminObservability';
 import AdminSecurity from '@/pages/admin/AdminSecurity';
 import AdminNotifications from '@/pages/admin/AdminNotifications';
@@ -35,6 +36,7 @@ export default function AdminRoutes() {
         <Route path="/admin/coa" element={<AdminCoA />} />
         <Route path="/admin/audit" element={<AdminAudit />} />
         <Route path="/admin/job-queue" element={<AdminJobQueue />} />
+        <Route path="/admin/webhook-settings" element={<AdminWebhookSettings />} />
         <Route path="/admin/observability" element={<AdminObservability />} />
         <Route path="/admin/security" element={<AdminSecurity />} />
         <Route path="/admin/notifications" element={<AdminNotifications />} />
