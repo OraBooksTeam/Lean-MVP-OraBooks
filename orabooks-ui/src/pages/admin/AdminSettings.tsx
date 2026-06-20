@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import Button from '@/components/Button';
 import AdminPageShell from '@/components/AdminPageShell';
 import { api } from '../api';
+import { CheckCircle2, RefreshCw, ShieldCheck, XCircle } from 'lucide-react';
 
 interface PlatformSettings {
   block_same_email_domain: boolean;
@@ -19,12 +20,29 @@ const defaults: PlatformSettings = {
   refresh_token_expiry: 604800,
 };
 
+type DeployCheck = {
+  id: string;
+  label: string;
+  ok: boolean;
+  detail?: string;
+};
+
+type DeployChecksResult = {
+  ok: boolean;
+  checks: DeployCheck[];
+  timestamp?: string;
+  environment?: Record<string, unknown>;
+};
+
 export default function AdminSettings() {
   const [settings, setSettings] = useState<PlatformSettings>(defaults);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
+  const [deployChecks, setDeployChecks] = useState<DeployChecksResult | null>(null);
+  const [deployLoading, setDeployLoading] = useState(false);
+  const [deployError, setDeployError] = useState('');
 
   useEffect(() => {
     setLoading(true);

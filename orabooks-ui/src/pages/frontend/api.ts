@@ -589,6 +589,7 @@ export const api = {
       jwt_expiry: data.jwt_expiry,
       refresh_token_expiry: data.refresh_token_expiry,
     }),
+  deployChecks: () => api.get('orabooks_deploy_checks'),
   customerStats: (orgId = 0) =>
     api.get('orabooks_customer_stats', { org_id: orgId }),
   partnerDashboard: () =>
