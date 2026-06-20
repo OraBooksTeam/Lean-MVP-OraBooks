@@ -146,6 +146,100 @@ class OraBooks_Customers {
         return $tables;
     }
 
+    /**
+     * Idempotent SL-021 schema upgrades for existing installs.
+     * dbDelta CREATE TABLE IF NOT EXISTS does not add missing columns.
+     */
+    public static function ensure_schema() {
+        global $wpdb;
+
+        require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+
+        foreach (self::get_create_table_sql() as $sql) {
+            dbDelta($sql);
+        }
+
+        $table_invoices = OraBooks_Database::table('invoices');
+        if ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table_invoices)) !== $table_invoices) {
+            return;
+        }
+
+        $fields = self::get_table_column_names($table_invoices);
+        $had_amount = in_array('amount', $fields, true);
+
+        $additions = [
+            'transaction_date'      => "ALTER TABLE {$table_invoices} ADD COLUMN transaction_date DATE NULL",
+            'description'           => "ALTER TABLE {$table_invoices} ADD COLUMN description TEXT NULL",
+            'total_amount'          => "ALTER TABLE {$table_invoices} ADD COLUMN total_amount DECIMAL(20,2) NOT NULL DEFAULT 0",
+            'tax_amount'            => "ALTER TABLE {$table_invoices} ADD COLUMN tax_amount DECIMAL(20,2) DEFAULT 0",
+            'tax_rate'              => "ALTER TABLE {$table_invoices} ADD COLUMN tax_rate DECIMAL(8,4) DEFAULT 0",
+            'tax_override_reason'   => "ALTER TABLE {$table_invoices} ADD COLUMN tax_override_reason VARCHAR(64) NULL",
+            'tax_override_by'       => "ALTER TABLE {$table_invoices} ADD COLUMN tax_override_by BIGINT UNSIGNED NULL",
+            'tax_override_at'       => "ALTER TABLE {$table_invoices} ADD COLUMN tax_override_at TIMESTAMP NULL",
+            'currency'              => "ALTER TABLE {$table_invoices} ADD COLUMN currency CHAR(3) DEFAULT 'USD'",
+            'payment_status'        => "ALTER TABLE {$table_invoices} ADD COLUMN payment_status ENUM('unpaid','partial','paid','overdue','cancelled') DEFAULT 'unpaid'",
+            'workflow_status'       => "ALTER TABLE {$table_invoices} ADD COLUMN workflow_status ENUM('draft','sent','posted','cancelled') DEFAULT 'draft'",
+            'paid_amount'           => "ALTER TABLE {$table_invoices} ADD COLUMN paid_amount DECIMAL(20,2) DEFAULT 0",
+            'paid_at'               => "ALTER TABLE {$table_invoices} ADD COLUMN paid_at TIMESTAMP NULL",
+            'last_payment_date'     => "ALTER TABLE {$table_invoices} ADD COLUMN last_payment_date DATE NULL",
+            'metadata'              => "ALTER TABLE {$table_invoices} ADD COLUMN metadata JSON NULL",
+            'idempotency_key'       => "ALTER TABLE {$table_invoices} ADD COLUMN idempotency_key VARCHAR(128) NULL",
+            'overdue_notified_at'   => "ALTER TABLE {$table_invoices} ADD COLUMN overdue_notified_at TIMESTAMP NULL",
+        ];
+
+        foreach ($additions as $column => $sql) {
+            if (!in_array($column, $fields, true)) {
+                $wpdb->query($sql);
+                $fields[] = $column;
+            }
+        }
+
+        if (in_array('transaction_date', $fields, true) && in_array('invoice_date', $fields, true)) {
+            $wpdb->query(
+                "UPDATE {$table_invoices}
+                 SET transaction_date = invoice_date
+                 WHERE (transaction_date IS NULL OR transaction_date = '0000-00-00')
+                   AND invoice_date IS NOT NULL
+                   AND invoice_date != '0000-00-00'"
+            );
+        }
+
+        if ($had_amount && in_array('total_amount', $fields, true)) {
+            $wpdb->query(
+                "UPDATE {$table_invoices}
+                 SET total_amount = amount
+                 WHERE (total_amount IS NULL OR total_amount = 0)
+                   AND amount IS NOT NULL
+                   AND amount > 0"
+            );
+        }
+
+        $indexes = $wpdb->get_results("SHOW INDEX FROM {$table_invoices}");
+        $index_names = array_map(function ($idx) {
+            return $idx->Key_name;
+        }, $indexes ?: []);
+
+        if (!in_array('idx_transaction_date', $index_names, true) && in_array('transaction_date', $fields, true)) {
+            $wpdb->query("ALTER TABLE {$table_invoices} ADD INDEX idx_transaction_date (transaction_date)");
+        }
+    }
+
+    /**
+     * @return string[]
+     */
+    private static function get_table_column_names($table) {
+        global $wpdb;
+
+        $columns = $wpdb->get_results("SHOW COLUMNS FROM {$table}");
+        if (empty($columns)) {
+            return [];
+        }
+
+        return array_map(function ($col) {
+            return $col->Field;
+        }, $columns);
+    }
+
     // ================================================================
     // SEED DEFAULT CUSTOMERS
     // ================================================================
@@ -717,8 +811,9 @@ class OraBooks_Customers {
         $limit = $args['limit'] ?? 50;
         $offset = $args['offset'] ?? 0;
 
+        $table_payments = OraBooks_Database::table('payments');
         $sql = "SELECT i.*, u.email as customer_email, o.name as org_name,
-                       (SELECT COALESCE(SUM(amount), 0) FROM {$wpdb->prefix}orabooks_payments WHERE invoice_id = i.id) as total_paid_amount
+                       (SELECT COALESCE(SUM(amount), 0) FROM {$table_payments} WHERE invoice_id = i.id) as total_paid_amount
                 FROM {$table} i
                 JOIN {$table_customers} c ON i.customer_id = c.id
                 JOIN {$table_users} u ON c.user_id = u.id

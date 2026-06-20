@@ -804,28 +804,7 @@ class OraBooks_Database {
         if (!wp_next_scheduled('orabooks_daily_customer_status_check')) {
             wp_schedule_event(time(), 'daily', 'orabooks_daily_customer_status_check');
         }
-        // Migration: add overdue_notified_at column for existing invoices (prevents duplicate overdue reminders)
-        $table_invoices = $wpdb->prefix . 'orabooks_invoices';
-        $invoice_cols = $wpdb->get_results("SHOW COLUMNS FROM {$table_invoices}");
-        $existing_invoice_cols = [];
-        foreach ($invoice_cols as $col) {
-            $existing_invoice_cols[] = $col->Field;
-        }
-        if (!in_array('overdue_notified_at', $existing_invoice_cols)) {
-            $wpdb->query("ALTER TABLE {$table_invoices} ADD COLUMN overdue_notified_at TIMESTAMP NULL AFTER paid_at");
-        }
-        if (!in_array('tax_rate', $existing_invoice_cols)) {
-            $wpdb->query("ALTER TABLE {$table_invoices} ADD COLUMN tax_rate DECIMAL(8,4) DEFAULT 0 AFTER tax_amount");
-        }
-        if (!in_array('tax_override_reason', $existing_invoice_cols)) {
-            $wpdb->query("ALTER TABLE {$table_invoices} ADD COLUMN tax_override_reason VARCHAR(64) NULL AFTER tax_rate");
-        }
-        if (!in_array('tax_override_by', $existing_invoice_cols)) {
-            $wpdb->query("ALTER TABLE {$table_invoices} ADD COLUMN tax_override_by BIGINT UNSIGNED NULL AFTER tax_override_reason");
-        }
-        if (!in_array('tax_override_at', $existing_invoice_cols)) {
-            $wpdb->query("ALTER TABLE {$table_invoices} ADD COLUMN tax_override_at TIMESTAMP NULL AFTER tax_override_by");
-        }
+        OraBooks_Customers::ensure_schema();
 
         if (!wp_next_scheduled('orabooks_daily_invoice_overdue_check')) {
             wp_schedule_event(time(), 'daily', 'orabooks_daily_invoice_overdue_check');

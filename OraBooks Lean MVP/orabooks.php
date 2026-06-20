@@ -309,14 +309,18 @@ function orabooks_activate($network_wide = false) {
  * Ensure database tables exist (e.g. plugin uploaded without re-activation).
  */
 function orabooks_ensure_database() {
-    global $wpdb;
+    orabooks_with_data_blog(function () {
+        global $wpdb;
 
-    $table_users = $wpdb->prefix . 'orabooks_users';
-    $table_exists = $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table_users));
+        $table_users = OraBooks_Database::table('users');
+        $table_exists = $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table_users));
 
-    if ($table_exists !== $table_users || get_option('orabooks_db_version') !== ORABOOKS_DB_VERSION) {
-        OraBooks_Database::install();
-    }
+        if ($table_exists !== $table_users || get_option('orabooks_db_version') !== ORABOOKS_DB_VERSION) {
+            OraBooks_Database::install();
+        } elseif (class_exists('OraBooks_Customers')) {
+            OraBooks_Customers::ensure_schema();
+        }
+    });
 }
 
 // Deactivation hook
