@@ -114,7 +114,7 @@ export default function ResetPasswordPage() {
           )}
 
           <p className="mt-6 text-center text-sm">
-            <a href="/login/" className="font-medium text-primary hover:text-primary-dark">
+            <a href={getNetworkAuthUrl('login')} className="font-medium text-primary hover:text-primary-dark">
               Back to login
             </a>
           </p>
