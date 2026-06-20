@@ -1450,7 +1450,9 @@ class OraBooks_Auth {
             $user->org_id
         );
 
-        orabooks_persist_login_session($login_result);
+        if (empty($login_result['needs_tier_selection'])) {
+            orabooks_persist_login_session($login_result);
+        }
 
         orabooks_json_success(orabooks_redact_client_auth_response($login_result));
     }

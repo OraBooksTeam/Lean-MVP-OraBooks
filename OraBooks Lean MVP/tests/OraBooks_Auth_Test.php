@@ -773,7 +773,9 @@ class OraBooks_Auth_Test extends TestCase
 
         $this->assertFalse($response['error']);
         $this->assertEquals('Google login successful', $response['message']);
-        $this->assertArrayHasKey('token', $response['data']);
+        $this->assertTrue($response['data']['needs_tier_selection']);
+        $this->assertArrayHasKey('tier_selection_token', $response['data']);
+        $this->assertArrayNotHasKey('token', $response['data']);
         $this->assertEquals(42, $response['data']['user_id']);
     }
 
@@ -1472,7 +1474,7 @@ class OraBooks_Auth_Test extends TestCase
             return (object)[
                 'id'         => 1,
                 'email'      => 'admin@example.com',
-                'org_id'     => null,
+                'org_id'     => 1,
                 'is_partner' => 0,
             ];
         };
@@ -1481,7 +1483,7 @@ class OraBooks_Auth_Test extends TestCase
 
         $this->assertFalse($response['error']);
         $this->assertArrayHasKey('token', $response['data']);
-        $this->assertArrayHasKey('refresh_token', $response['data']);
+        $this->assertArrayNotHasKey('refresh_token', $response['data']);
         $this->assertEquals(1, $response['data']['user_id']);
     }
 
@@ -1564,7 +1566,7 @@ class OraBooks_Auth_Test extends TestCase
             return (object)[
                 'id'         => 1,
                 'email'      => 'admin@example.com',
-                'org_id'     => null,
+                'org_id'     => 1,
                 'is_partner' => 0,
             ];
         };
@@ -1573,6 +1575,7 @@ class OraBooks_Auth_Test extends TestCase
 
         $this->assertFalse($response['error']);
         $this->assertArrayHasKey('token', $response['data']);
+        $this->assertArrayNotHasKey('refresh_token', $response['data']);
         $this->assertEquals(1, $response['data']['user_id']);
     }
 
