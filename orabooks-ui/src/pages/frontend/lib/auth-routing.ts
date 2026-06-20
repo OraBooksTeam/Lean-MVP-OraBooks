@@ -90,11 +90,6 @@ function appendCrossOriginAuthParams(url: string) {
   }
 
   target.searchParams.set('ob_t', token);
-  const refresh = params.get('ob_rt');
-  if (refresh) {
-    target.searchParams.set('ob_rt', refresh);
-  }
-
   target.hash = '';
   return `${target.origin}${target.pathname}${target.search}`;
 }
