@@ -7,6 +7,7 @@ import {
   clearRedirectGuard,
   redirectAfterAuth,
   redirectToOrgSubdomain,
+  absorbAuthTokensFromUrl,
 } from '../lib/auth-routing';
 
 function redirectAfterLogin(data: any) {
@@ -23,8 +24,10 @@ export default function LoginPage() {
   const [otp, setOtp] = useState('');
 
   useEffect(() => {
+    absorbAuthTokensFromUrl();
+
     if (hasStoredAuthToken()) {
-      api.frontendContext().then((res) => {
+      api.verifySession().then((res) => {
         if (!res.error) {
           clearRedirectGuard();
           const org = (res as any).data?.organization;

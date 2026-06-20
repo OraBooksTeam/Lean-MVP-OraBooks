@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react';
 import Button from '@/components/Button';
 import Input from '@/components/Input';
 import { api } from '../api';
+import { getNetworkLoginUrl } from '../lib/auth-routing';
 import { UserPlus } from 'lucide-react';
 
 export default function RegisterPage() {
@@ -32,7 +33,10 @@ export default function RegisterPage() {
         accept_terms: acceptTerms ? 1 : 0,
       });
       if (res.error) setError(typeof res.error === 'string' ? res.error : 'Registration failed');
-      else alert('Registration successful! Check your inbox to verify your email.');
+      else {
+        const loginUrl = getNetworkLoginUrl();
+        window.location.replace(`${loginUrl}#/verify-email`);
+      }
     } finally {
       setLoading(false);
     }

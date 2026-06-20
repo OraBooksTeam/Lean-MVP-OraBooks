@@ -66,6 +66,7 @@ export default function FrontendRoutes() {
       <Route path="/expenses" element={protectedPage(<ExpensesPage />)} />
       <Route path="/voice" element={protectedPage(<VoicePage />)} />
       <Route path="/partner-onboarding" element={protectedPage(<PartnerOnboardingPage />)} />
+      <Route path="/partner/onboarding" element={<Navigate to="/partner-onboarding" replace />} />
       <Route path="/partner-program" element={protectedPage(<PartnerProgramPage />)} />
       <Route path="/commissions" element={protectedPage(<CommissionsPage />)} />
       <Route path="/notifications" element={protectedPage(<NotificationsPage />)} />
