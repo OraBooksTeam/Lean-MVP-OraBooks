@@ -66,6 +66,8 @@ class OraBooks_Shortcodes {
      * @param bool   $require_login Whether a logged-in user is required.
      */
     private function react_page($route, $require_login = true) {
+        OraBooks_Assets::mark_frontend_shortcode_rendered();
+
         return $this->render_view('react-app', [
             'initial_route' => $route,
             'require_login' => $require_login,

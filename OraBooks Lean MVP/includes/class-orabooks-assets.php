@@ -180,11 +180,16 @@ class OraBooks_Assets {
     }
 
     /**
-     * @param string $content Post content.
+     * @param string      $content Post content.
+     * @param WP_Post|null $post   Optional page object.
      */
-    public static function should_enqueue_frontend_react($content) {
+    public static function should_enqueue_frontend_react($content, $post = null) {
         if (function_exists('orabooks_should_use_react_frontend') && !orabooks_should_use_react_frontend()) {
             return false;
+        }
+
+        if (function_exists('orabooks_is_registered_frontend_page') && orabooks_is_registered_frontend_page($post)) {
+            return true;
         }
 
         foreach (self::get_react_shortcode_tags() as $tag) {

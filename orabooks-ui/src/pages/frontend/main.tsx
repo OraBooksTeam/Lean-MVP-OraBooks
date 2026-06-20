@@ -91,6 +91,10 @@ function mountThemePortal(root: HTMLElement) {
 }
 
 function bootFrontend() {
+  if (window.orabooksReactMounted) {
+    return;
+  }
+
   registerOraBooksPwa();
   bootExportWidgets();
 
@@ -133,3 +137,14 @@ if (document.readyState === 'loading') {
 } else {
   bootFrontend();
 }
+
+window.addEventListener('load', bootFrontend);
+
+declare global {
+  interface Window {
+    orabooksReactMounted?: boolean;
+    orabooksBootFrontend?: () => void;
+  }
+}
+
+window.orabooksBootFrontend = bootFrontend;

@@ -903,7 +903,7 @@ function orabooks_frontend_enqueue() {
     }
 
     $post = get_post();
-    if (!$post || strpos($post->post_content, '[orabooks_') === false) {
+    if (!$post || !orabooks_page_needs_frontend_assets($post)) {
         return;
     }
 
@@ -911,7 +911,7 @@ function orabooks_frontend_enqueue() {
 
     $ajax_config = OraBooks_Assets::get_ajax_config('frontend');
 
-    if (OraBooks_Assets::should_enqueue_frontend_react($post->post_content)) {
+    if (OraBooks_Assets::should_enqueue_frontend_react($post->post_content, $post)) {
         OraBooks_Assets::enqueue_frontend_react($ajax_config);
     } else {
         OraBooks_Assets::enqueue_theme_compat();
@@ -925,6 +925,9 @@ function orabooks_frontend_enqueue() {
     }
 }
 
+add_action('wp_footer', ['OraBooks_Assets', 'print_late_frontend_styles'], 1);
+add_action('wp_footer', ['OraBooks_Assets', 'maybe_enqueue_missed_frontend_assets'], 5);
+
 // Add body classes on OraBooks frontend pages for full-width layout
 add_filter('body_class', 'orabooks_body_class');
 function orabooks_body_class($classes) {
@@ -933,7 +936,7 @@ function orabooks_body_class($classes) {
     }
 
     $post = get_post();
-    if (!$post || strpos($post->post_content, '[orabooks_') === false) {
+    if (!$post || !orabooks_page_needs_frontend_assets($post)) {
         return $classes;
     }
 
@@ -943,7 +946,7 @@ function orabooks_body_class($classes) {
         $classes[] = 'orabooks-divi-theme';
     }
 
-    if (OraBooks_Assets::should_enqueue_frontend_react($post->post_content)) {
+    if (OraBooks_Assets::should_enqueue_frontend_react($post->post_content, $post)) {
         $classes[] = 'orabooks-react-page';
     }
 
