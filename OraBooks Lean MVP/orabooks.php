@@ -260,8 +260,9 @@ function orabooks_create_required_pages() {
         'reset-password'      => ['Reset Password', '[orabooks_reset_password]'],
         'tier-selection'      => ['Choose Your Plan', '[orabooks_tier_selection]'],
         
-        // Partner pages
-        'partner-onboarding'  => ['Partner Onboarding', '[orabooks_partner_onboarding]'],
+        // Partner pages (URL: /partner/onboarding per SL-139)
+        'partner'               => ['Partner', ''],
+        'onboarding'            => ['Partner Onboarding', '[orabooks_partner_onboarding]', 'partner'],
         'partner-program'     => ['Partner Program', '[orabooks_partner_dashboard]'],
         
         // Customer workspace (PHP accounting on Divi; React SPA on other themes)
