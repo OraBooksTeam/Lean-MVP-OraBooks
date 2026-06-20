@@ -345,23 +345,25 @@ class OraBooks_Notifications {
     // CHANNEL RESOLUTION
     // ================================================================
 
+    private static function decode_json_field($value, $default = []) {
+        if (is_array($value)) {
+            return $value;
+        }
+        if ($value === null || $value === '') {
+            return $default;
+        }
+        $decoded = json_decode($value, true);
+        return is_array($decoded) ? $decoded : $default;
+    }
+
     private static function resolve_channels($event_type, $user_prefs, $org_policy) {
         $default_channels = ['email', 'inapp'];
 
         // Org policy overrides
         if (!empty($org_policy)) {
-            $mandatory = [];
-            if (!empty($org_policy->mandatory_event_types)) {
-                $mandatory = json_decode($org_policy->mandatory_event_types, true) ?: [];
-            }
-            $prohibited = [];
-            if (!empty($org_policy->prohibited_channels)) {
-                $prohibited = json_decode($org_policy->prohibited_channels, true) ?: [];
-            }
-            $fallback = [];
-            if (!empty($org_policy->escalation_fallback_chain)) {
-                $fallback = json_decode($org_policy->escalation_fallback_chain, true) ?: [];
-            }
+            $mandatory = self::decode_json_field($org_policy->mandatory_event_types ?? null);
+            $prohibited = self::decode_json_field($org_policy->prohibited_channels ?? null);
+            $fallback = self::decode_json_field($org_policy->escalation_fallback_chain ?? null);
 
             if (in_array($event_type, $mandatory)) {
                 return $fallback ?: ['email', 'push'];
@@ -375,11 +377,11 @@ class OraBooks_Notifications {
 
         // User preferences
         if (!empty($user_prefs) && !empty($user_prefs->channels)) {
-            $pref_channels = json_decode($user_prefs->channels, true) ?: [];
+            $pref_channels = self::decode_json_field($user_prefs->channels);
             if (!empty($pref_channels)) {
                 // Use preferred channels, but respect prohibitions
                 if (!empty($org_policy)) {
-                    $prohibited = json_decode($org_policy->prohibited_channels, true) ?: [];
+                    $prohibited = self::decode_json_field($org_policy->prohibited_channels ?? null);
                     $pref_channels = array_values(array_diff($pref_channels, $prohibited));
                 }
                 return $pref_channels;

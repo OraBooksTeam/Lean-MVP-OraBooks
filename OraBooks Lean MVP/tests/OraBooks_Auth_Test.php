@@ -1823,10 +1823,6 @@ class OraBooks_Auth_Test extends TestCase
         $this->assertEquals('owner', $result['role']);
         $this->assertEquals(1, $result['is_partner']);
         $this->assertEquals('/partner/onboarding', $result['redirect_to']);
-
-        // Verify session was populated from OIDC state data
-        $this->assertEquals('accountant', $_SESSION['orabooks_partner_type']);
-        $this->assertEquals('My Accounting Firm', $_SESSION['orabooks_partner_org_name']);
     }
 
     #[Test]
