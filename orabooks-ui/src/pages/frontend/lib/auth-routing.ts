@@ -57,7 +57,9 @@ function appendCrossOriginAuthParams(url: string) {
 
   try {
     const target = new URL(url, window.location.href);
-    if (target.searchParams.get(LOGOUT_QUERY_FLAG) === '1' || target.searchParams.get(AUTH_RESET_QUERY_FLAG) === '1') {
+    if (target.searchParams.get(LOGOUT_QUERY_FLAG) === '1'
+      || target.searchParams.get(AUTH_RESET_QUERY_FLAG) === '1'
+      || target.searchParams.get(SESSION_EXPIRED_QUERY_FLAG) === '1') {
       return url;
     }
   } catch {
@@ -98,6 +100,7 @@ export function redirectAfterAuth(data: {
   redirect_to?: string;
   subdomain?: string;
   is_partner?: boolean;
+  is_platform_admin?: boolean;
 }) {
   clearRedirectGuard();
   clearLogoutSessionFlag();
@@ -105,6 +108,16 @@ export function redirectAfterAuth(data: {
   if (data?.needs_tier_selection) {
     window.location.replace(normalizeWpAppPath(getNetworkAuthUrl('tier-selection')));
     return;
+  }
+
+  if (data?.is_platform_admin) {
+    const adminUrl =
+      (window as any).orabooks_ajax?.platform_admin_url
+      || String(data?.redirect_to || '').trim();
+    if (adminUrl) {
+      window.location.replace(adminUrl);
+      return;
+    }
   }
 
   const redirectTo = String(data?.redirect_to || '').trim();
@@ -131,7 +144,7 @@ export function redirectAfterAuth(data: {
   }
 
   if (data?.subdomain) {
-    const wpPath = data.is_partner ? '/onboarding/' : '/dashboard/';
+    const wpPath = data.is_partner ? '/partner/onboarding/' : '/dashboard/';
     redirectToOrgSubdomain(data.subdomain, wpPath);
     return;
   }
@@ -156,7 +169,7 @@ export function redirectToLogin(force = false, resetAuth = false) {
   const loginUrl = (window as any).orabooks_ajax?.login_url;
   let destination = loginUrl ? normalizeWpAppPath(loginUrl) : normalizeWpAppPath(getNetworkLoginUrl());
   if (resetAuth) {
-    destination = appendAuthResetFlag(destination);
+    destination = appendSessionExpiredFlag(destination);
   }
 
   window.location.replace(destination);
@@ -194,6 +207,7 @@ export function isLogoutLanding() {
   return (
     params.get(LOGOUT_QUERY_FLAG) === '1'
     || params.get(AUTH_RESET_QUERY_FLAG) === '1'
+    || params.get(SESSION_EXPIRED_QUERY_FLAG) === '1'
     || window.sessionStorage.getItem(LOGOUT_SESSION_FLAG) === '1'
   );
 }
@@ -204,6 +218,18 @@ export function markLogoutLanding() {
 
 export function clearLogoutSessionFlag() {
   window.sessionStorage.removeItem(LOGOUT_SESSION_FLAG);
+}
+
+function appendSessionExpiredFlag(url: string) {
+  try {
+    const target = new URL(url, window.location.href);
+    target.searchParams.set(SESSION_EXPIRED_QUERY_FLAG, '1');
+    target.hash = '';
+    return `${target.origin}${target.pathname}${target.search}`;
+  } catch {
+    const separator = url.includes('?') ? '&' : '?';
+    return `${url}${separator}${SESSION_EXPIRED_QUERY_FLAG}=1`;
+  }
 }
 
 function appendAuthResetFlag(url: string) {
