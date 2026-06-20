@@ -121,6 +121,8 @@ export default function TeamPage() {
   const stats = data?.stats || {};
   const isPartner = data?.context?.organization?.organization_type === 'partner';
   const canManageNotificationPolicy = ['owner', 'admin'].includes(data?.context?.role);
+  const canViewAccessMatrix = ['owner', 'admin'].includes(data?.context?.role);
+  const permissionMatrix = data?.context?.permission_matrix || {};
 
   return (
     <ClientShell
@@ -324,6 +326,27 @@ export default function TeamPage() {
                 )}
               </tbody>
             </table>
+          </div>
+        )}
+
+        {canViewAccessMatrix && (
+          <div className="glass-panel overflow-hidden">
+            <div className="border-b border-border px-5 py-4">
+              <h2 className="font-bold text-ink">Roles & Access</h2>
+              <p className="mt-1 text-xs text-slate-500">Manage what each fixed role can do. Deny-by-default applies to permissions not listed here.</p>
+            </div>
+            <div className="grid gap-3 p-5 md:grid-cols-2 xl:grid-cols-3">
+              {Object.entries(permissionMatrix).map(([permission, roles]: [string, any]) => (
+                <div key={permission} className="rounded-xl border border-border bg-white p-4">
+                  <p className="text-sm font-bold text-ink">{permission.replace(/_/g, ' ')}</p>
+                  <div className="mt-3 flex flex-wrap gap-1.5">
+                    {(Array.isArray(roles) ? roles : []).map((role: string) => (
+                      <RoleBadge key={`${permission}-${role}`} role={role} />
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
