@@ -23,6 +23,10 @@ if (!defined('ORABOOKS_PLUGIN_URL')) {
     define('ORABOOKS_PLUGIN_URL', 'http://example.com/wp-content/plugins/orabooks/');
 }
 
+if (!defined('ORABOOKS_DB_VERSION')) {
+    define('ORABOOKS_DB_VERSION', '1.0.1');
+}
+
 // Define WordPress constants used by the exports class
 if (!defined('OBJECT')) {
     define('OBJECT', 'OBJECT');
