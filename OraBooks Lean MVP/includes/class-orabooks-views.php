@@ -34,7 +34,7 @@ class OraBooks_Views {
     public static function require_login_message($redirect_path = '/login/') {
         return '<div class="orabooks-auth-shell"><div class="orabooks-form-container">' .
             '<p>' . esc_html__('Please log in to continue.', 'orabooks') . '</p>' .
-            '<p><a class="orabooks-btn orabooks-btn-primary" href="' . esc_url(home_url($redirect_path)) . '">' .
+            '<p><a class="orabooks-btn orabooks-btn-primary" href="' . esc_url(orabooks_get_network_login_url('login')) . '">' .
             esc_html__('Log in', 'orabooks') . '</a></p></div></div>';
     }
 }
