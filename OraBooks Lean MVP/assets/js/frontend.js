@@ -71,21 +71,16 @@ jQuery(document).ready(function($) {
         $msg.hide();
         $form.find('button').prop('disabled', true).text('Creating...');
         
-        $.ajax({
-            url: orabooks_ajax.ajax_url,
-            type: 'POST',
-            dataType: 'json',
-            data: {
-                action: 'orabooks_register',
-                email: $('#reg-email').val(),
-                password: $('#reg-password').val(),
-                user_type: $('#reg-user-type').val(),
-                partner_type: $('#reg-partner-type').val(),
-                organization_name: $('#reg-org-name').val(),
-                partner_code: $('#reg-partner-code').val(),
-                accept_terms: $('#reg-accept-terms').is(':checked') ? 1 : 0
-            }
-        }).done(function(response) {
+        $.post(orabooks_ajax.ajax_url, {
+            action: 'orabooks_register',
+            email: $('#reg-email').val(),
+            password: $('#reg-password').val(),
+            user_type: $('#reg-user-type').val(),
+            partner_type: $('#reg-partner-type').val(),
+            organization_name: $('#reg-org-name').val(),
+            partner_code: $('#reg-partner-code').val(),
+            accept_terms: $('#reg-accept-terms').is(':checked') ? 1 : 0
+        }, null, 'json').done(function(response) {
             orabooksHandleAjaxResponse(response, $msg, function(message) {
                 $msg.removeClass('success').addClass('error').text(message).show();
                 $form.find('button').prop('disabled', false).text('Create Account');
