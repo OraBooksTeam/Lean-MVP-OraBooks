@@ -449,7 +449,7 @@ class OraBooks_Database {
             credit_amount DECIMAL(20,2) DEFAULT 0,
             currency_code CHAR(3) DEFAULT 'USD',
             exchange_rate DECIMAL(12,6) DEFAULT 1,
-            base_currency_amount DECIMAL(20,2) GENERATED ALWAYS AS ((debit_amount - credit_amount) * exchange_rate) STORED,
+            base_currency_amount DECIMAL(20,2) GENERATED ALWAYS AS (debit_amount * exchange_rate) STORED,
             description TEXT NULL,
             FOREIGN KEY (journal_id) REFERENCES {$table_journals}(id) ON DELETE CASCADE,
             FOREIGN KEY (account_id) REFERENCES {$table_accounts}(id),
@@ -1031,7 +1031,7 @@ class OraBooks_Database {
             $wpdb->query(
                 "ALTER TABLE {$table_jlines}
                  ADD COLUMN base_currency_amount DECIMAL(20,2)
-                 GENERATED ALWAYS AS ((debit_amount - credit_amount) * exchange_rate) STORED
+                 GENERATED ALWAYS AS (debit_amount * exchange_rate) STORED
                  AFTER exchange_rate"
             );
         }
