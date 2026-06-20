@@ -23,14 +23,15 @@ class OraBooks_Pwa {
     }
 
     public static function get_manifest() {
-        $start = home_url('/');
+        $start = home_url('/dashboard/');
+        $scope = home_url('/');
 
         return [
             'name'             => 'OraBooks',
             'short_name'       => 'OraBooks',
             'description'      => 'Multi-tenant accounting — receipts, expenses, and approvals on the go.',
             'start_url'        => $start,
-            'scope'            => $start,
+            'scope'            => $scope,
             'display'          => 'standalone',
             'orientation'      => 'portrait-primary',
             'background_color' => '#f4f8fc',
