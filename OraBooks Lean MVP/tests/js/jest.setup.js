@@ -258,28 +258,7 @@ jest.spyOn($, 'post').mockImplementation((url, data, callback) => {
 jest.spyOn($, 'ajax').mockImplementation((options) => {
   const opts = options || {};
   const type = String(opts.type || 'GET').toLowerCase() === 'get' ? 'get' : 'post';
-  const entry = {
-    url: opts.url,
-    data: opts.data,
-    callback: opts.success || null,
-  };
-  ajaxResponses[type].push(entry);
-  const xhr = createMockJqXHR(opts.url, opts.data, opts.success || null, type);
-  if (typeof opts.done === 'function') {
-    xhr.done = jest.fn(function (fn) {
-      entry.doneCallback = fn;
-      return xhr;
-    });
-    entry.doneCallback = opts.done;
-  }
-  if (typeof opts.fail === 'function') {
-    xhr.fail = jest.fn(function (fn) {
-      entry.failCallback = fn;
-      return xhr;
-    });
-    entry.failCallback = opts.fail;
-  }
-  return xhr;
+  return createMockJqXHR(opts.url, opts.data, opts.success || null, type);
 });
 
 // Helper to resolve the latest AJAX call.
