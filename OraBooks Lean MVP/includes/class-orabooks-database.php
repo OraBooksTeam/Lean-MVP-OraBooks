@@ -449,12 +449,14 @@ class OraBooks_Database {
             credit_amount DECIMAL(20,2) DEFAULT 0,
             currency_code CHAR(3) DEFAULT 'USD',
             exchange_rate DECIMAL(12,6) DEFAULT 1,
+            base_currency_amount DECIMAL(20,2) GENERATED ALWAYS AS ((debit_amount - credit_amount) * exchange_rate) STORED,
             description TEXT NULL,
             FOREIGN KEY (journal_id) REFERENCES {$table_journals}(id) ON DELETE CASCADE,
             FOREIGN KEY (account_id) REFERENCES {$table_accounts}(id),
             CHECK (debit_amount >= 0 AND credit_amount >= 0)
         ) {$charset_collate};";
         dbDelta($sql);
+        self::ensure_posting_schema_guards($table_journals, $table_jlines);
         
         // ============================================================
         // SL-001: ledger_entries table (immutable posting record)
@@ -1007,6 +1009,63 @@ class OraBooks_Database {
         OraBooks_Classification::ensure_schema();
 
         update_option('orabooks_db_version', ORABOOKS_DB_VERSION);
+    }
+
+    /**
+     * SL-001 guardrails that dbDelta cannot express reliably.
+     *
+     * MySQL has no deferred constraints, so journal line inserts remain editable while
+     * draft. The database hard-fails any attempt to move a journal into a controlled
+     * state unless lines are balanced.
+     */
+    private static function ensure_posting_schema_guards($table_journals, $table_jlines) {
+        global $wpdb;
+
+        $line_cols = $wpdb->get_results("SHOW COLUMNS FROM {$table_jlines}");
+        $existing_cols = [];
+        foreach ($line_cols as $col) {
+            $existing_cols[] = $col->Field;
+        }
+
+        if (!in_array('base_currency_amount', $existing_cols, true)) {
+            $wpdb->query(
+                "ALTER TABLE {$table_jlines}
+                 ADD COLUMN base_currency_amount DECIMAL(20,2)
+                 GENERATED ALWAYS AS ((debit_amount - credit_amount) * exchange_rate) STORED
+                 AFTER exchange_rate"
+            );
+        }
+
+        $trigger_name = $wpdb->prefix . 'orabooks_journals_balance_guard_bu';
+        $exists = $wpdb->get_var($wpdb->prepare(
+            "SELECT TRIGGER_NAME
+             FROM information_schema.TRIGGERS
+             WHERE TRIGGER_SCHEMA = DATABASE() AND TRIGGER_NAME = %s",
+            $trigger_name
+        ));
+
+        if ($exists) {
+            return;
+        }
+
+        $wpdb->query(
+            "CREATE TRIGGER {$trigger_name}
+             BEFORE UPDATE ON {$table_journals}
+             FOR EACH ROW
+             BEGIN
+                DECLARE v_debit DECIMAL(20,2) DEFAULT 0.00;
+                DECLARE v_credit DECIMAL(20,2) DEFAULT 0.00;
+                IF NEW.status IN ('review_pending','approved','posted','locked') THEN
+                    SELECT COALESCE(SUM(debit_amount), 0), COALESCE(SUM(credit_amount), 0)
+                      INTO v_debit, v_credit
+                      FROM {$table_jlines}
+                     WHERE journal_id = NEW.id;
+                    IF ABS(v_debit - v_credit) > 0.01 THEN
+                        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Journal unbalanced. Cannot change controlled status.';
+                    END IF;
+                END IF;
+             END"
+        );
     }
     
     /**
