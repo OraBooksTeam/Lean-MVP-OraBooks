@@ -131,6 +131,7 @@ class OraBooks_Assets {
             'orabooks_notification_admin',
             'orabooks_async_queue_dashboard',
             'orabooks_observability_dashboard',
+            'orabooks_export_button',
             'orabooks_audit_log',
             'orabooks_webhook_settings',
             'orabooks_accept_invite',
