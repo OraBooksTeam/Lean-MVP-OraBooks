@@ -121,8 +121,9 @@ class OraBooks_Deploy_Checks_Test extends TestCase
 
         $repaired = OraBooks_DeployChecks::ensure_mvp_cron_schedules();
 
-        $this->assertCount(3, $repaired);
+        $this->assertCount(4, $repaired);
         $this->assertContains('orabooks_async_queue_process', $repaired);
+        $this->assertContains('orabooks_async_queue_archive', $repaired);
 
         $again = OraBooks_DeployChecks::ensure_mvp_cron_schedules();
         $this->assertSame([], $again);
