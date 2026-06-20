@@ -1082,6 +1082,244 @@ class OraBooks_Customers {
         ];
     }
 
+    /**
+     * Send invoice to customer (draft → sent, SL-021).
+     */
+    public static function send_invoice($org_id, $invoice_id, $user_id) {
+        global $wpdb;
+
+        $org_id = (int) $org_id;
+        $invoice_id = (int) $invoice_id;
+        $user_id = (int) $user_id;
+
+        $invoice = self::get_invoice($invoice_id);
+        if (!$invoice || (int) $invoice->org_id !== $org_id) {
+            return new WP_Error('not_found', 'Invoice not found');
+        }
+
+        if ($invoice->workflow_status !== 'draft') {
+            return new WP_Error('invalid_status', 'Only draft invoices can be sent');
+        }
+
+        $credit_check = self::validate_customer_credit_for_invoice($invoice);
+        if (is_wp_error($credit_check)) {
+            return $credit_check;
+        }
+
+        if (class_exists('OraBooks_Workflow')) {
+            $result = OraBooks_Workflow::transition('invoice', $invoice_id, 'send', [
+                'user_id' => $user_id,
+                'org_id'  => $org_id,
+            ]);
+            if (is_wp_error($result)) {
+                return $result;
+            }
+        } else {
+            $wpdb->update(
+                OraBooks_Database::table('invoices'),
+                ['workflow_status' => 'sent'],
+                ['id' => $invoice_id, 'org_id' => $org_id],
+                ['%s'],
+                ['%d', '%d']
+            );
+        }
+
+        orabooks_log_event('invoice_sent', "Invoice {$invoice->invoice_number} sent", 'info', [
+            'invoice_id' => $invoice_id,
+        ], $user_id, $org_id);
+
+        do_action('orabooks_invoice_sent', $invoice_id, [
+            'org_id'         => $org_id,
+            'customer_id'    => (int) $invoice->customer_id,
+            'invoice_number' => $invoice->invoice_number,
+            'total_amount'   => floatval($invoice->total_amount),
+        ]);
+
+        return self::get_invoice($invoice_id);
+    }
+
+    /**
+     * Post invoice to AR (draft/sent → posted, SL-021).
+     */
+    public static function post_invoice($org_id, $invoice_id, $user_id) {
+        global $wpdb;
+
+        $org_id = (int) $org_id;
+        $invoice_id = (int) $invoice_id;
+        $user_id = (int) $user_id;
+
+        $invoice = self::get_invoice($invoice_id);
+        if (!$invoice || (int) $invoice->org_id !== $org_id) {
+            return new WP_Error('not_found', 'Invoice not found');
+        }
+
+        if (!in_array($invoice->workflow_status, ['draft', 'sent'], true)) {
+            return new WP_Error('invalid_status', 'Only draft or sent invoices can be posted');
+        }
+
+        $credit_check = self::validate_customer_credit_for_invoice($invoice);
+        if (is_wp_error($credit_check)) {
+            return $credit_check;
+        }
+
+        $journal_id = self::create_invoice_journal($invoice, $user_id);
+
+        if (class_exists('OraBooks_Workflow')) {
+            $result = OraBooks_Workflow::transition('invoice', $invoice_id, 'post', [
+                'user_id'       => $user_id,
+                'org_id'        => $org_id,
+                'update_status' => false,
+            ]);
+            if (is_wp_error($result)) {
+                return $result;
+            }
+        }
+
+        $wpdb->update(
+            OraBooks_Database::table('invoices'),
+            ['workflow_status' => 'posted'],
+            ['id' => $invoice_id, 'org_id' => $org_id],
+            ['%s'],
+            ['%d', '%d']
+        );
+
+        if (class_exists('OraBooks_Tax') && floatval($invoice->tax_amount) > 0) {
+            OraBooks_Tax::snapshot_for_invoice($invoice, $user_id);
+        }
+
+        orabooks_log_event('invoice_posted', "Invoice {$invoice->invoice_number} posted", 'info', [
+            'invoice_id' => $invoice_id,
+            'journal_id' => $journal_id,
+        ], $user_id, $org_id);
+
+        do_action('orabooks_invoice_posted', $invoice_id, [
+            'org_id'         => $org_id,
+            'customer_id'    => (int) $invoice->customer_id,
+            'invoice_number' => $invoice->invoice_number,
+            'total_amount'   => floatval($invoice->total_amount),
+            'journal_id'     => $journal_id,
+        ]);
+
+        return self::get_invoice($invoice_id);
+    }
+
+    /**
+     * Block send/post when customer is on credit hold or over credit limit.
+     */
+    private static function validate_customer_credit_for_invoice($invoice) {
+        global $wpdb;
+
+        $table = OraBooks_Database::table('customers');
+        $fields = self::get_table_column_names($table);
+        if (!in_array('credit_hold', $fields, true)) {
+            return true;
+        }
+
+        $customer = $wpdb->get_row($wpdb->prepare(
+            "SELECT credit_hold, credit_limit FROM {$table} WHERE id = %d",
+            (int) $invoice->customer_id
+        ));
+
+        if (!$customer) {
+            return true;
+        }
+
+        if ((int) $customer->credit_hold === 1) {
+            return new WP_Error('credit_hold', 'Customer is on credit hold. Invoices cannot be sent or posted.');
+        }
+
+        $credit_limit = floatval($customer->credit_limit ?? 0);
+        if ($credit_limit > 0) {
+            $table_invoices = OraBooks_Database::table('invoices');
+            $outstanding = (float) $wpdb->get_var($wpdb->prepare(
+                "SELECT COALESCE(SUM(total_amount - COALESCE(paid_amount, 0)), 0)
+                 FROM {$table_invoices}
+                 WHERE customer_id = %d
+                   AND payment_status IN ('unpaid', 'partial', 'overdue')
+                   AND workflow_status != 'cancelled'
+                   AND id != %d",
+                (int) $invoice->customer_id,
+                (int) $invoice->id
+            ));
+            $projected = $outstanding + floatval($invoice->total_amount) - floatval($invoice->paid_amount ?? 0);
+            if ($projected > $credit_limit) {
+                return new WP_Error(
+                    'credit_limit',
+                    sprintf(
+                        'Invoice would exceed customer credit limit (%s).',
+                        number_format($credit_limit, 2)
+                    )
+                );
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * AR journal on invoice post: Dr AR, Cr Revenue (+ tax liability when configured).
+     */
+    private static function create_invoice_journal($invoice, $user_id) {
+        if (!class_exists('OraBooks_Posting')) {
+            return null;
+        }
+
+        $org_id = (int) $invoice->org_id;
+        $total = round(floatval($invoice->total_amount), 2);
+        $tax = round(floatval($invoice->tax_amount ?? 0), 2);
+        $revenue = round(max(0, $total - $tax), 2);
+
+        $ar_code = '1100';
+        if (class_exists('OraBooks_COA') && !OraBooks_COA::get_account_by_code($org_id, $ar_code)) {
+            $ar_code = '1000';
+        }
+
+        $journal_id = OraBooks_Posting::create_journal([
+            'org_id'           => $org_id,
+            'transaction_date' => $invoice->transaction_date ?? $invoice->invoice_date,
+            'source_type'      => 'invoice',
+            'source_id'        => (int) $invoice->id,
+            'idempotency_key'  => 'invoice_post_' . (int) $invoice->id,
+            'metadata'         => [
+                'invoice_number' => $invoice->invoice_number,
+                'customer_id'    => (int) $invoice->customer_id,
+            ],
+        ], (int) $user_id);
+
+        if (is_wp_error($journal_id)) {
+            return $journal_id;
+        }
+
+        $lines = [
+            [
+                'account_code' => $ar_code,
+                'debit'        => $total,
+                'credit'       => 0,
+                'description'  => 'AR for invoice ' . $invoice->invoice_number,
+            ],
+            [
+                'account_code' => '4000',
+                'debit'        => 0,
+                'credit'       => $revenue > 0 ? $revenue : $total,
+                'description'  => 'Revenue for invoice ' . $invoice->invoice_number,
+            ],
+        ];
+
+        if ($tax > 0 && class_exists('OraBooks_COA') && OraBooks_COA::get_account_by_code($org_id, '2100')) {
+            $lines[1]['credit'] = $revenue;
+            $lines[] = [
+                'account_code' => '2100',
+                'debit'        => 0,
+                'credit'       => $tax,
+                'description'  => 'Tax on invoice ' . $invoice->invoice_number,
+            ];
+        }
+
+        OraBooks_Posting::add_lines($journal_id, $lines);
+
+        return $journal_id;
+    }
+
     private static function get_invoice_tax_base($invoice) {
         $total = floatval($invoice->total_amount ?? 0);
         $tax = floatval($invoice->tax_amount ?? 0);
@@ -1823,21 +2061,83 @@ class OraBooks_Customers {
             orabooks_json_error('Customer active status is derived from invoice activity and cannot be changed manually.', 400);
         }
 
-        $notes = isset($_POST['notes']) ? sanitize_textarea_field($_POST['notes']) : null;
+        global $wpdb;
+        $table = OraBooks_Database::table('customers');
+        $updates = [];
+        $formats = [];
 
-        if ($notes !== null) {
-            global $wpdb;
-            $table = OraBooks_Database::table('customers');
+        if (isset($_POST['display_name']) || isset($_POST['name'])) {
+            $display_name = sanitize_text_field($_POST['display_name'] ?? $_POST['name'] ?? '');
+            if ($display_name === '') {
+                orabooks_json_error('Customer name is required', 400);
+            }
+            $updates['display_name'] = $display_name;
+            $formats[] = '%s';
+        }
+
+        if (isset($_POST['email']) || isset($_POST['contact_email'])) {
+            $contact_email = sanitize_email($_POST['email'] ?? $_POST['contact_email'] ?? '');
+            if ($contact_email !== '' && !is_email($contact_email)) {
+                orabooks_json_error('Please enter a valid email address', 400);
+            }
+            if ($contact_email !== '') {
+                $existing = $wpdb->get_var($wpdb->prepare(
+                    "SELECT id FROM {$table}
+                     WHERE org_id = %d AND id != %d AND contact_email IS NOT NULL AND LOWER(contact_email) = LOWER(%s)
+                     LIMIT 1",
+                    (int) $customer->org_id,
+                    $customer_id,
+                    $contact_email
+                ));
+                if ($existing) {
+                    orabooks_json_error('A customer with this email already exists for your organization.', 400);
+                }
+            }
+            $updates['contact_email'] = $contact_email !== '' ? $contact_email : null;
+            $formats[] = '%s';
+        }
+
+        if (isset($_POST['notes'])) {
+            $updates['notes'] = sanitize_textarea_field($_POST['notes']);
+            $formats[] = '%s';
+        }
+
+        if (isset($_POST['payment_terms'])) {
+            $updates['payment_terms'] = max(0, intval($_POST['payment_terms']));
+            $formats[] = '%d';
+        }
+
+        if (isset($_POST['default_currency'])) {
+            $updates['default_currency'] = strtoupper(sanitize_text_field($_POST['default_currency']));
+            $formats[] = '%s';
+        }
+
+        if (isset($_POST['credit_limit'])) {
+            $updates['credit_limit'] = round(floatval($_POST['credit_limit']), 2);
+            $formats[] = '%f';
+        }
+
+        if (isset($_POST['credit_hold'])) {
+            $updates['credit_hold'] = (int) (bool) $_POST['credit_hold'];
+            $formats[] = '%d';
+        }
+
+        if (isset($_POST['auto_apply_credit'])) {
+            $updates['auto_apply_credit'] = (int) (bool) $_POST['auto_apply_credit'];
+            $formats[] = '%d';
+        }
+
+        if (!empty($updates)) {
             $wpdb->update(
                 $table,
-                ['notes' => $notes],
+                $updates,
                 ['id' => $customer_id],
-                ['%s'],
+                $formats,
                 ['%d']
             );
         }
 
-        orabooks_json_success([], 'Customer updated');
+        orabooks_json_success(['customer' => self::get_by_id($customer_id)], 'Customer updated');
     }
 
     /**
