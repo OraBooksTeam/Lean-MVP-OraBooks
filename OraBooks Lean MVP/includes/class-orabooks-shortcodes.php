@@ -60,9 +60,7 @@ class OraBooks_Shortcodes {
     }
 
     /**
-     * Mount the React frontend SPA at a hash route.
-     *
-     * @param string $route Hash route e.g. /dashboard
+     * Mount the React frontend page for a WordPress route path.
      * @param bool   $require_login Whether a logged-in user is required.
      */
     private function react_page($route, $require_login = true) {

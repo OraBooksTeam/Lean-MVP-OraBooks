@@ -561,9 +561,7 @@ function orabooks_append_auth_tokens_to_url($url, $token = '', $refresh_token = 
 
     $scheme = $parsed['scheme'] ?? (is_ssl() ? 'https' : 'http');
     $path = $parsed['path'] ?? '/';
-    $fragment = !empty($parsed['fragment']) ? '' : '';
-
-    return $scheme . '://' . $target_host . $path . '?' . http_build_query($query) . $fragment;
+    return $scheme . '://' . $target_host . $path . '?' . http_build_query($query);
 }
 
 /**
