@@ -2,7 +2,7 @@ import { useMemo, useState, type FormEvent } from 'react';
 import Button from '@/components/Button';
 import Input from '@/components/Input';
 import { api } from '../api';
-import { getNetworkAuthUrl } from '../lib/auth-routing';
+import { getNetworkAuthUrl, getAuthResetLoginUrl } from '../lib/auth-routing';
 import { KeyRound } from 'lucide-react';
 
 export default function ResetPasswordPage() {
@@ -47,7 +47,7 @@ export default function ResetPasswordPage() {
       else {
         setSuccess('Password reset successfully. You can now log in.');
         window.setTimeout(() => {
-        window.location.replace(getNetworkAuthUrl('login'));
+          window.location.replace(getAuthResetLoginUrl());
         }, 1200);
       }
     } finally {

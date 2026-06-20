@@ -198,6 +198,10 @@ export function getNetworkLoginUrl() {
   return (window as any).orabooks_ajax?.login_url || '/login/';
 }
 
+export function getAuthResetLoginUrl() {
+  return normalizeWpAppPath(appendAuthResetFlag(getNetworkLoginUrl()));
+}
+
 type NetworkAuthPage = 'login' | 'register' | 'reset-password' | 'verify-email' | 'tier-selection';
 
 export function getNetworkAuthUrl(page: NetworkAuthPage) {
