@@ -253,48 +253,7 @@ function orabooks_create_page($slug, $title, $shortcode, $parent_slug = '') {
  * Create all required OraBooks frontend pages on activation
  */
 function orabooks_create_required_pages() {
-    $pages = [
-        // Main auth pages
-        'login'               => ['Login', '[orabooks_login]'],
-        'register'            => ['Register', '[orabooks_register]'],
-        'verify-email'        => ['Verify Email', '[orabooks_verify_email]'],
-        'reset-password'      => ['Reset Password', '[orabooks_reset_password]'],
-        'tier-selection'      => ['Choose Your Plan', '[orabooks_tier_selection]'],
-        
-        // Partner pages (URL: /partner/onboarding per SL-139)
-        'partner'               => ['Partner', ''],
-        'onboarding'            => ['Partner Onboarding', '[orabooks_partner_onboarding]', 'partner'],
-        'partner-program'     => ['Partner Program', '[orabooks_partner_dashboard]'],
-        
-        // Customer workspace (PHP accounting on Divi; React SPA on other themes)
-        'dashboard'           => ['Dashboard', '[orabooks_dashboard]'],
-        'customers'           => ['Customers', '[orabooks_customers]'],
-        'vendors'             => ['Vendors', '[orabooks_vendors]'],
-        'inventory'           => ['Inventory', '[orabooks_inventory]'],
-        'invoices'            => ['Invoices', '[orabooks_invoices]'],
-        'reports'             => ['Reports', '[orabooks_reports]'],
-        'expenses'            => ['Expenses', '[orabooks_expenses]'],
-        'csv-imports'         => ['CSV Imports', '[orabooks_csv_import]'],
-        'bank-reconciliation' => ['Bank Reconciliation', '[orabooks_bank_reconciliation]'],
-        'chart-of-accounts'   => ['Chart of Accounts', '[orabooks_chart_of_accounts]'],
-        'fiscal-periods'      => ['Fiscal Periods', '[orabooks_fiscal_periods]'],
-        'tax-settings'        => ['Tax Settings', '[orabooks_tax_settings]'],
-        'journals'            => ['Journals', '[orabooks_journals]'],
-        'team'                => ['Team', '[orabooks_team]'],
-        'attachments'         => ['Attachments', '[orabooks_attachments]'],
-        'approvals'           => ['Approvals', '[orabooks_approvals]'],
-        'ai-review'           => ['AI Review', '[orabooks_ai_review]'],
-        'voice'               => ['Voice Input', '[orabooks_voice]'],
-        'commissions'         => ['Commissions', '[orabooks_commission]'],
-        'profile'             => ['Profile', '[orabooks_profile]'],
-        
-        // Notification pages
-        'notifications'       => ['Notifications', '[orabooks_notification_center]'],
-        'notification-preferences' => ['Notification Preferences', '[orabooks_notification_preferences]'],
-        
-        // Exports
-        'my-exports'          => ['My Exports', '[orabooks_export_status]'],
-    ];
+    $pages = orabooks_get_lean_mvp_page_definitions();
     
     // Create a parent page "OraBooks" if needed (optional)
     $created_ids = [];

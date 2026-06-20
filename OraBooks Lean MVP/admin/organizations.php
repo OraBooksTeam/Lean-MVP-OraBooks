@@ -22,13 +22,14 @@
                 <th><?php _e('Subdomain', 'orabooks'); ?></th>
                 <th><?php _e('Type', 'orabooks'); ?></th>
                 <th><?php _e('Tier', 'orabooks'); ?></th>
+                <th><?php _e('Region', 'orabooks'); ?></th>
                 <th><?php _e('Status', 'orabooks'); ?></th>
                 <th><?php _e('Created', 'orabooks'); ?></th>
                 <th><?php _e('Actions', 'orabooks'); ?></th>
             </tr>
         </thead>
         <tbody id="orabooks-orgs-table-body">
-            <tr><td colspan="8"><?php _e('Loading...', 'orabooks'); ?></td></tr>
+            <tr><td colspan="9"><?php _e('Loading...', 'orabooks'); ?></td></tr>
         </tbody>
     </table>
 </div>

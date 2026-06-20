@@ -173,6 +173,7 @@ jQuery(document).ready(function($) {
                         '<td>' + org.subdomain + '</td>' +
                         '<td>' + org.organization_type + '</td>' +
                         '<td>' + org.tier + '</td>' +
+                        '<td>' + (org.region || '—') + '</td>' +
                         '<td>' + org.status + '</td>' +
                         '<td>' + org.created_at + '</td>' +
                         '<td>' +
@@ -181,12 +182,12 @@ jQuery(document).ready(function($) {
                         '</td>' +
                     '</tr>';
                 });
-                $tbody.html(html || '<tr><td colspan="8">No organizations found</td></tr>');
+                $tbody.html(html || '<tr><td colspan="9">No organizations found</td></tr>');
             } else {
-                $tbody.html('<tr><td colspan="8">Unable to load organizations. Please refresh.</td></tr>');
+                $tbody.html('<tr><td colspan="9">Unable to load organizations. Please refresh.</td></tr>');
             }
         }).fail(function() {
-            $tbody.html('<tr><td colspan="8">Unable to load organizations. Please refresh.</td></tr>');
+            $tbody.html('<tr><td colspan="9">Unable to load organizations. Please refresh.</td></tr>');
         });
     };
 
