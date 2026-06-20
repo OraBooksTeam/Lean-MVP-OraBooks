@@ -670,7 +670,7 @@ class OraBooks_Auth {
             'role' => 'owner',
             'is_partner' => 1,
             'subdomain' => $org_result['subdomain'],
-            'redirect_to' => '/partner-onboarding/'
+            'redirect_to' => '/onboarding/'
         ]);
     }
     

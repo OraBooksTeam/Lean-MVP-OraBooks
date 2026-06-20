@@ -10,7 +10,6 @@ const fieldClass =
   'w-full rounded-lg border border-border bg-white px-3.5 py-2.5 text-sm text-ink shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20';
 
 export default function CsvImportsPage() {
-  const [searchParams] = useSearchParams();
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -47,11 +46,11 @@ export default function CsvImportsPage() {
   }, []);
 
   useEffect(() => {
-    const importId = Number(searchParams.get('import_id') || 0);
+    const importId = Number(getSearchParam('import_id') || 0);
     if (importId > 0 && orgId) {
       void loadPreview(importId);
     }
-  }, [searchParams, orgId]);
+  }, [orgId]);
 
   const loadPreview = async (importId: number) => {
     if (!orgId) return;

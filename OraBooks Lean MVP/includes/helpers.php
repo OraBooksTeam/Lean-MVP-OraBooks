@@ -561,7 +561,7 @@ function orabooks_append_auth_tokens_to_url($url, $token = '', $refresh_token = 
 
     $scheme = $parsed['scheme'] ?? (is_ssl() ? 'https' : 'http');
     $path = $parsed['path'] ?? '/';
-    $fragment = !empty($parsed['fragment']) ? '#' . $parsed['fragment'] : '';
+    $fragment = !empty($parsed['fragment']) ? '' : '';
 
     return $scheme . '://' . $target_host . $path . '?' . http_build_query($query) . $fragment;
 }
@@ -604,7 +604,7 @@ function orabooks_enrich_login_response($login_result) {
             }
         }
     } elseif (!empty($login_result['subdomain'])) {
-        $path = !empty($login_result['is_partner']) ? '/partner-onboarding/' : '/dashboard/';
+        $path = !empty($login_result['is_partner']) ? '/onboarding/' : '/dashboard/';
         $login_result['redirect_to'] = orabooks_build_org_url($login_result['subdomain'], $path);
     } else {
         $login_result['redirect_to'] = orabooks_get_network_login_url('dashboard');
