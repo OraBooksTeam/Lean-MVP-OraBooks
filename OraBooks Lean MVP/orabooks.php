@@ -902,19 +902,12 @@ function orabooks_frontend_enqueue() {
 
     wp_enqueue_style('orabooks-frontend', ORABOOKS_PLUGIN_URL . 'assets/css/frontend.css', [], ORABOOKS_VERSION);
 
-    if (function_exists('orabooks_is_divi_theme') && orabooks_is_divi_theme()) {
-        wp_enqueue_style(
-            'orabooks-divi-compat',
-            ORABOOKS_PLUGIN_URL . 'assets/css/divi-compat.css',
-            ['orabooks-frontend'],
-            ORABOOKS_VERSION
-        );
-    }
-
     $ajax_config = OraBooks_Assets::get_ajax_config('frontend');
 
     if (OraBooks_Assets::should_enqueue_frontend_react($post->post_content)) {
         OraBooks_Assets::enqueue_frontend_react($ajax_config);
+    } elseif (function_exists('orabooks_is_divi_theme') && orabooks_is_divi_theme()) {
+        OraBooks_Assets::enqueue_divi_compat();
     }
 
     if (OraBooks_Assets::should_enqueue_legacy_frontend($post->post_content)) {

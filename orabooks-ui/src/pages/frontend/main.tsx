@@ -69,6 +69,19 @@ function showFrontendBootError(root: HTMLElement, message: string) {
   </div>`;
 }
 
+function escapeDiviLayout(root: HTMLElement) {
+  if (!document.body.classList.contains('orabooks-divi-theme')) {
+    return;
+  }
+
+  if (root.parentElement !== document.body) {
+    document.body.appendChild(root);
+  }
+
+  root.classList.add('orabooks-divi-portal');
+  document.body.classList.add('orabooks-react-mounted');
+}
+
 function bootFrontend() {
   registerOraBooksPwa();
   bootExportWidgets();
@@ -77,6 +90,8 @@ function bootFrontend() {
   if (!root) {
     return;
   }
+
+  escapeDiviLayout(root);
 
   const initialRoute = root.dataset.initialRoute;
   if (initialRoute) {

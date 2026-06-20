@@ -199,6 +199,22 @@ class OraBooks_Assets {
             true
         );
         wp_localize_script('orabooks-react-frontend', 'orabooks_ajax', $ajax_config);
+
+        if (function_exists('orabooks_is_divi_theme') && orabooks_is_divi_theme()) {
+            self::enqueue_divi_compat();
+        }
+    }
+
+    /**
+     * Divi overrides must load after the React/Tailwind bundle.
+     */
+    public static function enqueue_divi_compat() {
+        wp_enqueue_style(
+            'orabooks-divi-compat',
+            ORABOOKS_PLUGIN_URL . 'assets/css/divi-compat.css',
+            ['orabooks-frontend', 'orabooks-react'],
+            ORABOOKS_VERSION
+        );
     }
 
     /**
