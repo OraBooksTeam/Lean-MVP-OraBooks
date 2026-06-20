@@ -107,6 +107,34 @@ class OraBooks_Secrets {
     }
     
     /**
+     * Encrypt sensitive at-rest values (2FA secrets, etc.).
+     */
+    public static function encrypt_sensitive($plaintext) {
+        if ($plaintext === '' || $plaintext === null) {
+            return '';
+        }
+
+        return 'enc:' . self::encrypt((string) $plaintext);
+    }
+
+    /**
+     * Decrypt sensitive at-rest values; returns legacy plaintext unchanged.
+     */
+    public static function decrypt_sensitive($stored) {
+        if ($stored === '' || $stored === null) {
+            return '';
+        }
+
+        $stored = (string) $stored;
+        if (strpos($stored, 'enc:') !== 0) {
+            return $stored;
+        }
+
+        $decrypted = self::decrypt(substr($stored, 4));
+        return $decrypted !== false ? $decrypted : '';
+    }
+
+    /**
      * Get JWT secret key
      */
     public static function get_jwt_secret() {
