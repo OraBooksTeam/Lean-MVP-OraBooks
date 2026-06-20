@@ -1345,7 +1345,6 @@ class OraBooks_Auth {
             'org_id' => $user->org_id,
             'role' => $role,
             'is_partner' => $user->is_partner,
-            'subdomain' => $org ? $org->subdomain : '',
         ]);
 
         orabooks_persist_login_session($login_result);
@@ -1356,7 +1355,9 @@ class OraBooks_Auth {
     public function ajax_logout() {
         if (!orabooks_is_user_logged_in()) {
             orabooks_clear_auth_token_cookie();
-            orabooks_json_success([], 'Logged out');
+            orabooks_json_success([
+                'redirect_to' => orabooks_get_network_login_url('login'),
+            ], 'Logged out');
         }
         
         $user_id = orabooks_get_current_user_id();
@@ -1370,7 +1371,9 @@ class OraBooks_Auth {
         }
         
         orabooks_log_event('logout', "User logged out", 'info', [], $user_id, null);
-        orabooks_json_success([], 'Logged out successfully');
+        orabooks_json_success([
+            'redirect_to' => orabooks_get_network_login_url('login'),
+        ], 'Logged out successfully');
     }
     
     // ============= OIDC (Google Auth) — SL-013 =============
@@ -2029,14 +2032,14 @@ class OraBooks_Auth {
         $refresh_token = orabooks_random_string(32);
         self::store_refresh_token($user->id, $org_result['org_id'], $refresh_token);
         
-        $tier_result = [
+        $tier_result = orabooks_enrich_login_response([
             'token' => $jwt,
             'refresh_token' => $refresh_token,
             'org_id' => $org_result['org_id'],
             'subdomain' => $org_result['subdomain'],
             'user_id' => $user->id,
             'redirect_to' => '/dashboard/',
-        ];
+        ]);
 
         orabooks_persist_login_session($tier_result);
 
