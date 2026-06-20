@@ -1122,6 +1122,25 @@ if (!function_exists('orabooks_get_network_login_url')) {
     }
 }
 
+if (!function_exists('orabooks_get_wp_user_id_for_orabooks_user')) {
+    function orabooks_get_wp_user_id_for_orabooks_user($orabooks_user_id) {
+        return (int) ($GLOBALS['orabooks_test_current_user_id'] ?? 0);
+    }
+}
+
+if (!function_exists('orabooks_get_logout_redirect_url')) {
+    function orabooks_get_logout_redirect_url() {
+        return add_query_arg('logged_out', '1', orabooks_get_network_login_url('login'));
+    }
+}
+
+if (!function_exists('orabooks_destroy_auth_session')) {
+    function orabooks_destroy_auth_session($user_id = 0, $log = true) {
+        orabooks_clear_auth_token_cookie();
+        $GLOBALS['orabooks_test_current_user_id'] = 0;
+    }
+}
+
 if (!function_exists('orabooks_build_org_url')) {
     function orabooks_build_org_url($subdomain, $path = '/') {
         $path = '/' . ltrim((string) $path, '/');

@@ -411,7 +411,7 @@ describe('Login form submit', () => {
     clearAjax();
     $('#orabooks-login-form').trigger('submit');
     // JSDOM blocks navigation, verify the handler ran correctly
-    resolveAjax('post', { error: false, data: { redirect_to: '/partner/onboarding' } }, 'orabooks_login');
+    resolveAjax('post', { error: false, data: { redirect_to: '/onboarding/' } }, 'orabooks_login');
     expect($('#orabooks-login-message').text()).not.toContain('error');
   });
 

@@ -116,7 +116,7 @@ class OraBooks_Auth_Test extends TestCase
         parse_str($parts['query'], $params);
 
         $this->assertEquals('test-client-id-123.apps.googleusercontent.com', $params['client_id']);
-        $this->assertEquals('http://example.com/login', $params['redirect_uri']);
+        $this->assertEquals('http://example.com/login/', $params['redirect_uri']);
         $this->assertEquals('code', $params['response_type']);
         $this->assertEquals('openid email profile', $params['scope']);
         $this->assertArrayHasKey('state', $params);
