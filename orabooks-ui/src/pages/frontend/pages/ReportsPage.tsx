@@ -459,19 +459,6 @@ function ReportOutput({ title, payload, kind }: { title: string; payload: any; k
     );
   }
 
-  if (kind === 'financial' && payload?.report_type === 'profit_loss') {
-    return (
-      <div className="mt-5 rounded-xl border border-border bg-slate-50/70 p-4">
-        <p className="text-sm font-bold text-ink">{title}</p>
-        <div className="mt-3 grid gap-2 sm:grid-cols-3">
-          <SummaryLine label="Revenue" value={money(payload.report?.total_revenue)} />
-          <SummaryLine label="Expenses" value={money(payload.report?.total_expenses)} />
-          <SummaryLine label="Net income" value={money(payload.report?.net_income)} bold />
-        </div>
-      </div>
-    );
-  }
-
   if (Array.isArray(report) && report.length > 0) {
     const sample = report[0];
     const columns = typeof sample === 'object' ? Object.keys(sample) : ['value'];
