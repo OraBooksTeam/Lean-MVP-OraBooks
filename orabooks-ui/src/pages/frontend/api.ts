@@ -902,8 +902,13 @@ export const api = {
     }),
 
   // Async queue / observability (admin)
-  asyncQueueStats: () => api.get('orabooks_async_queue_stats'),
+  asyncQueueStats: (filters?: Record<string, any>) => api.get('orabooks_async_queue_stats', filters),
   asyncQueueReplay: (jobId: number) => api.post('orabooks_async_queue_replay', { job_id: jobId }),
+  asyncQueueDiscard: (jobId: number) => api.post('orabooks_async_queue_discard', { job_id: jobId }),
+  asyncQueueCancel: (jobId: number) => api.post('orabooks_async_queue_cancel', { job_id: jobId }),
+  asyncQueuePollNow: () => api.post('orabooks_async_queue_poll_now'),
+  webhookSettingsGet: () => api.get('orabooks_webhook_settings_get'),
+  webhookSettingsSave: (urls: string) => api.post('orabooks_webhook_settings_save', { urls }),
   observabilityDashboard: (hours = 24) =>
     api.post('orabooks_observability_dashboard', { hours }),
   eventBusDeadLetters: () =>
