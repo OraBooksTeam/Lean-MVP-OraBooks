@@ -1170,9 +1170,11 @@ class OraBooks_AsyncQueue {
 /**
  * Shorthand helper for enqueuing async jobs from anywhere.
  */
-function orabooks_enqueue_job($job_type, $payload = [], $opts = []) {
-    if (class_exists('OraBooks_AsyncQueue')) {
-        return OraBooks_AsyncQueue::enqueue($job_type, $payload, $opts);
+if (!function_exists('orabooks_enqueue_job')) {
+    function orabooks_enqueue_job($job_type, $payload = [], $opts = []) {
+        if (class_exists('OraBooks_AsyncQueue')) {
+            return OraBooks_AsyncQueue::enqueue($job_type, $payload, $opts);
+        }
+        return false;
     }
-    return false;
 }
