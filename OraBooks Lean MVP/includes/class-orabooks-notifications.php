@@ -1370,7 +1370,7 @@ class OraBooks_Notifications {
      * AJAX: Register mobile device token.
      */
     public function ajax_register_device() {
-        $user_id = get_current_user_id();
+        $user_id = orabooks_get_current_user_id();
         if (!$user_id) {
             orabooks_json_error('Not authenticated', 401);
         }

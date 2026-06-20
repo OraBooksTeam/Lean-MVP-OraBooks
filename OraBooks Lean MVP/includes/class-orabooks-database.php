@@ -27,11 +27,12 @@ class OraBooks_Database {
         require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
         
         $charset_collate = $wpdb->get_charset_collate();
+        $table_prefix = function_exists('orabooks_get_table_prefix') ? orabooks_get_table_prefix() : $wpdb->prefix;
         
         // ============================================================
         // SL-004: organizations table (Foundation)
         // ============================================================
-        $table_organizations = $wpdb->prefix . 'orabooks_organizations';
+        $table_organizations = $table_prefix . 'orabooks_organizations';
         $sql = "CREATE TABLE IF NOT EXISTS {$table_organizations} (
             id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
             name VARCHAR(255) NOT NULL,
@@ -58,7 +59,7 @@ class OraBooks_Database {
         // ============================================================
         // SL-004: org_quotas table
         // ============================================================
-        $table_quotas = $wpdb->prefix . 'orabooks_org_quotas';
+        $table_quotas = $table_prefix . 'orabooks_org_quotas';
         $sql = "CREATE TABLE IF NOT EXISTS {$table_quotas} (
             org_id BIGINT UNSIGNED PRIMARY KEY,
             api_calls_limit INT NULL,
@@ -71,7 +72,7 @@ class OraBooks_Database {
         // ============================================================
         // SL-004: partner_reactivation_reviews table
         // ============================================================
-        $table_reactivation = $wpdb->prefix . 'orabooks_partner_reactivation_reviews';
+        $table_reactivation = $table_prefix . 'orabooks_partner_reactivation_reviews';
         $sql = "CREATE TABLE IF NOT EXISTS {$table_reactivation} (
             id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
             org_id BIGINT UNSIGNED NOT NULL,
@@ -90,7 +91,7 @@ class OraBooks_Database {
         // ============================================================
         // SL-013: users table extensions (custom table for OraBooks users)
         // ============================================================
-        $table_users = $wpdb->prefix . 'orabooks_users';
+        $table_users = $table_prefix . 'orabooks_users';
         $sql = "CREATE TABLE IF NOT EXISTS {$table_users} (
             id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
             wp_user_id BIGINT UNSIGNED NULL UNIQUE,
@@ -135,7 +136,7 @@ class OraBooks_Database {
         // ============================================================
         // SL-013: refresh_tokens table
         // ============================================================
-        $table_tokens = $wpdb->prefix . 'orabooks_refresh_tokens';
+        $table_tokens = $table_prefix . 'orabooks_refresh_tokens';
         $sql = "CREATE TABLE IF NOT EXISTS {$table_tokens} (
             id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
             user_id BIGINT UNSIGNED NOT NULL,
@@ -155,7 +156,7 @@ class OraBooks_Database {
         // ============================================================
         // SL-013: partner_codes table
         // ============================================================
-        $table_partner_codes = $wpdb->prefix . 'orabooks_partner_codes';
+        $table_partner_codes = $table_prefix . 'orabooks_partner_codes';
         $sql = "CREATE TABLE IF NOT EXISTS {$table_partner_codes} (
             id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
             org_id BIGINT UNSIGNED NOT NULL,
@@ -199,7 +200,7 @@ class OraBooks_Database {
         // ============================================================
         // SL-013: partner_attributions table
         // ============================================================
-        $table_attributions = $wpdb->prefix . 'orabooks_partner_attributions';
+        $table_attributions = $table_prefix . 'orabooks_partner_attributions';
         $sql = "CREATE TABLE IF NOT EXISTS {$table_attributions} (
             id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
             org_id BIGINT UNSIGNED NULL,
@@ -226,7 +227,7 @@ class OraBooks_Database {
         // ============================================================
         // SL-013: partner_terms_acceptance table
         // ============================================================
-        $table_terms = $wpdb->prefix . 'orabooks_partner_terms_acceptance';
+        $table_terms = $table_prefix . 'orabooks_partner_terms_acceptance';
         $sql = "CREATE TABLE IF NOT EXISTS {$table_terms} (
             id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
             user_id BIGINT UNSIGNED NOT NULL,
@@ -242,7 +243,7 @@ class OraBooks_Database {
         // ============================================================
         // SL-014: user_org table
         // ============================================================
-        $table_user_org = $wpdb->prefix . 'orabooks_user_org';
+        $table_user_org = $table_prefix . 'orabooks_user_org';
         $sql = "CREATE TABLE IF NOT EXISTS {$table_user_org} (
             user_id BIGINT UNSIGNED NOT NULL,
             org_id BIGINT UNSIGNED NOT NULL,
@@ -257,7 +258,7 @@ class OraBooks_Database {
         // ============================================================
         // SL-014: org_invites table
         // ============================================================
-        $table_invites = $wpdb->prefix . 'orabooks_org_invites';
+        $table_invites = $table_prefix . 'orabooks_org_invites';
         $sql = "CREATE TABLE IF NOT EXISTS {$table_invites} (
             id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
             org_id BIGINT UNSIGNED NOT NULL,
@@ -277,7 +278,7 @@ class OraBooks_Database {
         // ============================================================
         // SL-009: audit_logs table
         // ============================================================
-        $table_audit = $wpdb->prefix . 'orabooks_audit_logs';
+        $table_audit = $table_prefix . 'orabooks_audit_logs';
         $sql = "CREATE TABLE IF NOT EXISTS {$table_audit} (
             id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
             org_id BIGINT UNSIGNED NOT NULL,
@@ -301,7 +302,7 @@ class OraBooks_Database {
         // ============================================================
         // SL-003: permission_audit_log table
         // ============================================================
-        $table_permission_audit = $wpdb->prefix . 'orabooks_permission_audit_log';
+        $table_permission_audit = $table_prefix . 'orabooks_permission_audit_log';
         $sql = "CREATE TABLE IF NOT EXISTS {$table_permission_audit} (
             id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
             org_id BIGINT UNSIGNED NULL,
@@ -321,14 +322,14 @@ class OraBooks_Database {
         dbDelta($sql);
         
         // Create archive table
-        $table_audit_archive = $wpdb->prefix . 'orabooks_audit_logs_archive';
+        $table_audit_archive = $table_prefix . 'orabooks_audit_logs_archive';
         $sql = "CREATE TABLE IF NOT EXISTS {$table_audit_archive} LIKE {$table_audit};";
         dbDelta($sql);
         
         // ============================================================
         // SL-013: 2FA backup codes table
         // ============================================================
-        $table_backup = $wpdb->prefix . 'orabooks_2fa_backup_codes';
+        $table_backup = $table_prefix . 'orabooks_2fa_backup_codes';
         $sql = "CREATE TABLE IF NOT EXISTS {$table_backup} (
             id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
             user_id BIGINT UNSIGNED NOT NULL,
@@ -384,7 +385,7 @@ class OraBooks_Database {
         // ============================================================
         // SL-017: accounts table (Chart of Accounts)
         // ============================================================
-        $table_accounts = $wpdb->prefix . 'orabooks_accounts';
+        $table_accounts = $table_prefix . 'orabooks_accounts';
         $sql = "CREATE TABLE IF NOT EXISTS {$table_accounts} (
             id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
             org_id BIGINT UNSIGNED NOT NULL,
@@ -404,7 +405,7 @@ class OraBooks_Database {
         // ============================================================
         // SL-017: account_balances table
         // ============================================================
-        $table_balances = $wpdb->prefix . 'orabooks_account_balances';
+        $table_balances = $table_prefix . 'orabooks_account_balances';
         $sql = "CREATE TABLE IF NOT EXISTS {$table_balances} (
             org_id BIGINT UNSIGNED NOT NULL,
             account_id BIGINT UNSIGNED NOT NULL,
@@ -419,7 +420,7 @@ class OraBooks_Database {
         // ============================================================
         // SL-001: journals table
         // ============================================================
-        $table_journals = $wpdb->prefix . 'orabooks_journals';
+        $table_journals = $table_prefix . 'orabooks_journals';
         $sql = "CREATE TABLE IF NOT EXISTS {$table_journals} (
             id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
             org_id BIGINT UNSIGNED NOT NULL,
@@ -461,7 +462,7 @@ class OraBooks_Database {
         // ============================================================
         // SL-001: journal_lines table
         // ============================================================
-        $table_jlines = $wpdb->prefix . 'orabooks_journal_lines';
+        $table_jlines = $table_prefix . 'orabooks_journal_lines';
         $sql = "CREATE TABLE IF NOT EXISTS {$table_jlines} (
             id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
             journal_id BIGINT UNSIGNED NOT NULL,
@@ -483,7 +484,7 @@ class OraBooks_Database {
         // ============================================================
         // SL-001: ledger_entries table (immutable posting record)
         // ============================================================
-        $table_ledger = $wpdb->prefix . 'orabooks_ledger_entries';
+        $table_ledger = $table_prefix . 'orabooks_ledger_entries';
         $sql = "CREATE TABLE IF NOT EXISTS {$table_ledger} (
             id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
             org_id BIGINT UNSIGNED NOT NULL,
@@ -503,7 +504,7 @@ class OraBooks_Database {
         // ============================================================
         // SL-001: posting_batches table
         // ============================================================
-        $table_batches = $wpdb->prefix . 'orabooks_posting_batches';
+        $table_batches = $table_prefix . 'orabooks_posting_batches';
         $sql = "CREATE TABLE IF NOT EXISTS {$table_batches} (
             id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
             org_id BIGINT UNSIGNED NOT NULL,
@@ -518,7 +519,7 @@ class OraBooks_Database {
         // ============================================================
         // SL-001: balance_snapshots table
         // ============================================================
-        $table_snapshots = $wpdb->prefix . 'orabooks_balance_snapshots';
+        $table_snapshots = $table_prefix . 'orabooks_balance_snapshots';
         $sql = "CREATE TABLE IF NOT EXISTS {$table_snapshots} (
             org_id BIGINT UNSIGNED NOT NULL,
             snapshot_date DATE NOT NULL,
@@ -533,7 +534,7 @@ class OraBooks_Database {
         // ============================================================
         // SL-001: fiscal_periods table
         // ============================================================
-        $table_fiscal = $wpdb->prefix . 'orabooks_fiscal_periods';
+        $table_fiscal = $table_prefix . 'orabooks_fiscal_periods';
         $sql = "CREATE TABLE IF NOT EXISTS {$table_fiscal} (
             id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
             org_id BIGINT UNSIGNED NOT NULL,
@@ -587,7 +588,7 @@ class OraBooks_Database {
         // ============================================================
         // SL-001: outbox_messages table (transactional outbox)
         // ============================================================
-        $table_outbox = $wpdb->prefix . 'orabooks_outbox_messages';
+        $table_outbox = $table_prefix . 'orabooks_outbox_messages';
         $sql = "CREATE TABLE IF NOT EXISTS {$table_outbox} (
             id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
             event_type VARCHAR(100) NOT NULL,
@@ -604,7 +605,7 @@ class OraBooks_Database {
         // ============================================================
         // SL-001: posting_retry_queue table
         // ============================================================
-        $table_retry = $wpdb->prefix . 'orabooks_posting_retry_queue';
+        $table_retry = $table_prefix . 'orabooks_posting_retry_queue';
         $sql = "CREATE TABLE IF NOT EXISTS {$table_retry} (
             id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
             journal_id BIGINT UNSIGNED NOT NULL,
@@ -619,7 +620,7 @@ class OraBooks_Database {
         // ============================================================
         // SL-001: read_model_versions table
         // ============================================================
-        $table_rmv = $wpdb->prefix . 'orabooks_read_model_versions';
+        $table_rmv = $table_prefix . 'orabooks_read_model_versions';
         $sql = "CREATE TABLE IF NOT EXISTS {$table_rmv} (
             projection_name VARCHAR(100) PRIMARY KEY,
             version INT NOT NULL DEFAULT 1,
@@ -640,7 +641,7 @@ class OraBooks_Database {
         // ============================================================
         // SL-002: journal_approval_history table (append-only)
         // ============================================================
-        $table_approval = $wpdb->prefix . 'orabooks_journal_approval_history';
+        $table_approval = $table_prefix . 'orabooks_journal_approval_history';
         $sql = "CREATE TABLE IF NOT EXISTS {$table_approval} (
             id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
             journal_id BIGINT UNSIGNED NOT NULL,
@@ -658,7 +659,7 @@ class OraBooks_Database {
         // ============================================================
         // SL-002: approval_delegations table
         // ============================================================
-        $table_delegations = $wpdb->prefix . 'orabooks_approval_delegations';
+        $table_delegations = $table_prefix . 'orabooks_approval_delegations';
         $sql = "CREATE TABLE IF NOT EXISTS {$table_delegations} (
             id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
             org_id BIGINT UNSIGNED NOT NULL,
@@ -676,7 +677,7 @@ class OraBooks_Database {
         // ============================================================
         // SL-002: approval_policies table
         // ============================================================
-        $table_policies = $wpdb->prefix . 'orabooks_approval_policies';
+        $table_policies = $table_prefix . 'orabooks_approval_policies';
         $sql = "CREATE TABLE IF NOT EXISTS {$table_policies} (
             org_id BIGINT UNSIGNED PRIMARY KEY,
             approval_expiry_hours INT DEFAULT 72,
@@ -707,7 +708,7 @@ class OraBooks_Database {
         // ============================================================
         // SL-303: async_jobs table
         // ============================================================
-        $table_jobs = $wpdb->prefix . 'orabooks_async_jobs';
+        $table_jobs = $table_prefix . 'orabooks_async_jobs';
         $sql = "CREATE TABLE IF NOT EXISTS {$table_jobs} (
             id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
             queue_name VARCHAR(50) DEFAULT 'default',
@@ -730,7 +731,7 @@ class OraBooks_Database {
         // ============================================================
         // SL-301: state_machine_transitions table
         // ============================================================
-        $table_sm = $wpdb->prefix . 'orabooks_state_machine_transitions';
+        $table_sm = $table_prefix . 'orabooks_state_machine_transitions';
         $sql = "CREATE TABLE IF NOT EXISTS {$table_sm} (
             id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
             record_type VARCHAR(50) NOT NULL,
@@ -749,7 +750,7 @@ class OraBooks_Database {
         
         // ============================================================
         // Add missing columns to outbox_messages table for SL-302 EventBus
-        $outbox_table = $wpdb->prefix . 'orabooks_outbox_messages';
+        $outbox_table = $table_prefix . 'orabooks_outbox_messages';
         $outbox_cols = $wpdb->get_results("SHOW COLUMNS FROM {$outbox_table}");
         $existing_cols = [];
         foreach ($outbox_cols as $col) {
@@ -965,7 +966,7 @@ class OraBooks_Database {
             dbDelta($sql);
         }
 
-        $table_expenses = $wpdb->prefix . 'orabooks_expenses';
+        $table_expenses = $table_prefix . 'orabooks_expenses';
         $expense_cols = $wpdb->get_results("SHOW COLUMNS FROM {$table_expenses}");
         $existing_expense_cols = [];
         foreach ($expense_cols as $col) {
@@ -1067,7 +1068,7 @@ class OraBooks_Database {
             );
         }
 
-        $trigger_name = $wpdb->prefix . 'orabooks_journals_balance_guard_bu';
+        $trigger_name = $table_prefix . 'orabooks_journals_balance_guard_bu';
         $exists = $wpdb->get_var($wpdb->prepare(
             "SELECT TRIGGER_NAME
              FROM information_schema.TRIGGERS

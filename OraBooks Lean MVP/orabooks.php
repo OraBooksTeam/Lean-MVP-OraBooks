@@ -287,7 +287,10 @@ add_action('init', 'orabooks_ensure_frontend_pages', 20);
 register_activation_hook(__FILE__, 'orabooks_activate');
 function orabooks_activate($network_wide = false) {
     require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-database.php';
-    OraBooks_Database::install();
+
+    orabooks_with_data_blog(function () {
+        OraBooks_Database::install();
+    });
     
     // Flush rewrite rules so OIDC routes (/orabooks-google-login, /orabooks-google-callback) work
     orabooks_oidc_rewrite_rules();

@@ -1026,7 +1026,21 @@ class OraBooks_Partner {
      * Get attribution list for the partner
      */
     public function ajax_partner_attributions() {
-        $user_id = get_current_user_id();
+        $user_id = orabooks_get_current_user_id();
+        if (!$user_id) {
+            orabooks_json_error('Not authenticated', 401);
+        }
+
+        global $wpdb;
+        $table_users = OraBooks_Database::table('users');
+        $org_id = (int) $wpdb->get_var($wpdb->prepare(
+            "SELECT org_id FROM {$table_users} WHERE id = %d",
+            $user_id
+        ));
+
+        if ($org_id && !OraBooks_RBAC::require_permission($user_id, $org_id, 'partner_commission_access')) {
+            orabooks_json_error('Permission denied', 403);
+        }
         
         if (!orabooks_check_rate_limit('partner_attr_' . $user_id, 60, 60)) {
             orabooks_json_error('Too many requests', 429);
