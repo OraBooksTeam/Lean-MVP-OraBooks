@@ -1714,23 +1714,47 @@ class OraBooks_Auth {
                 return new WP_Error('org_name_required', 'Organization name is required for this partner type');
             }
 
-            $wpdb->insert(
-                $table_users,
-                [
-                    'email' => $google_email,
-                    'password_hash' => '',
-                    'is_active' => 1,
-                    'is_email_verified' => 1,
-                    'auth_provider' => 'google',
-                    'org_id' => null,
-                    'is_partner' => $is_partner
-                ],
-                ['%s', '%s', '%d', '%d', '%s', null, '%d']
-            );
+            $insert_data = [
+                'email' => $google_email,
+                'password_hash' => '',
+                'is_active' => 1,
+                'is_email_verified' => 1,
+                'auth_provider' => 'google',
+                'org_id' => null,
+                'is_partner' => $is_partner,
+            ];
+            $insert_format = ['%s', '%s', '%d', '%d', '%s', null, '%d'];
+
+            if ($is_partner) {
+                $insert_data['pending_partner_type'] = $partner_type;
+                $insert_data['pending_organization_name'] = in_array($partner_type, ['agency', 'reseller', 'strategic_partner'], true)
+                    ? $organization_name
+                    : null;
+                $insert_format[] = '%s';
+                $insert_format[] = '%s';
+            }
+
+            $wpdb->insert($table_users, $insert_data, $insert_format);
 
             $user_id = $wpdb->insert_id;
             if (!$user_id) {
                 return new WP_Error('creation_failed', 'Failed to create account from Google profile.');
+            }
+
+            $google_password = function_exists('wp_generate_password') ? wp_generate_password(32, true, true) : orabooks_random_string(32);
+            $wp_result = orabooks_create_wp_user_for_registration($google_email, $google_password, [
+                'orabooks_user_id' => $user_id,
+                'orabooks_user_type' => $is_partner ? 'partner' : 'customer',
+                'orabooks_auth_provider' => 'google',
+            ]);
+            if (!is_wp_error($wp_result) && is_numeric($wp_result)) {
+                $wpdb->update(
+                    $table_users,
+                    ['wp_user_id' => (int) $wp_result],
+                    ['id' => $user_id],
+                    ['%d'],
+                    ['%d']
+                );
             }
 
             $created_user = (object) [
@@ -1765,7 +1789,9 @@ class OraBooks_Auth {
                 if (!empty($partner_code)) {
                     $attribution_result = self::process_attribution($user_id, $partner_code, $google_email);
                     if (is_wp_error($attribution_result)) {
-                        return $attribution_result;
+                        orabooks_log_event('partner_attribution_skipped', $attribution_result->get_error_message(), 'warning', [
+                            'partner_code' => $partner_code,
+                        ], $user_id, null);
                     }
                 }
             }
@@ -1778,43 +1804,11 @@ class OraBooks_Auth {
             if ($is_partner) {
                 return self::handle_partner_first_login($created_user);
             }
+
+            return self::issue_tier_selection_login($created_user);
         }
 
-        // Generate JWT and refresh token
-        $org = null;
-        $org_id = null;
-        if ($existing && $existing->org_id) {
-            $org = OraBooks_Organization::get($existing->org_id);
-            $org_id = $existing->org_id;
-        }
-
-        $role = $org_id ? orabooks_get_user_role($user_id, $org_id) : 'viewer';
-        $is_partner = $existing ? (int) $existing->is_partner : (($user_type === 'partner') ? 1 : 0);
-        $jwt = OraBooks_Secrets::generate_jwt([
-            'user_id' => $user_id,
-            'email' => $google_email,
-            'org_id' => $org_id,
-            'role' => $role,
-            'subdomain' => $org ? $org->subdomain : '',
-            'is_partner' => $is_partner
-        ]);
-
-        $refresh_token = orabooks_random_string(32);
-        self::store_refresh_token($user_id, $org_id, $refresh_token);
-
-        orabooks_log_event('login_success_oidc', "User logged in via Google: $google_email", 'info', [], $user_id, $org_id);
-
-        return [
-            'token' => $jwt,
-            'refresh_token' => $refresh_token,
-            'user_id' => $user_id,
-            'org_id' => $org_id,
-            'role' => $role,
-            'subdomain' => $org ? $org->subdomain : '',
-            'is_partner' => $is_partner,
-            'is_new' => !$existing,
-            'needs_tier_selection' => (!$existing && $user_type === 'customer') || ($existing && !$existing->is_partner && !$existing->org_id)
-        ];
+        return new WP_Error('oidc_login_failed', 'Google login could not be completed.');
     }
 
     /**
@@ -1832,7 +1826,10 @@ class OraBooks_Auth {
         $url = self::initiate_google_oauth($state_data);
 
         if (is_wp_error($url)) {
-            orabooks_json_error($url->get_error_message(), 200);
+            orabooks_json_error(
+                $url->get_error_message(),
+                orabooks_auth_error_status_code($url->get_error_code())
+            );
         }
 
         orabooks_json_success(['auth_url' => $url]);
@@ -1852,8 +1849,10 @@ class OraBooks_Auth {
         $result = self::handle_google_callback($code, $state);
 
         if (is_wp_error($result)) {
-            $status_code = ($result->get_error_code() === 'oidc_email_conflict') ? 409 : 401;
-            orabooks_json_error($result->get_error_message(), $status_code);
+            orabooks_json_error(
+                $result->get_error_message(),
+                orabooks_auth_error_status_code($result->get_error_code())
+            );
         }
 
         $result = orabooks_enrich_login_response($result);
@@ -2079,6 +2078,33 @@ class OraBooks_Auth {
         
         if (!$user || $user->is_partner) {
             orabooks_json_error('Only customers can select tiers', 400);
+        }
+
+        if (!empty($user->org_id)) {
+            $org = OraBooks_Organization::get((int) $user->org_id);
+            $role = orabooks_get_user_role($user_id, (int) $user->org_id);
+            $jwt = OraBooks_Secrets::generate_jwt([
+                'user_id' => $user_id,
+                'email' => $user->email,
+                'org_id' => (int) $user->org_id,
+                'role' => $role,
+                'subdomain' => $org ? $org->subdomain : '',
+                'is_partner' => 0,
+            ]);
+            $refresh_token = orabooks_random_string(32);
+            self::store_refresh_token($user_id, (int) $user->org_id, $refresh_token);
+
+            $existing = orabooks_enrich_login_response([
+                'token' => $jwt,
+                'refresh_token' => $refresh_token,
+                'user_id' => $user_id,
+                'org_id' => (int) $user->org_id,
+                'role' => $role,
+                'subdomain' => $org ? $org->subdomain : '',
+                'is_partner' => false,
+            ]);
+            orabooks_persist_login_session($existing);
+            orabooks_json_success($existing, 'Organization already exists');
         }
         
         $org_result = OraBooks_Organization::create([
