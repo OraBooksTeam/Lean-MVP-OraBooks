@@ -31,7 +31,7 @@ class OraBooks_Team {
             add_action('wp_ajax_orabooks_cancel_invite', [self::$instance, 'ajax_cancel_invite']);
             add_action('wp_ajax_nopriv_orabooks_cancel_invite', [self::$instance, 'ajax_cancel_invite']);
             add_action('wp_ajax_orabooks_accept_invite', [self::$instance, 'ajax_accept_invite']);
-            add_action('wp_ajax_nopriv_orabooks_accept_invite', [self::$instance, 'ajax_accept_invite']);
+            add_action('wp_ajax_nopriv_orabooks_accept_invite', [self::$instance, 'ajax_accept_invite_legacy_redirect']);
         }
         return self::$instance;
     }
@@ -45,13 +45,7 @@ class OraBooks_Team {
     }
 
     private static function build_invite_link($raw_token) {
-        return add_query_arg(
-            [
-                'action' => 'orabooks_accept_invite',
-                'token' => $raw_token,
-            ],
-            admin_url('admin-ajax.php')
-        );
+        return orabooks_get_accept_invite_url($raw_token);
     }
     
     public static function invite_user($org_id, $email, $role, $invited_by) {

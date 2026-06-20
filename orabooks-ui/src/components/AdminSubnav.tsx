@@ -30,7 +30,6 @@ export default function AdminSubnav() {
       className="mb-4 overflow-hidden rounded-2xl border border-border bg-white shadow-sm shadow-primary/5"
       aria-label="OraBooks sections"
     >
-      <div className="brand-accent-bar h-1" />
       <div className="flex flex-wrap gap-1 p-2">
         {items.map((item) => {
           const active = currentRoute === item.route || currentRoute.startsWith(`${item.route}/`);

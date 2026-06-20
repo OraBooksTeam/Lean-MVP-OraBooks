@@ -722,11 +722,6 @@
     margin-bottom: 24px;
 }
 
-.orabooks-settings-accent {
-    height: 6px;
-    background: linear-gradient(90deg, #1A69B4 0%, #3AB54A 100%);
-}
-
 .orabooks-settings-hero-body {
     padding: 28px 32px;
 }

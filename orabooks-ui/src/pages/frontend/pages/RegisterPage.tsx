@@ -74,7 +74,6 @@ export default function RegisterPage() {
   return (
     <div className="brand-auth-bg flex min-h-screen items-center justify-center px-4 py-12">
       <div className="glass-panel w-full max-w-lg overflow-hidden">
-        <div className="brand-accent-bar h-1.5" />
         <div className="p-8">
         <div className="mx-auto mb-6 flex h-12 w-12 items-center justify-center rounded-xl bg-primary">
           <UserPlus className="h-6 w-6 text-white" />

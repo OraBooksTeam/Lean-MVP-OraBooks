@@ -52,7 +52,6 @@ export default function PartnerOnboardingPage() {
       ) : (
         <div className="mx-auto max-w-2xl">
           <div className="glass-panel overflow-hidden">
-            <div className="brand-accent-bar h-1.5" />
             <div className="p-8">
               <div className="space-y-4">
                 <div>

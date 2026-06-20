@@ -1,6 +1,5 @@
 <div class="wrap orabooks-admin orabooks-admin-settings">
     <div class="orabooks-settings-hero">
-        <div class="orabooks-settings-accent"></div>
         <div class="orabooks-settings-hero-body">
             <p class="orabooks-settings-eyebrow"><?php esc_html_e('OraBooks Admin', 'orabooks'); ?></p>
             <h1><?php esc_html_e('Platform Settings', 'orabooks'); ?></h1>

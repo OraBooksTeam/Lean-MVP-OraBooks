@@ -45,7 +45,6 @@ export default function VerifyEmailPage() {
   return (
     <div className="brand-auth-bg flex min-h-screen items-center justify-center px-4 py-12">
       <div className="glass-panel w-full max-w-lg overflow-hidden p-8 text-center">
-        <div className="brand-accent-bar -mx-8 -mt-8 mb-6 h-1.5" />
         <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-primary">
           <MailCheck className="h-6 w-6 text-white" />
         </div>

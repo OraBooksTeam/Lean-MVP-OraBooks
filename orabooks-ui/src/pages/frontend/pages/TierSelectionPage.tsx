@@ -102,7 +102,6 @@ export default function TierSelectionPage() {
   return (
     <div className="brand-auth-bg flex min-h-screen items-center justify-center px-4 py-12">
       <div className="glass-panel w-full max-w-2xl overflow-hidden">
-        <div className="brand-accent-bar h-1.5" />
         <div className="p-8">
         <h2 className="text-center text-2xl font-bold text-ink">Choose Your Plan</h2>
         <p className="mt-2 text-center text-sm text-slate-600">Select a tier and set up your organization subdomain.</p>

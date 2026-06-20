@@ -307,7 +307,6 @@ export default function ClientShell({
 
         <div className="w-full px-4 py-6 sm:px-6 lg:px-8">
           <header className="mb-6 overflow-hidden rounded-3xl border border-border bg-white shadow-sm shadow-primary/5">
-            <div className="brand-accent-bar h-1.5" />
             <div className="flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between">
               <div className="min-w-0">
                 {eyebrow && <p className="text-xs font-bold uppercase tracking-wide text-primary">{eyebrow}</p>}
