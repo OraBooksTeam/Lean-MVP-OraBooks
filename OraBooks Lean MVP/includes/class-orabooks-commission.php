@@ -46,6 +46,7 @@ class OraBooks_Commission {
             
             // Listen for attribution verified events (via outbox or direct call)
             add_action('orabooks_partner_attribution_verified', [self::$instance, 'on_attribution_verified'], 10, 2);
+            add_action('orabooks_customer_active_status_changed', [self::$instance, 'on_customer_active_status_changed'], 10, 3);
         }
         return self::$instance;
     }
@@ -358,12 +359,57 @@ class OraBooks_Commission {
         $count = 0;
         foreach ($customer_ids as $cid) {
             self::refresh_customer_active_status($cid);
+            self::maybe_create_escrow_for_active_customer($cid);
             $count++;
         }
         
         orabooks_log_event('customer_active_status_refreshed', 
             "Active customer status read model refreshed for {$count} customers", 
             'info', ['count' => $count], null, null);
+    }
+
+    /**
+     * Retry escrow creation when a customer becomes active after attribution was verified.
+     * Typical flow: email verify → attribution verified (inactive) → first paid invoice → active.
+     */
+    public static function on_customer_active_status_changed($customer_user_id, $is_active, $org_id = null) {
+        if (!$customer_user_id || !$is_active) {
+            return;
+        }
+
+        self::maybe_create_escrow_for_active_customer($customer_user_id);
+    }
+
+    /**
+     * Create escrow schedules for verified attributions that were skipped while customer was inactive.
+     */
+    public static function maybe_create_escrow_for_active_customer($customer_user_id) {
+        if (!self::is_customer_active($customer_user_id)) {
+            return;
+        }
+
+        global $wpdb;
+
+        $table_attributions = OraBooks_Database::table('partner_attributions');
+        $table_escrow = OraBooks_Database::table('commission_escrow_schedule');
+
+        $attributions = $wpdb->get_results($wpdb->prepare(
+            "SELECT pa.*
+             FROM {$table_attributions} pa
+             LEFT JOIN {$table_escrow} es ON es.attribution_id = pa.id
+             WHERE pa.customer_user_id = %d
+               AND pa.status = 'verified'
+               AND es.id IS NULL",
+            $customer_user_id
+        ));
+
+        if (empty($attributions)) {
+            return;
+        }
+
+        foreach ($attributions as $attribution) {
+            self::create_escrow_from_attribution((int) $attribution->id, $attribution);
+        }
     }
 
     /**

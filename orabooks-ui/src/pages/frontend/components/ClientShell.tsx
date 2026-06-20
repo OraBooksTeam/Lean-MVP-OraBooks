@@ -11,6 +11,7 @@ import {
   Download,
   FileText,
   Home,
+  Info,
   LogOut,
   Menu,
   Mic,
@@ -187,7 +188,7 @@ export default function ClientShell({
       </div>
       <div className="min-w-0">
         <p className="truncate text-sm font-bold text-white">OraBooks</p>
-        <p className="truncate text-xs text-white/70">{isPartner ? 'Partner Account' : 'Accounting Workspace'}</p>
+        <p className="truncate text-xs text-white/70">{isPartner ? 'Partner Account (Commission)' : 'Accounting Workspace'}</p>
       </div>
     </div>
   );

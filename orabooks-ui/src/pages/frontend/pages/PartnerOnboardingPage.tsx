@@ -41,7 +41,7 @@ export default function PartnerOnboardingPage() {
   return (
     <ClientShell
       title="Partner Onboarding"
-      eyebrow="Referral setup"
+      eyebrow="Partner program"
       organization={organization}
       isPartner
     >
