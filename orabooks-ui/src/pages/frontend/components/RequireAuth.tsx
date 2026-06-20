@@ -23,20 +23,24 @@ export default function RequireAuth({ children }: { children: ReactNode }) {
       };
     }
 
-    absorbAuthTokensFromUrl();
-
-    api.verifySession().then((res) => {
+    absorbAuthTokensFromUrl().then(() => {
       if (cancelled) {
         return;
       }
 
-      if (!res.error) {
-        clearRedirectGuard();
-        setReady(true);
-        return;
-      }
+      api.verifySession().then((res) => {
+        if (cancelled) {
+          return;
+        }
 
-      redirectToLogin(true, true);
+        if (!res.error) {
+          clearRedirectGuard();
+          setReady(true);
+          return;
+        }
+
+        redirectToLogin(true, true);
+      });
     });
 
     return () => {

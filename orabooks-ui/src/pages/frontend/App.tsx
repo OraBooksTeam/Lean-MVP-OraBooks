@@ -47,7 +47,7 @@ const ROUTES: Record<string, RouteConfig> = {
   '/register': { element: <RegisterPage />, requireAuth: false },
   '/reset-password': { element: <ResetPasswordPage />, requireAuth: false },
   '/verify-email': { element: <VerifyEmailPage />, requireAuth: false },
-  '/tier-selection': { element: <TierSelectionPage /> },
+  '/tier-selection': { element: <TierSelectionPage />, requireAuth: false },
   '/dashboard': { element: <DashboardPage /> },
   '/customers': { element: <CustomersPage /> },
   '/vendors': { element: <VendorsPage /> },

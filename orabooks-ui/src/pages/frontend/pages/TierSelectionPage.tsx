@@ -1,18 +1,46 @@
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import Button from '@/components/Button';
 import Input from '@/components/Input';
 import { api } from '@/pages/frontend/api';
 import { getTenantDomainSuffix } from '@/lib/utils';
-import { redirectAfterAuth } from '../lib/auth-routing';
+import {
+  clearTierSelectionToken,
+  getTierSelectionToken,
+  redirectAfterAuth,
+  storeTierSelectionToken,
+} from '../lib/auth-routing';
+
+const REGIONS = [
+  { id: 'us-east', label: 'US East' },
+  { id: 'eu-west-1', label: 'EU West' },
+  { id: 'ap-southeast-1', label: 'Asia Pacific' },
+];
 
 export default function TierSelectionPage() {
   const tenantDomainSuffix = getTenantDomainSuffix();
   const [tier, setTier] = useState<'free' | 'premium' | 'enterprise'>('free');
   const [subdomain, setSubdomain] = useState('');
+  const [region, setRegion] = useState('us-east');
   const [checking, setChecking] = useState(false);
   const [available, setAvailable] = useState<boolean | null>(null);
   const [msg, setMsg] = useState('');
   const [loading, setLoading] = useState(false);
+  const [confirmedPermanent, setConfirmedPermanent] = useState(false);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get('tier_selection_token');
+    if (token) {
+      storeTierSelectionToken(token);
+      params.delete('tier_selection_token');
+      const qs = params.toString();
+      window.history.replaceState(null, '', `${window.location.pathname}${qs ? `?${qs}` : ''}`);
+    }
+
+    if (!getTierSelectionToken()) {
+      setMsg('Your tier-selection session expired. Please log in again.');
+    }
+  }, []);
 
   const checkSubdomain = async () => {
     if (!subdomain) return;
@@ -37,12 +65,37 @@ export default function TierSelectionPage() {
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
-    if (available === false) return setMsg('Please choose an available subdomain.');
+    const tierToken = getTierSelectionToken();
+    if (!tierToken) {
+      setMsg('Your tier-selection session expired. Please log in again.');
+      return;
+    }
+    if (available !== true) {
+      setMsg('Please check subdomain availability and choose an available name.');
+      return;
+    }
+    if (!confirmedPermanent) {
+      setMsg('Please confirm that you understand your subdomain cannot be changed later.');
+      return;
+    }
+    if (tier === 'enterprise' && !region) {
+      setMsg('Please select a data residency region for Enterprise.');
+      return;
+    }
+
     setLoading(true);
-    const res = await api.post('orabooks_select_tier', { tier, subdomain });
+    const payload: Record<string, string> = { tier, subdomain, tier_selection_token: tierToken };
+    if (tier === 'enterprise') {
+      payload.region = region;
+    }
+
+    const res = await api.post('orabooks_select_tier', payload);
     if (!res.error) {
+      clearTierSelectionToken();
       redirectAfterAuth((res as any).data || {});
-    } else setMsg(typeof res.error === 'string' ? res.error : 'Failed');
+    } else {
+      setMsg(typeof res.error === 'string' ? res.error : 'Failed');
+    }
     setLoading(false);
   };
 
@@ -72,10 +125,26 @@ export default function TierSelectionPage() {
             ))}
           </div>
 
+          {tier === 'enterprise' && (
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-slate-700">Data residency region</label>
+              <select
+                value={region}
+                onChange={(e) => setRegion(e.target.value)}
+                className="w-full rounded-lg border border-border bg-white px-3 py-2 text-sm"
+                required
+              >
+                {REGIONS.map((r) => (
+                  <option key={r.id} value={r.id}>{r.label}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
           <div>
             <label className="mb-1.5 block text-sm font-medium text-slate-700">Choose subdomain</label>
             <div className="flex gap-2">
-              <Input value={subdomain} onChange={(e) => setSubdomain(e.target.value)} placeholder="mycompany" required className="flex-1" />
+              <Input value={subdomain} onChange={(e) => { setSubdomain(e.target.value); setAvailable(null); }} placeholder="mycompany" required className="flex-1" />
               <Button type="button" variant="secondary" onClick={checkSubdomain} loading={checking} className="whitespace-nowrap">
                 Check availability
               </Button>
@@ -88,7 +157,19 @@ export default function TierSelectionPage() {
             )}
           </div>
 
-          {msg && !available && <p className="text-sm text-danger">{msg}</p>}
+          <label className="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+            <input
+              type="checkbox"
+              checked={confirmedPermanent}
+              onChange={(e) => setConfirmedPermanent(e.target.checked)}
+              className="mt-1"
+            />
+            <span>I understand my subdomain is permanent and cannot be changed after setup.</span>
+          </label>
+
+          {msg && (available === false || available === null) && (
+            <p className="text-sm text-danger">{msg}</p>
+          )}
           <Button type="submit" loading={loading} className="w-full">Continue</Button>
         </form>
         </div>
