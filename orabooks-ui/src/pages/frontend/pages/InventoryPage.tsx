@@ -128,14 +128,7 @@ export default function InventoryPage() {
   const [search, setSearch] = useState('');
 
   const [showProductForm, setShowProductForm] = useState(false);
-  const [productForm, setProductForm] = useState({
-    sku: '',
-    name: '',
-    unit: 'piece',
-    initial_stock: '',
-    initial_cost: '',
-    low_stock_threshold: '',
-  });
+  const [productForm, setProductForm] = useState<ProductFormState>(emptyProductForm());
 
   const [adjustProduct, setAdjustProduct] = useState<Product | null>(null);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
@@ -189,19 +182,43 @@ export default function InventoryPage() {
   const handleSearch = () => { void load(); };
 
   const handleCreateProduct = async () => {
-    if (!orgId || !productForm.sku.trim() || !productForm.name.trim()) {
-      setError('SKU and name are required.');
+    if (!orgId || !productForm.name.trim() || !productForm.category_name.trim() || !productForm.unit.trim()) {
+      setError('Item name, category, and unit are required.');
+      return;
+    }
+
+    if (parseFloat(productForm.price) < 0) {
+      setError('Price cannot be negative.');
       return;
     }
 
     setSaving(true);
     setError('');
     const res = await api.inventoryProductCreate(orgId, {
-      sku: productForm.sku.trim(),
       name: productForm.name.trim(),
-      unit: productForm.unit,
+      unit: productForm.unit.trim(),
+      brand_name: productForm.brand_name.trim(),
+      category_name: productForm.category_name.trim(),
+      hsn: productForm.hsn.trim(),
+      stock_keeping_unit: productForm.stock_keeping_unit.trim(),
+      barcode: productForm.barcode.trim(),
+      seller_points: parseFloat(productForm.seller_points) || 0,
+      description: productForm.description.trim(),
+      item_image_url: productForm.item_image_url.trim(),
+      discount_type: productForm.discount_type,
+      discount: parseFloat(productForm.discount) || 0,
+      price: parseFloat(productForm.price) || 0,
+      purchase_price: parseFloat(productForm.purchase_price) || 0,
+      tax_name: productForm.tax_name.trim(),
+      tax_percent: parseFloat(productForm.tax_percent) || 0,
+      tax_type: productForm.tax_type,
+      profit_margin: parseFloat(productForm.profit_margin) || 0,
+      sales_price: parseFloat(productForm.sales_price) || 0,
+      mrp: parseFloat(productForm.mrp) || 0,
+      warehouse_name: productForm.warehouse_name.trim(),
+      item_type: productForm.item_type,
       initial_stock: parseFloat(productForm.initial_stock) || 0,
-      initial_cost: parseFloat(productForm.initial_cost) || 0,
+      initial_cost: parseFloat(productForm.purchase_price) || parseFloat(productForm.price) || 0,
       low_stock_threshold: productForm.low_stock_threshold
         ? parseFloat(productForm.low_stock_threshold)
         : undefined,
@@ -211,7 +228,7 @@ export default function InventoryPage() {
     else {
       setSuccess('Product created.');
       setShowProductForm(false);
-      setProductForm({ sku: '', name: '', unit: 'piece', initial_stock: '', initial_cost: '', low_stock_threshold: '' });
+      setProductForm(emptyProductForm());
       await load();
     }
     setSaving(false);
