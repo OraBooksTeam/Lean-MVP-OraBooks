@@ -1068,7 +1068,7 @@ class OraBooks_Customers_Test extends TestCase
         global $wpdb;
 
         $wpdb->test_get_row_callback = function ($query) {
-            if (stripos($query, 'WHERE id') !== false) {
+            if (stripos($query, 'WHERE c.id') !== false || stripos($query, 'WHERE id') !== false) {
                 return $this->mockCustomer(['id' => 1, 'user_id' => 10, 'is_active' => 0]);
             }
             return null;
