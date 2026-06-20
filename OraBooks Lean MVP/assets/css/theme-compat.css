@@ -314,7 +314,6 @@ body.orabooks-page.orabooks-react-page #orabooks-app-root aside.fixed {
     z-index: 100;
 }
 
-body.orabooks-page.orabooks-react-page #orabooks-app-root main > .sticky,
 body.orabooks-page.orabooks-react-page #orabooks-app-root .orabooks-client-main > div.sticky {
     z-index: 99;
 }
