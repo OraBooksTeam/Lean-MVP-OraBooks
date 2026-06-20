@@ -239,6 +239,9 @@ class OraBooks_Assets {
             'verify_email_url' => orabooks_get_network_login_url('verify-email'),
             'tier_selection_url' => orabooks_get_network_login_url('tier-selection'),
             'admin_base' => admin_url('admin.php'),
+            'platform_admin_url' => function_exists('orabooks_get_platform_admin_url')
+                ? orabooks_get_platform_admin_url()
+                : admin_url('admin.php?page=orabooks'),
             'is_admin' => current_user_can('manage_options'),
             'accounting_url' => home_url('/dashboard/'),
         ];

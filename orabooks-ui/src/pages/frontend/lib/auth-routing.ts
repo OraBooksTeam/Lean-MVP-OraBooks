@@ -7,6 +7,7 @@ const REFRESH_TOKEN_KEY = 'orabooks_refresh_token';
 const REDIRECT_GUARD_KEY = 'orabooks_auth_redirect_ts';
 const LOGOUT_QUERY_FLAG = 'logged_out';
 const AUTH_RESET_QUERY_FLAG = 'auth_reset';
+const SESSION_EXPIRED_QUERY_FLAG = 'session_expired';
 const LOGOUT_SESSION_FLAG = 'orabooks_logged_out';
 const REDIRECT_COOLDOWN_MS = 4000;
 

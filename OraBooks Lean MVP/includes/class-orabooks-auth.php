@@ -581,7 +581,7 @@ class OraBooks_Auth {
                     'expected' => $expected_subdomain,
                     'actual' => $org->subdomain
                 ], $user->id, $user->org_id);
-                return new WP_Error('subdomain_mismatch', 'This account does not belong to the specified organization subdomain.');
+                return new WP_Error('subdomain_mismatch', 'Invalid subdomain for this account.');
             }
         }
         
@@ -723,7 +723,7 @@ class OraBooks_Auth {
             'role' => 'owner',
             'is_partner' => 1,
             'subdomain' => $org_result['subdomain'],
-            'redirect_to' => '/onboarding/'
+            'redirect_to' => '/partner/onboarding/'
         ]);
     }
     
@@ -1112,7 +1112,10 @@ class OraBooks_Auth {
         $result = self::login($email, $password, $subdomain);
         
         if (is_wp_error($result)) {
-            orabooks_json_error($result->get_error_message(), 200);
+            orabooks_json_error(
+                $result->get_error_message(),
+                orabooks_auth_error_status_code($result->get_error_code())
+            );
         }
         
         // Include detected subdomain in response so the frontend can use it
