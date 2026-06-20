@@ -225,6 +225,8 @@ function orabooks_init() {
      * Allow optional extensions to register additional features.
      */
     do_action('orabooks_register_addons');
+
+    orabooks_mirror_jwt_ajax_nopriv_handlers();
 }
 
 /**

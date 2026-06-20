@@ -1890,6 +1890,46 @@ function orabooks_has_permission($user_id, $org_id, $permission) {
 }
 
 /**
+ * Mirror logged-in OraBooks AJAX handlers for JWT clients on tenant subdomains.
+ *
+ * WordPress only routes admin-ajax.php to wp_ajax_* when a WP session exists.
+ * OraBooks frontend auth uses JWT, so matching wp_ajax_nopriv_* hooks are required.
+ */
+function orabooks_mirror_jwt_ajax_nopriv_handlers() {
+    global $wp_filter;
+
+    if (!is_iterable($wp_filter)) {
+        return;
+    }
+
+    foreach ($wp_filter as $tag => $hook) {
+        if (!is_string($tag) || strpos($tag, 'wp_ajax_orabooks_') !== 0) {
+            continue;
+        }
+
+        $nopriv_tag = 'wp_ajax_nopriv_' . substr($tag, strlen('wp_ajax_'));
+        if (has_action($nopriv_tag)) {
+            continue;
+        }
+
+        if (!($hook instanceof WP_Hook)) {
+            continue;
+        }
+
+        foreach ($hook->callbacks as $priority => $callbacks) {
+            foreach ($callbacks as $callback) {
+                add_action(
+                    $nopriv_tag,
+                    $callback['function'],
+                    (int) $priority,
+                    (int) ($callback['accepted_args'] ?? 1)
+                );
+            }
+        }
+    }
+}
+
+/**
  * JSON response helper
  */
 function orabooks_json_response($data, $status_code = 200) {

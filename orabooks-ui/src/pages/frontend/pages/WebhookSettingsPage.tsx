@@ -4,17 +4,43 @@ import ClientShell from '../components/ClientShell';
 import { api } from '../api';
 
 export default function WebhookSettingsPage() {
+  const [context, setContext] = useState<any>(null);
   const [urls, setUrls] = useState('');
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    api.webhookSettingsGet().then((res: any) => {
-      if (res.error) setError(res.error);
-      else setUrls(res.data?.urls || '');
+  const canManage = (context?.permissions || []).includes('manage_settings');
+
+  const load = async () => {
+    setLoading(true);
+    setError('');
+
+    const ctx = await api.frontendContext();
+    if (ctx.error) {
+      setError(ctx.error || 'Please log in to manage webhook settings.');
       setLoading(false);
-    });
+      return;
+    }
+
+    const nextContext = (ctx as any).data;
+    setContext(nextContext);
+
+    const permissions: string[] = nextContext?.permissions || [];
+    if (!permissions.includes('manage_settings')) {
+      setError('You do not have permission to manage webhook settings. Contact Owner or Admin.');
+      setLoading(false);
+      return;
+    }
+
+    const res = await api.webhookSettingsGet();
+    if (res.error) setError(res.error);
+    else setUrls((res as any).data?.urls || '');
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    void load();
   }, []);
 
   const save = async () => {
@@ -28,8 +54,20 @@ export default function WebhookSettingsPage() {
     }
   };
 
+  const isPartner = context?.organization?.organization_type === 'partner' || context?.user?.is_partner;
+
   return (
-    <ClientShell title="Webhook Settings" eyebrow="Platform">
+    <ClientShell
+      title="Webhook Settings"
+      eyebrow="Platform"
+      organization={context?.organization}
+      isPartner={isPartner}
+    >
+      {!canManage && !loading ? (
+        <div className="glass-panel max-w-lg p-6 text-center text-sm text-slate-600">
+          You do not have permission to manage webhook settings. Contact Owner or Admin.
+        </div>
+      ) : (
       <div className="max-w-3xl space-y-4 rounded-2xl border border-border bg-white p-5">
         <p className="text-sm text-slate-600">
           Add one webhook URL per line. Domain events from SL-302 are dispatched through SL-303
@@ -53,6 +91,7 @@ export default function WebhookSettingsPage() {
           Save Webhooks
         </Button>
       </div>
+      )}
     </ClientShell>
   );
 }

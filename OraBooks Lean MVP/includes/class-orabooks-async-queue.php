@@ -833,7 +833,8 @@ class OraBooks_AsyncQueue {
         if (!self::current_user_can_manage_queue()) {
             orabooks_json_error('Permission denied', 403);
         }
-        $org_id = function_exists('orabooks_get_current_org_id') ? (int) orabooks_get_current_org_id(get_current_user_id()) : 0;
+        $user_id = function_exists('orabooks_get_current_user_id') ? (int) orabooks_get_current_user_id() : 0;
+        $org_id = function_exists('orabooks_get_current_org_id') ? (int) orabooks_get_current_org_id($user_id) : 0;
         orabooks_json_success([
             'urls' => implode("\n", self::get_webhook_urls($org_id)),
             'localhost_warning' => 'Localhost URLs are useful for tests only; hosted webhooks cannot call your local machine/port.',
@@ -844,7 +845,8 @@ class OraBooks_AsyncQueue {
         if (!self::current_user_can_manage_queue()) {
             orabooks_json_error('Permission denied', 403);
         }
-        $org_id = function_exists('orabooks_get_current_org_id') ? (int) orabooks_get_current_org_id(get_current_user_id()) : 0;
+        $user_id = function_exists('orabooks_get_current_user_id') ? (int) orabooks_get_current_user_id() : 0;
+        $org_id = function_exists('orabooks_get_current_org_id') ? (int) orabooks_get_current_org_id($user_id) : 0;
         $urls = self::save_webhook_urls(wp_unslash($_POST['urls'] ?? ''), $org_id);
         orabooks_json_success(['urls' => implode("\n", $urls)], 'Webhook settings saved');
     }
