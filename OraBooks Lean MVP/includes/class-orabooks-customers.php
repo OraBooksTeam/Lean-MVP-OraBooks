@@ -252,6 +252,10 @@ class OraBooks_Customers {
             return;
         }
 
+        if (!file_exists(ABSPATH . 'wp-admin/includes/upgrade.php')) {
+            return;
+        }
+
         if (function_exists('orabooks_with_data_blog')) {
             orabooks_with_data_blog([self::class, 'ensure_schema']);
             return;
@@ -271,17 +275,20 @@ class OraBooks_Customers {
             return;
         }
 
-        require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+        $upgrade = ABSPATH . 'wp-admin/includes/upgrade.php';
+        if (file_exists($upgrade)) {
+            require_once $upgrade;
 
-        $payments_sql = array_values(array_filter(
-            self::get_create_table_sql(),
-            function ($sql) {
-                return stripos($sql, 'orabooks_payments') !== false;
+            $payments_sql = array_values(array_filter(
+                self::get_create_table_sql(),
+                function ($sql) {
+                    return stripos($sql, 'orabooks_payments') !== false;
+                }
+            ));
+
+            if (!empty($payments_sql[0]) && function_exists('dbDelta')) {
+                dbDelta($payments_sql[0]);
             }
-        ));
-
-        if (!empty($payments_sql[0])) {
-            dbDelta($payments_sql[0]);
         }
 
         if ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table_payments)) === $table_payments) {
