@@ -756,6 +756,24 @@ function orabooks_get_auth_token_cookie_ttl() {
 }
 
 /**
+ * Cookie domain shared across tenant subdomains on multisite networks.
+ */
+function orabooks_get_auth_cookie_domain() {
+    if (defined('COOKIEDOMAIN') && COOKIEDOMAIN) {
+        return COOKIEDOMAIN;
+    }
+
+    if (function_exists('is_multisite') && is_multisite()) {
+        $base_domain = orabooks_get_tenant_base_domain();
+        if ($base_domain !== '') {
+            return '.' . ltrim($base_domain, '.');
+        }
+    }
+
+    return '';
+}
+
+/**
  * Persist the OraBooks JWT in an HTTP-only cookie for full-page loads.
  */
 function orabooks_set_auth_token_cookie($token) {
@@ -765,7 +783,7 @@ function orabooks_set_auth_token_cookie($token) {
 
     $expiry = time() + orabooks_get_auth_token_cookie_ttl();
     $path = defined('COOKIEPATH') && COOKIEPATH ? COOKIEPATH : '/';
-    $domain = defined('COOKIEDOMAIN') ? COOKIEDOMAIN : '';
+    $domain = orabooks_get_auth_cookie_domain();
     setcookie('orabooks_token', $token, $expiry, $path, $domain, is_ssl(), true);
     $_COOKIE['orabooks_token'] = $token;
 }
@@ -779,7 +797,7 @@ function orabooks_clear_auth_token_cookie() {
     }
 
     $path = defined('COOKIEPATH') && COOKIEPATH ? COOKIEPATH : '/';
-    $domain = defined('COOKIEDOMAIN') ? COOKIEDOMAIN : '';
+    $domain = orabooks_get_auth_cookie_domain();
     setcookie('orabooks_token', '', time() - 3600, $path, $domain, is_ssl(), true);
     unset($_COOKIE['orabooks_token']);
 }
