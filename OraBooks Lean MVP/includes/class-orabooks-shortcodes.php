@@ -72,6 +72,47 @@ class OraBooks_Shortcodes {
         ]);
     }
 
+    /**
+     * Choose React SPA or Divi-compatible PHP views / accounting workspace.
+     *
+     * @param array<string, mixed> $config route, accounting_view, php_view, require_login, react_only
+     */
+    private function resolve_frontend($config) {
+        $require_login = !empty($config['require_login']);
+        $react_only = !empty($config['react_only']);
+
+        if ($require_login && !orabooks_is_user_logged_in()) {
+            return OraBooks_Views::require_login_message();
+        }
+
+        if (
+            !$react_only
+            && function_exists('orabooks_should_use_react_frontend')
+            && !orabooks_should_use_react_frontend()
+        ) {
+            if (!empty($config['php_view'])) {
+                return $this->render_view($config['php_view']);
+            }
+
+            if (
+                !empty($config['accounting_view'])
+                && function_exists('orabooks_uses_merged_accounting_workspace')
+                && orabooks_uses_merged_accounting_workspace()
+            ) {
+                return orabooks_render_merged_accounting_workspace($config['accounting_view']);
+            }
+        }
+
+        return $this->react_page($config['route'], $require_login);
+    }
+
+    private function accounting_shortcode_page($shortcode_tag) {
+        return $this->resolve_frontend([
+            'route' => '/' . str_replace('orabooks_', '', str_replace('_', '-', $shortcode_tag)),
+            'accounting_view' => orabooks_get_merged_accounting_view_for_shortcode($shortcode_tag),
+        ]);
+    }
+
     private function ajax_dashboard_page($title, $ajax_action, $description = '') {
         return $this->render_view('ajax-dashboard', [
             'title' => $title,
