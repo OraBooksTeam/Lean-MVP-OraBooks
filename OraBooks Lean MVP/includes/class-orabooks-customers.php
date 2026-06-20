@@ -506,6 +506,77 @@ class OraBooks_Customers {
     }
 
     /**
+     * Create an org-scoped AR customer profile (manual entry, SL-021).
+     *
+     * @param int   $org_id
+     * @param array $data
+     * @return object|WP_Error
+     */
+    public static function create_customer($org_id, $data) {
+        global $wpdb;
+
+        self::maybe_ensure_schema();
+
+        $org_id = (int) $org_id;
+        $display_name = sanitize_text_field($data['display_name'] ?? $data['name'] ?? '');
+        $contact_email = sanitize_email($data['email'] ?? $data['contact_email'] ?? '');
+        $notes = isset($data['notes']) ? sanitize_textarea_field($data['notes']) : null;
+
+        if ($org_id <= 0 || $display_name === '') {
+            return new WP_Error('missing_field', 'Organization and customer name are required');
+        }
+
+        if ($contact_email !== '' && !is_email($contact_email)) {
+            return new WP_Error('invalid_email', 'Please enter a valid email address');
+        }
+
+        $table = OraBooks_Database::table('customers');
+
+        if ($contact_email !== '') {
+            $existing = $wpdb->get_var($wpdb->prepare(
+                "SELECT id FROM {$table}
+                 WHERE org_id = %d AND contact_email IS NOT NULL AND LOWER(contact_email) = LOWER(%s)
+                 LIMIT 1",
+                $org_id,
+                $contact_email
+            ));
+
+            if ($existing) {
+                return new WP_Error('duplicate', 'A customer with this email already exists for your organization.');
+            }
+        }
+
+        $inserted = $wpdb->insert(
+            $table,
+            [
+                'org_id'        => $org_id,
+                'display_name'  => $display_name,
+                'contact_email' => $contact_email !== '' ? $contact_email : null,
+                'notes'         => $notes,
+                'is_active'     => 0,
+            ],
+            ['%d', '%s', '%s', '%s', '%d']
+        );
+
+        if ($inserted === false) {
+            return new WP_Error('db_error', 'Unable to create customer profile.');
+        }
+
+        $customer_id = (int) $wpdb->insert_id;
+
+        orabooks_log_event(
+            'customer_created',
+            "Customer profile created: {$display_name}",
+            'info',
+            ['customer_id' => $customer_id, 'contact_email' => $contact_email],
+            orabooks_get_current_user_id(),
+            $org_id
+        );
+
+        return self::get_by_id($customer_id);
+    }
+
+    /**
      * Get customer by user ID.
      */
     public static function get_by_user_id($user_id) {
@@ -529,9 +600,10 @@ class OraBooks_Customers {
         $table = OraBooks_Database::table('customers');
         $table_users = OraBooks_Database::table('users');
         return $wpdb->get_row($wpdb->prepare(
-            "SELECT c.*, u.email, u.is_email_verified, u.created_at as user_created_at
+            "SELECT c.*,
+                    COALESCE(NULLIF(c.contact_email, ''), u.email) AS email
              FROM {$table} c
-             JOIN {$table_users} u ON c.user_id = u.id
+             LEFT JOIN {$table_users} u ON c.user_id = u.id
              WHERE c.id = %d",
             $customer_id
         ));
@@ -565,8 +637,10 @@ class OraBooks_Customers {
         }
 
         if (!empty($args['search'])) {
-            $where .= ' AND (u.email LIKE %s OR c.notes LIKE %s)';
+            $where .= ' AND (u.email LIKE %s OR c.contact_email LIKE %s OR c.display_name LIKE %s OR c.notes LIKE %s)';
             $search = '%' . $wpdb->esc_like($args['search']) . '%';
+            $params[] = $search;
+            $params[] = $search;
             $params[] = $search;
             $params[] = $search;
         }
@@ -574,7 +648,9 @@ class OraBooks_Customers {
         $limit = $args['limit'] ?? 50;
         $offset = $args['offset'] ?? 0;
 
-        $sql = "SELECT c.*, u.email, o.name as org_name,
+        $sql = "SELECT c.*,
+                       COALESCE(NULLIF(c.contact_email, ''), u.email) AS email,
+                       o.name as org_name,
                        (SELECT COUNT(*) FROM {$table_invoices} WHERE customer_id = c.id) as invoice_count,
                        (SELECT COALESCE(SUM(total_amount), 0) FROM {$table_invoices} WHERE customer_id = c.id AND payment_status IN ('paid', 'partial')) as total_paid,
                        (SELECT COALESCE(SUM(total_amount - COALESCE(paid_amount, 0)), 0)
