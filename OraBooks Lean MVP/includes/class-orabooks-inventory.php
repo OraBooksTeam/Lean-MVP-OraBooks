@@ -50,6 +50,25 @@ class OraBooks_Inventory {
                 org_id BIGINT UNSIGNED NOT NULL,
                 sku VARCHAR(100) NOT NULL,
                 name VARCHAR(255) NOT NULL,
+                brand_name VARCHAR(120) NULL,
+                category_name VARCHAR(120) NULL,
+                hsn VARCHAR(64) NULL,
+                barcode VARCHAR(120) NULL,
+                description TEXT NULL,
+                item_image_url VARCHAR(500) NULL,
+                discount_type ENUM('Percentage','Fixed') DEFAULT 'Percentage',
+                discount DECIMAL(20,2) DEFAULT 0,
+                price DECIMAL(20,2) DEFAULT 0,
+                purchase_price DECIMAL(20,6) DEFAULT 0,
+                sales_price DECIMAL(20,2) DEFAULT 0,
+                mrp DECIMAL(20,2) DEFAULT 0,
+                profit_margin DECIMAL(10,2) DEFAULT 0,
+                tax_name VARCHAR(120) NULL,
+                tax_percent DECIMAL(10,4) DEFAULT 0,
+                tax_type ENUM('Inclusive','Exclusive') DEFAULT 'Inclusive',
+                warehouse_name VARCHAR(120) NULL,
+                item_type ENUM('Single','Variants','service') DEFAULT 'Single',
+                seller_points DECIMAL(20,2) DEFAULT 0,
                 unit VARCHAR(50) DEFAULT 'piece',
                 current_stock DECIMAL(20,4) NOT NULL DEFAULT 0,
                 average_cost DECIMAL(20,6) NOT NULL DEFAULT 0,
@@ -90,14 +109,32 @@ class OraBooks_Inventory {
     public static function create_product($org_id, $data) {
         global $wpdb;
 
-        $org_id = intval($org_id);
-        $sku = strtoupper(sanitize_text_field($data['sku'] ?? ''));
-        $name = sanitize_text_field($data['name'] ?? '');
-        $initial_stock = round(floatval($data['initial_stock'] ?? 0), 4);
-        $initial_cost = round(floatval($data['initial_cost'] ?? 0), 6);
+        self::maybe_ensure_product_schema();
 
-        if ($org_id <= 0 || $sku === '' || $name === '') {
-            return new WP_Error('missing_field', 'Organization, SKU, and name are required');
+        $org_id = intval($org_id);
+        $sku = strtoupper(sanitize_text_field($data['sku'] ?? $data['item_code'] ?? ''));
+        $name = sanitize_text_field($data['name'] ?? $data['item_name'] ?? '');
+        $initial_stock = round(floatval($data['initial_stock'] ?? $data['opening_stock'] ?? 0), 4);
+        $initial_cost = round(floatval($data['initial_cost'] ?? $data['purchase_price'] ?? $data['price'] ?? 0), 6);
+        $price = round(floatval($data['price'] ?? 0), 2);
+        $tax_percent = round(floatval($data['tax_percent'] ?? 0), 4);
+        $tax_type = sanitize_text_field($data['tax_type'] ?? 'Inclusive');
+        $profit_margin = round(floatval($data['profit_margin'] ?? 0), 2);
+        $purchase_price = array_key_exists('purchase_price', $data)
+            ? round(floatval($data['purchase_price']), 6)
+            : self::calculate_purchase_price($price, $tax_percent, $tax_type);
+        $sales_price = array_key_exists('sales_price', $data)
+            ? round(floatval($data['sales_price']), 2)
+            : self::calculate_sales_price($price, $profit_margin);
+        $mrp = array_key_exists('mrp', $data) ? round(floatval($data['mrp']), 2) : $sales_price;
+        $initial_cost = $initial_cost > 0 ? $initial_cost : $purchase_price;
+
+        if ($org_id <= 0 || $name === '') {
+            return new WP_Error('missing_field', 'Organization and item name are required');
+        }
+
+        if ($sku === '') {
+            $sku = self::next_item_code($org_id);
         }
 
         if ($initial_stock < 0) {
@@ -126,12 +163,31 @@ class OraBooks_Inventory {
                 'sku' => $sku,
                 'name' => $name,
                 'unit' => sanitize_text_field($data['unit'] ?? 'piece'),
+                'brand_name' => sanitize_text_field($data['brand_name'] ?? ''),
+                'category_name' => sanitize_text_field($data['category_name'] ?? ''),
+                'hsn' => sanitize_text_field($data['hsn'] ?? ''),
+                'barcode' => sanitize_text_field($data['barcode'] ?? ''),
+                'description' => sanitize_textarea_field($data['description'] ?? ''),
+                'item_image_url' => esc_url_raw($data['item_image_url'] ?? ''),
+                'discount_type' => self::enum_value($data['discount_type'] ?? 'Percentage', ['Percentage', 'Fixed'], 'Percentage'),
+                'discount' => round(floatval($data['discount'] ?? 0), 2),
+                'price' => $price,
+                'purchase_price' => $purchase_price,
+                'sales_price' => $sales_price,
+                'mrp' => $mrp,
+                'profit_margin' => $profit_margin,
+                'tax_name' => sanitize_text_field($data['tax_name'] ?? ''),
+                'tax_percent' => $tax_percent,
+                'tax_type' => self::enum_value($tax_type, ['Inclusive', 'Exclusive'], 'Inclusive'),
+                'warehouse_name' => sanitize_text_field($data['warehouse_name'] ?? ''),
+                'item_type' => self::enum_value($data['item_type'] ?? 'Single', ['Single', 'Variants', 'service'], 'Single'),
+                'seller_points' => round(floatval($data['seller_points'] ?? 0), 2),
                 'current_stock' => $initial_stock,
                 'average_cost' => $initial_cost,
                 'low_stock_threshold' => isset($data['low_stock_threshold']) ? floatval($data['low_stock_threshold']) : null,
                 'is_active' => 1,
             ],
-            ['%d', '%s', '%s', '%s', '%f', '%f', '%f', '%d']
+            ['%d', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%f', '%f', '%f', '%f', '%f', '%f', '%s', '%f', '%s', '%s', '%s', '%f', '%f', '%f', '%f', '%d']
         );
 
         $product_id = intval($wpdb->insert_id);
