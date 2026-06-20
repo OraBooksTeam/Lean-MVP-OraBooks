@@ -472,17 +472,12 @@ export default function InventoryPage() {
         {showProductForm && (
           <Modal title="Add product" onClose={() => setShowProductForm(false)}>
             {error && <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div>}
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="SKU"><Input value={productForm.sku} onChange={(e) => setProductForm((p) => ({ ...p, sku: e.target.value.toUpperCase() }))} /></Field>
-              <Field label="Name"><Input value={productForm.name} onChange={(e) => setProductForm((p) => ({ ...p, name: e.target.value }))} /></Field>
-              <Field label="Unit"><Input value={productForm.unit} onChange={(e) => setProductForm((p) => ({ ...p, unit: e.target.value }))} /></Field>
-              <Field label="Low stock threshold"><Input type="number" min="0" step="0.01" value={productForm.low_stock_threshold} onChange={(e) => setProductForm((p) => ({ ...p, low_stock_threshold: e.target.value }))} /></Field>
-              <Field label="Opening stock"><Input type="number" min="0" step="0.01" value={productForm.initial_stock} onChange={(e) => setProductForm((p) => ({ ...p, initial_stock: e.target.value }))} /></Field>
-              <Field label="Unit cost"><Input type="number" min="0" step="0.01" value={productForm.initial_cost} onChange={(e) => setProductForm((p) => ({ ...p, initial_cost: e.target.value }))} /></Field>
-            </div>
+            <ProductFields form={productForm} onChange={setProductForm} />
             <div className="mt-6 flex justify-end gap-2">
               <Button variant="secondary" onClick={() => setShowProductForm(false)}>Cancel</Button>
-              <Button onClick={handleCreateProduct} disabled={saving}>Create product</Button>
+              <Button onClick={handleCreateProduct} loading={saving} disabled={!productForm.name.trim() || !productForm.category_name.trim() || !productForm.unit.trim()}>
+                Save item
+              </Button>
             </div>
           </Modal>
         )}
