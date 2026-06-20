@@ -32,6 +32,8 @@ class OraBooks_Customers {
             add_action('wp_ajax_orabooks_customer_get', [self::$instance, 'ajax_customer_get']);
             add_action('wp_ajax_nopriv_orabooks_customer_get', [self::$instance, 'ajax_customer_get']);
             add_action('wp_ajax_orabooks_customer_update', [self::$instance, 'ajax_customer_update']);
+            add_action('wp_ajax_orabooks_customer_create', [self::$instance, 'ajax_customer_create']);
+            add_action('wp_ajax_nopriv_orabooks_customer_create', [self::$instance, 'ajax_customer_create']);
             add_action('wp_ajax_orabooks_invoices_list', [self::$instance, 'ajax_invoices_list']);
             add_action('wp_ajax_nopriv_orabooks_invoices_list', [self::$instance, 'ajax_invoices_list']);
             add_action('wp_ajax_orabooks_invoice_create', [self::$instance, 'ajax_invoice_create']);
@@ -68,8 +70,10 @@ class OraBooks_Customers {
         $table_customers = OraBooks_Database::table('customers');
         $tables[] = "CREATE TABLE IF NOT EXISTS {$table_customers} (
             id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-            user_id BIGINT UNSIGNED NOT NULL,
+            user_id BIGINT UNSIGNED NULL,
             org_id BIGINT UNSIGNED NOT NULL,
+            display_name VARCHAR(255) NULL,
+            contact_email VARCHAR(255) NULL,
             is_active TINYINT(1) DEFAULT 0 COMMENT 'Authoritative truth source for commission engine SL-068',
             last_paid_invoice_date DATE NULL,
             lifetime_value DECIMAL(20,2) DEFAULT 0,
@@ -77,6 +81,7 @@ class OraBooks_Customers {
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
             UNIQUE KEY uk_user (user_id),
+            UNIQUE KEY uk_org_contact_email (org_id, contact_email),
             FOREIGN KEY (user_id) REFERENCES {$table_users}(id) ON DELETE CASCADE,
             FOREIGN KEY (org_id) REFERENCES {$table_orgs}(id) ON DELETE CASCADE,
             INDEX idx_org (org_id),
@@ -167,6 +172,7 @@ class OraBooks_Customers {
         require_once $upgrade;
 
         self::ensure_payments_table();
+        self::ensure_customer_contact_schema();
 
         $table_invoices = OraBooks_Database::table('invoices');
         if ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table_invoices)) !== $table_invoices) {
@@ -250,7 +256,11 @@ class OraBooks_Customers {
         }
         $ran = true;
 
-        if (self::schema_is_ready() && self::get_schema_flag('orabooks_sl021_schema_v2') === '1') {
+        if (
+            self::schema_is_ready()
+            && self::get_schema_flag('orabooks_sl021_schema_v2') === '1'
+            && self::get_schema_flag('orabooks_sl021_customer_contacts_v1') === '1'
+        ) {
             return;
         }
 
@@ -264,6 +274,50 @@ class OraBooks_Customers {
         }
 
         self::ensure_schema();
+    }
+
+    /**
+     * Add org-scoped AR contact fields so customers can be created without a platform user.
+     */
+    private static function ensure_customer_contact_schema() {
+        global $wpdb;
+
+        if (self::get_schema_flag('orabooks_sl021_customer_contacts_v1') === '1') {
+            return;
+        }
+
+        $table = OraBooks_Database::table('customers');
+        if ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table)) !== $table) {
+            return;
+        }
+
+        $fields = self::get_table_column_names($table);
+
+        if (!in_array('display_name', $fields, true)) {
+            $wpdb->query("ALTER TABLE {$table} ADD COLUMN display_name VARCHAR(255) NULL AFTER org_id");
+            $fields[] = 'display_name';
+        }
+
+        if (!in_array('contact_email', $fields, true)) {
+            $wpdb->query("ALTER TABLE {$table} ADD COLUMN contact_email VARCHAR(255) NULL AFTER display_name");
+            $fields[] = 'contact_email';
+        }
+
+        $user_col = $wpdb->get_row("SHOW COLUMNS FROM {$table} LIKE 'user_id'");
+        if ($user_col && strtoupper((string) $user_col->Null) === 'NO') {
+            $wpdb->query("ALTER TABLE {$table} MODIFY user_id BIGINT UNSIGNED NULL");
+        }
+
+        $indexes = $wpdb->get_results("SHOW INDEX FROM {$table}");
+        $index_names = array_map(function ($idx) {
+            return $idx->Key_name;
+        }, $indexes ?: []);
+
+        if (!in_array('uk_org_contact_email', $index_names, true) && in_array('contact_email', $fields, true)) {
+            $wpdb->query("ALTER TABLE {$table} ADD UNIQUE KEY uk_org_contact_email (org_id, contact_email)");
+        }
+
+        self::set_schema_flag('orabooks_sl021_customer_contacts_v1', '1');
     }
 
     /**
