@@ -634,7 +634,11 @@ class OraBooks_Event_Module {
                 'outbox_id' => (int) $event->id,
                 'aggregate_id' => (int) $event->aggregate_id,
                 'payload' => $payload,
-            ], ['queue_name' => 'events']);
+            ], [
+                'queue_name' => 'webhooks',
+                'priority' => 5,
+                'idempotency_key' => 'event-webhook-' . (int) $event->id,
+            ]);
         }
         return true;
     }
