@@ -258,6 +258,7 @@ body.orabooks-page.orabooks-react-page #orabooks-app-root {
 }
 
 /* Fixed sidebar + sticky mobile header respect WP admin bar */
+body.orabooks-page.orabooks-react-page #orabooks-app-root .orabooks-client-sidebar,
 body.orabooks-page.orabooks-react-page #orabooks-app-root aside.fixed {
     top: var(--orabooks-wp-admin-bar);
     height: calc(100vh - var(--orabooks-wp-admin-bar));

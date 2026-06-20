@@ -152,6 +152,7 @@ body.orabooks-page.orabooks-divi-theme.orabooks-react-page #orabooks-app-root.or
     box-sizing: border-box;
 }
 
+body.orabooks-page.orabooks-divi-theme.orabooks-react-page #orabooks-app-root .orabooks-client-sidebar,
 body.orabooks-page.orabooks-divi-theme.orabooks-react-page #orabooks-app-root aside.fixed {
     top: var(--orabooks-divi-admin-bar);
     height: calc(100vh - var(--orabooks-divi-admin-bar));
