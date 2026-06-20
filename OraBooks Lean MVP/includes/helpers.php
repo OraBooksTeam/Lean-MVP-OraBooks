@@ -690,6 +690,59 @@ function orabooks_redirect_tenant_auth_to_network() {
 add_action('template_redirect', 'orabooks_redirect_tenant_auth_to_network', 2);
 
 /**
+ * Handle Google OAuth callback on the network login page (server-side redirect).
+ */
+function orabooks_handle_login_oidc_callback() {
+    if (orabooks_is_explicit_logout_request()) {
+        return;
+    }
+
+    if (!is_singular('page')) {
+        return;
+    }
+
+    $post = get_queried_object();
+    if (!$post || $post->post_name !== 'login') {
+        return;
+    }
+
+    $code = isset($_GET['code']) ? sanitize_text_field(wp_unslash($_GET['code'])) : '';
+    $state = isset($_GET['state']) ? sanitize_text_field(wp_unslash($_GET['state'])) : '';
+    if ($code === '' || $state === '') {
+        return;
+    }
+
+    if (!class_exists('OraBooks_Auth')) {
+        return;
+    }
+
+    $result = OraBooks_Auth::handle_google_callback($code, $state);
+    if (is_wp_error($result)) {
+        wp_redirect(add_query_arg(
+            'oidc_error',
+            rawurlencode($result->get_error_message()),
+            orabooks_get_network_login_url('login')
+        ));
+        exit;
+    }
+
+    if (!empty($result['requires_2fa'])) {
+        return;
+    }
+
+    $result = orabooks_enrich_login_response($result);
+    orabooks_persist_login_session($result);
+
+    wp_redirect($result['redirect_to'] ?? orabooks_get_org_workspace_url(
+        (int) ($result['org_id'] ?? 0),
+        '/dashboard/'
+    ));
+    exit;
+}
+
+add_action('template_redirect', 'orabooks_handle_login_oidc_callback', 1);
+
+/**
  * Redirect logged-in customers from the main site to their org subdomain workspace.
  */
 function orabooks_maybe_redirect_to_org_subdomain() {

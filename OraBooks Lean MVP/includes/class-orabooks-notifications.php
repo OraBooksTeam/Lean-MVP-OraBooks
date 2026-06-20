@@ -1771,7 +1771,7 @@ class OraBooks_Notifications {
             'amount'         => $amount,
             'new_status'     => $new_status,
             'customer_id'    => $customer_user_id,
-            'view_url'       => self::get_admin_invoices_url(),
+            'view_url'       => self::get_admin_invoices_url($invoice_id, $org_id),
         ]);
     }
 
@@ -1856,7 +1856,7 @@ class OraBooks_Notifications {
                 'correlation_id' => 'overdue_batch_' . $org_id . '_' . current_time('Ymd'),
                 'overdue_count'  => $agg['count'],
                 'total_amount'   => $agg['total'],
-                'view_url'       => self::get_admin_invoices_url(),
+                'view_url'       => self::get_admin_invoices_url(0, $org_id),
             ]);
         }
     }
