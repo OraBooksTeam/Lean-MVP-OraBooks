@@ -567,6 +567,80 @@ class OraBooks_Customers {
         }, $columns);
     }
 
+    private static function next_customer_code($org_id) {
+        global $wpdb;
+
+        $table = OraBooks_Database::table('customers');
+        $count = (int) $wpdb->get_var($wpdb->prepare(
+            "SELECT COUNT(*) FROM {$table} WHERE org_id = %d",
+            (int) $org_id
+        ));
+
+        return 'CUS-' . str_pad((string) ($count + 1), 6, '0', STR_PAD_LEFT);
+    }
+
+    /**
+     * @return array{updates: array<string,mixed>, formats: string[]}
+     */
+    private static function customer_profile_payload(array $data, $include_code = false, $org_id = 0) {
+        $updates = [];
+        $formats = [];
+
+        if ($include_code) {
+            $code = sanitize_text_field($data['customer_code'] ?? '');
+            $updates['customer_code'] = $code !== '' ? $code : self::next_customer_code((int) $org_id);
+            $formats[] = '%s';
+        }
+
+        $text_fields = [
+            'mobile' => '%s',
+            'phone' => '%s',
+            'gstin' => '%s',
+            'tax_number' => '%s',
+            'country_id' => '%s',
+            'state_id' => '%s',
+            'city' => '%s',
+            'postcode' => '%s',
+            'location_link' => '%s',
+            'ship_country_id' => '%s',
+            'ship_state_id' => '%s',
+            'ship_city' => '%s',
+            'ship_postcode' => '%s',
+        ];
+
+        foreach ($text_fields as $field => $format) {
+            if (array_key_exists($field, $data)) {
+                $updates[$field] = sanitize_text_field($data[$field]);
+                $formats[] = $format;
+            }
+        }
+
+        foreach (['address', 'ship_address'] as $field) {
+            if (array_key_exists($field, $data)) {
+                $updates[$field] = sanitize_textarea_field($data[$field]);
+                $formats[] = '%s';
+            }
+        }
+
+        if (array_key_exists('opening_balance', $data)) {
+            $updates['opening_balance'] = round((float) $data['opening_balance'], 2);
+            $formats[] = '%f';
+        }
+
+        if (array_key_exists('price_level_type', $data)) {
+            $type = sanitize_text_field($data['price_level_type']);
+            $updates['price_level_type'] = $type === 'Decrease' ? 'Decrease' : 'Increase';
+            $formats[] = '%s';
+        }
+
+        if (array_key_exists('price_level', $data)) {
+            $updates['price_level'] = round((float) $data['price_level'], 2);
+            $formats[] = '%f';
+        }
+
+        return ['updates' => $updates, 'formats' => $formats];
+    }
+
     // ================================================================
     // SEED DEFAULT CUSTOMERS
     // ================================================================
