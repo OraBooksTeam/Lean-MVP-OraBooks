@@ -747,7 +747,7 @@ class OraBooks_AsyncQueue {
      * AJAX: Manual replay of a dead-letter/failed job (admin only).
      */
     public function ajax_replay_job() {
-        if (!current_user_can('manage_options')) {
+        if (!self::current_user_can_manage_queue()) {
             orabooks_json_error('Permission denied', 403);
         }
 
@@ -764,16 +764,80 @@ class OraBooks_AsyncQueue {
         orabooks_json_success([], 'Job retried successfully');
     }
 
+    public function ajax_discard_job() {
+        if (!self::current_user_can_manage_queue()) {
+            orabooks_json_error('Permission denied', 403);
+        }
+        $job_id = intval($_POST['job_id'] ?? 0);
+        if (!$job_id) {
+            orabooks_json_error('Job ID required', 400);
+        }
+        $result = self::discard_job($job_id);
+        if (is_wp_error($result)) {
+            orabooks_json_error($result->get_error_message(), 400);
+        }
+        orabooks_json_success([], 'Job discarded successfully');
+    }
+
+    public function ajax_cancel_job() {
+        if (!self::current_user_can_manage_queue()) {
+            orabooks_json_error('Permission denied', 403);
+        }
+        $job_id = intval($_POST['job_id'] ?? 0);
+        if (!$job_id) {
+            orabooks_json_error('Job ID required', 400);
+        }
+        $result = self::cancel_job($job_id);
+        if (is_wp_error($result)) {
+            orabooks_json_error($result->get_error_message(), 400);
+        }
+        orabooks_json_success([], 'Job cancelled successfully');
+    }
+
+    public function ajax_poll_now() {
+        if (!self::current_user_can_manage_queue()) {
+            orabooks_json_error('Permission denied', 403);
+        }
+        $result = $this->process_queue();
+        orabooks_json_success($result, 'Queue worker ran successfully');
+    }
+
     /**
      * AJAX: Get queue stats (admin only).
      */
     public function ajax_queue_stats() {
-        if (!current_user_can('manage_options')) {
+        if (!self::current_user_can_manage_queue()) {
             orabooks_json_error('Permission denied', 403);
         }
 
         $stats = self::get_queue_stats();
+        $stats['jobs'] = self::list_jobs([
+            'status' => sanitize_text_field($_REQUEST['status'] ?? ''),
+            'job_type' => sanitize_text_field($_REQUEST['job_type'] ?? ''),
+            'queue_name' => sanitize_text_field($_REQUEST['queue_name'] ?? ''),
+            'limit' => intval($_REQUEST['limit'] ?? 50),
+        ]);
         orabooks_json_success($stats);
+    }
+
+    public function ajax_webhook_settings_get() {
+        if (!self::current_user_can_manage_queue()) {
+            orabooks_json_error('Permission denied', 403);
+        }
+        $org_id = function_exists('orabooks_get_current_org_id') ? (int) orabooks_get_current_org_id(get_current_user_id()) : 0;
+        orabooks_json_success([
+            'urls' => implode("\n", self::get_webhook_urls($org_id)),
+            'localhost_warning' => 'Localhost URLs are useful for tests only; hosted webhooks cannot call your local machine/port.',
+        ]);
+    }
+
+    public function ajax_webhook_settings_save() {
+        if (!self::current_user_can_manage_queue()) {
+            orabooks_json_error('Permission denied', 403);
+        }
+        $org_id = function_exists('orabooks_get_current_org_id') ? (int) orabooks_get_current_org_id(get_current_user_id()) : 0;
+        $urls = self::save_webhook_urls(wp_unslash($_POST['urls'] ?? ''), $org_id);
+        orabooks_json_success(['urls' => implode("\n", $urls)], 'Webhook settings saved');
     }
 
     // ================================================================
