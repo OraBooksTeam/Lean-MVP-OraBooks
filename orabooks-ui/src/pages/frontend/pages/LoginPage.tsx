@@ -2,7 +2,7 @@ import { useState, useEffect, type FormEvent } from 'react';
 import Button from '@/components/Button';
 import Input from '@/components/Input';
 import { Flame } from 'lucide-react';
-import { api } from '../api';
+import { api, hasStoredAuthToken } from '../api';
 import {
   clearRedirectGuard,
   redirectAfterAuth,
@@ -23,6 +23,10 @@ export default function LoginPage() {
   const [otp, setOtp] = useState('');
 
   useEffect(() => {
+    if (!hasStoredAuthToken()) {
+      return;
+    }
+
     api.frontendContext().then((res) => {
       if (!res.error) {
         clearRedirectGuard();
@@ -78,8 +82,13 @@ export default function LoginPage() {
   };
 
   const googleLogin = () => {
+    setError('');
     api.oidcInitiate().then((res) => {
-      if (!res.error && (res as any).data?.auth_url) window.location.href = (res as any).data.auth_url;
+      if (res.error) {
+        setError(typeof res.error === 'string' ? res.error : 'Google login is unavailable.');
+        return;
+      }
+      if ((res as any).data?.auth_url) window.location.href = (res as any).data.auth_url;
     });
   };
 
