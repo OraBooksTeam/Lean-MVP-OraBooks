@@ -1,0 +1,88 @@
+<?php
+/**
+ * Unit Tests for post-deploy verification checks.
+ */
+
+use PHPUnit\Framework\Attributes\Test;
+use PHPUnit\Framework\TestCase;
+
+class OraBooks_Deploy_Checks_Test extends TestCase
+{
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        global $wpdb;
+        $wpdb->test_get_var_callback = null;
+        $wpdb->test_get_col_callback = null;
+
+        update_option('orabooks_jwt_secret', 'test-jwt-secret');
+        update_option('orabooks_db_version', ORABOOKS_DB_VERSION);
+
+        OraBooks_AsyncQueue::register_default_handlers();
+    }
+
+    #[Test]
+    public function test_deploy_checks_pass_when_core_tables_and_crons_exist()
+    {
+        global $wpdb;
+
+        $wpdb->test_get_var_callback = function ($query) {
+            if (stripos($query, 'SHOW TABLES LIKE') !== false) {
+                if (preg_match("/SHOW TABLES LIKE '([^']+)'/", $query, $matches)) {
+                    return $matches[1];
+                }
+            }
+            return 1;
+        };
+
+        $wpdb->test_get_col_callback = function ($query) {
+            if (stripos($query, 'SHOW COLUMNS FROM') !== false) {
+                return ['id', 'payment_status', 'paid_amount', 'total_amount'];
+            }
+            return [];
+        };
+
+        if (!function_exists('wp_next_scheduled')) {
+            $this->markTestSkipped('wp_next_scheduled stub unavailable');
+        }
+
+        $result = orabooks_run_deploy_checks();
+
+        $this->assertTrue($result['ok']);
+        $this->assertNotEmpty($result['checks']);
+        $this->assertSame(ORABOOKS_DB_VERSION, $result['environment']['db_version_expected']);
+
+        $jwt = array_values(array_filter($result['checks'], fn($row) => $row['id'] === 'jwt_secret'));
+        $this->assertNotEmpty($jwt);
+        $this->assertTrue($jwt[0]['ok']);
+    }
+
+    #[Test]
+    public function test_deploy_checks_fail_when_db_version_mismatch()
+    {
+        global $wpdb;
+
+        update_option('orabooks_db_version', '0.9.0');
+
+        $wpdb->test_get_var_callback = function ($query) {
+            if (stripos($query, 'SHOW TABLES LIKE') !== false) {
+                if (preg_match("/SHOW TABLES LIKE '([^']+)'/", $query, $matches)) {
+                    return $matches[1];
+                }
+            }
+            return 1;
+        };
+
+        $wpdb->test_get_col_callback = function () {
+            return ['id', 'payment_status', 'paid_amount'];
+        };
+
+        $result = orabooks_run_deploy_checks();
+
+        $this->assertFalse($result['ok']);
+        $db_check = array_values(array_filter($result['checks'], fn($row) => $row['id'] === 'db_version'));
+        $this->assertNotEmpty($db_check);
+        $this->assertFalse($db_check[0]['ok']);
+    }
+}

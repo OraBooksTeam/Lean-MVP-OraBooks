@@ -81,9 +81,8 @@ export async function absorbAuthTokensFromUrl() {
   clearRedirectGuard();
 
   const { api } = await import('../api');
-  try {
-    await api.establishSession(token, refresh || '');
-  } catch {
+  const session = await api.establishSession(token, refresh || '');
+  if (session.error) {
     // Token is already in localStorage; session cookies may still be set on retry.
   }
 
