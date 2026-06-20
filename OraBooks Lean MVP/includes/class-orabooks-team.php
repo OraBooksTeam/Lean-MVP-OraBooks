@@ -489,7 +489,7 @@ class OraBooks_Team {
         $invite = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$table} WHERE id = %d", $invite_id));
         
         orabooks_log_event('invite_resent', "Invite resent to {$invite->email}", 'info', [], $user_id, $org_id);
-        orabooks_json_success(['invite_link' => home_url('/orabooks-accept-invite?token=' . $raw_token)], 'Invitation resent');
+        orabooks_json_success(['invite_link' => self::build_invite_link($raw_token)], 'Invitation resent');
     }
     
     public function ajax_cancel_invite() {
@@ -517,20 +517,39 @@ class OraBooks_Team {
     }
     
     public function ajax_accept_invite() {
-        $token = $_GET['token'] ?? '';
-        
-        if (empty($token)) {
-            wp_die('Invalid invitation link.');
+        $token = isset($_REQUEST['token']) ? sanitize_text_field(wp_unslash($_REQUEST['token'])) : '';
+
+        if ($token === '') {
+            wp_die(esc_html__('Invalid invitation link.', 'orabooks'));
         }
-        
+
         $result = self::accept_invite($token);
-        
+
         if (is_wp_error($result)) {
-            wp_die($result->get_error_message());
+            wp_die(esc_html($result->get_error_message()));
         }
-        
-        $org = OraBooks_Organization::get($result['org_id']);
-        wp_redirect(home_url('/dashboard?org=' . $org->subdomain));
+
+        if (!class_exists('OraBooks_Organization') || !class_exists('OraBooks_Auth')) {
+            wp_die(esc_html__('Team invite service is unavailable.', 'orabooks'));
+        }
+
+        $org = OraBooks_Organization::get((int) $result['org_id']);
+        if (!$org || empty($org->subdomain)) {
+            wp_redirect(orabooks_get_network_login_url('login'));
+            exit;
+        }
+
+        $session = OraBooks_Auth::issue_auth_session(
+            (int) $result['user_id'],
+            (int) $result['org_id'],
+            $result['role']
+        );
+
+        if (is_wp_error($session)) {
+            wp_die(esc_html($session->get_error_message()));
+        }
+
+        wp_redirect($session['redirect_to']);
         exit;
     }
 }

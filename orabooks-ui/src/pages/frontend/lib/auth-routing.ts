@@ -1,4 +1,5 @@
 import { getTenantDomainSuffix } from '@/lib/utils';
+import { clearPersistedAuthTokens } from '../api';
 import { normalizeAppRoute, toWpUrl } from './wp-routing';
 
 const TOKEN_KEY = 'orabooks_token';
@@ -9,8 +10,7 @@ const LOGOUT_SESSION_FLAG = 'orabooks_logged_out';
 const REDIRECT_COOLDOWN_MS = 4000;
 
 export function clearStoredAuthTokens() {
-  window.localStorage.removeItem(TOKEN_KEY);
-  window.localStorage.removeItem(REFRESH_TOKEN_KEY);
+  clearPersistedAuthTokens();
 }
 
 export function normalizeWpAppPath(path: string, fallback = '/dashboard/') {
@@ -49,6 +49,19 @@ export function absorbAuthTokensFromUrl() {
 }
 
 function appendCrossOriginAuthParams(url: string) {
+  if (isLogoutLanding()) {
+    return url;
+  }
+
+  try {
+    const target = new URL(url, window.location.href);
+    if (target.searchParams.get(LOGOUT_QUERY_FLAG) === '1') {
+      return url;
+    }
+  } catch {
+    // Fall through to token handling below.
+  }
+
   const token = window.localStorage.getItem(TOKEN_KEY);
   if (!token) {
     return url;
@@ -87,7 +100,7 @@ export function redirectAfterAuth(data: {
   clearRedirectGuard();
 
   if (data?.needs_tier_selection) {
-    replaceAppLocation('/tier-selection/');
+    window.location.replace(normalizeWpAppPath(getNetworkAuthUrl('tier-selection')));
     return;
   }
 
@@ -139,7 +152,7 @@ export function redirectToLogin(force = false) {
     return true;
   }
 
-  replaceAppLocation('/login/');
+  replaceAppLocation(getNetworkLoginUrl());
   return true;
 }
 

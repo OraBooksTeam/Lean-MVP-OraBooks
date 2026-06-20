@@ -19,9 +19,9 @@
         <p class="orabooks-auth-divider"><?php esc_html_e('or', 'orabooks'); ?></p>
         <button type="button" class="orabooks-btn orabooks-btn-google orabooks-btn-secondary"><?php esc_html_e('Sign in with Google', 'orabooks'); ?></button>
         <p class="orabooks-auth-links">
-            <a href="<?php echo esc_url(home_url('/reset-password/')); ?>"><?php esc_html_e('Forgot password?', 'orabooks'); ?></a>
+            <a href="<?php echo esc_url(orabooks_get_network_login_url('reset-password')); ?>"><?php esc_html_e('Forgot password?', 'orabooks'); ?></a>
             &nbsp;|&nbsp;
-            <a href="<?php echo esc_url(home_url('/register/')); ?>"><?php esc_html_e('Create account', 'orabooks'); ?></a>
+            <a href="<?php echo esc_url(orabooks_get_network_login_url('register')); ?>"><?php esc_html_e('Create account', 'orabooks'); ?></a>
         </p>
     </div>
 </div>
