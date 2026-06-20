@@ -914,7 +914,7 @@ class OraBooks_Commission {
         self::ensure_system_accounts($system_org_id);
 
         if (!class_exists('OraBooks_Posting') || !method_exists('OraBooks_Posting', 'create_journal')) {
-            return self::create_direct_ledger_lines($system_org_id, $lines, $metadata);
+            return new WP_Error('posting_engine_unavailable', 'Posting engine is required for commission ledger entries.');
         }
 
         foreach ($lines as $line) {
@@ -975,50 +975,10 @@ class OraBooks_Commission {
     }
 
     /**
-     * Fallback: direct ledger entry when posting engine not available.
+     * Deprecated guard: SL-001 forbids direct ledger/balance mutation outside the posting engine.
      */
     private static function create_direct_ledger_lines($org_id, array $lines, array $metadata = []) {
-        global $wpdb;
-
-        $table_balances = OraBooks_Database::table('account_balances');
-        $table_accounts = OraBooks_Database::table('accounts');
-
-        foreach ($lines as $line) {
-            $account = $wpdb->get_row($wpdb->prepare(
-                "SELECT id, normal_balance FROM {$table_accounts} WHERE org_id = %d AND code = %s LIMIT 1",
-                $org_id,
-                $line['account_code']
-            ));
-
-            if (!$account) {
-                return new WP_Error('no_accounts', 'Required account ' . $line['account_code'] . ' not found in system org');
-            }
-
-            $debit = round((float) ($line['debit'] ?? 0), 2);
-            $credit = round((float) ($line['credit'] ?? 0), 2);
-            $delta = ($account->normal_balance === 'debit') ? ($debit - $credit) : ($credit - $debit);
-
-            $wpdb->query($wpdb->prepare(
-                "INSERT INTO {$table_balances} (org_id, account_id, balance)
-                 VALUES (%d, %d, %f)
-                 ON DUPLICATE KEY UPDATE balance = balance + %f",
-                $org_id,
-                $account->id,
-                $delta,
-                $delta
-            ));
-        }
-
-        orabooks_log_event(
-            'commission_direct_ledger',
-            'Direct ledger entry posted in system org',
-            'info',
-            array_merge(['org_id' => $org_id, 'lines' => $lines], $metadata),
-            null,
-            $org_id
-        );
-
-        return ['org_id' => $org_id, 'lines' => $lines];
+        return new WP_Error('direct_ledger_forbidden', 'Direct ledger mutation is forbidden. Use OraBooks_Posting.');
     }
 
     /**
