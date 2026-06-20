@@ -56,6 +56,10 @@ class OraBooks_Organization {
             if ($exists) {
                 return new WP_Error('subdomain_taken', 'Subdomain already taken');
             }
+
+            if (function_exists('orabooks_multisite_subdomain_taken') && orabooks_multisite_subdomain_taken($data['subdomain'])) {
+                return new WP_Error('subdomain_taken', 'Subdomain already taken');
+            }
         }
         
         $owner_id = $data['owner_id'];
