@@ -718,7 +718,7 @@ function orabooks_enrich_login_response($login_result) {
             }
         }
     } elseif (!empty($login_result['subdomain'])) {
-        $path = !empty($login_result['is_partner']) ? '/onboarding/' : '/dashboard/';
+        $path = !empty($login_result['is_partner']) ? '/partner/onboarding/' : '/dashboard/';
         $login_result['redirect_to'] = orabooks_build_org_url($login_result['subdomain'], $path);
     } else {
         $login_result['redirect_to'] = orabooks_get_network_login_url('dashboard');
@@ -854,6 +854,10 @@ function orabooks_maybe_redirect_to_org_subdomain() {
     }
 
     $user_id = orabooks_get_current_user_id();
+    if ($user_id > 0 && orabooks_is_network_auth_host() && orabooks_orabooks_user_can_manage_platform($user_id)) {
+        return;
+    }
+
     $org_id = orabooks_get_current_org_id($user_id);
     if (!$org_id || !class_exists('OraBooks_Organization') || !class_exists('OraBooks_Auth')) {
         return;
@@ -872,6 +876,11 @@ function orabooks_maybe_redirect_to_org_subdomain() {
     $shared_auth_slugs = ['login', 'register', 'reset-password', 'verify-email', 'tier-selection'];
     if (in_array($post->post_name, $shared_auth_slugs, true)) {
         if ($post->post_name === 'login') {
+            if (orabooks_is_network_auth_host() && orabooks_orabooks_user_can_manage_platform($user_id)) {
+                wp_redirect(orabooks_get_platform_admin_url());
+                exit;
+            }
+
             $destination = orabooks_build_org_url($org->subdomain, '/dashboard/');
             wp_redirect(orabooks_append_auth_tokens_to_url($destination));
             exit;
@@ -1261,6 +1270,10 @@ function orabooks_is_explicit_logout_request() {
     }
 
     if (isset($_GET['auth_reset']) && (string) $_GET['auth_reset'] === '1') {
+        return true;
+    }
+
+    if (isset($_GET['session_expired']) && (string) $_GET['session_expired'] === '1') {
         return true;
     }
 
