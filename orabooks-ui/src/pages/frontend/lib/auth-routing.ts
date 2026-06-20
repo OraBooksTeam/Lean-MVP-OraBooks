@@ -1,4 +1,5 @@
 import { getTenantDomainSuffix } from '@/lib/utils';
+import { normalizeAppRoute, toWpUrl } from './wp-routing';
 
 const TOKEN_KEY = 'orabooks_token';
 const REFRESH_TOKEN_KEY = 'orabooks_refresh_token';
@@ -11,24 +12,12 @@ export function clearStoredAuthTokens() {
 }
 
 export function normalizeWpAppPath(path: string, fallback = '/dashboard/') {
-  const trimmed = path.trim();
-  if (!trimmed) {
-    return fallback;
-  }
-  if (trimmed.startsWith('http')) {
-    return trimmed;
-  }
-  const withLeadingSlash = trimmed.startsWith('/') ? trimmed : `/${trimmed}`;
-  return withLeadingSlash.endsWith('/') ? withLeadingSlash : `${withLeadingSlash}/`;
+  return toWpUrl(path || fallback);
 }
 
-/** Full-page navigation to a WP route + hash route without adding history noise. */
-export function replaceAppLocation(wpPath: string, hashRoute = '') {
-  const base = normalizeWpAppPath(wpPath);
-  const hash = hashRoute
-    ? `#${hashRoute.startsWith('/') ? hashRoute : `/${hashRoute}`}`
-    : '';
-  window.location.replace(`${base}${hash}`);
+/** Full-page navigation to a WordPress route. */
+export function replaceAppLocation(wpPath: string) {
+  window.location.replace(normalizeWpAppPath(wpPath));
 }
 
 export function absorbAuthTokensFromUrl() {
@@ -47,7 +36,7 @@ export function absorbAuthTokensFromUrl() {
   params.delete('ob_t');
   params.delete('ob_rt');
   const qs = params.toString();
-  const next = `${window.location.pathname}${qs ? `?${qs}` : ''}${window.location.hash}`;
+  const next = `${window.location.pathname}${qs ? `?${qs}` : ''}`;
   window.history.replaceState(null, '', next);
   clearRedirectGuard();
   return true;
@@ -70,21 +59,15 @@ function appendCrossOriginAuthParams(url: string) {
     target.searchParams.set('ob_rt', refresh);
   }
 
-  return `${target.origin}${target.pathname}${target.search}${target.hash}`;
+  target.hash = '';
+  return `${target.origin}${target.pathname}${target.search}`;
 }
 
-export function redirectToOrgSubdomain(
-  subdomain: string,
-  wpPath = '/dashboard/',
-  hashRoute = '/dashboard'
-) {
+export function redirectToOrgSubdomain(subdomain: string, wpPath = '/dashboard/') {
   const suffix = getTenantDomainSuffix();
   const path = normalizeWpAppPath(wpPath);
-  const hash = hashRoute
-    ? `#${hashRoute.startsWith('/') ? hashRoute : `/${hashRoute}`}`
-    : '';
   const destination = appendCrossOriginAuthParams(
-    `${window.location.protocol}//${subdomain}${suffix}${path}${hash}`
+    `${window.location.protocol}//${subdomain}${suffix}${path}`
   );
   window.location.replace(destination);
 }
@@ -98,53 +81,40 @@ export function redirectAfterAuth(data: {
   clearRedirectGuard();
 
   if (data?.needs_tier_selection) {
-    replaceAppLocation('/tier-selection/', '/tier-selection');
+    replaceAppLocation('/tier-selection/');
     return;
   }
 
   const redirectTo = String(data?.redirect_to || '').trim();
   if (redirectTo.startsWith('http')) {
-    if (redirectTo.includes('#')) {
-      window.location.replace(appendCrossOriginAuthParams(redirectTo));
-      return;
-    }
     const target = new URL(redirectTo);
-    const hashRoute = target.pathname.includes('login')
-      ? '/login'
-      : target.pathname.includes('tier-selection')
-        ? '/tier-selection'
-        : '/dashboard';
-    const destination = appendCrossOriginAuthParams(
-      `${target.origin}${target.pathname}${target.search}#${hashRoute}`
-    );
-    window.location.replace(destination);
+    target.hash = '';
+    window.location.replace(appendCrossOriginAuthParams(target.toString()));
     return;
   }
 
   if (redirectTo.startsWith('#/')) {
-    replaceAppLocation('/dashboard/', redirectTo.slice(1));
+    replaceAppLocation(redirectTo.slice(1));
     return;
   }
 
   if (redirectTo.startsWith('/')) {
     const wpPath = normalizeWpAppPath(redirectTo);
-    const hashRoute = redirectTo.replace(/\/$/, '') || '/dashboard';
     if (data?.subdomain) {
-      redirectToOrgSubdomain(data.subdomain, wpPath, hashRoute);
+      redirectToOrgSubdomain(data.subdomain, wpPath);
       return;
     }
-    replaceAppLocation(wpPath, hashRoute);
+    window.location.replace(wpPath);
     return;
   }
 
   if (data?.subdomain) {
-    const wpPath = data.is_partner ? '/partner-onboarding/' : '/dashboard/';
-    const hashRoute = data.is_partner ? '/partner-onboarding' : '/dashboard';
-    redirectToOrgSubdomain(data.subdomain, wpPath, hashRoute);
+    const wpPath = data.is_partner ? '/onboarding/' : '/dashboard/';
+    redirectToOrgSubdomain(data.subdomain, wpPath);
     return;
   }
 
-  replaceAppLocation('/dashboard/', '/dashboard');
+  replaceAppLocation('/dashboard/');
 }
 
 export function redirectToLogin(force = false) {
@@ -159,11 +129,11 @@ export function redirectToLogin(force = false) {
 
   const loginUrl = (window as any).orabooks_ajax?.login_url;
   if (loginUrl) {
-    window.location.replace(`${loginUrl}#/login`);
+    window.location.replace(normalizeWpAppPath(loginUrl));
     return true;
   }
 
-  replaceAppLocation('/login/', '/login');
+  replaceAppLocation('/login/');
   return true;
 }
 
@@ -185,34 +155,16 @@ export async function performLogout(logoutRequest: () => Promise<{ data?: { redi
     // Still redirect to login even if the AJAX call fails.
   }
 
-  const hash = '#/login';
-  if (redirectTo.includes('#')) {
-    window.location.replace(redirectTo);
-  } else {
-    window.location.replace(`${redirectTo.replace(/\/?$/, '/')}#/login`);
-  }
+  window.location.replace(normalizeWpAppPath(redirectTo));
 }
 
 export function clearRedirectGuard() {
   window.sessionStorage.removeItem(REDIRECT_GUARD_KEY);
 }
 
-const AUTH_HASH_ROUTES = new Set(['/login', '/register', '/reset-password', '/verify-email']);
-
-export function syncInitialHashRoute(route: string) {
-  const normalized = route.startsWith('/') ? route : `/${route}`;
-  const currentHash = window.location.hash.replace(/^#/, '') || '';
-  const isAuthWpRoute = AUTH_HASH_ROUTES.has(normalized);
-  const hashIsAuthRoute = AUTH_HASH_ROUTES.has(currentHash);
-
-  if (!isAuthWpRoute && hashIsAuthRoute) {
-    // e.g. /dashboard/ + #/login → use #/dashboard
-  } else if (currentHash && currentHash !== normalized) {
-    return;
-  } else if (currentHash === normalized) {
-    return;
-  }
-
-  const base = `${window.location.pathname}${window.location.search}`;
-  window.history.replaceState(null, '', `${base}#${normalized}`);
+/** @deprecated Hash routes removed — no-op kept for backwards compatibility. */
+export function syncInitialHashRoute(_route: string) {
+  // Clean URLs only: WordPress path is the route.
 }
+
+export { normalizeAppRoute };

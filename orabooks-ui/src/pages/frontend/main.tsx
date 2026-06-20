@@ -1,10 +1,10 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import { RouterProvider, createHashRouter } from 'react-router-dom';
 import FrontendRoutes from './App';
 import ExportTriggerButton from '@/components/platform/ExportTriggerButton';
 import { registerOraBooksPwa } from '@/lib/pwa/register-pwa';
-import { syncInitialHashRoute, absorbAuthTokensFromUrl } from './lib/auth-routing';
+import { absorbAuthTokensFromUrl } from './lib/auth-routing';
+import { migrateLegacyHashUrl } from './lib/wp-routing';
 import '@/styles/index.css';
 
 declare global {
@@ -96,6 +96,8 @@ function bootFrontend() {
     return;
   }
 
+  migrateLegacyHashUrl();
+
   registerOraBooksPwa();
   bootExportWidgets();
 
@@ -105,28 +107,15 @@ function bootFrontend() {
   }
 
   mountThemePortal(root);
-
   absorbAuthTokensFromUrl();
 
-  const initialRoute = root.dataset.initialRoute;
-  if (initialRoute) {
-    syncInitialHashRoute(initialRoute);
-  }
-
   try {
-    const router = createHashRouter([
-      {
-        path: '/*',
-        element: <FrontendRoutes />,
-      },
-    ]);
-
     window.orabooksReactMounted = true;
     root.classList.add('is-mounted');
     document.body.classList.add('orabooks-app-mounted');
     ReactDOM.createRoot(root).render(
       <FrontendErrorBoundary>
-        <RouterProvider router={router} />
+        <FrontendRoutes />
       </FrontendErrorBoundary>
     );
   } catch (err) {
