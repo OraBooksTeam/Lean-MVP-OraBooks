@@ -487,25 +487,30 @@ class OraBooks_Auth_Test extends TestCase
     }
 
     #[Test]
-    public function test_handle_google_callback_local_user_linked_to_google()
+    public function test_handle_google_callback_local_user_with_password_conflicts()
     {
         $this->storeValidOidcState('test-state-link');
 
         global $wpdb;
         $wpdb->test_get_row_callback = function ($query) {
-            static $callCount = 0;
-            $callCount++;
+            return (object)[
+                'id' => 15,
+                'email' => 'localuser@example.com',
+                'password_hash' => 'hashed-password',
+                'is_active' => 1,
+                'is_email_verified' => 1,
+                'is_2fa_enabled' => 0,
+                'org_id' => null,
+                'is_partner' => 0,
+                'auth_provider' => 'local',
+            ];
+        };
 
-            if ($callCount === 1) {
-                // First call: check if user exists
-                return (object)[
-                    'id' => 15,
-                    'email' => 'localuser@example.com',
-                    'password_hash' => '',
-                    'is_active' => 1,
-                    'is_email_verified' => 1, // Already verified
-                    'is_2fa_enabled' => 0,
-                    'org_id' => null,
+        $result = OraBooks_Auth::handle_google_callback('auth-code-link', 'test-state-link');
+
+        $this->assertInstanceOf(WP_Error::class, $result);
+        $this->assertEquals('oidc_email_conflict', $result->get_error_code());
+    }
                     'is_partner' => 0,
                     'auth_provider' => 'local', // Was local — will be linked
                 ];
