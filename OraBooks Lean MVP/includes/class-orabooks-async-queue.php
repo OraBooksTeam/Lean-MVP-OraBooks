@@ -1054,15 +1054,15 @@ class OraBooks_AsyncQueue {
             $account_filter = ' AND jl.account_id = %d';
             $params[] = intval($payload['account_id']);
         }
-        $sql = "SELECT coa.account_code, coa.account_name, coa.account_type,
+        $sql = "SELECT coa.code AS account_code, coa.name AS account_name, coa.type AS account_type,
                        SUM(jl.debit_amount) AS debit, SUM(jl.credit_amount) AS credit,
                        SUM(jl.debit_amount - jl.credit_amount) AS net_balance
                 FROM {$journal} je
                 JOIN {$lines} jl ON jl.journal_id = je.id
                 LEFT JOIN {$accounts} coa ON coa.id = jl.account_id
                 WHERE je.org_id = %d {$date_clause} {$account_filter}
-                GROUP BY jl.account_id, coa.account_code, coa.account_name, coa.account_type
-                ORDER BY coa.account_code ASC";
+                GROUP BY jl.account_id, coa.code, coa.name, coa.type
+                ORDER BY coa.code ASC";
         $rows = $wpdb->get_results($wpdb->prepare($sql, $params), ARRAY_A) ?: [];
         if ($report_type === 'income_statement') {
             return array_values(array_filter($rows, function($row) {
