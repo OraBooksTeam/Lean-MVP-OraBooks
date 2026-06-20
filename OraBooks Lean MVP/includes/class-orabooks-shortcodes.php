@@ -53,6 +53,7 @@ class OraBooks_Shortcodes {
             add_shortcode('orabooks_journals', [self::$instance, 'journals_page']);
             add_shortcode('orabooks_profile', [self::$instance, 'profile_page']);
             add_shortcode('orabooks_audit_log', [self::$instance, 'audit_log_page']);
+            add_shortcode('orabooks_webhook_settings', [self::$instance, 'webhook_settings_page']);
         }
         return self::$instance;
     }
@@ -159,6 +160,10 @@ class OraBooks_Shortcodes {
 
     public function audit_log_page() {
         return $this->customer_react_page('/audit-log');
+    }
+
+    public function webhook_settings_page() {
+        return $this->customer_react_page('/webhook-settings');
     }
 
     public function team_page() {
