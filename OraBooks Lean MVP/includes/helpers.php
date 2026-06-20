@@ -51,6 +51,62 @@ function orabooks_get_accounting_page_slugs() {
 }
 
 /**
+ * Allowed data residency regions (SL-004).
+ *
+ * @return string[]
+ */
+function orabooks_get_allowed_regions() {
+    return ['us-east', 'eu-west-1', 'ap-southeast-1'];
+}
+
+/**
+ * System-assigned region for non-enterprise customer tiers.
+ */
+function orabooks_get_default_region_for_tier($tier) {
+    $regions = orabooks_get_allowed_regions();
+    return $regions[0];
+}
+
+/**
+ * Validate a residency region for org creation.
+ */
+function orabooks_validate_org_region($region, $tier) {
+    $region = strtolower(trim((string) $region));
+    $allowed = orabooks_get_allowed_regions();
+
+    if ($tier === 'enterprise') {
+        if ($region === '') {
+            return __('Please select a data residency region.', 'orabooks');
+        }
+        if (!in_array($region, $allowed, true)) {
+            return __('Invalid region selected.', 'orabooks');
+        }
+        return true;
+    }
+
+    if ($region !== '' && $region !== orabooks_get_default_region_for_tier($tier)) {
+        return __('Region cannot be changed for this plan.', 'orabooks');
+    }
+
+    return true;
+}
+
+/**
+ * Whether an organization subdomain may be used for tenant context (SL-004).
+ */
+function orabooks_org_allows_subdomain_access($org) {
+    if (!$org) {
+        return false;
+    }
+
+    if ($org->organization_type === 'partner') {
+        return in_array($org->status, ['active', 'pending_setup', 'payout_hold'], true);
+    }
+
+    return $org->status === 'active';
+}
+
+/**
  * Slugs for WordPress pages created by OraBooks (Lean MVP frontend).
  *
  * @return string[]
@@ -1138,6 +1194,9 @@ function orabooks_get_current_org_id($user_id = 0) {
         $subdomain = OraBooks_Auth::detect_subdomain_from_host();
         if ($subdomain !== '') {
             $org = OraBooks_Organization::get_by_subdomain($subdomain);
+            if ($org && !orabooks_org_allows_subdomain_access($org)) {
+                return 0;
+            }
             if ($org) {
                 if (!$user_id) {
                     return (int) $org->id;

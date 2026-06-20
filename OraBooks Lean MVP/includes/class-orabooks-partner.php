@@ -1147,9 +1147,13 @@ class OraBooks_Partner {
                         'approved_at' => current_time('mysql'),
                         'approved_by' => $admin_id
                     ],
-                    ['org_id' => $review->org_id],
+                    [
+                        'org_id' => $review->org_id,
+                        'user_id' => $review->requested_by,
+                        'status' => 'inactive',
+                    ],
                     ['%s', '%s', '%d'],
-                    ['%d']
+                    ['%d', '%d', '%s']
                 );
             }
         }

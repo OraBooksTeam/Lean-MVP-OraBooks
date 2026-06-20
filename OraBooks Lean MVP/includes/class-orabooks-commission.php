@@ -323,7 +323,7 @@ class OraBooks_Commission {
                 }
             }
         } else {
-            $is_active = 1;
+            $is_active = 0;
         }
         
         $wpdb->query($wpdb->prepare(

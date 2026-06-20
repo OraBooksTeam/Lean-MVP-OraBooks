@@ -1961,15 +1961,25 @@ class OraBooks_Auth {
     public function ajax_select_tier() {
         $tier = $_POST['tier'] ?? '';
         $subdomain = strtolower(trim($_POST['subdomain'] ?? ''));
+        $region_input = sanitize_text_field($_POST['region'] ?? '');
         $user_id = orabooks_get_current_user_id();
         
         if (!$user_id) {
             orabooks_json_error('Please log in before selecting a plan.', 401);
         }
         
-        if (!in_array($tier, ['free', 'premium', 'enterprise'])) {
+        if (!in_array($tier, ['free', 'premium', 'enterprise'], true)) {
             orabooks_json_error('Invalid tier', 400);
         }
+
+        $region_check = orabooks_validate_org_region($region_input, $tier);
+        if ($region_check !== true) {
+            orabooks_json_error($region_check, 400);
+        }
+
+        $region = ($tier === 'enterprise')
+            ? strtolower(trim($region_input))
+            : orabooks_get_default_region_for_tier($tier);
         
         $validation = orabooks_validate_subdomain($subdomain);
         if ($validation !== true) {
@@ -1989,7 +1999,8 @@ class OraBooks_Auth {
             'organization_type' => 'customer',
             'tier' => $tier,
             'subdomain' => $subdomain,
-            'name' => $subdomain
+            'name' => $subdomain,
+            'region' => $region,
         ]);
         
         if (is_wp_error($org_result)) {
