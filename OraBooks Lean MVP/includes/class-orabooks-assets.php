@@ -209,10 +209,15 @@ class OraBooks_Assets {
      * Divi overrides must load after the React/Tailwind bundle.
      */
     public static function enqueue_divi_compat() {
+        $deps = ['orabooks-frontend'];
+        if (wp_style_is('orabooks-react', 'registered') || wp_style_is('orabooks-react', 'enqueued')) {
+            $deps[] = 'orabooks-react';
+        }
+
         wp_enqueue_style(
             'orabooks-divi-compat',
             ORABOOKS_PLUGIN_URL . 'assets/css/divi-compat.css',
-            ['orabooks-frontend', 'orabooks-react'],
+            $deps,
             ORABOOKS_VERSION
         );
     }
