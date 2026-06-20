@@ -619,6 +619,8 @@ export const api = {
   // Customers / Invoices
   customersList: (orgId = 0, filters = {}) =>
     api.get('orabooks_customers_list', { org_id: orgId, ...filters }),
+  customerCreate: (orgId: number, data: Record<string, unknown>) =>
+    api.post('orabooks_customer_create', { org_id: orgId, ...data }),
   customerGet: (customerId: number) =>
     api.get('orabooks_customer_get', { customer_id: customerId }),
   customerUpdate: (customerId: number, data: Record<string, any>) =>

@@ -1041,10 +1041,12 @@ class OraBooks_Customers {
         $table_payments = OraBooks_Database::table('payments');
 
         $invoice = $wpdb->get_row($wpdb->prepare(
-            "SELECT i.*, c.user_id as customer_user_id, u.email as customer_email
+            "SELECT i.*, c.user_id as customer_user_id,
+                    COALESCE(NULLIF(c.contact_email, ''), u.email) as customer_email,
+                    COALESCE(NULLIF(c.display_name, ''), u.email, c.contact_email) as customer_name
              FROM {$table} i
              JOIN {$table_customers} c ON i.customer_id = c.id
-             JOIN {$table_users} u ON c.user_id = u.id
+             LEFT JOIN {$table_users} u ON c.user_id = u.id
              WHERE i.id = %d",
             $invoice_id
         ));
@@ -1113,11 +1115,14 @@ class OraBooks_Customers {
         $offset = $args['offset'] ?? 0;
 
         $table_payments = OraBooks_Database::table('payments');
-        $sql = "SELECT i.*, u.email as customer_email, o.name as org_name,
+        $sql = "SELECT i.*,
+                       COALESCE(NULLIF(c.contact_email, ''), u.email) as customer_email,
+                       COALESCE(NULLIF(c.display_name, ''), u.email, c.contact_email) as customer_name,
+                       o.name as org_name,
                        (SELECT COALESCE(SUM(amount), 0) FROM {$table_payments} WHERE invoice_id = i.id) as total_paid_amount
                 FROM {$table} i
                 JOIN {$table_customers} c ON i.customer_id = c.id
-                JOIN {$table_users} u ON c.user_id = u.id
+                LEFT JOIN {$table_users} u ON c.user_id = u.id
                 LEFT JOIN {$table_orgs} o ON i.org_id = o.id
                 WHERE {$where}
                 ORDER BY i.transaction_date DESC
@@ -1650,6 +1655,31 @@ class OraBooks_Customers {
 
         $result = self::get_list($org_id, $args);
         orabooks_json_success($result);
+    }
+
+    /**
+     * Create a customer profile for the current organization.
+     */
+    public function ajax_customer_create() {
+        $user_id = orabooks_get_current_user_id();
+        $org_id = intval($_POST['org_id'] ?? 0);
+
+        if (!$user_id) {
+            orabooks_json_error('Not authenticated', 401);
+        }
+
+        if (!$org_id) {
+            orabooks_json_error('Organization ID required', 400);
+        }
+
+        $this->require_customer_access($user_id, $org_id, 'create_invoice');
+
+        $result = self::create_customer($org_id, $_POST);
+        if (is_wp_error($result)) {
+            orabooks_json_error($result->get_error_message(), 400);
+        }
+
+        orabooks_json_success(['customer' => $result], 'Customer created');
     }
 
     /**
