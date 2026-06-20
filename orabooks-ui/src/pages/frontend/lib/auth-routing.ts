@@ -6,6 +6,7 @@ const TOKEN_KEY = 'orabooks_token';
 const REFRESH_TOKEN_KEY = 'orabooks_refresh_token';
 const REDIRECT_GUARD_KEY = 'orabooks_auth_redirect_ts';
 const LOGOUT_QUERY_FLAG = 'logged_out';
+const AUTH_RESET_QUERY_FLAG = 'auth_reset';
 const LOGOUT_SESSION_FLAG = 'orabooks_logged_out';
 const REDIRECT_COOLDOWN_MS = 4000;
 
@@ -98,6 +99,7 @@ export function redirectAfterAuth(data: {
   is_partner?: boolean;
 }) {
   clearRedirectGuard();
+  clearLogoutSessionFlag();
 
   if (data?.needs_tier_selection) {
     window.location.replace(normalizeWpAppPath(getNetworkAuthUrl('tier-selection')));
@@ -136,7 +138,7 @@ export function redirectAfterAuth(data: {
   replaceAppLocation('/dashboard/');
 }
 
-export function redirectToLogin(force = false) {
+export function redirectToLogin(force = false, resetAuth = false) {
   if (!force) {
     const last = Number(window.sessionStorage.getItem(REDIRECT_GUARD_KEY) || 0);
     const now = Date.now();
@@ -146,13 +148,17 @@ export function redirectToLogin(force = false) {
   }
   window.sessionStorage.setItem(REDIRECT_GUARD_KEY, String(Date.now()));
 
-  const loginUrl = (window as any).orabooks_ajax?.login_url;
-  if (loginUrl) {
-    window.location.replace(normalizeWpAppPath(loginUrl));
-    return true;
+  if (resetAuth) {
+    markLogoutLanding();
   }
 
-  replaceAppLocation(getNetworkLoginUrl());
+  const loginUrl = (window as any).orabooks_ajax?.login_url;
+  let destination = loginUrl ? normalizeWpAppPath(loginUrl) : normalizeWpAppPath(getNetworkLoginUrl());
+  if (resetAuth) {
+    destination = appendAuthResetFlag(destination);
+  }
+
+  window.location.replace(destination);
   return true;
 }
 
@@ -184,7 +190,11 @@ export function getNetworkAuthUrl(page: NetworkAuthPage) {
 
 export function isLogoutLanding() {
   const params = new URLSearchParams(window.location.search);
-  return params.get(LOGOUT_QUERY_FLAG) === '1' || window.sessionStorage.getItem(LOGOUT_SESSION_FLAG) === '1';
+  return (
+    params.get(LOGOUT_QUERY_FLAG) === '1'
+    || params.get(AUTH_RESET_QUERY_FLAG) === '1'
+    || window.sessionStorage.getItem(LOGOUT_SESSION_FLAG) === '1'
+  );
 }
 
 export function markLogoutLanding() {
@@ -193,6 +203,18 @@ export function markLogoutLanding() {
 
 export function clearLogoutSessionFlag() {
   window.sessionStorage.removeItem(LOGOUT_SESSION_FLAG);
+}
+
+function appendAuthResetFlag(url: string) {
+  try {
+    const target = new URL(url, window.location.href);
+    target.searchParams.set(AUTH_RESET_QUERY_FLAG, '1');
+    target.hash = '';
+    return `${target.origin}${target.pathname}${target.search}`;
+  } catch {
+    const separator = url.includes('?') ? '&' : '?';
+    return `${url}${separator}${AUTH_RESET_QUERY_FLAG}=1`;
+  }
 }
 
 function appendLogoutFlag(url: string) {

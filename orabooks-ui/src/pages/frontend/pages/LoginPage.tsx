@@ -31,7 +31,6 @@ export default function LoginPage() {
     if (isLogoutLanding()) {
       clearStoredAuthTokens();
       clearRedirectGuard();
-      clearLogoutSessionFlag();
       return;
     }
 
@@ -47,20 +46,6 @@ export default function LoginPage() {
       const qs = params.toString();
       window.history.replaceState(null, '', `${window.location.pathname}${qs ? `?${qs}` : ''}`);
       return;
-    }
-
-    if (hasStoredAuthToken()) {
-      api.verifySession().then((res) => {
-        if (!res.error) {
-          clearRedirectGuard();
-          const org = (res as any).data?.organization;
-          if (org?.subdomain) {
-            redirectToOrgSubdomain(org.subdomain, '/dashboard/');
-            return;
-          }
-          redirectAfterAuth((res as any).data || {});
-        }
-      });
     }
 
     const url = new URL(window.location.href);
