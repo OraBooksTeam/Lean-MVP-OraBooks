@@ -1,1 +1,400 @@
 npm warn Unknown env config "devdir". This will stop working in the next major version of npm.
+  console.error
+    Error: Not implemented: navigation (except hash changes)
+        at module.exports (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jsdom\lib\jsdom\browser\not-implemented.js:9:17)
+        at navigateFetch (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jsdom\lib\jsdom\living\window\navigation.js:77:3)
+        at exports.navigate (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jsdom\lib\jsdom\living\window\navigation.js:55:3)
+        at LocationImpl._locationObjectNavigate (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jsdom\lib\jsdom\living\window\Location-impl.js:30:5)
+        at LocationImpl._locationObjectSetterNavigate (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jsdom\lib\jsdom\living\window\Location-impl.js:24:17)
+        at LocationImpl.set href [as href] (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jsdom\lib\jsdom\living\window\Location-impl.js:46:10)
+        at Location.set href [as href] (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jsdom\lib\jsdom\living\generated\Location.js:125:37)
+        at Object.eval [as callback] (eval at loadFrontendJs (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\frontend.test.js:275:14), <anonymous>:141:42)
+        at callback (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\jest.setup.js:332:27)
+        at Object.resolveAjax (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\frontend.test.js:405:5)
+        at Promise.finally.completed (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jest-circus\build\jestAdapterInit.js:1561:28)
+        at new Promise (<anonymous>)
+        at callAsyncCircusFn (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jest-circus\build\jestAdapterInit.js:1501:10)
+        at _callCircusTest (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jest-circus\build\jestAdapterInit.js:1011:40)
+        at _runTest (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jest-circus\build\jestAdapterInit.js:951:3)
+        at C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jest-circus\build\jestAdapterInit.js:853:7
+        at _runTestsForDescribeBlock (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jest-circus\build\jestAdapterInit.js:866:11)
+        at _runTestsForDescribeBlock (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jest-circus\build\jestAdapterInit.js:861:11)
+        at run (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jest-circus\build\jestAdapterInit.js:765:3)
+        at runAndTransformResultsToJestFormat (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jest-circus\build\jestAdapterInit.js:1993:21)
+        at jestAdapter (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jest-circus\build\runner.js:111:19)
+        at runTestInternal (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jest-runner\build\index.js:276:16)
+        at runTest (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jest-runner\build\index.js:344:7) {
+      type: 'not implemented'
+    }
+
+      at VirtualConsole.<anonymous> (node_modules/@jest/environment-jsdom-abstract/build/index.js:87:23)
+      at module.exports (node_modules/jsdom/lib/jsdom/browser/not-implemented.js:12:26)
+      at navigateFetch (node_modules/jsdom/lib/jsdom/living/window/navigation.js:77:3)
+      at exports.navigate (node_modules/jsdom/lib/jsdom/living/window/navigation.js:55:3)
+      at LocationImpl._locationObjectNavigate (node_modules/jsdom/lib/jsdom/living/window/Location-impl.js:30:5)
+      at LocationImpl._locationObjectSetterNavigate (node_modules/jsdom/lib/jsdom/living/window/Location-impl.js:24:17)
+      at LocationImpl.set href [as href] (node_modules/jsdom/lib/jsdom/living/window/Location-impl.js:46:10)
+      at Location.set href [as href] (node_modules/jsdom/lib/jsdom/living/generated/Location.js:125:37)
+      at Object.eval [as callback] (eval at loadFrontendJs (frontend.test.js:275:14), <anonymous>:141:42)
+      at callback (jest.setup.js:332:27)
+      at Object.resolveAjax (frontend.test.js:405:5)
+
+  console.error
+    Error: Not implemented: navigation (except hash changes)
+        at module.exports (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jsdom\lib\jsdom\browser\not-implemented.js:9:17)
+        at navigateFetch (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jsdom\lib\jsdom\living\window\navigation.js:77:3)
+        at exports.navigate (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jsdom\lib\jsdom\living\window\navigation.js:55:3)
+        at LocationImpl._locationObjectNavigate (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jsdom\lib\jsdom\living\window\Location-impl.js:30:5)
+        at LocationImpl._locationObjectSetterNavigate (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jsdom\lib\jsdom\living\window\Location-impl.js:24:17)
+        at LocationImpl.set href [as href] (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jsdom\lib\jsdom\living\window\Location-impl.js:46:10)
+        at Location.set href [as href] (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jsdom\lib\jsdom\living\generated\Location.js:125:37)
+        at Object.eval [as callback] (eval at loadFrontendJs (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\frontend.test.js:275:14), <anonymous>:143:42)
+        at callback (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\jest.setup.js:332:27)
+        at Object.resolveAjax (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\frontend.test.js:414:5)
+        at Promise.finally.completed (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jest-circus\build\jestAdapterInit.js:1561:28)
+        at new Promise (<anonymous>)
+        at callAsyncCircusFn (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jest-circus\build\jestAdapterInit.js:1501:10)
+        at _callCircusTest (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jest-circus\build\jestAdapterInit.js:1011:40)
+        at _runTest (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jest-circus\build\jestAdapterInit.js:951:3)
+        at C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jest-circus\build\jestAdapterInit.js:853:7
+        at _runTestsForDescribeBlock (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jest-circus\build\jestAdapterInit.js:866:11)
+        at _runTestsForDescribeBlock (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jest-circus\build\jestAdapterInit.js:861:11)
+        at run (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jest-circus\build\jestAdapterInit.js:765:3)
+        at runAndTransformResultsToJestFormat (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jest-circus\build\jestAdapterInit.js:1993:21)
+        at jestAdapter (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jest-circus\build\runner.js:111:19)
+        at runTestInternal (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jest-runner\build\index.js:276:16)
+        at runTest (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jest-runner\build\index.js:344:7) {
+      type: 'not implemented'
+    }
+
+      at VirtualConsole.<anonymous> (node_modules/@jest/environment-jsdom-abstract/build/index.js:87:23)
+      at module.exports (node_modules/jsdom/lib/jsdom/browser/not-implemented.js:12:26)
+      at navigateFetch (node_modules/jsdom/lib/jsdom/living/window/navigation.js:77:3)
+      at exports.navigate (node_modules/jsdom/lib/jsdom/living/window/navigation.js:55:3)
+      at LocationImpl._locationObjectNavigate (node_modules/jsdom/lib/jsdom/living/window/Location-impl.js:30:5)
+      at LocationImpl._locationObjectSetterNavigate (node_modules/jsdom/lib/jsdom/living/window/Location-impl.js:24:17)
+      at LocationImpl.set href [as href] (node_modules/jsdom/lib/jsdom/living/window/Location-impl.js:46:10)
+      at Location.set href [as href] (node_modules/jsdom/lib/jsdom/living/generated/Location.js:125:37)
+      at Object.eval [as callback] (eval at loadFrontendJs (frontend.test.js:275:14), <anonymous>:143:42)
+      at callback (jest.setup.js:332:27)
+      at Object.resolveAjax (frontend.test.js:414:5)
+
+  console.error
+    Error: Not implemented: navigation (except hash changes)
+        at module.exports (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jsdom\lib\jsdom\browser\not-implemented.js:9:17)
+        at navigateFetch (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jsdom\lib\jsdom\living\window\navigation.js:77:3)
+        at exports.navigate (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jsdom\lib\jsdom\living\window\navigation.js:55:3)
+        at LocationImpl._locationObjectNavigate (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jsdom\lib\jsdom\living\window\Location-impl.js:30:5)
+        at LocationImpl._locationObjectSetterNavigate (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jsdom\lib\jsdom\living\window\Location-impl.js:24:17)
+        at LocationImpl.set href [as href] (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jsdom\lib\jsdom\living\window\Location-impl.js:46:10)
+        at Location.set href [as href] (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jsdom\lib\jsdom\living\generated\Location.js:125:37)
+        at eval (eval at loadFrontendJs (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\frontend.test.js:275:14), <anonymous>:147:46)
+        at callTimer (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\@sinonjs\fake-timers\src\fake-timers-src.js:1525:24)
+        at runTimersInRange (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\@sinonjs\fake-timers\src\fake-timers-src.js:2223:25)
+        at doTickInner (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\@sinonjs\fake-timers\src\fake-timers-src.js:2318:21)
+        at doTick (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\@sinonjs\fake-timers\src\fake-timers-src.js:2334:20)
+        at Object.tick (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\@sinonjs\fake-timers\src\fake-timers-src.js:2342:20)
+        at FakeTimers.advanceTimersByTime (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\@jest\fake-timers\build\index.js:580:19)
+        at Object.advanceTimersByTime (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jest-runtime\build\index.js:1560:56)
+        at Object.advanceTimersByTime (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\frontend.test.js:425:10)
+        at Promise.finally.completed (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jest-circus\build\jestAdapterInit.js:1561:28)
+        at new Promise (<anonymous>)
+        at callAsyncCircusFn (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jest-circus\build\jestAdapterInit.js:1501:10)
+        at _callCircusTest (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jest-circus\build\jestAdapterInit.js:1011:40)
+        at _runTest (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jest-circus\build\jestAdapterInit.js:951:3)
+        at C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jest-circus\build\jestAdapterInit.js:853:7
+        at _runTestsForDescribeBlock (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jest-circus\build\jestAdapterInit.js:866:11)
+        at _runTestsForDescribeBlock (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jest-circus\build\jestAdapterInit.js:861:11)
+        at run (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jest-circus\build\jestAdapterInit.js:765:3)
+        at runAndTransformResultsToJestFormat (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jest-circus\build\jestAdapterInit.js:1993:21)
+        at jestAdapter (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jest-circus\build\runner.js:111:19)
+        at runTestInternal (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jest-runner\build\index.js:276:16)
+        at runTest (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jest-runner\build\index.js:344:7) {
+      type: 'not implemented'
+    }
+
+      at VirtualConsole.<anonymous> (node_modules/@jest/environment-jsdom-abstract/build/index.js:87:23)
+      at module.exports (node_modules/jsdom/lib/jsdom/browser/not-implemented.js:12:26)
+      at navigateFetch (node_modules/jsdom/lib/jsdom/living/window/navigation.js:77:3)
+      at exports.navigate (node_modules/jsdom/lib/jsdom/living/window/navigation.js:55:3)
+      at LocationImpl._locationObjectNavigate (node_modules/jsdom/lib/jsdom/living/window/Location-impl.js:30:5)
+      at LocationImpl._locationObjectSetterNavigate (node_modules/jsdom/lib/jsdom/living/window/Location-impl.js:24:17)
+      at LocationImpl.set href [as href] (node_modules/jsdom/lib/jsdom/living/window/Location-impl.js:46:10)
+      at Location.set href [as href] (node_modules/jsdom/lib/jsdom/living/generated/Location.js:125:37)
+      at eval (eval at loadFrontendJs (frontend.test.js:275:14), <anonymous>:147:46)
+      at callTimer (node_modules/@sinonjs/fake-timers/src/fake-timers-src.js:1525:24)
+      at runTimersInRange (node_modules/@sinonjs/fake-timers/src/fake-timers-src.js:2223:25)
+      at doTickInner (node_modules/@sinonjs/fake-timers/src/fake-timers-src.js:2318:21)
+      at doTick (node_modules/@sinonjs/fake-timers/src/fake-timers-src.js:2334:20)
+      at Object.tick (node_modules/@sinonjs/fake-timers/src/fake-timers-src.js:2342:20)
+      at FakeTimers.advanceTimersByTime (node_modules/@jest/fake-timers/build/index.js:580:19)
+      at Object.advanceTimersByTime (frontend.test.js:425:10)
+
+  console.error
+    Error: Not implemented: navigation (except hash changes)
+        at module.exports (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jsdom\lib\jsdom\browser\not-implemented.js:9:17)
+        at navigateFetch (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jsdom\lib\jsdom\living\window\navigation.js:77:3)
+        at exports.navigate (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jsdom\lib\jsdom\living\window\navigation.js:55:3)
+        at LocationImpl._locationObjectNavigate (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jsdom\lib\jsdom\living\window\Location-impl.js:30:5)
+        at LocationImpl._locationObjectSetterNavigate (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jsdom\lib\jsdom\living\window\Location-impl.js:24:17)
+        at LocationImpl.set href [as href] (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jsdom\lib\jsdom\living\window\Location-impl.js:46:10)
+        at Location.set href [as href] (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jsdom\lib\jsdom\living\generated\Location.js:125:37)
+        at eval (eval at loadFrontendJs (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\frontend.test.js:275:14), <anonymous>:258:46)
+        at callTimer (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\@sinonjs\fake-timers\src\fake-timers-src.js:1525:24)
+        at runTimersInRange (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\@sinonjs\fake-timers\src\fake-timers-src.js:2223:25)
+        at doTickInner (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\@sinonjs\fake-timers\src\fake-timers-src.js:2318:21)
+        at doTick (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\@sinonjs\fake-timers\src\fake-timers-src.js:2334:20)
+        at Object.tick (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\@sinonjs\fake-timers\src\fake-timers-src.js:2342:20)
+        at FakeTimers.advanceTimersByTime (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\@jest\fake-timers\build\index.js:580:19)
+        at Object.advanceTimersByTime (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jest-runtime\build\index.js:1560:56)
+        at Object.advanceTimersByTime (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\frontend.test.js:504:10)
+        at Promise.finally.completed (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jest-circus\build\jestAdapterInit.js:1561:28)
+        at new Promise (<anonymous>)
+        at callAsyncCircusFn (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jest-circus\build\jestAdapterInit.js:1501:10)
+        at _callCircusTest (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jest-circus\build\jestAdapterInit.js:1011:40)
+        at _runTest (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jest-circus\build\jestAdapterInit.js:951:3)
+        at C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jest-circus\build\jestAdapterInit.js:853:7
+        at _runTestsForDescribeBlock (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jest-circus\build\jestAdapterInit.js:866:11)
+        at _runTestsForDescribeBlock (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jest-circus\build\jestAdapterInit.js:861:11)
+        at run (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jest-circus\build\jestAdapterInit.js:765:3)
+        at runAndTransformResultsToJestFormat (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jest-circus\build\jestAdapterInit.js:1993:21)
+        at jestAdapter (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jest-circus\build\runner.js:111:19)
+        at runTestInternal (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jest-runner\build\index.js:276:16)
+        at runTest (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jest-runner\build\index.js:344:7) {
+      type: 'not implemented'
+    }
+
+      at VirtualConsole.<anonymous> (node_modules/@jest/environment-jsdom-abstract/build/index.js:87:23)
+      at module.exports (node_modules/jsdom/lib/jsdom/browser/not-implemented.js:12:26)
+      at navigateFetch (node_modules/jsdom/lib/jsdom/living/window/navigation.js:77:3)
+      at exports.navigate (node_modules/jsdom/lib/jsdom/living/window/navigation.js:55:3)
+      at LocationImpl._locationObjectNavigate (node_modules/jsdom/lib/jsdom/living/window/Location-impl.js:30:5)
+      at LocationImpl._locationObjectSetterNavigate (node_modules/jsdom/lib/jsdom/living/window/Location-impl.js:24:17)
+      at LocationImpl.set href [as href] (node_modules/jsdom/lib/jsdom/living/window/Location-impl.js:46:10)
+      at Location.set href [as href] (node_modules/jsdom/lib/jsdom/living/generated/Location.js:125:37)
+      at eval (eval at loadFrontendJs (frontend.test.js:275:14), <anonymous>:258:46)
+      at callTimer (node_modules/@sinonjs/fake-timers/src/fake-timers-src.js:1525:24)
+      at runTimersInRange (node_modules/@sinonjs/fake-timers/src/fake-timers-src.js:2223:25)
+      at doTickInner (node_modules/@sinonjs/fake-timers/src/fake-timers-src.js:2318:21)
+      at doTick (node_modules/@sinonjs/fake-timers/src/fake-timers-src.js:2334:20)
+      at Object.tick (node_modules/@sinonjs/fake-timers/src/fake-timers-src.js:2342:20)
+      at FakeTimers.advanceTimersByTime (node_modules/@jest/fake-timers/build/index.js:580:19)
+      at Object.advanceTimersByTime (frontend.test.js:504:10)
+
+  console.error
+    Error: Not implemented: navigation (except hash changes)
+        at module.exports (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jsdom\lib\jsdom\browser\not-implemented.js:9:17)
+        at navigateFetch (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jsdom\lib\jsdom\living\window\navigation.js:77:3)
+        at exports.navigate (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jsdom\lib\jsdom\living\window\navigation.js:55:3)
+        at LocationImpl._locationObjectNavigate (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jsdom\lib\jsdom\living\window\Location-impl.js:30:5)
+        at LocationImpl._locationObjectSetterNavigate (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jsdom\lib\jsdom\living\window\Location-impl.js:24:17)
+        at LocationImpl.set href [as href] (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jsdom\lib\jsdom\living\window\Location-impl.js:46:10)
+        at Location.set href [as href] (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jsdom\lib\jsdom\living\generated\Location.js:125:37)
+        at Object.eval [as callback] (eval at loadFrontendJs (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\frontend.test.js:275:14), <anonymous>:191:38)
+        at callback (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\jest.setup.js:332:27)
+        at Object.resolveAjax (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\frontend.test.js:1897:5)
+        at Promise.finally.completed (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jest-circus\build\jestAdapterInit.js:1561:28)
+        at new Promise (<anonymous>)
+        at callAsyncCircusFn (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jest-circus\build\jestAdapterInit.js:1501:10)
+        at _callCircusTest (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jest-circus\build\jestAdapterInit.js:1011:40)
+        at _runTest (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jest-circus\build\jestAdapterInit.js:951:3)
+        at C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jest-circus\build\jestAdapterInit.js:853:7
+        at _runTestsForDescribeBlock (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jest-circus\build\jestAdapterInit.js:866:11)
+        at _runTestsForDescribeBlock (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jest-circus\build\jestAdapterInit.js:861:11)
+        at run (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jest-circus\build\jestAdapterInit.js:765:3)
+        at runAndTransformResultsToJestFormat (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jest-circus\build\jestAdapterInit.js:1993:21)
+        at jestAdapter (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jest-circus\build\runner.js:111:19)
+        at runTestInternal (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jest-runner\build\index.js:276:16)
+        at runTest (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jest-runner\build\index.js:344:7) {
+      type: 'not implemented'
+    }
+
+      at VirtualConsole.<anonymous> (node_modules/@jest/environment-jsdom-abstract/build/index.js:87:23)
+      at module.exports (node_modules/jsdom/lib/jsdom/browser/not-implemented.js:12:26)
+      at navigateFetch (node_modules/jsdom/lib/jsdom/living/window/navigation.js:77:3)
+      at exports.navigate (node_modules/jsdom/lib/jsdom/living/window/navigation.js:55:3)
+      at LocationImpl._locationObjectNavigate (node_modules/jsdom/lib/jsdom/living/window/Location-impl.js:30:5)
+      at LocationImpl._locationObjectSetterNavigate (node_modules/jsdom/lib/jsdom/living/window/Location-impl.js:24:17)
+      at LocationImpl.set href [as href] (node_modules/jsdom/lib/jsdom/living/window/Location-impl.js:46:10)
+      at Location.set href [as href] (node_modules/jsdom/lib/jsdom/living/generated/Location.js:125:37)
+      at Object.eval [as callback] (eval at loadFrontendJs (frontend.test.js:275:14), <anonymous>:191:38)
+      at callback (jest.setup.js:332:27)
+      at Object.resolveAjax (frontend.test.js:1897:5)
+
+  console.error
+    Error: Not implemented: navigation (except hash changes)
+        at module.exports (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jsdom\lib\jsdom\browser\not-implemented.js:9:17)
+        at navigateFetch (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jsdom\lib\jsdom\living\window\navigation.js:77:3)
+        at exports.navigate (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jsdom\lib\jsdom\living\window\navigation.js:55:3)
+        at LocationImpl._locationObjectNavigate (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jsdom\lib\jsdom\living\window\Location-impl.js:30:5)
+        at LocationImpl._locationObjectSetterNavigate (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jsdom\lib\jsdom\living\window\Location-impl.js:24:17)
+        at LocationImpl.set href [as href] (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jsdom\lib\jsdom\living\window\Location-impl.js:46:10)
+        at Location.set href [as href] (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jsdom\lib\jsdom\living\generated\Location.js:125:37)
+        at Object.eval [as callback] (eval at loadFrontendJs (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\frontend.test.js:275:14), <anonymous>:191:38)
+        at callback (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\jest.setup.js:332:27)
+        at Object.resolveAjax (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\frontend.test.js:1954:5)
+        at Promise.finally.completed (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jest-circus\build\jestAdapterInit.js:1561:28)
+        at new Promise (<anonymous>)
+        at callAsyncCircusFn (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jest-circus\build\jestAdapterInit.js:1501:10)
+        at _callCircusTest (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jest-circus\build\jestAdapterInit.js:1011:40)
+        at _runTest (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jest-circus\build\jestAdapterInit.js:951:3)
+        at C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jest-circus\build\jestAdapterInit.js:853:7
+        at _runTestsForDescribeBlock (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jest-circus\build\jestAdapterInit.js:866:11)
+        at _runTestsForDescribeBlock (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jest-circus\build\jestAdapterInit.js:861:11)
+        at run (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jest-circus\build\jestAdapterInit.js:765:3)
+        at runAndTransformResultsToJestFormat (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jest-circus\build\jestAdapterInit.js:1993:21)
+        at jestAdapter (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jest-circus\build\runner.js:111:19)
+        at runTestInternal (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jest-runner\build\index.js:276:16)
+        at runTest (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jest-runner\build\index.js:344:7) {
+      type: 'not implemented'
+    }
+
+      at VirtualConsole.<anonymous> (node_modules/@jest/environment-jsdom-abstract/build/index.js:87:23)
+      at module.exports (node_modules/jsdom/lib/jsdom/browser/not-implemented.js:12:26)
+      at navigateFetch (node_modules/jsdom/lib/jsdom/living/window/navigation.js:77:3)
+      at exports.navigate (node_modules/jsdom/lib/jsdom/living/window/navigation.js:55:3)
+      at LocationImpl._locationObjectNavigate (node_modules/jsdom/lib/jsdom/living/window/Location-impl.js:30:5)
+      at LocationImpl._locationObjectSetterNavigate (node_modules/jsdom/lib/jsdom/living/window/Location-impl.js:24:17)
+      at LocationImpl.set href [as href] (node_modules/jsdom/lib/jsdom/living/window/Location-impl.js:46:10)
+      at Location.set href [as href] (node_modules/jsdom/lib/jsdom/living/generated/Location.js:125:37)
+      at Object.eval [as callback] (eval at loadFrontendJs (frontend.test.js:275:14), <anonymous>:191:38)
+      at callback (jest.setup.js:332:27)
+      at Object.resolveAjax (frontend.test.js:1954:5)
+
+  console.error
+    Error: Not implemented: navigation (except hash changes)
+        at module.exports (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jsdom\lib\jsdom\browser\not-implemented.js:9:17)
+        at navigateFetch (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jsdom\lib\jsdom\living\window\navigation.js:77:3)
+        at exports.navigate (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jsdom\lib\jsdom\living\window\navigation.js:55:3)
+        at LocationImpl._locationObjectNavigate (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jsdom\lib\jsdom\living\window\Location-impl.js:30:5)
+        at LocationImpl._locationObjectSetterNavigate (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jsdom\lib\jsdom\living\window\Location-impl.js:24:17)
+        at LocationImpl.set href [as href] (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jsdom\lib\jsdom\living\window\Location-impl.js:46:10)
+        at Location.set href [as href] (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jsdom\lib\jsdom\living\generated\Location.js:125:37)
+        at Object.eval [as callback] (eval at loadFrontendJs (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\frontend.test.js:275:14), <anonymous>:369:42)
+        at callback (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\jest.setup.js:332:27)
+        at Object.resolveAjax (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\frontend.test.js:2079:5)
+        at Promise.finally.completed (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jest-circus\build\jestAdapterInit.js:1561:28)
+        at new Promise (<anonymous>)
+        at callAsyncCircusFn (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jest-circus\build\jestAdapterInit.js:1501:10)
+        at _callCircusTest (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jest-circus\build\jestAdapterInit.js:1011:40)
+        at _runTest (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jest-circus\build\jestAdapterInit.js:951:3)
+        at C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jest-circus\build\jestAdapterInit.js:853:7
+        at _runTestsForDescribeBlock (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jest-circus\build\jestAdapterInit.js:866:11)
+        at _runTestsForDescribeBlock (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jest-circus\build\jestAdapterInit.js:861:11)
+        at run (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jest-circus\build\jestAdapterInit.js:765:3)
+        at runAndTransformResultsToJestFormat (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jest-circus\build\jestAdapterInit.js:1993:21)
+        at jestAdapter (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jest-circus\build\runner.js:111:19)
+        at runTestInternal (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jest-runner\build\index.js:276:16)
+        at runTest (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jest-runner\build\index.js:344:7) {
+      type: 'not implemented'
+    }
+
+      at VirtualConsole.<anonymous> (node_modules/@jest/environment-jsdom-abstract/build/index.js:87:23)
+      at module.exports (node_modules/jsdom/lib/jsdom/browser/not-implemented.js:12:26)
+      at navigateFetch (node_modules/jsdom/lib/jsdom/living/window/navigation.js:77:3)
+      at exports.navigate (node_modules/jsdom/lib/jsdom/living/window/navigation.js:55:3)
+      at LocationImpl._locationObjectNavigate (node_modules/jsdom/lib/jsdom/living/window/Location-impl.js:30:5)
+      at LocationImpl._locationObjectSetterNavigate (node_modules/jsdom/lib/jsdom/living/window/Location-impl.js:24:17)
+      at LocationImpl.set href [as href] (node_modules/jsdom/lib/jsdom/living/window/Location-impl.js:46:10)
+      at Location.set href [as href] (node_modules/jsdom/lib/jsdom/living/generated/Location.js:125:37)
+      at Object.eval [as callback] (eval at loadFrontendJs (frontend.test.js:275:14), <anonymous>:369:42)
+      at callback (jest.setup.js:332:27)
+      at Object.resolveAjax (frontend.test.js:2079:5)
+
+  console.error
+    Error: Not implemented: navigation (except hash changes)
+        at module.exports (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jsdom\lib\jsdom\browser\not-implemented.js:9:17)
+        at navigateFetch (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jsdom\lib\jsdom\living\window\navigation.js:77:3)
+        at exports.navigate (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jsdom\lib\jsdom\living\window\navigation.js:55:3)
+        at LocationImpl._locationObjectNavigate (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jsdom\lib\jsdom\living\window\Location-impl.js:30:5)
+        at LocationImpl._locationObjectSetterNavigate (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jsdom\lib\jsdom\living\window\Location-impl.js:24:17)
+        at LocationImpl.set href [as href] (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jsdom\lib\jsdom\living\window\Location-impl.js:46:10)
+        at Location.set href [as href] (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jsdom\lib\jsdom\living\generated\Location.js:125:37)
+        at Object.eval [as callback] (eval at loadFrontendJs (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\frontend.test.js:275:14), <anonymous>:369:42)
+        at callback (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\jest.setup.js:332:27)
+        at Object.resolveAjax (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\frontend.test.js:2096:5)
+        at Promise.finally.completed (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jest-circus\build\jestAdapterInit.js:1561:28)
+        at new Promise (<anonymous>)
+        at callAsyncCircusFn (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jest-circus\build\jestAdapterInit.js:1501:10)
+        at _callCircusTest (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jest-circus\build\jestAdapterInit.js:1011:40)
+        at _runTest (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jest-circus\build\jestAdapterInit.js:951:3)
+        at C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jest-circus\build\jestAdapterInit.js:853:7
+        at _runTestsForDescribeBlock (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jest-circus\build\jestAdapterInit.js:866:11)
+        at _runTestsForDescribeBlock (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jest-circus\build\jestAdapterInit.js:861:11)
+        at run (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jest-circus\build\jestAdapterInit.js:765:3)
+        at runAndTransformResultsToJestFormat (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jest-circus\build\jestAdapterInit.js:1993:21)
+        at jestAdapter (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jest-circus\build\runner.js:111:19)
+        at runTestInternal (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jest-runner\build\index.js:276:16)
+        at runTest (C:\Users\TaxOra-DEOWM01\Desktop\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\js\node_modules\jest-runner\build\index.js:344:7) {
+      type: 'not implemented'
+    }
+
+      at VirtualConsole.<anonymous> (node_modules/@jest/environment-jsdom-abstract/build/index.js:87:23)
+      at module.exports (node_modules/jsdom/lib/jsdom/browser/not-implemented.js:12:26)
+      at navigateFetch (node_modules/jsdom/lib/jsdom/living/window/navigation.js:77:3)
+      at exports.navigate (node_modules/jsdom/lib/jsdom/living/window/navigation.js:55:3)
+      at LocationImpl._locationObjectNavigate (node_modules/jsdom/lib/jsdom/living/window/Location-impl.js:30:5)
+      at LocationImpl._locationObjectSetterNavigate (node_modules/jsdom/lib/jsdom/living/window/Location-impl.js:24:17)
+      at LocationImpl.set href [as href] (node_modules/jsdom/lib/jsdom/living/window/Location-impl.js:46:10)
+      at Location.set href [as href] (node_modules/jsdom/lib/jsdom/living/generated/Location.js:125:37)
+      at Object.eval [as callback] (eval at loadFrontendJs (frontend.test.js:275:14), <anonymous>:369:42)
+      at callback (jest.setup.js:332:27)
+      at Object.resolveAjax (frontend.test.js:2096:5)
+
+FAIL ./frontend.test.js
+  ΓùÅ Registration form submit ΓÇ║ shows success message on registration success
+
+    expect(received).toContain(expected) // indexOf
+
+    Expected substring: "Registration successful"
+    Received string:    ""
+
+      328 |
+      329 |     const $msg = $('#orabooks-register-message');
+    > 330 |     expect($msg.text()).toContain('Registration successful');
+          |                         ^
+      331 |     expect($msg.hasClass('success')).toBe(true);
+      332 |   });
+      333 |
+
+      at Object.toContain (frontend.test.js:330:25)
+
+  ΓùÅ Registration form submit ΓÇ║ shows error message on registration failure
+
+    expect(received).toContain(expected) // indexOf
+
+    Expected substring: "Email already exists"
+    Received string:    ""
+
+      338 |
+      339 |     const $msg = $('#orabooks-register-message');
+    > 340 |     expect($msg.text()).toContain('Email already exists');
+          |                         ^
+      341 |     expect($msg.hasClass('error')).toBe(true);
+      342 |   });
+      343 |
+
+      at Object.toContain (frontend.test.js:340:25)
+
+  ΓùÅ Registration form submit ΓÇ║ re-enables button after success
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: false
+    Received: true
+
+      350 |
+      351 |     resolveAjax('post', { error: false, data: {} }, 'orabooks_register');
+    > 352 |     expect($btn.prop('disabled')).toBe(false);
+          |                                   ^
+      353 |     expect($btn.text()).toContain('Create Account');
+      354 |   });
+      355 | });
+
+      at Object.toBe (frontend.test.js:352:35)
+
+Test Suites: 1 failed, 1 total
+Tests:       3 failed, 121 passed, 124 total
+Snapshots:   0 total
+Time:        2.188 s, estimated 3 s
+Ran all test suites matching frontend.test.js.

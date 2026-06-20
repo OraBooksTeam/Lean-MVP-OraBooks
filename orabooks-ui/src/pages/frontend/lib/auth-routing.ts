@@ -105,7 +105,7 @@ export function redirectAfterAuth(data: {
   const redirectTo = String(data?.redirect_to || '').trim();
   if (redirectTo.startsWith('http')) {
     if (redirectTo.includes('#')) {
-      window.location.replace(redirectTo);
+      window.location.replace(appendCrossOriginAuthParams(redirectTo));
       return;
     }
     const target = new URL(redirectTo);
@@ -114,7 +114,10 @@ export function redirectAfterAuth(data: {
       : target.pathname.includes('tier-selection')
         ? '/tier-selection'
         : '/dashboard';
-    window.location.replace(`${target.origin}${target.pathname}${target.search}#${hashRoute}`);
+    const destination = appendCrossOriginAuthParams(
+      `${target.origin}${target.pathname}${target.search}#${hashRoute}`
+    );
+    window.location.replace(destination);
     return;
   }
 
