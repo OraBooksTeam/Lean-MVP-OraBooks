@@ -606,25 +606,81 @@ class OraBooks_AsyncQueue {
     }
 
     // ================================================================
-    // QUEUE STATS
+    // QUEUE STATS & TENANT SCOPE
     // ================================================================
 
-    public static function get_queue_stats() {
+    /**
+     * Org scope for queue UI/API: 0 = platform-wide (WP admin), else tenant org_id.
+     */
+    public static function resolve_queue_org_scope() {
+        if (current_user_can('manage_options')) {
+            return 0;
+        }
+        if (!function_exists('orabooks_get_current_user_id')) {
+            return 0;
+        }
+        $user_id = (int) orabooks_get_current_user_id();
+        if ($user_id <= 0) {
+            return 0;
+        }
+        if (function_exists('orabooks_resolve_request_org_id')) {
+            return (int) orabooks_resolve_request_org_id($user_id, $_REQUEST['org_id'] ?? 0);
+        }
+        return function_exists('orabooks_get_current_org_id')
+            ? (int) orabooks_get_current_org_id($user_id)
+            : 0;
+    }
+
+    public static function get_job_org_id($job) {
+        if (is_array($job)) {
+            $payload_raw = $job['payload'] ?? '';
+        } else {
+            $payload_raw = $job->payload ?? '';
+        }
+        $payload = is_string($payload_raw) ? (json_decode($payload_raw, true) ?: []) : (array) $payload_raw;
+        return (int) ($payload['org_id'] ?? 0);
+    }
+
+    /**
+     * @param object|array $job
+     * @param int|null     $org_scope When > 0, job payload org_id must match.
+     */
+    public static function assert_job_org_scope($job, $org_scope) {
+        if ($org_scope === null || (int) $org_scope <= 0) {
+            return true;
+        }
+        $job_org_id = self::get_job_org_id($job);
+        if ($job_org_id !== (int) $org_scope) {
+            return new \WP_Error('forbidden', 'Job belongs to another organization');
+        }
+        return true;
+    }
+
+    private static function sql_payload_org_clause($org_id) {
+        if ((int) $org_id <= 0) {
+            return '';
+        }
+        global $wpdb;
+        return $wpdb->prepare(
+            " AND CAST(JSON_UNQUOTE(JSON_EXTRACT(payload, '$.org_id')) AS UNSIGNED) = %d",
+            (int) $org_id
+        );
+    }
+
+    public static function get_queue_stats($org_id = 0) {
         global $wpdb;
 
         $table = OraBooks_Database::table(self::TABLE_JOBS);
-
+        $org_filter = self::sql_payload_org_clause($org_id);
         $stats = [];
 
-        // Status counts
         $status_counts = $wpdb->get_results(
-            "SELECT status, COUNT(*) as count FROM {$table} GROUP BY status"
+            "SELECT status, COUNT(*) as count FROM {$table} WHERE 1=1{$org_filter} GROUP BY status"
         );
         foreach ($status_counts as $row) {
             $stats[$row->status . '_count'] = (int)$row->count;
         }
 
-        // Total
         $stats['total'] = array_sum([
             $stats['pending_count'] ?? 0,
             $stats['processing_count'] ?? 0,
@@ -633,47 +689,43 @@ class OraBooks_AsyncQueue {
             $stats['dead_letter_count'] ?? 0,
         ]);
 
-        // Queue depth by priority
         $stats['by_priority'] = $wpdb->get_results(
             "SELECT priority, COUNT(*) as count 
-             FROM {$table} WHERE status = 'pending' 
+             FROM {$table} WHERE status = 'pending'{$org_filter}
              GROUP BY priority ORDER BY priority ASC"
         );
 
-        // Queue depth by queue_name
         $stats['by_queue'] = $wpdb->get_results(
             "SELECT queue_name, COUNT(*) as count, 
                     SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending,
                     SUM(CASE WHEN status = 'processing' THEN 1 ELSE 0 END) as processing
              FROM {$table} 
+             WHERE 1=1{$org_filter}
              GROUP BY queue_name"
         );
 
-        // Recent failures (last 24h)
         $stats['recent_failures'] = $wpdb->get_results(
             "SELECT id, job_type, retry_count, last_error, created_at, last_attempt_at 
              FROM {$table} 
-             WHERE status IN ('dead_letter', 'failed') 
+             WHERE status IN ('dead_letter', 'failed'){$org_filter}
                AND (last_attempt_at >= DATE_SUB(NOW(), INTERVAL 24 HOUR) OR created_at >= DATE_SUB(NOW(), INTERVAL 24 HOUR))
              ORDER BY last_attempt_at DESC 
              LIMIT 20"
         );
 
-        // Avg latency for completed jobs (last 24h)
         $avg_latency = $wpdb->get_var(
             "SELECT AVG(TIMESTAMPDIFF(SECOND, created_at, completed_at)) 
              FROM {$table} 
-             WHERE status = 'completed' AND completed_at >= DATE_SUB(NOW(), INTERVAL 24 HOUR)"
+             WHERE status = 'completed' AND completed_at >= DATE_SUB(NOW(), INTERVAL 24 HOUR){$org_filter}"
         );
         $stats['avg_latency_seconds'] = $avg_latency ? round((float)$avg_latency, 1) : 0;
 
-        // Failure rate (last 24h)
         $last_24h_total = (int)$wpdb->get_var(
-            "SELECT COUNT(*) FROM {$table} WHERE created_at >= DATE_SUB(NOW(), INTERVAL 24 HOUR)"
+            "SELECT COUNT(*) FROM {$table} WHERE created_at >= DATE_SUB(NOW(), INTERVAL 24 HOUR){$org_filter}"
         );
         $last_24h_failed = (int)$wpdb->get_var(
             "SELECT COUNT(*) FROM {$table} 
-             WHERE created_at >= DATE_SUB(NOW(), INTERVAL 24 HOUR) 
+             WHERE created_at >= DATE_SUB(NOW(), INTERVAL 24 HOUR){$org_filter}
                AND status IN ('dead_letter', 'failed')"
         );
         $stats['failure_rate_24h'] = $last_24h_total > 0
@@ -688,6 +740,12 @@ class OraBooks_AsyncQueue {
         $table = OraBooks_Database::table(self::TABLE_JOBS);
         $where = '1=1';
         $params = [];
+
+        $org_id = isset($args['org_id']) ? (int) $args['org_id'] : 0;
+        if ($org_id > 0) {
+            $where .= ' AND CAST(JSON_UNQUOTE(JSON_EXTRACT(payload, \'$.org_id\')) AS UNSIGNED) = %d';
+            $params[] = $org_id;
+        }
 
         if (!empty($args['status'])) {
             $where .= ' AND status = %s';
@@ -807,6 +865,14 @@ class OraBooks_AsyncQueue {
     // AJAX HANDLERS
     // ================================================================
 
+    private static function json_error_for_queue_action($result) {
+        if (!is_wp_error($result)) {
+            return;
+        }
+        $code = $result->get_error_code() === 'forbidden' ? 403 : 400;
+        orabooks_json_error($result->get_error_message(), $code);
+    }
+
     /**
      * AJAX: Manual replay of a dead-letter/failed job (admin only).
      */
@@ -820,9 +886,11 @@ class OraBooks_AsyncQueue {
             orabooks_json_error('Job ID required', 400);
         }
 
-        $result = self::retry_job($job_id);
+        $org_scope = self::resolve_queue_org_scope();
+        $scope = $org_scope > 0 ? $org_scope : null;
+        $result = self::retry_job($job_id, $scope);
         if (is_wp_error($result)) {
-            orabooks_json_error($result->get_error_message(), 400);
+            self::json_error_for_queue_action($result);
         }
 
         orabooks_json_success([], 'Job retried successfully');
@@ -836,9 +904,11 @@ class OraBooks_AsyncQueue {
         if (!$job_id) {
             orabooks_json_error('Job ID required', 400);
         }
-        $result = self::discard_job($job_id);
+        $org_scope = self::resolve_queue_org_scope();
+        $scope = $org_scope > 0 ? $org_scope : null;
+        $result = self::discard_job($job_id, $scope);
         if (is_wp_error($result)) {
-            orabooks_json_error($result->get_error_message(), 400);
+            self::json_error_for_queue_action($result);
         }
         orabooks_json_success([], 'Job discarded successfully');
     }
@@ -851,9 +921,11 @@ class OraBooks_AsyncQueue {
         if (!$job_id) {
             orabooks_json_error('Job ID required', 400);
         }
-        $result = self::cancel_job($job_id);
+        $org_scope = self::resolve_queue_org_scope();
+        $scope = $org_scope > 0 ? $org_scope : null;
+        $result = self::cancel_job($job_id, $scope);
         if (is_wp_error($result)) {
-            orabooks_json_error($result->get_error_message(), 400);
+            self::json_error_for_queue_action($result);
         }
         orabooks_json_success([], 'Job cancelled successfully');
     }
@@ -874,8 +946,10 @@ class OraBooks_AsyncQueue {
             orabooks_json_error('Permission denied', 403);
         }
 
-        $stats = self::get_queue_stats();
+        $org_scope = self::resolve_queue_org_scope();
+        $stats = self::get_queue_stats($org_scope);
         $stats['jobs'] = self::list_jobs([
+            'org_id' => $org_scope,
             'status' => sanitize_text_field($_REQUEST['status'] ?? ''),
             'job_type' => sanitize_text_field($_REQUEST['job_type'] ?? ''),
             'queue_name' => sanitize_text_field($_REQUEST['queue_name'] ?? ''),
