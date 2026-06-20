@@ -1768,6 +1768,8 @@ class OraBooks_Auth {
             orabooks_json_error($result->get_error_message(), $status_code);
         }
 
+        $result = orabooks_enrich_login_response($result);
+
         orabooks_persist_login_session($result);
 
         orabooks_json_success($result, 'Google login successful');
