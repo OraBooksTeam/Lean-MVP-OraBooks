@@ -243,36 +243,50 @@ class OraBooks_Financial_Reports {
     }
 
     private static function build_profit_loss($org_id, $period_start, $period_end) {
-        $rows = self::ledger_summary_rows($org_id, $period_start, $period_end, ['revenue', 'expense']);
+        $rows = self::ledger_rows_for_report($org_id, $period_start, $period_end, ['revenue', 'expense']);
         $revenue = [];
-        $expenses = [];
+        $cogs = [];
+        $operating_expenses = [];
         $total_revenue = 0.0;
-        $total_expenses = 0.0;
+        $total_cogs = 0.0;
+        $total_operating_expenses = 0.0;
 
         foreach ($rows as $row) {
             $amount = self::account_amount($row);
-            $item = self::report_item($row, $amount);
+            $item = self::report_item($row, $amount, self::expense_pl_category($row));
             if ($row->type === 'revenue') {
                 $revenue[] = $item;
                 $total_revenue += $amount;
+            } elseif (self::expense_pl_category($row) === 'cogs') {
+                $cogs[] = $item;
+                $total_cogs += $amount;
             } else {
-                $expenses[] = $item;
-                $total_expenses += $amount;
+                $operating_expenses[] = $item;
+                $total_operating_expenses += $amount;
             }
         }
+
+        $gross_profit = round($total_revenue - $total_cogs, 2);
+        $operating_income = round($gross_profit - $total_operating_expenses, 2);
 
         return [
             'report_type' => 'profit_loss',
             'revenue' => $revenue,
-            'expenses' => $expenses,
+            'cogs' => $cogs,
+            'operating_expenses' => $operating_expenses,
+            'expenses' => array_merge($cogs, $operating_expenses),
             'total_revenue' => round($total_revenue, 2),
-            'total_expenses' => round($total_expenses, 2),
-            'net_income' => round($total_revenue - $total_expenses, 2),
+            'total_cogs' => round($total_cogs, 2),
+            'total_operating_expenses' => round($total_operating_expenses, 2),
+            'total_expenses' => round($total_cogs + $total_operating_expenses, 2),
+            'gross_profit' => $gross_profit,
+            'operating_income' => $operating_income,
+            'net_income' => $operating_income,
         ];
     }
 
     private static function build_balance_sheet($org_id, $as_of_date) {
-        $rows = self::ledger_summary_rows($org_id, null, $as_of_date, ['asset', 'liability', 'equity']);
+        $rows = self::ledger_rows_for_report($org_id, null, $as_of_date, ['asset', 'liability', 'equity']);
         $sections = ['assets' => [], 'liabilities' => [], 'equity' => []];
         $totals = ['assets' => 0.0, 'liabilities' => 0.0, 'equity' => 0.0];
 
@@ -283,15 +297,41 @@ class OraBooks_Financial_Reports {
             $totals[$key] += $amount;
         }
 
+        $fiscal_start = self::fiscal_year_start_for_date($org_id, $as_of_date);
+        $pl = self::build_profit_loss($org_id, $fiscal_start, $as_of_date);
+        $current_period_net_income = (float) ($pl['net_income'] ?? 0);
+        if (abs($current_period_net_income) > 0.001) {
+            $sections['equity'][] = [
+                'account_id' => 0,
+                'code' => 'CY-EARN',
+                'name' => 'Current Period Net Income (unclosed P&L)',
+                'type' => 'equity',
+                'amount' => round($current_period_net_income, 2),
+            ];
+            $totals['equity'] += $current_period_net_income;
+        }
+
+        $liabilities_plus_equity = $totals['liabilities'] + $totals['equity'];
+        $difference = round($totals['assets'] - $liabilities_plus_equity, 2);
+        $balanced = abs($difference) <= 0.01;
+
         return [
             'report_type' => 'balance_sheet',
+            'as_of_date' => $as_of_date,
             'assets' => $sections['assets'],
             'liabilities' => $sections['liabilities'],
             'equity' => $sections['equity'],
             'total_assets' => round($totals['assets'], 2),
             'total_liabilities' => round($totals['liabilities'], 2),
             'total_equity' => round($totals['equity'], 2),
-            'balanced' => abs($totals['assets'] - ($totals['liabilities'] + $totals['equity'])) <= 0.01,
+            'current_period_net_income' => round($current_period_net_income, 2),
+            'liabilities_plus_equity' => round($liabilities_plus_equity, 2),
+            'difference' => $difference,
+            'balanced' => $balanced,
+            'balance_status' => $balanced ? 'balanced' : 'unbalanced',
+            'balance_message' => $balanced
+                ? 'Assets equal Liabilities plus Equity (accounting equation satisfied).'
+                : sprintf('Unbalanced by %s — review journal entries and account classifications.', number_format(abs($difference), 2)),
         ];
     }
 
