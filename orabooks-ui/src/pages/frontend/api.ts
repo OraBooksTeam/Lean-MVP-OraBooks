@@ -37,7 +37,7 @@ function persistTokens(data: any) {
 
 function normalizeResponse<T = any>(json: any): ApiResult<T> {
   if (json?.success === false) {
-    return { error: extractError(json.data, 'OraBooks request failed.') };
+    return { error: extractError(json.data ?? json.message, 'OraBooks request failed.') };
   }
 
   if (json?.success === true && Object.prototype.hasOwnProperty.call(json, 'data')) {
@@ -50,8 +50,12 @@ function normalizeResponse<T = any>(json: any): ApiResult<T> {
     return { data: json.data as T };
   }
 
-  if (json?.error) {
-    return { error: extractError(json.error, 'OraBooks request failed.') };
+  if (json?.error === true || json?.error === 'true') {
+    return { error: extractError(json.message ?? json.data, 'OraBooks request failed.') };
+  }
+
+  if (json?.error && typeof json.error === 'string') {
+    return { error: json.error };
   }
 
   return json as ApiResult<T>;

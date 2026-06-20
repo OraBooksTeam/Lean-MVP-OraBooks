@@ -1034,7 +1034,6 @@ class OraBooks_Database {
      * Get table name with prefix
      */
     public static function table($name) {
-        global $wpdb;
-        return $wpdb->prefix . 'orabooks_' . $name;
+        return orabooks_get_table_prefix() . 'orabooks_' . $name;
     }
 }
