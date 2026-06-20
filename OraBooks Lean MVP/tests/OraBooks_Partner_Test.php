@@ -953,6 +953,33 @@ class OraBooks_Partner_Test extends TestCase
         $this->assertStringNotContainsString('UPDATE', $wpdb->last_query);
     }
 
+    #[Test]
+    public function test_process_partner_activity_skips_low_activity_when_active_customers_exist()
+    {
+        global $wpdb;
+
+        $sevenMonthsAgo = date('Y-m-d H:i:s', time() - (210 * 86400));
+        $wpdb->test_get_results_callback = function ($query) use ($sevenMonthsAgo) {
+            return [
+                (object)[
+                    'id'                            => 1,
+                    'user_id'                       => 5,
+                    'last_attribution_at'           => $sevenMonthsAgo,
+                    'deactivation_reminder_sent_at'  => null,
+                    'low_activity_reminder_sent_at'  => null,
+                ],
+            ];
+        };
+
+        $wpdb->test_get_var_callback = function ($query) {
+            return 2;
+        };
+
+        OraBooks_Partner::process_partner_activity();
+
+        $this->assertStringNotContainsString('low_activity_reminder_sent_at', $wpdb->last_query);
+    }
+
     // ================================================================
     // process_partner_activity — reminder repeat
     // ================================================================
