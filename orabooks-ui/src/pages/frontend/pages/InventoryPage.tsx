@@ -183,8 +183,8 @@ export default function InventoryPage() {
   const handleSearch = () => { void load(); };
 
   const handleCreateProduct = async () => {
-    if (!orgId || !productForm.name.trim() || !productForm.category_name.trim() || !productForm.unit.trim()) {
-      setError('Item name, category, and unit are required.');
+    if (!orgId || !productForm.name.trim() || !productForm.category_name.trim() || !productForm.unit.trim() || !productForm.price.trim()) {
+      setError('Item name, category, unit, and price are required.');
       return;
     }
 
@@ -475,7 +475,7 @@ export default function InventoryPage() {
             <ProductFields form={productForm} onChange={setProductForm} />
             <div className="mt-6 flex justify-end gap-2">
               <Button variant="secondary" onClick={() => setShowProductForm(false)}>Cancel</Button>
-              <Button onClick={handleCreateProduct} loading={saving} disabled={!productForm.name.trim() || !productForm.category_name.trim() || !productForm.unit.trim()}>
+              <Button onClick={handleCreateProduct} loading={saving} disabled={!productForm.name.trim() || !productForm.category_name.trim() || !productForm.unit.trim() || !productForm.price.trim()}>
                 Save item
               </Button>
             </div>
