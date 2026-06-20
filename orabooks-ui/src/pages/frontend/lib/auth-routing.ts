@@ -59,13 +59,17 @@ export function redirectAfterAuth(data: {
 
   const redirectTo = String(data?.redirect_to || '').trim();
   if (redirectTo.startsWith('http')) {
-    const url = new URL(redirectTo);
-    const hashRoute = url.hash?.replace(/^#/, '') || '/dashboard';
-    if (url.hash) {
+    if (redirectTo.includes('#')) {
       window.location.replace(redirectTo);
       return;
     }
-    window.location.replace(`${redirectTo.replace(/\/$/, '')}/#/dashboard`);
+    const target = new URL(redirectTo);
+    const hashRoute = target.pathname.includes('login')
+      ? '/login'
+      : target.pathname.includes('tier-selection')
+        ? '/tier-selection'
+        : '/dashboard';
+    window.location.replace(`${target.origin}${target.pathname}${target.search}#${hashRoute}`);
     return;
   }
 
@@ -143,11 +147,29 @@ export function clearRedirectGuard() {
   window.sessionStorage.removeItem(REDIRECT_GUARD_KEY);
 }
 
+const AUTH_HASH_ROUTES = new Set(['/login', '/register', '/reset-password', '/verify-email']);
+
 export function syncInitialHashRoute(route: string) {
   const normalized = route.startsWith('/') ? route : `/${route}`;
-  const hash = window.location.hash;
-  if (!hash || hash === '#') {
-    const base = `${window.location.pathname}${window.location.search}`;
-    window.history.replaceState(null, '', `${base}#${normalized}`);
+  const currentHash = window.location.hash.replace(/^#/, '') || '';
+  const isAuthPage = AUTH_HASH_ROUTES.has(normalized);
+  const hashIsAuthRoute = AUTH_HASH_ROUTES.has(currentHash);
+
+  // Workspace WP pages (e.g. /dashboard/) must not keep #/login — that shows login on the wrong page.
+  const shouldReplace =
+    !currentHash
+    || currentHash === '/'
+    || (!isAuthPage && hashIsAuthRoute)
+    || (isAuthPage && currentHash !== normalized && !hashIsAuthRoute && !currentHash);
+
+  if (!shouldReplace && currentHash === normalized) {
+    return;
   }
+
+  if (!shouldReplace && currentHash && !(!isAuthPage && hashIsAuthRoute)) {
+    return;
+  }
+
+  const base = `${window.location.pathname}${window.location.search}`;
+  window.history.replaceState(null, '', `${base}#${normalized}`);
 }
