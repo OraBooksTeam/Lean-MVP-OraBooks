@@ -59,6 +59,7 @@ type ProductFormState = {
   seller_points: string;
   description: string;
   item_image_url: string;
+  item_image_file: File | null;
   discount_type: 'Percentage' | 'Fixed';
   discount: string;
   price: string;
@@ -101,6 +102,7 @@ function emptyProductForm(): ProductFormState {
     seller_points: '0',
     description: '',
     item_image_url: '',
+    item_image_file: null,
     discount_type: 'Percentage',
     discount: '0',
     price: '',

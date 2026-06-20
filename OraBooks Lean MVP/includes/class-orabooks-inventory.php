@@ -771,6 +771,22 @@ class OraBooks_Inventory {
         $user_id = $this->current_user_id();
         $org_id = intval($_POST['org_id'] ?? 0);
         $this->require_inventory_permission($user_id, $org_id, ['manage_org_settings']);
+
+        if (!empty($_FILES['item_image']['name'])) {
+            if (!function_exists('media_handle_upload')) {
+                require_once ABSPATH . 'wp-admin/includes/file.php';
+                require_once ABSPATH . 'wp-admin/includes/image.php';
+                require_once ABSPATH . 'wp-admin/includes/media.php';
+            }
+
+            $attachment_id = media_handle_upload('item_image', 0);
+            if (is_wp_error($attachment_id)) {
+                orabooks_json_error($attachment_id->get_error_message(), 400);
+            }
+
+            $_POST['item_image_url'] = wp_get_attachment_url($attachment_id);
+        }
+
         $result = self::create_product($org_id, $_POST);
         if (is_wp_error($result)) {
             orabooks_json_error($result->get_error_message(), 400);
