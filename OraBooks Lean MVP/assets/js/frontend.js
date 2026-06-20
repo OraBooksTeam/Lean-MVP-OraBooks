@@ -94,7 +94,7 @@ jQuery(document).ready(function($) {
                 if (response.data && response.data.email_warning) {
                     successText = 'Account created, but the verification email could not be sent. ' +
                         response.data.email_warning + ' Contact the site administrator to configure email/SMTP.';
-                } else if (response.message) {
+                } else if (response.message && response.message !== 'Verification email sent') {
                     successText = response.message;
                 }
                 $msg.removeClass('error').addClass('success').text(successText).show();
