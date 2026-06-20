@@ -197,8 +197,17 @@ export default function ClientShell({
     <div className="mt-6 rounded-2xl border border-white/15 bg-white/10 p-4">
       <p className="truncate text-sm font-semibold text-white">{organization?.name || 'Workspace setup'}</p>
       <div className="mt-2 flex flex-wrap gap-2">
+        {isPartner && (
+          <span
+            className="badge inline-flex items-center gap-1 border border-success/30 bg-success/15 text-success"
+            title="You earn commissions from qualified customers attributed to your Partner Code. No accounting features."
+          >
+            Partner Account (Commission)
+            <Info className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+          </span>
+        )}
         {userRole && <span className="badge bg-white/90 text-ink">Role: {userRole}</span>}
-        {organization?.tier && <span className="badge bg-white text-primary">{organization.tier}</span>}
+        {!isPartner && organization?.tier && <span className="badge bg-white text-primary">{organization.tier}</span>}
         {organization?.status && <span className="badge bg-accent text-white">{organization.status}</span>}
       </div>
     </div>

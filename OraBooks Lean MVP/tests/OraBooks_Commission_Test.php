@@ -483,4 +483,70 @@ class OraBooks_Commission_Test extends TestCase
         $this->assertCount(1, $GLOBALS['orabooks_test_commission_journal_posts']);
         $this->assertEquals('commission_expiry', $GLOBALS['orabooks_test_commission_journal_posts'][0]['source_type']);
     }
+
+    #[Test]
+    public function test_maybe_create_escrow_retries_when_customer_becomes_active()
+    {
+        global $wpdb;
+        $inserts = [];
+
+        $attribution = (object) [
+            'id' => 88,
+            'partner_user_id' => 5,
+            'customer_user_id' => 50,
+            'attribution_date' => '2026-01-15 10:00:00',
+        ];
+
+        $wpdb->test_get_var_callback = function ($query) {
+            if (stripos($query, 'customer_active_status') !== false) {
+                return 1;
+            }
+            if (stripos($query, 'commission_event_consumptions') !== false) {
+                return null;
+            }
+            return null;
+        };
+        $wpdb->test_get_results_callback = function ($query) use ($attribution) {
+            if (stripos($query, 'partner_attributions') !== false) {
+                return [$attribution];
+            }
+            return [];
+        };
+        $wpdb->test_get_row_callback = function ($query) {
+            if (stripos($query, 'partner_commission_config') !== false) {
+                return $this->config();
+            }
+            if (stripos($query, 'orabooks_users') !== false) {
+                return (object) ['org_id' => 10];
+            }
+            return null;
+        };
+        $wpdb->test_insert_callback = function ($table, $data) use (&$inserts) {
+            $inserts[] = [$table, $data];
+        };
+        $GLOBALS['orabooks_test_use_insert_id'] = 501;
+
+        OraBooks_Commission::maybe_create_escrow_for_active_customer(50);
+
+        $this->assertCount(74, $inserts);
+        $this->assertEquals('wp_test_orabooks_commission_escrow_schedule', $inserts[0][0]);
+    }
+
+    #[Test]
+    public function test_on_customer_active_status_changed_skips_inactive_customers()
+    {
+        global $wpdb;
+        $insertCount = 0;
+
+        $wpdb->test_get_var_callback = function () {
+            return 0;
+        };
+        $wpdb->test_insert_callback = function () use (&$insertCount) {
+            $insertCount++;
+        };
+
+        OraBooks_Commission::on_customer_active_status_changed(50, false, 10);
+
+        $this->assertEquals(0, $insertCount);
+    }
 }
