@@ -15,6 +15,7 @@ type Product = {
   brand_name?: string | null;
   category_name?: string | null;
   hsn?: string | null;
+  stock_keeping_unit?: string | null;
   barcode?: string | null;
   description?: string | null;
   item_image_url?: string | null;
@@ -308,7 +309,7 @@ export default function InventoryPage() {
             />
           </div>
           <Button onClick={handleSearch} variant="secondary" size="sm">Search</Button>
-          <Button size="sm" onClick={() => { setShowProductForm(true); setError(''); setSuccess(''); }}>
+          <Button size="sm" onClick={() => { setShowProductForm(true); setProductForm(emptyProductForm()); setError(''); setSuccess(''); }}>
             <Plus className="h-4 w-4" />
             Add product
           </Button>
@@ -354,7 +355,7 @@ export default function InventoryPage() {
           <table className="min-w-full text-left text-sm">
             <thead>
               <tr className="border-b border-border bg-slate-50/70 text-xs uppercase text-slate-500">
-                <th className="px-5 py-3 font-semibold">SKU</th>
+                <th className="px-5 py-3 font-semibold">Item Code</th>
                 <th className="px-5 py-3 font-semibold">Name</th>
                 <th className="px-5 py-3 font-semibold">Unit</th>
                 <th className="px-5 py-3 text-right font-semibold">Stock</th>
@@ -383,7 +384,14 @@ export default function InventoryPage() {
                 return (
                   <tr key={product.id} className="hover:bg-slate-50/70">
                     <td className="px-5 py-3 font-mono text-xs font-semibold text-ink">{product.sku}</td>
-                    <td className="px-5 py-3 font-semibold text-ink">{product.name}</td>
+                    <td className="px-5 py-3">
+                      <p className="font-semibold text-ink">{product.name}</p>
+                      {(product.category_name || product.brand_name || product.stock_keeping_unit) && (
+                        <p className="text-xs text-slate-500">
+                          {[product.category_name, product.brand_name, product.stock_keeping_unit ? `SKU ${product.stock_keeping_unit}` : ''].filter(Boolean).join(' · ')}
+                        </p>
+                      )}
+                    </td>
                     <td className="px-5 py-3 text-slate-600">{product.unit || 'piece'}</td>
                     <td className="px-5 py-3 text-right font-bold text-ink">{formatQty(stock)}</td>
                     <td className="px-5 py-3 text-right text-slate-600">{money(avgCost)}</td>
