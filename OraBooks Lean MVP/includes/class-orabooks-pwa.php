@@ -61,11 +61,11 @@ class OraBooks_Pwa {
         }
 
         $config['pwa'] = [
-            'enabled'            => true,
-            'manifest_url'       => rest_url('api/pwa/manifest'),
-            'service_worker_url' => self::asset_url('service-worker.js'),
+            'enabled'              => true,
+            'manifest_url'         => rest_url('api/pwa/manifest'),
+            'service_worker_url'   => self::asset_url('service-worker.js'),
             'service_worker_scope' => self::asset_url(''),
-            'offline_queue'      => true,
+            'offline_queue'        => true,
         ];
 
         return $config;
