@@ -379,9 +379,11 @@ export default function CustomersPage() {
                 <tr key={customer.id} className="hover:bg-slate-50/70">
                   <td className="px-5 py-3">
                     <p className="font-semibold text-ink">{customerLabel(customer)}</p>
+                    {customer.customer_code && <p className="text-xs font-medium text-slate-500">{customer.customer_code}</p>}
                     {customer.email && customer.display_name && (
                       <p className="text-xs text-slate-500">{customer.email}</p>
                     )}
+                    {customer.mobile && <p className="text-xs text-slate-500">{customer.mobile}</p>}
                     {Number(customer.credit_hold) === 1 && (
                       <span className="mt-1 inline-block rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-800">Credit hold</span>
                     )}
@@ -456,39 +458,158 @@ function CustomerFields({
   onChange: (next: CustomerFormState) => void;
 }) {
   const set = (patch: Partial<CustomerFormState>) => onChange({ ...form, ...patch });
+  const copyBillingToShipping = () => {
+    set({
+      ship_country_id: form.country_id,
+      ship_state_id: form.state_id,
+      ship_city: form.city,
+      ship_postcode: form.postcode,
+      ship_address: form.address,
+    });
+  };
 
   return (
-    <div className="grid gap-4">
-      <Field label="Name">
-        <Input value={form.name} onChange={(e) => set({ name: e.target.value })} placeholder="Acme Corp" required />
-      </Field>
-      <Field label="Email">
-        <Input type="email" value={form.email} onChange={(e) => set({ email: e.target.value })} placeholder="billing@acme.com" />
-      </Field>
-      <div className="grid gap-4 sm:grid-cols-2">
-        <Field label="Payment terms (days)">
-          <Input type="number" min="0" value={form.payment_terms} onChange={(e) => set({ payment_terms: e.target.value })} />
+    <div className="grid gap-6 lg:grid-cols-2">
+      <section className="space-y-4 rounded-2xl border border-border bg-slate-50/60 p-4">
+        <h4 className="text-sm font-bold uppercase tracking-wide text-ink">Basic Information</h4>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="Customer Code">
+            <Input value={form.customer_code || 'Auto-generated'} onChange={(e) => set({ customer_code: e.target.value })} placeholder="Auto-generated" />
+          </Field>
+          <Field label="Customer Name">
+            <Input value={form.name} onChange={(e) => set({ name: e.target.value })} placeholder="Acme Corp" required />
+          </Field>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="Mobile">
+            <Input value={form.mobile} onChange={(e) => set({ mobile: e.target.value })} />
+          </Field>
+          <Field label="Phone">
+            <Input value={form.phone} onChange={(e) => set({ phone: e.target.value })} />
+          </Field>
+        </div>
+        <Field label="Email">
+          <Input type="email" value={form.email} onChange={(e) => set({ email: e.target.value })} placeholder="billing@acme.com" />
         </Field>
-        <Field label="Default currency">
-          <Input value={form.default_currency} onChange={(e) => set({ default_currency: e.target.value.toUpperCase() })} maxLength={3} />
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="GST Number">
+            <Input value={form.gstin} onChange={(e) => set({ gstin: e.target.value })} />
+          </Field>
+          <Field label="Tax Number">
+            <Input value={form.tax_number} onChange={(e) => set({ tax_number: e.target.value })} />
+          </Field>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="Credit Limit">
+            <Input type="number" min="0" step="0.01" value={form.credit_limit} onChange={(e) => set({ credit_limit: e.target.value })} />
+          </Field>
+          <Field label="Opening Balance">
+            <Input type="number" step="0.01" value={form.opening_balance} onChange={(e) => set({ opening_balance: e.target.value })} />
+          </Field>
+        </div>
+      </section>
+
+      <section className="space-y-4 rounded-2xl border border-border bg-slate-50/60 p-4">
+        <h4 className="text-sm font-bold uppercase tracking-wide text-ink">Address Details</h4>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="Country">
+            <Input value={form.country_id} onChange={(e) => set({ country_id: e.target.value })} />
+          </Field>
+          <Field label="State">
+            <Input value={form.state_id} onChange={(e) => set({ state_id: e.target.value })} />
+          </Field>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="City">
+            <Input value={form.city} onChange={(e) => set({ city: e.target.value })} />
+          </Field>
+          <Field label="Postcode">
+            <Input value={form.postcode} onChange={(e) => set({ postcode: e.target.value })} />
+          </Field>
+        </div>
+        <Field label="Address">
+          <textarea
+            value={form.address}
+            onChange={(e) => set({ address: e.target.value })}
+            rows={3}
+            className="w-full rounded-lg border border-border bg-white px-3.5 py-2.5 text-sm text-ink shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+          />
         </Field>
-      </div>
-      <Field label="Credit limit (0 = unlimited)">
-        <Input type="number" min="0" step="0.01" value={form.credit_limit} onChange={(e) => set({ credit_limit: e.target.value })} />
-      </Field>
-      <div className="flex flex-wrap gap-6">
-        <label className="flex items-center gap-2 text-sm text-slate-700">
-          <input type="checkbox" checked={form.credit_hold} onChange={(e) => set({ credit_hold: e.target.checked })} />
-          Credit hold
-        </label>
-        <label className="flex items-center gap-2 text-sm text-slate-700">
-          <input type="checkbox" checked={form.auto_apply_credit} onChange={(e) => set({ auto_apply_credit: e.target.checked })} />
-          Auto-apply credit balance
-        </label>
-      </div>
-      <Field label="Notes">
-        <Input value={form.notes} onChange={(e) => set({ notes: e.target.value })} placeholder="Internal notes (optional)" />
-      </Field>
+        <Field label="Location Link">
+          <Input type="url" value={form.location_link} onChange={(e) => set({ location_link: e.target.value })} placeholder="https://maps.google.com/..." />
+        </Field>
+      </section>
+
+      <section className="space-y-4 rounded-2xl border border-border bg-slate-50/60 p-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h4 className="text-sm font-bold uppercase tracking-wide text-ink">Shipping Address</h4>
+          <Button type="button" size="sm" variant="secondary" onClick={copyBillingToShipping}>Same as billing</Button>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="Country">
+            <Input value={form.ship_country_id} onChange={(e) => set({ ship_country_id: e.target.value })} />
+          </Field>
+          <Field label="State">
+            <Input value={form.ship_state_id} onChange={(e) => set({ ship_state_id: e.target.value })} />
+          </Field>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="City">
+            <Input value={form.ship_city} onChange={(e) => set({ ship_city: e.target.value })} />
+          </Field>
+          <Field label="Postcode">
+            <Input value={form.ship_postcode} onChange={(e) => set({ ship_postcode: e.target.value })} />
+          </Field>
+        </div>
+        <Field label="Address">
+          <textarea
+            value={form.ship_address}
+            onChange={(e) => set({ ship_address: e.target.value })}
+            rows={3}
+            className="w-full rounded-lg border border-border bg-white px-3.5 py-2.5 text-sm text-ink shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+          />
+        </Field>
+      </section>
+
+      <section className="space-y-4 rounded-2xl border border-border bg-slate-50/60 p-4">
+        <h4 className="text-sm font-bold uppercase tracking-wide text-ink">Advanced Settings</h4>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="Price Level Type">
+            <select
+              value={form.price_level_type}
+              onChange={(e) => set({ price_level_type: e.target.value === 'Decrease' ? 'Decrease' : 'Increase' })}
+              className="w-full rounded-lg border border-border bg-white px-3.5 py-2.5 text-sm text-ink shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+            >
+              <option value="Increase">Increase</option>
+              <option value="Decrease">Decrease</option>
+            </select>
+          </Field>
+          <Field label="Price Level (%)">
+            <Input type="number" step="0.01" value={form.price_level} onChange={(e) => set({ price_level: e.target.value })} />
+          </Field>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="Payment Terms (days)">
+            <Input type="number" min="0" value={form.payment_terms} onChange={(e) => set({ payment_terms: e.target.value })} />
+          </Field>
+          <Field label="Default Currency">
+            <Input value={form.default_currency} onChange={(e) => set({ default_currency: e.target.value.toUpperCase() })} maxLength={3} />
+          </Field>
+        </div>
+        <div className="flex flex-wrap gap-6">
+          <label className="flex items-center gap-2 text-sm text-slate-700">
+            <input type="checkbox" checked={form.credit_hold} onChange={(e) => set({ credit_hold: e.target.checked })} />
+            Credit hold
+          </label>
+          <label className="flex items-center gap-2 text-sm text-slate-700">
+            <input type="checkbox" checked={form.auto_apply_credit} onChange={(e) => set({ auto_apply_credit: e.target.checked })} />
+            Auto-apply credit balance
+          </label>
+        </div>
+        <Field label="Notes">
+          <Input value={form.notes} onChange={(e) => set({ notes: e.target.value })} placeholder="Internal notes (optional)" />
+        </Field>
+      </section>
     </div>
   );
 }
@@ -496,7 +617,7 @@ function CustomerFields({
 function Modal({ title, children, onClose }: { title: string; children: ReactNode; onClose: () => void }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4" onClick={onClose}>
-      <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-border bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+      <div className="max-h-[90vh] w-full max-w-5xl overflow-y-auto rounded-2xl border border-border bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between gap-3">
           <h3 className="text-lg font-semibold text-ink">{title}</h3>
           <button type="button" onClick={onClose} className="text-sm text-slate-500 hover:text-slate-700">Close</button>
