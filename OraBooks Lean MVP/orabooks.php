@@ -366,6 +366,7 @@ function orabooks_deactivate() {
     wp_clear_scheduled_hook('orabooks_async_queue_process');
     wp_clear_scheduled_hook('orabooks_async_queue_heartbeat');
     wp_clear_scheduled_hook('orabooks_async_queue_monitor');
+    wp_clear_scheduled_hook('orabooks_async_queue_archive');
     wp_clear_scheduled_hook('orabooks_exports_cleanup');
     wp_clear_scheduled_hook('orabooks_daily_customer_status_check');
     wp_clear_scheduled_hook('orabooks_daily_invoice_overdue_check');

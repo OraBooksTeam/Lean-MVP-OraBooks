@@ -17,6 +17,7 @@ class OraBooks_DeployChecks {
         return [
             'orabooks_partner_activity_check' => 'daily',
             'orabooks_async_queue_process' => 'every_minute',
+            'orabooks_async_queue_archive' => 'daily',
             'orabooks_daily_active_status_refresh' => 'daily',
         ];
     }
