@@ -1619,6 +1619,18 @@ if (!file_exists($eventbus_file)) {
 }
 require_once $eventbus_file;
 
+$async_queue_file = __DIR__ . '/../includes/class-orabooks-async-queue.php';
+if (!file_exists($async_queue_file)) {
+    echo "ERROR: Cannot find class-orabooks-async-queue.php at {$async_queue_file}\n";
+    exit(1);
+}
+require_once $async_queue_file;
+
+$jobs_loader_file = __DIR__ . '/../includes/jobs/loader.php';
+if (file_exists($jobs_loader_file)) {
+    require_once $jobs_loader_file;
+}
+
 $event_module_file = __DIR__ . '/../includes/events/loader.php';
 if (!file_exists($event_module_file)) {
     echo "ERROR: Cannot find SL-302 event module at {$event_module_file}\n";
