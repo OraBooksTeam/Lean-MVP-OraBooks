@@ -1120,7 +1120,7 @@ class OraBooks_Ajax {
         $table_users = OraBooks_Database::table('users');
         $table_codes = OraBooks_Database::table('partner_codes');
         $table_attributions = OraBooks_Database::table('partner_attributions');
-        $table_invoices = $wpdb->prefix . 'orabooks_invoices';
+        $table_invoices = OraBooks_Database::table('invoices');
         
         // Total organizations
         $total_orgs = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$table_orgs}");
