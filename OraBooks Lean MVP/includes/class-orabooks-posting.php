@@ -1757,6 +1757,7 @@ class OraBooks_Posting {
             'status' => sanitize_text_field($_GET['status'] ?? $_POST['status'] ?? ''),
             'from_date' => sanitize_text_field($_GET['from_date'] ?? $_POST['from_date'] ?? ''),
             'to_date' => sanitize_text_field($_GET['to_date'] ?? $_POST['to_date'] ?? ''),
+            'account_code' => sanitize_text_field($_GET['account_code'] ?? $_POST['account_code'] ?? ''),
         ];
         
         $journals = self::get_journals($org_id, $args);
