@@ -1028,14 +1028,14 @@ if (!function_exists('orabooks_hash_token')) {
 
 if (!function_exists('orabooks_validate_subdomain')) {
     function orabooks_validate_subdomain($subdomain) {
-        if (strlen($subdomain) < 3) {
-            return 'Subdomain must be at least 3 characters';
+        $reserved = ['admin', 'api', 'app', 'support', 'billing', 'partner', 'orabooks', 'www', 'root'];
+        $subdomain = strtolower(trim($subdomain));
+
+        if (in_array($subdomain, $reserved, true)) {
+            return 'This subdomain is reserved';
         }
-        if (strlen($subdomain) > 32) {
-            return 'Subdomain must be at most 32 characters';
-        }
-        if (!preg_match('/^[a-z0-9-]+$/', $subdomain)) {
-            return 'Subdomain can only contain lowercase letters, numbers, and hyphens';
+        if (!preg_match('/^[a-z0-9][a-z0-9-]{1,61}[a-z0-9]$/', $subdomain)) {
+            return 'Subdomain must be 3-63 chars, lowercase alphanumeric with hyphens, no start/end hyphen';
         }
         return true;
     }
@@ -1047,15 +1047,72 @@ if (!function_exists('orabooks_validate_password')) {
             return 'Password must be at least 8 characters';
         }
         if (!preg_match('/[A-Z]/', $password)) {
-            return 'Password must contain an uppercase letter';
+            return 'Password must contain at least one uppercase letter';
         }
         if (!preg_match('/[a-z]/', $password)) {
-            return 'Password must contain a lowercase letter';
+            return 'Password must contain at least one lowercase letter';
         }
         if (!preg_match('/[0-9]/', $password)) {
-            return 'Password must contain a number';
+            return 'Password must contain at least one number';
+        }
+        if (!preg_match('/[^a-zA-Z0-9]/', $password)) {
+            return 'Password must contain at least one special character';
         }
         return true;
+    }
+}
+
+if (!function_exists('orabooks_is_user_logged_in')) {
+    function orabooks_is_user_logged_in() {
+        return orabooks_get_current_user_id() > 0;
+    }
+}
+
+if (!function_exists('orabooks_set_auth_token_cookie')) {
+    function orabooks_set_auth_token_cookie($token) {
+        if (!empty($token)) {
+            $_COOKIE['orabooks_token'] = $token;
+        }
+    }
+}
+
+if (!function_exists('orabooks_clear_auth_token_cookie')) {
+    function orabooks_clear_auth_token_cookie() {
+        unset($_COOKIE['orabooks_token']);
+    }
+}
+
+if (!function_exists('orabooks_establish_wp_session_for_orabooks_user')) {
+    function orabooks_establish_wp_session_for_orabooks_user($orabooks_user_id, $password = '') {
+        $GLOBALS['orabooks_test_current_user_id'] = (int) $orabooks_user_id;
+        return (int) $orabooks_user_id;
+    }
+}
+
+if (!function_exists('orabooks_persist_login_session')) {
+    function orabooks_persist_login_session($login_result, $password = '') {
+        if (!is_array($login_result)) {
+            return;
+        }
+        if (!empty($login_result['token'])) {
+            orabooks_set_auth_token_cookie($login_result['token']);
+        }
+        $user_id = !empty($login_result['user_id']) ? (int) $login_result['user_id'] : 0;
+        if ($user_id > 0) {
+            orabooks_establish_wp_session_for_orabooks_user($user_id, $password);
+        }
+    }
+}
+
+if (!function_exists('wp_logout')) {
+    function wp_logout() {
+        $GLOBALS['orabooks_test_current_user_id'] = 0;
+    }
+}
+
+if (!function_exists('get_option')) {
+    function get_option($option, $default = false) {
+        return $GLOBALS['orabooks_test_options'][$option] ?? $default;
     }
 }
 
