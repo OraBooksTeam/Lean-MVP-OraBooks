@@ -319,11 +319,11 @@ class OraBooks_Auth_Test extends TestCase
         $result = OraBooks_Auth::handle_google_callback('auth-code-002', 'test-state-002');
 
         $this->assertInstanceOf(WP_Error::class, $result);
-        $this->assertEquals('no_email', $result->get_error_code());
+        $this->assertEquals('invalid_id_token', $result->get_error_code());
     }
 
     #[Test]
-    public function test_handle_google_callback_aud_mismatch()
+    public function test_handle_google_callback_no_email_in_token()
     {
         $this->storeValidOidcState('test-state-003');
 

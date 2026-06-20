@@ -1662,24 +1662,10 @@ class OraBooks_Auth {
             return new WP_Error('no_id_token', 'Failed to get user info from Google.');
         }
 
-        // Decode id_token JWT to get user info (verify with Google's public keys not needed for MVP)
-        $id_token_parts = explode('.', $token_body['id_token']);
-        if (count($id_token_parts) !== 3) {
+        $userinfo = OraBooks_Secrets::verify_google_id_token($token_body['id_token'], $client_id);
+        if (!$userinfo) {
+            orabooks_log_event('oidc_invalid_id_token', 'OIDC id_token signature or claims verification failed', 'warning', []);
             return new WP_Error('invalid_id_token', 'Invalid ID token from Google.');
-        }
-
-        $userinfo = json_decode(base64_decode(strtr($id_token_parts[1], '-_', '+/')), true);
-        if (!$userinfo || empty($userinfo['email'])) {
-            return new WP_Error('no_email', 'Could not retrieve email from Google.');
-        }
-
-        // Verify audience (aud) matches our client_id — critical security check
-        if (!isset($userinfo['aud']) || $userinfo['aud'] !== $client_id) {
-            orabooks_log_event('oidc_aud_mismatch', 'OIDC id_token audience mismatch', 'critical', [
-                'expected' => $client_id,
-                'actual' => $userinfo['aud'] ?? 'none'
-            ]);
-            return new WP_Error('invalid_token', 'Invalid authentication token from Google.');
         }
 
         $google_email = sanitize_email($userinfo['email']);

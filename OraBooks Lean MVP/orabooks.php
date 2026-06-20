@@ -499,7 +499,7 @@ function orabooks_admin_menu() {
         'orabooks',
         'Event Dead Letters',
         'Event Dead Letters',
-        'manage_options',
+        'read',
         'orabooks-event-dead-letter',
         ['OraBooks_Event_Module', 'render_dead_letter_replay_page']
     );

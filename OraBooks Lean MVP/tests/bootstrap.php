@@ -892,6 +892,35 @@ if (!class_exists('OraBooks_Secrets', false)) {
             return $GLOBALS['orabooks_test_verify_jwt_result'] ?? false;
         }
 
+        public static function verify_google_id_token($id_token, $client_id) {
+            if (array_key_exists('orabooks_test_verify_google_id_token_result', $GLOBALS)) {
+                return $GLOBALS['orabooks_test_verify_google_id_token_result'];
+            }
+
+            $parts = explode('.', (string) $id_token);
+            if (count($parts) !== 3) {
+                return false;
+            }
+
+            $payload = json_decode(base64_decode(strtr($parts[1], '-_', '+/')), true);
+            if (!is_array($payload) || empty($payload['email'])) {
+                return false;
+            }
+
+            if ((string) ($payload['aud'] ?? '') !== (string) $client_id) {
+                return false;
+            }
+
+            if (empty($payload['exp']) || (int) $payload['exp'] < time()) {
+                // Test tokens omit exp — treat missing exp as valid in unit tests.
+                if (!empty($payload['exp'])) {
+                    return false;
+                }
+            }
+
+            return $payload;
+        }
+
         public static function encrypt_sensitive($plaintext) {
             return 'enc:' . (string) $plaintext;
         }
