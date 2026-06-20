@@ -1539,6 +1539,13 @@ if (!file_exists($eventbus_file)) {
 }
 require_once $eventbus_file;
 
+$event_module_file = __DIR__ . '/../includes/events/loader.php';
+if (!file_exists($event_module_file)) {
+    echo "ERROR: Cannot find SL-302 event module at {$event_module_file}\n";
+    exit(1);
+}
+require_once $event_module_file;
+
 $classification_file = __DIR__ . '/../includes/class-orabooks-classification.php';
 if (!file_exists($classification_file)) {
     echo "ERROR: Cannot find class-orabooks-classification.php at {$classification_file}\n";
