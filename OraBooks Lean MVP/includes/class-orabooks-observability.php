@@ -126,9 +126,15 @@ class OraBooks_Observability {
         $snapshots = [];
 
         // Event bus (SL-302)
-        $outbox = OraBooks_Database::table('outbox_messages');
-        $event_pending = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$outbox} WHERE status = 'pending'");
-        $event_dead = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$outbox} WHERE status = 'dead_letter'");
+        if (class_exists('OraBooks_Event_Module')) {
+            $event_health = OraBooks_Event_Module::get_health();
+            $event_pending = (int) ($event_health['pending'] ?? 0);
+            $event_dead = (int) ($event_health['dead_letter'] ?? 0);
+        } else {
+            $outbox = OraBooks_Database::table('outbox_messages');
+            $event_pending = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$outbox} WHERE status = 'pending'");
+            $event_dead = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$outbox} WHERE status = 'dead_letter'");
+        }
         self::record_metric('eventbus', 'queue_depth', $event_pending);
         self::record_metric('eventbus', 'dead_letter_count', $event_dead);
         $event_status = self::status_from_counts($event_pending, self::$thresholds['eventbus_pending'], $event_dead, self::$thresholds['eventbus_dead_letter']);
