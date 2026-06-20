@@ -690,7 +690,7 @@ class OraBooks_Ajax {
             $member_rows = OraBooks_Team::list_members($org_id);
             $members = array_map([OraBooks_Team::class, 'format_member'], $member_rows ?: []);
 
-            if (OraBooks_RBAC::require_permission($context['user_id'], $org_id, 'invite_user')) {
+            if (OraBooks_RBAC::require_permission($context['user_id'], $org_id, 'manage_employees')) {
                 $invite_rows = OraBooks_Team::list_pending_invites($org_id);
                 $pending_invites = array_map([OraBooks_Team::class, 'format_invite'], $invite_rows ?: []);
             }
@@ -714,9 +714,11 @@ class OraBooks_Ajax {
         }
 
         $capabilities = [
-            'invite_user' => OraBooks_RBAC::require_permission($context['user_id'], $org_id, 'invite_user'),
-            'change_role' => OraBooks_RBAC::require_permission($context['user_id'], $org_id, 'change_role'),
-            'remove_user' => OraBooks_RBAC::require_permission($context['user_id'], $org_id, 'remove_user'),
+            'invite_user' => OraBooks_RBAC::require_permission($context['user_id'], $org_id, 'manage_employees'),
+            'change_role' => OraBooks_RBAC::require_permission($context['user_id'], $org_id, 'manage_roles'),
+            'remove_user' => OraBooks_RBAC::require_permission($context['user_id'], $org_id, 'manage_employees'),
+            'manage_employees' => OraBooks_RBAC::require_permission($context['user_id'], $org_id, 'manage_employees'),
+            'manage_roles' => OraBooks_RBAC::require_permission($context['user_id'], $org_id, 'manage_roles'),
         ];
 
         orabooks_json_success([
