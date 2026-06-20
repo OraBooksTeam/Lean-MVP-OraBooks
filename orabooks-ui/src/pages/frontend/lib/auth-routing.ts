@@ -225,7 +225,7 @@ export function getAuthResetLoginUrl() {
   return normalizeWpAppPath(appendAuthResetFlag(getNetworkLoginUrl()));
 }
 
-type NetworkAuthPage = 'login' | 'register' | 'reset-password' | 'verify-email' | 'tier-selection';
+type NetworkAuthPage = 'login' | 'register' | 'reset-password' | 'verify-email' | 'tier-selection' | 'accept-invite';
 
 export function getNetworkAuthUrl(page: NetworkAuthPage) {
   const cfg = (window as any).orabooks_ajax || {};
@@ -238,6 +238,8 @@ export function getNetworkAuthUrl(page: NetworkAuthPage) {
           ? cfg.reset_password_url
           : page === 'verify-email'
             ? cfg.verify_email_url
+            : page === 'accept-invite'
+              ? cfg.accept_invite_url
             : cfg.tier_selection_url;
 
   if (typeof configured === 'string' && configured.trim() !== '') {

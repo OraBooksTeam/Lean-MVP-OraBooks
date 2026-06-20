@@ -147,6 +147,16 @@ export default function ClientShell({
   const nav = isPartner ? partnerNav : customerNav;
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
+  const [userRole, setUserRole] = useState('');
+
+  useEffect(() => {
+    void api.frontendContext().then((res) => {
+      const role = (res as any).data?.role;
+      if (typeof role === 'string' && role.trim() !== '') {
+        setUserRole(role.charAt(0).toUpperCase() + role.slice(1));
+      }
+    });
+  }, []);
 
   const handleLogout = async (event: MouseEvent<HTMLAnchorElement>) => {
     event.preventDefault();
@@ -186,6 +196,7 @@ export default function ClientShell({
     <div className="mt-6 rounded-2xl border border-white/15 bg-white/10 p-4">
       <p className="truncate text-sm font-semibold text-white">{organization?.name || 'Workspace setup'}</p>
       <div className="mt-2 flex flex-wrap gap-2">
+        {userRole && <span className="badge bg-white/90 text-ink">Role: {userRole}</span>}
         {organization?.tier && <span className="badge bg-white text-primary">{organization.tier}</span>}
         {organization?.status && <span className="badge bg-accent text-white">{organization.status}</span>}
       </div>

@@ -30,6 +30,7 @@ import ProfilePage from './pages/ProfilePage';
 import NotificationPreferencesPage from './pages/NotificationPreferencesPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
 import VerifyEmailPage from './pages/VerifyEmailPage';
+import AcceptInvitePage from './pages/AcceptInvitePage';
 import JobQueuePage from './pages/JobQueuePage';
 import ObservabilityPage from './pages/ObservabilityPage';
 import NotificationAdminPage from './pages/NotificationAdminPage';
@@ -47,6 +48,7 @@ const ROUTES: Record<string, RouteConfig> = {
   '/register': { element: <RegisterPage />, requireAuth: false },
   '/reset-password': { element: <ResetPasswordPage />, requireAuth: false },
   '/verify-email': { element: <VerifyEmailPage />, requireAuth: false },
+  '/accept-invite': { element: <AcceptInvitePage />, requireAuth: false },
   '/tier-selection': { element: <TierSelectionPage />, requireAuth: false },
   '/dashboard': { element: <DashboardPage /> },
   '/customers': { element: <CustomersPage /> },

@@ -7,6 +7,8 @@ import {
   clearRedirectGuard,
   clearLogoutSessionFlag,
   clearStoredAuthTokens,
+  consumePendingInviteToken,
+  getAcceptInviteUrl,
   getNetworkAuthUrl,
   isLogoutLanding,
   redirectAfterAuth,
@@ -14,6 +16,11 @@ import {
 } from '../lib/auth-routing';
 
 function redirectAfterLogin(data: any) {
+  const pendingInvite = consumePendingInviteToken();
+  if (pendingInvite) {
+    window.location.replace(getAcceptInviteUrl(pendingInvite));
+    return;
+  }
   redirectAfterAuth(data);
 }
 
