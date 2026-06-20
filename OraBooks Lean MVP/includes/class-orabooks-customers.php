@@ -42,6 +42,10 @@ class OraBooks_Customers {
             add_action('wp_ajax_nopriv_orabooks_invoice_get', [self::$instance, 'ajax_invoice_get']);
             add_action('wp_ajax_orabooks_invoice_override_tax', [self::$instance, 'ajax_invoice_override_tax']);
             add_action('wp_ajax_nopriv_orabooks_invoice_override_tax', [self::$instance, 'ajax_invoice_override_tax']);
+            add_action('wp_ajax_orabooks_invoice_send', [self::$instance, 'ajax_invoice_send']);
+            add_action('wp_ajax_nopriv_orabooks_invoice_send', [self::$instance, 'ajax_invoice_send']);
+            add_action('wp_ajax_orabooks_invoice_post', [self::$instance, 'ajax_invoice_post']);
+            add_action('wp_ajax_nopriv_orabooks_invoice_post', [self::$instance, 'ajax_invoice_post']);
             add_action('wp_ajax_orabooks_invoice_record_payment', [self::$instance, 'ajax_record_payment']);
             add_action('wp_ajax_nopriv_orabooks_invoice_record_payment', [self::$instance, 'ajax_record_payment']);
             add_action('wp_ajax_orabooks_customer_stats', [self::$instance, 'ajax_customer_stats']);
@@ -77,6 +81,12 @@ class OraBooks_Customers {
             is_active TINYINT(1) DEFAULT 0 COMMENT 'Authoritative truth source for commission engine SL-068',
             last_paid_invoice_date DATE NULL,
             lifetime_value DECIMAL(20,2) DEFAULT 0,
+            payment_terms INT DEFAULT 30,
+            default_currency CHAR(3) DEFAULT 'USD',
+            credit_limit DECIMAL(20,2) DEFAULT 0,
+            credit_hold TINYINT(1) DEFAULT 0,
+            auto_apply_credit TINYINT(1) DEFAULT 1,
+            credit_balance DECIMAL(20,2) DEFAULT 0,
             notes TEXT NULL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -164,6 +174,7 @@ class OraBooks_Customers {
             self::schema_is_ready()
             && self::get_schema_flag('orabooks_sl021_schema_v2') === '1'
             && self::get_schema_flag('orabooks_sl021_customer_contacts_v1') === '1'
+            && self::get_schema_flag('orabooks_sl021_customer_credit_v1') === '1'
         ) {
             return;
         }
@@ -171,6 +182,7 @@ class OraBooks_Customers {
         $upgrade = ABSPATH . 'wp-admin/includes/upgrade.php';
         if (!file_exists($upgrade)) {
             self::ensure_customer_contact_schema();
+            self::ensure_customer_credit_schema();
             return;
         }
 
@@ -178,6 +190,7 @@ class OraBooks_Customers {
 
         self::ensure_payments_table();
         self::ensure_customer_contact_schema();
+        self::ensure_customer_credit_schema();
 
         $table_invoices = OraBooks_Database::table('invoices');
         if ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table_invoices)) !== $table_invoices) {
