@@ -901,6 +901,7 @@ function orabooks_body_class($classes) {
         'orabooks_tier_selection',
         'orabooks_reset_password',
         'orabooks_verify_email',
+        'orabooks_accept_invite',
     ];
     foreach ($auth_shortcodes as $shortcode) {
         if (has_shortcode($post->post_content, $shortcode)) {
