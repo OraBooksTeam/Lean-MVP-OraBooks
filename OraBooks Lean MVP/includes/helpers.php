@@ -527,6 +527,46 @@ function orabooks_ensure_org_multisite_site($org_id) {
 }
 
 /**
+ * Append cross-origin auth token query params for multisite subdomain handoff.
+ */
+function orabooks_append_auth_tokens_to_url($url, $token = '', $refresh_token = '') {
+    if ($token === '' && !empty($_COOKIE['orabooks_token'])) {
+        $token = sanitize_text_field(wp_unslash($_COOKIE['orabooks_token']));
+    }
+
+    if ($token === '') {
+        return $url;
+    }
+
+    $parsed = wp_parse_url($url);
+    if (!$parsed || empty($parsed['host'])) {
+        return $url;
+    }
+
+    $current_host = strtolower(preg_replace('/:\d+$/', '', (string) ($_SERVER['HTTP_HOST'] ?? '')));
+    $target_host = strtolower((string) $parsed['host']);
+    if ($target_host === $current_host) {
+        return $url;
+    }
+
+    $query = [];
+    if (!empty($parsed['query'])) {
+        parse_str($parsed['query'], $query);
+    }
+
+    $query['ob_t'] = $token;
+    if ($refresh_token !== '') {
+        $query['ob_rt'] = $refresh_token;
+    }
+
+    $scheme = $parsed['scheme'] ?? (is_ssl() ? 'https' : 'http');
+    $path = $parsed['path'] ?? '/';
+    $fragment = !empty($parsed['fragment']) ? '#' . $parsed['fragment'] : '';
+
+    return $scheme . '://' . $target_host . $path . '?' . http_build_query($query) . $fragment;
+}
+
+/**
  * Add subdomain + absolute redirect URL to login/auth API payloads.
  */
 function orabooks_enrich_login_response($login_result) {
@@ -555,12 +595,19 @@ function orabooks_enrich_login_response($login_result) {
     }
 
     if (!empty($login_result['subdomain'])) {
-        $path = !empty($login_result['is_partner']) ? '/partner/onboarding' : '/dashboard/';
+        $path = !empty($login_result['is_partner']) ? '/partner-onboarding/' : '/dashboard/';
         $login_result['redirect_to'] = orabooks_build_org_url($login_result['subdomain'], $path);
-        return $login_result;
+    } else {
+        $login_result['redirect_to'] = orabooks_get_network_login_url('dashboard');
     }
 
-    $login_result['redirect_to'] = orabooks_get_network_login_url('dashboard');
+    if (!empty($login_result['redirect_to']) && !empty($login_result['token'])) {
+        $login_result['redirect_to'] = orabooks_append_auth_tokens_to_url(
+            $login_result['redirect_to'],
+            (string) $login_result['token'],
+            (string) ($login_result['refresh_token'] ?? '')
+        );
+    }
 
     return $login_result;
 }
@@ -634,7 +681,8 @@ function orabooks_maybe_redirect_to_org_subdomain() {
     $shared_auth_slugs = ['login', 'register', 'reset-password', 'verify-email', 'tier-selection'];
     if (in_array($post->post_name, $shared_auth_slugs, true)) {
         if ($post->post_name === 'login') {
-            wp_redirect(orabooks_build_org_url($org->subdomain, '/dashboard/'));
+            $destination = orabooks_build_org_url($org->subdomain, '/dashboard/');
+            wp_redirect(orabooks_append_auth_tokens_to_url($destination));
             exit;
         }
         return;
@@ -644,7 +692,8 @@ function orabooks_maybe_redirect_to_org_subdomain() {
         return;
     }
 
-    wp_redirect(orabooks_build_org_url($org->subdomain, '/' . $post->post_name . '/'));
+    $destination = orabooks_build_org_url($org->subdomain, '/' . $post->post_name . '/');
+    wp_redirect(orabooks_append_auth_tokens_to_url($destination));
     exit;
 }
 

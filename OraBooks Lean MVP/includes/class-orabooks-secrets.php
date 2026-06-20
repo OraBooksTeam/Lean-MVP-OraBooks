@@ -51,12 +51,27 @@ class OraBooks_Secrets {
         }
         
         $option_key = 'orabooks_secret_' . md5($key);
-        $stored = get_option($option_key);
+        $stored = self::with_shared_options(function () use ($option_key) {
+            return get_option($option_key, false);
+        });
         if ($stored) {
             return self::decrypt($stored);
         }
         
         return null;
+    }
+
+    /**
+     * Read/write options on the main network site so JWT secrets match every tenant blog.
+     *
+     * @return mixed
+     */
+    private static function with_shared_options(callable $callback) {
+        if (function_exists('orabooks_with_data_blog')) {
+            return orabooks_with_data_blog($callback);
+        }
+
+        return $callback();
     }
     
     /**
@@ -65,7 +80,9 @@ class OraBooks_Secrets {
     public static function set($key, $value) {
         $option_key = 'orabooks_secret_' . md5($key);
         $encrypted = self::encrypt($value);
-        update_option($option_key, $encrypted);
+        self::with_shared_options(function () use ($option_key, $encrypted) {
+            update_option($option_key, $encrypted);
+        });
         self::$secrets_cache[$key] = $value;
     }
     
@@ -120,7 +137,10 @@ class OraBooks_Secrets {
         $secret = self::get_jwt_secret();
         $header = self::base64url_encode(json_encode(['alg' => 'HS256', 'typ' => 'JWT']));
         $payload['iat'] = time();
-        $payload['exp'] = time() + (int) get_option('orabooks_jwt_expiry', 900);
+        $jwt_expiry = self::with_shared_options(function () {
+            return (int) get_option('orabooks_jwt_expiry', 3600);
+        });
+        $payload['exp'] = time() + max(300, $jwt_expiry);
         $payload_encoded = self::base64url_encode(json_encode($payload));
         $signature = self::base64url_encode(
             hash_hmac('sha256', "$header.$payload_encoded", $secret, true)
