@@ -25,7 +25,7 @@ type Invoice = {
   currency?: string;
 };
 
-type Customer = { id: number; email?: string };
+type Customer = { id: number; display_name?: string | null; email?: string };
 type TaxConfig = { jurisdiction: string; override_reasons?: string[] };
 
 const DEFAULT_REASONS = [
@@ -445,7 +445,9 @@ export default function InvoicesPage() {
                 >
                   <option value="">Select customer…</option>
                   {customers.map((c) => (
-                    <option key={c.id} value={c.id}>{c.email || `Customer #${c.id}`}</option>
+                    <option key={c.id} value={c.id}>
+                      {c.display_name?.trim() || c.email || `Customer #${c.id}`}
+                    </option>
                   ))}
                 </select>
               </Field>
