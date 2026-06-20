@@ -84,7 +84,7 @@ export default function ProfilePage() {
               <h2 className="text-sm font-bold uppercase tracking-wide text-slate-500">Your Details</h2>
               <div className="mt-4 space-y-3">
                 <ProfileRow label="Email" value={context?.user?.email || '—'} />
-                <ProfileRow label="Role" value={context?.role || '—'} />
+                <ProfileRow label="Role" value={formatRole(context?.role)} />
                 <ProfileRow label="Email Verified" value={context?.user?.is_email_verified ? 'Yes' : 'No'} />
                 <ProfileRow label="2FA Enabled" value={twoFaEnabled ? 'Yes' : 'No'} />
               </div>
