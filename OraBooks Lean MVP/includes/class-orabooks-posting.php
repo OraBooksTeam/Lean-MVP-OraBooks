@@ -746,7 +746,9 @@ class OraBooks_Posting {
      * creating journals; raw external payloads never write ledger tables.
      */
     public static function map_external_transaction($source_type, array $raw_data) {
-        $source_type = sanitize_key($source_type ?: 'external');
+        $source_type = function_exists('sanitize_key')
+            ? sanitize_key($source_type ?: 'external')
+            : strtolower(preg_replace('/[^a-z0-9_\-]/i', '', (string) ($source_type ?: 'external')));
         $source_id = isset($raw_data['id']) ? (string) $raw_data['id'] : '';
         $transaction_date = sanitize_text_field(
             $raw_data['transaction_date']
