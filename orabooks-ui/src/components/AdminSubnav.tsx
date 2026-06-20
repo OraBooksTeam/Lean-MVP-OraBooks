@@ -27,7 +27,7 @@ export default function AdminSubnav() {
 
   return (
     <nav
-      className="mb-4 overflow-hidden rounded-2xl border border-border bg-white shadow-sm shadow-primary/5"
+      className="orabooks-admin-subnav mb-4 overflow-hidden rounded-2xl border border-border bg-white shadow-sm shadow-primary/5"
       aria-label="OraBooks sections"
     >
       <div className="flex flex-wrap gap-1 p-2">
