@@ -199,7 +199,7 @@ class OraBooks_Financial_Reports_Test extends TestCase
     }
 
     #[Test]
-    public function test_expense_pl_category_splits_cogs_from_operating()
+    public function test_sign_report_creates_signature_and_approved_watermark()
     {
         global $wpdb;
         $inserted = [];
@@ -489,17 +489,22 @@ class OraBooks_Financial_Reports_Test extends TestCase
                 'revenue' => [
                     ['account_id' => 1, 'code' => '4000', 'name' => 'Sales', 'type' => 'revenue', 'amount' => 1000],
                 ],
-                'expenses' => [
-                    ['account_id' => 2, 'code' => '5000', 'name' => 'Rent', 'type' => 'expense', 'amount' => 350],
+                'cogs' => [
+                    ['account_id' => 3, 'code' => '5100', 'name' => 'COGS', 'type' => 'expense', 'amount' => 150],
                 ],
+                'operating_expenses' => [
+                    ['account_id' => 2, 'code' => '5000', 'name' => 'Rent', 'type' => 'expense', 'amount' => 200],
+                ],
+                'gross_profit' => 850,
+                'operating_income' => 650,
                 'net_income' => 650,
             ],
         ]);
 
         $this->assertSame(['section', 'code', 'name', 'type', 'amount'], $flat['columns']);
-        $this->assertCount(3, $flat['rows']);
-        $this->assertEquals('Summary', $flat['rows'][2]['section']);
-        $this->assertEquals(650, $flat['rows'][4]['amount']);
+        $this->assertCount(6, $flat['rows']);
+        $this->assertEquals('Summary', $flat['rows'][3]['section']);
+        $this->assertEquals(650, $flat['rows'][5]['amount']);
     }
 
     #[Test]
