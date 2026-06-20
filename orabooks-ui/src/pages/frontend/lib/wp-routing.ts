@@ -28,7 +28,7 @@ export function toWpUrl(path: string): string {
 
   let normalized = pathname.startsWith('/') ? pathname : `/${pathname}`;
   const routeKey = normalizeAppRoute(normalized);
-  normalized = WP_PATH_ALIASES[`${routeKey}`] ?? routeKey;
+  normalized = WP_PATH_ALIASES[routeKey] ?? routeKey;
   if (!normalized.endsWith('/')) {
     normalized = `${normalized}/`;
   }
@@ -40,7 +40,6 @@ export function getCurrentAppRoute(): string {
   return normalizeAppRoute(window.location.pathname);
 }
 
-/** Redirect legacy hash URLs (#/dashboard) to clean paths (/dashboard/). */
 export function replaceSearchParams(params: URLSearchParams) {
   const qs = params.toString();
   const url = qs ? `${window.location.pathname}?${qs}` : `${window.location.pathname}`;
@@ -51,6 +50,8 @@ export function getSearchParam(key: string): string {
   return new URLSearchParams(window.location.search).get(key) || '';
 }
 
+/** Redirect legacy hash URLs (#/dashboard) to clean paths (/dashboard/). */
+export function migrateLegacyHashUrl() {
   const hash = window.location.hash;
   if (!hash.startsWith('#/')) {
     return;
