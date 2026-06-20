@@ -1016,6 +1016,13 @@ if (!function_exists('wp_remote_post')) {
     }
 }
 
+if (!function_exists('wp_remote_get')) {
+    function wp_remote_get($url, $args = []) {
+        $args['method'] = 'GET';
+        return wp_remote_request($url, $args);
+    }
+}
+
 if (!function_exists('wp_remote_request')) {
     function wp_remote_request($url, $args = []) {
         if (isset($GLOBALS['orabooks_test_wp_remote_request_callback'])) {

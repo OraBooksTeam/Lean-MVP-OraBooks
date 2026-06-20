@@ -323,7 +323,7 @@ class OraBooks_Auth_Test extends TestCase
     }
 
     #[Test]
-    public function test_handle_google_callback_no_email_in_token()
+    public function test_handle_google_callback_aud_mismatch()
     {
         $this->storeValidOidcState('test-state-003');
 
@@ -345,7 +345,7 @@ class OraBooks_Auth_Test extends TestCase
         $result = OraBooks_Auth::handle_google_callback('auth-code-003', 'test-state-003');
 
         $this->assertInstanceOf(WP_Error::class, $result);
-        $this->assertEquals('invalid_token', $result->get_error_code());
+        $this->assertEquals('invalid_id_token', $result->get_error_code());
     }
 
     #[Test]

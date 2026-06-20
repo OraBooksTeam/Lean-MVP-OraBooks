@@ -499,7 +499,7 @@ class OraBooks_Event_Module {
     }
 
     public static function render_dead_letter_replay_page() {
-        if (!current_user_can('manage_options')) {
+        if (!self::current_user_can_manage_events()) {
             wp_die(__('You do not have permission to view this page.', 'orabooks'));
         }
         $health = self::get_health();
@@ -548,9 +548,38 @@ class OraBooks_Event_Module {
     }
 
     private static function require_owner_ajax() {
-        if (!current_user_can('manage_options')) {
+        if (!self::current_user_can_manage_events()) {
             orabooks_json_error('Permission denied', 403);
         }
+    }
+
+    private static function current_user_can_manage_events() {
+        if (current_user_can('manage_options')) {
+            return true;
+        }
+
+        if (!function_exists('orabooks_get_current_user_id') || !function_exists('orabooks_get_current_org_id')) {
+            return false;
+        }
+
+        $user_id = (int) orabooks_get_current_user_id();
+        if ($user_id <= 0) {
+            return false;
+        }
+
+        global $wpdb;
+        $org_id = (int) orabooks_get_current_org_id($user_id);
+        if ($org_id <= 0) {
+            return false;
+        }
+
+        $table = OraBooks_Database::table('organizations');
+        $owner_id = (int) $wpdb->get_var($wpdb->prepare(
+            "SELECT owner_id FROM {$table} WHERE id = %d",
+            $org_id
+        ));
+
+        return $owner_id === $user_id;
     }
 
     public static function consume_journal_read_model($event, array $payload) {
