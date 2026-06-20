@@ -26,6 +26,30 @@ function orabooks_is_divi_theme() {
     return in_array('Divi', [$template, $stylesheet], true);
 }
 
+function orabooks_get_accounting_page_slugs() {
+    return [
+        'dashboard',
+        'customers',
+        'vendors',
+        'inventory',
+        'invoices',
+        'reports',
+        'expenses',
+        'csv-imports',
+        'bank-reconciliation',
+        'chart-of-accounts',
+        'fiscal-periods',
+        'tax-settings',
+        'journals',
+        'team',
+        'attachments',
+        'approvals',
+        'ai-review',
+        'voice',
+        'commissions',
+    ];
+}
+
 /**
  * Slugs for WordPress pages created by OraBooks (Lean MVP frontend).
  *

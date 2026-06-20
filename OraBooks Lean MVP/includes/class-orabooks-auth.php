@@ -1770,6 +1770,101 @@ class OraBooks_Auth {
     }
 
     /**
+     * SL-013 / SL-004: block partner subdomains from accounting frontend pages at ingress.
+     */
+    public function enforce_partner_accounting_isolation() {
+        if (!function_exists('is_singular') || !is_singular('page')) {
+            return;
+        }
+
+        $subdomain = self::detect_subdomain_from_host($_SERVER['HTTP_HOST'] ?? '');
+        if ($subdomain === '') {
+            return;
+        }
+
+        $org = OraBooks_Organization::get_by_subdomain($subdomain);
+        if (!$org || $org->organization_type !== 'partner') {
+            return;
+        }
+
+        $post = get_queried_object();
+        if (!$post || empty($post->post_name)) {
+            return;
+        }
+
+        if (!in_array($post->post_name, orabooks_get_accounting_page_slugs(), true)) {
+            return;
+        }
+
+        orabooks_log_event('accounting_isolation_blocked', "Partner subdomain blocked from accounting page: {$post->post_name}", 'warning', [
+            'subdomain' => $subdomain,
+            'page' => $post->post_name,
+        ], orabooks_get_current_user_id(), (int) $org->id);
+
+        status_header(403);
+        wp_die(
+            esc_html__('Partner organizations cannot access accounting features.', 'orabooks'),
+            esc_html__('Forbidden', 'orabooks'),
+            ['response' => 403]
+        );
+    }
+
+    /**
+     * SL-013: block partner org REST accounting routes at ingress.
+     */
+    public function enforce_partner_accounting_isolation_rest($result, $server, $request) {
+        if (!($request instanceof WP_REST_Request)) {
+            return $result;
+        }
+
+        $route = (string) $request->get_route();
+        if (strpos($route, '/orabooks/v1/') === false) {
+            return $result;
+        }
+
+        $accounting_prefixes = [
+            '/orabooks/v1/customers',
+            '/orabooks/v1/invoices',
+            '/orabooks/v1/vendors',
+            '/orabooks/v1/inventory',
+            '/orabooks/v1/expenses',
+            '/orabooks/v1/journals',
+            '/orabooks/v1/reports',
+            '/orabooks/v1/coa',
+        ];
+
+        $is_accounting = false;
+        foreach ($accounting_prefixes as $prefix) {
+            if (strpos($route, $prefix) === 0) {
+                $is_accounting = true;
+                break;
+            }
+        }
+        if (!$is_accounting) {
+            return $result;
+        }
+
+        $user_id = orabooks_get_current_user_id();
+        if (!$user_id) {
+            return $result;
+        }
+
+        global $wpdb;
+        $table_users = OraBooks_Database::table('users');
+        $org_id = (int) $wpdb->get_var($wpdb->prepare(
+            "SELECT org_id FROM {$table_users} WHERE id = %d",
+            $user_id
+        ));
+
+        $check = self::require_customer_org($user_id, $org_id);
+        if (is_wp_error($check)) {
+            return new WP_Error($check->get_error_code(), $check->get_error_message(), ['status' => 403]);
+        }
+
+        return $result;
+    }
+
+    /**
      * requireCustomerOrg middleware — blocks partner orgs and inactive orgs from accounting APIs
      *
      * Checks:
