@@ -2309,6 +2309,76 @@ class OraBooks_Customers {
     }
 
     /**
+     * Send a draft invoice to the customer.
+     */
+    public function ajax_invoice_send() {
+        global $wpdb;
+        $user_id = orabooks_get_current_user_id();
+        $org_id = intval($_POST['org_id'] ?? 0);
+        $invoice_id = intval($_POST['invoice_id'] ?? 0);
+
+        if (!$user_id) {
+            orabooks_json_error('Not authenticated', 401);
+        }
+
+        if (!$org_id && $invoice_id) {
+            $table_invoices = OraBooks_Database::table('invoices');
+            $org_id = (int) $wpdb->get_var($wpdb->prepare(
+                "SELECT org_id FROM {$table_invoices} WHERE id = %d",
+                $invoice_id
+            ));
+        }
+
+        if (!$org_id || !$invoice_id) {
+            orabooks_json_error('Organization and invoice ID required', 400);
+        }
+
+        $this->require_customer_access($user_id, $org_id, 'create_invoice');
+
+        $result = self::send_invoice($org_id, $invoice_id, $user_id);
+        if (is_wp_error($result)) {
+            orabooks_json_error($result->get_error_message(), 400);
+        }
+
+        orabooks_json_success(['invoice' => $result], 'Invoice sent');
+    }
+
+    /**
+     * Post an invoice to accounts receivable.
+     */
+    public function ajax_invoice_post() {
+        global $wpdb;
+        $user_id = orabooks_get_current_user_id();
+        $org_id = intval($_POST['org_id'] ?? 0);
+        $invoice_id = intval($_POST['invoice_id'] ?? 0);
+
+        if (!$user_id) {
+            orabooks_json_error('Not authenticated', 401);
+        }
+
+        if (!$org_id && $invoice_id) {
+            $table_invoices = OraBooks_Database::table('invoices');
+            $org_id = (int) $wpdb->get_var($wpdb->prepare(
+                "SELECT org_id FROM {$table_invoices} WHERE id = %d",
+                $invoice_id
+            ));
+        }
+
+        if (!$org_id || !$invoice_id) {
+            orabooks_json_error('Organization and invoice ID required', 400);
+        }
+
+        $this->require_customer_access($user_id, $org_id, 'create_invoice');
+
+        $result = self::post_invoice($org_id, $invoice_id, $user_id);
+        if (is_wp_error($result)) {
+            orabooks_json_error($result->get_error_message(), 400);
+        }
+
+        orabooks_json_success(['invoice' => $result], 'Invoice posted');
+    }
+
+    /**
      * Record a payment against an invoice.
      */
     public function ajax_record_payment() {

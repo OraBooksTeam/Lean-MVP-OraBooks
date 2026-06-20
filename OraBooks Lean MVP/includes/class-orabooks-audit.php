@@ -17,7 +17,9 @@ class OraBooks_Audit {
         if (self::$instance === null) {
             self::$instance = new self();
             add_action('wp_ajax_orabooks_get_audit_logs', [self::$instance, 'ajax_get_logs']);
+            add_action('wp_ajax_nopriv_orabooks_get_audit_logs', [self::$instance, 'ajax_get_logs']);
             add_action('wp_ajax_orabooks_export_audit_logs', [self::$instance, 'ajax_export_logs']);
+            add_action('wp_ajax_nopriv_orabooks_export_audit_logs', [self::$instance, 'ajax_export_logs']);
             
             // Daily cleanup hook
             add_action('orabooks_daily_cleanup', [self::$instance, 'archive_old_logs']);
