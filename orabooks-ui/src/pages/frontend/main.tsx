@@ -69,11 +69,16 @@ function showFrontendBootError(root: HTMLElement, message: string) {
   </div>`;
 }
 
-function escapeDiviLayout(root: HTMLElement) {
-  if (
-    !document.body.classList.contains('orabooks-divi-theme')
-    || !document.body.classList.contains('orabooks-react-page')
-  ) {
+function mountThemePortal(root: HTMLElement) {
+  if (!document.body.classList.contains('orabooks-page')) {
+    return;
+  }
+
+  const immersive =
+    document.body.classList.contains('orabooks-react-page')
+    || document.body.classList.contains('orabooks-auth-page');
+
+  if (!immersive) {
     return;
   }
 
@@ -81,7 +86,7 @@ function escapeDiviLayout(root: HTMLElement) {
     document.body.appendChild(root);
   }
 
-  root.classList.add('orabooks-divi-portal');
+  root.classList.add('orabooks-theme-portal', 'orabooks-divi-portal');
 }
 
 function bootFrontend() {
@@ -93,7 +98,7 @@ function bootFrontend() {
     return;
   }
 
-  escapeDiviLayout(root);
+  mountThemePortal(root);
 
   const initialRoute = root.dataset.initialRoute;
   if (initialRoute) {
