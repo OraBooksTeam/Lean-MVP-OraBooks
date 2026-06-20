@@ -31,6 +31,21 @@ if (!function_exists('orabooks_can_access_accounting')) {
         if (current_user_can('manage_options')) {
             return true;
         }
+
+        $user_id = function_exists('orabooks_get_current_user_id') ? orabooks_get_current_user_id() : get_current_user_id();
+        if ($user_id && class_exists('OraBooks_Auth')) {
+            global $wpdb;
+            $table_users = OraBooks_Database::table('users');
+            $org_id = (int) $wpdb->get_var($wpdb->prepare(
+                "SELECT org_id FROM {$table_users} WHERE id = %d",
+                $user_id
+            ));
+            $isolation = OraBooks_Auth::require_customer_org($user_id, $org_id);
+            if (is_wp_error($isolation)) {
+                return false;
+            }
+        }
+
         if (class_exists('OBN_Auth')) {
             $auth = new OBN_Auth();
             if ($auth->can_access_accounting()) {
