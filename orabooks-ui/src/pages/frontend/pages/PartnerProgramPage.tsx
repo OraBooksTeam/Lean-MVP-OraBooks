@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-
+import WpLink from '../components/WpLink';
 import Button from '@/components/Button';
 import { api } from '../api';
 import ClientShell from '../components/ClientShell';
