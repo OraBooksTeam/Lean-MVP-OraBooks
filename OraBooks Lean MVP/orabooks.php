@@ -62,7 +62,11 @@ require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-security.php';
 require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-pwa.php';
 require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-rest-api.php';
 require_once ORABOOKS_PLUGIN_DIR . 'includes/helpers.php';
-require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-accounting-loader.php';
+
+$orabooks_accounting_loader = ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-accounting-loader.php';
+if (file_exists($orabooks_accounting_loader)) {
+    require_once $orabooks_accounting_loader;
+}
 
 add_filter('script_loader_tag', ['OraBooks_Assets', 'filter_react_script_tag'], 10, 3);
 
@@ -231,7 +235,9 @@ function orabooks_init() {
     OraBooks_AsyncQueue::register_handler('generate_export', ['OraBooks_Exports', 'generate_export_job']);
     OraBooks_AsyncQueue::register_handler('parse_csv_import', ['OraBooks_Csv_Imports', 'parse_csv_import_job']);
 
-    OraBooks_Accounting::init();
+    if (class_exists('OraBooks_Accounting')) {
+        OraBooks_Accounting::init();
+    }
 
     /**
      * Allow optional extensions to register additional features.

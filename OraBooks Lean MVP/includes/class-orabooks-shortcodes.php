@@ -73,240 +73,127 @@ class OraBooks_Shortcodes {
     }
 
     /**
-     * Choose React SPA or Divi-compatible PHP views / accounting workspace.
-     *
-     * @param array<string, mixed> $config route, accounting_view, php_view, require_login, react_only
+     * Lean MVP customer workspace pages — always React.
      */
-    private function resolve_frontend($config) {
-        $require_login = !empty($config['require_login']);
-        $react_only = !empty($config['react_only']);
-
-        if ($require_login && !orabooks_is_user_logged_in()) {
-            return OraBooks_Views::require_login_message();
-        }
-
-        if (
-            !$react_only
-            && function_exists('orabooks_should_use_react_frontend')
-            && !orabooks_should_use_react_frontend()
-        ) {
-            if (!empty($config['php_view'])) {
-                return $this->render_view($config['php_view']);
-            }
-
-            if (
-                !empty($config['accounting_view'])
-                && function_exists('orabooks_uses_merged_accounting_workspace')
-                && orabooks_uses_merged_accounting_workspace()
-            ) {
-                return orabooks_render_merged_accounting_workspace($config['accounting_view']);
-            }
-        }
-
-        return $this->react_page($config['route'], $require_login);
-    }
-
-    private function accounting_shortcode_page($shortcode_tag) {
-        return $this->resolve_frontend([
-            'route' => '/' . str_replace('orabooks_', '', str_replace('_', '-', $shortcode_tag)),
-            'accounting_view' => orabooks_get_merged_accounting_view_for_shortcode($shortcode_tag),
-        ]);
-    }
-
-    private function ajax_dashboard_page($title, $ajax_action, $description = '') {
-        return $this->render_view('ajax-dashboard', [
-            'title' => $title,
-            'ajax_action' => $ajax_action,
-            'description' => $description,
-        ]);
-    }
-
-    /**
-     * Customer workspace: React SPA elsewhere; PHP accounting workspace on Divi.
-     */
-    private function customer_workspace_page($shortcode_tag, $route) {
-        return $this->resolve_frontend([
-            'route' => $route,
-            'accounting_view' => orabooks_get_merged_accounting_view_for_shortcode($shortcode_tag),
-        ]);
+    private function customer_react_page($route, $require_login = true) {
+        return $this->react_page($route, $require_login);
     }
 
     public function login_form() {
-        return $this->resolve_frontend([
-            'route' => '/login',
-            'php_view' => 'login',
-            'require_login' => false,
-        ]);
+        return $this->react_page('/login', false);
     }
     
     public function register_form() {
-        return $this->resolve_frontend([
-            'route' => '/register',
-            'php_view' => 'register',
-            'require_login' => false,
-        ]);
+        return $this->react_page('/register', false);
     }
     
     public function verify_email() {
-        return $this->resolve_frontend([
-            'route' => '/verify-email',
-            'php_view' => 'verify-email',
-            'require_login' => false,
-        ]);
+        return $this->react_page('/verify-email', false);
     }
     
     public function reset_password() {
-        return $this->resolve_frontend([
-            'route' => '/reset-password',
-            'php_view' => 'reset-password',
-            'require_login' => false,
-        ]);
+        return $this->react_page('/reset-password', false);
     }
     
     public function partner_onboarding() {
-        return $this->resolve_frontend([
-            'route' => '/partner-onboarding',
-            'php_view' => 'partner-onboarding',
-        ]);
+        return $this->react_page('/partner-onboarding');
     }
     
     public function tier_selection() {
-        return $this->resolve_frontend([
-            'route' => '/tier-selection',
-            'php_view' => 'tier-selection',
-        ]);
+        return $this->react_page('/tier-selection');
     }
     
     public function dashboard() {
-        if (
-            function_exists('orabooks_should_use_react_frontend')
-            && !orabooks_should_use_react_frontend()
-            && function_exists('orabooks_uses_merged_accounting_workspace')
-            && !orabooks_uses_merged_accounting_workspace()
-        ) {
-            return $this->resolve_frontend([
-                'route' => '/partner-program',
-                'php_view' => 'partner-program',
-            ]);
-        }
-
-        return $this->customer_workspace_page('orabooks_dashboard', '/dashboard');
+        return $this->customer_react_page('/dashboard');
     }
 
     public function customers_page() {
-        return $this->customer_workspace_page('orabooks_customers', '/customers');
+        return $this->customer_react_page('/customers');
     }
 
     public function vendors_page() {
-        return $this->customer_workspace_page('orabooks_vendors', '/vendors');
+        return $this->customer_react_page('/vendors');
     }
 
     public function inventory_page() {
-        return $this->customer_workspace_page('orabooks_inventory', '/inventory');
+        return $this->customer_react_page('/inventory');
     }
 
     public function bank_reconciliation_page() {
-        return $this->customer_workspace_page('orabooks_bank_reconciliation', '/bank-reconciliation');
+        return $this->customer_react_page('/bank-reconciliation');
     }
 
     public function reports_page() {
-        return $this->customer_workspace_page('orabooks_reports', '/reports');
+        return $this->customer_react_page('/reports');
     }
 
     public function invoices_page() {
-        return $this->customer_workspace_page('orabooks_invoices', '/invoices');
+        return $this->customer_react_page('/invoices');
     }
 
     public function chart_of_accounts_page() {
-        return $this->customer_workspace_page('orabooks_chart_of_accounts', '/chart-of-accounts');
+        return $this->customer_react_page('/chart-of-accounts');
     }
 
     public function fiscal_periods_page() {
-        return $this->customer_workspace_page('orabooks_fiscal_periods', '/fiscal-periods');
+        return $this->customer_react_page('/fiscal-periods');
     }
 
     public function tax_settings_page() {
-        return $this->customer_workspace_page('orabooks_tax_settings', '/tax-settings');
+        return $this->customer_react_page('/tax-settings');
     }
 
     public function journals_page() {
-        return $this->customer_workspace_page('orabooks_journals', '/journals');
+        return $this->customer_react_page('/journals');
     }
 
     public function profile_page() {
-        return $this->resolve_frontend([
-            'route' => '/profile',
-            'accounting_view' => 'dashboard',
-        ]);
+        return $this->customer_react_page('/profile');
     }
 
     public function team_page() {
-        return $this->resolve_frontend([
-            'route' => '/team',
-            'accounting_view' => 'employees',
-        ]);
+        return $this->customer_react_page('/team');
     }
 
     public function attachments_page() {
-        return $this->resolve_frontend([
-            'route' => '/attachments',
-            'accounting_view' => 'dashboard',
-        ]);
+        return $this->customer_react_page('/attachments');
     }
 
     public function approvals_page() {
-        return $this->resolve_frontend([
-            'route' => '/approvals',
-            'accounting_view' => 'dashboard',
-        ]);
+        return $this->customer_react_page('/approvals');
     }
 
     public function ai_review_page() {
-        return $this->resolve_frontend([
-            'route' => '/ai-review',
-            'accounting_view' => 'dashboard',
-        ]);
+        return $this->customer_react_page('/ai-review');
     }
 
     public function expenses_page() {
-        return $this->customer_workspace_page('orabooks_expenses', '/expenses');
+        return $this->customer_react_page('/expenses');
     }
 
     public function voice_page() {
-        return $this->resolve_frontend([
-            'route' => '/voice',
-            'accounting_view' => 'dashboard',
-        ]);
+        return $this->customer_react_page('/voice');
     }
     
     /**
      * Partner Commission Dashboard Shortcode
      */
     public function commission_dashboard() {
-        return $this->resolve_frontend([
-            'route' => '/commissions',
-            'php_view' => 'partner-program',
-        ]);
+        return $this->react_page('/commissions');
     }
     
     /**
      * Partner Dashboard Shortcode (SL-139)
      */
     public function partner_dashboard() {
-        return $this->resolve_frontend([
-            'route' => '/partner-program',
-            'php_view' => 'partner-program',
-        ]);
+        return $this->react_page('/partner-program');
     }
     
     /**
      * Commission Admin Shortcode (Super Admin - config management)
      */
     public function commission_admin() {
-        return $this->resolve_frontend([
-            'route' => '/commission-admin',
-            'react_only' => true,
-        ]);
+        return $this->react_page('/commission-admin');
     }
 
     // ================================================================
@@ -314,42 +201,27 @@ class OraBooks_Shortcodes {
     // ================================================================
 
     public function notification_center() {
-        return $this->resolve_frontend([
-            'route' => '/notifications',
-            'php_view' => 'notifications',
-        ]);
+        return $this->react_page('/notifications');
     }
 
     public function notification_preferences() {
-        return $this->resolve_frontend([
-            'route' => '/notification-preferences',
-            'php_view' => 'notification-preferences',
-        ]);
+        return $this->react_page('/notification-preferences');
     }
 
     public function notification_admin() {
-        return $this->resolve_frontend([
-            'route' => '/notification-admin',
-            'react_only' => true,
-        ]);
+        return $this->react_page('/notification-admin');
     }
     
     public function async_queue_dashboard() {
-        return $this->resolve_frontend([
-            'route' => '/job-queue',
-            'react_only' => true,
-        ]);
+        return $this->react_page('/job-queue');
     }
 
     public function export_status() {
-        return $this->resolve_frontend([
-            'route' => '/my-exports',
-            'php_view' => 'exports',
-        ]);
+        return $this->react_page('/my-exports');
     }
 
     public function csv_import_page() {
-        return $this->customer_workspace_page('orabooks_csv_import', '/csv-imports');
+        return $this->customer_react_page('/csv-imports');
     }
 
     /**
@@ -374,9 +246,6 @@ class OraBooks_Shortcodes {
     }
 
     public function observability_dashboard() {
-        return $this->resolve_frontend([
-            'route' => '/observability',
-            'react_only' => true,
-        ]);
+        return $this->react_page('/observability');
     }
 }
