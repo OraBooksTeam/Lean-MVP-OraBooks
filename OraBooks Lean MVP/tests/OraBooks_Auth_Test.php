@@ -511,24 +511,6 @@ class OraBooks_Auth_Test extends TestCase
         $this->assertInstanceOf(WP_Error::class, $result);
         $this->assertEquals('oidc_email_conflict', $result->get_error_code());
     }
-                    'is_partner' => 0,
-                    'auth_provider' => 'local', // Was local — will be linked
-                ];
-            }
-            // Later calls (if any)
-            return null;
-        };
-
-        $result = OraBooks_Auth::handle_google_callback('auth-code-link', 'test-state-link');
-
-        $this->assertNotInstanceOf(WP_Error::class, $result);
-        $this->assertArrayHasKey('token', $result);
-        $this->assertEquals(15, $result['user_id']);
-
-        // Verify the UPDATE query would set auth_provider to 'google' and is_email_verified to 1
-        // The update() call returns 1 (success) from our mock
-        $this->assertStringContainsString('auth_provider', $wpdb->last_query);
-    }
 
     // ================================================================
     // require_customer_org()
