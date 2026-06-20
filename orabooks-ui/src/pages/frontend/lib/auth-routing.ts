@@ -71,7 +71,7 @@ export async function absorbAuthTokensFromUrl() {
     return false;
   }
 
-  window.localStorage.setItem(TOKEN_KEY, token);
+  window.localStorage.setItem(AUTH_TOKEN_STORAGE_KEY, token);
 
   params.delete('ob_t');
   params.delete('ob_rt');
@@ -106,13 +106,17 @@ function appendCrossOriginAuthParams(url: string) {
     // Fall through to token handling below.
   }
 
-  const token = window.localStorage.getItem(TOKEN_KEY);
-  if (!token) {
+  const target = new URL(url, window.location.href);
+  if (target.origin === window.location.origin) {
     return url;
   }
 
-  const target = new URL(url, window.location.href);
-  if (target.origin === window.location.origin) {
+  if (target.searchParams.has('ob_t')) {
+    return url;
+  }
+
+  const token = window.localStorage.getItem(AUTH_TOKEN_STORAGE_KEY);
+  if (!token) {
     return url;
   }
 
