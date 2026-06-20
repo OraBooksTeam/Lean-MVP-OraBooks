@@ -445,11 +445,12 @@ class OraBooks_Financial_Reports {
 
     private static function build_changes_equity($org_id, $period_start, $period_end) {
         $pl = self::build_profit_loss($org_id, $period_start, $period_end);
-        $equity_rows = self::ledger_summary_rows($org_id, null, $period_end, ['equity']);
+        $equity_rows = self::ledger_rows_for_report($org_id, null, $period_end, ['equity']);
         $ending_equity = 0.0;
         foreach ($equity_rows as $row) {
             $ending_equity += self::account_amount($row);
         }
+        $ending_equity += (float) ($pl['net_income'] ?? 0);
 
         return [
             'report_type' => 'changes_equity',
@@ -459,6 +460,181 @@ class OraBooks_Financial_Reports {
                 return self::report_item($row, self::account_amount($row));
             }, $equity_rows),
         ];
+    }
+
+    /**
+     * Posted ledger rows (source of truth) with optional period window.
+     */
+    public static function posted_ledger_rows($org_id, $period_start, $period_end, $types = []) {
+        global $wpdb;
+
+        $org_id = (int) $org_id;
+        $period_end = sanitize_text_field($period_end);
+        if ($org_id <= 0 || !$period_end) {
+            return [];
+        }
+
+        $table_ledger = OraBooks_Database::table('ledger_entries');
+        $table_journals = OraBooks_Database::table('journals');
+        $table_accounts = OraBooks_Database::table('accounts');
+
+        $where = "le.org_id = %d AND j.status IN ('posted', 'locked') AND j.transaction_date <= %s";
+        $params = [$org_id, $period_end];
+
+        if ($period_start) {
+            $where .= ' AND j.transaction_date >= %s';
+            $params[] = sanitize_text_field($period_start);
+        }
+
+        if (!empty($types)) {
+            $placeholders = implode(',', array_fill(0, count($types), '%s'));
+            $where .= " AND a.type IN ({$placeholders})";
+            $params = array_merge($params, $types);
+        }
+
+        $sql = "SELECT a.id as account_id, a.code, a.name, a.type, a.normal_balance,
+                       COALESCE(SUM(le.debit_amount), 0) as debit_sum,
+                       COALESCE(SUM(le.credit_amount), 0) as credit_sum
+                FROM {$table_ledger} le
+                INNER JOIN {$table_journals} j ON j.id = le.journal_id AND j.org_id = le.org_id
+                INNER JOIN {$table_accounts} a ON a.id = le.account_id AND a.org_id = le.org_id
+                WHERE {$where}
+                GROUP BY a.id, a.code, a.name, a.type, a.normal_balance
+                ORDER BY a.code";
+
+        return $wpdb->get_results($wpdb->prepare($sql, $params)) ?: [];
+    }
+
+    /**
+     * Prefer posted ledger; fall back to projection read model when ledger is empty.
+     */
+    private static function ledger_rows_for_report($org_id, $period_start, $period_end, $types = []) {
+        $rows = self::posted_ledger_rows($org_id, $period_start, $period_end, $types);
+        if (!empty($rows)) {
+            return $rows;
+        }
+        return self::ledger_summary_rows($org_id, $period_start, $period_end, $types);
+    }
+
+    public static function posted_ledger_has_activity($org_id) {
+        global $wpdb;
+        $table_ledger = OraBooks_Database::table('ledger_entries');
+        $table_journals = OraBooks_Database::table('journals');
+        $count = (int) $wpdb->get_var($wpdb->prepare(
+            "SELECT COUNT(*) FROM {$table_ledger} le
+             INNER JOIN {$table_journals} j ON j.id = le.journal_id AND j.org_id = le.org_id
+             WHERE le.org_id = %d AND j.status IN ('posted', 'locked') LIMIT 1",
+            (int) $org_id
+        ));
+        return $count > 0;
+    }
+
+    /**
+     * Classify expense accounts for P&L (COGS vs operating).
+     */
+    public static function expense_pl_category($row) {
+        if (($row->type ?? '') !== 'expense') {
+            return 'operating';
+        }
+        $code = trim((string) ($row->code ?? ''));
+        $name = strtolower((string) ($row->name ?? ''));
+        if ($code === '5100' || str_contains($name, 'cogs') || str_contains($name, 'cost of goods')) {
+            return 'cogs';
+        }
+        return 'operating';
+    }
+
+    /**
+     * Map closing balance to trial balance debit/credit columns per normal balance.
+     */
+    public static function trial_balance_columns($row, $closing_balance) {
+        $amount = round(abs((float) $closing_balance), 2);
+        if ($amount <= 0.001) {
+            return ['debit' => 0.0, 'credit' => 0.0];
+        }
+
+        $normal = ($row->normal_balance ?? 'debit') === 'credit' ? 'credit' : 'debit';
+        $positive_for_normal = ((float) $closing_balance) >= 0;
+
+        if ($normal === 'debit') {
+            return $positive_for_normal
+                ? ['debit' => $amount, 'credit' => 0.0]
+                : ['debit' => 0.0, 'credit' => $amount];
+        }
+
+        return $positive_for_normal
+            ? ['debit' => 0.0, 'credit' => $amount]
+            : ['debit' => $amount, 'credit' => 0.0];
+    }
+
+    private static function fiscal_year_start_for_date($org_id, $as_of_date) {
+        global $wpdb;
+        $table = OraBooks_Database::table('fiscal_periods');
+        $start = $wpdb->get_var($wpdb->prepare(
+            "SELECT period_start FROM {$table}
+             WHERE org_id = %d AND period_start <= %s AND period_end >= %s
+             ORDER BY period_start ASC LIMIT 1",
+            (int) $org_id,
+            $as_of_date,
+            $as_of_date
+        ));
+        if ($start) {
+            $year = (int) substr((string) $start, 0, 4);
+            $month = (int) substr((string) $start, 5, 2);
+            return sprintf('%04d-%02d-01', $year, $month);
+        }
+        return substr((string) $as_of_date, 0, 4) . '-01-01';
+    }
+
+    private static function day_before($date) {
+        $ts = strtotime($date . ' 00:00:00');
+        return $ts ? gmdate('Y-m-d', $ts - DAY_IN_SECONDS) : $date;
+    }
+
+    /**
+     * General ledger detail lines for export (posted journals only).
+     */
+    public static function ledger_detail_export_rows($org_id, $args = []) {
+        global $wpdb;
+
+        $org_id = (int) $org_id;
+        $date_from = sanitize_text_field($args['date_from'] ?? $args['start_date'] ?? '');
+        $date_to = sanitize_text_field($args['date_to'] ?? $args['end_date'] ?? '');
+        $account_id = (int) ($args['account_id'] ?? 0);
+
+        $journal = OraBooks_Database::table('journals');
+        $lines = OraBooks_Database::table('journal_lines');
+        $ledger = OraBooks_Database::table('ledger_entries');
+        $accounts = OraBooks_Database::table('accounts');
+
+        $where = "j.org_id = %d AND j.status IN ('posted', 'locked')";
+        $params = [$org_id];
+
+        if ($date_from !== '') {
+            $where .= ' AND j.transaction_date >= %s';
+            $params[] = $date_from;
+        }
+        if ($date_to !== '') {
+            $where .= ' AND j.transaction_date <= %s';
+            $params[] = $date_to;
+        }
+        if ($account_id > 0) {
+            $where .= ' AND le.account_id = %d';
+            $params[] = $account_id;
+        }
+
+        $sql = "SELECT j.transaction_date, j.journal_number, j.source_type, a.code AS account_code,
+                       a.name AS account_name, a.type AS account_type, le.debit_amount AS debit,
+                       le.credit_amount AS credit, jl.description
+                FROM {$ledger} le
+                INNER JOIN {$journal} j ON j.id = le.journal_id AND j.org_id = le.org_id
+                INNER JOIN {$lines} jl ON jl.journal_id = j.id AND jl.account_id = le.account_id
+                    AND jl.debit_amount = le.debit_amount AND jl.credit_amount = le.credit_amount
+                INNER JOIN {$accounts} a ON a.id = le.account_id AND a.org_id = le.org_id
+                WHERE {$where}
+                ORDER BY j.transaction_date ASC, j.id ASC, le.id ASC";
+
+        return $wpdb->get_results($wpdb->prepare($sql, $params), ARRAY_A) ?: [];
     }
 
     private static function ledger_summary_rows($org_id, $period_start, $period_end, $types = []) {
@@ -500,14 +676,18 @@ class OraBooks_Financial_Reports {
             : round($debit - $credit, 2);
     }
 
-    private static function report_item($row, $amount) {
-        return [
+    private static function report_item($row, $amount, $expense_category = null) {
+        $item = [
             'account_id' => (int) $row->account_id,
             'code' => $row->code,
             'name' => $row->name,
             'type' => $row->type,
             'amount' => round((float) $amount, 2),
         ];
+        if ($expense_category !== null) {
+            $item['expense_category'] = $expense_category;
+        }
+        return $item;
     }
 
     private static function is_period_hard_closed($org_id, $period_start, $period_end) {
@@ -672,7 +852,7 @@ class OraBooks_Financial_Reports {
             intval($journal_id),
             $org_id
         ));
-        if (!$journal || $journal->status !== 'posted') {
+        if (!$journal || !in_array($journal->status, ['posted', 'locked'], true)) {
             return new WP_Error('journal_not_posted', 'Only posted journals update report projections.');
         }
 
