@@ -12,6 +12,25 @@ type Product = {
   id: number;
   sku: string;
   name: string;
+  brand_name?: string | null;
+  category_name?: string | null;
+  hsn?: string | null;
+  barcode?: string | null;
+  description?: string | null;
+  item_image_url?: string | null;
+  discount_type?: 'Percentage' | 'Fixed' | string;
+  discount?: string | number;
+  price?: string | number;
+  purchase_price?: string | number;
+  sales_price?: string | number;
+  mrp?: string | number;
+  profit_margin?: string | number;
+  tax_name?: string | null;
+  tax_percent?: string | number;
+  tax_type?: 'Inclusive' | 'Exclusive' | string;
+  warehouse_name?: string | null;
+  item_type?: 'Single' | 'Variants' | 'service' | string;
+  seller_points?: string | number;
   unit?: string;
   current_stock?: string | number;
   average_cost?: string | number;
@@ -26,6 +45,76 @@ const ADJUSTMENT_REASONS = [
   'DATA_CORRECTION',
   'OTHER',
 ];
+
+type ProductFormState = {
+  name: string;
+  brand_name: string;
+  category_name: string;
+  unit: string;
+  hsn: string;
+  stock_keeping_unit: string;
+  barcode: string;
+  low_stock_threshold: string;
+  seller_points: string;
+  description: string;
+  item_image_url: string;
+  discount_type: 'Percentage' | 'Fixed';
+  discount: string;
+  price: string;
+  purchase_price: string;
+  tax_name: string;
+  tax_percent: string;
+  tax_type: 'Inclusive' | 'Exclusive';
+  profit_margin: string;
+  sales_price: string;
+  mrp: string;
+  warehouse_name: string;
+  initial_stock: string;
+  item_type: 'Single' | 'Variants' | 'service';
+};
+
+const PRODUCT_CATEGORIES = ['General', 'Finished Goods', 'Raw Materials', 'Services', 'Consumables'];
+const PRODUCT_BRANDS = ['Generic', 'OraBooks'];
+const PRODUCT_UNITS = ['piece', 'box', 'kg', 'gram', 'liter', 'meter', 'hour', 'service'];
+const PRODUCT_TAXES = [
+  { name: 'No Tax', percent: 0 },
+  { name: 'GST 5%', percent: 5 },
+  { name: 'GST 12%', percent: 12 },
+  { name: 'GST 18%', percent: 18 },
+  { name: 'GST 28%', percent: 28 },
+  { name: 'VAT 15%', percent: 15 },
+];
+const PRODUCT_WAREHOUSES = ['Main Warehouse', 'Store Room', 'Retail Floor'];
+const selectClassName = 'w-full rounded-lg border border-border bg-white px-3 py-2.5 text-sm text-ink shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20';
+
+function emptyProductForm(): ProductFormState {
+  return {
+    name: '',
+    brand_name: '',
+    category_name: 'General',
+    unit: 'piece',
+    hsn: '',
+    stock_keeping_unit: '',
+    barcode: '',
+    low_stock_threshold: '',
+    seller_points: '0',
+    description: '',
+    item_image_url: '',
+    discount_type: 'Percentage',
+    discount: '0',
+    price: '',
+    purchase_price: '',
+    tax_name: '',
+    tax_percent: '0',
+    tax_type: 'Inclusive',
+    profit_margin: '0',
+    sales_price: '',
+    mrp: '',
+    warehouse_name: 'Main Warehouse',
+    initial_stock: '',
+    item_type: 'Single',
+  };
+}
 
 export default function InventoryPage() {
   const [context, setContext] = useState<any>(null);
