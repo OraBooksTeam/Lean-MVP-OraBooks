@@ -68,7 +68,7 @@ class OraBooks_Customers {
             id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
             user_id BIGINT UNSIGNED NOT NULL,
             org_id BIGINT UNSIGNED NOT NULL,
-            is_active TINYINT(1) DEFAULT 1 COMMENT 'Authoritative truth source for commission engine SL-068',
+            is_active TINYINT(1) DEFAULT 0 COMMENT 'Authoritative truth source for commission engine SL-068',
             last_paid_invoice_date DATE NULL,
             lifetime_value DECIMAL(20,2) DEFAULT 0,
             notes TEXT NULL,
@@ -176,7 +176,7 @@ class OraBooks_Customers {
                 [
                     'user_id' => $mc->customer_user_id,
                     'org_id'  => $mc->org_id,
-                    'is_active' => 1,
+                    'is_active' => 0,
                 ],
                 ['%d', '%d', '%d']
             );
@@ -319,10 +319,51 @@ class OraBooks_Customers {
     }
 
     /**
-     * Update customer is_active status — this is the truth source
-     * that triggers the commission engine's read model refresh.
+     * Recompute customer is_active from posted paid invoices (SL-021 source of truth).
      */
-    public static function update_active_status($customer_id, $is_active) {
+    public static function recompute_active_status($customer_id) {
+        global $wpdb;
+
+        $table = OraBooks_Database::table('customers');
+        $table_invoices = OraBooks_Database::table('invoices');
+        $config_table = OraBooks_Database::table('partner_commission_config');
+
+        $customer = $wpdb->get_row($wpdb->prepare(
+            "SELECT * FROM {$table} WHERE id = %d",
+            $customer_id
+        ));
+
+        if (!$customer) {
+            return new WP_Error('not_found', 'Customer not found');
+        }
+
+        $window_days = 30;
+        $config = $wpdb->get_row("SELECT customer_active_window_days FROM {$config_table} WHERE id = 1");
+        if ($config && !empty($config->customer_active_window_days)) {
+            $window_days = (int) $config->customer_active_window_days;
+        }
+
+        $invoice = $wpdb->get_row($wpdb->prepare(
+            "SELECT MAX(transaction_date) AS last_paid
+             FROM {$table_invoices}
+             WHERE customer_id = %d
+               AND payment_status IN ('paid', 'partial')
+               AND workflow_status = 'posted'
+               AND transaction_date >= DATE_SUB(CURDATE(), INTERVAL %d DAY)",
+            $customer_id,
+            $window_days
+        ));
+
+        $is_active = ($invoice && $invoice->last_paid) ? 1 : 0;
+        $last_paid = ($invoice && $invoice->last_paid) ? $invoice->last_paid : null;
+
+        return self::update_active_status($customer_id, (bool) $is_active, $last_paid);
+    }
+
+    /**
+     * Update customer is_active status — system use only (invoice-driven via recompute_active_status).
+     */
+    public static function update_active_status($customer_id, $is_active, $last_paid_invoice_date = null) {
         global $wpdb;
 
         $table = OraBooks_Database::table('customers');
@@ -337,11 +378,18 @@ class OraBooks_Customers {
 
         $old_status = (bool) $customer->is_active;
 
+        $update_data = ['is_active' => $is_active ? 1 : 0];
+        $update_format = ['%d'];
+        if ($last_paid_invoice_date !== null) {
+            $update_data['last_paid_invoice_date'] = $last_paid_invoice_date;
+            $update_format[] = '%s';
+        }
+
         $wpdb->update(
             $table,
-            ['is_active' => $is_active ? 1 : 0],
+            $update_data,
             ['id' => $customer_id],
-            ['%d'],
+            $update_format,
             ['%d']
         );
 
@@ -779,29 +827,14 @@ class OraBooks_Customers {
             ['%d']
         );
 
-        // Update customer's last_paid_invoice_date and refresh active status
-        $wpdb->update(
-            $table_customers,
-            [
-                'last_paid_invoice_date' => $payment_date,
-                'is_active'              => 1, // Payment makes customer active
-            ],
-            ['id' => $invoice->customer_id],
-            ['%s', '%d'],
-            ['%d']
-        );
+        // Recompute customer active status from invoice activity (SL-021)
+        self::recompute_active_status($invoice->customer_id);
 
-        // Refresh the commission engine's customer_active_status read model
         $customer = $wpdb->get_row($wpdb->prepare(
-            "SELECT user_id FROM {$table_customers} WHERE id = %d",
+            "SELECT user_id, is_active FROM {$table_customers} WHERE id = %d",
             $invoice->customer_id
         ));
-        if ($customer && class_exists('OraBooks_Commission') && method_exists('OraBooks_Commission', 'refresh_customer_active_status')) {
-            OraBooks_Commission::refresh_customer_active_status($customer->user_id);
-        }
-
-        // Publish event for partner commission engine
-        do_action('orabooks_customer_active_status_changed', $customer->user_id ?? 0, true, $org_id);
+        $customer_is_active = $customer ? (bool) $customer->is_active : false;
 
         // Create journal entry via SL-001 posting engine
         self::create_payment_journal_entry(
@@ -1250,7 +1283,7 @@ class OraBooks_Customers {
     }
 
     /**
-     * Update customer (primarily is_active status).
+     * Update customer notes (is_active is derived from invoice activity per SL-021).
      */
     public function ajax_customer_update() {
         $user_id = orabooks_get_current_user_id();
@@ -1266,15 +1299,11 @@ class OraBooks_Customers {
 
         $this->require_customer_access($user_id, (int) $customer->org_id, 'create_invoice');
 
-        $is_active = isset($_POST['is_active']) ? (int) $_POST['is_active'] : null;
-        $notes = isset($_POST['notes']) ? sanitize_textarea_field($_POST['notes']) : null;
-
-        if ($is_active !== null) {
-            $result = self::update_active_status($customer_id, $is_active);
-            if (is_wp_error($result)) {
-                orabooks_json_error($result->get_error_message(), 400);
-            }
+        if (isset($_POST['is_active'])) {
+            orabooks_json_error('Customer active status is derived from invoice activity and cannot be changed manually.', 400);
         }
+
+        $notes = isset($_POST['notes']) ? sanitize_textarea_field($_POST['notes']) : null;
 
         if ($notes !== null) {
             global $wpdb;
