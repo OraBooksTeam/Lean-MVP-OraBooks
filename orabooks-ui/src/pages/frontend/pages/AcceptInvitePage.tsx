@@ -9,17 +9,14 @@ import {
 } from '../lib/auth-routing';
 
 export default function AcceptInvitePage() {
-  const tokenFromUrl = useMemo(
-    () => new URLSearchParams(window.location.search).get('token') || '',
-    []
-  );
-  const [token] = useState(() => {
-    if (tokenFromUrl) {
-      storePendingInviteToken(tokenFromUrl);
-      return tokenFromUrl;
+  const token = useMemo(() => {
+    const fromUrl = new URLSearchParams(window.location.search).get('token') || '';
+    if (fromUrl) {
+      storePendingInviteToken(fromUrl);
+      return fromUrl;
     }
     return '';
-  });
+  }, []);
   const [loading, setLoading] = useState(!!token);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
