@@ -6,6 +6,9 @@
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
+require_once __DIR__ . '/../includes/class-orabooks-deploy-checks.php';
+require_once __DIR__ . '/../includes/class-orabooks-async-queue.php';
+
 class OraBooks_Deploy_Checks_Test extends TestCase
 {
     protected function setUp(): void
@@ -15,6 +18,7 @@ class OraBooks_Deploy_Checks_Test extends TestCase
         global $wpdb;
         $wpdb->test_get_var_callback = null;
         $wpdb->test_get_col_callback = null;
+        $GLOBALS['orabooks_test_wp_next_scheduled_hooks'] = [];
 
         update_option('orabooks_jwt_secret', 'test-jwt-secret');
         update_option('orabooks_db_version', ORABOOKS_DB_VERSION);
@@ -26,6 +30,12 @@ class OraBooks_Deploy_Checks_Test extends TestCase
     public function test_deploy_checks_pass_when_core_tables_and_crons_exist()
     {
         global $wpdb;
+
+        $GLOBALS['orabooks_test_wp_next_scheduled_hooks'] = [
+            'orabooks_partner_activity_check' => time() + 3600,
+            'orabooks_async_queue_process' => time() + 60,
+            'orabooks_daily_active_status_refresh' => time() + 7200,
+        ];
 
         $wpdb->test_get_var_callback = function ($query) {
             if (stripos($query, 'SHOW TABLES LIKE') !== false) {
@@ -43,11 +53,7 @@ class OraBooks_Deploy_Checks_Test extends TestCase
             return [];
         };
 
-        if (!function_exists('wp_next_scheduled')) {
-            $this->markTestSkipped('wp_next_scheduled stub unavailable');
-        }
-
-        $result = orabooks_run_deploy_checks();
+        $result = OraBooks_DeployChecks::run();
 
         $this->assertTrue($result['ok']);
         $this->assertNotEmpty($result['checks']);
@@ -65,6 +71,12 @@ class OraBooks_Deploy_Checks_Test extends TestCase
 
         update_option('orabooks_db_version', '0.9.0');
 
+        $GLOBALS['orabooks_test_wp_next_scheduled_hooks'] = [
+            'orabooks_partner_activity_check' => time() + 3600,
+            'orabooks_async_queue_process' => time() + 60,
+            'orabooks_daily_active_status_refresh' => time() + 7200,
+        ];
+
         $wpdb->test_get_var_callback = function ($query) {
             if (stripos($query, 'SHOW TABLES LIKE') !== false) {
                 if (preg_match("/SHOW TABLES LIKE '([^']+)'/", $query, $matches)) {
@@ -78,7 +90,7 @@ class OraBooks_Deploy_Checks_Test extends TestCase
             return ['id', 'payment_status', 'paid_amount'];
         };
 
-        $result = orabooks_run_deploy_checks();
+        $result = OraBooks_DeployChecks::run();
 
         $this->assertFalse($result['ok']);
         $db_check = array_values(array_filter($result['checks'], fn($row) => $row['id'] === 'db_version'));

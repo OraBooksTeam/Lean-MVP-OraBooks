@@ -38,6 +38,7 @@ require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-tax.php';
 require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-workflow.php';
 require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-posting.php';
 require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-approval.php';
+require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-deploy-checks.php';
 require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-ajax.php';
 require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-shortcodes.php';
 require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-assets.php';
