@@ -1638,12 +1638,34 @@ class OraBooks_Customers {
         }
     }
 
+    private function resolve_request_org_id($user_id, $org_id) {
+        $org_id = (int) $org_id;
+        if ($org_id > 0) {
+            return $org_id;
+        }
+
+        if (function_exists('orabooks_get_current_org_id')) {
+            $current_org_id = (int) orabooks_get_current_org_id($user_id);
+            if ($current_org_id > 0) {
+                return $current_org_id;
+            }
+        }
+
+        global $wpdb;
+        $table_users = OraBooks_Database::table('users');
+        return (int) $wpdb->get_var($wpdb->prepare(
+            "SELECT org_id FROM {$table_users} WHERE id = %d",
+            $user_id
+        ));
+    }
+
     /**
      * List customers for admin.
      */
     public function ajax_customers_list() {
         $user_id = orabooks_get_current_user_id();
         $org_id = intval($_GET['org_id'] ?? $_POST['org_id'] ?? 0);
+        $org_id = $this->resolve_request_org_id($user_id, $org_id);
 
         if (!$org_id) {
             orabooks_json_error('Organization ID required', 400);
@@ -1763,12 +1785,7 @@ class OraBooks_Customers {
         $org_id = intval($_GET['org_id'] ?? $_POST['org_id'] ?? 0);
 
         if (!$org_id) {
-            global $wpdb;
-            $table_users = OraBooks_Database::table('users');
-            $org_id = (int) $wpdb->get_var($wpdb->prepare(
-                "SELECT org_id FROM {$table_users} WHERE id = %d",
-                $user_id
-            ));
+            $org_id = $this->resolve_request_org_id($user_id, $org_id);
         }
 
         if (!$org_id) {
@@ -1983,6 +2000,7 @@ class OraBooks_Customers {
     public function ajax_customer_stats() {
         $user_id = orabooks_get_current_user_id();
         $org_id = intval($_GET['org_id'] ?? $_POST['org_id'] ?? 0);
+        $org_id = $this->resolve_request_org_id($user_id, $org_id);
 
         if (!$user_id) {
             orabooks_json_error('Not authenticated', 401);
