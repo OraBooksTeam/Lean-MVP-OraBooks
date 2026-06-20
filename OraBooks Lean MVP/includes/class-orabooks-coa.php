@@ -86,9 +86,8 @@ class OraBooks_COA {
         }
         
         $template = self::$templates[$tier] ?? self::$templates['free'];
-        $table = $wpdb->prefix . 'orabooks_accounts';
-        
-        $table_balances = $wpdb->prefix . 'orabooks_account_balances';
+        $table = OraBooks_Database::table('accounts');
+        $table_balances = OraBooks_Database::table('account_balances');
         $inserted = 0;
 
         foreach ($template as $acc) {
@@ -136,7 +135,7 @@ class OraBooks_COA {
             return [];
         }
         
-        $table = $wpdb->prefix . 'orabooks_accounts';
+        $table = OraBooks_Database::table('accounts');
         $table_lines = OraBooks_Database::table('journal_lines');
 
         return $wpdb->get_results($wpdb->prepare(
@@ -156,7 +155,7 @@ class OraBooks_COA {
      */
     public static function get_account_by_code($org_id, $code) {
         global $wpdb;
-        $table = $wpdb->prefix . 'orabooks_accounts';
+        $table = OraBooks_Database::table('accounts');
         return $wpdb->get_row($wpdb->prepare(
             "SELECT * FROM {$table} WHERE org_id = %d AND code = %s AND is_active = 1",
             $org_id, $code
@@ -168,7 +167,7 @@ class OraBooks_COA {
      */
     public static function get_account($account_id, $org_id) {
         global $wpdb;
-        $table = $wpdb->prefix . 'orabooks_accounts';
+        $table = OraBooks_Database::table('accounts');
         return $wpdb->get_row($wpdb->prepare(
             "SELECT * FROM {$table} WHERE id = %d AND org_id = %d",
             $account_id, $org_id
@@ -180,7 +179,7 @@ class OraBooks_COA {
      */
     public static function get_account_balance($account_id, $org_id) {
         global $wpdb;
-        $table = $wpdb->prefix . 'orabooks_account_balances';
+        $table = OraBooks_Database::table('account_balances');
         $balance = $wpdb->get_var($wpdb->prepare(
             "SELECT balance FROM {$table} WHERE account_id = %d AND org_id = %d",
             $account_id, $org_id

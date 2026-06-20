@@ -2207,8 +2207,16 @@ class OraBooks_Auth {
             'org_id' => $org_result['org_id'],
             'subdomain' => $org_result['subdomain'],
             'user_id' => $user->id,
+            'role' => $role,
+            'is_partner' => false,
             'redirect_to' => '/dashboard/',
         ]);
+
+        orabooks_log_event('tier_selected', "Customer org created via tier selection: {$org_result['subdomain']}", 'info', [
+            'tier' => $tier,
+            'region' => $region,
+            'subdomain' => $org_result['subdomain'],
+        ], $user->id, $org_result['org_id']);
 
         orabooks_persist_login_session($tier_result);
 
