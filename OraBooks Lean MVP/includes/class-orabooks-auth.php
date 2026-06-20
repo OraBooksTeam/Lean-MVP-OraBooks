@@ -552,21 +552,16 @@ class OraBooks_Auth {
      * @return array<string, mixed>
      */
     private static function issue_tier_selection_login($user) {
-        $jwt = OraBooks_Secrets::generate_jwt([
+        $tier_selection_token = OraBooks_Secrets::generate_jwt([
             'user_id' => $user->id,
             'email' => $user->email,
-            'is_partner' => 0,
-            'needs_tier_selection' => true,
-            'org_id' => null,
+            'purpose' => 'tier_selection',
+            'exp' => time() + 1800,
         ]);
-
-        $refresh_token = orabooks_random_string(32);
-        self::store_refresh_token($user->id, null, $refresh_token);
 
         return [
             'needs_tier_selection' => true,
-            'token' => $jwt,
-            'refresh_token' => $refresh_token,
+            'tier_selection_token' => $tier_selection_token,
             'user_id' => $user->id,
             'message' => 'Please select a tier to continue',
         ];
@@ -735,6 +730,9 @@ class OraBooks_Auth {
         orabooks_log_event('partner_org_created', "Partner org auto-created for user {$user->id}", 'info', [
             'partner_type' => $partner_type,
             'organization_name' => $organization_name
+        ], $user->id, $org_result['org_id']);
+        orabooks_log_event('partner_onboarding_started', 'Partner onboarding started', 'info', [
+            'partner_type' => $partner_type,
         ], $user->id, $org_result['org_id']);
         
         return orabooks_enrich_login_response([
@@ -907,7 +905,7 @@ class OraBooks_Auth {
     private static function store_refresh_token($user_id, $org_id, $token) {
         global $wpdb;
         $table = OraBooks_Database::table('refresh_tokens');
-        $expires = date('Y-m-d H:i:s', time() + 604800); // 7 days
+        $expires = date('Y-m-d H:i:s', time() + orabooks_get_refresh_token_cookie_ttl());
         
         $wpdb->insert(
             $table,
@@ -1157,9 +1155,13 @@ class OraBooks_Auth {
 
         $result = orabooks_enrich_login_response($result);
 
-        orabooks_persist_login_session($result, $password);
-        
-        orabooks_json_success($result, 'Login successful');
+        if (empty($result['needs_tier_selection'])) {
+            orabooks_persist_login_session($result, $password);
+        } else {
+            orabooks_clear_logout_landing_cookie();
+        }
+
+        orabooks_json_success(orabooks_redact_client_auth_response($result), 'Login successful');
     }
     
     public function ajax_verify_email() {
@@ -1339,8 +1341,8 @@ class OraBooks_Auth {
             orabooks_json_error('Invalid OTP code', 400);
         }
         
-        // Store 2FA secret permanently
-        update_user_meta($wp_user_id, 'orabooks_2fa_secret', $temp_secret);
+        // Store 2FA secret permanently (encrypted at rest per SL-013)
+        orabooks_set_2fa_secret($wp_user_id, $temp_secret);
         delete_user_meta($wp_user_id, 'orabooks_2fa_temp_secret');
 
         $backup_codes = get_user_meta($wp_user_id, 'orabooks_2fa_temp_backup_codes', true);
@@ -1383,7 +1385,7 @@ class OraBooks_Auth {
         
         $user_id = (int) $payload['user_id'];
         $wp_user_id = orabooks_get_wp_user_id_for_orabooks_user($user_id);
-        $secret = $wp_user_id > 0 ? get_user_meta($wp_user_id, 'orabooks_2fa_secret', true) : '';
+        $secret = orabooks_get_2fa_secret($wp_user_id);
         
         if (!empty($otp) && OraBooks_Secrets::verify_totp($secret, $otp)) {
             // Valid OTP - proceed with login
