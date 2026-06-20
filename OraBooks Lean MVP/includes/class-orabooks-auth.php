@@ -135,23 +135,31 @@ class OraBooks_Auth {
         $wp_user_id = null;
         
         // Create user
-        $wpdb->insert(
-            $table_users,
-            [
-                'email' => $email,
-                'password_hash' => $password_hash,
-                'is_active' => 1,
-                'is_email_verified' => 0,
-                'email_verification_token' => $verification_token,
-                'email_verification_expires_at' => $verification_expires,
-                'is_2fa_enabled' => 0,
-                'auth_provider' => 'local',
-                'org_id' => null,
-                'is_partner' => ($user_type === 'partner') ? 1 : 0,
-                'wp_user_id' => null,
-            ],
-            ['%s', '%s', '%d', '%d', '%s', '%s', '%d', '%s', null, '%d', null]
-        );
+        $insert_data = [
+            'email' => $email,
+            'password_hash' => $password_hash,
+            'is_active' => 1,
+            'is_email_verified' => 0,
+            'email_verification_token' => $verification_token,
+            'email_verification_expires_at' => $verification_expires,
+            'is_2fa_enabled' => 0,
+            'auth_provider' => 'local',
+            'org_id' => null,
+            'is_partner' => ($user_type === 'partner') ? 1 : 0,
+            'wp_user_id' => null,
+        ];
+        $insert_format = ['%s', '%s', '%d', '%d', '%s', '%s', '%d', '%s', null, '%d', null];
+
+        if ($user_type === 'partner') {
+            $insert_data['pending_partner_type'] = $partner_type;
+            $insert_data['pending_organization_name'] = in_array($partner_type, ['agency', 'reseller', 'strategic_partner'], true)
+                ? $organization_name
+                : null;
+            $insert_format[] = '%s';
+            $insert_format[] = '%s';
+        }
+
+        $wpdb->insert($table_users, $insert_data, $insert_format);
         
         $user_id = $wpdb->insert_id;
         if (!$user_id) {
@@ -208,7 +216,7 @@ class OraBooks_Auth {
             ], $user_id, null);
         }
         
-        // Store partner type and org name in session for later use
+        // Store partner type and org name in session for backward compatibility
         if ($user_type === 'partner') {
             $_SESSION['orabooks_partner_type'] = $partner_type;
             $_SESSION['orabooks_partner_org_name'] = $organization_name;
@@ -237,16 +245,7 @@ class OraBooks_Auth {
             }
         }
         
-        // Generate JWT
-        $jwt = OraBooks_Secrets::generate_jwt([
-            'user_id' => $user_id,
-            'email' => $email,
-            'is_partner' => ($user_type === 'partner') ? 1 : 0,
-            'org_id' => null,
-            'subdomain' => ''
-        ]);
-        
-        // Log audit event
+        // Do not issue a session JWT until email is verified (SL-013)
         orabooks_log_event('user_registered', "User registered: $email ($user_type)", 'info', [
             'user_type' => $user_type
         ], $user_id, null);
@@ -260,7 +259,7 @@ class OraBooks_Auth {
                     ? 'Registration started. Check your email to activate your WordPress account and verify OraBooks.'
                     : 'Verification email sent'),
             'email_warning' => $email_warning,
-            'token' => $jwt,
+            'requires_email_verification' => true,
             'is_partner' => ($user_type === 'partner') ? 1 : 0,
             'pending_wp_activation' => $pending_wp_signup ? 1 : 0,
             'wp_user_id' => $wp_user_id,

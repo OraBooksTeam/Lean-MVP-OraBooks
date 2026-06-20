@@ -112,6 +112,25 @@ class OraBooks_Database {
             INDEX idx_wp_user (wp_user_id)
         ) {$charset_collate};";
         dbDelta($sql);
+
+        // SL-013: extend users table for partner signup metadata and password reset tokens
+        $user_cols = $wpdb->get_results("SHOW COLUMNS FROM {$table_users}");
+        $existing_user_cols = [];
+        foreach ($user_cols as $col) {
+            $existing_user_cols[] = $col->Field;
+        }
+        if (!in_array('pending_partner_type', $existing_user_cols, true)) {
+            $wpdb->query("ALTER TABLE {$table_users} ADD COLUMN pending_partner_type ENUM('individual','accountant','agency','reseller','strategic_partner') NULL AFTER is_partner");
+        }
+        if (!in_array('pending_organization_name', $existing_user_cols, true)) {
+            $wpdb->query("ALTER TABLE {$table_users} ADD COLUMN pending_organization_name VARCHAR(255) NULL AFTER pending_partner_type");
+        }
+        if (!in_array('password_reset_token', $existing_user_cols, true)) {
+            $wpdb->query("ALTER TABLE {$table_users} ADD COLUMN password_reset_token VARCHAR(128) NULL AFTER email_verification_expires_at");
+        }
+        if (!in_array('password_reset_expires_at', $existing_user_cols, true)) {
+            $wpdb->query("ALTER TABLE {$table_users} ADD COLUMN password_reset_expires_at TIMESTAMP NULL AFTER password_reset_token");
+        }
         
         // ============================================================
         // SL-013: refresh_tokens table
