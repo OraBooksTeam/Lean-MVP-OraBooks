@@ -705,19 +705,32 @@ function SelectWithCustom({
   placeholder: string;
   onChange: (value: string) => void;
 }) {
+  const [customMode, setCustomMode] = useState(false);
   const isCustom = value && !options.includes(value);
+  const showCustomInput = customMode || isCustom;
 
   return (
     <div className="grid gap-2">
-      <select value={isCustom ? '__custom__' : value} onChange={(e) => onChange(e.target.value === '__custom__' ? value : e.target.value)} className={selectClassName}>
+      <select
+        value={showCustomInput ? '__custom__' : value}
+        onChange={(e) => {
+          if (e.target.value === '__custom__') {
+            setCustomMode(true);
+            return;
+          }
+          setCustomMode(false);
+          onChange(e.target.value);
+        }}
+        className={selectClassName}
+      >
         <option value="">{placeholder}</option>
         {options.map((option) => (
           <option key={option} value={option}>{option}</option>
         ))}
         <option value="__custom__">Custom...</option>
       </select>
-      {(isCustom || value === '') && (
-        <Input value={isCustom ? value : ''} onChange={(e) => onChange(e.target.value)} placeholder="Enter custom value" />
+      {showCustomInput && (
+        <Input value={value} onChange={(e) => onChange(e.target.value)} placeholder="Enter custom value" />
       )}
     </div>
   );
