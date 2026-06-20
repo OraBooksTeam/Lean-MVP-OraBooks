@@ -1,6 +1,6 @@
 /**
- * Divi theme compatibility for OraBooks frontend + accounting workspace.
- * Loaded only on OraBooks pages when Divi (or a Divi child theme) is active.
+ * Divi theme compatibility for OraBooks Lean MVP React frontend.
+ * Loaded on OraBooks pages when Divi (or a Divi child theme) is active.
  */
 
 body.orabooks-page.orabooks-divi-theme {
@@ -63,7 +63,6 @@ body.orabooks-page.orabooks-divi-theme #main-content .et_pb_section .et_pb_title
     display: none !important;
 }
 
-/* Avoid 100vw breakout horizontal scroll inside Divi */
 body.orabooks-page.orabooks-divi-theme .entry-content .orabooks-react-page,
 body.orabooks-page.orabooks-divi-theme .entry-content .orabooks-auth-shell,
 body.orabooks-page.orabooks-divi-theme .entry-content .orabooks-page-shell,
@@ -76,16 +75,14 @@ body.orabooks-page.orabooks-divi-theme .wp-block-post-content .orabooks-react-pa
     margin-right: 0 !important;
 }
 
-body.orabooks-page.orabooks-divi-theme .orabooks-react-page,
-body.orabooks-page.orabooks-divi-theme .obn-dashboard-wrapper {
+body.orabooks-page.orabooks-divi-theme .orabooks-react-page {
     width: 100%;
     max-width: 100%;
     box-sizing: border-box;
 }
 
-/* Isolate OraBooks UI from Divi global button/input styles */
-body.orabooks-page.orabooks-divi-theme #orabooks-app-root,
-body.orabooks-page.orabooks-divi-theme .obn-dashboard-wrapper {
+/* Isolate OraBooks React UI from Divi global button/input styles */
+body.orabooks-page.orabooks-divi-theme #orabooks-app-root {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
     -webkit-font-smoothing: antialiased;
     text-transform: none;
@@ -93,9 +90,7 @@ body.orabooks-page.orabooks-divi-theme .obn-dashboard-wrapper {
 }
 
 body.orabooks-page.orabooks-divi-theme #orabooks-app-root button,
-body.orabooks-page.orabooks-divi-theme #orabooks-app-root .orabooks-btn,
-body.orabooks-page.orabooks-divi-theme .obn-dashboard-wrapper button,
-body.orabooks-page.orabooks-divi-theme .obn-dashboard-wrapper .btn {
+body.orabooks-page.orabooks-divi-theme #orabooks-app-root .orabooks-btn {
     text-transform: none;
     letter-spacing: normal;
     font-weight: inherit;
@@ -104,52 +99,20 @@ body.orabooks-page.orabooks-divi-theme .obn-dashboard-wrapper .btn {
 body.orabooks-page.orabooks-divi-theme #orabooks-app-root h1,
 body.orabooks-page.orabooks-divi-theme #orabooks-app-root h2,
 body.orabooks-page.orabooks-divi-theme #orabooks-app-root h3,
-body.orabooks-page.orabooks-divi-theme #orabooks-app-root h4,
-body.orabooks-page.orabooks-divi-theme .obn-dashboard-wrapper h1,
-body.orabooks-page.orabooks-divi-theme .obn-dashboard-wrapper h2,
-body.orabooks-page.orabooks-divi-theme .obn-dashboard-wrapper h3,
-body.orabooks-page.orabooks-divi-theme .obn-dashboard-wrapper h4 {
+body.orabooks-page.orabooks-divi-theme #orabooks-app-root h4 {
     padding-bottom: 0;
     text-transform: none;
 }
 
-body.orabooks-page.orabooks-divi-theme #orabooks-app-root a,
-body.orabooks-page.orabooks-divi-theme .obn-dashboard-wrapper a {
+body.orabooks-page.orabooks-divi-theme #orabooks-app-root a {
     text-decoration: none;
 }
 
 body.orabooks-page.orabooks-divi-theme #orabooks-app-root ul,
-body.orabooks-page.orabooks-divi-theme #orabooks-app-root ol,
-body.orabooks-page.orabooks-divi-theme .obn-dashboard-wrapper ul,
-body.orabooks-page.orabooks-divi-theme .obn-dashboard-wrapper ol {
+body.orabooks-page.orabooks-divi-theme #orabooks-app-root ol {
     list-style: none;
     padding: 0;
     margin: 0;
-}
-
-/* Fixed Divi header: offset OraBooks sidebar and mobile nav */
-body.orabooks-page.orabooks-divi-theme.et_fixed_nav #orabooks-app-root aside.fixed {
-    top: calc(var(--orabooks-divi-admin-bar) + var(--orabooks-divi-header-height));
-    height: calc(100vh - var(--orabooks-divi-admin-bar) - var(--orabooks-divi-header-height));
-    height: calc(100dvh - var(--orabooks-divi-admin-bar) - var(--orabooks-divi-header-height));
-    z-index: 100;
-}
-
-body.orabooks-page.orabooks-divi-theme:not(.et_fixed_nav) #orabooks-app-root aside.fixed {
-    top: var(--orabooks-divi-admin-bar);
-    height: calc(100vh - var(--orabooks-divi-admin-bar));
-    height: calc(100dvh - var(--orabooks-divi-admin-bar));
-    z-index: 100;
-}
-
-body.orabooks-page.orabooks-divi-theme.et_fixed_nav #orabooks-app-root main > .sticky {
-    top: calc(var(--orabooks-divi-admin-bar) + var(--orabooks-divi-header-height));
-    z-index: 99;
-}
-
-body.orabooks-page.orabooks-divi-theme:not(.et_fixed_nav) #orabooks-app-root main > .sticky {
-    top: var(--orabooks-divi-admin-bar);
-    z-index: 99;
 }
 
 /* Modals above Divi's fixed header (z-index ~99999) */
@@ -157,25 +120,20 @@ body.orabooks-page.orabooks-divi-theme .orabooks-modal {
     z-index: 100010;
 }
 
-/* Accounting sidebar below Divi header */
-body.orabooks-page.orabooks-divi-theme.et_fixed_nav .obn-dashboard-wrapper .obn-sidebar,
-body.orabooks-page.orabooks-divi-theme.et_fixed_nav .obn-dashboard-wrapper aside {
-    top: calc(var(--orabooks-divi-admin-bar) + var(--orabooks-divi-header-height)) !important;
-    height: calc(100vh - var(--orabooks-divi-admin-bar) - var(--orabooks-divi-header-height)) !important;
-    height: calc(100dvh - var(--orabooks-divi-admin-bar) - var(--orabooks-divi-header-height)) !important;
-}
-
-body.orabooks-page.orabooks-divi-theme .obn-dashboard-wrapper .modal,
-body.orabooks-page.orabooks-divi-theme .obn-dashboard-wrapper .modal-backdrop {
-    z-index: 100010 !important;
-}
-
 /* React app pages: immersive workspace (hide Divi chrome, keep WP admin bar) */
 body.orabooks-page.orabooks-divi-theme.orabooks-react-page #main-header,
 body.orabooks-page.orabooks-divi-theme.orabooks-react-page #top-header,
 body.orabooks-page.orabooks-divi-theme.orabooks-react-page .et-l--header,
 body.orabooks-page.orabooks-divi-theme.orabooks-react-page #footer-bottom,
-body.orabooks-page.orabooks-divi-theme.orabooks-react-page .et-l--footer {
+body.orabooks-page.orabooks-divi-theme.orabooks-react-page .et-l--footer,
+body.orabooks-page.orabooks-divi-theme.orabooks-react-page #main-footer,
+body.orabooks-page.orabooks-divi-theme.orabooks-react-page footer#main-footer,
+body.orabooks-page.orabooks-divi-theme.orabooks-react-page #et-footer-nav,
+body.orabooks-page.orabooks-divi-theme.orabooks-react-page #et-secondary-nav,
+body.orabooks-page.orabooks-divi-theme.orabooks-react-page #et-top-navigation,
+body.orabooks-page.orabooks-divi-theme.orabooks-react-page .et_pb_section_0_tb_footer,
+body.orabooks-page.orabooks-divi-theme.orabooks-react-page .widget-area,
+body.orabooks-page.orabooks-divi-theme.orabooks-react-page #sidebar {
     display: none !important;
 }
 
@@ -183,21 +141,46 @@ body.orabooks-page.orabooks-divi-theme.orabooks-react-page #page-container {
     padding-top: 0 !important;
 }
 
+body.orabooks-page.orabooks-divi-theme.orabooks-react-page {
+    overflow-x: hidden;
+}
+
+/* Portaled React root: relative layout (not fixed overlay) */
+body.orabooks-page.orabooks-divi-theme.orabooks-react-page > #orabooks-app-root.orabooks-divi-portal,
+body.orabooks-page.orabooks-divi-theme.orabooks-react-page #orabooks-app-root.orabooks-divi-portal {
+    position: relative;
+    display: block;
+    width: 100% !important;
+    max-width: none !important;
+    min-height: calc(100vh - var(--orabooks-divi-admin-bar));
+    min-height: calc(100dvh - var(--orabooks-divi-admin-bar));
+    margin: 0 !important;
+    padding: 0 !important;
+    z-index: 1;
+    background: #f4f8fc;
+    box-sizing: border-box;
+}
+
 body.orabooks-page.orabooks-divi-theme.orabooks-react-page #orabooks-app-root aside.fixed {
     top: var(--orabooks-divi-admin-bar);
     height: calc(100vh - var(--orabooks-divi-admin-bar));
     height: calc(100dvh - var(--orabooks-divi-admin-bar));
+    width: 18rem !important;
+    min-width: 18rem !important;
+    max-width: 18rem !important;
+    flex-shrink: 0 !important;
+    z-index: 100;
 }
 
 body.orabooks-page.orabooks-divi-theme.orabooks-react-page #orabooks-app-root main > .sticky {
     top: var(--orabooks-divi-admin-bar);
+    z-index: 99;
 }
 
-/* Auth pages: immersive full-screen */
-body.orabooks-page.orabooks-divi-theme.orabooks-auth-page .brand-auth-bg,
-body.orabooks-page.orabooks-divi-theme.orabooks-auth-page .orabooks-auth-shell {
-    min-height: 100vh;
-    min-height: 100dvh;
+@media (min-width: 1024px) {
+    body.orabooks-page.orabooks-divi-theme.orabooks-react-page #orabooks-app-root main {
+        padding-left: 18rem !important;
+    }
 }
 
 /* Break Divi builder transform/filter chains that break position:fixed sidebars */
@@ -216,48 +199,9 @@ body.orabooks-page.orabooks-divi-theme.orabooks-react-page .et_pb_module {
     overflow: visible !important;
 }
 
-body.orabooks-page.orabooks-divi-theme.orabooks-react-page {
-    overflow-x: hidden;
+/* Auth pages: immersive full-screen */
+body.orabooks-page.orabooks-divi-theme.orabooks-auth-page .brand-auth-bg,
+body.orabooks-page.orabooks-divi-theme.orabooks-auth-page .orabooks-auth-shell {
+    min-height: 100vh;
+    min-height: 100dvh;
 }
-
-/* Hide remaining Divi chrome on React workspace pages */
-body.orabooks-page.orabooks-divi-theme.orabooks-react-page #main-footer,
-body.orabooks-page.orabooks-divi-theme.orabooks-react-page footer#main-footer,
-body.orabooks-page.orabooks-divi-theme.orabooks-react-page #footer-bottom,
-body.orabooks-page.orabooks-divi-theme.orabooks-react-page #et-footer-nav,
-body.orabooks-page.orabooks-divi-theme.orabooks-react-page #et-secondary-nav,
-body.orabooks-page.orabooks-divi-theme.orabooks-react-page #et-top-navigation,
-body.orabooks-page.orabooks-divi-theme.orabooks-react-page .et_pb_section_0_tb_footer,
-body.orabooks-page.orabooks-divi-theme.orabooks-react-page .widget-area,
-body.orabooks-page.orabooks-divi-theme.orabooks-react-page #sidebar {
-    display: none !important;
-}
-
-/* Full-screen accounting workspace on Divi (no React SPA) */
-body.orabooks-page.orabooks-divi-theme.orabooks-accounting-page #main-footer,
-body.orabooks-page.orabooks-divi-theme.orabooks-accounting-page footer#main-footer,
-body.orabooks-page.orabooks-divi-theme.orabooks-accounting-page #footer-bottom,
-body.orabooks-page.orabooks-divi-theme.orabooks-accounting-page #et-footer-nav,
-body.orabooks-page.orabooks-divi-theme.orabooks-accounting-page #main-header,
-body.orabooks-page.orabooks-divi-theme.orabooks-accounting-page #top-header,
-body.orabooks-page.orabooks-divi-theme.orabooks-accounting-page .et-l--header,
-body.orabooks-page.orabooks-divi-theme.orabooks-accounting-page .et-l--footer {
-    display: none !important;
-}
-
-body.orabooks-page.orabooks-divi-theme.orabooks-accounting-page .obn-dashboard-wrapper {
-    position: relative;
-    z-index: 1;
-    width: 100% !important;
-    max-width: none !important;
-    min-height: calc(100vh - var(--orabooks-divi-admin-bar));
-    min-height: calc(100dvh - var(--orabooks-divi-admin-bar));
-}
-
-body.orabooks-page.orabooks-divi-theme.orabooks-accounting-page .obn-dashboard-wrapper .obn-sidebar {
-    width: 260px !important;
-    min-width: 260px !important;
-    max-width: 260px !important;
-}
-
-/* React workspace pages with Divi header visible (legacy PHP views only) */
