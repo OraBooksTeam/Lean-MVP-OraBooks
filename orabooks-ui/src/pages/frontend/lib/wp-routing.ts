@@ -54,10 +54,22 @@ export function getSearchParam(key: string): string {
 export function migrateLegacyHashUrl() {
   const hash = window.location.hash;
   if (!hash.startsWith('#/')) {
+    migrateLegacyPathAliases();
     return;
   }
 
   const target = toWpUrl(hash.slice(1));
   const qs = window.location.search;
   window.location.replace(`${target}${qs}`);
+}
+
+/** Redirect legacy partner onboarding paths to /onboarding/. */
+export function migrateLegacyPathAliases() {
+  const route = normalizeAppRoute(window.location.pathname);
+  const canonical = WP_PATH_ALIASES[route];
+  if (!canonical || canonical === route) {
+    return;
+  }
+
+  window.location.replace(toWpUrl(canonical));
 }
