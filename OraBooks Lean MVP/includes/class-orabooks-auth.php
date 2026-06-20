@@ -1651,20 +1651,10 @@ class OraBooks_Auth {
         if ($existing) {
             // User exists — log them in
             $user_id = $existing->id;
+            $expected_subdomain = self::detect_subdomain_from_host();
 
-            if ($state_data && $existing->auth_provider === 'local') {
+            if ($existing->auth_provider === 'local' && !empty($existing->password_hash)) {
                 return new WP_Error('oidc_email_conflict', 'This email is already registered with a password. Please log in with password.');
-            }
-
-            // Update auth_provider to google if was local (link account)
-            if ($existing->auth_provider === 'local') {
-                $wpdb->update(
-                    $table_users,
-                    ['auth_provider' => 'google', 'is_email_verified' => 1],
-                    ['id' => $user_id],
-                    ['%s', '%d'],
-                    ['%d']
-                );
             }
 
             // Check account active
@@ -1693,6 +1683,7 @@ class OraBooks_Auth {
                 $temp_token = OraBooks_Secrets::generate_jwt([
                     'user_id' => $existing->id,
                     'purpose' => '2fa_challenge',
+                    'expected_subdomain' => $expected_subdomain,
                     'exp' => time() + 300 // 5 min
                 ]);
                 return [
@@ -1707,21 +1698,10 @@ class OraBooks_Auth {
             }
 
             if (!$existing->is_partner && !$existing->org_id) {
-                $jwt = OraBooks_Secrets::generate_jwt([
-                    'user_id' => $existing->id,
-                    'email' => $existing->email,
-                    'is_partner' => 0,
-                    'needs_tier_selection' => true,
-                    'org_id' => null
-                ]);
-
-                return [
-                    'needs_tier_selection' => true,
-                    'token' => $jwt,
-                    'user_id' => $existing->id,
-                    'message' => 'Please select a tier to continue'
-                ];
+                return self::issue_tier_selection_login($existing);
             }
+
+            return self::complete_authenticated_login($existing, $expected_subdomain);
         } else {
             // User doesn't exist — create account via Google
             $is_partner = ($user_type === 'partner') ? 1 : 0;
