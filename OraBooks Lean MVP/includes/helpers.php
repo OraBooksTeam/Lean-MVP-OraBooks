@@ -827,6 +827,20 @@ function orabooks_handle_login_oidc_callback() {
         return;
     }
 
+    if (!empty($result['needs_tier_selection'])) {
+        orabooks_clear_logout_landing_cookie();
+        $target = orabooks_get_network_login_url('tier-selection');
+        if (!empty($result['tier_selection_token'])) {
+            $target = add_query_arg(
+                'tier_selection_token',
+                rawurlencode($result['tier_selection_token']),
+                $target
+            );
+        }
+        wp_redirect($target);
+        exit;
+    }
+
     $result = orabooks_enrich_login_response($result);
     orabooks_persist_login_session($result);
 
