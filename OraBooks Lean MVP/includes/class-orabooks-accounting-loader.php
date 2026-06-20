@@ -93,7 +93,12 @@ class OraBooks_Accounting {
             return;
         }
 
-        $target = home_url('/dashboard/');
+        $user_id = function_exists('orabooks_get_current_user_id') ? orabooks_get_current_user_id() : 0;
+        $org_id = $user_id > 0 && function_exists('orabooks_get_current_org_id')
+            ? orabooks_get_current_org_id($user_id)
+            : 0;
+
+        $target = orabooks_get_org_workspace_url($org_id, '/dashboard/');
         foreach ($_GET as $key => $value) {
             if (!is_scalar($value)) {
                 continue;
