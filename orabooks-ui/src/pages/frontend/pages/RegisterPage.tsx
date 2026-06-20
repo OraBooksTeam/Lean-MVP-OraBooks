@@ -3,6 +3,7 @@ import Button from '@/components/Button';
 import Input from '@/components/Input';
 import { api } from '../api';
 import { getNetworkLoginUrl } from '../lib/auth-routing';
+import { toWpUrl } from '../lib/wp-routing';
 import { UserPlus } from 'lucide-react';
 
 export default function RegisterPage() {
@@ -34,8 +35,7 @@ export default function RegisterPage() {
       });
       if (res.error) setError(typeof res.error === 'string' ? res.error : 'Registration failed');
       else {
-        const loginUrl = getNetworkLoginUrl();
-        window.location.replace(`${loginUrl}#/verify-email`);
+        window.location.replace(toWpUrl('/verify-email/'));
       }
     } finally {
       setLoading(false);

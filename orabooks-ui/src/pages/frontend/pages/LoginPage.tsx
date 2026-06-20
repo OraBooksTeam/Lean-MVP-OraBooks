@@ -32,7 +32,7 @@ export default function LoginPage() {
           clearRedirectGuard();
           const org = (res as any).data?.organization;
           if (org?.subdomain) {
-            redirectToOrgSubdomain(org.subdomain, '/dashboard/', '/dashboard');
+            redirectToOrgSubdomain(org.subdomain, '/dashboard/');
             return;
           }
           redirectAfterAuth((res as any).data || {});
@@ -131,7 +131,7 @@ export default function LoginPage() {
           {error && <p className="text-sm text-danger">{error}</p>}
           <div className="flex items-center justify-between text-sm">
             <a href="/reset-password/" className="text-primary hover:text-primary-dark font-medium">Forgot password?</a>
-            <a href="#/register" className="text-primary hover:text-primary-dark font-medium">Create account</a>
+            <a href="/register/" className="text-primary hover:text-primary-dark font-medium">Create account</a>
           </div>
           <Button type="submit" loading={loading} className="w-full">Log In</Button>
         </form>

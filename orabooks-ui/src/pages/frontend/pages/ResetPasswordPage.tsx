@@ -2,6 +2,7 @@ import { useMemo, useState, type FormEvent } from 'react';
 import Button from '@/components/Button';
 import Input from '@/components/Input';
 import { api } from '../api';
+import { toWpUrl } from '../lib/wp-routing';
 import { KeyRound } from 'lucide-react';
 
 export default function ResetPasswordPage() {
@@ -46,7 +47,7 @@ export default function ResetPasswordPage() {
       else {
         setSuccess('Password reset successfully. You can now log in.');
         window.setTimeout(() => {
-          window.location.hash = '#/login';
+        window.location.replace(toWpUrl('/login/'));
         }, 1200);
       }
     } finally {
@@ -112,7 +113,7 @@ export default function ResetPasswordPage() {
           )}
 
           <p className="mt-6 text-center text-sm">
-            <a href="#/login" className="font-medium text-primary hover:text-primary-dark">
+            <a href="/login/" className="font-medium text-primary hover:text-primary-dark">
               Back to login
             </a>
           </p>

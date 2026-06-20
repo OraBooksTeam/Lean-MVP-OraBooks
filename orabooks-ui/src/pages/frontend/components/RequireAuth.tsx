@@ -1,11 +1,17 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { api } from '../api';
-import { getNetworkLoginUrl, toWpUrl } from '../lib/auth-routing';
+import {
+  absorbAuthTokensFromUrl,
+  clearRedirectGuard,
+  getNetworkLoginUrl,
+  redirectToLogin,
+} from '../lib/auth-routing';
+import { toWpUrl } from '../lib/wp-routing';
 
 export default function RequireAuth({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
-  const loginUrl = getNetworkLoginUrl();
+  const loginUrl = toWpUrl(getNetworkLoginUrl());
 
   useEffect(() => {
     let cancelled = false;
@@ -41,7 +47,7 @@ export default function RequireAuth({ children }: { children: ReactNode }) {
           <div className="max-w-md rounded-2xl border border-border bg-white p-6 text-center shadow-sm">
             <p className="text-sm font-medium text-slate-600">{errorMessage}</p>
             <a
-              href={`${loginUrl}#/login`}
+              href={loginUrl}
               className="mt-4 inline-flex rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white"
             >
               Go to login
