@@ -398,11 +398,19 @@ class OraBooks_Auth {
     }
     
     private static function verification_url($token) {
-        return home_url('/verify-email/?token=' . rawurlencode($token));
+        return add_query_arg(
+            'token',
+            rawurlencode($token),
+            orabooks_get_network_login_url('verify-email')
+        );
     }
-    
+
     private static function reset_password_url($token) {
-        return home_url('/reset-password/?token=' . rawurlencode($token));
+        return add_query_arg(
+            'token',
+            rawurlencode($token),
+            orabooks_get_network_login_url('reset-password')
+        );
     }
     
     private static function send_verification_email($email, $token) {
