@@ -1,6 +1,6 @@
 import { useEffect, useState, type MouseEvent } from 'react';
-import { Link, useLocation } from 'react-router-dom';
 import type { ReactNode } from 'react';
+import WpLink from './WpLink';
 import {
   BarChart3,
   Bell,
@@ -27,6 +27,7 @@ import {
   X,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { getCurrentAppRoute, normalizeAppRoute } from '../lib/wp-routing';
 import { api } from '../api';
 import { performLogout } from '../lib/auth-routing';
 
@@ -77,7 +78,7 @@ const customerNav: NavItem[] = [
 const partnerNav: NavItem[] = [
   { label: 'Partner Program', href: '/dashboard', icon: Home },
   { label: 'Commissions', href: '/commissions', icon: TrendingUp },
-  { label: 'Onboarding', href: '/partner-onboarding', icon: Users },
+  { label: 'Onboarding', href: '/onboarding', icon: Users },
   { label: 'Notifications', href: '/notifications', icon: Bell },
   { label: 'My Exports', href: '/my-exports', icon: Download },
   { label: 'Team', href: '/team', icon: UserCog },
@@ -90,7 +91,7 @@ const sidebarHeight = { height: 'calc(100dvh - var(--orabooks-wp-admin-bar, 0px)
 
 function NavLinks({
   nav,
-  location,
+  currentRoute,
   onNavigate,
   className,
   linkClassName,
@@ -98,7 +99,7 @@ function NavLinks({
   inactiveClassName,
 }: {
   nav: NavItem[];
-  location: ReturnType<typeof useLocation>;
+  currentRoute: string;
   onNavigate?: () => void;
   className?: string;
   linkClassName?: string;
@@ -109,7 +110,7 @@ function NavLinks({
     <nav className={className}>
       {nav.map((item) => {
         const Icon = item.icon;
-        const active = !item.external && location.pathname === item.href;
+        const active = !item.external && currentRoute === normalizeAppRoute(item.href);
         const classNames = cn(
           linkClassName,
           active ? activeClassName : inactiveClassName
@@ -125,10 +126,10 @@ function NavLinks({
         }
 
         return (
-          <Link key={item.href} to={item.href} className={classNames} onClick={onNavigate}>
+          <WpLink key={item.href} to={item.href} className={classNames} onClick={onNavigate}>
             <Icon className="h-4 w-4 shrink-0" />
             {item.label}
-          </Link>
+          </WpLink>
         );
       })}
     </nav>
@@ -142,7 +143,7 @@ export default function ClientShell({
   organization,
   isPartner = false,
 }: ClientShellProps) {
-  const location = useLocation();
+  const currentRoute = getCurrentAppRoute();
   const nav = isPartner ? partnerNav : customerNav;
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
@@ -158,7 +159,7 @@ export default function ClientShell({
 
   useEffect(() => {
     setMobileNavOpen(false);
-  }, [location.pathname]);
+  }, [currentRoute]);
 
   useEffect(() => {
     document.body.style.overflow = mobileNavOpen ? 'hidden' : '';
