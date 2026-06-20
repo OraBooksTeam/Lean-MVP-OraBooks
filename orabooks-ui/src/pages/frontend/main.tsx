@@ -4,7 +4,7 @@ import { RouterProvider, createHashRouter } from 'react-router-dom';
 import FrontendRoutes from './App';
 import ExportTriggerButton from '@/components/platform/ExportTriggerButton';
 import { registerOraBooksPwa } from '@/lib/pwa/register-pwa';
-import { syncInitialHashRoute } from './lib/auth-routing';
+import { syncInitialHashRoute, absorbAuthTokensFromUrl } from './lib/auth-routing';
 import '@/styles/index.css';
 
 declare global {
