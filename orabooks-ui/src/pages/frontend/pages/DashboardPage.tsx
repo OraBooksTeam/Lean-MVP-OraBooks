@@ -48,6 +48,8 @@ interface CustomerDashboardData {
 export default function DashboardPage() {
   const [context, setContext] = useState<FrontendContext | null>(null);
   const [customerData, setCustomerData] = useState<CustomerDashboardData | null>(null);
+  const [eventBusDeadLetters, setEventBusDeadLetters] = useState<Record<string, any>[]>([]);
+  const [eventBusBusy, setEventBusBusy] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [isPartner, setIsPartner] = useState(false);
@@ -82,7 +84,31 @@ export default function DashboardPage() {
     }
 
     setCustomerData((dash as any).data);
+    const eventBusHealth = (dash as any).data?.event_bus_health;
+    if (eventBusHealth?.can_manage) {
+      void loadEventBusDeadLetters();
+    }
     setLoading(false);
+  };
+
+  const loadEventBusDeadLetters = async () => {
+    const res = await api.eventBusDeadLetters();
+    if (!res.error) {
+      setEventBusDeadLetters(((res as any).data?.dead_letters || []) as Record<string, any>[]);
+    }
+  };
+
+  const runEventBusAction = async (action: 'poll' | 'replay-all' | 'replay' | 'discard', deadLetterId?: number) => {
+    setEventBusBusy(true);
+    try {
+      if (action === 'poll') await api.eventBusPollNow();
+      if (action === 'replay-all') await api.eventBusReplayAll();
+      if (action === 'replay' && deadLetterId) await api.eventBusReplay(deadLetterId);
+      if (action === 'discard' && deadLetterId) await api.eventBusDiscard(deadLetterId);
+      await load();
+    } finally {
+      setEventBusBusy(false);
+    }
   };
 
   useEffect(() => {
@@ -190,11 +216,41 @@ export default function DashboardPage() {
               <StatRow label="Pending Events" value={data.event_bus_health.pending ?? 0} />
               <StatRow label="Sent Events" value={data.event_bus_health.sent ?? 0} />
               <StatRow label="Dead Letters" value={data.event_bus_health.dead_letter ?? 0} />
-              {data.event_bus_health.dashboard_url && (
-                <a className="mt-3 inline-flex text-sm font-semibold text-primary" href={data.event_bus_health.dashboard_url}>
-                  Open dead letter replay
-                </a>
-              )}
+              <div className="mt-3 flex flex-wrap gap-2">
+                <Button size="sm" variant="secondary" onClick={() => runEventBusAction('poll')} disabled={eventBusBusy}>
+                  Poll now
+                </Button>
+                <Button size="sm" variant="secondary" onClick={() => runEventBusAction('replay-all')} disabled={eventBusBusy || eventBusDeadLetters.length === 0}>
+                  Replay all
+                </Button>
+              </div>
+              <div className="mt-3 space-y-2">
+                {eventBusDeadLetters.length === 0 ? (
+                  <p className="rounded-lg border border-dashed border-border p-3 text-center text-xs text-slate-500">
+                    No open dead-letter events.
+                  </p>
+                ) : (
+                  eventBusDeadLetters.slice(0, 3).map((dead) => (
+                    <div key={dead.id} className="rounded-lg border border-border bg-white p-3">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="text-sm font-semibold text-ink">{dead.event_type}</p>
+                          <p className="text-xs text-slate-500">Aggregate #{dead.aggregate_id} · retries {dead.retry_count}</p>
+                        </div>
+                      </div>
+                      {dead.error_message && <p className="mt-2 text-xs text-slate-500">{String(dead.error_message).slice(0, 120)}</p>}
+                      <div className="mt-2 flex gap-2">
+                        <Button size="sm" variant="secondary" onClick={() => runEventBusAction('replay', Number(dead.id))} disabled={eventBusBusy}>
+                          Replay
+                        </Button>
+                        <Button size="sm" variant="secondary" onClick={() => runEventBusAction('discard', Number(dead.id))} disabled={eventBusBusy}>
+                          Discard
+                        </Button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
             </Panel>
           )}
           <Panel title="Chart of Accounts">
