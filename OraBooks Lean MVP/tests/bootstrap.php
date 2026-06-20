@@ -857,6 +857,17 @@ if (!class_exists('OraBooks_Secrets', false)) {
         public static function verify_jwt($token) {
             return $GLOBALS['orabooks_test_verify_jwt_result'] ?? false;
         }
+
+        public static function encrypt_sensitive($plaintext) {
+            return 'enc:' . (string) $plaintext;
+        }
+
+        public static function decrypt_sensitive($stored) {
+            if (strpos((string) $stored, 'enc:') === 0) {
+                return substr((string) $stored, 4);
+            }
+            return (string) $stored;
+        }
     }
 }
 
