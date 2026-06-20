@@ -160,12 +160,17 @@ class OraBooks_Customers {
     public static function ensure_schema() {
         global $wpdb;
 
-        if (self::schema_is_ready() && self::get_schema_flag('orabooks_sl021_schema_v2') === '1') {
+        if (
+            self::schema_is_ready()
+            && self::get_schema_flag('orabooks_sl021_schema_v2') === '1'
+            && self::get_schema_flag('orabooks_sl021_customer_contacts_v1') === '1'
+        ) {
             return;
         }
 
         $upgrade = ABSPATH . 'wp-admin/includes/upgrade.php';
         if (!file_exists($upgrade)) {
+            self::ensure_customer_contact_schema();
             return;
         }
 
