@@ -615,12 +615,24 @@ function ProductFields({
           />
         </Field>
 
-        <Field label="Item Image URL">
+        <Field label="Item Image">
+          <input
+            type="file"
+            accept="image/*"
+            onChange={(e) => set({ item_image_file: e.target.files?.[0] || null })}
+            className="w-full rounded-lg border border-dashed border-border bg-white px-3 py-4 text-sm text-slate-600"
+          />
+        </Field>
+        <Field label="Image URL (optional)">
           <Input type="url" value={form.item_image_url} onChange={(e) => set({ item_image_url: e.target.value })} placeholder="https://..." />
         </Field>
-        {form.item_image_url && (
+        {(form.item_image_file || form.item_image_url) && (
           <div className="h-24 w-24 overflow-hidden rounded-xl border border-border bg-white">
-            <img src={form.item_image_url} alt="Item preview" className="h-full w-full object-cover" />
+            <img
+              src={form.item_image_file ? URL.createObjectURL(form.item_image_file) : form.item_image_url}
+              alt="Item preview"
+              className="h-full w-full object-cover"
+            />
           </div>
         )}
       </section>
