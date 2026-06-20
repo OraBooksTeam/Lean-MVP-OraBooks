@@ -589,7 +589,7 @@ class OraBooks_Auth {
         
         orabooks_log_event('login_success', "User logged in: $email", 'info', [], $user->id, $user->org_id);
         
-        return [
+        return orabooks_enrich_login_response([
             'token' => $jwt,
             'refresh_token' => $refresh_token,
             'user_id' => $user->id,
@@ -597,7 +597,7 @@ class OraBooks_Auth {
             'role' => $role,
             'subdomain' => $org ? $org->subdomain : '',
             'is_partner' => $user->is_partner
-        ];
+        ]);
     }
     
     /**
@@ -659,15 +659,16 @@ class OraBooks_Auth {
             'organization_name' => $organization_name
         ], $user->id, $org_result['org_id']);
         
-        return [
+        return orabooks_enrich_login_response([
             'token' => $jwt,
             'refresh_token' => $refresh_token,
             'user_id' => $user->id,
             'org_id' => $org_result['org_id'],
             'role' => 'owner',
             'is_partner' => 1,
-            'redirect_to' => '/partner/onboarding'
-        ];
+            'subdomain' => $org_result['subdomain'],
+            'redirect_to' => '/partner-onboarding/'
+        ]);
     }
     
     /**
@@ -1059,6 +1060,8 @@ class OraBooks_Auth {
             $result['detected_subdomain'] = $subdomain;
         }
 
+        $result = orabooks_enrich_login_response($result);
+
         orabooks_persist_login_session($result, $password);
         
         orabooks_json_success($result, 'Login successful');
@@ -1176,10 +1179,14 @@ class OraBooks_Auth {
         $exists = $wpdb->get_var($wpdb->prepare(
             "SELECT id FROM {$table} WHERE subdomain = %s", $subdomain
         ));
+        $site_taken = function_exists('orabooks_multisite_subdomain_taken')
+            ? orabooks_multisite_subdomain_taken($subdomain)
+            : false;
+        $taken = (bool) $exists || $site_taken;
         
         orabooks_json_success([
-            'available' => !$exists,
-            'message' => $exists ? 'Subdomain already taken' : 'Subdomain is available'
+            'available' => !$taken,
+            'message' => $taken ? 'Subdomain already taken' : 'Subdomain is available'
         ]);
     }
     
@@ -1331,14 +1338,15 @@ class OraBooks_Auth {
         
         orabooks_log_event('login_success', "2FA login successful for user $user_id", 'info', ['method' => !empty($otp) ? 'totp' : 'backup_code'], $user_id, $user->org_id);
 
-        $login_result = [
+        $login_result = orabooks_enrich_login_response([
             'token' => $jwt,
             'refresh_token' => $refresh_token,
             'user_id' => $user->id,
             'org_id' => $user->org_id,
             'role' => $role,
-            'is_partner' => $user->is_partner
-        ];
+            'is_partner' => $user->is_partner,
+            'subdomain' => $org ? $org->subdomain : '',
+        ]);
 
         orabooks_persist_login_session($login_result);
         

@@ -136,6 +136,10 @@ class OraBooks_Organization {
             'tier' => $tier,
             'org_id' => $org_id
         ], $owner_id, $org_id);
+
+        if ($organization_type === 'customer' && function_exists('orabooks_provision_org_multisite')) {
+            orabooks_provision_org_multisite($org_id, $subdomain, $name, $owner_id);
+        }
         
         return [
             'org_id' => $org_id,

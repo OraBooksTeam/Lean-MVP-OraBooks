@@ -335,7 +335,7 @@ function orabooks_get_wp_user_id_for_orabooks_user($orabooks_user_id) {
         return (int) $current;
     }
 
-    return (int) get_current_user_id() ?: 1;
+    return 1;
 }
 
 /**
