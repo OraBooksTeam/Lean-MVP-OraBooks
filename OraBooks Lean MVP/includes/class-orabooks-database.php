@@ -756,6 +756,12 @@ class OraBooks_Database {
             dbDelta($sql);
         }
 
+        if (class_exists('OraBooks_Event_Module')) {
+            foreach (OraBooks_Event_Module::get_create_table_sql() as $sql) {
+                dbDelta($sql);
+            }
+        }
+
         // Schedule EventBus cron jobs
         if (!wp_next_scheduled('orabooks_eventbus_process_outbox')) {
             wp_schedule_event(time(), 'every_minute', 'orabooks_eventbus_process_outbox');
@@ -765,6 +771,9 @@ class OraBooks_Database {
         }
         if (!wp_next_scheduled('orabooks_eventbus_monitor')) {
             wp_schedule_event(time(), 'hourly', 'orabooks_eventbus_monitor');
+        }
+        if (class_exists('OraBooks_Event_Module')) {
+            OraBooks_Event_Module::schedule();
         }
 
         // Schedule Async Queue cron jobs
