@@ -48,6 +48,7 @@ require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-notifications.php';
 require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-event-bus.php';
 require_once ORABOOKS_PLUGIN_DIR . 'includes/events/loader.php';
 require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-async-queue.php';
+require_once ORABOOKS_PLUGIN_DIR . 'includes/jobs/loader.php';
 require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-exports.php';
 require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-customers.php';
 require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-vendors.php';
