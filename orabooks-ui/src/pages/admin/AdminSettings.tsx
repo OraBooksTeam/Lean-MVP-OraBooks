@@ -43,6 +43,8 @@ export default function AdminSettings() {
   const [deployChecks, setDeployChecks] = useState<DeployChecksResult | null>(null);
   const [deployLoading, setDeployLoading] = useState(false);
   const [deployError, setDeployError] = useState('');
+  const [deployRepairing, setDeployRepairing] = useState(false);
+  const [deployRepairMessage, setDeployRepairMessage] = useState('');
 
   useEffect(() => {
     setLoading(true);
@@ -100,6 +102,31 @@ export default function AdminSettings() {
       setDeployLoading(false);
     });
   };
+
+  const repairDeployIssues = () => {
+    setDeployRepairing(true);
+    setDeployError('');
+    setDeployRepairMessage('');
+    api.deployRepair().then((res) => {
+      if (res.error) {
+        setDeployError(typeof res.error === 'string' ? res.error : 'Repair failed.');
+      } else {
+        const payload = (res as { data?: { repaired?: string[]; checks?: DeployChecksResult } }).data;
+        setDeployChecks(payload?.checks || null);
+        const repaired = payload?.repaired || [];
+        setDeployRepairMessage(
+          repaired.length > 0
+            ? `Scheduled missing crons: ${repaired.join(', ')}`
+            : 'No cron repairs were needed.'
+        );
+      }
+      setDeployRepairing(false);
+    });
+  };
+
+  const hasCronFailures = Boolean(
+    deployChecks?.checks?.some((check) => check.id.startsWith('cron_') && !check.ok)
+  );
 
   return (
     <AdminPageShell

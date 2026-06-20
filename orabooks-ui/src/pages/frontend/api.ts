@@ -590,6 +590,7 @@ export const api = {
       refresh_token_expiry: data.refresh_token_expiry,
     }),
   deployChecks: () => api.get('orabooks_deploy_checks'),
+  deployRepair: () => api.post('orabooks_deploy_repair', {}),
   customerStats: (orgId = 0) =>
     api.get('orabooks_customer_stats', { org_id: orgId }),
   partnerDashboard: () =>

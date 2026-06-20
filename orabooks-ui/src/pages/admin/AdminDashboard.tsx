@@ -56,15 +56,26 @@ function adminLink(page: string) {
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState<Stats | null>(null);
+  const [deployOk, setDeployOk] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
   const load = () => {
     setLoading(true);
     setError('');
-    api.dashboardStats().then((res: any) => {
-      if (res.error) setError(typeof res.error === 'string' ? res.error : 'Failed to load dashboard.');
-      else if (res.data) setStats(res.data);
+    Promise.all([api.dashboardStats(), api.deployChecks()]).then(([statsRes, deployRes]) => {
+      if (statsRes.error) {
+        setError(typeof statsRes.error === 'string' ? statsRes.error : 'Failed to load dashboard.');
+      } else if ((statsRes as any).data) {
+        setStats((statsRes as any).data);
+      }
+
+      if (!deployRes.error && (deployRes as any).data) {
+        setDeployOk(Boolean((deployRes as any).data.ok));
+      } else {
+        setDeployOk(null);
+      }
+
       setLoading(false);
     });
   };
