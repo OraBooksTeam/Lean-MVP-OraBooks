@@ -2,15 +2,13 @@ import { useState, useEffect, type FormEvent } from 'react';
 import Button from '@/components/Button';
 import Input from '@/components/Input';
 import { Flame } from 'lucide-react';
-import { api, hasStoredAuthToken } from '../api';
+import { api } from '../api';
 import {
   clearRedirectGuard,
-  clearLogoutSessionFlag,
   clearStoredAuthTokens,
   getNetworkAuthUrl,
   isLogoutLanding,
   redirectAfterAuth,
-  redirectToOrgSubdomain,
   absorbAuthTokensFromUrl,
 } from '../lib/auth-routing';
 

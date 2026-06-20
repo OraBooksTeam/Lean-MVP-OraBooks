@@ -56,7 +56,7 @@ function appendCrossOriginAuthParams(url: string) {
 
   try {
     const target = new URL(url, window.location.href);
-    if (target.searchParams.get(LOGOUT_QUERY_FLAG) === '1') {
+    if (target.searchParams.get(LOGOUT_QUERY_FLAG) === '1' || target.searchParams.get(AUTH_RESET_QUERY_FLAG) === '1') {
       return url;
     }
   } catch {

@@ -17,7 +17,7 @@ export default function RequireAuth({ children }: { children: ReactNode }) {
     let cancelled = false;
 
     if (isLogoutLanding()) {
-      redirectToLogin(true);
+      redirectToLogin(true, true);
       return () => {
         cancelled = true;
       };
@@ -36,7 +36,7 @@ export default function RequireAuth({ children }: { children: ReactNode }) {
         return;
       }
 
-      redirectToLogin(true);
+      redirectToLogin(true, true);
     });
 
     return () => {
