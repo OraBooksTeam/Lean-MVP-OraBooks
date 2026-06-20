@@ -50,7 +50,7 @@ class OraBooks_Pwa {
                     'name'        => 'Expenses',
                     'short_name'  => 'Expenses',
                     'description' => 'Scan or upload a receipt',
-                    'url'         => trailingslashit($start) . '#/expenses',
+                    'url'         => home_url('/expenses/'),
                 ],
             ],
         ];
