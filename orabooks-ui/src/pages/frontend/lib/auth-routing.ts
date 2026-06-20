@@ -31,6 +31,48 @@ export function replaceAppLocation(wpPath: string, hashRoute = '') {
   window.location.replace(`${base}${hash}`);
 }
 
+export function absorbAuthTokensFromUrl() {
+  const params = new URLSearchParams(window.location.search);
+  const token = params.get('ob_t');
+  const refresh = params.get('ob_rt');
+  if (!token) {
+    return false;
+  }
+
+  window.localStorage.setItem(TOKEN_KEY, token);
+  if (refresh) {
+    window.localStorage.setItem(REFRESH_TOKEN_KEY, refresh);
+  }
+
+  params.delete('ob_t');
+  params.delete('ob_rt');
+  const qs = params.toString();
+  const next = `${window.location.pathname}${qs ? `?${qs}` : ''}${window.location.hash}`;
+  window.history.replaceState(null, '', next);
+  clearRedirectGuard();
+  return true;
+}
+
+function appendCrossOriginAuthParams(url: string) {
+  const token = window.localStorage.getItem(TOKEN_KEY);
+  if (!token) {
+    return url;
+  }
+
+  const target = new URL(url, window.location.href);
+  if (target.origin === window.location.origin) {
+    return url;
+  }
+
+  target.searchParams.set('ob_t', token);
+  const refresh = window.localStorage.getItem(REFRESH_TOKEN_KEY);
+  if (refresh) {
+    target.searchParams.set('ob_rt', refresh);
+  }
+
+  return `${target.origin}${target.pathname}${target.search}${target.hash}`;
+}
+
 export function redirectToOrgSubdomain(
   subdomain: string,
   wpPath = '/dashboard/',
@@ -41,7 +83,10 @@ export function redirectToOrgSubdomain(
   const hash = hashRoute
     ? `#${hashRoute.startsWith('/') ? hashRoute : `/${hashRoute}`}`
     : '';
-  window.location.replace(`${window.location.protocol}//${subdomain}${suffix}${path}${hash}`);
+  const destination = appendCrossOriginAuthParams(
+    `${window.location.protocol}//${subdomain}${suffix}${path}${hash}`
+  );
+  window.location.replace(destination);
 }
 
 export function redirectAfterAuth(data: {
