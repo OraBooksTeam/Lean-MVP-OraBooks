@@ -74,6 +74,8 @@ const customerNav: NavItem[] = [
   { label: 'Notifications', href: '/notifications', icon: Bell },
   { label: 'My Exports', href: '/my-exports', icon: Download, permission: 'export_reports' },
   { label: 'Team', href: '/team', icon: UserCog, permission: 'manage_employees' },
+  { label: 'Job Monitor', href: '/job-queue', icon: ShieldCheck, permission: 'manage_settings' },
+  { label: 'Webhook Settings', href: '/webhook-settings', icon: Upload, permission: 'manage_settings' },
   { label: 'Audit Log', href: '/audit-log', icon: ShieldCheck, permission: 'view_audit_logs' },
   { label: 'Profile', href: '/profile', icon: Users },
 ];
@@ -85,6 +87,8 @@ const partnerNav: NavItem[] = [
   { label: 'Notifications', href: '/notifications', icon: Bell },
   { label: 'My Exports', href: '/my-exports', icon: Download, permission: 'export_reports' },
   { label: 'Team', href: '/team', icon: UserCog, permission: 'manage_employees' },
+  { label: 'Job Monitor', href: '/job-queue', icon: ShieldCheck, permission: 'manage_settings' },
+  { label: 'Webhook Settings', href: '/webhook-settings', icon: Upload, permission: 'manage_settings' },
   { label: 'Audit Log', href: '/audit-log', icon: ShieldCheck, permission: 'view_audit_logs' },
   { label: 'Profile', href: '/profile', icon: Users },
 ];
