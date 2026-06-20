@@ -1018,9 +1018,33 @@ function orabooks_get_verified_jwt_payload() {
 }
 
 /**
+ * Domain variants used when setting or clearing shared auth cookies.
+ *
+ * @return string[]
+ */
+function orabooks_get_auth_cookie_domains() {
+    $domains = [''];
+
+    $configured = orabooks_get_auth_cookie_domain();
+    if ($configured !== '') {
+        $domains[] = $configured;
+    }
+
+    $base_domain = function_exists('orabooks_get_tenant_base_domain') ? orabooks_get_tenant_base_domain() : '';
+    if ($base_domain !== '') {
+        $shared = '.' . ltrim($base_domain, '.');
+        if (!in_array($shared, $domains, true)) {
+            $domains[] = $shared;
+        }
+    }
+
+    return array_values(array_unique($domains));
+}
+
+/**
  * Resolve an OraBooks user from WordPress auth or a verified OraBooks JWT.
  */
-function orabooks_get_current_user_id() {
+function orabooks_resolve_authenticated_user_id() {
     $wp_user_id = get_current_user_id();
     if ($wp_user_id) {
         $resolved = orabooks_resolve_user_id((int) $wp_user_id);
@@ -1035,6 +1059,17 @@ function orabooks_get_current_user_id() {
     }
 
     return 0;
+}
+
+/**
+ * Resolve the active OraBooks user, ignoring auth during post-logout landing.
+ */
+function orabooks_get_current_user_id() {
+    if (orabooks_is_explicit_logout_request()) {
+        return 0;
+    }
+
+    return orabooks_resolve_authenticated_user_id();
 }
 
 /**
@@ -1106,23 +1141,9 @@ function orabooks_set_auth_token_cookie($token) {
 function orabooks_clear_auth_token_cookie() {
     $path = defined('COOKIEPATH') && COOKIEPATH ? COOKIEPATH : '/';
     $secure = is_ssl();
-    $domains = [''];
-
-    $configured = orabooks_get_auth_cookie_domain();
-    if ($configured !== '') {
-        $domains[] = $configured;
-    }
-
-    $base_domain = function_exists('orabooks_get_tenant_base_domain') ? orabooks_get_tenant_base_domain() : '';
-    if ($base_domain !== '') {
-        $shared = '.' . ltrim($base_domain, '.');
-        if (!in_array($shared, $domains, true)) {
-            $domains[] = $shared;
-        }
-    }
 
     if (!headers_sent()) {
-        foreach (array_unique($domains) as $domain) {
+        foreach (orabooks_get_auth_cookie_domains() as $domain) {
             if (PHP_VERSION_ID >= 70300) {
                 setcookie('orabooks_token', '', [
                     'expires'  => time() - 3600,
@@ -1149,6 +1170,10 @@ function orabooks_is_explicit_logout_request() {
         return true;
     }
 
+    if (isset($_GET['auth_reset']) && (string) $_GET['auth_reset'] === '1') {
+        return true;
+    }
+
     return !empty($_COOKIE['orabooks_logout']);
 }
 
@@ -1163,17 +1188,11 @@ function orabooks_set_logout_landing_cookie() {
 
     $path = defined('COOKIEPATH') && COOKIEPATH ? COOKIEPATH : '/';
     $secure = is_ssl();
-    $domains = [''];
 
-    $configured = orabooks_get_auth_cookie_domain();
-    if ($configured !== '') {
-        $domains[] = $configured;
-    }
-
-    foreach (array_unique($domains) as $domain) {
+    foreach (orabooks_get_auth_cookie_domains() as $domain) {
         if (PHP_VERSION_ID >= 70300) {
             setcookie('orabooks_logout', '1', [
-                'expires'  => time() + 120,
+                'expires'  => time() + 600,
                 'path'     => $path,
                 'domain'   => $domain,
                 'secure'   => $secure,
