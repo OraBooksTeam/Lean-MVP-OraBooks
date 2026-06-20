@@ -679,6 +679,95 @@ class OraBooks_Posting {
         return hash('sha256', self::canonical_json($canonical));
     }
 
+    /**
+     * The only balance mutation primitive used by the posting engine.
+     */
+    public static function update_account_balance($org_id, $account_id, $debit, $credit) {
+        global $wpdb;
+
+        $org_id = (int) $org_id;
+        $account_id = (int) $account_id;
+        $debit = round((float) $debit, 2);
+        $credit = round((float) $credit, 2);
+
+        $table_accounts = OraBooks_Database::table('accounts');
+        $table_balances = OraBooks_Database::table('account_balances');
+
+        $account = $wpdb->get_row($wpdb->prepare(
+            "SELECT id, normal_balance FROM {$table_accounts} WHERE id = %d AND org_id = %d FOR UPDATE",
+            $account_id,
+            $org_id
+        ));
+
+        if (!$account) {
+            return new WP_Error('invalid_account', 'Account not found for balance update.');
+        }
+
+        $delta = $account->normal_balance === 'debit'
+            ? ($debit - $credit)
+            : ($credit - $debit);
+
+        $existing = $wpdb->get_var($wpdb->prepare(
+            "SELECT account_id FROM {$table_balances} WHERE org_id = %d AND account_id = %d FOR UPDATE",
+            $org_id,
+            $account_id
+        ));
+
+        if ($existing) {
+            $updated = $wpdb->query($wpdb->prepare(
+                "UPDATE {$table_balances}
+                 SET balance = ROUND(balance + %f, 2), last_updated = UTC_TIMESTAMP()
+                 WHERE org_id = %d AND account_id = %d",
+                $delta,
+                $org_id,
+                $account_id
+            ));
+            return $updated === false
+                ? new WP_Error('balance_update_failed', 'Failed to update account balance.')
+                : true;
+        }
+
+        $inserted = $wpdb->insert($table_balances, [
+            'org_id' => $org_id,
+            'account_id' => $account_id,
+            'balance' => round($delta, 2),
+            'last_updated' => gmdate('Y-m-d H:i:s'),
+        ], ['%d', '%d', '%f', '%s']);
+
+        return $inserted
+            ? true
+            : new WP_Error('balance_insert_failed', 'Failed to create account balance.');
+    }
+
+    private static function format_decimal($value) {
+        return number_format(round((float) $value, 2), 2, '.', '');
+    }
+
+    private static function canonical_json($value) {
+        if (is_array($value)) {
+            if (array_keys($value) !== range(0, count($value) - 1)) {
+                ksort($value, SORT_STRING);
+            }
+            foreach ($value as $key => $child) {
+                $value[$key] = self::canonical_json_prepare($child);
+            }
+        }
+
+        return json_encode($value, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+    }
+
+    private static function canonical_json_prepare($value) {
+        if (is_array($value)) {
+            if (array_keys($value) !== range(0, count($value) - 1)) {
+                ksort($value, SORT_STRING);
+            }
+            foreach ($value as $key => $child) {
+                $value[$key] = self::canonical_json_prepare($child);
+            }
+        }
+        return $value;
+    }
+
     public static function validate_ledger_integrity($org_id) {
         global $wpdb;
 
@@ -722,6 +811,25 @@ class OraBooks_Posting {
                     'journal_id' => (int) $journal->id,
                     'expected_previous_hash' => $expected_previous,
                     'actual_previous_hash' => $journal->previous_hash,
+                ];
+            }
+
+            $lines = $wpdb->get_results($wpdb->prepare(
+                "SELECT * FROM {$table_lines} WHERE journal_id = %d ORDER BY id ASC",
+                (int) $journal->id
+            ));
+            $computed_hash = self::compute_canonical_hash(
+                (int) $org_id,
+                $journal->transaction_date ?? '',
+                $lines ?: [],
+                $journal->previous_hash ?: null
+            );
+            if ($journal->journal_hash !== $computed_hash) {
+                $issues[] = [
+                    'type' => 'journal_hash_mismatch',
+                    'journal_id' => (int) $journal->id,
+                    'stored_hash' => $journal->journal_hash,
+                    'computed_hash' => $computed_hash,
                 ];
             }
             $expected_previous = $journal->journal_hash;
