@@ -241,11 +241,14 @@ export default function InvoicesPage() {
       setSuccess('Invoice created.');
       setShowCreate(false);
       setCreateForm({
-        customer_id: '',
+        customer_id: getSearchParam('customer_id') || '',
         invoice_date: new Date().toISOString().slice(0, 10),
+        due_date: '',
         due_days: '30',
+        use_due_date: false,
         subtotal_amount: '',
         jurisdiction: taxConfigs[0]?.jurisdiction || 'US',
+        currency: 'USD',
         description: '',
       });
       setCreatePreview(null);
@@ -262,6 +265,7 @@ export default function InvoicesPage() {
       payment_date: new Date().toISOString().slice(0, 10),
       payment_method: 'bank_transfer',
       reference: '',
+      notes: '',
     });
     setError('');
   };
@@ -278,6 +282,7 @@ export default function InvoicesPage() {
       payment_date: paymentForm.payment_date,
       payment_method: paymentForm.payment_method,
       reference: paymentForm.reference,
+      notes: paymentForm.notes,
     });
 
     if (res.error) {
@@ -351,7 +356,7 @@ export default function InvoicesPage() {
         <div className="flex items-start gap-3 rounded-xl border border-sky-200 bg-sky-50/80 p-4 text-sm text-sky-900">
           <Info className="mt-0.5 h-4 w-4 shrink-0" />
           <p>
-            Create draft invoices with automatic tax calculation, record payments to post AR entries, and override tax before posting.
+            Create draft invoices with automatic tax calculation, send to customers, post to AR, and record payments.
           </p>
         </div>
 
@@ -454,6 +459,16 @@ export default function InvoicesPage() {
                       <Button size="sm" variant="secondary" onClick={() => setSelectedInvoice(invoice)}>
                         View
                       </Button>
+                      {canSend(invoice) && (
+                        <Button size="sm" variant="secondary" disabled={actionInvoiceId === invoice.id} onClick={() => void runInvoiceAction('send', invoice.id)}>
+                          Send
+                        </Button>
+                      )}
+                      {canPost(invoice) && (
+                        <Button size="sm" variant="secondary" disabled={actionInvoiceId === invoice.id} onClick={() => void runInvoiceAction('post', invoice.id)}>
+                          Post
+                        </Button>
+                      )}
                       {canPay(invoice) && (
                         <Button size="sm" variant="secondary" onClick={() => openPayment(invoice)}>
                           <Wallet className="h-3.5 w-3.5" />
@@ -501,10 +516,27 @@ export default function InvoicesPage() {
                 <Field label="Invoice date">
                   <Input type="date" value={createForm.invoice_date} onChange={(e) => setCreateForm((p) => ({ ...p, invoice_date: e.target.value }))} />
                 </Field>
+                <Field label="Currency">
+                  <Input value={createForm.currency} onChange={(e) => setCreateForm((p) => ({ ...p, currency: e.target.value.toUpperCase() }))} maxLength={3} />
+                </Field>
+              </div>
+              <div className="flex items-center gap-2 text-sm text-slate-700">
+                <input
+                  type="checkbox"
+                  checked={createForm.use_due_date}
+                  onChange={(e) => setCreateForm((p) => ({ ...p, use_due_date: e.target.checked }))}
+                />
+                Use explicit due date
+              </div>
+              {createForm.use_due_date ? (
+                <Field label="Due date">
+                  <Input type="date" value={createForm.due_date} onChange={(e) => setCreateForm((p) => ({ ...p, due_date: e.target.value }))} />
+                </Field>
+              ) : (
                 <Field label="Due days">
                   <Input type="number" min="1" value={createForm.due_days} onChange={(e) => setCreateForm((p) => ({ ...p, due_days: e.target.value }))} />
                 </Field>
-              </div>
+              )}
               <div className="grid gap-4 sm:grid-cols-2">
                 <Field label="Subtotal">
                   <Input type="number" min="0" step="0.01" value={createForm.subtotal_amount} onChange={(e) => setCreateForm((p) => ({ ...p, subtotal_amount: e.target.value }))} />
@@ -566,6 +598,9 @@ export default function InvoicesPage() {
               </Field>
               <Field label="Reference">
                 <Input value={paymentForm.reference} onChange={(e) => setPaymentForm((p) => ({ ...p, reference: e.target.value }))} />
+              </Field>
+              <Field label="Notes">
+                <Input value={paymentForm.notes} onChange={(e) => setPaymentForm((p) => ({ ...p, notes: e.target.value }))} />
               </Field>
             </div>
             <div className="mt-6 flex justify-end gap-2">
