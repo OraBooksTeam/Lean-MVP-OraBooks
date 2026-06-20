@@ -70,7 +70,10 @@ function showFrontendBootError(root: HTMLElement, message: string) {
 }
 
 function escapeDiviLayout(root: HTMLElement) {
-  if (!document.body.classList.contains('orabooks-divi-theme')) {
+  if (
+    !document.body.classList.contains('orabooks-divi-theme')
+    || !document.body.classList.contains('orabooks-react-page')
+  ) {
     return;
   }
 
@@ -79,7 +82,6 @@ function escapeDiviLayout(root: HTMLElement) {
   }
 
   root.classList.add('orabooks-divi-portal');
-  document.body.classList.add('orabooks-react-mounted');
 }
 
 function bootFrontend() {
