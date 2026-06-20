@@ -4,6 +4,7 @@
  * Plugin URI: https://orabooks.app
  * Description: Complete multi-tenant accounting platform with full GL workspace (sales, purchase, inventory, reports), partner/commission system, multi-org support, and tier-based access control.
  * Version: 1.0.0
+ * Network: true
  * Author: OraBooks Team
  * Text Domain: orabooks
  * Domain Path: /languages

@@ -1110,7 +1110,7 @@ function orabooks_uuid() {
  */
 function orabooks_get_user_email($user_id) {
     global $wpdb;
-    $table = $wpdb->prefix . 'orabooks_users';
+    $table = orabooks_get_table_prefix() . 'orabooks_users';
     return $wpdb->get_var($wpdb->prepare("SELECT email FROM {$table} WHERE id = %d", $user_id));
 }
 
