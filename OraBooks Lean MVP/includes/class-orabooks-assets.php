@@ -221,12 +221,32 @@ class OraBooks_Assets {
     }
 
     /**
-     * Divi overrides must load after the React/Tailwind bundle.
+     * Universal theme overrides for OraBooks pages.
      */
-    public static function enqueue_divi_compat() {
+    public static function enqueue_theme_compat() {
         $deps = ['orabooks-frontend'];
         if (wp_style_is('orabooks-react', 'registered') || wp_style_is('orabooks-react', 'enqueued')) {
             $deps[] = 'orabooks-react';
+        }
+
+        wp_enqueue_style(
+            'orabooks-theme-compat',
+            ORABOOKS_PLUGIN_URL . 'assets/css/theme-compat.css',
+            $deps,
+            ORABOOKS_VERSION
+        );
+    }
+
+    /**
+     * Divi-specific overrides (extends theme-compat).
+     */
+    public static function enqueue_divi_compat() {
+        $deps = ['orabooks-theme-compat'];
+        if (!wp_style_is('orabooks-theme-compat', 'enqueued') && !wp_style_is('orabooks-theme-compat', 'registered')) {
+            $deps = ['orabooks-frontend'];
+            if (wp_style_is('orabooks-react', 'registered') || wp_style_is('orabooks-react', 'enqueued')) {
+                $deps[] = 'orabooks-react';
+            }
         }
 
         wp_enqueue_style(
