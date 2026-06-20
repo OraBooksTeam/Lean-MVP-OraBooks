@@ -39,6 +39,13 @@ interface Stats {
     blocked: number;
     recent_7d: number;
   };
+  event_bus_health?: {
+    pending: number;
+    sent: number;
+    dead_letter: number;
+    status: string;
+    dashboard_url?: string;
+  } | null;
   timestamp?: string;
 }
 
@@ -97,6 +104,7 @@ export default function AdminDashboard() {
   const partners = stats?.partners;
   const users = stats?.users;
   const attrs = stats?.attributions;
+  const eventBus = stats?.event_bus_health;
 
   const cards = [
     {
@@ -126,6 +134,14 @@ export default function AdminDashboard() {
       footer: `${attrs?.total ?? 0} total · ${attrs?.pending ?? 0} pending`,
       icon: Link2,
       tone: 'bg-accent/10 text-accent',
+    },
+    {
+      label: 'Event Bus Health',
+      value: (eventBus?.status || 'healthy').toUpperCase(),
+      footer: `${eventBus?.pending ?? 0} pending · ${eventBus?.dead_letter ?? 0} dead`,
+      icon: Clock,
+      tone: eventBus?.status === 'critical' ? 'bg-danger/10 text-danger' : 'bg-success/10 text-success',
+      href: adminLink('orabooks-event-dead-letter'),
     },
   ];
 
