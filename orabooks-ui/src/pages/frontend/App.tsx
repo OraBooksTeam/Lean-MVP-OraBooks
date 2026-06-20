@@ -32,6 +32,7 @@ import ResetPasswordPage from './pages/ResetPasswordPage';
 import VerifyEmailPage from './pages/VerifyEmailPage';
 import AcceptInvitePage from './pages/AcceptInvitePage';
 import JobQueuePage from './pages/JobQueuePage';
+import WebhookSettingsPage from './pages/WebhookSettingsPage';
 import ObservabilityPage from './pages/ObservabilityPage';
 import NotificationAdminPage from './pages/NotificationAdminPage';
 import CommissionAdminPage from './pages/CommissionAdminPage';
@@ -80,6 +81,7 @@ const ROUTES: Record<string, RouteConfig> = {
   '/profile': { element: <ProfilePage /> },
   '/audit-log': { element: <AuditLogPage /> },
   '/job-queue': { element: <JobQueuePage /> },
+  '/webhook-settings': { element: <WebhookSettingsPage /> },
   '/observability': { element: <ObservabilityPage /> },
   '/notification-admin': { element: <NotificationAdminPage /> },
   '/commission-admin': { element: <CommissionAdminPage /> },
