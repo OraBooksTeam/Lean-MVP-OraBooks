@@ -1186,6 +1186,42 @@ if (!function_exists('orabooks_ensure_org_multisite_site')) {
     }
 }
 
+if (!function_exists('orabooks_is_network_auth_host')) {
+    function orabooks_is_network_auth_host() {
+        return true;
+    }
+}
+
+if (!function_exists('orabooks_get_platform_admin_url')) {
+    function orabooks_get_platform_admin_url() {
+        return admin_url('admin.php?page=orabooks');
+    }
+}
+
+if (!function_exists('orabooks_orabooks_user_can_manage_platform')) {
+    function orabooks_orabooks_user_can_manage_platform($orabooks_user_id) {
+        return !empty($GLOBALS['orabooks_test_platform_admin_user_ids'][$orabooks_user_id]);
+    }
+}
+
+if (!function_exists('orabooks_auth_error_status_code')) {
+    function orabooks_auth_error_status_code($error_code) {
+        $map = [
+            'subdomain_mismatch' => 403,
+            'email_not_verified' => 403,
+            'rate_limit' => 429,
+            'invalid_credentials' => 401,
+        ];
+        return $map[(string) $error_code] ?? 400;
+    }
+}
+
+if (!function_exists('orabooks_resolve_authenticated_user_id')) {
+    function orabooks_resolve_authenticated_user_id() {
+        return orabooks_get_current_user_id();
+    }
+}
+
 if (!function_exists('orabooks_enrich_login_response')) {
     function orabooks_enrich_login_response($login_result) {
         if (!is_array($login_result)) {
