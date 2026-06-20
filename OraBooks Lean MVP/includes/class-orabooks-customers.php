@@ -302,6 +302,7 @@ class OraBooks_Customers {
             && self::get_schema_flag('orabooks_sl021_schema_v2') === '1'
             && self::get_schema_flag('orabooks_sl021_customer_contacts_v1') === '1'
             && self::get_schema_flag('orabooks_sl021_customer_credit_v1') === '1'
+            && self::get_schema_flag('orabooks_sl021_customer_profile_v1') === '1'
         ) {
             return;
         }
@@ -396,6 +397,64 @@ class OraBooks_Customers {
         }
 
         self::set_schema_flag('orabooks_sl021_customer_credit_v1', '1');
+    }
+
+    /**
+     * Extended customer profile fields used by the React add/edit modal.
+     */
+    private static function ensure_customer_profile_schema() {
+        global $wpdb;
+
+        if (self::get_schema_flag('orabooks_sl021_customer_profile_v1') === '1') {
+            return;
+        }
+
+        $table = OraBooks_Database::table('customers');
+        if ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table)) !== $table) {
+            return;
+        }
+
+        $fields = self::get_table_column_names($table);
+        $additions = [
+            'customer_code' => "ALTER TABLE {$table} ADD COLUMN customer_code VARCHAR(30) NULL AFTER org_id",
+            'mobile' => "ALTER TABLE {$table} ADD COLUMN mobile VARCHAR(50) NULL AFTER contact_email",
+            'phone' => "ALTER TABLE {$table} ADD COLUMN phone VARCHAR(50) NULL AFTER mobile",
+            'gstin' => "ALTER TABLE {$table} ADD COLUMN gstin VARCHAR(64) NULL AFTER phone",
+            'tax_number' => "ALTER TABLE {$table} ADD COLUMN tax_number VARCHAR(64) NULL AFTER gstin",
+            'opening_balance' => "ALTER TABLE {$table} ADD COLUMN opening_balance DECIMAL(20,2) DEFAULT 0 AFTER tax_number",
+            'country_id' => "ALTER TABLE {$table} ADD COLUMN country_id VARCHAR(100) NULL AFTER opening_balance",
+            'state_id' => "ALTER TABLE {$table} ADD COLUMN state_id VARCHAR(100) NULL AFTER country_id",
+            'city' => "ALTER TABLE {$table} ADD COLUMN city VARCHAR(100) NULL AFTER state_id",
+            'postcode' => "ALTER TABLE {$table} ADD COLUMN postcode VARCHAR(30) NULL AFTER city",
+            'address' => "ALTER TABLE {$table} ADD COLUMN address TEXT NULL AFTER postcode",
+            'location_link' => "ALTER TABLE {$table} ADD COLUMN location_link VARCHAR(500) NULL AFTER address",
+            'ship_country_id' => "ALTER TABLE {$table} ADD COLUMN ship_country_id VARCHAR(100) NULL AFTER location_link",
+            'ship_state_id' => "ALTER TABLE {$table} ADD COLUMN ship_state_id VARCHAR(100) NULL AFTER ship_country_id",
+            'ship_city' => "ALTER TABLE {$table} ADD COLUMN ship_city VARCHAR(100) NULL AFTER ship_state_id",
+            'ship_postcode' => "ALTER TABLE {$table} ADD COLUMN ship_postcode VARCHAR(30) NULL AFTER ship_city",
+            'ship_address' => "ALTER TABLE {$table} ADD COLUMN ship_address TEXT NULL AFTER ship_postcode",
+            'price_level_type' => "ALTER TABLE {$table} ADD COLUMN price_level_type ENUM('Increase','Decrease') DEFAULT 'Increase' AFTER ship_address",
+            'price_level' => "ALTER TABLE {$table} ADD COLUMN price_level DECIMAL(10,2) DEFAULT 0 AFTER price_level_type",
+        ];
+
+        foreach ($additions as $column => $sql) {
+            if (!in_array($column, $fields, true)) {
+                if ($wpdb->query($sql) !== false) {
+                    $fields[] = $column;
+                }
+            }
+        }
+
+        $indexes = $wpdb->get_results("SHOW INDEX FROM {$table}");
+        $index_names = array_map(function ($idx) {
+            return $idx->Key_name;
+        }, $indexes ?: []);
+
+        if (!in_array('uk_org_customer_code', $index_names, true) && in_array('customer_code', $fields, true)) {
+            $wpdb->query("ALTER TABLE {$table} ADD UNIQUE KEY uk_org_customer_code (org_id, customer_code)");
+        }
+
+        self::set_schema_flag('orabooks_sl021_customer_profile_v1', '1');
     }
 
     /**
