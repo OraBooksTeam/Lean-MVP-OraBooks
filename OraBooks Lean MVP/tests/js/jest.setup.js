@@ -178,6 +178,19 @@ $.fx.off = true;
 // Fake timers
 jest.useFakeTimers();
 
+// JSDOM logs navigation attempts when production code assigns location.href.
+// The tests verify behavior around those flows without requiring navigation.
+const originalConsoleError = console.error.bind(console);
+jest.spyOn(console, 'error').mockImplementation((firstArg, ...rest) => {
+  if (firstArg instanceof Error && firstArg.message.includes('Not implemented: navigation')) {
+    return;
+  }
+  if (typeof firstArg === 'string' && firstArg.includes('Not implemented: navigation')) {
+    return;
+  }
+  originalConsoleError(firstArg, ...rest);
+});
+
 // Mock localStorage
 const localStorageMock = (() => {
   let store = {};
