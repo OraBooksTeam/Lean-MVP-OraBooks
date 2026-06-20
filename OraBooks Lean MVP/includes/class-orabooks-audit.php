@@ -223,13 +223,18 @@ class OraBooks_Audit {
      * Resolve org scope for audit API calls (JWT-aware frontend).
      */
     private static function resolve_audit_org_id($requested_org_id) {
+        $user_id = function_exists('orabooks_get_current_user_id') ? (int) orabooks_get_current_user_id() : 0;
+        if (function_exists('orabooks_resolve_request_org_id')) {
+            return (int) orabooks_resolve_request_org_id($user_id, $requested_org_id);
+        }
+
         $org_id = intval($requested_org_id);
         if ($org_id > 0) {
             return $org_id;
         }
 
         if (function_exists('orabooks_get_current_org_id')) {
-            $current_org_id = orabooks_get_current_org_id();
+            $current_org_id = orabooks_get_current_org_id($user_id);
             if ($current_org_id) {
                 return (int) $current_org_id;
             }
@@ -267,7 +272,7 @@ class OraBooks_Audit {
             if (!$org_id) {
                 orabooks_json_error('Organization is required', 400);
             }
-            if (!OraBooks_RBAC::require_permission($user_id, $org_id, 'view_audit_logs')) {
+            if (!orabooks_has_permission($user_id, $org_id, 'view_audit_logs')) {
                 orabooks_json_error('Permission denied', 403);
             }
             $logs = self::get_logs($org_id, $args);
@@ -302,7 +307,7 @@ class OraBooks_Audit {
             if (!$org_id) {
                 orabooks_json_error('Organization is required', 400);
             }
-            if (!OraBooks_RBAC::require_permission($user_id, $org_id, 'view_audit_logs')) {
+            if (!orabooks_has_permission($user_id, $org_id, 'view_audit_logs')) {
                 orabooks_json_error('Permission denied', 403);
             }
             self::export_csv($org_id, $args);
