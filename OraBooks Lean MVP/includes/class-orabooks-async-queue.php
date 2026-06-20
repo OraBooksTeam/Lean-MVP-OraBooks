@@ -1187,62 +1187,58 @@ class OraBooks_AsyncQueue {
     }
 
     private static function build_report_rows($report_type, $payload) {
-        global $wpdb;
         $org_id = intval($payload['org_id'] ?? 0);
         $date_from = sanitize_text_field($payload['date_from'] ?? $payload['start_date'] ?? '');
         $date_to = sanitize_text_field($payload['date_to'] ?? $payload['end_date'] ?? '');
-        $journal = OraBooks_Database::table('journals');
-        $lines = OraBooks_Database::table('journal_lines');
-        $accounts = OraBooks_Database::table('accounts');
 
-        $date_clause = '';
-        $params = [$org_id];
-        if ($date_from !== '') {
-            $date_clause .= ' AND je.transaction_date >= %s';
-            $params[] = $date_from;
-        }
-        if ($date_to !== '') {
-            $date_clause .= ' AND je.transaction_date <= %s';
-            $params[] = $date_to;
+        if ($org_id <= 0) {
+            return [];
         }
 
-        if ($report_type === 'journal') {
-            $sql = "SELECT je.transaction_date, je.journal_number, je.source_type, coa.code AS account_code, coa.name AS account_name,
-                           jl.debit_amount AS debit, jl.credit_amount AS credit, jl.description
-                    FROM {$journal} je
-                    JOIN {$lines} jl ON jl.journal_id = je.id
-                    LEFT JOIN {$accounts} coa ON coa.id = jl.account_id
-                    WHERE je.org_id = %d {$date_clause}
-                    ORDER BY je.transaction_date ASC, je.id ASC";
-            return $wpdb->get_results($wpdb->prepare($sql, $params), ARRAY_A) ?: [];
+        if ($report_type === 'journal' && class_exists('OraBooks_Financial_Reports')) {
+            return OraBooks_Financial_Reports::ledger_detail_export_rows($org_id, [
+                'date_from' => $date_from,
+                'date_to' => $date_to,
+                'account_id' => intval($payload['account_id'] ?? 0),
+            ]);
         }
 
-        $account_filter = '';
-        if ($report_type === 'ledger' && !empty($payload['account_id'])) {
-            $account_filter = ' AND jl.account_id = %d';
-            $params[] = intval($payload['account_id']);
+        if ($report_type === 'ledger' && class_exists('OraBooks_Financial_Reports')) {
+            return OraBooks_Financial_Reports::ledger_detail_export_rows($org_id, [
+                'date_from' => $date_from,
+                'date_to' => $date_to,
+                'account_id' => intval($payload['account_id'] ?? 0),
+            ]);
         }
-        $sql = "SELECT coa.code AS account_code, coa.name AS account_name, coa.type AS account_type,
-                       SUM(jl.debit_amount) AS debit, SUM(jl.credit_amount) AS credit,
-                       SUM(jl.debit_amount - jl.credit_amount) AS net_balance
-                FROM {$journal} je
-                JOIN {$lines} jl ON jl.journal_id = je.id
-                LEFT JOIN {$accounts} coa ON coa.id = jl.account_id
-                WHERE je.org_id = %d {$date_clause} {$account_filter}
-                GROUP BY jl.account_id, coa.code, coa.name, coa.type
-                ORDER BY coa.code ASC";
-        $rows = $wpdb->get_results($wpdb->prepare($sql, $params), ARRAY_A) ?: [];
-        if ($report_type === 'income_statement') {
-            return array_values(array_filter($rows, function($row) {
-                return in_array(strtolower((string) ($row['account_type'] ?? '')), ['income', 'revenue', 'expense', 'expenses'], true);
-            }));
+
+        $financial_map = [
+            'trial_balance' => 'trial_balance',
+            'balance_sheet' => 'balance_sheet',
+            'income_statement' => 'profit_loss',
+        ];
+
+        if (isset($financial_map[$report_type]) && class_exists('OraBooks_Financial_Reports')) {
+            $ftype = $financial_map[$report_type];
+            $period_start = $date_from ?: date('Y-01-01');
+            $period_end = $date_to ?: current_time('Y-m-d');
+            if ($ftype === 'balance_sheet') {
+                $period_start = $period_end;
+            }
+            $result = OraBooks_Financial_Reports::generate_report(
+                $org_id,
+                $ftype,
+                $period_start,
+                $period_end,
+                ['generated_by' => get_current_user_id()]
+            );
+            if (is_wp_error($result)) {
+                return [];
+            }
+            $flat = OraBooks_Financial_Reports::flatten_for_export($result);
+            return $flat['rows'] ?? [];
         }
-        if ($report_type === 'balance_sheet') {
-            return array_values(array_filter($rows, function($row) {
-                return in_array(strtolower((string) ($row['account_type'] ?? '')), ['asset', 'assets', 'liability', 'liabilities', 'equity'], true);
-            }));
-        }
-        return $rows;
+
+        return [];
     }
 
     public function send_dead_letter_alert($job_id, $data = []) {
