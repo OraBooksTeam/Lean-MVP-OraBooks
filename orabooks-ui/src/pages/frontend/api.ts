@@ -354,6 +354,10 @@ export const api = {
     api.get('orabooks_vendors_list', { org_id: orgId, ...filters }),
   vendorCreate: (orgId: number, data: Record<string, unknown>) =>
     api.post('orabooks_vendor_create', { org_id: orgId, ...data }),
+  vendorUpdate: (orgId: number, vendorId: number, data: Record<string, unknown>) =>
+    api.post('orabooks_vendor_update', { org_id: orgId, vendor_id: vendorId, ...data }),
+  vendorCreditNoteCreate: (orgId: number, data: Record<string, unknown>) =>
+    api.post('orabooks_vendor_credit_note_create', { org_id: orgId, ...data }),
   billsList: (orgId: number, filters: Record<string, unknown> = {}) =>
     api.get('orabooks_bills_list', { org_id: orgId, ...filters }),
   billCreate: (orgId: number, data: Record<string, unknown>) =>
@@ -631,6 +635,10 @@ export const api = {
     api.get('orabooks_invoice_get', { invoice_id: invoiceId }),
   invoiceCreate: (data: Record<string, any>) =>
     api.post('orabooks_invoice_create', data),
+  invoiceSend: (orgId: number, invoiceId: number) =>
+    api.post('orabooks_invoice_send', { org_id: orgId, invoice_id: invoiceId }),
+  invoicePost: (orgId: number, invoiceId: number) =>
+    api.post('orabooks_invoice_post', { org_id: orgId, invoice_id: invoiceId }),
   invoiceOverrideTax: (
     orgId: number,
     invoiceId: number,

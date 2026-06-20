@@ -1078,6 +1078,18 @@ class OraBooks_Vendors {
         orabooks_json_success(['vendor' => $result]);
     }
 
+    public function ajax_vendor_update() {
+        $user_id = $this->current_user_id();
+        $org_id = intval($_POST['org_id'] ?? 0);
+        $vendor_id = intval($_POST['vendor_id'] ?? 0);
+        $this->require_ap_permission($user_id, $org_id, ['manage_org_settings']);
+        $result = self::update_vendor($org_id, $vendor_id, $_POST);
+        if (is_wp_error($result)) {
+            orabooks_json_error($result->get_error_message(), 400);
+        }
+        orabooks_json_success(['vendor' => $result], 'Vendor updated');
+    }
+
     public function ajax_bills_list() {
         $user_id = $this->current_user_id();
         $org_id = intval($_GET['org_id'] ?? 0);
