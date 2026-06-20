@@ -375,120 +375,19 @@ function orabooks_with_data_blog(callable $callback) {
 }
 
 /**
- * Main network site root URL (no page slug).
- */
-function orabooks_get_network_site_root_url() {
-    if (function_exists('is_multisite') && is_multisite() && function_exists('get_site_url')) {
-        return trailingslashit(get_site_url(get_main_site_id(), '/'));
-    }
-
-    return trailingslashit(home_url('/'));
-}
-
-/**
- * Build a hash-only SPA URL: https://tenant.example/#/dashboard
- *
- * @param string $hash_route React hash route e.g. /dashboard
- * @param string|null $site_root Optional site root URL (defaults to current site home).
- */
-function orabooks_build_spa_url($hash_route = '/dashboard', $site_root = null) {
-    $hash_route = '/' . ltrim((string) $hash_route, '/');
-    $root = $site_root !== null ? $site_root : home_url('/');
-    $root = trailingslashit($root);
-
-    return rtrim($root, '/') . '/#' . $hash_route;
-}
-
-/**
- * Build org subdomain SPA URL with hash route only.
- */
-function orabooks_build_org_spa_url($subdomain, $hash_route = '/dashboard') {
-    return orabooks_build_spa_url($hash_route, orabooks_build_org_url($subdomain, '/'));
-}
-
-/**
- * Map a WordPress OraBooks page to its React hash route.
- *
- * @param WP_Post|null $post
- */
-function orabooks_resolve_page_hash_route($post = null) {
-    if ($post === null) {
-        if (!is_singular('page')) {
-            return '';
-        }
-        $post = get_queried_object();
-    }
-
-    if (!$post instanceof WP_Post) {
-        return '';
-    }
-
-    $slug = $post->post_name;
-    $overrides = [
-        'onboarding' => '/partner-onboarding',
-    ];
-
-    if ($slug === 'onboarding' && $post->post_parent) {
-        $parent = get_post((int) $post->post_parent);
-        if ($parent instanceof WP_Post && $parent->post_name === 'partner') {
-            return '/partner-onboarding';
-        }
-    }
-
-    if (isset($overrides[$slug])) {
-        return $overrides[$slug];
-    }
-
-    if (in_array($slug, orabooks_get_required_page_slugs(), true)) {
-        return '/' . $slug;
-    }
-
-    return '';
-}
-
-/**
- * Redirect legacy /page-slug/ WordPress URLs to hash-only /#/route URLs.
- */
-function orabooks_redirect_wp_path_to_spa_hash() {
-    if (!is_singular('page') || !orabooks_is_registered_frontend_page()) {
-        return;
-    }
-
-    $request_uri = $_SERVER['REQUEST_URI'] ?? '';
-    $request_path = trim((string) wp_parse_url($request_uri, PHP_URL_PATH), '/');
-    if ($request_path === '' || $request_path === 'index.php') {
-        return;
-    }
-
-    $post = get_queried_object();
-    $hash_route = orabooks_resolve_page_hash_route($post);
-    if ($hash_route === '') {
-        return;
-    }
-
-    $query = $_GET;
-    unset($query['orabooks_route']);
-    $root = trailingslashit(home_url('/'));
-    $qs = http_build_query($query);
-    $target = rtrim($root, '/') . ($qs !== '' ? '?' . $qs : '') . '#' . $hash_route;
-
-    wp_safe_redirect($target, 302);
-    exit;
-}
-
-add_action('template_redirect', 'orabooks_redirect_wp_path_to_spa_hash', 0);
-
-/**
  * Main network site URL for shared auth pages (login, register, tier selection).
- * Returns hash-only SPA URLs: https://fundsme.xyz/#/login
  */
 function orabooks_get_network_login_url($path = 'login') {
-    $hash_route = '/' . trim((string) $path, '/');
-    if ($hash_route === '/') {
-        $hash_route = '/login';
+    $path = trim((string) $path, '/');
+    if ($path === '') {
+        $path = 'login';
     }
 
-    return orabooks_build_spa_url($hash_route, orabooks_get_network_site_root_url());
+    if (function_exists('is_multisite') && is_multisite() && function_exists('get_site_url')) {
+        return trailingslashit(get_site_url(get_main_site_id(), $path));
+    }
+
+    return home_url('/' . $path . '/');
 }
 
 /**
@@ -575,7 +474,6 @@ function orabooks_provision_org_multisite($org_id, $subdomain, $title, $owner_us
     if ($blog_id > 0 && function_exists('orabooks_create_required_pages')) {
         switch_to_blog($blog_id);
         orabooks_create_required_pages();
-        orabooks_configure_org_spa_homepage($blog_id);
         restore_current_blog();
     }
 
@@ -607,37 +505,6 @@ function orabooks_provision_org_multisite($org_id, $subdomain, $title, $owner_us
     ], (int) $owner_user_id, $org_id);
 
     return $blog_id;
-}
-
-/**
- * Point the org subsite homepage at the OraBooks SPA shell (hash routes).
- */
-function orabooks_configure_org_spa_homepage($blog_id = 0) {
-    $blog_id = $blog_id > 0 ? (int) $blog_id : (int) get_current_blog_id();
-    if ($blog_id <= 0) {
-        return;
-    }
-
-    $switched = false;
-    if (function_exists('get_current_blog_id') && (int) get_current_blog_id() !== $blog_id && function_exists('switch_to_blog')) {
-        switch_to_blog($blog_id);
-        $switched = true;
-    }
-
-    $dashboard = get_page_by_path('dashboard', OBJECT, 'page');
-    if ($dashboard instanceof WP_Post) {
-        wp_update_post([
-            'ID' => $dashboard->ID,
-            'post_content' => '[orabooks_app]',
-        ]);
-
-        update_option('show_on_front', 'page');
-        update_option('page_on_front', (int) $dashboard->ID);
-    }
-
-    if ($switched && function_exists('restore_current_blog')) {
-        restore_current_blog();
-    }
 }
 
 /**
@@ -725,19 +592,20 @@ function orabooks_enrich_login_response($login_result) {
 
     if (!empty($login_result['redirect_to'])) {
         if (strpos($login_result['redirect_to'], 'http') !== 0 && strpos($login_result['redirect_to'], '/') === 0) {
-            $hash_route = orabooks_resolve_page_hash_route((object) ['post_name' => trim($login_result['redirect_to'], '/'), 'post_parent' => 0]);
-            if ($hash_route === '') {
-                $hash_route = '/' . trim($login_result['redirect_to'], '/');
-            }
             if (!empty($login_result['subdomain'])) {
-                $login_result['redirect_to'] = orabooks_build_org_spa_url($login_result['subdomain'], $hash_route);
+                $login_result['redirect_to'] = orabooks_build_org_url(
+                    $login_result['subdomain'],
+                    $login_result['redirect_to']
+                );
             } else {
-                $login_result['redirect_to'] = orabooks_build_spa_url($hash_route, orabooks_get_network_site_root_url());
+                $login_result['redirect_to'] = orabooks_get_network_login_url(
+                    trim($login_result['redirect_to'], '/')
+                );
             }
         }
     } elseif (!empty($login_result['subdomain'])) {
-        $path = !empty($login_result['is_partner']) ? '/partner-onboarding' : '/dashboard';
-        $login_result['redirect_to'] = orabooks_build_org_spa_url($login_result['subdomain'], $path);
+        $path = !empty($login_result['is_partner']) ? '/partner-onboarding/' : '/dashboard/';
+        $login_result['redirect_to'] = orabooks_build_org_url($login_result['subdomain'], $path);
     } else {
         $login_result['redirect_to'] = orabooks_get_network_login_url('dashboard');
     }
@@ -822,7 +690,7 @@ function orabooks_maybe_redirect_to_org_subdomain() {
     $shared_auth_slugs = ['login', 'register', 'reset-password', 'verify-email', 'tier-selection'];
     if (in_array($post->post_name, $shared_auth_slugs, true)) {
         if ($post->post_name === 'login') {
-            $destination = orabooks_build_org_spa_url($org->subdomain, '/dashboard');
+            $destination = orabooks_build_org_url($org->subdomain, '/dashboard/');
             wp_redirect(orabooks_append_auth_tokens_to_url($destination));
             exit;
         }
@@ -833,11 +701,7 @@ function orabooks_maybe_redirect_to_org_subdomain() {
         return;
     }
 
-    $hash_route = orabooks_resolve_page_hash_route($post);
-    if ($hash_route === '') {
-        $hash_route = '/' . $post->post_name;
-    }
-    $destination = orabooks_build_org_spa_url($org->subdomain, $hash_route);
+    $destination = orabooks_build_org_url($org->subdomain, '/' . $post->post_name . '/');
     wp_redirect(orabooks_append_auth_tokens_to_url($destination));
     exit;
 }
