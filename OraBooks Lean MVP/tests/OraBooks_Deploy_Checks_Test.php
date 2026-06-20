@@ -49,6 +49,7 @@ class OraBooks_Deploy_Checks_Test extends TestCase
         $GLOBALS['orabooks_test_wp_next_scheduled_hooks'] = [
             'orabooks_partner_activity_check' => time() + 3600,
             'orabooks_async_queue_process' => time() + 60,
+            'orabooks_async_queue_archive' => time() + 86400,
             'orabooks_daily_active_status_refresh' => time() + 7200,
         ];
 
@@ -89,6 +90,7 @@ class OraBooks_Deploy_Checks_Test extends TestCase
         $GLOBALS['orabooks_test_wp_next_scheduled_hooks'] = [
             'orabooks_partner_activity_check' => time() + 3600,
             'orabooks_async_queue_process' => time() + 60,
+            'orabooks_async_queue_archive' => time() + 86400,
             'orabooks_daily_active_status_refresh' => time() + 7200,
         ];
 
