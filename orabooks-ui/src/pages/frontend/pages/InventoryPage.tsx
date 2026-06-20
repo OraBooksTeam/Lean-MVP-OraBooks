@@ -197,7 +197,7 @@ export default function InventoryPage() {
 
     setSaving(true);
     setError('');
-    const res = await api.inventoryProductCreate(orgId, {
+    const payload: Record<string, string | number> = {
       name: productForm.name.trim(),
       unit: productForm.unit.trim(),
       brand_name: productForm.brand_name.trim(),
@@ -225,7 +225,18 @@ export default function InventoryPage() {
       low_stock_threshold: productForm.low_stock_threshold
         ? parseFloat(productForm.low_stock_threshold)
         : undefined,
+    };
+    const formData = new FormData();
+    Object.entries(payload).forEach(([key, value]) => {
+      if (value !== undefined) {
+        formData.set(key, String(value));
+      }
     });
+    if (productForm.item_image_file) {
+      formData.set('item_image', productForm.item_image_file);
+    }
+
+    const res = await api.inventoryProductCreateUpload(orgId, formData);
 
     if (res.error) setError(res.error);
     else {
