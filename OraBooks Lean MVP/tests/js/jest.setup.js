@@ -22,8 +22,8 @@
  *     and stubs for .assign, .replace, .reload. Tests can read/write
  *     .href without triggering navigation errors.
  *
- * 3.  AJAX mock — $.get and $.post are intercepted
- *     Both shorthands are spied on via jest.spyOn. Instead of making
+ * 3.  AJAX mock — $.get, $.post, and $.ajax are intercepted
+ *     The jQuery helpers are spied on via jest.spyOn. Instead of making
  *     real HTTP requests, they push an entry to ajaxResponses.get or
  *     ajaxResponses.post and return a jqXHR-like object with chainable
  *     .fail(), .always(), .done(), .then() stubs.
@@ -212,8 +212,8 @@ global.__ajaxResponses = ajaxResponses;
 // ---- jqXHR-like mock for chaining support ----
 // Some code in frontend.js/admin.js chains `.fail()` and `.always()`
 // on $.get / $.post return values. Provide stub methods.
-function createMockJqXHR(url, data, callback, type) {
-  const entry = { url, data, callback };
+function createMockJqXHR(url, data, callback, type, options) {
+  const entry = { url, data, callback, options: options || {} };
   ajaxResponses[type].push(entry);
   return {
     url, data, callback, type,
@@ -253,6 +253,13 @@ jest.spyOn($, 'get').mockImplementation((url, data, callback) => {
 jest.spyOn($, 'post').mockImplementation((url, data, callback) => {
   const type = 'post';
   return createMockJqXHR(url, data, callback, type);
+});
+
+jest.spyOn($, 'ajax').mockImplementation((options) => {
+  const settings = typeof options === 'string' ? { url: options } : (options || {});
+  const method = String(settings.type || settings.method || 'GET').toLowerCase();
+  const type = method === 'post' ? 'post' : 'get';
+  return createMockJqXHR(settings.url, settings.data || {}, undefined, type, settings);
 });
 
 // Helper to resolve the latest AJAX call.
@@ -303,6 +310,7 @@ global.resolveAjax = function(type, responseData, action) {
     call = calls.shift();
   }
   if (call.callback) call.callback(responseData);
+  if (call.options && typeof call.options.success === 'function') call.options.success(responseData);
   if (typeof call.doneCallback === 'function') call.doneCallback(responseData);
   if (typeof call.thenCallback === 'function') call.thenCallback(responseData);
   if (typeof call.alwaysCallback === 'function') call.alwaysCallback(responseData);
