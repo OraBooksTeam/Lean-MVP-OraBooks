@@ -73,6 +73,11 @@ export default function InvoicesPage() {
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
 
   const orgId = context?.organization?.id;
+  const permissions: string[] = context?.permissions || [];
+  const canCreateInvoice = permissions.includes('create_invoice');
+  const canRecordPayment = permissions.includes('create_invoice');
+  const canOverrideTax =
+    permissions.includes('manage_org_settings') || permissions.includes('approve_journal');
 
   const load = async () => {
     setLoading(true);
@@ -129,9 +134,12 @@ export default function InvoicesPage() {
     return config?.override_reasons?.length ? config.override_reasons : DEFAULT_REASONS;
   }, [taxConfigs, overrideJurisdiction]);
 
-  const canOverride = (invoice: Invoice) => ['draft', 'sent'].includes(invoice.workflow_status || '');
+  const canOverride = (invoice: Invoice) =>
+    canOverrideTax && ['draft', 'sent'].includes(invoice.workflow_status || '');
   const canPay = (invoice: Invoice) =>
-    !['paid', 'cancelled'].includes(invoice.payment_status || '') && invoice.workflow_status !== 'cancelled';
+    canRecordPayment &&
+    !['paid', 'cancelled'].includes(invoice.payment_status || '') &&
+    invoice.workflow_status !== 'cancelled';
 
   const remainingBalance = (invoice: Invoice) =>
     Math.max(0, Number(invoice.total_amount || 0) - Number(invoice.paid_amount || 0));
@@ -302,10 +310,12 @@ export default function InvoicesPage() {
         </div>
 
         <div className="flex flex-wrap justify-end gap-2">
-          <Button size="sm" onClick={() => { setShowCreate(true); setError(''); setSuccess(''); }}>
-            <Plus className="h-4 w-4" />
-            Create invoice
-          </Button>
+          {canCreateInvoice && (
+            <Button size="sm" onClick={() => { setShowCreate(true); setError(''); setSuccess(''); }}>
+              <Plus className="h-4 w-4" />
+              Create invoice
+            </Button>
+          )}
           <Button onClick={load} variant="secondary" size="sm">
             <RefreshCw className="h-4 w-4" />
             Refresh
@@ -365,7 +375,11 @@ export default function InvoicesPage() {
                 <tr>
                   <td colSpan={7} className="px-5 py-10 text-center">
                     <FileText className="mx-auto h-8 w-8 text-slate-300" />
-                    <p className="mt-2 text-sm text-slate-500">No invoices found. Create your first invoice.</p>
+                    <p className="mt-2 text-sm text-slate-500">
+                      {canCreateInvoice
+                        ? 'No invoices found. Create your first invoice.'
+                        : 'No invoices found.'}
+                    </p>
                   </td>
                 </tr>
               ) : invoices.map((invoice) => (

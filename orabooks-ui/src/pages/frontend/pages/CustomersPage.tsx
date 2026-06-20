@@ -30,6 +30,9 @@ export default function CustomersPage() {
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState('');
 
+  const permissions: string[] = context?.permissions || [];
+  const canManageCustomers = permissions.includes('create_invoice');
+
   const load = async () => {
     setLoading(true);
     setError('');
@@ -183,10 +186,12 @@ export default function CustomersPage() {
                   <td className="px-5 py-3 text-slate-600">{customer.last_paid_invoice_date || '—'}</td>
                   <td className="px-5 py-3">
                     <div className="flex flex-wrap gap-1">
-                      <Button size="sm" variant="secondary" onClick={() => openEdit(customer)}>
-                        <Pencil className="h-3.5 w-3.5" />
-                        Notes
-                      </Button>
+                      {canManageCustomers && (
+                        <Button size="sm" variant="secondary" onClick={() => openEdit(customer)}>
+                          <Pencil className="h-3.5 w-3.5" />
+                          Notes
+                        </Button>
+                      )}
                       <WpLink to={`/attachments?resource_type=customer&resource_id=${customer.id}`}>
                         <Button size="sm" variant="secondary">
                           <Paperclip className="h-3.5 w-3.5" />
