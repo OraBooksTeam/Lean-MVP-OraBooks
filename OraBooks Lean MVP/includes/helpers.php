@@ -47,6 +47,7 @@ function orabooks_get_lean_mvp_page_definitions() {
         'login' => ['Login', '[orabooks_login]'],
         'register' => ['Register', '[orabooks_register]'],
         'verify-email' => ['Verify Email', '[orabooks_verify_email]'],
+        'accept-invite' => ['Accept Invitation', '[orabooks_accept_invite]'],
         'reset-password' => ['Reset Password', '[orabooks_reset_password]'],
         'tier-selection' => ['Choose Your Plan', '[orabooks_tier_selection]'],
         'partner' => ['Partner', ''],
@@ -760,7 +761,7 @@ function orabooks_redirect_tenant_auth_to_network() {
         return;
     }
 
-    $shared_auth_slugs = ['login', 'register', 'reset-password', 'verify-email', 'tier-selection'];
+    $shared_auth_slugs = ['login', 'register', 'reset-password', 'verify-email', 'tier-selection', 'accept-invite'];
     if (!in_array($post->post_name, $shared_auth_slugs, true)) {
         return;
     }
@@ -894,7 +895,7 @@ function orabooks_maybe_redirect_to_org_subdomain() {
         return;
     }
 
-    $shared_auth_slugs = ['login', 'register', 'reset-password', 'verify-email', 'tier-selection'];
+    $shared_auth_slugs = ['login', 'register', 'reset-password', 'verify-email', 'tier-selection', 'accept-invite'];
     if (in_array($post->post_name, $shared_auth_slugs, true)) {
         if ($post->post_name === 'login') {
             if (orabooks_is_network_auth_host() && orabooks_orabooks_user_can_manage_platform($user_id)) {
