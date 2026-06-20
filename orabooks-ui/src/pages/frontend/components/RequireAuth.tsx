@@ -1,53 +1,61 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { api } from '../api';
 import {
+  absorbAuthTokensFromUrl,
   clearRedirectGuard,
-  clearStoredAuthTokens,
   getNetworkLoginUrl,
   redirectToLogin,
 } from '../lib/auth-routing';
 
 export default function RequireAuth({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(false);
-  const [blocked, setBlocked] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
   const loginUrl = getNetworkLoginUrl();
 
   useEffect(() => {
-    api.frontendContext().then((res) => {
+    let cancelled = false;
+
+    absorbAuthTokensFromUrl();
+
+    api.verifySession().then((res) => {
+      if (cancelled) {
+        return;
+      }
+
       if (!res.error) {
         clearRedirectGuard();
         setReady(true);
         return;
       }
 
-      if (redirectToLogin()) {
-        return;
-      }
-
-      clearStoredAuthTokens();
-      setBlocked(true);
+      const message =
+        typeof res.error === 'string' ? res.error : 'Please log in to continue.';
+      setErrorMessage(message);
+      redirectToLogin(true);
     });
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
-  if (blocked) {
-    return (
-      <div className="brand-page-bg flex min-h-screen items-center justify-center px-4">
-        <div className="max-w-md rounded-2xl border border-border bg-white p-6 text-center shadow-sm">
-          <p className="text-sm font-medium text-slate-600">
-            Your session expired. Please log in again.
-          </p>
-          <a
-            href={`${loginUrl}#/login`}
-            className="mt-4 inline-flex rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white"
-          >
-            Go to login
-          </a>
-        </div>
-      </div>
-    );
-  }
-
   if (!ready) {
+    if (errorMessage) {
+      return (
+        <div className="brand-page-bg flex min-h-screen items-center justify-center px-4">
+          <div className="max-w-md rounded-2xl border border-border bg-white p-6 text-center shadow-sm">
+            <p className="text-sm font-medium text-slate-600">{errorMessage}</p>
+            <a
+              href={`${loginUrl}#/login`}
+              className="mt-4 inline-flex rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white"
+            >
+              Go to login
+            </a>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="brand-page-bg flex min-h-screen items-center justify-center">
         <p className="text-sm font-medium text-slate-600">Loading workspace…</p>

@@ -485,16 +485,17 @@ export const api = {
       ...(resourceId ? { resource_id: resourceId } : {}),
     }),
   attachmentDownloadUrl: (orgId: number, attachmentId: number, versionId = 0) => {
+    const cfg = getAjaxConfig();
     const token = getStoredToken();
     const qs = new URLSearchParams();
     qs.set('action', 'orabooks_attachment_download');
-    qs.set('_ajax_nonce', ORABOOKS_NONCE);
+    qs.set('_ajax_nonce', cfg.nonce);
     qs.set('org_id', String(orgId));
     qs.set('attachment_id', String(attachmentId));
     if (versionId) qs.set('version_id', String(versionId));
     if (token) qs.set('orabooks_token', token);
-    if (ORABOOKS_USER_ID) qs.set('current_user_id', String(ORABOOKS_USER_ID));
-    return `${ORABOOKS_URL}?${qs.toString()}`;
+    if (cfg.current_user_id) qs.set('current_user_id', String(cfg.current_user_id));
+    return `${cfg.ajax_url}?${qs.toString()}`;
   },
   generateFinancialReport: (orgId: number, reportType: string, periodStart: string, periodEnd: string) =>
     api.get('orabooks_financial_report_generate', {

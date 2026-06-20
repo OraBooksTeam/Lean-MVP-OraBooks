@@ -147,13 +147,15 @@ export function redirectAfterAuth(data: {
   replaceAppLocation('/dashboard/', '/dashboard');
 }
 
-export function redirectToLogin() {
-  const last = Number(window.sessionStorage.getItem(REDIRECT_GUARD_KEY) || 0);
-  const now = Date.now();
-  if (now - last < REDIRECT_COOLDOWN_MS) {
-    return false;
+export function redirectToLogin(force = false) {
+  if (!force) {
+    const last = Number(window.sessionStorage.getItem(REDIRECT_GUARD_KEY) || 0);
+    const now = Date.now();
+    if (now - last < REDIRECT_COOLDOWN_MS) {
+      return false;
+    }
   }
-  window.sessionStorage.setItem(REDIRECT_GUARD_KEY, String(now));
+  window.sessionStorage.setItem(REDIRECT_GUARD_KEY, String(Date.now()));
 
   const loginUrl = (window as any).orabooks_ajax?.login_url;
   if (loginUrl) {
