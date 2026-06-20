@@ -253,11 +253,17 @@ class OraBooks_Financial_Reports {
 
         foreach ($rows as $row) {
             $amount = self::account_amount($row);
-            $item = self::report_item($row, $amount, self::expense_pl_category($row));
             if ($row->type === 'revenue') {
-                $revenue[] = $item;
+                $revenue[] = self::report_item($row, $amount);
                 $total_revenue += $amount;
-            } elseif (self::expense_pl_category($row) === 'cogs') {
+                continue;
+            }
+            if ($row->type !== 'expense') {
+                continue;
+            }
+            $category = self::expense_pl_category($row);
+            $item = self::report_item($row, $amount, $category);
+            if ($category === 'cogs') {
                 $cogs[] = $item;
                 $total_cogs += $amount;
             } else {
@@ -625,12 +631,13 @@ class OraBooks_Financial_Reports {
 
         $sql = "SELECT j.transaction_date, j.journal_number, j.source_type, a.code AS account_code,
                        a.name AS account_name, a.type AS account_type, le.debit_amount AS debit,
-                       le.credit_amount AS credit, jl.description
+                       le.credit_amount AS credit,
+                       COALESCE(jl.description, '') AS description
                 FROM {$ledger} le
                 INNER JOIN {$journal} j ON j.id = le.journal_id AND j.org_id = le.org_id
-                INNER JOIN {$lines} jl ON jl.journal_id = j.id AND jl.account_id = le.account_id
-                    AND jl.debit_amount = le.debit_amount AND jl.credit_amount = le.credit_amount
                 INNER JOIN {$accounts} a ON a.id = le.account_id AND a.org_id = le.org_id
+                LEFT JOIN {$lines} jl ON jl.journal_id = j.id AND jl.account_id = le.account_id
+                    AND jl.debit_amount = le.debit_amount AND jl.credit_amount = le.credit_amount
                 WHERE {$where}
                 ORDER BY j.transaction_date ASC, j.id ASC, le.id ASC";
 
