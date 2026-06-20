@@ -6,6 +6,8 @@
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
+require_once __DIR__ . '/../includes/class-orabooks-team.php';
+
 class OraBooks_RBAC_Test extends TestCase
 {
     protected function setUp(): void
