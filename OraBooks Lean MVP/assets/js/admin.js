@@ -1051,9 +1051,6 @@ jQuery(document).ready(function($) {
                     '<td>' + totalPaid + '</td>' +
                     '<td>' + (c.last_paid_invoice_date || '—') + '</td>' +
                     '<td>' +
-                        '<button class="button button-small orabooks-cust-toggle-active" data-id="' + c.id + '" data-active="' + c.is_active + '">' +
-                            (c.is_active == 1 ? 'Deactivate' : 'Activate') +
-                        '</button> ' +
                         '<button class="button button-small orabooks-cust-view" data-id="' + c.id + '">View</button>' +
                     '</td>' +
                     '</tr>');
@@ -1068,22 +1065,6 @@ jQuery(document).ready(function($) {
     // Search on enter
     $(document).on('keydown', '#orabooks-cust-search', function(e) {
         if (e.keyCode === 13) orabooksLoadCustomerList();
-    });
-
-    // Toggle active status
-    $(document).on('click', '.orabooks-cust-toggle-active', function() {
-        var $btn = $(this);
-        var customerId = $btn.data('id');
-        var isActive = $btn.data('active') == 1 ? 0 : 1;
-
-        $.post(orabooks_ajax.ajax_url, {
-            action: 'orabooks_customer_update',
-            customer_id: customerId,
-            is_active: isActive
-        }, function(r) {
-            if (r.error !== false && r.error !== true) return;
-            orabooksLoadCustomerList();
-        });
     });
 
     // View customer detail

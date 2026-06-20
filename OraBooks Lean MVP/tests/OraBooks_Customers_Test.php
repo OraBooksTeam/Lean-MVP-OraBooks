@@ -1063,12 +1063,12 @@ class OraBooks_Customers_Test extends TestCase
     }
 
     #[Test]
-    public function test_ajax_customer_update_toggle_active()
+    public function test_ajax_customer_update_rejects_manual_active_toggle()
     {
         global $wpdb;
 
         $wpdb->test_get_row_callback = function ($query) {
-            if (stripos($query, 'WHERE id') !== false) {
+            if (stripos($query, 'c.id') !== false || stripos($query, 'WHERE id') !== false) {
                 return $this->mockCustomer(['id' => 1, 'user_id' => 10, 'is_active' => 0]);
             }
             return null;
@@ -1082,8 +1082,8 @@ class OraBooks_Customers_Test extends TestCase
             $this->fail('Expected RuntimeException was not thrown');
         } catch (RuntimeException $e) {
             $response = json_decode($e->getMessage(), true);
-            $this->assertFalse($response['error'] ?? true);
-            $this->assertStringContainsString('Customer updated', $response['message'] ?? '');
+            $this->assertTrue($response['error'] ?? false);
+            $this->assertStringContainsString('derived from invoice activity', $response['message'] ?? '');
         }
     }
 
