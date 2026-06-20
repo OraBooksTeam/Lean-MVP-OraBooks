@@ -195,6 +195,7 @@ class OraBooks_Customers {
             && self::get_schema_flag('orabooks_sl021_schema_v2') === '1'
             && self::get_schema_flag('orabooks_sl021_customer_contacts_v1') === '1'
             && self::get_schema_flag('orabooks_sl021_customer_credit_v1') === '1'
+            && self::get_schema_flag('orabooks_sl021_customer_profile_v1') === '1'
         ) {
             return;
         }
@@ -203,6 +204,7 @@ class OraBooks_Customers {
         if (!file_exists($upgrade)) {
             self::ensure_customer_contact_schema();
             self::ensure_customer_credit_schema();
+            self::ensure_customer_profile_schema();
             return;
         }
 
@@ -211,6 +213,7 @@ class OraBooks_Customers {
         self::ensure_payments_table();
         self::ensure_customer_contact_schema();
         self::ensure_customer_credit_schema();
+        self::ensure_customer_profile_schema();
 
         $table_invoices = OraBooks_Database::table('invoices');
         if ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table_invoices)) !== $table_invoices) {
