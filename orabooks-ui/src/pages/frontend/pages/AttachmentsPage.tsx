@@ -1,15 +1,15 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import WpLink from '../components/WpLink';
 import Button from '@/components/Button';
 import { api } from '../api';
 import ClientShell from '../components/ClientShell';
 import { Download, History, Paperclip, RefreshCw, Trash2, Upload, X } from 'lucide-react';
+import { getSearchParam, replaceSearchParams } from '../lib/wp-routing';
 
 const fieldClass =
   'w-full rounded-lg border border-border bg-white px-3.5 py-2.5 text-sm text-ink shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20';
 
 export default function AttachmentsPage() {
-  const [searchParams, setSearchParams] = useSearchParams();
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [listLoading, setListLoading] = useState(false);
@@ -75,8 +75,8 @@ export default function AttachmentsPage() {
     if (initializedFromUrl.current) return;
     initializedFromUrl.current = true;
 
-    const urlType = searchParams.get('resource_type') || '';
-    const urlResourceId = searchParams.get('resource_id') || '';
+    const urlType = getSearchParam('resource_type');
+    const urlResourceId = getSearchParam('resource_id');
     if (urlType) {
       setFilterType(urlType);
       setResourceType(urlType);
@@ -179,13 +179,13 @@ export default function AttachmentsPage() {
     const params = new URLSearchParams();
     if (filterType) params.set('resource_type', filterType);
     if (filterResourceId) params.set('resource_id', filterResourceId);
-    setSearchParams(params);
+    replaceSearchParams(params);
   };
 
   const clearFilter = () => {
     setFilterType('');
     setFilterResourceId('');
-    setSearchParams({});
+    replaceSearchParams(new URLSearchParams());
   };
 
   const attachments = hasServerFilter

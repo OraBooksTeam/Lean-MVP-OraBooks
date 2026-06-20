@@ -1,13 +1,13 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import WpLink from '../components/WpLink';
 import Button from '@/components/Button';
 import { api } from '../api';
 import ClientShell from '../components/ClientShell';
 import { CheckCircle2, Eye, Paperclip, RefreshCw, Send, ShieldCheck, XCircle } from 'lucide-react';
+import { getSearchParam } from '../lib/wp-routing';
 
 export default function ApprovalsPage() {
-  const [searchParams] = useSearchParams();
-  const highlightJournalId = Number(searchParams.get('journal_id') || 0) || null;
+  const highlightJournalId = Number(getSearchParam('journal_id')) || null;
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
