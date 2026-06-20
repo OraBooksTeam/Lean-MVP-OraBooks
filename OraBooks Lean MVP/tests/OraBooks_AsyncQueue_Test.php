@@ -45,6 +45,7 @@ final class OraBooks_AsyncQueue_Test extends TestCase
                 'id' => 7,
                 'job_type' => 'webhook_dispatch',
                 'status' => 'dead_letter',
+                'payload' => wp_json_encode(['org_id' => 9]),
             ];
         };
         $wpdb->test_update_callback = function ($table, $data) use (&$updated) {
@@ -57,6 +58,51 @@ final class OraBooks_AsyncQueue_Test extends TestCase
         $this->assertTrue($result);
         $this->assertSame('pending', $updated[0]['status']);
         $this->assertSame(0, $updated[0]['retry_count']);
+    }
+
+    #[Test]
+    public function retry_job_denies_cross_tenant_replay(): void
+    {
+        global $wpdb;
+        $wpdb->test_get_row_callback = function () {
+            return (object) [
+                'id' => 7,
+                'job_type' => 'webhook_dispatch',
+                'status' => 'dead_letter',
+                'payload' => wp_json_encode(['org_id' => 99]),
+            ];
+        };
+
+        $result = OraBooks_AsyncQueue::retry_job(7, 9);
+
+        $this->assertInstanceOf(WP_Error::class, $result);
+        $this->assertSame('forbidden', $result->get_error_code());
+    }
+
+    #[Test]
+    public function list_jobs_filters_by_payload_org_id(): void
+    {
+        global $wpdb;
+        $query = '';
+        $wpdb->test_get_results_callback = function ($sql) use (&$query) {
+            $query = $sql;
+            return [];
+        };
+
+        OraBooks_AsyncQueue::list_jobs(['org_id' => 12, 'limit' => 10]);
+
+        $this->assertStringContainsString("JSON_EXTRACT(payload, '$.org_id')", $query);
+        $this->assertStringContainsString('12', $query);
+    }
+
+    #[Test]
+    public function get_job_org_id_reads_payload_org_id(): void
+    {
+        $org_id = OraBooks_AsyncQueue::get_job_org_id((object) [
+            'payload' => wp_json_encode(['org_id' => 42, 'event_type' => 'sale_delivered']),
+        ]);
+
+        $this->assertSame(42, $org_id);
     }
 
     #[Test]
@@ -83,10 +129,12 @@ final class OraBooks_AsyncQueue_Test extends TestCase
             'id' => 55,
             'event_type' => 'sale_delivered',
             'aggregate_id' => 1001,
-        ], ['amount' => 15]);
+        ], ['amount' => 15, 'org_id' => 9]);
 
         $this->assertSame('webhooks', $inserted[0]['queue_name']);
         $this->assertSame('event_webhook_dispatch', $inserted[0]['job_type']);
         $this->assertSame('event-webhook-55', $inserted[0]['idempotency_key']);
+        $payload = json_decode($inserted[0]['payload'], true);
+        $this->assertSame(9, $payload['org_id']);
     }
 }

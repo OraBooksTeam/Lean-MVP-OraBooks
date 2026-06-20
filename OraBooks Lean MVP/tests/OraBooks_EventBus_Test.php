@@ -244,4 +244,41 @@ class OraBooks_EventBus_Test extends TestCase
         $this->assertSame('critical', $health['status']);
         $this->assertStringContainsString('orabooks-event-dead-letter', $health['dashboard_url']);
     }
+
+    #[Test]
+    public function test_event_dead_letters_filter_by_org_id_in_payload(): void
+    {
+        global $wpdb;
+
+        $query = '';
+        $wpdb->test_get_results_callback = function ($sql) use (&$query) {
+            $query = $sql;
+            return [];
+        };
+
+        OraBooks_Event_Module::get_dead_letters(25, 7);
+
+        $this->assertStringContainsString("JSON_EXTRACT(payload, '$.org_id')", $query);
+        $this->assertStringContainsString('7', $query);
+    }
+
+    #[Test]
+    public function test_replay_dead_letter_denies_cross_tenant_access(): void
+    {
+        global $wpdb;
+
+        $wpdb->test_get_row_callback = function () {
+            return (object) [
+                'id' => 3,
+                'outbox_id' => 88,
+                'status' => 'open',
+                'payload' => wp_json_encode(['org_id' => 99]),
+            ];
+        };
+
+        $result = OraBooks_Event_Module::replay_dead_letter(3, 1, 9);
+
+        $this->assertInstanceOf(WP_Error::class, $result);
+        $this->assertSame('forbidden', $result->get_error_code());
+    }
 }
