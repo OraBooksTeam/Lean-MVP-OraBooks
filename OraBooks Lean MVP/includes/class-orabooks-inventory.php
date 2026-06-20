@@ -351,8 +351,9 @@ class OraBooks_Inventory {
         $params = [intval($org_id)];
 
         if (!empty($args['search'])) {
-            $where .= ' AND (sku LIKE %s OR name LIKE %s OR category_name LIKE %s OR brand_name LIKE %s OR barcode LIKE %s)';
+            $where .= ' AND (sku LIKE %s OR name LIKE %s OR category_name LIKE %s OR brand_name LIKE %s OR stock_keeping_unit LIKE %s OR barcode LIKE %s)';
             $search = '%' . $wpdb->esc_like($args['search']) . '%';
+            $params[] = $search;
             $params[] = $search;
             $params[] = $search;
             $params[] = $search;
