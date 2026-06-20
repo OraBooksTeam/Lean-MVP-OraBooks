@@ -32,11 +32,12 @@ window.orabooks_ajax = window.orabooks_ajax || <?php echo wp_json_encode($ajax_c
         if (document.querySelector('script[data-orabooks-react-fallback="1"]')) {
             return;
         }
-        var script = document.createElement('script');
-        script.src = <?php echo wp_json_encode(class_exists('OraBooks_Assets') ? OraBooks_Assets::react_bundle_url('frontend.js') : ''); ?>;
-        if (!script.src) {
+        var fallbackSrc = <?php echo wp_json_encode(class_exists('OraBooks_Assets') ? OraBooks_Assets::react_bundle_url('frontend.js') : ''); ?>;
+        if (!fallbackSrc) {
             return;
         }
+        var script = document.createElement('script');
+        script.src = fallbackSrc;
         script.defer = true;
         script.dataset.orabooksReactFallback = '1';
         document.body.appendChild(script);
