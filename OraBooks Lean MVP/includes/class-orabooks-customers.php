@@ -894,6 +894,8 @@ class OraBooks_Customers {
     public static function get_invoices_list($org_id, $args = []) {
         global $wpdb;
 
+        self::maybe_ensure_schema();
+
         $table = OraBooks_Database::table('invoices');
         $table_customers = OraBooks_Database::table('customers');
         $table_users = OraBooks_Database::table('users');
@@ -1115,6 +1117,8 @@ class OraBooks_Customers {
      */
     public static function get_customer_stats($org_id) {
         global $wpdb;
+
+        self::maybe_ensure_schema();
 
         $table_customers = OraBooks_Database::table('customers');
         $table_invoices = OraBooks_Database::table('invoices');
@@ -1810,4 +1814,6 @@ class OraBooks_Customers {
         }
 
         $stats = self::get_customer_stats($org_id);
-        o
+        orabooks_json_success($stats);
+    }
+}

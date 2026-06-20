@@ -158,6 +158,14 @@ class OraBooks_Ajax {
             orabooks_json_error('Permission denied', 403);
         }
 
+        if (class_exists('OraBooks_Customers') && !OraBooks_Customers::schema_is_ready()) {
+            if (function_exists('orabooks_with_data_blog')) {
+                orabooks_with_data_blog(['OraBooks_Customers', 'ensure_schema']);
+            } else {
+                OraBooks_Customers::ensure_schema();
+            }
+        }
+
         $stats = class_exists('OraBooks_Customers') ? OraBooks_Customers::get_customer_stats($org_id) : [];
         $accounts_table = OraBooks_Database::table('accounts');
         $journals_table = OraBooks_Database::table('journals');

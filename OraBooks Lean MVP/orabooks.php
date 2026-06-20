@@ -19,7 +19,7 @@ if (!defined('ABSPATH')) {
 define('ORABOOKS_VERSION', '1.0.0');
 define('ORABOOKS_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('ORABOOKS_PLUGIN_URL', plugin_dir_url(__FILE__));
-define('ORABOOKS_DB_VERSION', '1.0.0');
+define('ORABOOKS_DB_VERSION', '1.0.1');
 
 // Include core files
 require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-database.php';
@@ -312,13 +312,15 @@ function orabooks_ensure_database() {
     orabooks_with_data_blog(function () {
         global $wpdb;
 
+        if (class_exists('OraBooks_Customers')) {
+            OraBooks_Customers::ensure_schema();
+        }
+
         $table_users = OraBooks_Database::table('users');
         $table_exists = $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table_users));
 
         if ($table_exists !== $table_users || get_option('orabooks_db_version') !== ORABOOKS_DB_VERSION) {
             OraBooks_Database::install();
-        } elseif (class_exists('OraBooks_Customers')) {
-            OraBooks_Customers::ensure_schema();
         }
     });
 }

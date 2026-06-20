@@ -16,7 +16,7 @@ if (!defined('ORABOOKS_VERSION')) {
     define('ORABOOKS_VERSION', '1.0.0');
     define('ORABOOKS_PLUGIN_DIR', plugin_dir_path(__FILE__));
     define('ORABOOKS_PLUGIN_URL', plugin_dir_url(__FILE__));
-    define('ORABOOKS_DB_VERSION', '1.0.0');
+    define('ORABOOKS_DB_VERSION', '1.0.1');
 }
 
 // Core includes
