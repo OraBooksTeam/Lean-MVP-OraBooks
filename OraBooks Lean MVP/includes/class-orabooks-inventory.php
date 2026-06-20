@@ -106,6 +106,99 @@ class OraBooks_Inventory {
         ];
     }
 
+    private static function maybe_ensure_product_schema() {
+        static $ran = false;
+        if ($ran) {
+            return;
+        }
+        $ran = true;
+
+        global $wpdb;
+        $table = OraBooks_Database::table('products');
+        if ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table)) !== $table) {
+            return;
+        }
+
+        $fields = self::get_table_column_names($table);
+        $additions = [
+            'brand_name' => "ALTER TABLE {$table} ADD COLUMN brand_name VARCHAR(120) NULL AFTER name",
+            'category_name' => "ALTER TABLE {$table} ADD COLUMN category_name VARCHAR(120) NULL AFTER brand_name",
+            'hsn' => "ALTER TABLE {$table} ADD COLUMN hsn VARCHAR(64) NULL AFTER category_name",
+            'barcode' => "ALTER TABLE {$table} ADD COLUMN barcode VARCHAR(120) NULL AFTER hsn",
+            'description' => "ALTER TABLE {$table} ADD COLUMN description TEXT NULL AFTER barcode",
+            'item_image_url' => "ALTER TABLE {$table} ADD COLUMN item_image_url VARCHAR(500) NULL AFTER description",
+            'discount_type' => "ALTER TABLE {$table} ADD COLUMN discount_type ENUM('Percentage','Fixed') DEFAULT 'Percentage' AFTER item_image_url",
+            'discount' => "ALTER TABLE {$table} ADD COLUMN discount DECIMAL(20,2) DEFAULT 0 AFTER discount_type",
+            'price' => "ALTER TABLE {$table} ADD COLUMN price DECIMAL(20,2) DEFAULT 0 AFTER discount",
+            'purchase_price' => "ALTER TABLE {$table} ADD COLUMN purchase_price DECIMAL(20,6) DEFAULT 0 AFTER price",
+            'sales_price' => "ALTER TABLE {$table} ADD COLUMN sales_price DECIMAL(20,2) DEFAULT 0 AFTER purchase_price",
+            'mrp' => "ALTER TABLE {$table} ADD COLUMN mrp DECIMAL(20,2) DEFAULT 0 AFTER sales_price",
+            'profit_margin' => "ALTER TABLE {$table} ADD COLUMN profit_margin DECIMAL(10,2) DEFAULT 0 AFTER mrp",
+            'tax_name' => "ALTER TABLE {$table} ADD COLUMN tax_name VARCHAR(120) NULL AFTER profit_margin",
+            'tax_percent' => "ALTER TABLE {$table} ADD COLUMN tax_percent DECIMAL(10,4) DEFAULT 0 AFTER tax_name",
+            'tax_type' => "ALTER TABLE {$table} ADD COLUMN tax_type ENUM('Inclusive','Exclusive') DEFAULT 'Inclusive' AFTER tax_percent",
+            'warehouse_name' => "ALTER TABLE {$table} ADD COLUMN warehouse_name VARCHAR(120) NULL AFTER tax_type",
+            'item_type' => "ALTER TABLE {$table} ADD COLUMN item_type ENUM('Single','Variants','service') DEFAULT 'Single' AFTER warehouse_name",
+            'seller_points' => "ALTER TABLE {$table} ADD COLUMN seller_points DECIMAL(20,2) DEFAULT 0 AFTER item_type",
+        ];
+
+        foreach ($additions as $column => $sql) {
+            if (!in_array($column, $fields, true)) {
+                if ($wpdb->query($sql) !== false) {
+                    $fields[] = $column;
+                }
+            }
+        }
+    }
+
+    private static function get_table_column_names($table) {
+        global $wpdb;
+        $columns = $wpdb->get_results("SHOW COLUMNS FROM {$table}");
+        if (empty($columns)) {
+            return [];
+        }
+
+        return array_map(function ($col) {
+            return $col->Field;
+        }, $columns);
+    }
+
+    private static function next_item_code($org_id) {
+        global $wpdb;
+
+        $table = OraBooks_Database::table('products');
+        $last_number = (int) $wpdb->get_var($wpdb->prepare(
+            "SELECT COALESCE(MAX(CAST(SUBSTRING(sku, 5) AS UNSIGNED)), 1000)
+             FROM {$table}
+             WHERE org_id = %d AND sku LIKE 'ITM-____'",
+            (int) $org_id
+        ));
+
+        return 'ITM-' . str_pad((string) ($last_number + 1), 4, '0', STR_PAD_LEFT);
+    }
+
+    private static function calculate_purchase_price($price, $tax_percent, $tax_type) {
+        $price = (float) $price;
+        $tax_percent = (float) $tax_percent;
+
+        if ($tax_type === 'Exclusive' && $tax_percent > 0) {
+            return round($price + ($price * $tax_percent / 100), 6);
+        }
+
+        return round($price, 6);
+    }
+
+    private static function calculate_sales_price($price, $profit_margin) {
+        $price = (float) $price;
+        $profit_margin = (float) $profit_margin;
+        return round($price + ($price * $profit_margin / 100), 2);
+    }
+
+    private static function enum_value($value, $allowed, $fallback) {
+        $value = sanitize_text_field($value);
+        return in_array($value, $allowed, true) ? $value : $fallback;
+    }
+
     public static function create_product($org_id, $data) {
         global $wpdb;
 
