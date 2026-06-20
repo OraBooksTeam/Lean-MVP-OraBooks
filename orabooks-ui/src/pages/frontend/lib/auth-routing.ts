@@ -4,6 +4,8 @@ import { normalizeAppRoute, toWpUrl } from './wp-routing';
 const TOKEN_KEY = 'orabooks_token';
 const REFRESH_TOKEN_KEY = 'orabooks_refresh_token';
 const REDIRECT_GUARD_KEY = 'orabooks_auth_redirect_ts';
+const LOGOUT_QUERY_FLAG = 'logged_out';
+const LOGOUT_SESSION_FLAG = 'orabooks_logged_out';
 const REDIRECT_COOLDOWN_MS = 4000;
 
 export function clearStoredAuthTokens() {

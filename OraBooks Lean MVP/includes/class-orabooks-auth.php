@@ -1385,26 +1385,20 @@ class OraBooks_Auth {
     }
 
     public function ajax_logout() {
+        $redirect_to = orabooks_get_logout_redirect_url();
+
         if (!orabooks_is_user_logged_in()) {
-            orabooks_clear_auth_token_cookie();
+            orabooks_destroy_auth_session(0, false);
             orabooks_json_success([
-                'redirect_to' => orabooks_get_network_login_url('login'),
+                'redirect_to' => $redirect_to,
             ], 'Logged out');
         }
-        
-        $user_id = orabooks_get_current_user_id();
-        
-        // Revoke all refresh tokens
-        self::revoke_user_tokens($user_id);
 
-        orabooks_clear_auth_token_cookie();
-        if (function_exists('wp_logout')) {
-            wp_logout();
-        }
-        
-        orabooks_log_event('logout', "User logged out", 'info', [], $user_id, null);
+        $user_id = orabooks_get_current_user_id();
+        orabooks_destroy_auth_session($user_id, true);
+
         orabooks_json_success([
-            'redirect_to' => orabooks_get_network_login_url('login'),
+            'redirect_to' => $redirect_to,
         ], 'Logged out successfully');
     }
     

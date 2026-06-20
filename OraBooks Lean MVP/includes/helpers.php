@@ -656,6 +656,10 @@ add_action('template_redirect', 'orabooks_redirect_tenant_auth_to_network', 2);
  * Redirect logged-in customers from the main site to their org subdomain workspace.
  */
 function orabooks_maybe_redirect_to_org_subdomain() {
+    if (orabooks_is_explicit_logout_request()) {
+        return;
+    }
+
     if (!function_exists('orabooks_is_user_logged_in') || !orabooks_is_user_logged_in()) {
         return;
     }
@@ -1010,29 +1014,98 @@ function orabooks_set_auth_token_cookie($token) {
  * Clear the mirrored OraBooks auth token cookie.
  */
 function orabooks_clear_auth_token_cookie() {
-    if (headers_sent()) {
-        return;
+    $path = defined('COOKIEPATH') && COOKIEPATH ? COOKIEPATH : '/';
+    $secure = is_ssl();
+    $domains = [''];
+
+    $configured = orabooks_get_auth_cookie_domain();
+    if ($configured !== '') {
+        $domains[] = $configured;
     }
 
-    $path = defined('COOKIEPATH') && COOKIEPATH ? COOKIEPATH : '/';
-    $domain = orabooks_get_auth_cookie_domain();
-    $secure = is_ssl();
+    $base_domain = function_exists('orabooks_get_tenant_base_domain') ? orabooks_get_tenant_base_domain() : '';
+    if ($base_domain !== '') {
+        $shared = '.' . ltrim($base_domain, '.');
+        if (!in_array($shared, $domains, true)) {
+            $domains[] = $shared;
+        }
+    }
 
-    if (PHP_VERSION_ID >= 70300) {
-        setcookie('orabooks_token', '', [
-            'expires'  => time() - 3600,
-            'path'     => $path,
-            'domain'   => $domain,
-            'secure'   => $secure,
-            'httponly' => true,
-            'samesite' => 'Lax',
-        ]);
-    } else {
-        setcookie('orabooks_token', '', time() - 3600, $path, $domain, $secure, true);
+    if (!headers_sent()) {
+        foreach (array_unique($domains) as $domain) {
+            if (PHP_VERSION_ID >= 70300) {
+                setcookie('orabooks_token', '', [
+                    'expires'  => time() - 3600,
+                    'path'     => $path,
+                    'domain'   => $domain,
+                    'secure'   => $secure,
+                    'httponly' => true,
+                    'samesite' => 'Lax',
+                ]);
+            } else {
+                setcookie('orabooks_token', '', time() - 3600, $path, $domain, $secure, true);
+            }
+        }
     }
 
     unset($_COOKIE['orabooks_token']);
 }
+
+/**
+ * Whether the current request is landing on login after an explicit logout.
+ */
+function orabooks_is_explicit_logout_request() {
+    return isset($_GET['logged_out']) && (string) $_GET['logged_out'] === '1';
+}
+
+/**
+ * Login URL used after logout — includes a flag so redirects do not re-authenticate.
+ */
+function orabooks_get_logout_redirect_url() {
+    return add_query_arg('logged_out', '1', orabooks_get_network_login_url('login'));
+}
+
+/**
+ * Fully tear down OraBooks + WordPress auth state.
+ */
+function orabooks_destroy_auth_session($user_id = 0, $log = true) {
+    if ($user_id <= 0) {
+        $user_id = orabooks_get_current_user_id();
+    }
+
+    if ($user_id > 0 && class_exists('OraBooks_Auth')) {
+        OraBooks_Auth::revoke_user_tokens($user_id);
+    }
+
+    orabooks_clear_auth_token_cookie();
+
+    if (function_exists('wp_logout')) {
+        wp_logout();
+    }
+
+    if (function_exists('wp_set_current_user')) {
+        wp_set_current_user(0);
+    }
+
+    unset($_COOKIE['orabooks_token']);
+
+    if ($log && $user_id > 0) {
+        orabooks_log_event('logout', 'User logged out', 'info', [], $user_id, null);
+    }
+}
+
+/**
+ * On post-logout landing, force-clear any lingering cookies before redirect guards run.
+ */
+function orabooks_force_logout_cleanup() {
+    if (!orabooks_is_explicit_logout_request()) {
+        return;
+    }
+
+    orabooks_destroy_auth_session(0, false);
+}
+
+add_action('init', 'orabooks_force_logout_cleanup', 0);
 
 /**
  * Establish a WordPress session for a linked OraBooks user.
@@ -1127,6 +1200,10 @@ function orabooks_persist_login_session($login_result, $password = '') {
  * Sync WordPress auth when a valid OraBooks JWT cookie is present.
  */
 function orabooks_sync_wp_session_from_auth_token() {
+    if (orabooks_is_explicit_logout_request()) {
+        return;
+    }
+
     if (is_user_logged_in()) {
         return;
     }
