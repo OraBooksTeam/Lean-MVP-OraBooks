@@ -58,6 +58,7 @@ class OraBooks_AsyncQueue {
             add_action('wp_ajax_orabooks_async_queue_stats', [self::$instance, 'ajax_queue_stats']);
             add_action('wp_ajax_orabooks_webhook_settings_get', [self::$instance, 'ajax_webhook_settings_get']);
             add_action('wp_ajax_orabooks_webhook_settings_save', [self::$instance, 'ajax_webhook_settings_save']);
+            add_action('wp_ajax_orabooks_report_async_export', [self::$instance, 'ajax_report_async_export']);
             add_action('orabooks_async_queue_archive', [self::$instance, 'archive_completed_jobs']);
             add_action('orabooks_async_queue_dead_letter', [self::$instance, 'send_dead_letter_alert'], 10, 2);
         }
