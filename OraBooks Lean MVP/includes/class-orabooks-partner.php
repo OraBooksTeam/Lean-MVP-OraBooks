@@ -121,6 +121,13 @@ class OraBooks_Partner {
                         'days' => 330,
                         'active_customer_count' => 0
                     ], $p->user_id, null);
+
+                    if (class_exists('OraBooks_Notifications')) {
+                        OraBooks_Notifications::send_notification($p->user_id, 'partner_inactivity_reminder_sent', [
+                            'days' => 330,
+                            'active_customer_count' => 0,
+                        ]);
+                    }
                 }
                 
                 // 12+ months: deactivate
@@ -136,6 +143,12 @@ class OraBooks_Partner {
                     orabooks_log_event('partner_code_inactivated', "Partner code auto-deactivated for user {$p->user_id}", 'warning', [
                         'reason' => '12 months no attribution and zero active customers'
                     ], $p->user_id, null);
+
+                    if (class_exists('OraBooks_Notifications')) {
+                        OraBooks_Notifications::send_notification($p->user_id, 'partner_code_inactivated', [
+                            'reason' => '12 months no attribution and zero active customers',
+                        ]);
+                    }
                 }
             }
             
@@ -158,6 +171,12 @@ class OraBooks_Partner {
                     orabooks_log_event('partner_low_activity_reminder_sent', "Low activity reminder sent to partner {$p->user_id}", 'info', [
                         'months' => 6
                     ], $p->user_id, null);
+
+                    if (class_exists('OraBooks_Notifications')) {
+                        OraBooks_Notifications::send_notification($p->user_id, 'partner_low_activity_reminder_sent', [
+                            'months' => 6,
+                        ]);
+                    }
                 }
             }
         }

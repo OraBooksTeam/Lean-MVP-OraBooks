@@ -278,12 +278,10 @@ class OraBooks_Commission {
     }
 
     /**
-     * Refresh active status for a single customer
+     * Refresh active status for a single customer (customer_user_id = users.id).
      * Uses SL-021 customers.is_active as the authoritative truth source.
-     * Falls back to SL-021 invoices table if customers table not yet seeded,
-     * then to optimistic active if neither is available.
      */
-    public static function refresh_customer_active_status($customer_id) {
+    public static function refresh_customer_active_status($customer_user_id) {
         global $wpdb;
         
         $table_active = OraBooks_Database::table('customer_active_status');
@@ -295,29 +293,27 @@ class OraBooks_Commission {
         $is_active = 0;
         $last_paid_date = null;
         
-        // Check if SL-021 customers table exists
         $customers_exists = $wpdb->get_var("SHOW TABLES LIKE '{$table_customers}'");
         
         if ($customers_exists) {
-            // SL-021 exists: use customers.is_active as truth source
             $customer = $wpdb->get_row($wpdb->prepare(
-                "SELECT is_active, last_paid_invoice_date FROM {$table_customers} WHERE id = %d",
-                $customer_id
+                "SELECT id, is_active, last_paid_invoice_date FROM {$table_customers} WHERE user_id = %d",
+                $customer_user_id
             ));
             
             if ($customer) {
                 $is_active = (int) $customer->is_active;
                 $last_paid_date = $customer->last_paid_invoice_date;
             } else {
-                // Customer not yet in SL-021 customers table — check invoices directly
                 $invoice = $wpdb->get_row($wpdb->prepare(
-                    "SELECT MAX(transaction_date) as last_paid
-                     FROM {$table_invoices} 
-                     WHERE customer_id = %d 
-                       AND payment_status IN ('paid', 'partial') 
-                       AND workflow_status = 'posted'
-                       AND transaction_date >= DATE_SUB(CURDATE(), INTERVAL %d DAY)",
-                    $customer_id,
+                    "SELECT MAX(i.transaction_date) as last_paid
+                     FROM {$table_invoices} i
+                     JOIN {$table_customers} c ON c.id = i.customer_id
+                     WHERE c.user_id = %d
+                       AND i.payment_status IN ('paid', 'partial')
+                       AND i.workflow_status = 'posted'
+                       AND i.transaction_date >= DATE_SUB(CURDATE(), INTERVAL %d DAY)",
+                    $customer_user_id,
                     $window_days
                 ));
                 
@@ -327,11 +323,9 @@ class OraBooks_Commission {
                 }
             }
         } else {
-            // SL-021 not yet installed: treat as active (optimistic)
             $is_active = 1;
         }
         
-        // Upsert into read model
         $wpdb->query($wpdb->prepare(
             "INSERT INTO {$table_active} (customer_id, is_active, last_paid_invoice_date, updated_at)
              VALUES (%d, %d, %s, UTC_TIMESTAMP())
@@ -339,7 +333,7 @@ class OraBooks_Commission {
                 is_active = VALUES(is_active),
                 last_paid_invoice_date = VALUES(last_paid_invoice_date),
                 updated_at = VALUES(updated_at)",
-            $customer_id,
+            $customer_user_id,
             $is_active,
             $last_paid_date ?: null
         ));
@@ -358,7 +352,7 @@ class OraBooks_Commission {
         
         // Get all customers from active status table and attributions
         $customer_ids = $wpdb->get_col(
-            "SELECT DISTINCT customer_id FROM {$attrib_table} WHERE status = 'verified'"
+            "SELECT DISTINCT customer_user_id FROM {$attrib_table} WHERE status = 'verified'"
         );
         
         $count = 0;
