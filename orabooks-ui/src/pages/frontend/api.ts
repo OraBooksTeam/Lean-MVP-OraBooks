@@ -917,8 +917,9 @@ export const api = {
   asyncQueueDiscard: (jobId: number) => api.post('orabooks_async_queue_discard', { job_id: jobId }),
   asyncQueueCancel: (jobId: number) => api.post('orabooks_async_queue_cancel', { job_id: jobId }),
   asyncQueuePollNow: () => api.post('orabooks_async_queue_poll_now'),
-  webhookSettingsGet: () => api.get('orabooks_webhook_settings_get'),
-  webhookSettingsSave: (urls: string) => api.post('orabooks_webhook_settings_save', { urls }),
+  webhookSettingsGet: (filters?: Record<string, any>) => api.get('orabooks_webhook_settings_get', filters || {}),
+  webhookSettingsSave: (urls: string, extra: Record<string, any> = {}) =>
+    api.post('orabooks_webhook_settings_save', { urls, ...extra }),
   observabilityDashboard: (hours = 24) =>
     api.post('orabooks_observability_dashboard', { hours }),
   eventBusDeadLetters: () =>
