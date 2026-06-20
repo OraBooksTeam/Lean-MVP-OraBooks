@@ -87,10 +87,24 @@ export default function AdminSettings() {
     });
   };
 
+  const runDeployChecks = () => {
+    setDeployLoading(true);
+    setDeployError('');
+    api.deployChecks().then((res) => {
+      if (res.error) {
+        setDeployError(typeof res.error === 'string' ? res.error : 'Deploy checks failed.');
+        setDeployChecks(null);
+      } else {
+        setDeployChecks((res as { data?: DeployChecksResult }).data || null);
+      }
+      setDeployLoading(false);
+    });
+  };
+
   return (
     <AdminPageShell
       title="Platform Settings"
-      description="Security, authentication, and audit retention defaults."
+      description="Security, authentication, audit retention, and post-deploy verification."
     >
       {error && <p className="text-sm text-danger">{error}</p>}
       {message && <p className="text-sm text-success">{message}</p>}
@@ -198,6 +212,87 @@ export default function AdminSettings() {
           </div>
         </form>
       )}
+
+      <section className="glass-panel mt-6 overflow-hidden">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border bg-muted/60 px-6 py-4">
+          <div className="flex items-center gap-2">
+            <ShieldCheck className="h-5 w-5 text-primary" />
+            <div>
+              <h2 className="text-sm font-bold text-ink">Post-deploy verification</h2>
+              <p className="text-xs text-slate-500">
+                Confirms shared table prefix, SL-021 schema, crons, and async handlers after upload.
+              </p>
+            </div>
+          </div>
+          <Button onClick={runDeployChecks} variant="secondary" size="sm" disabled={deployLoading}>
+            <RefreshCw className={`h-4 w-4 ${deployLoading ? 'animate-spin' : ''}`} />
+            {deployLoading ? 'Running…' : 'Run checks'}
+          </Button>
+        </div>
+
+        {deployError && (
+          <p className="px-6 py-4 text-sm text-danger">{deployError}</p>
+        )}
+
+        {deployChecks && (
+          <div className="px-6 py-4">
+            <div
+              className={`mb-4 flex items-center gap-2 rounded-xl border px-4 py-3 text-sm font-semibold ${
+                deployChecks.ok
+                  ? 'border-success/30 bg-success/10 text-success'
+                  : 'border-danger/30 bg-danger/10 text-danger'
+              }`}
+            >
+              {deployChecks.ok ? <CheckCircle2 className="h-4 w-4" /> : <XCircle className="h-4 w-4" />}
+              {deployChecks.ok ? 'All deploy checks passed' : 'One or more deploy checks failed'}
+            </div>
+
+            {deployChecks.environment && (
+              <div className="mb-4 grid gap-2 text-xs text-slate-600 sm:grid-cols-2 lg:grid-cols-3">
+                {Object.entries(deployChecks.environment).map(([key, value]) => (
+                  <p key={key}>
+                    <span className="font-semibold text-ink">{key}:</span>{' '}
+                    {value === null || value === undefined || value === '' ? '—' : String(value)}
+                  </p>
+                ))}
+              </div>
+            )}
+
+            <div className="overflow-hidden rounded-xl border border-border">
+              <table className="min-w-full text-left text-sm">
+                <thead>
+                  <tr className="border-b border-border bg-slate-50/80 text-xs uppercase text-slate-500">
+                    <th className="px-4 py-2 font-semibold">Check</th>
+                    <th className="px-4 py-2 font-semibold">Status</th>
+                    <th className="px-4 py-2 font-semibold">Detail</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {(deployChecks.checks || []).map((check) => (
+                    <tr key={check.id}>
+                      <td className="px-4 py-2.5 font-medium text-ink">{check.label}</td>
+                      <td className="px-4 py-2.5">
+                        <span
+                          className={`badge ${check.ok ? 'bg-success/10 text-success' : 'bg-danger/10 text-danger'}`}
+                        >
+                          {check.ok ? 'OK' : 'FAIL'}
+                        </span>
+                      </td>
+                      <td className="px-4 py-2.5 text-xs text-slate-500">{check.detail || '—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {deployChecks.timestamp && (
+              <p className="mt-3 text-xs text-slate-500">
+                Checked at {new Date(deployChecks.timestamp).toLocaleString()}
+              </p>
+            )}
+          </div>
+        )}
+      </section>
     </AdminPageShell>
   );
 }
