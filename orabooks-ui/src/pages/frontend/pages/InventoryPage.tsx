@@ -514,10 +514,219 @@ export default function InventoryPage() {
   );
 }
 
+function ProductFields({
+  form,
+  onChange,
+}: {
+  form: ProductFormState;
+  onChange: (next: ProductFormState) => void;
+}) {
+  const set = (patch: Partial<ProductFormState>) => onChange({ ...form, ...patch });
+
+  const applyPricing = (patch: Partial<ProductFormState>) => {
+    const next = { ...form, ...patch };
+    const price = parseFloat(next.price) || 0;
+    const taxPercent = parseFloat(next.tax_percent) || 0;
+    const profitMargin = parseFloat(next.profit_margin) || 0;
+    const purchasePrice = next.tax_type === 'Exclusive' && taxPercent > 0
+      ? price + (price * taxPercent / 100)
+      : price;
+    const salesPrice = profitMargin > 0 ? price + (price * profitMargin / 100) : price;
+
+    onChange({
+      ...next,
+      purchase_price: price > 0 ? purchasePrice.toFixed(2) : '',
+      sales_price: price > 0 ? salesPrice.toFixed(2) : '',
+      mrp: price > 0 ? salesPrice.toFixed(2) : '',
+    });
+  };
+
+  const selectedTax = PRODUCT_TAXES.find((tax) => tax.name === form.tax_name);
+
+  return (
+    <div className="grid gap-6 lg:grid-cols-2">
+      <section className="space-y-4 rounded-2xl border border-border bg-slate-50/60 p-4">
+        <h4 className="text-sm font-bold uppercase tracking-wide text-ink">Item Information</h4>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="Item Code">
+            <div className="rounded-lg border border-border bg-slate-100 px-3 py-2.5 text-sm text-slate-600">Auto-generated from ITM-1001</div>
+          </Field>
+          <Field label="Item Name">
+            <Input value={form.name} onChange={(e) => set({ name: e.target.value })} placeholder="Enter item name" required />
+          </Field>
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="Brand">
+            <SelectWithCustom value={form.brand_name} options={PRODUCT_BRANDS} placeholder="- Select -" onChange={(value) => set({ brand_name: value })} />
+          </Field>
+          <Field label="Category">
+            <SelectWithCustom value={form.category_name} options={PRODUCT_CATEGORIES} placeholder="- Select -" onChange={(value) => set({ category_name: value })} />
+          </Field>
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="Unit">
+            <SelectWithCustom value={form.unit} options={PRODUCT_UNITS} placeholder="- Select -" onChange={(value) => set({ unit: value })} />
+          </Field>
+          <Field label="HSN">
+            <Input value={form.hsn} onChange={(e) => set({ hsn: e.target.value })} placeholder="HSN Code" />
+          </Field>
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="SKU">
+            <Input value={form.stock_keeping_unit} onChange={(e) => set({ stock_keeping_unit: e.target.value.toUpperCase() })} placeholder="Stock Keeping Unit" />
+          </Field>
+          <Field label="Barcode">
+            <Input value={form.barcode} onChange={(e) => set({ barcode: e.target.value })} placeholder="Barcode / UPC" />
+          </Field>
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="Alert Quantity">
+            <Input type="number" min="0" step="0.01" value={form.low_stock_threshold} onChange={(e) => set({ low_stock_threshold: e.target.value })} placeholder="0" />
+          </Field>
+          <Field label="Seller Points">
+            <Input type="number" min="0" step="0.01" value={form.seller_points} onChange={(e) => set({ seller_points: e.target.value })} placeholder="0" />
+          </Field>
+        </div>
+
+        <Field label="Description">
+          <textarea
+            value={form.description}
+            onChange={(e) => set({ description: e.target.value })}
+            rows={3}
+            placeholder="Optional item details..."
+            className="w-full rounded-lg border border-border bg-white px-3 py-2.5 text-sm text-ink shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+          />
+        </Field>
+
+        <Field label="Item Image URL">
+          <Input type="url" value={form.item_image_url} onChange={(e) => set({ item_image_url: e.target.value })} placeholder="https://..." />
+        </Field>
+        {form.item_image_url && (
+          <div className="h-24 w-24 overflow-hidden rounded-xl border border-border bg-white">
+            <img src={form.item_image_url} alt="Item preview" className="h-full w-full object-cover" />
+          </div>
+        )}
+      </section>
+
+      <section className="space-y-4 rounded-2xl border border-border bg-slate-50/60 p-4">
+        <h4 className="text-sm font-bold uppercase tracking-wide text-ink">Pricing & Stock</h4>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="Discount Type">
+            <select value={form.discount_type} onChange={(e) => set({ discount_type: e.target.value === 'Fixed' ? 'Fixed' : 'Percentage' })} className={selectClassName}>
+              <option value="Percentage">Percentage (%)</option>
+              <option value="Fixed">Fixed Amount</option>
+            </select>
+          </Field>
+          <Field label="Discount">
+            <Input type="number" min="0" step="0.01" value={form.discount} onChange={(e) => set({ discount: e.target.value })} placeholder="0.00" />
+          </Field>
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="Price">
+            <Input type="number" min="0" step="0.01" value={form.price} onChange={(e) => applyPricing({ price: e.target.value })} placeholder="0.00" required />
+          </Field>
+          <Field label="Purchase Price">
+            <Input type="number" min="0" step="0.01" value={form.purchase_price} onChange={(e) => set({ purchase_price: e.target.value })} placeholder="0.00" />
+          </Field>
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="Tax">
+            <select
+              value={form.tax_name}
+              onChange={(e) => {
+                const tax = PRODUCT_TAXES.find((option) => option.name === e.target.value);
+                applyPricing({ tax_name: tax?.name || '', tax_percent: String(tax?.percent ?? 0) });
+              }}
+              className={selectClassName}
+            >
+              <option value="">- Select -</option>
+              {PRODUCT_TAXES.map((tax) => (
+                <option key={tax.name} value={tax.name}>{tax.name}</option>
+              ))}
+            </select>
+            {selectedTax && <span className="text-xs text-slate-500">{selectedTax.percent}% tax selected</span>}
+          </Field>
+          <Field label="Tax Type">
+            <select value={form.tax_type} onChange={(e) => applyPricing({ tax_type: e.target.value === 'Exclusive' ? 'Exclusive' : 'Inclusive' })} className={selectClassName}>
+              <option value="Inclusive">Inclusive</option>
+              <option value="Exclusive">Exclusive</option>
+            </select>
+          </Field>
+        </div>
+
+        <Field label="Profit Margin (%)">
+          <Input type="number" min="0" step="0.01" value={form.profit_margin} onChange={(e) => applyPricing({ profit_margin: e.target.value })} placeholder="0.00" />
+        </Field>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="Sales Price">
+            <Input type="number" min="0" step="0.01" value={form.sales_price} onChange={(e) => set({ sales_price: e.target.value })} placeholder="0.00" />
+          </Field>
+          <Field label="MRP">
+            <Input type="number" min="0" step="0.01" value={form.mrp} onChange={(e) => set({ mrp: e.target.value })} placeholder="0.00" />
+          </Field>
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="Warehouse">
+            <SelectWithCustom value={form.warehouse_name} options={PRODUCT_WAREHOUSES} placeholder="- Select -" onChange={(value) => set({ warehouse_name: value })} />
+          </Field>
+          <Field label="Opening Stock">
+            <Input type="number" min="0" step="0.01" value={form.initial_stock} onChange={(e) => set({ initial_stock: e.target.value })} placeholder="0.00" />
+          </Field>
+        </div>
+
+        <Field label="Item Type">
+          <select value={form.item_type} onChange={(e) => set({ item_type: e.target.value as ProductFormState['item_type'] })} className={selectClassName}>
+            <option value="Single">Single Item</option>
+            <option value="Variants">Product Variants</option>
+            <option value="service">Service</option>
+          </select>
+        </Field>
+      </section>
+    </div>
+  );
+}
+
+function SelectWithCustom({
+  value,
+  options,
+  placeholder,
+  onChange,
+}: {
+  value: string;
+  options: string[];
+  placeholder: string;
+  onChange: (value: string) => void;
+}) {
+  const isCustom = value && !options.includes(value);
+
+  return (
+    <div className="grid gap-2">
+      <select value={isCustom ? '__custom__' : value} onChange={(e) => onChange(e.target.value === '__custom__' ? value : e.target.value)} className={selectClassName}>
+        <option value="">{placeholder}</option>
+        {options.map((option) => (
+          <option key={option} value={option}>{option}</option>
+        ))}
+        <option value="__custom__">Custom...</option>
+      </select>
+      {(isCustom || value === '') && (
+        <Input value={isCustom ? value : ''} onChange={(e) => onChange(e.target.value)} placeholder="Enter custom value" />
+      )}
+    </div>
+  );
+}
+
 function Modal({ title, children, onClose }: { title: string; children: ReactNode; onClose: () => void }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4" onClick={onClose}>
-      <div className="w-full max-w-lg rounded-2xl border border-border bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+      <div className="max-h-[90vh] w-full max-w-5xl overflow-y-auto rounded-2xl border border-border bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between gap-3">
           <h3 className="text-lg font-semibold text-ink">{title}</h3>
           <button type="button" onClick={onClose} className="text-sm text-slate-500 hover:text-slate-700">Close</button>
