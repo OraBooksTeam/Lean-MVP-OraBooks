@@ -796,7 +796,7 @@ class OraBooks_Posting {
         }
 
         $posted = $wpdb->get_results($wpdb->prepare(
-            "SELECT id, journal_hash, previous_hash, journal_number
+            "SELECT id, transaction_date, journal_hash, previous_hash, journal_number
              FROM {$table_journals}
              WHERE org_id = %d AND status IN ('posted', 'locked')
              ORDER BY posted_at ASC, id ASC",
@@ -1426,26 +1426,33 @@ class OraBooks_Posting {
         global $wpdb;
         
         $table = OraBooks_Database::table('journals');
-        $where = 'org_id = %d';
+        $where = 'j.org_id = %d';
         $params = [$org_id];
         
         if (!empty($args['status'])) {
-            $where .= ' AND status = %s';
+            $where .= ' AND j.status = %s';
             $params[] = $args['status'];
         }
         if (!empty($args['from_date'])) {
-            $where .= ' AND transaction_date >= %s';
+            $where .= ' AND j.transaction_date >= %s';
             $params[] = $args['from_date'];
         }
         if (!empty($args['to_date'])) {
-            $where .= ' AND transaction_date <= %s';
+            $where .= ' AND j.transaction_date <= %s';
             $params[] = $args['to_date'];
+        }
+        if (!empty($args['account_code'])) {
+            $where .= ' AND EXISTS (
+                SELECT 1 FROM ' . OraBooks_Database::table('journal_lines') . ' jl
+                WHERE jl.journal_id = j.id AND jl.account_code = %s
+            )';
+            $params[] = sanitize_text_field($args['account_code']);
         }
         
         $limit = $args['limit'] ?? 50;
         $offset = $args['offset'] ?? 0;
         
-        $sql = "SELECT * FROM {$table} WHERE {$where} ORDER BY created_at DESC LIMIT %d OFFSET %d";
+        $sql = "SELECT j.* FROM {$table} j WHERE {$where} ORDER BY j.created_at DESC LIMIT %d OFFSET %d";
         $params[] = $limit;
         $params[] = $offset;
         
