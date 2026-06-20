@@ -1387,6 +1387,9 @@ class OraBooks_Auth {
         
         $user_id = (int) $payload['user_id'];
         $wp_user_id = orabooks_get_wp_user_id_for_orabooks_user($user_id);
+        if ($wp_user_id <= 0) {
+            $wp_user_id = orabooks_ensure_wp_user_link_for_orabooks_user($user_id);
+        }
         $secret = orabooks_get_2fa_secret($wp_user_id);
         
         if (!empty($otp) && OraBooks_Secrets::verify_totp($secret, $otp)) {
