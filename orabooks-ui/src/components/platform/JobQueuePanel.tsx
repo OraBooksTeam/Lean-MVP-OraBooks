@@ -248,3 +248,13 @@ function Stat({ label, value }: { label: string; value: string | number }) {
     </div>
   );
 }
+
+function safePayload(payload: any) {
+  if (!payload) return {};
+  if (typeof payload === 'object') return payload;
+  try {
+    return JSON.parse(payload);
+  } catch {
+    return {};
+  }
+}
