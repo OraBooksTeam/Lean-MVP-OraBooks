@@ -50,6 +50,7 @@ class OraBooks_Database {
             INDEX idx_owner (owner_id)
         ) {$charset_collate};";
         dbDelta($sql);
+        self::ensure_async_queue_schema($table_jobs);
         
         $existing_partner_check = $wpdb->get_var("SELECT CONSTRAINT_NAME FROM information_schema.TABLE_CONSTRAINTS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = '{$table_organizations}' AND CONSTRAINT_NAME = 'chk_partner_consistency'");
         if (!$existing_partner_check) {
