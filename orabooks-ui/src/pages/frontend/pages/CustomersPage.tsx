@@ -15,12 +15,66 @@ type Customer = {
   invoice_count?: number;
   total_paid?: string | number;
   wallet_balance?: string | number;
+  credit_balance?: string | number;
+  credit_limit?: string | number;
+  credit_hold?: number;
+  auto_apply_credit?: number;
+  payment_terms?: number;
+  default_currency?: string;
   last_paid_invoice_date?: string | null;
   notes?: string | null;
 };
 
+type CustomerFormState = {
+  name: string;
+  email: string;
+  notes: string;
+  payment_terms: string;
+  default_currency: string;
+  credit_limit: string;
+  credit_hold: boolean;
+  auto_apply_credit: boolean;
+};
+
+const emptyCustomerForm = (): CustomerFormState => ({
+  name: '',
+  email: '',
+  notes: '',
+  payment_terms: '30',
+  default_currency: 'USD',
+  credit_limit: '0',
+  credit_hold: false,
+  auto_apply_credit: true,
+});
+
 function customerLabel(customer: Pick<Customer, 'id' | 'display_name' | 'email'>) {
   return customer.display_name?.trim() || customer.email || `Customer #${customer.id}`;
+}
+
+function customerToForm(customer: Customer): CustomerFormState {
+  return {
+    name: customer.display_name?.trim() || '',
+    email: customer.email || '',
+    notes: customer.notes || '',
+    payment_terms: String(customer.payment_terms ?? 30),
+    default_currency: customer.default_currency || 'USD',
+    credit_limit: String(customer.credit_limit ?? 0),
+    credit_hold: Number(customer.credit_hold) === 1,
+    auto_apply_credit: Number(customer.auto_apply_credit ?? 1) === 1,
+  };
+}
+
+function customerFormPayload(form: CustomerFormState) {
+  return {
+    display_name: form.name.trim(),
+    email: form.email.trim(),
+    notes: form.notes.trim(),
+    payment_terms: parseInt(form.payment_terms, 10) || 30,
+    default_currency: form.default_currency.trim() || 'USD',
+    credit_limit: parseFloat(form.credit_limit) || 0,
+    credit_hold: form.credit_hold ? 1 : 0,
+    auto_apply_credit: form.auto_apply_credit ? 1 : 0,
+  };
 }
 
 export default function CustomersPage() {
@@ -32,9 +86,9 @@ export default function CustomersPage() {
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
   const [editing, setEditing] = useState<Customer | null>(null);
-  const [editNotes, setEditNotes] = useState('');
+  const [editForm, setEditForm] = useState<CustomerFormState>(emptyCustomerForm());
   const [showCustomerForm, setShowCustomerForm] = useState(false);
-  const [customerForm, setCustomerForm] = useState({ name: '', email: '', notes: '' });
+  const [customerForm, setCustomerForm] = useState<CustomerFormState>(emptyCustomerForm());
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState('');
 
@@ -86,18 +140,24 @@ export default function CustomersPage() {
 
   const openEdit = (customer: Customer) => {
     setEditing(customer);
-    setEditNotes(customer.notes || '');
+    setEditForm(customerToForm(customer));
     setSuccess('');
+    setError('');
   };
 
-  const saveNotes = async () => {
+  const saveCustomer = async () => {
     if (!editing) return;
+    if (!editForm.name.trim()) {
+      setError('Customer name is required.');
+      return;
+    }
+
     setSaving(true);
     setSuccess('');
-    const res = await api.customerUpdate(editing.id, { notes: editNotes });
+    const res = await api.customerUpdate(editing.id, customerFormPayload(editForm));
     if (res.error) setError(typeof res.error === 'string' ? res.error : 'Unable to update customer.');
     else {
-      setSuccess('Customer notes saved.');
+      setSuccess('Customer profile saved.');
       setEditing(null);
       await load();
     }
@@ -112,18 +172,14 @@ export default function CustomersPage() {
 
     setSaving(true);
     setError('');
-    const res = await api.customerCreate(orgId, {
-      display_name: customerForm.name.trim(),
-      email: customerForm.email.trim(),
-      notes: customerForm.notes.trim(),
-    });
+    const res = await api.customerCreate(orgId, customerFormPayload(customerForm));
 
     if (res.error) {
       setError(typeof res.error === 'string' ? res.error : 'Unable to create customer.');
     } else {
       setSuccess('Customer profile created.');
       setShowCustomerForm(false);
-      setCustomerForm({ name: '', email: '', notes: '' });
+      setCustomerForm(emptyCustomerForm());
       await load();
     }
 
@@ -141,7 +197,7 @@ export default function CustomersPage() {
         <div className="flex items-start gap-3 rounded-xl border border-sky-200 bg-sky-50/80 p-4 text-sm text-sky-900">
           <Info className="mt-0.5 h-4 w-4 shrink-0" />
           <p>
-            Add customer profiles for invoicing and AR tracking. Wallet balance shows open AR per customer (unpaid and partial invoices). Active status is maintained automatically from paid invoice activity.
+            Manage AR customer profiles with payment terms, credit limits, and credit hold. Wallet balance shows open AR; credit balance stores overpayments per SL-021.
           </p>
         </div>
 
@@ -167,6 +223,7 @@ export default function CustomersPage() {
               size="sm"
               onClick={() => {
                 setShowCustomerForm(true);
+                setCustomerForm(emptyCustomerForm());
                 setError('');
                 setSuccess('');
               }}
@@ -200,20 +257,19 @@ export default function CustomersPage() {
             <thead>
               <tr className="border-b border-border bg-slate-50/70 text-xs uppercase text-slate-500">
                 <th className="px-5 py-3 font-semibold">Customer</th>
+                <th className="px-5 py-3 font-semibold">Terms</th>
                 <th className="px-5 py-3 font-semibold">Status</th>
-                <th className="px-5 py-3 font-semibold">Invoices</th>
-                <th className="px-5 py-3 text-right font-semibold">Wallet (AR due)</th>
-                <th className="px-5 py-3 text-right font-semibold">Paid</th>
-                <th className="px-5 py-3 font-semibold">Last Paid</th>
+                <th className="px-5 py-3 text-right font-semibold">AR due</th>
+                <th className="px-5 py-3 text-right font-semibold">Credit</th>
                 <th className="px-5 py-3 font-semibold">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
               {loading ? (
-                <tr><td colSpan={7} className="px-5 py-8 text-center text-slate-500">Loading customers…</td></tr>
+                <tr><td colSpan={6} className="px-5 py-8 text-center text-slate-500">Loading customers…</td></tr>
               ) : customers.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-5 py-10 text-center">
+                  <td colSpan={6} className="px-5 py-10 text-center">
                     <Users className="mx-auto h-8 w-8 text-slate-300" />
                     <p className="mt-2 text-sm text-slate-500">No customer records found.</p>
                     {canManageCustomers && (
@@ -231,34 +287,33 @@ export default function CustomersPage() {
                     {customer.email && customer.display_name && (
                       <p className="text-xs text-slate-500">{customer.email}</p>
                     )}
-                    {customer.notes && <p className="text-xs text-slate-500">{customer.notes}</p>}
+                    {Number(customer.credit_hold) === 1 && (
+                      <span className="mt-1 inline-block rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-800">Credit hold</span>
+                    )}
                   </td>
+                  <td className="px-5 py-3 text-slate-600">{customer.payment_terms ?? 30} days</td>
                   <td className="px-5 py-3">
                     <span className={`badge border ${Number(customer.is_active) === 1 ? 'border-success/20 bg-success/10 text-success' : 'border-slate-200 bg-slate-100 text-slate-600'}`}>
                       {Number(customer.is_active) === 1 ? 'active' : 'inactive'}
                     </span>
                   </td>
-                  <td className="px-5 py-3 text-slate-600">{customer.invoice_count ?? 0}</td>
-                  <td className="px-5 py-3 text-right font-semibold text-ink">{money(customer.wallet_balance)}</td>
-                  <td className="px-5 py-3 text-right font-bold text-ink">{money(customer.total_paid)}</td>
-                  <td className="px-5 py-3 text-slate-600">{customer.last_paid_invoice_date || '—'}</td>
+                  <td className="px-5 py-3 text-right font-semibold text-ink">{money(customer.wallet_balance, customer.default_currency)}</td>
+                  <td className="px-5 py-3 text-right text-slate-600">{money(customer.credit_balance, customer.default_currency)}</td>
                   <td className="px-5 py-3">
                     <div className="flex flex-wrap gap-1">
                       {canManageCustomers && (
                         <Button size="sm" variant="secondary" onClick={() => openEdit(customer)}>
                           <Pencil className="h-3.5 w-3.5" />
-                          Notes
+                          Edit
                         </Button>
                       )}
+                      <WpLink to={`/invoices?customer_id=${customer.id}`}>
+                        <Button size="sm" variant="secondary">Invoices</Button>
+                      </WpLink>
                       <WpLink to={`/attachments?resource_type=customer&resource_id=${customer.id}`}>
                         <Button size="sm" variant="secondary">
                           <Paperclip className="h-3.5 w-3.5" />
                           Files
-                        </Button>
-                      </WpLink>
-                      <WpLink to="/invoices">
-                        <Button size="sm" variant="secondary">
-                          Invoices
                         </Button>
                       </WpLink>
                     </div>
@@ -272,31 +327,7 @@ export default function CustomersPage() {
         {showCustomerForm && (
           <Modal title="Add customer" onClose={() => setShowCustomerForm(false)}>
             {error && <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div>}
-            <div className="grid gap-4">
-              <Field label="Name">
-                <Input
-                  value={customerForm.name}
-                  onChange={(e) => setCustomerForm((p) => ({ ...p, name: e.target.value }))}
-                  placeholder="Acme Corp"
-                  required
-                />
-              </Field>
-              <Field label="Email">
-                <Input
-                  type="email"
-                  value={customerForm.email}
-                  onChange={(e) => setCustomerForm((p) => ({ ...p, email: e.target.value }))}
-                  placeholder="billing@acme.com"
-                />
-              </Field>
-              <Field label="Notes">
-                <Input
-                  value={customerForm.notes}
-                  onChange={(e) => setCustomerForm((p) => ({ ...p, notes: e.target.value }))}
-                  placeholder="Internal notes (optional)"
-                />
-              </Field>
-            </div>
+            <CustomerFields form={customerForm} onChange={setCustomerForm} />
             <div className="mt-6 flex justify-end gap-2">
               <Button variant="secondary" onClick={() => setShowCustomerForm(false)}>Cancel</Button>
               <Button onClick={handleCreateCustomer} loading={saving} disabled={!customerForm.name.trim()}>
@@ -307,30 +338,70 @@ export default function CustomersPage() {
         )}
 
         {editing && (
-          <div className="glass-panel space-y-4 p-5">
-            <h3 className="text-lg font-bold text-ink">Edit customer notes</h3>
-            <p className="text-sm text-slate-600">{customerLabel(editing)}</p>
-            <Input
-              label="Notes"
-              value={editNotes}
-              onChange={(e) => setEditNotes(e.target.value)}
-              placeholder="Internal notes about this customer"
-            />
-            <div className="flex gap-2">
-              <Button onClick={saveNotes} loading={saving}>Save notes</Button>
+          <Modal title="Edit customer" onClose={() => setEditing(null)}>
+            <p className="mb-4 text-sm text-slate-600">{customerLabel(editing)}</p>
+            {error && <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div>}
+            <CustomerFields form={editForm} onChange={setEditForm} />
+            <div className="mt-6 flex justify-end gap-2">
               <Button variant="secondary" onClick={() => setEditing(null)}>Cancel</Button>
+              <Button onClick={saveCustomer} loading={saving} disabled={!editForm.name.trim()}>Save changes</Button>
             </div>
-          </div>
+          </Modal>
         )}
       </div>
     </ClientShell>
   );
 }
 
+function CustomerFields({
+  form,
+  onChange,
+}: {
+  form: CustomerFormState;
+  onChange: (next: CustomerFormState) => void;
+}) {
+  const set = (patch: Partial<CustomerFormState>) => onChange({ ...form, ...patch });
+
+  return (
+    <div className="grid gap-4">
+      <Field label="Name">
+        <Input value={form.name} onChange={(e) => set({ name: e.target.value })} placeholder="Acme Corp" required />
+      </Field>
+      <Field label="Email">
+        <Input type="email" value={form.email} onChange={(e) => set({ email: e.target.value })} placeholder="billing@acme.com" />
+      </Field>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Field label="Payment terms (days)">
+          <Input type="number" min="0" value={form.payment_terms} onChange={(e) => set({ payment_terms: e.target.value })} />
+        </Field>
+        <Field label="Default currency">
+          <Input value={form.default_currency} onChange={(e) => set({ default_currency: e.target.value.toUpperCase() })} maxLength={3} />
+        </Field>
+      </div>
+      <Field label="Credit limit (0 = unlimited)">
+        <Input type="number" min="0" step="0.01" value={form.credit_limit} onChange={(e) => set({ credit_limit: e.target.value })} />
+      </Field>
+      <div className="flex flex-wrap gap-6">
+        <label className="flex items-center gap-2 text-sm text-slate-700">
+          <input type="checkbox" checked={form.credit_hold} onChange={(e) => set({ credit_hold: e.target.checked })} />
+          Credit hold
+        </label>
+        <label className="flex items-center gap-2 text-sm text-slate-700">
+          <input type="checkbox" checked={form.auto_apply_credit} onChange={(e) => set({ auto_apply_credit: e.target.checked })} />
+          Auto-apply credit balance
+        </label>
+      </div>
+      <Field label="Notes">
+        <Input value={form.notes} onChange={(e) => set({ notes: e.target.value })} placeholder="Internal notes (optional)" />
+      </Field>
+    </div>
+  );
+}
+
 function Modal({ title, children, onClose }: { title: string; children: ReactNode; onClose: () => void }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4" onClick={onClose}>
-      <div className="w-full max-w-lg rounded-2xl border border-border bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+      <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-border bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between gap-3">
           <h3 className="text-lg font-semibold text-ink">{title}</h3>
           <button type="button" onClick={onClose} className="text-sm text-slate-500 hover:text-slate-700">Close</button>
@@ -359,6 +430,6 @@ function Metric({ label, value }: { label: string; value: string | number }) {
   );
 }
 
-function money(value?: string | number) {
-  return new Intl.NumberFormat(undefined, { style: 'currency', currency: 'USD' }).format(Number(value || 0));
+function money(value?: string | number, currency = 'USD') {
+  return new Intl.NumberFormat(undefined, { style: 'currency', currency: currency || 'USD' }).format(Number(value || 0));
 }
