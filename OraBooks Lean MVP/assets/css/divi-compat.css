@@ -163,16 +163,11 @@ body.orabooks-page.orabooks-divi-theme.orabooks-react-page #orabooks-app-root as
     z-index: 100;
 }
 
-body.orabooks-page.orabooks-divi-theme.orabooks-react-page #orabooks-app-root main > .sticky {
-    top: var(--orabooks-divi-admin-bar);
+body.orabooks-page.orabooks-divi-theme.orabooks-react-page #orabooks-app-root .orabooks-client-main > div.sticky {
     z-index: 99;
 }
 
-@media (min-width: 1024px) {
-    body.orabooks-page.orabooks-divi-theme.orabooks-react-page #orabooks-app-root main {
-        padding-left: 18rem !important;
-    }
-}
+/* Sidebar offset is handled by Tailwind lg:pl-72 on .orabooks-client-main */
 
 /* Break Divi builder transform/filter chains that break position:fixed sidebars */
 body.orabooks-page.orabooks-divi-theme.orabooks-react-page #page-container,

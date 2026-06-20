@@ -269,16 +269,12 @@ body.orabooks-page.orabooks-react-page #orabooks-app-root aside.fixed {
     z-index: 100;
 }
 
-body.orabooks-page.orabooks-react-page #orabooks-app-root main > .sticky {
-    top: var(--orabooks-wp-admin-bar);
+body.orabooks-page.orabooks-react-page #orabooks-app-root main > .sticky,
+body.orabooks-page.orabooks-react-page #orabooks-app-root .orabooks-client-main > div.sticky {
     z-index: 99;
 }
 
-@media (min-width: 1024px) {
-    body.orabooks-page.orabooks-react-page #orabooks-app-root .min-h-screen > main {
-        padding-left: 18rem !important;
-    }
-}
+/* Sidebar offset is handled by Tailwind lg:pl-72 on .orabooks-client-main */
 
 /* Mobile drawer overlay */
 body.orabooks-page.orabooks-react-page #orabooks-app-root .orabooks-mobile-drawer-backdrop {

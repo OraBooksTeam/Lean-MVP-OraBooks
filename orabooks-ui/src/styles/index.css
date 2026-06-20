@@ -110,4 +110,17 @@
     width: 0;
     height: 0;
   }
+  .orabooks-table-scroll {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .orabooks-client-sidebar nav,
+  .orabooks-mobile-drawer nav {
+    scrollbar-width: none;
+  }
+  .orabooks-client-sidebar nav::-webkit-scrollbar,
+  .orabooks-mobile-drawer nav::-webkit-scrollbar {
+    display: none;
+  }
 }
