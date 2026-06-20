@@ -123,6 +123,13 @@ class OraBooks_AsyncQueue {
         $delay        = isset($opts['delay_seconds']) ? (int)$opts['delay_seconds'] : 0;
         $idempotency_key = !empty($opts['idempotency_key']) ? sanitize_text_field($opts['idempotency_key']) : '';
 
+        if (empty($payload['org_id']) && function_exists('orabooks_get_current_org_id')) {
+            $scoped_org_id = (int) orabooks_get_current_org_id();
+            if ($scoped_org_id > 0) {
+                $payload['org_id'] = $scoped_org_id;
+            }
+        }
+
         $next_retry_at = $delay > 0
             ? date('Y-m-d H:i:s', time() + $delay)
             : current_time('mysql', true);

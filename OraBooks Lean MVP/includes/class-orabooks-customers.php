@@ -910,9 +910,9 @@ class OraBooks_Customers {
                        o.name as org_name,
                        (SELECT COUNT(*) FROM {$table_invoices} WHERE customer_id = c.id) as invoice_count,
                        (SELECT COALESCE(SUM(total_amount), 0) FROM {$table_invoices} WHERE customer_id = c.id AND payment_status IN ('paid', 'partial')) as total_paid,
-                       (SELECT COALESCE(SUM(total_amount - COALESCE(paid_amount, 0)), 0)
+                       (COALESCE(c.opening_balance, 0) + (SELECT COALESCE(SUM(total_amount - COALESCE(paid_amount, 0)), 0)
                         FROM {$table_invoices}
-                        WHERE customer_id = c.id AND payment_status IN ('unpaid', 'partial', 'overdue')) as wallet_balance
+                        WHERE customer_id = c.id AND payment_status IN ('unpaid', 'partial', 'overdue'))) as wallet_balance
                 FROM {$table} c
                 LEFT JOIN {$table_users} u ON c.user_id = u.id
                 LEFT JOIN {$table_orgs} o ON c.org_id = o.id
@@ -1842,11 +1842,16 @@ class OraBooks_Customers {
             $org_id
         ));
 
-        // Outstanding AR (unpaid invoice totals)
+        // Outstanding AR (opening balances + unpaid invoice totals)
         $stats['outstanding_ar'] = (float) $wpdb->get_var($wpdb->prepare(
-            "SELECT COALESCE(SUM(total_amount - COALESCE(paid_amount, 0)), 0)
-             FROM {$table_invoices}
-             WHERE org_id = %d AND payment_status IN ('unpaid', 'partial')",
+            "SELECT
+                COALESCE((SELECT SUM(opening_balance) FROM {$table_customers} WHERE org_id = %d), 0)
+                + COALESCE((
+                    SELECT SUM(total_amount - COALESCE(paid_amount, 0))
+                    FROM {$table_invoices}
+                    WHERE org_id = %d AND payment_status IN ('unpaid', 'partial')
+                ), 0)",
+            $org_id,
             $org_id
         ));
 
