@@ -833,6 +833,9 @@ class OraBooks_Database {
         if (!wp_next_scheduled('orabooks_async_queue_monitor')) {
             wp_schedule_event(time(), 'hourly', 'orabooks_async_queue_monitor');
         }
+        if (!wp_next_scheduled('orabooks_async_queue_archive')) {
+            wp_schedule_event(time(), 'daily', 'orabooks_async_queue_archive');
+        }
 
         // ============================================================
         // SL-114: Export Tables
