@@ -63,6 +63,10 @@ export default function ProfilePage() {
   const org = context?.organization;
   const isPartner = org?.organization_type === 'partner' || context?.user?.is_partner;
   const twoFaEnabled = Boolean(context?.user?.is_2fa_enabled);
+  const formatRole = (value?: string) => {
+    if (!value) return '—';
+    return value.charAt(0).toUpperCase() + value.slice(1);
+  };
 
   return (
     <ClientShell title="Profile" eyebrow="User and role" organization={org} isPartner={isPartner}>
