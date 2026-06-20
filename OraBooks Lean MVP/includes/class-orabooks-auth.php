@@ -1867,9 +1867,13 @@ class OraBooks_Auth {
 
         $result = orabooks_enrich_login_response($result);
 
-        orabooks_persist_login_session($result);
+        if (empty($result['needs_tier_selection'])) {
+            orabooks_persist_login_session($result);
+        } else {
+            orabooks_clear_logout_landing_cookie();
+        }
 
-        orabooks_json_success($result, 'Google login successful');
+        orabooks_json_success(orabooks_redact_client_auth_response($result), 'Google login successful');
     }
 
     /**
@@ -2117,7 +2121,7 @@ class OraBooks_Auth {
                 'is_partner' => false,
             ]);
             orabooks_persist_login_session($existing);
-            orabooks_json_success($existing, 'Organization already exists');
+            orabooks_json_success(orabooks_redact_client_auth_response($existing), 'Organization already exists');
         }
         
         $org_result = OraBooks_Organization::create([
@@ -2183,6 +2187,6 @@ class OraBooks_Auth {
 
         orabooks_persist_login_session($tier_result);
 
-        orabooks_json_success($tier_result, 'Organization created successfully');
+        orabooks_json_success(orabooks_redact_client_auth_response($tier_result), 'Organization created successfully');
     }
 }
