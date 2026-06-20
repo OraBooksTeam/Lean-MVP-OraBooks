@@ -66,11 +66,12 @@ class OraBooks_Posting {
             'created_by' => $user_id,
             'source_type' => $data['source_type'] ?? 'manual',
             'source_id' => $data['source_id'] ?? null,
+            'source_hash' => $data['source_hash'] ?? null,
             'reversal_of_id' => $data['reversal_of_id'] ?? null,
             'reversal_reason' => $data['reversal_reason'] ?? null,
             'metadata' => isset($data['metadata']) ? json_encode($data['metadata']) : null,
             'total_amount' => 0
-        ], ['%d', '%s', '%s', '%s', '%d', '%s', '%d', '%d', '%s', '%s', '%f']);
+        ], ['%d', '%s', '%s', '%s', '%d', '%s', '%d', '%s', '%d', '%s', '%s', '%f']);
         
         return $wpdb->insert_id;
     }
@@ -221,7 +222,7 @@ class OraBooks_Posting {
         $wpdb->update($table, [
             'status' => 'review_pending',
             'approval_round' => $new_round,
-            'last_submitted_at' => current_time('mysql'),
+            'last_submitted_at' => gmdate('Y-m-d H:i:s'),
             'last_submitted_by' => $user_id,
             'approval_stale' => 0,
             'approved_snapshot_hash' => $snapshot_hash,
@@ -291,7 +292,7 @@ class OraBooks_Posting {
         $wpdb->update($table, [
             'status' => 'approved',
             'approved_by' => $user_id,
-            'approved_at' => current_time('mysql'),
+            'approved_at' => gmdate('Y-m-d H:i:s'),
             'approved_snapshot_hash' => $current_hash,
             'approval_expires_at' => $expires_at,
             'lock_after_approval' => 1
@@ -459,8 +460,7 @@ class OraBooks_Posting {
             (int) $journal->org_id,
             $journal->transaction_date,
             $lines,
-            $previous_hash ?: null,
-            $journal_number
+            $previous_hash ?: null
         );
 
         // Create ledger entries and update balances
@@ -474,36 +474,14 @@ class OraBooks_Posting {
                 'posting_batch_id' => $batch_id
             ], ['%d', '%d', '%d', '%f', '%f', '%d']);
             
-            // Update balance using normal_balance
-            $account = $wpdb->get_row($wpdb->prepare(
-                "SELECT normal_balance FROM {$table_accounts} WHERE id = %d", $line->account_id
-            ));
-            
-            if ($account) {
-                $existing = $wpdb->get_row($wpdb->prepare(
-                    "SELECT balance FROM {$table_balances} WHERE org_id = %d AND account_id = %d",
-                    $journal->org_id, $line->account_id
-                ));
-                
-                $delta = 0;
-                if ($account->normal_balance === 'debit') {
-                    $delta = $line->debit_amount - $line->credit_amount;
-                } else {
-                    $delta = $line->credit_amount - $line->debit_amount;
-                }
-                
-                if ($existing) {
-                    $wpdb->query($wpdb->prepare(
-                        "UPDATE {$table_balances} SET balance = balance + %f WHERE org_id = %d AND account_id = %d",
-                        $delta, $journal->org_id, $line->account_id
-                    ));
-                } else {
-                    $wpdb->insert($table_balances, [
-                        'org_id' => $journal->org_id,
-                        'account_id' => $line->account_id,
-                        'balance' => $delta
-                    ], ['%d', '%d', '%f']);
-                }
+            $balance_update = self::update_account_balance(
+                (int) $journal->org_id,
+                (int) $line->account_id,
+                (float) $line->debit_amount,
+                (float) $line->credit_amount
+            );
+            if (is_wp_error($balance_update)) {
+                return $balance_update;
             }
         }
 
@@ -671,6 +649,11 @@ class OraBooks_Posting {
         usort($sorted_lines, function ($a, $b) {
             $aid = is_object($a) ? (int) $a->account_id : (int) ($a['account_id'] ?? 0);
             $bid = is_object($b) ? (int) $b->account_id : (int) ($b['account_id'] ?? 0);
+            if ($aid === $bid) {
+                $acode = (string) (is_object($a) ? $a->account_code : ($a['account_code'] ?? ''));
+                $bcode = (string) (is_object($b) ? $b->account_code : ($b['account_code'] ?? ''));
+                return strcmp($acode, $bcode);
+            }
             return $aid <=> $bid;
         });
 
@@ -681,8 +664,8 @@ class OraBooks_Posting {
             $canonical_lines[] = [
                 'account_code' => (string) (is_object($line) ? $line->account_code : ($line['account_code'] ?? '')),
                 'account_id' => (int) (is_object($line) ? $line->account_id : ($line['account_id'] ?? 0)),
-                'credit' => number_format($credit, 2, '.', ''),
-                'debit' => number_format($debit, 2, '.', ''),
+                'credit' => self::format_decimal($credit),
+                'debit' => self::format_decimal($debit),
             ];
         }
 
@@ -693,12 +676,7 @@ class OraBooks_Posting {
             'transaction_date' => $transaction_date,
         ];
 
-        if ($journal_number) {
-            $canonical['journal_number'] = $journal_number;
-        }
-
-        ksort($canonical);
-        return hash('sha256', json_encode($canonical, JSON_UNESCAPED_SLASHES));
+        return hash('sha256', self::canonical_json($canonical));
     }
 
     public static function validate_ledger_integrity($org_id) {

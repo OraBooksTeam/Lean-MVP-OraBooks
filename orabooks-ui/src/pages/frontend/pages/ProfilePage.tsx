@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import Button from '@/components/Button';
+import Input from '@/components/Input';
 import { api } from '../api';
 import ClientShell from '../components/ClientShell';
 import { RefreshCw, ShieldCheck } from 'lucide-react';
@@ -8,6 +9,13 @@ export default function ProfilePage() {
   const [context, setContext] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [securityMsg, setSecurityMsg] = useState('');
+  const [securityError, setSecurityError] = useState('');
+  const [setupLoading, setSetupLoading] = useState(false);
+  const [verifyLoading, setVerifyLoading] = useState(false);
+  const [qrUrl, setQrUrl] = useState('');
+  const [backupCodes, setBackupCodes] = useState<string[]>([]);
+  const [otp, setOtp] = useState('');
 
   const load = async () => {
     setLoading(true);
@@ -20,8 +28,41 @@ export default function ProfilePage() {
 
   useEffect(() => { void load(); }, []);
 
+  const start2faSetup = async () => {
+    setSecurityError('');
+    setSecurityMsg('');
+    setSetupLoading(true);
+    const res = await api.setup2fa();
+    if (res.error) {
+      setSecurityError(typeof res.error === 'string' ? res.error : 'Unable to start 2FA setup.');
+    } else {
+      setQrUrl(String((res as any).data?.qr_code_url || ''));
+      setBackupCodes(Array.isArray((res as any).data?.backup_codes) ? (res as any).data.backup_codes : []);
+      setSecurityMsg('Scan the QR code with your authenticator app, then enter the 6-digit code to enable 2FA.');
+    }
+    setSetupLoading(false);
+  };
+
+  const verify2faSetup = async (e: FormEvent) => {
+    e.preventDefault();
+    setSecurityError('');
+    setVerifyLoading(true);
+    const res = await api.verify2faSetup(otp);
+    if (res.error) {
+      setSecurityError(typeof res.error === 'string' ? res.error : 'Invalid code.');
+    } else {
+      setSecurityMsg('Two-factor authentication is now enabled.');
+      setQrUrl('');
+      setOtp('');
+      setBackupCodes([]);
+      await load();
+    }
+    setVerifyLoading(false);
+  };
+
   const org = context?.organization;
   const isPartner = org?.organization_type === 'partner' || context?.user?.is_partner;
+  const twoFaEnabled = Boolean(context?.user?.is_2fa_enabled);
 
   return (
     <ClientShell title="Profile" eyebrow="User and role" organization={org} isPartner={isPartner}>
@@ -45,7 +86,7 @@ export default function ProfilePage() {
                 <ProfileRow label="Email" value={context?.user?.email || '—'} />
                 <ProfileRow label="Role" value={context?.role || '—'} />
                 <ProfileRow label="Email Verified" value={context?.user?.is_email_verified ? 'Yes' : 'No'} />
-                <ProfileRow label="2FA Enabled" value={context?.user?.is_2fa_enabled ? 'Yes' : 'No'} />
+                <ProfileRow label="2FA Enabled" value={twoFaEnabled ? 'Yes' : 'No'} />
               </div>
               <p className="mt-4 rounded-xl border border-primary/20 bg-primary/10 p-3 text-sm font-medium text-primary-dark">
                 Contact organization owner to change your role.
@@ -60,6 +101,63 @@ export default function ProfilePage() {
                 <ProfileRow label="Status" value={org?.status || '—'} />
                 <ProfileRow label="Type" value={org?.organization_type || '—'} />
                 {!isPartner && <ProfileRow label="Plan" value={org?.tier || '—'} />}
+              </div>
+            </section>
+
+            <section className="glass-panel p-5 lg:col-span-3">
+              <div className="flex items-start gap-3">
+                <div className="rounded-xl bg-primary/10 p-2.5 text-primary">
+                  <ShieldCheck className="h-5 w-5" />
+                </div>
+                <div className="flex-1">
+                  <h2 className="font-bold text-ink">Security (2FA)</h2>
+                  <p className="mt-1 text-sm text-slate-600">
+                    Protect your account with an authenticator app. Backup codes are shown once during setup.
+                  </p>
+
+                  {securityMsg && (
+                    <p className="mt-3 rounded-lg border border-primary/20 bg-primary/5 px-3 py-2 text-sm text-primary">{securityMsg}</p>
+                  )}
+                  {securityError && (
+                    <p className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{securityError}</p>
+                  )}
+
+                  {!twoFaEnabled && !qrUrl && (
+                    <Button type="button" className="mt-4" loading={setupLoading} onClick={start2faSetup}>
+                      Enable 2FA
+                    </Button>
+                  )}
+
+                  {qrUrl && (
+                    <form onSubmit={verify2faSetup} className="mt-4 space-y-4">
+                      <img src={qrUrl} alt="2FA QR code" className="mx-auto h-44 w-44 rounded-lg border border-border bg-white p-2" />
+                      {backupCodes.length > 0 && (
+                        <div className="rounded-lg border border-border bg-white p-3">
+                          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Backup codes (save these now)</p>
+                          <ul className="mt-2 grid grid-cols-2 gap-1 font-mono text-sm">
+                            {backupCodes.map((code) => (
+                              <li key={code}>{code}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                      <Input
+                        label="Authentication code"
+                        value={otp}
+                        onChange={(e) => setOtp(e.target.value)}
+                        placeholder="000000"
+                        inputMode="numeric"
+                        maxLength={8}
+                        required
+                      />
+                      <Button type="submit" loading={verifyLoading}>Verify and enable</Button>
+                    </form>
+                  )}
+
+                  {twoFaEnabled && (
+                    <p className="mt-4 text-sm text-emerald-700">Two-factor authentication is active on this account.</p>
+                  )}
+                </div>
               </div>
             </section>
 
