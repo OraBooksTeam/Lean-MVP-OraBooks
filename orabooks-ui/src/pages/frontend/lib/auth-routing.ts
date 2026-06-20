@@ -112,8 +112,12 @@ export function redirectAfterAuth(data: {
 }) {
   clearRedirectGuard();
   clearLogoutSessionFlag();
+  clearTierSelectionToken();
 
   if (data?.needs_tier_selection) {
+    if (data?.tier_selection_token) {
+      storeTierSelectionToken(String(data.tier_selection_token));
+    }
     window.location.replace(normalizeWpAppPath(getNetworkAuthUrl('tier-selection')));
     return;
   }
