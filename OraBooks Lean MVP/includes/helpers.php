@@ -567,27 +567,140 @@ function orabooks_multisite_subdomain_taken($subdomain) {
 }
 
 /**
+ * Persist the WordPress ↔ OraBooks user link.
+ */
+function orabooks_persist_wp_user_link($orabooks_user_id, $wp_user_id) {
+    global $wpdb;
+
+    $orabooks_user_id = (int) $orabooks_user_id;
+    $wp_user_id = (int) $wp_user_id;
+    if ($orabooks_user_id <= 0 || $wp_user_id <= 0) {
+        return false;
+    }
+
+    $table_users = OraBooks_Database::table('users');
+    $updated = $wpdb->update(
+        $table_users,
+        ['wp_user_id' => $wp_user_id],
+        ['id' => $orabooks_user_id],
+        ['%d'],
+        ['%d']
+    );
+
+    if ($updated !== false && function_exists('is_multisite') && is_multisite() && function_exists('add_user_to_blog')) {
+        $blog_id = get_current_blog_id();
+        if ($blog_id > 0 && !is_user_member_of_blog($wp_user_id, $blog_id)) {
+            add_user_to_blog($blog_id, $wp_user_id, 'subscriber');
+        }
+    }
+
+    return $updated !== false;
+}
+
+/**
  * Resolve the linked WordPress user for an OraBooks user.
  */
 function orabooks_get_wp_user_id_for_orabooks_user($orabooks_user_id) {
+    return orabooks_resolve_wp_user_link_for_orabooks_user($orabooks_user_id, false);
+}
+
+/**
+ * Resolve (and optionally create) the WordPress user linked to an OraBooks account.
+ *
+ * 2FA secrets are stored in WordPress user meta, so a wp_user_id link is required.
+ */
+function orabooks_ensure_wp_user_link_for_orabooks_user($orabooks_user_id) {
+    return orabooks_resolve_wp_user_link_for_orabooks_user($orabooks_user_id, true);
+}
+
+/**
+ * @param bool $create_if_missing Create a WordPress user when no link exists (2FA setup).
+ */
+function orabooks_resolve_wp_user_link_for_orabooks_user($orabooks_user_id, $create_if_missing = false) {
     global $wpdb;
 
+    $orabooks_user_id = (int) $orabooks_user_id;
+    if ($orabooks_user_id <= 0) {
+        return 0;
+    }
+
     $table_users = OraBooks_Database::table('users');
-    $wp_user_id = (int) $wpdb->get_var($wpdb->prepare(
-        "SELECT wp_user_id FROM {$table_users} WHERE id = %d",
-        (int) $orabooks_user_id
+    $user = $wpdb->get_row($wpdb->prepare(
+        "SELECT id, email, wp_user_id FROM {$table_users} WHERE id = %d",
+        $orabooks_user_id
     ));
 
-    if ($wp_user_id > 0) {
-        return $wp_user_id;
+    if (!$user) {
+        return 0;
+    }
+
+    if (!empty($user->wp_user_id)) {
+        $linked = get_user_by('id', (int) $user->wp_user_id);
+        if ($linked) {
+            return (int) $linked->ID;
+        }
+    }
+
+    if (!empty($user->email) && function_exists('get_user_by')) {
+        $wp_user = get_user_by('email', $user->email);
+        if ($wp_user) {
+            orabooks_persist_wp_user_link($orabooks_user_id, (int) $wp_user->ID);
+            return (int) $wp_user->ID;
+        }
     }
 
     $current = get_current_user_id();
     if ($current > 0) {
-        return (int) $current;
+        $current_user = get_userdata($current);
+        $matches = $current_user && (
+            orabooks_resolve_user_id($current) === $orabooks_user_id
+            || (!empty($user->email) && strcasecmp($current_user->user_email, $user->email) === 0)
+        );
+
+        if ($matches) {
+            orabooks_persist_wp_user_link($orabooks_user_id, $current);
+            return $current;
+        }
     }
 
-    return 0;
+    if (!$create_if_missing || empty($user->email) || !function_exists('wp_create_user')) {
+        return 0;
+    }
+
+    $password = function_exists('wp_generate_password')
+        ? wp_generate_password(32, true, true)
+        : orabooks_random_string(32);
+    $username = orabooks_generate_username_from_email($user->email);
+
+    if (function_exists('is_multisite') && is_multisite() && function_exists('wpmu_create_user')) {
+        $wp_user_id = wpmu_create_user($username, $password, $user->email);
+    } else {
+        $wp_user_id = wp_create_user($username, $password, $user->email);
+    }
+
+    if (is_wp_error($wp_user_id) || !$wp_user_id) {
+        $existing = function_exists('get_user_by') ? get_user_by('email', $user->email) : false;
+        if ($existing) {
+            orabooks_persist_wp_user_link($orabooks_user_id, (int) $existing->ID);
+            return (int) $existing->ID;
+        }
+
+        return 0;
+    }
+
+    wp_update_user([
+        'ID' => (int) $wp_user_id,
+        'display_name' => $user->email,
+    ]);
+
+    orabooks_persist_wp_user_link($orabooks_user_id, (int) $wp_user_id);
+
+    orabooks_log_event('wp_user_linked', 'WordPress user linked for OraBooks account', 'info', [
+        'orabooks_user_id' => $orabooks_user_id,
+        'wp_user_id' => (int) $wp_user_id,
+    ], $orabooks_user_id, null);
+
+    return (int) $wp_user_id;
 }
 
 /**

@@ -1299,9 +1299,9 @@ class OraBooks_Auth {
             orabooks_json_error('Authentication required', 401);
         }
 
-        $wp_user_id = orabooks_get_wp_user_id_for_orabooks_user($orabooks_user_id);
+        $wp_user_id = orabooks_ensure_wp_user_link_for_orabooks_user($orabooks_user_id);
         if ($wp_user_id <= 0) {
-            orabooks_json_error('WordPress user link required for 2FA setup', 400);
+            orabooks_json_error('Unable to link a WordPress account for 2FA setup. Contact support if this persists.', 400);
         }
 
         $secret = OraBooks_Secrets::generate_totp_secret();
@@ -1327,9 +1327,9 @@ class OraBooks_Auth {
         }
 
         $orabooks_user_id = orabooks_get_current_user_id();
-        $wp_user_id = orabooks_get_wp_user_id_for_orabooks_user($orabooks_user_id);
+        $wp_user_id = orabooks_ensure_wp_user_link_for_orabooks_user($orabooks_user_id);
         if ($wp_user_id <= 0) {
-            orabooks_json_error('WordPress user link required for 2FA setup', 400);
+            orabooks_json_error('Unable to link a WordPress account for 2FA setup. Contact support if this persists.', 400);
         }
 
         $otp = $_POST['otp_code'] ?? '';
