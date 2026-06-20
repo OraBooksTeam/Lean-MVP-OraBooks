@@ -53,7 +53,7 @@ class OraBooks_EventBus {
      * Register a consumer for an event type.
      *
      * @param string   $event_type Event type to subscribe to.
-     * @param callable $handler    Callback: function($event) { }. Must return true on success.
+     * @param callable $handler    Callback: function($event, $payload) { }. Must return true on success.
      */
     public static function register_consumer($event_type, $handler) {
         if (!isset(self::$consumers[$event_type])) {
@@ -154,6 +154,22 @@ class OraBooks_EventBus {
         return self::$consumers[$event_type] ?? [];
     }
 
+    /**
+     * Build a stable-enough consumer identity for idempotency tracking.
+     */
+    private static function consumer_name($event_type, $handler, $index) {
+        if (is_array($handler)) {
+            $class = is_object($handler[0]) ? get_class($handler[0]) : (string) $handler[0];
+            return $class . '::' . $handler[1];
+        }
+
+        if (is_string($handler)) {
+            return $handler;
+        }
+
+        return $event_type . ':closure:' . (int) $index;
+    }
+
     // ================================================================
     // PUBLISH API
     // ================================================================
@@ -171,6 +187,10 @@ class OraBooks_EventBus {
         global $wpdb;
 
         $table = OraBooks_Database::table(self::OUTBOX_TABLE);
+        $payload = is_array($payload) ? $payload : [];
+        if (!isset($payload['event_version'])) {
+            $payload['event_version'] = 1;
+        }
 
         $wpdb->insert($table, [
             'event_type'   => $event_type,
@@ -258,11 +278,11 @@ class OraBooks_EventBus {
                     continue;
                 }
 
-                foreach ($consumers as $handler) {
-                    $consumer_name = is_array($handler) ? get_class($handler[0]) . '::' . $handler[1] : 'closure';
+                foreach ($consumers as $consumer_index => $handler) {
+                    $consumer_name = self::consumer_name($event->event_type, $handler, $consumer_index);
 
                     // Idempotency check
-                    $event_key = $event->event_type . ':' . $event->aggregate_id . ':' . md5(json_encode($payload));
+                    $event_key = 'outbox:' . (int) $event->id;
                     $already_processed = $wpdb->get_var($wpdb->prepare(
                         "SELECT COUNT(*) FROM {$track_table} WHERE event_key = %s AND consumer = %s",
                         $event_key, $consumer_name
@@ -470,9 +490,11 @@ class OraBooks_EventBus {
 /**
  * Convenience function for publishing events.
  */
-function orabooks_publish_event($event_type, $aggregate_id, $payload = []) {
-    if (class_exists('OraBooks_EventBus')) {
-        return OraBooks_EventBus::publish($event_type, $aggregate_id, $payload);
+if (!function_exists('orabooks_publish_event')) {
+    function orabooks_publish_event($event_type, $aggregate_id, $payload = []) {
+        if (class_exists('OraBooks_EventBus')) {
+            return OraBooks_EventBus::publish($event_type, $aggregate_id, $payload);
+        }
+        return false;
     }
-    return false;
 }
