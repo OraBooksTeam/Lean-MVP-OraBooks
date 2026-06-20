@@ -46,12 +46,15 @@ class OraBooks_RBAC {
             'invite_user'                 => ['owner', 'admin'],
             'change_role'                 => ['owner'],
             'remove_user'                 => ['owner'],
+            'manage_employees'            => ['owner', 'admin'],
+            'manage_roles'                => ['owner'],
             'partner_commission_access'   => ['owner', 'admin'],
             'view_coa'                    => ['owner', 'admin'],
             'manage_fiscal_periods'       => ['owner', 'admin'],
             'export_reports'              => ['owner', 'admin', 'staff'],
             'view_audit_logs'             => ['owner', 'admin'],
             'manage_org_settings'         => ['owner', 'admin'],
+            'manage_settings'             => ['owner', 'admin'],
             'manage_billing'              => ['owner'],
             'manage_inventory'            => ['owner', 'admin', 'staff'],
             'create_invoice'              => ['owner', 'admin', 'staff'],
@@ -64,6 +67,10 @@ class OraBooks_RBAC {
      * Check if a role has a specific permission in an org
      */
     public static function check_permission($role, $permission, $org_id = null) {
+        if (class_exists('OBN_Access_Control')) {
+            $permission = OBN_Access_Control::normalize_permission($permission);
+        }
+
         if (empty($role)) {
             return false;
         }
@@ -92,6 +99,10 @@ class OraBooks_RBAC {
      * Returns true if allowed, false if denied.
      */
     public static function require_permission($user_id, $org_id, $permission, $options = []) {
+        if (class_exists('OBN_Access_Control')) {
+            return OBN_Access_Control::require_permission($user_id, $org_id, $permission, $options);
+        }
+
         $org_id = intval($org_id);
         $user_id = intval($user_id);
         
@@ -202,7 +213,17 @@ class OraBooks_RBAC {
             }
         }
 
-        return $effective;
+        if (in_array('invite_user', $effective, true)) {
+            $effective[] = 'manage_employees';
+        }
+        if (in_array('change_role', $effective, true)) {
+            $effective[] = 'manage_roles';
+        }
+        if (in_array('manage_org_settings', $effective, true)) {
+            $effective[] = 'manage_settings';
+        }
+
+        return array_values(array_unique($effective));
     }
     
     /**
