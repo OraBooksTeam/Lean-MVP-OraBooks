@@ -44,6 +44,7 @@ require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-views.php';
 require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-commission.php';
 require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-notifications.php';
 require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-event-bus.php';
+require_once ORABOOKS_PLUGIN_DIR . 'includes/events/loader.php';
 require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-async-queue.php';
 require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-exports.php';
 require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-customers.php';
@@ -101,6 +102,8 @@ function orabooks_init() {
     OraBooks_Notifications::init();
     OraBooks_EventBus::init();
     OraBooks_EventBus::register_consumers();
+    OraBooks_Event_Module::init();
+    OraBooks_Event_Module::schedule();
     OraBooks_AsyncQueue::init();
     OraBooks_AsyncQueue::register_default_handlers();
     OraBooks_Exports::init();
@@ -489,6 +492,15 @@ function orabooks_admin_menu() {
         'manage_options',
         'orabooks-observability',
         'orabooks_admin_observability'
+    );
+
+    add_submenu_page(
+        'orabooks',
+        'Event Dead Letters',
+        'Event Dead Letters',
+        'manage_options',
+        'orabooks-event-dead-letter',
+        ['OraBooks_Event_Module', 'render_dead_letter_replay_page']
     );
 
     // Security dashboard (admin only)
