@@ -531,6 +531,39 @@ function orabooks_enrich_login_response($login_result) {
 }
 
 /**
+ * Redirect auth pages on tenant subdomains to the main network login/register URLs.
+ */
+function orabooks_redirect_tenant_auth_to_network() {
+    if (!is_singular('page') || !class_exists('OraBooks_Auth')) {
+        return;
+    }
+
+    $subdomain = OraBooks_Auth::detect_subdomain_from_host();
+    if ($subdomain === '') {
+        return;
+    }
+
+    $post = get_queried_object();
+    if (!$post || empty($post->post_name)) {
+        return;
+    }
+
+    $shared_auth_slugs = ['login', 'register', 'reset-password', 'verify-email', 'tier-selection'];
+    if (!in_array($post->post_name, $shared_auth_slugs, true)) {
+        return;
+    }
+
+    if ($post->post_name === 'login' && function_exists('orabooks_is_user_logged_in') && orabooks_is_user_logged_in()) {
+        return;
+    }
+
+    wp_redirect(orabooks_get_network_login_url($post->post_name));
+    exit;
+}
+
+add_action('template_redirect', 'orabooks_redirect_tenant_auth_to_network', 2);
+
+/**
  * Redirect logged-in customers from the main site to their org subdomain workspace.
  */
 function orabooks_maybe_redirect_to_org_subdomain() {
