@@ -30,23 +30,40 @@ function orabooks_get_accounting_page_slugs() {
     return [
         'dashboard',
         'customers',
-        'vendors',
-        'inventory',
         'invoices',
-        'reports',
-        'expenses',
-        'csv-imports',
-        'bank-reconciliation',
         'chart-of-accounts',
-        'fiscal-periods',
-        'tax-settings',
         'journals',
-        'team',
-        'attachments',
-        'approvals',
-        'ai-review',
-        'voice',
-        'commissions',
+        'bank-reconciliation',
+    ];
+}
+
+/**
+ * Lean MVP frontend page definitions (SL-004 through SL-139 locked build).
+ *
+ * @return array<string, array{0: string, 1: string, 2?: string}>
+ */
+function orabooks_get_lean_mvp_page_definitions() {
+    return [
+        'login' => ['Login', '[orabooks_login]'],
+        'register' => ['Register', '[orabooks_register]'],
+        'verify-email' => ['Verify Email', '[orabooks_verify_email]'],
+        'reset-password' => ['Reset Password', '[orabooks_reset_password]'],
+        'tier-selection' => ['Choose Your Plan', '[orabooks_tier_selection]'],
+        'partner' => ['Partner', ''],
+        'onboarding' => ['Partner Onboarding', '[orabooks_partner_onboarding]', 'partner'],
+        'partner-program' => ['Partner Program', '[orabooks_partner_dashboard]'],
+        'dashboard' => ['Dashboard', '[orabooks_dashboard]'],
+        'customers' => ['Customers', '[orabooks_customers]'],
+        'invoices' => ['Invoices', '[orabooks_invoices]'],
+        'chart-of-accounts' => ['Chart of Accounts', '[orabooks_chart_of_accounts]'],
+        'journals' => ['Journals', '[orabooks_journals]'],
+        'bank-reconciliation' => ['Bank Reconciliation', '[orabooks_bank_reconciliation]'],
+        'team' => ['Team', '[orabooks_team]'],
+        'commissions' => ['Commissions', '[orabooks_commission]'],
+        'profile' => ['Profile', '[orabooks_profile]'],
+        'notifications' => ['Notifications', '[orabooks_notification_center]'],
+        'notification-preferences' => ['Notification Preferences', '[orabooks_notification_preferences]'],
+        'my-exports' => ['My Exports', '[orabooks_export_status]'],
     ];
 }
 
@@ -112,39 +129,7 @@ function orabooks_org_allows_subdomain_access($org) {
  * @return string[]
  */
 function orabooks_get_required_page_slugs() {
-    return [
-        'login',
-        'register',
-        'verify-email',
-        'reset-password',
-        'tier-selection',
-        'partner',
-        'onboarding',
-        'partner-program',
-        'dashboard',
-        'customers',
-        'vendors',
-        'inventory',
-        'invoices',
-        'reports',
-        'expenses',
-        'csv-imports',
-        'bank-reconciliation',
-        'chart-of-accounts',
-        'fiscal-periods',
-        'tax-settings',
-        'journals',
-        'team',
-        'attachments',
-        'approvals',
-        'ai-review',
-        'voice',
-        'commissions',
-        'profile',
-        'notifications',
-        'notification-preferences',
-        'my-exports',
-    ];
+    return array_keys(orabooks_get_lean_mvp_page_definitions());
 }
 
 /**
@@ -664,6 +649,34 @@ function orabooks_maybe_redirect_to_org_subdomain() {
 }
 
 add_action('template_redirect', 'orabooks_maybe_redirect_to_org_subdomain', 5);
+
+/**
+ * SL-004: block tenant subdomain access when org status does not allow it.
+ */
+function orabooks_enforce_subdomain_org_access() {
+    if (!class_exists('OraBooks_Auth') || !class_exists('OraBooks_Organization')) {
+        return;
+    }
+
+    $subdomain = OraBooks_Auth::detect_subdomain_from_host($_SERVER['HTTP_HOST'] ?? '');
+    if ($subdomain === '') {
+        return;
+    }
+
+    $org = OraBooks_Organization::get_by_subdomain($subdomain);
+    if (!$org || orabooks_org_allows_subdomain_access($org)) {
+        return;
+    }
+
+    status_header(403);
+    wp_die(
+        esc_html__('This organization is not active.', 'orabooks'),
+        esc_html__('Forbidden', 'orabooks'),
+        ['response' => 403]
+    );
+}
+
+add_action('template_redirect', 'orabooks_enforce_subdomain_org_access', 0);
 
 /**
  * Get client IP address
