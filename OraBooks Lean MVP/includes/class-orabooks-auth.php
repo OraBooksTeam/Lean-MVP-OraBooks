@@ -532,6 +532,7 @@ class OraBooks_Auth {
             $temp_token = OraBooks_Secrets::generate_jwt([
                 'user_id' => $user->id,
                 'purpose' => '2fa_challenge',
+                'expected_subdomain' => $expected_subdomain,
                 'exp' => time() + 300 // 5 min
             ]);
             return [
@@ -540,30 +541,52 @@ class OraBooks_Auth {
                 'user_id' => $user->id
             ];
         }
-        
-        // Auto-create partner org on first login
+
+        return self::complete_authenticated_login($user, $expected_subdomain);
+    }
+
+    /**
+     * Issue tier-selection JWT + refresh token for customers without an org.
+     *
+     * @param object $user
+     * @return array<string, mixed>
+     */
+    private static function issue_tier_selection_login($user) {
+        $jwt = OraBooks_Secrets::generate_jwt([
+            'user_id' => $user->id,
+            'email' => $user->email,
+            'is_partner' => 0,
+            'needs_tier_selection' => true,
+            'org_id' => null,
+        ]);
+
+        $refresh_token = orabooks_random_string(32);
+        self::store_refresh_token($user->id, null, $refresh_token);
+
+        return [
+            'needs_tier_selection' => true,
+            'token' => $jwt,
+            'refresh_token' => $refresh_token,
+            'user_id' => $user->id,
+            'message' => 'Please select a tier to continue',
+        ];
+    }
+
+    /**
+     * Complete login after password/OIDC/2FA verification (partner org, tier selection, or normal session).
+     *
+     * @param object $user
+     * @return array<string, mixed>|WP_Error
+     */
+    private static function complete_authenticated_login($user, $expected_subdomain = '') {
         if ($user->is_partner && !$user->org_id) {
             return self::handle_partner_first_login($user);
         }
-        
-        // Customer first login - needs tier selection
+
         if (!$user->is_partner && !$user->org_id) {
-            $jwt = OraBooks_Secrets::generate_jwt([
-                'user_id' => $user->id,
-                'email' => $user->email,
-                'is_partner' => 0,
-                'needs_tier_selection' => true,
-                'org_id' => null
-            ]);
-            
-            return [
-                'needs_tier_selection' => true,
-                'token' => $jwt,
-                'message' => 'Please select a tier to continue'
-            ];
+            return self::issue_tier_selection_login($user);
         }
-        
-        // Normal login with org
+
         $org = OraBooks_Organization::get($user->org_id);
         if ($org && $org->status !== 'active') {
             $partner_pending = $user->is_partner
@@ -573,18 +596,17 @@ class OraBooks_Auth {
                 return new WP_Error('org_inactive', 'Your organization is not active. Please contact support.');
             }
         }
-        
-        // Subdomain mismatch check (if expected_subdomain is provided)
+
         if ($org && !empty($expected_subdomain)) {
             if (strtolower(trim($expected_subdomain)) !== strtolower(trim($org->subdomain))) {
-                orabooks_log_event('login_subdomain_mismatch', "Subdomain mismatch for {$email}: expected {$expected_subdomain}, org has {$org->subdomain}", 'warning', [
+                orabooks_log_event('login_subdomain_mismatch', "Subdomain mismatch for {$user->email}: expected {$expected_subdomain}, org has {$org->subdomain}", 'warning', [
                     'expected' => $expected_subdomain,
-                    'actual' => $org->subdomain
+                    'actual' => $org->subdomain,
                 ], $user->id, $user->org_id);
                 return new WP_Error('subdomain_mismatch', 'Invalid subdomain for this account.');
             }
         }
-        
+
         $role = $user->org_id ? orabooks_get_user_role($user->id, $user->org_id) : 'viewer';
         $jwt = OraBooks_Secrets::generate_jwt([
             'user_id' => $user->id,
@@ -592,14 +614,14 @@ class OraBooks_Auth {
             'org_id' => $user->org_id,
             'role' => $role,
             'subdomain' => $org ? $org->subdomain : '',
-            'is_partner' => $user->is_partner
+            'is_partner' => $user->is_partner,
         ]);
-        
+
         $refresh_token = orabooks_random_string(32);
         self::store_refresh_token($user->id, $user->org_id, $refresh_token);
-        
-        orabooks_log_event('login_success', "User logged in: $email", 'info', [], $user->id, $user->org_id);
-        
+
+        orabooks_log_event('login_success', "User logged in: {$user->email}", 'info', [], $user->id, $user->org_id);
+
         return orabooks_enrich_login_response([
             'token' => $jwt,
             'refresh_token' => $refresh_token,
@@ -607,7 +629,7 @@ class OraBooks_Auth {
             'org_id' => $user->org_id,
             'role' => $role,
             'subdomain' => $org ? $org->subdomain : '',
-            'is_partner' => $user->is_partner
+            'is_partner' => $user->is_partner,
         ]);
     }
 
@@ -941,14 +963,16 @@ class OraBooks_Auth {
         }
         
         $role = $user->org_id ? orabooks_get_user_role($user->id, $user->org_id) : 'viewer';
-        
+        $org = $user->org_id ? OraBooks_Organization::get($user->org_id) : null;
+
         // Generate new tokens
         $new_jwt = OraBooks_Secrets::generate_jwt([
             'user_id' => $user->id,
             'email' => $user->email,
             'org_id' => $user->org_id,
             'role' => $role,
-            'is_partner' => $user->is_partner
+            'subdomain' => $org ? $org->subdomain : '',
+            'is_partner' => $user->is_partner,
         ]);
         
         $new_refresh = orabooks_random_string(32);
@@ -962,6 +986,7 @@ class OraBooks_Auth {
             'user_id' => (int) $user->id,
             'org_id' => $user->org_id ? (int) $user->org_id : null,
             'role' => $role,
+            'subdomain' => $org ? $org->subdomain : '',
             'is_partner' => (bool) $user->is_partner,
         ];
     }
@@ -1088,11 +1113,14 @@ class OraBooks_Auth {
             $result = self::register($_POST);
         } catch (Throwable $e) {
             orabooks_log_event('registration_exception', $e->getMessage(), 'error');
-            orabooks_json_error('Registration failed due to a server error. Please try again.', 200);
+            orabooks_json_error('Registration failed due to a server error. Please try again.', 500);
         }
 
         if (is_wp_error($result)) {
-            orabooks_json_error($result->get_error_message(), 200);
+            orabooks_json_error(
+                $result->get_error_message(),
+                orabooks_auth_error_status_code($result->get_error_code())
+            );
         }
 
         orabooks_json_success($result, $result['message'] ?? 'Registration successful. Verification email sent.');
