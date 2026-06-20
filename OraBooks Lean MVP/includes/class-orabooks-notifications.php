@@ -1496,6 +1496,30 @@ class OraBooks_Notifications {
         ], $org_id);
     }
 
+    public function on_partner_inactivity_reminder_sent($user_id, $data) {
+        self::send_notification((int) $user_id, 'partner_inactivity_reminder_sent', [
+            'title'    => __('Partner Inactivity Warning', 'orabooks'),
+            'message'  => __('Your partner account may be deactivated soon due to inactivity.', 'orabooks'),
+            'priority' => 'high',
+        ] + (array) $data, null);
+    }
+
+    public function on_partner_code_inactivated($user_id, $data) {
+        self::send_notification((int) $user_id, 'partner_code_inactivated', [
+            'title'    => __('Partner Code Deactivated', 'orabooks'),
+            'message'  => __('Your partner code has been deactivated due to inactivity.', 'orabooks'),
+            'priority' => 'high',
+        ] + (array) $data, null);
+    }
+
+    public function on_partner_low_activity_reminder_sent($user_id, $data) {
+        self::send_notification((int) $user_id, 'partner_low_activity_reminder_sent', [
+            'title'    => __('Partner Activity Reminder', 'orabooks'),
+            'message'  => __('We have not seen new customer referrals recently. Keep sharing your partner code.', 'orabooks'),
+            'priority' => 'normal',
+        ] + (array) $data, null);
+    }
+
     /**
      * Get the customer-facing dashboard URL for view links in notifications.
      * Optionally include an invoice ID for deep linking.
