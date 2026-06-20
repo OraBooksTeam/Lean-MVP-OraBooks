@@ -21,6 +21,10 @@ function getStoredToken() {
   return window.localStorage.getItem(TOKEN_KEY) || '';
 }
 
+export function hasStoredAuthToken() {
+  return Boolean(getStoredToken());
+}
+
 function persistTokens(data: any) {
   if (data?.token) {
     window.localStorage.setItem(TOKEN_KEY, String(data.token));
@@ -55,18 +59,34 @@ function normalizeResponse<T = any>(json: any): ApiResult<T> {
 
 async function parseResponse<T = any>(res: Response): Promise<ApiResult<T>> {
   const text = await res.text();
+  let parsed: any = null;
+  let hasParsedJson = false;
+
+  try {
+    parsed = JSON.parse(text);
+    hasParsedJson = true;
+  } catch {
+    // Non-JSON error bodies are handled below with a short preview.
+  }
 
   if (!res.ok) {
     if (res.status === 401 || res.status === 403) {
       window.localStorage.removeItem(TOKEN_KEY);
       window.localStorage.removeItem(REFRESH_TOKEN_KEY);
     }
-    return { error: `OraBooks request failed with HTTP ${res.status}.` };
+    if (hasParsedJson) {
+      return { error: extractError(parsed, `OraBooks request failed with HTTP ${res.status}.`) };
+    }
+    const trimmed = text.trim();
+    const preview = trimmed ? trimmed.slice(0, 160) : `HTTP ${res.status}`;
+    return { error: `OraBooks request failed: ${preview}` };
   }
 
-  try {
-    return normalizeResponse<T>(JSON.parse(text));
-  } catch {
+  if (hasParsedJson) {
+    return normalizeResponse<T>(parsed);
+  }
+
+  {
     const trimmed = text.trim();
     const preview = trimmed ? trimmed.slice(0, 160) : 'Empty response';
     return { error: `OraBooks returned an invalid AJAX response: ${preview}` };
