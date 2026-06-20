@@ -1450,7 +1450,9 @@ class OraBooks_Auth {
             ], 'Logged out');
         }
 
-        $user_id = orabooks_get_current_user_id();
+        $user_id = function_exists('orabooks_resolve_authenticated_user_id')
+            ? orabooks_resolve_authenticated_user_id()
+            : orabooks_get_current_user_id();
         orabooks_destroy_auth_session($user_id, true);
 
         orabooks_json_success([

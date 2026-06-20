@@ -1128,7 +1128,7 @@ class OraBooks_Auth_Test extends TestCase
         $this->assertEquals(1, $result['user_id']);
         $this->assertEquals('owner', $result['role']);
         $this->assertEquals(1, $result['is_partner']);
-        $this->assertEquals('/onboarding/', $result['redirect_to']);
+        $this->assertEquals('/partner/onboarding/', $result['redirect_to']);
     }
 
     #[Test]
@@ -1647,7 +1647,7 @@ class OraBooks_Auth_Test extends TestCase
         $this->assertEquals(1, $result['is_partner']);
         $this->assertArrayHasKey('token', $result);
         $this->assertArrayHasKey('refresh_token', $result);
-        $this->assertEquals('/onboarding/', $result['redirect_to']);
+        $this->assertEquals('/partner/onboarding/', $result['redirect_to']);
     }
 
     #[Test]
@@ -1826,7 +1826,7 @@ class OraBooks_Auth_Test extends TestCase
         $this->assertNotNull($result['org_id']);
         $this->assertEquals('owner', $result['role']);
         $this->assertEquals(1, $result['is_partner']);
-        $this->assertEquals('/onboarding/', $result['redirect_to']);
+        $this->assertEquals('/partner/onboarding/', $result['redirect_to']);
     }
 
     #[Test]

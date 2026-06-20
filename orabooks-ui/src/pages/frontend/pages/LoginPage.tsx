@@ -20,21 +20,46 @@ export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
   const [loading, setLoading] = useState(false);
   const [show2fa, setShow2fa] = useState(false);
   const [tempToken, setTempToken] = useState('');
   const [otp, setOtp] = useState('');
 
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+
+    const stripAuthQueryFlags = () => {
+      params.delete('logged_out');
+      params.delete('auth_reset');
+      params.delete('session_expired');
+      params.delete('verified');
+      const qs = params.toString();
+      window.history.replaceState(null, '', `${window.location.pathname}${qs ? `?${qs}` : ''}`);
+    };
+
     if (isLogoutLanding()) {
       clearStoredAuthTokens();
       clearRedirectGuard();
+
+      if (params.get('logged_out') === '1') {
+        setNotice('You have been logged out.');
+      } else if (params.get('session_expired') === '1' || params.get('auth_reset') === '1') {
+        setNotice('Your session has expired. Please log in again.');
+      }
+
+      stripAuthQueryFlags();
       return;
     }
 
     absorbAuthTokensFromUrl();
 
-    const oidcError = new URLSearchParams(window.location.search).get('oidc_error');
+    if (params.get('verified') === '1') {
+      setNotice('Email verified. You can log in now.');
+      stripAuthQueryFlags();
+    }
+
+    const oidcError = params.get('oidc_error');
     if (oidcError) {
       setError(decodeURIComponent(oidcError));
       const params = new URLSearchParams(window.location.search);
@@ -131,6 +156,11 @@ export default function LoginPage() {
         </div>
         <h2 className="text-center text-2xl font-bold text-ink">Log In</h2>
         <p className="mt-2 text-center text-sm text-slate-600">Welcome back. Sign in to your account.</p>
+        {notice && (
+          <p className="mt-4 rounded-lg border border-primary/20 bg-primary/5 px-3 py-2 text-sm text-primary">
+            {notice}
+          </p>
+        )}
         <form onSubmit={submit} className="mt-6 space-y-4">
           <Input label="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@company.com" required />
           <Input label="Password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" required />
