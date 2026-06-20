@@ -228,8 +228,13 @@ class OraBooks_Assets {
      * @return array<string, mixed>
      */
     public static function get_ajax_config($context = 'frontend') {
+        $ajax_url = admin_url('admin-ajax.php');
+        if (function_exists('is_multisite') && is_multisite() && function_exists('get_admin_url')) {
+            $ajax_url = get_admin_url(orabooks_get_data_blog_id(), 'admin-ajax.php');
+        }
+
         $config = [
-            'ajax_url' => admin_url('admin-ajax.php'),
+            'ajax_url' => $ajax_url,
             'nonce' => wp_create_nonce('orabooks_nonce'),
             'current_user_id' => get_current_user_id(),
             'logout_url' => wp_logout_url(orabooks_get_network_login_url('login')),
