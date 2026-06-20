@@ -82,6 +82,8 @@ body.orabooks-page.orabooks-auth-page .is-layout-constrained {
 }
 
 /* After React mounts to body, hide leftover WordPress page markup */
+body.orabooks-page:has(> #orabooks-app-root) main,
+body.orabooks-page:has(> #orabooks-app-root) .wp-site-blocks > main,
 body.orabooks-page.orabooks-app-mounted.orabooks-react-page main,
 body.orabooks-page.orabooks-app-mounted.orabooks-auth-page main,
 body.orabooks-page.orabooks-app-mounted.orabooks-react-page .wp-site-blocks > main,
@@ -97,8 +99,20 @@ body.orabooks-page.orabooks-app-mounted.orabooks-auth-page #primary {
     visibility: hidden !important;
 }
 
+body.orabooks-page:has(> #orabooks-app-root) .orabooks-react-page,
 body.orabooks-page.orabooks-app-mounted .orabooks-react-page:not(:has(#orabooks-app-root)) {
     display: none !important;
+}
+
+/* Twenty Twenty-Five: hide the constrained page group shell */
+body.orabooks-page.orabooks-react-page main .wp-block-group.alignfull:has(.orabooks-react-page),
+body.orabooks-page.orabooks-auth-page main .wp-block-group.alignfull:has(.orabooks-react-page),
+body.orabooks-page:has(> #orabooks-app-root) main .wp-block-group {
+    display: none !important;
+    height: 0 !important;
+    overflow: hidden !important;
+    padding: 0 !important;
+    margin: 0 !important;
 }
 
 /* Shortcode wrappers: full width without 100vw horizontal scroll */
