@@ -2,7 +2,30 @@ import { getTenantDomainSuffix } from '@/lib/utils';
 import { clearPersistedAuthTokens } from '../api';
 import { normalizeAppRoute, toWpUrl } from './wp-routing';
 
-const TOKEN_KEY = 'orabooks_token';
+const PENDING_INVITE_TOKEN_KEY = 'orabooks_pending_invite_token';
+
+export function storePendingInviteToken(token: string) {
+  if (token) {
+    window.sessionStorage.setItem(PENDING_INVITE_TOKEN_KEY, token);
+  }
+}
+
+export function consumePendingInviteToken() {
+  const token = window.sessionStorage.getItem(PENDING_INVITE_TOKEN_KEY) || '';
+  window.sessionStorage.removeItem(PENDING_INVITE_TOKEN_KEY);
+  return token;
+}
+
+export function getAcceptInviteUrl(token: string) {
+  const cfg = (window as any).orabooks_ajax || {};
+  const base = typeof cfg.accept_invite_url === 'string' && cfg.accept_invite_url.trim() !== ''
+    ? cfg.accept_invite_url
+    : toWpUrl('/accept-invite/');
+  const target = new URL(base, window.location.href);
+  target.searchParams.set('token', token);
+  target.hash = '';
+  return `${target.origin}${target.pathname}${target.search}`;
+}
 const TIER_SELECTION_TOKEN_KEY = 'orabooks_tier_selection_token';
 const REDIRECT_GUARD_KEY = 'orabooks_auth_redirect_ts';
 const LOGOUT_QUERY_FLAG = 'logged_out';
