@@ -50,9 +50,12 @@ export default function InvoicesPage() {
   const [createForm, setCreateForm] = useState({
     customer_id: '',
     invoice_date: new Date().toISOString().slice(0, 10),
+    due_date: '',
     due_days: '30',
+    use_due_date: false,
     subtotal_amount: '',
     jurisdiction: 'US',
+    currency: 'USD',
     description: '',
   });
   const [createPreview, setCreatePreview] = useState<{ tax_rate: number; tax_amount: number; total_amount: number } | null>(null);
@@ -63,7 +66,10 @@ export default function InvoicesPage() {
     payment_date: new Date().toISOString().slice(0, 10),
     payment_method: 'bank_transfer',
     reference: '',
+    notes: '',
   });
+
+  const [actionInvoiceId, setActionInvoiceId] = useState<number | null>(null);
 
   const [overrideInvoice, setOverrideInvoice] = useState<Invoice | null>(null);
   const [overrideRate, setOverrideRate] = useState('');
@@ -100,8 +106,13 @@ export default function InvoicesPage() {
       return;
     }
 
+    const customerFilter = Number(getSearchParam('customer_id') || 0);
+
     const [invoicesRes, taxRes, customersRes] = await Promise.all([
-      api.invoicesList(nextOrgId, { limit: 100 }),
+      api.invoicesList(nextOrgId, {
+        limit: 100,
+        customer_id: customerFilter > 0 ? customerFilter : undefined,
+      }),
       api.taxListConfigs(nextOrgId),
       api.customersList(nextOrgId, { limit: 100 }),
     ]);
@@ -110,7 +121,13 @@ export default function InvoicesPage() {
     else setInvoices((invoicesRes as any).data?.invoices || []);
 
     if (!taxRes.error) setTaxConfigs((taxRes as any).data?.configs || []);
-    if (!customersRes.error) setCustomers((customersRes as any).data?.customers || []);
+    if (!customersRes.error) {
+      const list = (customersRes as any).data?.customers || [];
+      setCustomers(list);
+      if (customerFilter > 0) {
+        setCreateForm((prev) => ({ ...prev, customer_id: String(customerFilter) }));
+      }
+    }
 
     setLoading(false);
   };
@@ -140,6 +157,27 @@ export default function InvoicesPage() {
     canRecordPayment &&
     !['paid', 'cancelled'].includes(invoice.payment_status || '') &&
     invoice.workflow_status !== 'cancelled';
+
+  const canSend = (invoice: Invoice) =>
+    canCreateInvoice && invoice.workflow_status === 'draft';
+
+  const canPost = (invoice: Invoice) =>
+    canCreateInvoice && ['draft', 'sent'].includes(invoice.workflow_status || '');
+
+  const runInvoiceAction = async (action: 'send' | 'post', invoiceId: number) => {
+    if (!orgId) return;
+    setActionInvoiceId(invoiceId);
+    setError('');
+    const res = action === 'send'
+      ? await api.invoiceSend(orgId, invoiceId)
+      : await api.invoicePost(orgId, invoiceId);
+    if (res.error) setError(res.error);
+    else {
+      setSuccess(action === 'send' ? 'Invoice sent.' : 'Invoice posted to AR.');
+      await load();
+    }
+    setActionInvoiceId(null);
+  };
 
   const remainingBalance = (invoice: Invoice) =>
     Math.max(0, Number(invoice.total_amount || 0) - Number(invoice.paid_amount || 0));
@@ -178,16 +216,24 @@ export default function InvoicesPage() {
 
     setSaving(true);
     setError('');
-    const res = await api.invoiceCreate({
+    const payload: Record<string, unknown> = {
       org_id: orgId,
       customer_id: parseInt(createForm.customer_id, 10),
       invoice_date: createForm.invoice_date,
-      due_days: parseInt(createForm.due_days, 10) || 30,
       subtotal_amount: parseFloat(createForm.subtotal_amount) || 0,
       jurisdiction: createForm.jurisdiction,
+      currency: createForm.currency || 'USD',
       description: createForm.description,
       workflow_status: 'draft',
-    });
+    };
+
+    if (createForm.use_due_date && createForm.due_date) {
+      payload.due_date = createForm.due_date;
+    } else {
+      payload.due_days = parseInt(createForm.due_days, 10) || 30;
+    }
+
+    const res = await api.invoiceCreate(payload);
 
     if (res.error) {
       setError(res.error);
