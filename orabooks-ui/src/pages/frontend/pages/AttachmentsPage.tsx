@@ -85,7 +85,7 @@ export default function AttachmentsPage() {
       setFilterResourceId(urlResourceId);
       setResourceId(urlResourceId);
     }
-  }, [searchParams]);
+  }, []);
 
   useEffect(() => {
     void loadDashboard();
@@ -96,11 +96,11 @@ export default function AttachmentsPage() {
   }, [orgId, filterType, filterResourceId]);
 
   useEffect(() => {
-    const attachmentId = Number(searchParams.get('attachment_id') || 0);
+    const attachmentId = Number(getSearchParam('attachment_id') || 0);
     if (orgId && attachmentId > 0) {
       void loadHistory(attachmentId);
     }
-  }, [orgId, searchParams]);
+  }, [orgId]);
 
   const handleUpload = async () => {
     if (!orgId || !selectedFile) {
