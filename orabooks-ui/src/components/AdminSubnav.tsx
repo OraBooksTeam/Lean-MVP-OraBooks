@@ -37,11 +37,7 @@ export default function AdminSubnav() {
             <a
               key={item.slug}
               href={adminUrl(item.slug)}
-              className={`rounded-lg px-3 py-2 text-xs font-semibold transition sm:text-sm ${
-                active
-                  ? 'bg-primary text-white shadow-sm shadow-primary/25'
-                  : 'text-ink-secondary hover:bg-primary/5 hover:text-primary'
-              }`}
+              className={`orabooks-admin-subnav-link ${active ? 'is-active' : ''}`}
             >
               {item.label}
             </a>

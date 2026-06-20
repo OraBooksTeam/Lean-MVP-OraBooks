@@ -312,7 +312,7 @@ export default function AdminDashboard() {
               <a
                 key={action.label}
                 href={action.href}
-                className="flex items-center justify-between px-5 py-3 text-sm font-medium text-ink-secondary transition hover:bg-primary/5 hover:text-primary"
+                className="orabooks-admin-action-link flex items-center justify-between px-5 py-3 text-sm font-medium"
               >
                 <span>{action.label}</span>
                 {action.badge && action.badge > 0 ? (
@@ -366,7 +366,7 @@ function DetailPanel({
         ))}
       </div>
       <div className="border-t border-border px-5 py-3">
-        <a href={link} className="text-xs font-semibold text-primary hover:text-primary-dark">
+        <a href={link} className="orabooks-admin-text-link text-xs">
           {linkLabel} →
         </a>
       </div>
