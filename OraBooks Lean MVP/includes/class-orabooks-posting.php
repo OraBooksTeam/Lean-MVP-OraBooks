@@ -385,7 +385,7 @@ class OraBooks_Posting {
         $table_ledger = OraBooks_Database::table('ledger_entries');
         $table_batches = OraBooks_Database::table('posting_batches');
         $table_balances = OraBooks_Database::table('account_balances');
-        $table_accounts = $wpdb->prefix . 'orabooks_accounts';
+        $table_accounts = OraBooks_Database::table('accounts');
         $table_outbox = OraBooks_Database::table('outbox_messages');
         
         $journal = $wpdb->get_row($wpdb->prepare(
@@ -819,7 +819,7 @@ class OraBooks_Posting {
         $table_lines = OraBooks_Database::table('journal_lines');
         $table_balances = OraBooks_Database::table('account_balances');
         $table_ledger = OraBooks_Database::table('ledger_entries');
-        $table_accounts = $wpdb->prefix . 'orabooks_accounts';
+        $table_accounts = OraBooks_Database::table('accounts');
 
         $unbalanced = $wpdb->get_results($wpdb->prepare(
             "SELECT j.id

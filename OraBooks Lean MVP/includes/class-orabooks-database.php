@@ -297,6 +297,28 @@ class OraBooks_Database {
             INDEX idx_correlation (correlation_id)
         ) {$charset_collate};";
         dbDelta($sql);
+
+        // ============================================================
+        // SL-003: permission_audit_log table
+        // ============================================================
+        $table_permission_audit = $wpdb->prefix . 'orabooks_permission_audit_log';
+        $sql = "CREATE TABLE IF NOT EXISTS {$table_permission_audit} (
+            id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            org_id BIGINT UNSIGNED NULL,
+            user_id BIGINT UNSIGNED NULL,
+            event_type VARCHAR(100) NOT NULL DEFAULT 'permission_denied',
+            permission VARCHAR(100) NOT NULL,
+            role VARCHAR(50) NULL,
+            reason VARCHAR(100) NULL,
+            ip_address VARCHAR(45) NULL,
+            user_agent TEXT NULL,
+            metadata JSON DEFAULT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            INDEX idx_org_created (org_id, created_at),
+            INDEX idx_user_created (user_id, created_at),
+            INDEX idx_permission (permission)
+        ) {$charset_collate};";
+        dbDelta($sql);
         
         // Create archive table
         $table_audit_archive = $wpdb->prefix . 'orabooks_audit_logs_archive';
