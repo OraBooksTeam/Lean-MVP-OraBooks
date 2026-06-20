@@ -417,6 +417,76 @@ function orabooks_get_network_login_url($path = 'login') {
 }
 
 /**
+ * Whether the current host is the network main site (no tenant subdomain).
+ */
+function orabooks_is_network_auth_host() {
+    if (!class_exists('OraBooks_Auth')) {
+        return true;
+    }
+
+    return OraBooks_Auth::detect_subdomain_from_host() === '';
+}
+
+/**
+ * WordPress OraBooks super-admin panel URL (network main site).
+ */
+function orabooks_get_platform_admin_url() {
+    if (function_exists('is_multisite') && is_multisite() && function_exists('get_main_site_id') && function_exists('get_admin_url')) {
+        return get_admin_url(get_main_site_id(), 'admin.php?page=orabooks');
+    }
+
+    return admin_url('admin.php?page=orabooks');
+}
+
+/**
+ * Whether an OraBooks user is a platform super-admin (manage_options on main site).
+ */
+function orabooks_orabooks_user_can_manage_platform($orabooks_user_id) {
+    global $wpdb;
+
+    $orabooks_user_id = (int) $orabooks_user_id;
+    if ($orabooks_user_id <= 0) {
+        return false;
+    }
+
+    $table_users = OraBooks_Database::table('users');
+    $wp_user_id = (int) $wpdb->get_var($wpdb->prepare(
+        "SELECT wp_user_id FROM {$table_users} WHERE id = %d",
+        $orabooks_user_id
+    ));
+
+    if ($wp_user_id <= 0) {
+        return false;
+    }
+
+    if (function_exists('is_multisite') && is_multisite() && function_exists('switch_to_blog') && function_exists('get_main_site_id')) {
+        switch_to_blog(get_main_site_id());
+        $can_manage = user_can($wp_user_id, 'manage_options');
+        restore_current_blog();
+
+        return $can_manage;
+    }
+
+    return user_can($wp_user_id, 'manage_options');
+}
+
+/**
+ * Map auth error codes to HTTP status codes (SL-013).
+ */
+function orabooks_auth_error_status_code($error_code) {
+    $map = [
+        'subdomain_mismatch' => 403,
+        'email_not_verified' => 403,
+        'account_disabled'   => 403,
+        'org_inactive'       => 403,
+        'rate_limit'         => 429,
+        'invalid_credentials'=> 401,
+    ];
+
+    return $map[(string) $error_code] ?? 400;
+}
+
+/**
  * Whether a WordPress multisite blog already exists for an org subdomain.
  */
 function orabooks_multisite_subdomain_taken($subdomain) {
@@ -600,6 +670,26 @@ function orabooks_enrich_login_response($login_result) {
 
     if (!empty($login_result['needs_tier_selection'])) {
         $login_result['redirect_to'] = orabooks_get_network_login_url('tier-selection');
+        return $login_result;
+    }
+
+    $user_id = !empty($login_result['user_id']) ? (int) $login_result['user_id'] : 0;
+    if (
+        $user_id > 0
+        && orabooks_is_network_auth_host()
+        && orabooks_orabooks_user_can_manage_platform($user_id)
+    ) {
+        $login_result['is_platform_admin'] = true;
+        $login_result['redirect_to'] = orabooks_get_platform_admin_url();
+
+        if (!empty($login_result['token'])) {
+            $login_result['redirect_to'] = orabooks_append_auth_tokens_to_url(
+                $login_result['redirect_to'],
+                (string) $login_result['token'],
+                (string) ($login_result['refresh_token'] ?? '')
+            );
+        }
+
         return $login_result;
     }
 
