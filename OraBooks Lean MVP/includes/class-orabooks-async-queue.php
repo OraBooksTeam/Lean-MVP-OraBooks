@@ -6,7 +6,7 @@
  * report generation, webhook calls, bulk operations). Supports:
  * - Job enqueue with priority, delay, max_retries
  * - Worker pool with FOR UPDATE locking
- * - Exponential backoff retry (5s initial, factor 2, max 5 retries)
+ * - Exponential backoff retry (30s initial, factor 2, max 5 retries)
  * - Dead-letter after max retries
  * - Manual replay/retry API
  * - Heartbeat monitoring for long-running jobs
@@ -21,12 +21,16 @@ if (!defined('ABSPATH')) {
 class OraBooks_AsyncQueue {
 
     const TABLE_JOBS = 'async_jobs';
+    const TABLE_AUDIT = 'async_job_audit_log';
 
     /** Default retry config */
     const DEFAULT_MAX_RETRIES     = 5;
-    const BACKOFF_INITIAL         = 5;  // seconds
+    const BACKOFF_INITIAL         = 30;  // seconds
     const BACKOFF_FACTOR          = 2;
+    const BACKOFF_MAX             = 3600; // seconds
     const WORKER_LIMIT            = 10; // max jobs per batch
+    const STALE_LOCK_SECONDS      = 300;
+    const ARCHIVE_AFTER_DAYS      = 30;
 
     private static $instance = null;
 
@@ -48,7 +52,14 @@ class OraBooks_AsyncQueue {
 
             // AJAX: manual replay (admin)
             add_action('wp_ajax_orabooks_async_queue_replay', [self::$instance, 'ajax_replay_job']);
+            add_action('wp_ajax_orabooks_async_queue_discard', [self::$instance, 'ajax_discard_job']);
+            add_action('wp_ajax_orabooks_async_queue_cancel', [self::$instance, 'ajax_cancel_job']);
+            add_action('wp_ajax_orabooks_async_queue_poll_now', [self::$instance, 'ajax_poll_now']);
             add_action('wp_ajax_orabooks_async_queue_stats', [self::$instance, 'ajax_queue_stats']);
+            add_action('wp_ajax_orabooks_webhook_settings_get', [self::$instance, 'ajax_webhook_settings_get']);
+            add_action('wp_ajax_orabooks_webhook_settings_save', [self::$instance, 'ajax_webhook_settings_save']);
+            add_action('orabooks_async_queue_archive', [self::$instance, 'archive_completed_jobs']);
+            add_action('orabooks_async_queue_dead_letter', [self::$instance, 'send_dead_letter_alert'], 10, 2);
         }
         return self::$instance;
     }
@@ -70,7 +81,7 @@ class OraBooks_AsyncQueue {
     /**
      * Get handler for a job type.
      */
-    private static function get_handler($job_type) {
+    public static function get_handler($job_type) {
         return self::$handlers[$job_type] ?? null;
     }
 
@@ -101,10 +112,27 @@ class OraBooks_AsyncQueue {
         $priority     = isset($opts['priority']) ? max(0, min(10, (int)$opts['priority'])) : 5;
         $max_retries  = isset($opts['max_retries']) ? (int)$opts['max_retries'] : self::DEFAULT_MAX_RETRIES;
         $delay        = isset($opts['delay_seconds']) ? (int)$opts['delay_seconds'] : 0;
+        $idempotency_key = !empty($opts['idempotency_key']) ? sanitize_text_field($opts['idempotency_key']) : '';
 
         $next_retry_at = $delay > 0
             ? date('Y-m-d H:i:s', time() + $delay)
             : current_time('mysql', true);
+
+        if ($idempotency_key !== '') {
+            $existing = (int) $wpdb->get_var($wpdb->prepare(
+                "SELECT id FROM {$table}
+                 WHERE idempotency_key = %s AND status IN ('pending','processing','completed')
+                 ORDER BY id DESC LIMIT 1",
+                $idempotency_key
+            ));
+            if ($existing > 0) {
+                self::audit($existing, $job_type, 'deduped', 'pending', [
+                    'idempotency_key' => $idempotency_key,
+                    'queue_name' => $queue_name,
+                ]);
+                return $existing;
+            }
+        }
 
         $wpdb->insert($table, [
             'queue_name'   => $queue_name,
@@ -114,8 +142,9 @@ class OraBooks_AsyncQueue {
             'priority'     => $priority,
             'max_retries'  => $max_retries,
             'next_retry_at' => $next_retry_at,
+            'idempotency_key' => $idempotency_key ?: null,
             'created_at'   => current_time('mysql', true),
-        ], ['%s', '%s', '%s', '%s', '%d', '%d', '%s', '%s']);
+        ], ['%s', '%s', '%s', '%s', '%d', '%d', '%s', '%s', '%s']);
 
         $job_id = $wpdb->insert_id;
 
@@ -126,10 +155,60 @@ class OraBooks_AsyncQueue {
                 'queue_name' => $queue_name,
                 'priority'   => $priority,
                 'delay'      => $delay,
+                'idempotency_key' => $idempotency_key,
+            ]);
+            self::audit($job_id, $job_type, 'enqueued', 'pending', [
+                'queue_name' => $queue_name,
+                'priority' => $priority,
+                'delay' => $delay,
+                'idempotency_key' => $idempotency_key,
             ]);
         }
 
         return $job_id;
+    }
+
+    public static function audit($job_id, $job_type, $transition, $to_status, $metadata = [], $from_status = null) {
+        global $wpdb;
+
+        $table = OraBooks_Database::table(self::TABLE_AUDIT);
+        $wpdb->insert($table, [
+            'job_id' => (int) $job_id,
+            'job_type' => (string) $job_type,
+            'transition' => (string) $transition,
+            'from_status' => $from_status,
+            'to_status' => (string) $to_status,
+            'metadata' => !empty($metadata) ? wp_json_encode($metadata) : null,
+            'created_by' => function_exists('get_current_user_id') ? (int) get_current_user_id() : null,
+            'created_at' => current_time('mysql', true),
+        ], ['%d', '%s', '%s', '%s', '%s', '%s', '%d', '%s']);
+
+        if (function_exists('orabooks_log_event')) {
+            orabooks_log_event('async_job_' . $transition, "Async job #{$job_id} {$transition}", 'info', [
+                'job_id' => (int) $job_id,
+                'job_type' => $job_type,
+                'to_status' => $to_status,
+                'from_status' => $from_status,
+            ] + (array) $metadata);
+        }
+    }
+
+    private static function transition_job($job, $to_status, $data = [], $transition = '') {
+        global $wpdb;
+        $table = OraBooks_Database::table(self::TABLE_JOBS);
+        $from_status = is_object($job) ? (string) $job->status : '';
+        $job_id = is_object($job) ? (int) $job->id : (int) $job;
+        $job_type = is_object($job) ? (string) $job->job_type : '';
+
+        $data = array_merge(['status' => $to_status], $data);
+        $formats = [];
+        foreach ($data as $value) {
+            $formats[] = is_int($value) ? '%d' : (is_float($value) ? '%f' : '%s');
+        }
+
+        $updated = $wpdb->update($table, $data, ['id' => $job_id], $formats, ['%d']);
+        self::audit($job_id, $job_type, $transition ?: $to_status, $to_status, $data, $from_status ?: null);
+        return $updated;
     }
 
     // ================================================================
