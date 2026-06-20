@@ -1085,9 +1085,10 @@ class OraBooks_Partner_Test extends TestCase
 
         $wpdb->test_get_row_callback = function ($query) {
             return (object)[
-                'id'      => 5,
-                'org_id'  => 10,
-                'reason'  => 'Need to reactivate',
+                'id'             => 5,
+                'org_id'         => 10,
+                'requested_by'   => 42,
+                'reason'         => 'Need to reactivate',
             ];
         };
 
