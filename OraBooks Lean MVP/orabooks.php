@@ -223,7 +223,8 @@ function orabooks_init() {
  * Create a WordPress page with shortcode content if it doesn't already exist
  */
 function orabooks_create_page($slug, $title, $shortcode, $parent_slug = '') {
-    $existing = get_page_by_path($slug, OBJECT, 'page');
+    $path = $parent_slug ? trim($parent_slug, '/') . '/' . $slug : $slug;
+    $existing = get_page_by_path($path, OBJECT, 'page');
     if ($existing) {
         return $existing->ID;
     }
@@ -299,7 +300,7 @@ function orabooks_create_required_pages() {
     $created_ids = [];
     
     foreach ($pages as $slug => $config) {
-        $page_id = orabooks_create_page($slug, $config[0], $config[1]);
+        $page_id = orabooks_create_page($slug, $config[0], $config[1], $config[2] ?? '');
         $created_ids[$slug] = $page_id;
     }
     

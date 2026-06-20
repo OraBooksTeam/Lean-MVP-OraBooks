@@ -98,7 +98,7 @@ class OraBooks_Shortcodes {
     }
     
     public function partner_onboarding() {
-        return $this->react_page('/partner-onboarding');
+        return $this->react_page('/partner/onboarding');
     }
     
     public function tier_selection() {
