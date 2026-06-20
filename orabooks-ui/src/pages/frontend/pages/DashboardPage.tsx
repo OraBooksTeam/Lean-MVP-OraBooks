@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import WpLink from '../components/WpLink';
 import type { ReactNode } from 'react';
 import Button from '@/components/Button';
 import { api } from '../api';
@@ -123,11 +123,11 @@ export default function DashboardPage() {
       <div className="space-y-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex flex-wrap gap-2">
-            <Link to="/invoices"><Button size="sm"><Plus className="h-4 w-4" />New Invoice</Button></Link>
-            <Link to="/customers"><Button size="sm" variant="secondary">Customers</Button></Link>
-            <Link to="/expenses"><Button size="sm" variant="secondary">Expenses</Button></Link>
-            <Link to="/reports"><Button size="sm" variant="secondary">Reports</Button></Link>
-            <Link to="/csv-imports"><Button size="sm" variant="secondary">Import CSV</Button></Link>
+            <WpLink to="/invoices"><Button size="sm"><Plus className="h-4 w-4" />New Invoice</Button></Link>
+            <WpLink to="/customers"><Button size="sm" variant="secondary">Customers</Button></Link>
+            <WpLink to="/expenses"><Button size="sm" variant="secondary">Expenses</Button></Link>
+            <WpLink to="/reports"><Button size="sm" variant="secondary">Reports</Button></Link>
+            <WpLink to="/csv-imports"><Button size="sm" variant="secondary">Import CSV</Button></Link>
           </div>
           <Button onClick={load} variant="secondary" size="sm">
             <RefreshCw className="h-4 w-4" />

@@ -336,7 +336,7 @@ export default function VendorsPage() {
                           Pay
                         </Button>
                       )}
-                      <Link to={`/attachments?resource_type=vendor&resource_id=${vendor.id}`}>
+                      <WpLink to={`/attachments?resource_type=vendor&resource_id=${vendor.id}`}>
                         <Button size="sm" variant="secondary">
                           <Paperclip className="h-3.5 w-3.5" />
                           Files
@@ -401,7 +401,7 @@ export default function VendorsPage() {
                           Post
                         </Button>
                       )}
-                      <Link to={`/attachments?resource_type=bill&resource_id=${bill.id}`}>
+                      <WpLink to={`/attachments?resource_type=bill&resource_id=${bill.id}`}>
                         <Button size="sm" variant="secondary">
                           <Paperclip className="h-3.5 w-3.5" />
                           Files

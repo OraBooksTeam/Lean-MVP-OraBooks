@@ -245,7 +245,7 @@ function QueueSection({
                     <td className="px-5 py-3">
                       <div className="flex flex-wrap gap-2">
                         {showReview && href && (
-                          <Link to={href}>
+                          <WpLink to={href}>
                             <Button size="sm">
                               <ShieldCheck className="h-3.5 w-3.5" />
                               Review

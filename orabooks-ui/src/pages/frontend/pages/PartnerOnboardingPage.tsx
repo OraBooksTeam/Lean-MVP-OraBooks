@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import WpLink from '../components/WpLink';
 import Button from '@/components/Button';
 import { api } from '../api';
 import ClientShell from '../components/ClientShell';
@@ -89,7 +89,7 @@ export default function PartnerOnboardingPage() {
                   <StatusBadge status={info?.code_status || info?.status} />
                 </div>
 
-                <Link to="/dashboard">
+                <WpLink to="/dashboard">
                   <Button className="w-full">Continue to Dashboard</Button>
                 </Link>
               </div>

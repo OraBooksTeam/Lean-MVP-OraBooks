@@ -296,7 +296,7 @@ export default function InventoryPage() {
                         <Button size="sm" variant="secondary" onClick={() => openAdjust(product)}>
                           Adjust
                         </Button>
-                        <Link to={`/attachments?resource_type=inventory_item&resource_id=${product.id}`}>
+                        <WpLink to={`/attachments?resource_type=inventory_item&resource_id=${product.id}`}>
                           <Button size="sm" variant="secondary">
                             <Paperclip className="h-3.5 w-3.5" />
                             Files

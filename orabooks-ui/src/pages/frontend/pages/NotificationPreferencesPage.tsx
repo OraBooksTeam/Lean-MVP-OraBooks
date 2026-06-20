@@ -22,7 +22,7 @@ export default function NotificationPreferencesPage() {
     >
       <div className="space-y-4">
         <div className="flex justify-end">
-          <Link to="/notifications" className="text-sm font-medium text-primary hover:text-primary-dark">
+          <WpLink to="/notifications" className="text-sm font-medium text-primary hover:text-primary-dark">
             ← Back to Notification Center
           </Link>
         </div>

@@ -278,7 +278,7 @@ export default function JournalsPage() {
                   <p className="text-sm text-amber-700">Rejected: {selectedJournal.rejected_reason}</p>
                 ) : null}
 
-                <Link to={`/attachments?resource_type=journal&resource_id=${selectedJournal.id}`}>
+                <WpLink to={`/attachments?resource_type=journal&resource_id=${selectedJournal.id}`}>
                   <Button variant="secondary" size="sm">
                     <Paperclip className="h-3.5 w-3.5" />
                     View Attachments

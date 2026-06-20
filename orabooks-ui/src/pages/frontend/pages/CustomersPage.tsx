@@ -122,10 +122,10 @@ export default function CustomersPage() {
             />
           </div>
           <Button onClick={handleSearch} variant="secondary" size="sm">Search</Button>
-          <Link to="/csv-imports">
+          <WpLink to="/csv-imports">
             <Button variant="secondary" size="sm"><Upload className="h-4 w-4" />Import customers</Button>
           </Link>
-          <Link to="/invoices">
+          <WpLink to="/invoices">
             <Button size="sm">Create invoice</Button>
           </Link>
           <Button onClick={load} variant="secondary" size="sm">
@@ -186,13 +186,13 @@ export default function CustomersPage() {
                         <Pencil className="h-3.5 w-3.5" />
                         Notes
                       </Button>
-                      <Link to={`/attachments?resource_type=customer&resource_id=${customer.id}`}>
+                      <WpLink to={`/attachments?resource_type=customer&resource_id=${customer.id}`}>
                         <Button size="sm" variant="secondary">
                           <Paperclip className="h-3.5 w-3.5" />
                           Files
                         </Button>
                       </Link>
-                      <Link to="/invoices">
+                      <WpLink to="/invoices">
                         <Button size="sm" variant="secondary">
                           Invoices
                         </Button>

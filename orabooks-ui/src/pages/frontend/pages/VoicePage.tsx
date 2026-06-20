@@ -240,7 +240,7 @@ export default function VoicePage() {
 
             {caps.confirm && selectedVoice.status === 'processed' && (
               <div className="mt-4 flex flex-wrap gap-2">
-                <Link to={`/attachments?resource_type=voice_input&resource_id=${selectedVoice.id}`}>
+                <WpLink to={`/attachments?resource_type=voice_input&resource_id=${selectedVoice.id}`}>
                   <Button variant="secondary" size="sm">
                     <Paperclip className="h-3.5 w-3.5" />
                     View Audio File

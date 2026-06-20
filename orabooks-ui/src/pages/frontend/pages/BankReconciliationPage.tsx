@@ -306,7 +306,7 @@ export default function BankReconciliationPage() {
                   <td className="px-5 py-3 text-slate-600">{account.currency || 'USD'}</td>
                   <td className="px-5 py-3 text-right font-bold text-ink">{money(account.current_balance, account.currency)}</td>
                   <td className="px-5 py-3">
-                    <Link to={`/attachments?resource_type=bank_account&resource_id=${account.id}`}>
+                    <WpLink to={`/attachments?resource_type=bank_account&resource_id=${account.id}`}>
                       <Button size="sm" variant="secondary">
                         <Paperclip className="h-3.5 w-3.5" />
                         Statements
@@ -366,7 +366,7 @@ export default function BankReconciliationPage() {
                       ) : (
                         <span className="text-xs text-slate-500">No action</span>
                       )}
-                      <Link to={`/attachments?resource_type=bank_transaction&resource_id=${txn.id}`}>
+                      <WpLink to={`/attachments?resource_type=bank_transaction&resource_id=${txn.id}`}>
                         <Button size="sm" variant="secondary">
                           <Paperclip className="h-3.5 w-3.5" />
                           Files
@@ -413,7 +413,7 @@ export default function BankReconciliationPage() {
                   </td>
                   <td className="px-5 py-3">
                     {entry.bank_account_id ? (
-                      <Link to={`/attachments?resource_type=bank_account&resource_id=${entry.bank_account_id}`}>
+                      <WpLink to={`/attachments?resource_type=bank_account&resource_id=${entry.bank_account_id}`}>
                         <Button size="sm" variant="secondary">
                           <Paperclip className="h-3.5 w-3.5" />
                           Statement

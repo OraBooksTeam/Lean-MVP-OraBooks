@@ -515,14 +515,14 @@ export default function ExpensesPage() {
             )}
 
             <div className="mt-4 flex flex-wrap gap-2">
-              <Link to={`/attachments?resource_type=expense&resource_id=${selectedExpense.id}`}>
+              <WpLink to={`/attachments?resource_type=expense&resource_id=${selectedExpense.id}`}>
                 <Button variant="secondary" size="sm">
                   <Paperclip className="h-3.5 w-3.5" />
                   View Files
                 </Button>
               </Link>
               {selectedExpense.attachment_id && (
-                <Link to={`/attachments?attachment_id=${selectedExpense.attachment_id}`}>
+                <WpLink to={`/attachments?attachment_id=${selectedExpense.attachment_id}`}>
                   <Button variant="secondary" size="sm">
                     <Receipt className="h-3.5 w-3.5" />
                     Receipt

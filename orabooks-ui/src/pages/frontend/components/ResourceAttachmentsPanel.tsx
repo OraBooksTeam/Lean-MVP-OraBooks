@@ -49,7 +49,7 @@ export default function ResourceAttachmentsPanel({
     return (
       <div className="rounded-xl border border-dashed border-border bg-slate-50/50 p-4 text-sm text-slate-600">
         No files attached.{' '}
-        <Link to={manageHref} className="font-semibold text-primary hover:underline">
+        <WpLink to={manageHref} className="font-semibold text-primary hover:underline">
           Upload in Attachments
         </Link>
       </div>
@@ -63,7 +63,7 @@ export default function ResourceAttachmentsPanel({
           <Paperclip className="h-4 w-4 text-primary" />
           {title} ({items.length})
         </h3>
-        <Link to={manageHref} className="text-xs font-semibold text-primary hover:underline">
+        <WpLink to={manageHref} className="text-xs font-semibold text-primary hover:underline">
           Manage all
         </Link>
       </div>

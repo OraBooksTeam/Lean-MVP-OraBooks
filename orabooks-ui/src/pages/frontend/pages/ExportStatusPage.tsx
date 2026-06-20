@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import WpLink from '../components/WpLink';
 import Button from '@/components/Button';
 import { api } from '../api';
 import ClientShell from '../components/ClientShell';
@@ -124,7 +124,7 @@ export default function ExportStatusPage() {
       <div className="space-y-5">
         <div className="rounded-2xl border border-primary/15 bg-primary/5 p-4 text-sm text-ink">
           Exports are generated asynchronously and expire after 7 days. Financial and operational report exports from{' '}
-          <Link to="/reports" className="font-semibold text-primary hover:underline">
+          <WpLink to="/reports" className="font-semibold text-primary hover:underline">
             Reports
           </Link>{' '}
           also appear here when ready.

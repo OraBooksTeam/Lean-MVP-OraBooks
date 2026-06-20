@@ -391,7 +391,7 @@ export default function InvoicesPage() {
                           Tax
                         </Button>
                       )}
-                      <Link to={`/attachments?resource_type=invoice&resource_id=${invoice.id}`}>
+                      <WpLink to={`/attachments?resource_type=invoice&resource_id=${invoice.id}`}>
                         <Button size="sm" variant="secondary">
                           <Paperclip className="h-3.5 w-3.5" />
                           Files
