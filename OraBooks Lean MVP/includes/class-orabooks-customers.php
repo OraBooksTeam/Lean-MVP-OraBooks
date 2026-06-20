@@ -157,7 +157,12 @@ class OraBooks_Customers {
             return;
         }
 
-        require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+        $upgrade = ABSPATH . 'wp-admin/includes/upgrade.php';
+        if (!file_exists($upgrade)) {
+            return;
+        }
+
+        require_once $upgrade;
 
         self::ensure_payments_table();
 
