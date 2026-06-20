@@ -269,7 +269,7 @@ export default function ClientShell({
         {logoutLink}
       </aside>
 
-      <main className="orabooks-client-main min-w-0 lg:pl-72">
+      <div role="main" className="orabooks-client-main min-w-0 lg:pl-72">
         <div
           className="sticky z-[99] border-b border-primary/10 bg-white/95 shadow-sm shadow-primary/5 backdrop-blur lg:hidden"
           style={adminBarTop}
@@ -308,7 +308,7 @@ export default function ClientShell({
           </header>
           {children}
         </div>
-      </main>
+      </div>
     </div>
   );
 }

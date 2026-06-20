@@ -103,7 +103,44 @@ body.orabooks-page #orabooks-app-root .orabooks-client-main {
     display: block !important;
     visibility: visible !important;
     height: auto !important;
+    min-height: calc(100dvh - var(--orabooks-wp-admin-bar, 0px)) !important;
     overflow: visible !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    position: relative !important;
+    z-index: 1 !important;
+}
+
+@media (min-width: 1024px) {
+    body.orabooks-page #orabooks-app-root .orabooks-client-main {
+        padding-left: 18rem !important;
+    }
+}
+
+/* After portal mount, drop leftover theme page chrome that can cover React content */
+body.orabooks-page:has(> #orabooks-app-root.orabooks-theme-portal) #page-container,
+body.orabooks-page:has(> #orabooks-app-root.orabooks-theme-portal) #page,
+body.orabooks-page:has(> #orabooks-app-root.orabooks-theme-portal) .site,
+body.orabooks-page:has(> #orabooks-app-root.orabooks-theme-portal) #et-main-area,
+body.orabooks-page:has(> #orabooks-app-root.orabooks-theme-portal) #main-content,
+body.orabooks-page.orabooks-app-mounted:has(> #orabooks-app-root) #page-container,
+body.orabooks-page.orabooks-app-mounted:has(> #orabooks-app-root) #page,
+body.orabooks-page.orabooks-app-mounted:has(> #orabooks-app-root) .site,
+body.orabooks-page.orabooks-app-mounted:has(> #orabooks-app-root) #et-main-area,
+body.orabooks-page.orabooks-app-mounted:has(> #orabooks-app-root) #main-content {
+    display: none !important;
+    height: 0 !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+}
+
+body.orabooks-page:has(> #orabooks-app-root.orabooks-theme-portal) #orabooks-app-root.orabooks-theme-portal {
+    position: relative !important;
+    z-index: 2 !important;
+    width: 100% !important;
+    min-height: calc(100dvh - var(--orabooks-wp-admin-bar, 0px)) !important;
 }
 
 body.orabooks-page:has(> #orabooks-app-root) .orabooks-react-page,
@@ -114,7 +151,7 @@ body.orabooks-page.orabooks-app-mounted .orabooks-react-page:not(:has(#orabooks-
 /* Twenty Twenty-Five: hide the constrained page group shell */
 body.orabooks-page.orabooks-react-page main .wp-block-group.alignfull:has(.orabooks-react-page),
 body.orabooks-page.orabooks-auth-page main .wp-block-group.alignfull:has(.orabooks-react-page),
-body.orabooks-page:has(> #orabooks-app-root) main .wp-block-group {
+body.orabooks-page:has(> #orabooks-app-root) main:not(.orabooks-client-main) .wp-block-group {
     display: none !important;
     height: 0 !important;
     overflow: hidden !important;

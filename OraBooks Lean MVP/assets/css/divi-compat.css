@@ -168,7 +168,21 @@ body.orabooks-page.orabooks-divi-theme.orabooks-react-page #orabooks-app-root .o
     z-index: 99;
 }
 
-/* Sidebar offset is handled by Tailwind lg:pl-72 on .orabooks-client-main */
+/* Sidebar offset: theme-compat.css applies padding-left on .orabooks-client-main */
+
+/* After portal mount, Divi page shell must not sit above React workspace content */
+body.orabooks-page.orabooks-divi-theme:has(> #orabooks-app-root.orabooks-theme-portal) #page-container,
+body.orabooks-page.orabooks-divi-theme.orabooks-app-mounted:has(> #orabooks-app-root) #page-container,
+body.orabooks-page.orabooks-divi-theme.orabooks-app-mounted:has(> #orabooks-app-root) #et-main-area,
+body.orabooks-page.orabooks-divi-theme.orabooks-app-mounted:has(> #orabooks-app-root) #main-content {
+    display: none !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+}
+
+body.orabooks-page.orabooks-divi-theme:has(> #orabooks-app-root.orabooks-theme-portal) #orabooks-app-root.orabooks-theme-portal {
+    z-index: 2 !important;
+}
 
 /* Break Divi builder transform/filter chains that break position:fixed sidebars */
 body.orabooks-page.orabooks-divi-theme.orabooks-react-page #page-container,
