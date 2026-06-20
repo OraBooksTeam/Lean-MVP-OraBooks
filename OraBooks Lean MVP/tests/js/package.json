@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "node node_modules/jest/bin/jest.js --runInBand"
+    "test": "node scripts/ensure-native-deps.cjs && node node_modules/jest/bin/jest.js --runInBand"
   },
   "keywords": [],
   "author": "",
