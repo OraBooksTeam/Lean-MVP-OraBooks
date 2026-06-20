@@ -31,6 +31,7 @@ export default function RegisterPage() {
         organization_name: orgName,
         partner_code: partnerCode,
         accept_terms: acceptTerms ? 1 : 0,
+        terms_version: '1.0',
       });
       if (res.error) setError(typeof res.error === 'string' ? res.error : 'Registration failed');
       else {
@@ -39,6 +40,33 @@ export default function RegisterPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const googleRegister = () => {
+    setError('');
+    if (userType === 'partner' && !acceptTerms) {
+      setError('Partner terms must be accepted.');
+      return;
+    }
+    if (userType === 'partner' && needsOrg && !orgName.trim()) {
+      setError('Organization name is required for this partner type.');
+      return;
+    }
+
+    api.oidcInitiate({
+      user_type: userType,
+      partner_type: partnerType,
+      organization_name: orgName,
+      partner_code: userType === 'customer' ? partnerCode : '',
+      accept_terms: userType === 'partner' ? acceptTerms : false,
+      terms_version: '1.0',
+    }).then((res) => {
+      if (res.error) {
+        setError(typeof res.error === 'string' ? res.error : 'Google sign-up is unavailable.');
+        return;
+      }
+      if ((res as any).data?.auth_url) window.location.href = (res as any).data.auth_url;
+    });
   };
 
   const needsOrg = ['agency', 'reseller', 'strategic_partner'].includes(partnerType);
@@ -107,6 +135,18 @@ export default function RegisterPage() {
           {error && <p className="text-sm text-danger">{error}</p>}
           <Button type="submit" loading={loading} className="w-full">Create Account</Button>
         </form>
+        <div className="my-6 flex items-center gap-3">
+          <div className="h-px flex-1 bg-border" />
+          <span className="text-xs font-medium text-slate-500">or continue with</span>
+          <div className="h-px flex-1 bg-border" />
+        </div>
+        <button
+          type="button"
+          onClick={googleRegister}
+          className="flex w-full items-center justify-center gap-2 rounded-lg border border-border bg-white px-4 py-2.5 text-sm font-medium text-ink shadow-sm transition hover:bg-muted active:scale-[0.98]"
+        >
+          Continue with Google
+        </button>
         <p className="mt-6 text-center text-sm text-slate-600">
           Already have an account? <a href={getNetworkAuthUrl('login')} className="font-semibold text-primary hover:text-primary-dark">Sign in</a>
         </p>

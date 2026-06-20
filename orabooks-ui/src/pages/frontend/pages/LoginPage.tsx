@@ -25,6 +25,8 @@ export default function LoginPage() {
   const [show2fa, setShow2fa] = useState(false);
   const [tempToken, setTempToken] = useState('');
   const [otp, setOtp] = useState('');
+  const [backupCode, setBackupCode] = useState('');
+  const [useBackupCode, setUseBackupCode] = useState(false);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -105,7 +107,7 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
     try {
-      const res = await api.twoFactorChallenge(tempToken, otp);
+      const res = await api.twoFactorChallenge(tempToken, useBackupCode ? '' : otp, useBackupCode ? backupCode : '');
       if (res.error) setError(typeof res.error === 'string' ? res.error : '2FA failed');
       else redirectAfterLogin((res as any).data);
     } finally {
@@ -136,7 +138,21 @@ export default function LoginPage() {
           <h2 className="text-center text-xl font-bold text-ink">Two-Factor Authentication</h2>
           <p className="mt-2 text-center text-sm text-slate-600">Enter the 6‑digit code from your authenticator app, or use a backup code.</p>
           <form onSubmit={submit2fa} className="mt-6 space-y-4">
-            <Input label="Authentication Code" value={otp} onChange={(e) => setOtp(e.target.value)} placeholder="000000" inputMode="numeric" maxLength={6} />
+            {useBackupCode ? (
+              <Input label="Backup Code" value={backupCode} onChange={(e) => setBackupCode(e.target.value)} placeholder="Enter backup code" />
+            ) : (
+              <Input label="Authentication Code" value={otp} onChange={(e) => setOtp(e.target.value)} placeholder="000000" inputMode="numeric" maxLength={8} />
+            )}
+            <button
+              type="button"
+              onClick={() => {
+                setUseBackupCode((prev) => !prev);
+                setError('');
+              }}
+              className="text-sm font-medium text-primary hover:text-primary-dark"
+            >
+              {useBackupCode ? 'Use authenticator code instead' : 'Use a backup code instead'}
+            </button>
             {error && <p className="text-sm text-danger">{error}</p>}
             <Button type="submit" loading={loading} className="w-full">Verify Code</Button>
           </form>

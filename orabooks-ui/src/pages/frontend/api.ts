@@ -305,7 +305,7 @@ export const api = {
   oidcInitiate: (stateData: Record<string, unknown> = {}) => {
     const payload: Record<string, unknown> = {};
     if (Object.keys(stateData).length > 0) {
-      payload.state_data = btoa(JSON.stringify(stateData).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''));
+      payload.state_data = encodeOidcStateData(stateData);
     }
     return api.post('orabooks_oidc_initiate', payload);
   },
