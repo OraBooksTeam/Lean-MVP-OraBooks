@@ -2309,6 +2309,29 @@ class OraBooks_Customers {
             $formats[] = '%d';
         }
 
+        if (isset($_POST['customer_code'])) {
+            $customer_code = sanitize_text_field($_POST['customer_code']);
+            if ($customer_code !== '') {
+                $existing_code = $wpdb->get_var($wpdb->prepare(
+                    "SELECT id FROM {$table}
+                     WHERE org_id = %d AND id != %d AND customer_code IS NOT NULL AND LOWER(customer_code) = LOWER(%s)
+                     LIMIT 1",
+                    (int) $customer->org_id,
+                    $customer_id,
+                    $customer_code
+                ));
+                if ($existing_code) {
+                    orabooks_json_error('A customer with this code already exists for your organization.', 400);
+                }
+                $updates['customer_code'] = $customer_code;
+                $formats[] = '%s';
+            }
+        }
+
+        $profile_payload = self::customer_profile_payload($_POST, false);
+        $updates = array_merge($updates, $profile_payload['updates']);
+        $formats = array_merge($formats, $profile_payload['formats']);
+
         if (!empty($updates)) {
             $wpdb->update(
                 $table,
