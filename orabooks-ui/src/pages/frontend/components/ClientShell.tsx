@@ -82,6 +82,10 @@ const partnerNav: NavItem[] = [
   { label: 'Profile', href: '/profile', icon: Users },
 ];
 
+const adminBarTop = { top: 'var(--orabooks-wp-admin-bar, 0px)' } as const;
+const shellHeight = { minHeight: 'calc(100dvh - var(--orabooks-wp-admin-bar, 0px))' } as const;
+const sidebarHeight = { height: 'calc(100dvh - var(--orabooks-wp-admin-bar, 0px))' } as const;
+
 function NavLinks({
   nav,
   location,
@@ -159,9 +163,9 @@ export default function ClientShell({
       <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-base font-black text-primary">
         OB
       </div>
-      <div>
-        <p className="text-sm font-bold text-white">OraBooks</p>
-        <p className="text-xs text-white/70">{isPartner ? 'Partner Account' : 'Accounting Workspace'}</p>
+      <div className="min-w-0">
+        <p className="truncate text-sm font-bold text-white">OraBooks</p>
+        <p className="truncate text-xs text-white/70">{isPartner ? 'Partner Account' : 'Accounting Workspace'}</p>
       </div>
     </div>
   );
@@ -190,30 +194,41 @@ export default function ClientShell({
     </a>
   );
 
+  const sidebarContent = (
+    <>
+      <div className="shrink-0">
+        {brandBlock}
+        {orgBlock}
+      </div>
+
+      <NavLinks
+        nav={nav}
+        location={location}
+        onNavigate={closeMobileNav}
+        className="scrollbar-hide mt-6 min-h-0 flex-1 space-y-1.5 overflow-y-auto overscroll-contain"
+        linkClassName="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition"
+        activeClassName="bg-accent text-white shadow-sm"
+        inactiveClassName="text-white/75 hover:bg-white/10 hover:text-white"
+      />
+
+      {logoutLink}
+    </>
+  );
+
   return (
-    <div className="min-h-screen brand-page-bg">
-      <aside className="fixed inset-y-0 left-0 z-[100] hidden w-72 flex-col bg-primary p-5 text-white shadow-xl shadow-primary/20 lg:flex">
-        <div className="shrink-0">
-          {brandBlock}
-          {orgBlock}
-        </div>
-
-        <NavLinks
-          nav={nav}
-          location={location}
-          className="scrollbar-hide mt-6 min-h-0 flex-1 space-y-1.5 overflow-y-auto overscroll-contain"
-          linkClassName="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition"
-          activeClassName="bg-accent text-white shadow-sm"
-          inactiveClassName="text-white/75 hover:bg-white/10 hover:text-white"
-        />
-
-        {logoutLink}
+    <div className="orabooks-client-shell brand-page-bg w-full" style={shellHeight}>
+      <aside
+        className="orabooks-client-sidebar fixed left-0 z-[100] hidden w-72 flex-col bg-primary p-5 text-white shadow-xl shadow-primary/20 lg:flex"
+        style={{ ...adminBarTop, ...sidebarHeight }}
+      >
+        {sidebarContent}
       </aside>
 
       {mobileNavOpen && (
         <button
           type="button"
-          className="orabooks-mobile-drawer-backdrop fixed inset-0 bg-black/40 lg:hidden"
+          className="orabooks-mobile-drawer-backdrop fixed inset-x-0 bottom-0 bg-black/40 lg:hidden"
+          style={adminBarTop}
           aria-label="Close navigation menu"
           onClick={closeMobileNav}
         />
@@ -222,9 +237,9 @@ export default function ClientShell({
       <aside
         className={cn(
           'orabooks-mobile-drawer fixed left-0 z-[111] flex w-[min(100vw,18rem)] flex-col bg-primary p-5 text-white shadow-xl transition-transform duration-200 lg:hidden',
-          mobileNavOpen ? 'translate-x-0' : '-translate-x-full pointer-events-none'
+          mobileNavOpen ? 'translate-x-0' : 'pointer-events-none -translate-x-full'
         )}
-        style={{ top: 'var(--orabooks-wp-admin-bar, 0px)', height: 'calc(100dvh - var(--orabooks-wp-admin-bar, 0px))' }}
+        style={{ ...adminBarTop, ...sidebarHeight }}
         aria-hidden={!mobileNavOpen}
       >
         <div className="flex shrink-0 items-center justify-between gap-3">
@@ -254,8 +269,11 @@ export default function ClientShell({
         {logoutLink}
       </aside>
 
-      <main className="min-w-0 lg:pl-72">
-        <div className="sticky top-0 z-[99] border-b border-primary/10 bg-white/95 shadow-sm shadow-primary/5 backdrop-blur lg:hidden">
+      <main className="orabooks-client-main min-w-0 lg:pl-72">
+        <div
+          className="sticky z-[99] border-b border-primary/10 bg-white/95 shadow-sm shadow-primary/5 backdrop-blur lg:hidden"
+          style={adminBarTop}
+        >
           <div className="flex items-center justify-between px-4 py-3">
             <div className="flex min-w-0 items-center gap-3">
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary text-sm font-black text-white">
