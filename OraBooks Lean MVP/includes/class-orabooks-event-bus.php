@@ -208,6 +208,10 @@ class OraBooks_EventBus {
                 'aggregate_id' => $aggregate_id,
                 'outbox_id'    => $id,
             ]);
+
+            if (class_exists('OraBooks_Event_Module')) {
+                OraBooks_Event_Module::publish($event_type, $aggregate_id, $payload);
+            }
         }
 
         return $id;
