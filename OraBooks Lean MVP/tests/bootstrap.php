@@ -1116,6 +1116,70 @@ if (!function_exists('get_option')) {
     }
 }
 
+if (!function_exists('orabooks_get_network_login_url')) {
+    function orabooks_get_network_login_url($path = 'login') {
+        return home_url('/' . ltrim((string) $path, '/') . '/');
+    }
+}
+
+if (!function_exists('orabooks_build_org_url')) {
+    function orabooks_build_org_url($subdomain, $path = '/') {
+        $path = '/' . ltrim((string) $path, '/');
+        return 'https://' . $subdomain . '.orabooks.app' . $path;
+    }
+}
+
+if (!function_exists('orabooks_ensure_org_multisite_site')) {
+    function orabooks_ensure_org_multisite_site($org_id) {
+        return true;
+    }
+}
+
+if (!function_exists('orabooks_enrich_login_response')) {
+    function orabooks_enrich_login_response($login_result) {
+        if (!is_array($login_result)) {
+            return $login_result;
+        }
+        if (!isset($login_result['redirect_to'])) {
+            $login_result['redirect_to'] = orabooks_get_network_login_url('dashboard');
+        }
+        return $login_result;
+    }
+}
+
+if (!function_exists('orabooks_get_allowed_regions')) {
+    function orabooks_get_allowed_regions() {
+        return ['us-east', 'eu-west-1', 'ap-southeast-1'];
+    }
+}
+
+if (!function_exists('orabooks_get_default_region_for_tier')) {
+    function orabooks_get_default_region_for_tier($tier) {
+        return 'us-east';
+    }
+}
+
+if (!function_exists('orabooks_validate_org_region')) {
+    function orabooks_validate_org_region($region, $tier) {
+        if ($tier === 'enterprise' && trim((string) $region) === '') {
+            return 'Please select a data residency region.';
+        }
+        return true;
+    }
+}
+
+if (!function_exists('orabooks_org_allows_subdomain_access')) {
+    function orabooks_org_allows_subdomain_access($org) {
+        if (!$org) {
+            return false;
+        }
+        if (($org->organization_type ?? '') === 'partner') {
+            return in_array($org->status ?? '', ['active', 'pending_setup', 'payout_hold'], true);
+        }
+        return ($org->status ?? '') === 'active';
+    }
+}
+
 if (!function_exists('orabooks_get_user_role')) {
     function orabooks_get_user_role($user_id, $org_id) {
         if (isset($GLOBALS['orabooks_test_get_user_role_callback'])) {
