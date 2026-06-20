@@ -214,8 +214,9 @@ class OraBooks_Ajax {
             ? OraBooks_Customers::get_list($org_id, ['limit' => 25, 'offset' => 0])
             : ['customers' => [], 'total' => 0, 'page' => 1, 'per_page' => 25];
         $can_manage_event_bus = current_user_can('manage_options') || (int) ($org['owner_id'] ?? 0) === (int) $context['user_id'];
+        $event_org_scope = current_user_can('manage_options') ? 0 : $org_id;
         $event_bus_health = $can_manage_event_bus && class_exists('OraBooks_Event_Module')
-            ? array_merge(OraBooks_Event_Module::get_health(), ['can_manage' => true])
+            ? array_merge(OraBooks_Event_Module::get_health($event_org_scope), ['can_manage' => true])
             : null;
 
         orabooks_json_success([
