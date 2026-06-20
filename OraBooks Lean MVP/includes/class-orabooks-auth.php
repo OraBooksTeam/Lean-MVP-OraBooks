@@ -905,7 +905,11 @@ class OraBooks_Auth {
         
         return [
             'token' => $new_jwt,
-            'refresh_token' => $new_refresh
+            'refresh_token' => $new_refresh,
+            'user_id' => (int) $user->id,
+            'org_id' => $user->org_id ? (int) $user->org_id : null,
+            'role' => $role,
+            'is_partner' => (bool) $user->is_partner,
         ];
     }
     
