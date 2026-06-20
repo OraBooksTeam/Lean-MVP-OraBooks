@@ -3,7 +3,6 @@ import Button from '@/components/Button';
 import Input from '@/components/Input';
 import { api } from '../api';
 import { getNetworkAuthUrl } from '../lib/auth-routing';
-import { toWpUrl } from '../lib/wp-routing';
 import { UserPlus } from 'lucide-react';
 
 export default function RegisterPage() {

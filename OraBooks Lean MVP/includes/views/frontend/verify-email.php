@@ -10,7 +10,7 @@ $token = isset($_GET['token']) ? sanitize_text_field(wp_unslash($_GET['token']))
             <?php esc_html_e('Verify Email', 'orabooks'); ?>
         </button>
         <p class="orabooks-auth-links">
-            <a href="<?php echo esc_url(home_url('/login/')); ?>"><?php esc_html_e('Go to login', 'orabooks'); ?></a>
+            <a href="<?php echo esc_url(orabooks_get_network_login_url('login')); ?>"><?php esc_html_e('Go to login', 'orabooks'); ?></a>
         </p>
     </div>
 </div>

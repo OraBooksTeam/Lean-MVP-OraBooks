@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { MailCheck } from 'lucide-react';
 import Button from '@/components/Button';
 import { api } from '../api';
-import { toWpUrl } from '../lib/wp-routing';
+import { getNetworkAuthUrl } from '../lib/auth-routing';
 
 export default function VerifyEmailPage() {
   const token = useMemo(() => new URLSearchParams(window.location.search).get('token') || '', []);
@@ -38,7 +38,7 @@ export default function VerifyEmailPage() {
           <p className="mt-4 text-sm text-emerald-700">{success}</p>
         )}
         <div className="mt-6">
-          <Button type="button" onClick={() => { window.location.href = toWpUrl('/login/'); }}>
+          <Button type="button" onClick={() => { window.location.href = getNetworkAuthUrl('login'); }}>
             Go to login
           </Button>
         </div>
