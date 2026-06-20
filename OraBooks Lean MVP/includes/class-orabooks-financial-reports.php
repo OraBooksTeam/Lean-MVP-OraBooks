@@ -381,32 +381,65 @@ class OraBooks_Financial_Reports {
     }
 
     private static function build_trial_balance($org_id, $period_start, $period_end) {
-        $rows = self::ledger_summary_rows($org_id, $period_start, $period_end, []);
+        $closing_rows = self::ledger_rows_for_report($org_id, null, $period_end, []);
+        $opening_rows = ($period_start && $period_start < $period_end)
+            ? self::ledger_rows_for_report($org_id, null, self::day_before($period_start), [])
+            : [];
+        $opening_map = [];
+        foreach ($opening_rows as $row) {
+            $opening_map[(int) $row->account_id] = self::account_amount($row);
+        }
+
         $items = [];
         $debits = 0.0;
         $credits = 0.0;
+        $has_ledger_activity = self::posted_ledger_has_activity($org_id);
 
-        foreach ($rows as $row) {
-            $debit = (float) $row->debit_sum;
-            $credit = (float) $row->credit_sum;
+        foreach ($closing_rows as $row) {
+            $account_id = (int) $row->account_id;
+            $closing_balance = self::account_amount($row);
+            $opening_balance = (float) ($opening_map[$account_id] ?? 0);
+            $columns = self::trial_balance_columns($row, $closing_balance);
+
+            if (abs($columns['debit']) < 0.001 && abs($columns['credit']) < 0.001) {
+                continue;
+            }
+
             $items[] = [
-                'account_id' => (int) $row->account_id,
+                'account_id' => $account_id,
                 'code' => $row->code,
                 'name' => $row->name,
                 'type' => $row->type,
-                'debit' => round($debit, 2),
-                'credit' => round($credit, 2),
+                'normal_balance' => $row->normal_balance,
+                'opening_balance' => round($opening_balance, 2),
+                'closing_balance' => round($closing_balance, 2),
+                'debit' => $columns['debit'],
+                'credit' => $columns['credit'],
             ];
-            $debits += $debit;
-            $credits += $credit;
+            $debits += $columns['debit'];
+            $credits += $columns['credit'];
+        }
+
+        $difference = round($debits - $credits, 2);
+        $balanced = abs($difference) <= 0.01;
+        if (!$has_ledger_activity && empty($items)) {
+            $balanced = false;
         }
 
         return [
             'report_type' => 'trial_balance',
+            'report_mode' => 'closing_balance_as_of',
+            'period_start' => $period_start,
+            'period_end' => $period_end,
             'accounts' => $items,
             'total_debits' => round($debits, 2),
             'total_credits' => round($credits, 2),
-            'balanced' => abs($debits - $credits) <= 0.01,
+            'difference' => $difference,
+            'balanced' => $balanced,
+            'balance_status' => $balanced ? 'balanced' : 'unbalanced',
+            'balance_message' => $balanced
+                ? 'Total debits equal total credits (double-entry balanced).'
+                : sprintf('Unbalanced trial balance — difference of %s. Books require review.', number_format(abs($difference), 2)),
         ];
     }
 
