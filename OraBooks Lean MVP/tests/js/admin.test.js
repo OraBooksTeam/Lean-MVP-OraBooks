@@ -1448,8 +1448,8 @@ describe('orabooksLoadCustomerList()', () => {
     expect(html).toContain('$1,200.00');
     expect(html).toContain('Active');
     expect(html).toContain('Inactive');
-    expect(html).toContain('orabooks-cust-toggle-active');
     expect(html).toContain('orabooks-cust-view');
+    expect(html).not.toContain('orabooks-cust-toggle-active');
   });
 
   test('shows empty message when no customers', () => {
@@ -1533,52 +1533,6 @@ describe('Customer filters', () => {
     $('#orabooks-cust-search').trigger(e);
 
     expect(ajaxResponses.get.length).toBe(0);
-  });
-});
-
-// ============================================================
-// CUSTOMERS & INVOICES — Toggle Active Status
-// ============================================================
-describe('Customer toggle active', () => {
-  beforeEach(setupCustomerDom);
-
-  test('toggles active to inactive', () => {
-    // Populate table with a customer
-    clearAjax();
-    window.orabooksLoadCustomerList();
-    resolveAjax('get', {
-      data: {
-        customers: [
-          { id: 10, email: 'toggle@test.com', is_active: 1, invoice_count: 0, total_paid: 0, last_paid_invoice_date: null }
-        ]
-      }
-    }, 'orabooks_customers_list');
-
-    // Click toggle button
-    $('.orabooks-cust-toggle-active').first().trigger('click');
-
-    const call = latestAjax('post');
-    expect(call.data.action).toBe('orabooks_customer_update');
-    expect(call.data.customer_id).toBe(10);
-    expect(call.data.is_active).toBe(0); // Toggling to inactive
-  });
-
-  test('toggles inactive to active', () => {
-    clearAjax();
-    window.orabooksLoadCustomerList();
-    resolveAjax('get', {
-      data: {
-        customers: [
-          { id: 11, email: 'revive@test.com', is_active: 0, invoice_count: 0, total_paid: 0, last_paid_invoice_date: null }
-        ]
-      }
-    }, 'orabooks_customers_list');
-
-    $('.orabooks-cust-toggle-active').first().trigger('click');
-
-    const call = latestAjax('post');
-    expect(call.data.customer_id).toBe(11);
-    expect(call.data.is_active).toBe(1); // Toggling to active
   });
 });
 

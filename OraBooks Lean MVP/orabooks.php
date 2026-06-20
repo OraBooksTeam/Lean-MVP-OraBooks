@@ -196,47 +196,20 @@ function orabooks_init() {
         }
         return null;
     });
-    // Register partner_onboarding report provider for SL-114 export
+    // Register partner_onboarding report provider (SL-139 / SL-114 export)
     OraBooks_Exports::register_report_provider('partner_onboarding', function($params) {
-        global $wpdb;
         $user_id = intval($params['user_id'] ?? get_current_user_id());
-        if (!$user_id) return null;
-        $table = OraBooks_Database::table('partners');
-        $partner = $wpdb->get_row($wpdb->prepare(
-            "SELECT p.id, p.user_id, p.partner_code, p.partner_type, p.status, p.organization_name, 
-                    p.active_customers, p.total_attributions, p.created_at, u.user_email
-             FROM {$table} p
-             LEFT JOIN {$wpdb->users} u ON u.ID = p.user_id
-             WHERE p.user_id = %d LIMIT 1",
-            $user_id
-        ));
-        return $partner ? [$partner] : null;
+        if (!$user_id || !class_exists('OraBooks_Partner')) {
+            return null;
+        }
+        $data = OraBooks_Partner::get_dashboard_data($user_id);
+        return $data ? [$data] : null;
     });
-    // SL-074 financial report export providers
-    foreach (['profit_loss', 'balance_sheet', 'cash_flow', 'trial_balance', 'changes_equity'] as $financial_type) {
-        OraBooks_Exports::register_report_provider('financial_' . $financial_type, function($params) use ($financial_type) {
-            if (!class_exists('OraBooks_Financial_Reports')) {
-                return null;
-            }
-            $params['report_type'] = $financial_type;
-            return OraBooks_Financial_Reports::export_report_data($params);
-        });
-    }
-    // SL-075 operational report export providers
-    foreach (['ar_aging', 'ap_aging', 'inventory_status', 'bank_reconciliation', 'sales_summary', 'purchase_summary'] as $operational_type) {
-        OraBooks_Exports::register_report_provider('operational_' . $operational_type, function($params) use ($operational_type) {
-            if (!class_exists('OraBooks_Operational_Reports')) {
-                return null;
-            }
-            $params['report_type'] = $operational_type;
-            return OraBooks_Operational_Reports::export_report_data($params);
-        });
-    }
     // Register the generate_export handler with SL-303 async queue
     OraBooks_AsyncQueue::register_handler('generate_export', ['OraBooks_Exports', 'generate_export_job']);
     OraBooks_AsyncQueue::register_handler('parse_csv_import', ['OraBooks_Csv_Imports', 'parse_csv_import_job']);
 
-    if (class_exists('OraBooks_Accounting')) {
+    if (class_exists('OraBooks_Accounting') && apply_filters('orabooks_enable_legacy_accounting', false)) {
         OraBooks_Accounting::init();
     }
 
