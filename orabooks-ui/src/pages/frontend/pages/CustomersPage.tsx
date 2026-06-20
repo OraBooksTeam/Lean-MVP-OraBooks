@@ -74,6 +74,13 @@ type CustomerFormState = {
   auto_apply_credit: boolean;
 };
 
+type CountryStateOption = {
+  name: string;
+  states: string[];
+};
+
+const selectClassName = 'w-full rounded-lg border border-border bg-white px-3.5 py-2.5 text-sm text-ink shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20';
+
 const emptyCustomerForm = (): CustomerFormState => ({
   customer_code: '',
   name: '',
@@ -142,7 +149,6 @@ function customerToForm(customer: Customer): CustomerFormState {
 
 function customerFormPayload(form: CustomerFormState) {
   return {
-    customer_code: form.customer_code.trim(),
     display_name: form.name.trim(),
     email: form.email.trim(),
     mobile: form.mobile.trim(),
