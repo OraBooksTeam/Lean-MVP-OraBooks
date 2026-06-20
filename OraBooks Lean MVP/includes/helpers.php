@@ -88,6 +88,7 @@ function orabooks_get_lean_mvp_page_definitions() {
         'audit-log' => ['Audit Log', '[orabooks_audit_log]'],
         'notifications' => ['Notifications', '[orabooks_notification_center]'],
         'notification-preferences' => ['Notification Preferences', '[orabooks_notification_preferences]'],
+        'webhook-settings' => ['Webhook Settings', '[orabooks_webhook_settings]'],
         'my-exports' => ['My Exports', '[orabooks_export_status]'],
     ];
 }
