@@ -501,8 +501,11 @@ class OraBooks_AsyncQueue {
 
     /**
      * Retry a dead-letter or failed job — resets to pending.
+     *
+     * @param int      $job_id
+     * @param int|null $org_scope When set and > 0, job payload org_id must match.
      */
-    public static function retry_job($job_id) {
+    public static function retry_job($job_id, $org_scope = null) {
         global $wpdb;
 
         $table = OraBooks_Database::table(self::TABLE_JOBS);
@@ -513,6 +516,11 @@ class OraBooks_AsyncQueue {
 
         if (!$job) {
             return new \WP_Error('not_found', 'Job not found');
+        }
+
+        $access = self::assert_job_org_scope($job, $org_scope);
+        if (is_wp_error($access)) {
+            return $access;
         }
 
         if (!in_array($job->status, ['dead_letter', 'failed', 'completed'])) {
@@ -537,13 +545,19 @@ class OraBooks_AsyncQueue {
         return true;
     }
 
-    public static function discard_job($job_id) {
+    public static function discard_job($job_id, $org_scope = null) {
         global $wpdb;
         $table = OraBooks_Database::table(self::TABLE_JOBS);
         $job = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$table} WHERE id = %d", (int) $job_id));
         if (!$job) {
             return new \WP_Error('not_found', 'Job not found');
         }
+
+        $access = self::assert_job_org_scope($job, $org_scope);
+        if (is_wp_error($access)) {
+            return $access;
+        }
+
         if (!in_array($job->status, ['dead_letter', 'failed'], true)) {
             return new \WP_Error('invalid_status', 'Only failed or dead-letter jobs can be discarded');
         }
@@ -551,13 +565,19 @@ class OraBooks_AsyncQueue {
         return true;
     }
 
-    public static function cancel_job($job_id) {
+    public static function cancel_job($job_id, $org_scope = null) {
         global $wpdb;
         $table = OraBooks_Database::table(self::TABLE_JOBS);
         $job = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$table} WHERE id = %d", (int) $job_id));
         if (!$job) {
             return new \WP_Error('not_found', 'Job not found');
         }
+
+        $access = self::assert_job_org_scope($job, $org_scope);
+        if (is_wp_error($access)) {
+            return $access;
+        }
+
         if ($job->status !== 'pending') {
             return new \WP_Error('invalid_status', 'Only pending jobs can be cancelled');
         }
