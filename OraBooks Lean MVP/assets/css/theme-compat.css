@@ -1,0 +1,287 @@
+/**
+ * Universal WordPress theme compatibility for OraBooks Lean MVP (React).
+ * Loaded on every OraBooks frontend page, regardless of active theme.
+ */
+
+body.orabooks-page {
+    --orabooks-wp-admin-bar: 0px;
+    --orabooks-theme-header: 0px;
+    margin: 0;
+    overflow-x: clip;
+}
+
+body.orabooks-page.admin-bar {
+    --orabooks-wp-admin-bar: 32px;
+}
+
+@media screen and (max-width: 782px) {
+    body.orabooks-page.admin-bar {
+        --orabooks-wp-admin-bar: 46px;
+    }
+}
+
+/* Full-width: break out of common theme content columns */
+body.orabooks-page .site-content,
+body.orabooks-page .content-area,
+body.orabooks-page .entry-content,
+body.orabooks-page .wp-block-post-content,
+body.orabooks-page #primary,
+body.orabooks-page #content,
+body.orabooks-page #main-content,
+body.orabooks-page #left-area,
+body.orabooks-page main.site-main,
+body.orabooks-page .ast-container,
+body.orabooks-page .container,
+body.orabooks-page .wrap,
+body.orabooks-page .page-content,
+body.orabooks-page .content-wrapper {
+    max-width: 100% !important;
+    width: 100% !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    box-sizing: border-box;
+}
+
+/* Hide duplicate theme page titles above shortcodes */
+body.orabooks-page .entry-header,
+body.orabooks-page .page-header,
+body.orabooks-page .entry-title,
+body.orabooks-page .page-title,
+body.orabooks-page .post-title,
+body.orabooks-page .breadcrumb,
+body.orabooks-page .rank-math-breadcrumb,
+body.orabooks-page .yoast-breadcrumb {
+    display: none !important;
+}
+
+/* Shortcode wrappers: full width without 100vw horizontal scroll */
+body.orabooks-page .orabooks-react-page,
+body.orabooks-page .orabooks-auth-shell,
+body.orabooks-page .orabooks-page-shell,
+body.orabooks-page .entry-content .orabooks-react-page,
+body.orabooks-page .wp-block-post-content .orabooks-react-page {
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    box-sizing: border-box;
+}
+
+/* Reset theme styles inside the React root */
+body.orabooks-page #orabooks-app-root {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+    -webkit-font-smoothing: antialiased;
+    text-transform: none;
+    letter-spacing: normal;
+    line-height: 1.5;
+    box-sizing: border-box;
+}
+
+body.orabooks-page #orabooks-app-root *,
+body.orabooks-page #orabooks-app-root *::before,
+body.orabooks-page #orabooks-app-root *::after {
+    box-sizing: border-box;
+}
+
+body.orabooks-page #orabooks-app-root button,
+body.orabooks-page #orabooks-app-root .orabooks-btn,
+body.orabooks-page #orabooks-app-root input,
+body.orabooks-page #orabooks-app-root select,
+body.orabooks-page #orabooks-app-root textarea {
+    text-transform: none;
+    letter-spacing: normal;
+    font-weight: inherit;
+    max-width: 100%;
+}
+
+body.orabooks-page #orabooks-app-root h1,
+body.orabooks-page #orabooks-app-root h2,
+body.orabooks-page #orabooks-app-root h3,
+body.orabooks-page #orabooks-app-root h4,
+body.orabooks-page #orabooks-app-root h5,
+body.orabooks-page #orabooks-app-root h6 {
+    padding-bottom: 0;
+    text-transform: none;
+    letter-spacing: normal;
+}
+
+body.orabooks-page #orabooks-app-root a {
+    text-decoration: none;
+}
+
+body.orabooks-page #orabooks-app-root ul,
+body.orabooks-page #orabooks-app-root ol {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+body.orabooks-page #orabooks-app-root img,
+body.orabooks-page #orabooks-app-root svg {
+    max-width: 100%;
+    height: auto;
+}
+
+body.orabooks-page #orabooks-app-root table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+/* Immersive workspace: hide theme header, footer, sidebars */
+body.orabooks-page.orabooks-react-page .site-header,
+body.orabooks-page.orabooks-react-page #masthead,
+body.orabooks-page.orabooks-react-page header.site-header,
+body.orabooks-page.orabooks-react-page .site-footer,
+body.orabooks-page.orabooks-react-page #colophon,
+body.orabooks-page.orabooks-react-page footer.site-footer,
+body.orabooks-page.orabooks-react-page .sidebar,
+body.orabooks-page.orabooks-react-page #secondary,
+body.orabooks-page.orabooks-react-page .widget-area,
+body.orabooks-page.orabooks-react-page #sidebar,
+body.orabooks-page.orabooks-react-page .footer-widgets,
+body.orabooks-page.orabooks-react-page .ast-footer-overlay,
+body.orabooks-page.orabooks-react-page .ast-header-break-point .main-header-bar-wrap,
+body.orabooks-page.orabooks-react-page header.wp-block-template-part,
+body.orabooks-page.orabooks-react-page footer.wp-block-template-part,
+body.orabooks-page.orabooks-react-page .wp-site-blocks > header,
+body.orabooks-page.orabooks-react-page .wp-site-blocks > footer,
+body.orabooks-page.orabooks-auth-page .site-header,
+body.orabooks-page.orabooks-auth-page #masthead,
+body.orabooks-page.orabooks-auth-page header.site-header,
+body.orabooks-page.orabooks-auth-page .site-footer,
+body.orabooks-page.orabooks-auth-page #colophon,
+body.orabooks-page.orabooks-auth-page footer.site-footer,
+body.orabooks-page.orabooks-auth-page .sidebar,
+body.orabooks-page.orabooks-auth-page #secondary,
+body.orabooks-page.orabooks-auth-page .widget-area,
+body.orabooks-page.orabooks-auth-page header.wp-block-template-part,
+body.orabooks-page.orabooks-auth-page footer.wp-block-template-part,
+body.orabooks-page.orabooks-auth-page .wp-site-blocks > header,
+body.orabooks-page.orabooks-auth-page .wp-site-blocks > footer {
+    display: none !important;
+}
+
+body.orabooks-page.orabooks-react-page,
+body.orabooks-page.orabooks-auth-page {
+    background: #f4f8fc;
+}
+
+body.orabooks-page.orabooks-auth-page {
+    background: #1A69B4;
+}
+
+/* Portaled React root (moved to body by frontend.js) */
+body.orabooks-page.orabooks-react-page > #orabooks-app-root.orabooks-theme-portal,
+body.orabooks-page.orabooks-auth-page > #orabooks-app-root.orabooks-theme-portal,
+body.orabooks-page #orabooks-app-root.orabooks-theme-portal {
+    position: relative;
+    display: block;
+    width: 100% !important;
+    max-width: none !important;
+    min-height: calc(100vh - var(--orabooks-wp-admin-bar));
+    min-height: calc(100dvh - var(--orabooks-wp-admin-bar));
+    margin: 0 !important;
+    padding: 0 !important;
+    z-index: 1;
+    background: #f4f8fc;
+}
+
+body.orabooks-page.orabooks-auth-page #orabooks-app-root.orabooks-theme-portal {
+    background: #1A69B4;
+}
+
+body.orabooks-page.orabooks-react-page #orabooks-app-root {
+    width: 100%;
+    min-height: calc(100vh - var(--orabooks-wp-admin-bar));
+    min-height: calc(100dvh - var(--orabooks-wp-admin-bar));
+}
+
+/* Fixed sidebar + sticky mobile header respect WP admin bar */
+body.orabooks-page.orabooks-react-page #orabooks-app-root aside.fixed {
+    top: var(--orabooks-wp-admin-bar);
+    height: calc(100vh - var(--orabooks-wp-admin-bar));
+    height: calc(100dvh - var(--orabooks-wp-admin-bar));
+    width: 18rem !important;
+    min-width: 18rem !important;
+    max-width: 18rem !important;
+    flex-shrink: 0 !important;
+    z-index: 100;
+}
+
+body.orabooks-page.orabooks-react-page #orabooks-app-root main > .sticky {
+    top: var(--orabooks-wp-admin-bar);
+    z-index: 99;
+}
+
+@media (min-width: 1024px) {
+    body.orabooks-page.orabooks-react-page #orabooks-app-root .min-h-screen > main {
+        padding-left: 18rem !important;
+    }
+}
+
+/* Mobile drawer overlay */
+body.orabooks-page.orabooks-react-page #orabooks-app-root .orabooks-mobile-drawer-backdrop {
+    z-index: 110;
+}
+
+body.orabooks-page.orabooks-react-page #orabooks-app-root .orabooks-mobile-drawer {
+    top: var(--orabooks-wp-admin-bar);
+    height: calc(100dvh - var(--orabooks-wp-admin-bar));
+    z-index: 111;
+}
+
+/* Break theme transform/filter chains that break position:fixed */
+body.orabooks-page.orabooks-react-page #page,
+body.orabooks-page.orabooks-react-page #page-container,
+body.orabooks-page.orabooks-react-page .site,
+body.orabooks-page.orabooks-react-page .site-content,
+body.orabooks-page.orabooks-react-page .content-area,
+body.orabooks-page.orabooks-react-page .entry-content,
+body.orabooks-page.orabooks-react-page .wp-block-post-content,
+body.orabooks-page.orabooks-auth-page #page,
+body.orabooks-page.orabooks-auth-page .site,
+body.orabooks-page.orabooks-auth-page .site-content,
+body.orabooks-page.orabooks-auth-page .entry-content {
+    transform: none !important;
+    filter: none !important;
+    perspective: none !important;
+    contain: none !important;
+    overflow: visible !important;
+}
+
+/* Modals above theme fixed headers */
+body.orabooks-page .orabooks-modal,
+body.orabooks-page #orabooks-app-root [role="dialog"] {
+    z-index: 100010;
+}
+
+/* Responsive tables inside React pages */
+body.orabooks-page #orabooks-app-root .orabooks-table-scroll {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+@media screen and (max-width: 767px) {
+    body.orabooks-page #orabooks-app-root .w-full.px-4 {
+        padding-left: 1rem !important;
+        padding-right: 1rem !important;
+    }
+
+    body.orabooks-page #orabooks-app-root h1 {
+        font-size: 1.5rem !important;
+        line-height: 1.25 !important;
+    }
+
+    body.orabooks-page #orabooks-app-root .rounded-3xl {
+        border-radius: 1rem !important;
+    }
+}
+
+@media screen and (max-width: 480px) {
+    body.orabooks-page.orabooks-auth-page #orabooks-app-root.orabooks-theme-portal {
+        min-height: 100dvh;
+    }
+}

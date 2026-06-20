@@ -197,6 +197,8 @@ class OraBooks_Assets {
         $style = self::get_react_stylesheet();
         $version = ORABOOKS_VERSION . '-' . (self::get_react_manifest()['generated_at'] ?? 'dev');
 
+        self::enqueue_theme_compat();
+
         wp_enqueue_style(
             'orabooks-react',
             self::react_bundle_url($style),
