@@ -714,17 +714,40 @@ class OraBooks_Database {
             queue_name VARCHAR(50) DEFAULT 'default',
             job_type VARCHAR(100) NOT NULL,
             payload JSON NOT NULL,
-            status ENUM('pending','processing','completed','failed','dead_letter') DEFAULT 'pending',
+            status ENUM('pending','processing','completed','failed','dead_letter','cancelled','discarded') DEFAULT 'pending',
             priority INT DEFAULT 5,
             retry_count INT DEFAULT 0,
             max_retries INT DEFAULT 5,
             next_retry_at TIMESTAMP NULL,
             started_at TIMESTAMP NULL,
             completed_at TIMESTAMP NULL,
+            last_attempt_at TIMESTAMP NULL,
             last_error TEXT NULL,
             heartbeat_at TIMESTAMP NULL,
+            idempotency_key VARCHAR(191) NULL,
+            cancelled_at TIMESTAMP NULL,
+            archived_at TIMESTAMP NULL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            INDEX idx_status_priority (status, priority, created_at)
+            INDEX idx_status_priority (status, priority, created_at),
+            INDEX idx_queue_status_retry (queue_name, status, next_retry_at),
+            UNIQUE KEY uk_idempotency_key (idempotency_key)
+        ) {$charset_collate};";
+        dbDelta($sql);
+
+        $table_job_audit = $table_prefix . 'orabooks_async_job_audit_log';
+        $sql = "CREATE TABLE IF NOT EXISTS {$table_job_audit} (
+            id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            job_id BIGINT UNSIGNED NOT NULL,
+            job_type VARCHAR(100) NOT NULL,
+            transition VARCHAR(80) NOT NULL,
+            from_status VARCHAR(40) NULL,
+            to_status VARCHAR(40) NOT NULL,
+            metadata JSON NULL,
+            created_by BIGINT UNSIGNED NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            INDEX idx_job_id (job_id),
+            INDEX idx_job_type (job_type),
+            INDEX idx_created_at (created_at)
         ) {$charset_collate};";
         dbDelta($sql);
         
