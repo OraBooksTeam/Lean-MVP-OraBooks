@@ -87,6 +87,7 @@ function mountThemePortal(root: HTMLElement) {
   }
 
   root.classList.add('orabooks-theme-portal', 'orabooks-divi-portal');
+  document.body.classList.add('orabooks-app-mounted');
 }
 
 function bootFrontend() {
@@ -115,6 +116,7 @@ function bootFrontend() {
 
     window.orabooksReactMounted = true;
     root.classList.add('is-mounted');
+    document.body.classList.add('orabooks-app-mounted');
     ReactDOM.createRoot(root).render(
       <FrontendErrorBoundary>
         <RouterProvider router={router} />
