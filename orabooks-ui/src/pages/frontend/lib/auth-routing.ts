@@ -1,5 +1,5 @@
 import { getTenantDomainSuffix } from '@/lib/utils';
-import { clearPersistedAuthTokens } from '../api';
+import { AUTH_TOKEN_STORAGE_KEY, clearPersistedAuthTokens } from '../api';
 import { normalizeAppRoute, toWpUrl } from './wp-routing';
 
 const PENDING_INVITE_TOKEN_KEY = 'orabooks_pending_invite_token';

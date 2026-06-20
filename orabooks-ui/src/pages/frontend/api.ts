@@ -16,7 +16,8 @@ function getAjaxConfig(): Required<Pick<AjaxConfig, 'ajax_url' | 'nonce'>> & Aja
   };
 }
 
-const TOKEN_KEY = 'orabooks_token';
+export const AUTH_TOKEN_STORAGE_KEY = 'orabooks_token';
+const TOKEN_KEY = AUTH_TOKEN_STORAGE_KEY;
 
 type Json = Record<string, any> | any[] | null;
 type ApiResult<T = Json> =
