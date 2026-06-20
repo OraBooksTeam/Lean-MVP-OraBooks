@@ -19,6 +19,7 @@ class OraBooks_Shortcodes {
             add_shortcode('orabooks_login', [self::$instance, 'login_form']);
             add_shortcode('orabooks_register', [self::$instance, 'register_form']);
             add_shortcode('orabooks_verify_email', [self::$instance, 'verify_email']);
+            add_shortcode('orabooks_accept_invite', [self::$instance, 'accept_invite']);
             add_shortcode('orabooks_reset_password', [self::$instance, 'reset_password']);
             add_shortcode('orabooks_partner_onboarding', [self::$instance, 'partner_onboarding']);
             add_shortcode('orabooks_tier_selection', [self::$instance, 'tier_selection']);
@@ -89,6 +90,10 @@ class OraBooks_Shortcodes {
     
     public function verify_email() {
         return $this->react_page('/verify-email', false);
+    }
+
+    public function accept_invite() {
+        return $this->react_page('/accept-invite', false);
     }
     
     public function reset_password() {
