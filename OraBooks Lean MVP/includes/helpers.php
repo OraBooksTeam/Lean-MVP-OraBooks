@@ -45,6 +45,13 @@ function orabooks_get_accounting_page_slugs() {
         'tax-settings',
         'journals',
         'bank-reconciliation',
+        'team',
+        'audit-log',
+        'notifications',
+        'notification-preferences',
+        'job-queue',
+        'webhook-settings',
+        'my-exports',
     ];
 }
 
