@@ -1055,7 +1055,80 @@ function orabooks_clear_auth_token_cookie() {
  * Whether the current request is landing on login after an explicit logout.
  */
 function orabooks_is_explicit_logout_request() {
-    return isset($_GET['logged_out']) && (string) $_GET['logged_out'] === '1';
+    if (isset($_GET['logged_out']) && (string) $_GET['logged_out'] === '1') {
+        return true;
+    }
+
+    return !empty($_COOKIE['orabooks_logout']);
+}
+
+/**
+ * Short-lived cookie so logout cleanup survives URL param stripping in the browser.
+ */
+function orabooks_set_logout_landing_cookie() {
+    if (headers_sent()) {
+        $_COOKIE['orabooks_logout'] = '1';
+        return;
+    }
+
+    $path = defined('COOKIEPATH') && COOKIEPATH ? COOKIEPATH : '/';
+    $secure = is_ssl();
+    $domains = [''];
+
+    $configured = orabooks_get_auth_cookie_domain();
+    if ($configured !== '') {
+        $domains[] = $configured;
+    }
+
+    foreach (array_unique($domains) as $domain) {
+        if (PHP_VERSION_ID >= 70300) {
+            setcookie('orabooks_logout', '1', [
+                'expires'  => time() + 120,
+                'path'     => $path,
+                'domain'   => $domain,
+                'secure'   => $secure,
+                'httponly' => true,
+                'samesite' => 'Lax',
+            ]);
+        } else {
+            setcookie('orabooks_logout', '1', time() + 120, $path, $domain, $secure, true);
+        }
+    }
+
+    $_COOKIE['orabooks_logout'] = '1';
+}
+
+/**
+ * Clear the post-logout landing marker cookie.
+ */
+function orabooks_clear_logout_landing_cookie() {
+    $path = defined('COOKIEPATH') && COOKIEPATH ? COOKIEPATH : '/';
+    $secure = is_ssl();
+    $domains = [''];
+
+    $configured = orabooks_get_auth_cookie_domain();
+    if ($configured !== '') {
+        $domains[] = $configured;
+    }
+
+    if (!headers_sent()) {
+        foreach (array_unique($domains) as $domain) {
+            if (PHP_VERSION_ID >= 70300) {
+                setcookie('orabooks_logout', '', [
+                    'expires'  => time() - 3600,
+                    'path'     => $path,
+                    'domain'   => $domain,
+                    'secure'   => $secure,
+                    'httponly' => true,
+                    'samesite' => 'Lax',
+                ]);
+            } else {
+                setcookie('orabooks_logout', '', time() - 3600, $path, $domain, $secure, true);
+            }
+        }
+    }
+
+    unset($_COOKIE['orabooks_logout']);
 }
 
 /**
