@@ -5,42 +5,12 @@ import { Flame } from 'lucide-react';
 import { api } from '../api';
 import {
   clearRedirectGuard,
-  normalizeWpAppPath,
-  replaceAppLocation,
+  redirectAfterAuth,
+  redirectToOrgSubdomain,
 } from '../lib/auth-routing';
 
 function redirectAfterLogin(data: any) {
-  clearRedirectGuard();
-
-  if (data?.needs_tier_selection) {
-    replaceAppLocation('/tier-selection/', '/tier-selection');
-    return;
-  }
-
-  const redirectTo = String(data?.redirect_to || '').trim();
-  if (redirectTo.includes('/partner/onboarding') || redirectTo.includes('/partner-onboarding')) {
-    replaceAppLocation(redirectTo, '/partner-onboarding');
-    return;
-  }
-
-  if (redirectTo.startsWith('http')) {
-    window.location.replace(redirectTo);
-    return;
-  }
-
-  if (redirectTo.startsWith('#/')) {
-    replaceAppLocation('/dashboard/', redirectTo.slice(1));
-    return;
-  }
-
-  if (redirectTo.startsWith('/')) {
-    const wpPath = normalizeWpAppPath(redirectTo);
-    const hashRoute = redirectTo.replace(/\/$/, '') || '/dashboard';
-    replaceAppLocation(wpPath, hashRoute);
-    return;
-  }
-
-  replaceAppLocation('/dashboard/', '/dashboard');
+  redirectAfterAuth(data);
 }
 
 export default function LoginPage() {
@@ -56,7 +26,12 @@ export default function LoginPage() {
     api.frontendContext().then((res) => {
       if (!res.error) {
         clearRedirectGuard();
-        replaceAppLocation('/dashboard/', '/dashboard');
+        const org = (res as any).data?.organization;
+        if (org?.subdomain) {
+          redirectToOrgSubdomain(org.subdomain, '/dashboard/', '/dashboard');
+          return;
+        }
+        redirectAfterAuth((res as any).data || {});
       }
     });
 

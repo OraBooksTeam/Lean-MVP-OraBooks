@@ -3,6 +3,7 @@ import Button from '@/components/Button';
 import Input from '@/components/Input';
 import { api } from '@/pages/frontend/api';
 import { getTenantDomainSuffix } from '@/lib/utils';
+import { redirectAfterAuth } from '../lib/auth-routing';
 
 export default function TierSelectionPage() {
   const tenantDomainSuffix = getTenantDomainSuffix();
@@ -31,10 +32,7 @@ export default function TierSelectionPage() {
     setLoading(true);
     const res = await api.post('orabooks_select_tier', { tier, subdomain });
     if (!res.error) {
-      const redirectTo = String((res as any).data?.redirect_to || '/dashboard/');
-      window.location.href = redirectTo.startsWith('http')
-        ? redirectTo
-        : (redirectTo.startsWith('/') ? redirectTo : `/${redirectTo}`);
+      redirectAfterAuth((res as any).data || {});
     } else setMsg(typeof res.error === 'string' ? res.error : 'Failed');
     setLoading(false);
   };
