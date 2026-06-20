@@ -464,6 +464,57 @@ function CustomerFields({
   onChange: (next: CustomerFormState) => void;
 }) {
   const set = (patch: Partial<CustomerFormState>) => onChange({ ...form, ...patch });
+  const [countries, setCountries] = useState<CountryStateOption[]>([]);
+  const [countriesLoading, setCountriesLoading] = useState(true);
+  const [countriesError, setCountriesError] = useState('');
+  const billingStates = getStatesForCountry(countries, form.country_id);
+  const shippingStates = getStatesForCountry(countries, form.ship_country_id);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadCountries() {
+      setCountriesLoading(true);
+      setCountriesError('');
+
+      try {
+        const res = await fetch('https://countriesnow.space/api/v0.1/countries/states');
+        const json = await res.json();
+        const nextCountries = Array.isArray(json?.data)
+          ? json.data
+            .map((country: any) => ({
+              name: String(country?.name || '').trim(),
+              states: Array.isArray(country?.states)
+                ? country.states.map((state: any) => String(state?.name || '').trim()).filter(Boolean)
+                : [],
+            }))
+            .filter((country: CountryStateOption) => country.name)
+            .sort((a: CountryStateOption, b: CountryStateOption) => a.name.localeCompare(b.name))
+          : [];
+
+        if (!cancelled) {
+          setCountries(nextCountries);
+          setCountriesError(nextCountries.length ? '' : 'Country list is unavailable right now.');
+        }
+      } catch {
+        if (!cancelled) {
+          setCountries([]);
+          setCountriesError('Country list is unavailable right now.');
+        }
+      } finally {
+        if (!cancelled) {
+          setCountriesLoading(false);
+        }
+      }
+    }
+
+    void loadCountries();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const copyBillingToShipping = () => {
     set({
       ship_country_id: form.country_id,
