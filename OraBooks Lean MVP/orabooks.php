@@ -637,6 +637,7 @@ function orabooks_get_admin_nav_items() {
             ['slug' => 'orabooks-audit', 'label' => __('Audit', 'orabooks'), 'route' => '/admin/audit'],
             ['slug' => 'orabooks-partners', 'label' => __('Partners', 'orabooks'), 'route' => '/admin/partners'],
             ['slug' => 'orabooks-job-queue', 'label' => __('Job Queue', 'orabooks'), 'route' => '/admin/job-queue'],
+            ['slug' => 'orabooks-webhook-settings', 'label' => __('Webhooks', 'orabooks'), 'route' => '/admin/webhook-settings'],
             ['slug' => 'orabooks-observability', 'label' => __('Observability', 'orabooks'), 'route' => '/admin/observability'],
             ['slug' => 'orabooks-event-dead-letter', 'label' => __('Event Dead Letters', 'orabooks'), 'route' => '/admin/event-dead-letter'],
             ['slug' => 'orabooks-security', 'label' => __('Security', 'orabooks'), 'route' => '/admin/security'],
@@ -733,7 +734,7 @@ function orabooks_admin_job_queue() {
     orabooks_admin_react_page('/admin/job-queue');
 }
 function orabooks_admin_webhook_settings() {
-    require ORABOOKS_PLUGIN_DIR . 'templates/settings/webhook-settings.php';
+    orabooks_admin_react_page('/admin/webhook-settings');
 }
 function orabooks_admin_observability() {
     orabooks_admin_react_page('/admin/observability');
