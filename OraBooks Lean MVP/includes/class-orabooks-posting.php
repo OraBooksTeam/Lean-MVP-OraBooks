@@ -526,6 +526,15 @@ class OraBooks_Posting {
         self::transition('journal', $journal_id, 'post', $user_id);
         self::transition('journal', $journal_id, 'lock', $user_id);
 
+        do_action('orabooks_journal_posted', (int) $journal_id, [
+            'org_id' => (int) $journal->org_id,
+            'event_id' => (int) $journal_id,
+            'journal_number' => $journal_number,
+            'transaction_date' => $journal->transaction_date,
+            'total_amount' => (float) $journal->total_amount,
+            'posted_by' => (int) $user_id,
+        ]);
+
         orabooks_log_event('journal_posted', "Journal #$journal_number posted to ledger", 'info', [
             'journal_id' => $journal_id,
             'journal_number' => $journal_number,
