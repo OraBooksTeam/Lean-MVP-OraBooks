@@ -682,6 +682,21 @@ class OraBooks_AsyncQueue {
 
             return true;
         });
+
+        self::register_handler('partner_activity_check', function($job, $payload) {
+            if (!class_exists('OraBooks_Partner')) {
+                return 'OraBooks_Partner not available';
+            }
+
+            OraBooks_Partner::process_partner_activity();
+
+            orabooks_log_event('partner_activity_job_completed', 'Partner activity check completed', 'info', [
+                'job_id' => $job->id ?? null,
+                'source' => $payload['source'] ?? 'async_queue',
+            ], null, null);
+
+            return true;
+        });
     }
 
     // ================================================================

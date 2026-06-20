@@ -235,13 +235,17 @@ class OraBooks_Team {
             ['%d', '%d']
         );
         
-        // Revoke refresh tokens for this user in this org
+        // Revoke refresh tokens for this user in this org (SL-003 permission cache invalidation).
         OraBooks_Auth::revoke_user_tokens($target_user_id, $org_id);
-        
-        orabooks_log_event('user_role_changed', "User $target_user_id role changed from $current_role to $new_role", 'info', [
-            'old_role' => $current_role,
-            'new_role' => $new_role
-        ], $changed_by, $org_id);
+
+        if (class_exists('OBN_Access_Control')) {
+            OBN_Access_Control::log_role_change($org_id, $target_user_id, $changed_by, $current_role, $new_role);
+        } else {
+            orabooks_log_event('user_role_changed', "User $target_user_id role changed from $current_role to $new_role", 'info', [
+                'old_role' => $current_role,
+                'new_role' => $new_role
+            ], $changed_by, $org_id);
+        }
         
         return true;
     }
@@ -400,7 +404,7 @@ class OraBooks_Team {
 
         $this->require_org_member_access($user_id, $org_id);
         
-        if (!OraBooks_RBAC::require_permission($user_id, $org_id, 'invite_user')) {
+        if (!OraBooks_RBAC::require_permission($user_id, $org_id, 'manage_employees')) {
             orabooks_json_error('Permission denied', 403);
         }
         
@@ -431,7 +435,7 @@ class OraBooks_Team {
 
         $this->require_org_member_access($user_id, $org_id);
         
-        if (!OraBooks_RBAC::require_permission($user_id, $org_id, 'change_role')) {
+        if (!OraBooks_RBAC::require_permission($user_id, $org_id, 'manage_roles')) {
             orabooks_json_error('Permission denied', 403);
         }
         
@@ -449,7 +453,7 @@ class OraBooks_Team {
 
         $this->require_org_member_access($user_id, $org_id);
         
-        if (!OraBooks_RBAC::require_permission($user_id, $org_id, 'remove_user')) {
+        if (!OraBooks_RBAC::require_permission($user_id, $org_id, 'manage_employees')) {
             orabooks_json_error('Permission denied', 403);
         }
         
@@ -466,7 +470,7 @@ class OraBooks_Team {
 
         $this->require_org_member_access($user_id, $org_id);
 
-        if (!OraBooks_RBAC::require_permission($user_id, $org_id, 'invite_user')) {
+        if (!OraBooks_RBAC::require_permission($user_id, $org_id, 'manage_employees')) {
             orabooks_json_error('Permission denied', 403);
         }
 
@@ -485,7 +489,7 @@ class OraBooks_Team {
 
         $this->require_org_member_access($user_id, $org_id);
         
-        if (!OraBooks_RBAC::require_permission($user_id, $org_id, 'invite_user')) {
+        if (!OraBooks_RBAC::require_permission($user_id, $org_id, 'manage_employees')) {
             orabooks_json_error('Permission denied', 403);
         }
         
@@ -518,7 +522,7 @@ class OraBooks_Team {
 
         $this->require_org_member_access($user_id, $org_id);
         
-        if (!OraBooks_RBAC::require_permission($user_id, $org_id, 'invite_user')) {
+        if (!OraBooks_RBAC::require_permission($user_id, $org_id, 'manage_employees')) {
             orabooks_json_error('Permission denied', 403);
         }
         

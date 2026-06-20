@@ -82,7 +82,31 @@ class OraBooks_Partner {
     }
     
     /**
-      * Process partner activity (daily job) - Inactivity & Low-Activity management
+     * Queue partner inactivity processing via SL-303 (fallback to direct run).
+     */
+    public function dispatch_partner_activity_job() {
+        if (function_exists('orabooks_enqueue_job')) {
+            $job_id = orabooks_enqueue_job('partner_activity_check', [
+                'source' => 'daily_cron',
+            ], [
+                'queue_name'  => 'governance',
+                'priority'    => 2,
+                'max_retries' => 3,
+            ]);
+
+            if ($job_id) {
+                orabooks_log_event('partner_activity_job_enqueued', 'Partner activity check queued', 'info', [
+                    'job_id' => $job_id,
+                ], null, null);
+                return;
+            }
+        }
+
+        self::process_partner_activity();
+    }
+
+    /**
+     * Process partner activity (daily job) - Inactivity & Low-Activity management
       * Per SL-139 spec:
       * - 11 months: send deactivation warning (once)
       * - 12 months: deactivate to 'inactive'
