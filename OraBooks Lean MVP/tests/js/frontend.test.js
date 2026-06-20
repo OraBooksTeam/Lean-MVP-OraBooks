@@ -327,7 +327,7 @@ describe('Registration form submit', () => {
     resolveAjax('post', { error: false, data: { user_id: 1 }, message: 'Verification email sent' }, 'orabooks_register');
 
     const $msg = $('#orabooks-register-message');
-    expect($msg.text()).toContain('Registration successful');
+    expect($msg.text()).toContain('Verification email sent');
     expect($msg.hasClass('success')).toBe(true);
   });
 

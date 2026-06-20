@@ -120,6 +120,7 @@ async function request<T = any>(
   try {
     const res = await fetch(ORABOOKS_URL, {
       method,
+      credentials: 'include',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded; charset=utf-8',
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -146,6 +147,7 @@ async function uploadRequest<T = any>(
   try {
     const res = await fetch(ORABOOKS_URL, {
       method: 'POST',
+      credentials: 'include',
       headers: token ? { Authorization: `Bearer ${token}` } : {},
       body: formData,
     });
@@ -170,6 +172,7 @@ export const api = {
     });
 
     return fetch(`${ORABOOKS_URL}?${qs.toString()}`, {
+      credentials: 'include',
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     })
       .then((r) => parseResponse<T>(r))
