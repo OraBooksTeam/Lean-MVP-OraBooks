@@ -1,11 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { api } from '../api';
-import {
-  absorbAuthTokensFromUrl,
-  clearRedirectGuard,
-  getNetworkLoginUrl,
-  redirectToLogin,
-} from '../lib/auth-routing';
+import { getNetworkLoginUrl, toWpUrl } from '../lib/auth-routing';
 
 export default function RequireAuth({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(false);
