@@ -713,12 +713,13 @@ class OraBooks_Ajax {
             }
         }
 
+        $effective_permissions = $context['permissions'] ?? [];
         $capabilities = [
-            'invite_user' => OraBooks_RBAC::require_permission($context['user_id'], $org_id, 'manage_employees'),
-            'change_role' => OraBooks_RBAC::require_permission($context['user_id'], $org_id, 'manage_roles'),
-            'remove_user' => OraBooks_RBAC::require_permission($context['user_id'], $org_id, 'manage_employees'),
-            'manage_employees' => OraBooks_RBAC::require_permission($context['user_id'], $org_id, 'manage_employees'),
-            'manage_roles' => OraBooks_RBAC::require_permission($context['user_id'], $org_id, 'manage_roles'),
+            'invite_user' => in_array('manage_employees', $effective_permissions, true),
+            'change_role' => in_array('manage_roles', $effective_permissions, true),
+            'remove_user' => in_array('manage_employees', $effective_permissions, true),
+            'manage_employees' => in_array('manage_employees', $effective_permissions, true),
+            'manage_roles' => in_array('manage_roles', $effective_permissions, true),
         ];
 
         orabooks_json_success([
