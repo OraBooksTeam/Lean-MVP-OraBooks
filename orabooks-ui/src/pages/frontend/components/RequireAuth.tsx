@@ -3,24 +3,29 @@ import { api } from '../api';
 import {
   clearRedirectGuard,
   clearStoredAuthTokens,
+  getNetworkLoginUrl,
   redirectToLogin,
 } from '../lib/auth-routing';
 
 export default function RequireAuth({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(false);
   const [blocked, setBlocked] = useState(false);
+  const loginUrl = getNetworkLoginUrl();
 
   useEffect(() => {
     api.frontendContext().then((res) => {
-      if (res.error) {
-        clearStoredAuthTokens();
-        if (!redirectToLogin()) {
-          setBlocked(true);
-        }
+      if (!res.error) {
+        clearRedirectGuard();
+        setReady(true);
         return;
       }
-      clearRedirectGuard();
-      setReady(true);
+
+      clearStoredAuthTokens();
+      if (redirectToLogin()) {
+        return;
+      }
+
+      setBlocked(true);
     });
   }, []);
 
@@ -32,7 +37,7 @@ export default function RequireAuth({ children }: { children: ReactNode }) {
             Your session expired. Please log in again.
           </p>
           <a
-            href="/login/"
+            href={`${loginUrl}#/login`}
             className="mt-4 inline-flex rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white"
           >
             Go to login
