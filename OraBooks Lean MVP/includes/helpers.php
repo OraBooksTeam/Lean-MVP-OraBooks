@@ -1272,9 +1272,9 @@ function orabooks_clear_auth_token_cookie() {
 }
 
 /**
- * Whether the current request is landing on login after an explicit logout.
+ * Whether the current request landed with an explicit logout / session-reset query flag.
  */
-function orabooks_is_explicit_logout_request() {
+function orabooks_has_logout_query_flag() {
     if (isset($_GET['logged_out']) && (string) $_GET['logged_out'] === '1') {
         return true;
     }
@@ -1284,6 +1284,25 @@ function orabooks_is_explicit_logout_request() {
     }
 
     if (isset($_GET['session_expired']) && (string) $_GET['session_expired'] === '1') {
+        return true;
+    }
+
+    return false;
+}
+
+/**
+ * Whether the current request is landing on login after an explicit logout.
+ * Query flags only — the orabooks_logout cookie must not block new logins.
+ */
+function orabooks_is_explicit_logout_request() {
+    return orabooks_has_logout_query_flag();
+}
+
+/**
+ * Whether stale auth should be cleared (query flag or one-shot logout cookie).
+ */
+function orabooks_needs_logout_cleanup() {
+    if (orabooks_has_logout_query_flag()) {
         return true;
     }
 
@@ -1408,7 +1427,11 @@ function orabooks_clear_wp_auth_cookies() {
 /**
  * Fully tear down OraBooks + WordPress auth state.
  */
-function orabooks_destroy_auth_session($user_id = 0, $log = true) {
+function orabooks_destroy_auth_session($user_id = 0, $log = true, $set_landing_cookie = null) {
+    if ($set_landing_cookie === null) {
+        $set_landing_cookie = $log;
+    }
+
     if ($user_id <= 0) {
         $user_id = orabooks_resolve_authenticated_user_id();
     }
@@ -1429,7 +1452,9 @@ function orabooks_destroy_auth_session($user_id = 0, $log = true) {
     }
 
     unset($_COOKIE['orabooks_token']);
-    orabooks_set_logout_landing_cookie();
+    if ($set_landing_cookie) {
+        orabooks_set_logout_landing_cookie();
+    }
 
     if ($log && $user_id > 0) {
         orabooks_log_event('logout', 'User logged out', 'info', [], $user_id, null);
@@ -1440,12 +1465,12 @@ function orabooks_destroy_auth_session($user_id = 0, $log = true) {
  * On post-logout landing, force-clear any lingering cookies before redirect guards run.
  */
 function orabooks_force_logout_cleanup() {
-    if (!orabooks_is_explicit_logout_request()) {
+    if (!orabooks_needs_logout_cleanup()) {
         return;
     }
 
-    orabooks_destroy_auth_session(0, false);
-    orabooks_set_logout_landing_cookie();
+    orabooks_destroy_auth_session(0, false, false);
+    orabooks_clear_logout_landing_cookie();
 }
 
 add_action('init', 'orabooks_force_logout_cleanup', 0);

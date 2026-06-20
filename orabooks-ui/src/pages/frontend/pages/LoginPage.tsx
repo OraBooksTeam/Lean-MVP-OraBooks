@@ -5,6 +5,7 @@ import { Flame } from 'lucide-react';
 import { api } from '../api';
 import {
   clearRedirectGuard,
+  clearLogoutSessionFlag,
   clearStoredAuthTokens,
   getNetworkAuthUrl,
   isLogoutLanding,
@@ -51,6 +52,7 @@ export default function LoginPage() {
       }
 
       stripAuthQueryFlags();
+      clearLogoutSessionFlag();
       return;
     }
 
