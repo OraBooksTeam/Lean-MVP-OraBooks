@@ -27,6 +27,67 @@ function orabooks_is_divi_theme() {
 }
 
 /**
+ * Whether the React SPA should mount on the current frontend page.
+ * Divi uses server-rendered PHP + jQuery accounting (compatible with builder layout).
+ */
+function orabooks_should_use_react_frontend($user_id = 0) {
+    if (orabooks_is_divi_theme()) {
+        return (bool) apply_filters('orabooks_use_react_frontend', false, $user_id);
+    }
+
+    return (bool) apply_filters('orabooks_use_react_frontend', true, $user_id);
+}
+
+/**
+ * Map Lean MVP shortcodes to PHP accounting workspace view slugs.
+ */
+function orabooks_get_merged_accounting_view_for_shortcode($shortcode_tag) {
+    $map = [
+        'orabooks_dashboard' => 'dashboard',
+        'orabooks_customers' => 'customers',
+        'orabooks_vendors' => 'suppliers',
+        'orabooks_inventory' => 'view-items',
+        'orabooks_reports' => 'acc-report',
+        'orabooks_invoices' => 'view-sales',
+        'orabooks_chart_of_accounts' => 'coa-list',
+        'orabooks_fiscal_periods' => 'fiscal-periods',
+        'orabooks_tax_settings' => 'setting-tax-list',
+        'orabooks_journals' => 'journal-entry-list',
+        'orabooks_expenses' => 'expense-list',
+        'orabooks_csv_import' => 'import-customers',
+        'orabooks_bank_reconciliation' => 'accounts-deposit',
+    ];
+
+    return apply_filters(
+        'orabooks_merged_accounting_view',
+        $map[$shortcode_tag] ?? 'dashboard',
+        $shortcode_tag
+    );
+}
+
+/**
+ * Whether page content should load the merged PHP accounting workspace (not React).
+ */
+function orabooks_page_uses_merged_accounting_workspace($content) {
+    if (!orabooks_uses_merged_accounting_workspace()) {
+        return false;
+    }
+
+    if (orabooks_should_use_react_frontend()) {
+        return false;
+    }
+
+    $tags = array_unique(array_merge(['orabooks_dashboard'], orabooks_merged_accounting_shortcodes()));
+    foreach ($tags as $tag) {
+        if (has_shortcode($content, $tag)) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+/**
  * Generate a cryptographically secure random string
  */
 function orabooks_random_string($length = 32) {
@@ -792,6 +853,7 @@ function orabooks_render_merged_accounting_workspace($view = '') {
  */
 function orabooks_merged_accounting_shortcodes() {
     return [
+        'orabooks_dashboard',
         'orabooks_customers',
         'orabooks_vendors',
         'orabooks_inventory',

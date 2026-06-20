@@ -21,10 +21,20 @@ class OBN_Shortcodes
 		}
 
 		global $post;
+		if (!isset($post->post_content)) {
+			return;
+		}
+
+		$loads_accounting = has_shortcode($post->post_content, 'orabooks_accounting');
 		if (
-			!isset($post->post_content)
-			|| !has_shortcode($post->post_content, 'orabooks_accounting')
+			!$loads_accounting
+			&& function_exists('orabooks_page_uses_merged_accounting_workspace')
+			&& orabooks_page_uses_merged_accounting_workspace($post->post_content)
 		) {
+			$loads_accounting = true;
+		}
+
+		if (!$loads_accounting) {
 			return;
 		}
 

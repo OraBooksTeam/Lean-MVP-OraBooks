@@ -910,6 +910,10 @@ function orabooks_frontend_enqueue() {
         OraBooks_Assets::enqueue_divi_compat();
     }
 
+    if (OraBooks_Assets::should_enqueue_php_frontend($post->post_content)) {
+        OraBooks_Assets::enqueue_legacy_frontend_scripts($ajax_config);
+    }
+
     if (OraBooks_Assets::should_enqueue_legacy_frontend($post->post_content)) {
         OraBooks_Assets::enqueue_legacy_frontend_scripts($ajax_config);
     }
@@ -935,6 +939,11 @@ function orabooks_body_class($classes) {
 
     if (OraBooks_Assets::should_enqueue_frontend_react($post->post_content)) {
         $classes[] = 'orabooks-react-page';
+    }
+
+    if (function_exists('orabooks_page_uses_merged_accounting_workspace')
+        && orabooks_page_uses_merged_accounting_workspace($post->post_content)) {
+        $classes[] = 'orabooks-accounting-page';
     }
 
     if (has_shortcode($post->post_content, 'orabooks_accounting')) {
