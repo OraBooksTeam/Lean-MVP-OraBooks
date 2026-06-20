@@ -1136,7 +1136,7 @@ class OraBooks_Customers {
             'payment_status'=> $new_status,
             'customer_id'   => $invoice->customer_id,
             'org_id'        => $org_id,
-        ], get_current_user_id(), $org_id);
+        ], orabooks_get_current_user_id(), $org_id);
 
         return [
             'payment_id'     => $payment_id,

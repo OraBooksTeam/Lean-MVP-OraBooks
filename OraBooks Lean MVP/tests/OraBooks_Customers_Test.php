@@ -230,6 +230,33 @@ class OraBooks_Customers_Test extends TestCase
         $this->assertNull($result);
     }
 
+    #[Test]
+    public function test_recompute_active_status_uses_recent_payment_date()
+    {
+        global $wpdb;
+
+        $wpdb->test_get_row_callback = function ($query) {
+            if (stripos($query, 'FROM') !== false && stripos($query, 'customers') !== false && stripos($query, 'WHERE id') !== false) {
+                return $this->mockCustomer(['id' => 7, 'user_id' => 42, 'is_active' => 0]);
+            }
+            if (stripos($query, 'partner_commission_config') !== false) {
+                return (object)['customer_active_window_days' => 30];
+            }
+            if (stripos($query, 'SHOW TABLES LIKE') !== false) {
+                return 'wp_test_orabooks_payments';
+            }
+            if (stripos($query, 'MAX(p.payment_date)') !== false) {
+                return (object)['last_paid' => date('Y-m-d')];
+            }
+            return null;
+        };
+
+        $result = OraBooks_Customers::recompute_active_status(7);
+
+        $this->assertTrue($result);
+        $this->assertStringContainsString('is_active', $wpdb->last_query);
+    }
+
     // ---------- update_active_status ----------
 
     #[Test]
