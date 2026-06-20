@@ -323,6 +323,32 @@ function orabooks_build_org_url($subdomain, $path = '/') {
 }
 
 /**
+ * Resolve a workspace URL for an organization (tenant subdomain when available).
+ */
+function orabooks_get_org_workspace_url($org_id, $path = '/dashboard/', $query_args = []) {
+    $org_id = (int) $org_id;
+    $path = '/' . ltrim((string) $path, '/');
+
+    if ($org_id > 0 && class_exists('OraBooks_Organization')) {
+        $org = OraBooks_Organization::get($org_id);
+        if ($org && !empty($org->subdomain)) {
+            $url = orabooks_build_org_url($org->subdomain, $path);
+            if (!empty($query_args)) {
+                $url = add_query_arg($query_args, $url);
+            }
+            return $url;
+        }
+    }
+
+    $url = home_url($path);
+    if (!empty($query_args)) {
+        $url = add_query_arg($query_args, $url);
+    }
+
+    return $url;
+}
+
+/**
  * Blog ID that stores shared OraBooks tenant data on multisite networks.
  */
 function orabooks_get_data_blog_id() {
