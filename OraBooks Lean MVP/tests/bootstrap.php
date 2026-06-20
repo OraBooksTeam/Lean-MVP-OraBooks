@@ -1470,6 +1470,20 @@ if (!function_exists('orabooks_resolve_user_id')) {
 // ---------------------------------------------------------------------------
 // 9. Load the actual classes under test
 // ---------------------------------------------------------------------------
+$rbac_file = __DIR__ . '/../includes/class-orabooks-rbac.php';
+if (!file_exists($rbac_file)) {
+    echo "ERROR: Cannot find class-orabooks-rbac.php at {$rbac_file}\n";
+    exit(1);
+}
+require_once $rbac_file;
+
+$access_control_file = __DIR__ . '/../includes/class-obn-access-control.php';
+if (!file_exists($access_control_file)) {
+    echo "ERROR: Cannot find class-obn-access-control.php at {$access_control_file}\n";
+    exit(1);
+}
+require_once $access_control_file;
+
 $exports_file = __DIR__ . '/../includes/class-orabooks-exports.php';
 if (!file_exists($exports_file)) {
     echo "ERROR: Cannot find class-orabooks-exports.php at {$exports_file}\n";
