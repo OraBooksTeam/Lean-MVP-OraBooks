@@ -887,8 +887,15 @@ class OraBooks_Customers {
         }
 
         if (!empty($args['search'])) {
-            $where .= ' AND (u.email LIKE %s OR c.contact_email LIKE %s OR c.display_name LIKE %s OR c.notes LIKE %s)';
+            $where .= ' AND (
+                u.email LIKE %s OR c.contact_email LIKE %s OR c.display_name LIKE %s OR c.notes LIKE %s
+                OR c.customer_code LIKE %s OR c.mobile LIKE %s OR c.phone LIKE %s OR c.city LIKE %s
+            )';
             $search = '%' . $wpdb->esc_like($args['search']) . '%';
+            $params[] = $search;
+            $params[] = $search;
+            $params[] = $search;
+            $params[] = $search;
             $params[] = $search;
             $params[] = $search;
             $params[] = $search;
