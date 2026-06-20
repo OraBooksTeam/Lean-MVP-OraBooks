@@ -47,7 +47,9 @@ export default function LoginPage() {
 
       if (params.get('logged_out') === '1') {
         setNotice('You have been logged out.');
-      } else if (params.get('session_expired') === '1' || params.get('auth_reset') === '1') {
+      } else if (params.get('auth_reset') === '1') {
+        setNotice('Your sign-in was reset for security. Please log in again.');
+      } else if (params.get('session_expired') === '1') {
         setNotice('Your session has expired. Please log in again.');
       }
 
@@ -56,7 +58,7 @@ export default function LoginPage() {
       return;
     }
 
-    absorbAuthTokensFromUrl();
+    void absorbAuthTokensFromUrl().catch(() => undefined);
 
     if (params.get('verified') === '1') {
       setNotice('Email verified. You can log in now.');

@@ -23,13 +23,17 @@ export default function RequireAuth({ children }: { children: ReactNode }) {
       };
     }
 
-    absorbAuthTokensFromUrl().then(() => {
-      if (cancelled) {
-        return;
-      }
-
-      api.verifySession().then((res) => {
+    absorbAuthTokensFromUrl()
+      .catch(() => undefined)
+      .then(() => {
         if (cancelled) {
+          return;
+        }
+
+        return api.verifySession();
+      })
+      .then((res) => {
+        if (cancelled || res === undefined) {
           return;
         }
 
@@ -40,8 +44,12 @@ export default function RequireAuth({ children }: { children: ReactNode }) {
         }
 
         redirectToLogin(true, true);
+      })
+      .catch(() => {
+        if (!cancelled) {
+          redirectToLogin(true, true);
+        }
       });
-    });
 
     return () => {
       cancelled = true;

@@ -107,7 +107,7 @@ function bootFrontend() {
   }
 
   mountThemePortal(root);
-  absorbAuthTokensFromUrl();
+  void absorbAuthTokensFromUrl().catch(() => undefined);
 
   try {
     window.orabooksReactMounted = true;
