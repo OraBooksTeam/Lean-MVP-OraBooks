@@ -143,20 +143,53 @@ export function getNetworkLoginUrl() {
   return (window as any).orabooks_ajax?.login_url || '/login/';
 }
 
-export async function performLogout(logoutRequest: () => Promise<{ data?: { redirect_to?: string }; error?: string }>) {
-  clearStoredAuthTokens();
-  clearRedirectGuard();
+export function isLogoutLanding() {
+  const params = new URLSearchParams(window.location.search);
+  return params.get(LOGOUT_QUERY_FLAG) === '1' || window.sessionStorage.getItem(LOGOUT_SESSION_FLAG) === '1';
+}
 
-  let redirectTo = getNetworkLoginUrl();
+export function markLogoutLanding() {
+  window.sessionStorage.setItem(LOGOUT_SESSION_FLAG, '1');
+}
+
+export function clearLogoutLandingFlags() {
+  window.sessionStorage.removeItem(LOGOUT_SESSION_FLAG);
+  const params = new URLSearchParams(window.location.search);
+  if (!params.has(LOGOUT_QUERY_FLAG)) {
+    return;
+  }
+  params.delete(LOGOUT_QUERY_FLAG);
+  const qs = params.toString();
+  window.history.replaceState(null, '', `${window.location.pathname}${qs ? `?${qs}` : ''}`);
+}
+
+function appendLogoutFlag(url: string) {
+  try {
+    const target = new URL(url, window.location.href);
+    target.searchParams.set(LOGOUT_QUERY_FLAG, '1');
+    target.hash = '';
+    return `${target.origin}${target.pathname}${target.search}`;
+  } catch {
+    const separator = url.includes('?') ? '&' : '?';
+    return `${url}${separator}${LOGOUT_QUERY_FLAG}=1`;
+  }
+}
+
+export async function performLogout(logoutRequest: () => Promise<{ data?: { redirect_to?: string }; error?: string }>) {
+  clearRedirectGuard();
+  markLogoutLanding();
+
+  let redirectTo = appendLogoutFlag(getNetworkLoginUrl());
   try {
     const res = await logoutRequest();
     if (!res.error && res.data?.redirect_to) {
-      redirectTo = res.data.redirect_to;
+      redirectTo = appendLogoutFlag(res.data.redirect_to);
     }
   } catch {
     // Still redirect to login even if the AJAX call fails.
   }
 
+  clearStoredAuthTokens();
   window.location.replace(normalizeWpAppPath(redirectTo));
 }
 

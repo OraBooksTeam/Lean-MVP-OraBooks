@@ -5,6 +5,9 @@ import { Flame } from 'lucide-react';
 import { api, hasStoredAuthToken } from '../api';
 import {
   clearRedirectGuard,
+  clearLogoutLandingFlags,
+  clearStoredAuthTokens,
+  isLogoutLanding,
   redirectAfterAuth,
   redirectToOrgSubdomain,
   absorbAuthTokensFromUrl,
@@ -24,6 +27,13 @@ export default function LoginPage() {
   const [otp, setOtp] = useState('');
 
   useEffect(() => {
+    if (isLogoutLanding()) {
+      clearStoredAuthTokens();
+      clearRedirectGuard();
+      clearLogoutLandingFlags();
+      return;
+    }
+
     absorbAuthTokensFromUrl();
 
     if (hasStoredAuthToken()) {
