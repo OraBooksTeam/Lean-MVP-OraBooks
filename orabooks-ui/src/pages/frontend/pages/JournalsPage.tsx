@@ -39,6 +39,9 @@ export default function JournalsPage() {
   const [detailLoading, setDetailLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [fromDate, setFromDate] = useState('');
+  const [toDate, setToDate] = useState('');
+  const [accountFilter, setAccountFilter] = useState('');
   const [rejectReason, setRejectReason] = useState('');
   const [reverseReason, setReverseReason] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
@@ -75,7 +78,12 @@ export default function JournalsPage() {
       return;
     }
 
-    const res = await api.journalsList(nextOrgId, { status: nextStatus });
+    const res = await api.journalsList(nextOrgId, {
+      status: nextStatus,
+      from_date: fromDate,
+      to_date: toDate,
+      account_code: accountFilter.trim(),
+    });
     if (res.error) setError(res.error || 'Unable to load journals.');
     else setJournals((res as any).data?.journals || []);
     setLoading(false);
@@ -165,22 +173,27 @@ export default function JournalsPage() {
         </div>
 
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <select
-            value={status}
-            onChange={(event) => {
-              setStatus(event.target.value);
-              void load(event.target.value);
-            }}
-            className="rounded-lg border border-border bg-white px-3.5 py-2.5 text-sm text-ink shadow-sm"
-          >
-            <option value="">All statuses</option>
-            <option value="draft">Draft</option>
-            <option value="review_pending">Review Pending</option>
-            <option value="approved">Approved</option>
-            <option value="posted">Posted</option>
-            <option value="locked">Locked</option>
-            <option value="reversed">Reversed</option>
-          </select>
+          <div className="grid flex-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
+            <select
+              value={status}
+              onChange={(event) => {
+                setStatus(event.target.value);
+                void load(event.target.value);
+              }}
+              className="rounded-lg border border-border bg-white px-3.5 py-2.5 text-sm text-ink shadow-sm"
+            >
+              <option value="">All statuses</option>
+              <option value="draft">Draft</option>
+              <option value="review_pending">Review Pending</option>
+              <option value="approved">Approved</option>
+              <option value="posted">Posted</option>
+              <option value="locked">Locked</option>
+              <option value="reversed">Reversed</option>
+            </select>
+            <Input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} aria-label="Filter from date" />
+            <Input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} aria-label="Filter to date" />
+            <Input value={accountFilter} onChange={(e) => setAccountFilter(e.target.value)} placeholder="Account code" />
+          </div>
           <div className="flex gap-2">
             <Button onClick={() => setShowCreate((v) => !v)} size="sm">
               <Plus className="h-4 w-4" />
@@ -188,7 +201,7 @@ export default function JournalsPage() {
             </Button>
             <Button onClick={() => load()} variant="secondary" size="sm">
               <RefreshCw className="h-4 w-4" />
-              Refresh
+              Apply Filters
             </Button>
           </div>
         </div>
@@ -269,9 +282,12 @@ export default function JournalsPage() {
                 </div>
 
                 {selectedJournal.ai_confidence != null ? (
-                  <div className="inline-flex items-center gap-2 rounded-lg border border-violet-200 bg-violet-50 px-3 py-2 text-xs font-medium text-violet-800">
+                  <div
+                    className="inline-flex items-center gap-2 rounded-lg border border-violet-200 bg-violet-50 px-3 py-2 text-xs font-medium text-violet-800"
+                    title="AI suggestion only. Human approves."
+                  >
                     <Bot className="h-3.5 w-3.5" />
-                    AI confidence: {selectedJournal.ai_confidence}% — human approval required
+                    Confidence: {Number(selectedJournal.ai_confidence).toFixed(1)}% {confidenceLabel(selectedJournal.ai_confidence)}
                   </div>
                 ) : null}
 
@@ -325,6 +341,7 @@ export default function JournalsPage() {
                       <Button
                         size="sm"
                         disabled={actionLoading}
+                      title="Approve and lock journal."
                         onClick={() => runAction(() => api.approveJournal(selectedJournal.id), 'Journal approved.')}
                       >
                         Approve
@@ -339,6 +356,7 @@ export default function JournalsPage() {
                           size="sm"
                           variant="secondary"
                           disabled={actionLoading || !rejectReason.trim()}
+                          title="Reject with reason."
                           onClick={() => runAction(
                             () => api.rejectJournal(selectedJournal.id, rejectReason.trim()),
                             'Journal rejected and returned to draft.'
@@ -353,6 +371,7 @@ export default function JournalsPage() {
                     <Button
                       size="sm"
                       disabled={actionLoading}
+                      title="Post atomically. Ledger updated."
                       onClick={() => runAction(() => api.postJournal(selectedJournal.id), 'Journal posted to ledger.')}
                     >
                       Post to Ledger
@@ -369,6 +388,7 @@ export default function JournalsPage() {
                         size="sm"
                         variant="secondary"
                         disabled={actionLoading || !reverseReason.trim() || !orgId}
+                        title="Requires reason. Creates reversal."
                         onClick={() => runAction(
                           () => api.reverseJournal(orgId!, selectedJournal.id, reverseReason.trim()),
                           'Reversal journal created as draft.'
@@ -397,9 +417,15 @@ function StatusBadge({ status }: { status: string }) {
     locked: 'border-emerald-300 bg-emerald-100 text-emerald-800',
     reversed: 'border-rose-200 bg-rose-50 text-rose-700',
   };
-  return <span className={`badge border ${map[status] || map.draft}`}>{status.replace(/_/g, ' ')}</span>;
+  return <span className={`badge border ${map[status] || map.draft}`} title="Current workflow state.">{status.replace(/_/g, ' ')}</span>;
 }
 
 function money(value?: string | number) {
   return new Intl.NumberFormat(undefined, { style: 'currency', currency: 'USD' }).format(Number(value || 0));
+}
+
+function confidenceLabel(value: number) {
+  if (value >= 90) return 'High';
+  if (value >= 70) return 'Medium';
+  return 'Low';
 }
