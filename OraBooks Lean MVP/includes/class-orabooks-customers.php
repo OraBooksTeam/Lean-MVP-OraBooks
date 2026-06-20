@@ -739,6 +739,7 @@ class OraBooks_Customers {
         $auto_apply_credit = array_key_exists('auto_apply_credit', $data)
             ? (int) (bool) $data['auto_apply_credit']
             : 1;
+        $profile_payload = self::customer_profile_payload($data, true, $org_id);
 
         if ($org_id <= 0 || $display_name === '') {
             return new WP_Error('missing_field', 'Organization and customer name are required');
@@ -749,6 +750,7 @@ class OraBooks_Customers {
         }
 
         $table = OraBooks_Database::table('customers');
+        $customer_code = $profile_payload['updates']['customer_code'] ?? '';
 
         if ($contact_email !== '') {
             $existing = $wpdb->get_var($wpdb->prepare(
@@ -764,8 +766,21 @@ class OraBooks_Customers {
             }
         }
 
-        $inserted = $wpdb->insert(
-            $table,
+        if ($customer_code !== '') {
+            $existing_code = $wpdb->get_var($wpdb->prepare(
+                "SELECT id FROM {$table}
+                 WHERE org_id = %d AND customer_code IS NOT NULL AND LOWER(customer_code) = LOWER(%s)
+                 LIMIT 1",
+                $org_id,
+                $customer_code
+            ));
+
+            if ($existing_code) {
+                return new WP_Error('duplicate_code', 'A customer with this code already exists for your organization.');
+            }
+        }
+
+        $insert_data = array_merge(
             [
                 'org_id'            => $org_id,
                 'display_name'      => $display_name,
@@ -779,7 +794,18 @@ class OraBooks_Customers {
                 'credit_balance'    => 0,
                 'is_active'         => 0,
             ],
-            ['%d', '%s', '%s', '%s', '%d', '%s', '%f', '%d', '%d', '%f', '%d']
+            $profile_payload['updates']
+        );
+
+        $insert_formats = array_merge(
+            ['%d', '%s', '%s', '%s', '%d', '%s', '%f', '%d', '%d', '%f', '%d'],
+            $profile_payload['formats']
+        );
+
+        $inserted = $wpdb->insert(
+            $table,
+            $insert_data,
+            $insert_formats
         );
 
         if ($inserted === false) {
