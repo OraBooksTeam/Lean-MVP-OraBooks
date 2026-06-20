@@ -292,8 +292,13 @@ export const api = {
     api.post('orabooks_login', { email, password }),
   register: (data: Record<string, any>) =>
     api.post('orabooks_register', data),
-  oidcInitiate: () =>
-    api.post('orabooks_oidc_initiate'),
+  oidcInitiate: (stateData: Record<string, unknown> = {}) => {
+    const payload: Record<string, unknown> = {};
+    if (Object.keys(stateData).length > 0) {
+      payload.state_data = btoa(JSON.stringify(stateData).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''));
+    }
+    return api.post('orabooks_oidc_initiate', payload);
+  },
   oidcCallback: (code: string, state: string) =>
     api.post('orabooks_oidc_callback', { code, state }),
   twoFactorChallenge: (tempToken: string, otp: string, backup = '') =>
