@@ -24,10 +24,12 @@
   #orabooks-app-root {
     display: block;
     width: 100%;
+    max-width: 100%;
     min-height: 100vh;
     min-height: 100dvh;
     position: relative;
     isolation: isolate;
+    overflow-x: clip;
     color: theme(colors.ink);
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
     -webkit-font-smoothing: antialiased;

@@ -1,21 +1,10 @@
 /**
- * Divi theme compatibility for OraBooks Lean MVP React frontend.
- * Loaded on OraBooks pages when Divi (or a Divi child theme) is active.
+ * Divi theme extensions for OraBooks (loads after theme-compat.css).
  */
 
 body.orabooks-page.orabooks-divi-theme {
     --orabooks-divi-header-height: 80px;
-    --orabooks-divi-admin-bar: 0px;
-}
-
-body.orabooks-page.orabooks-divi-theme.admin-bar {
-    --orabooks-divi-admin-bar: 32px;
-}
-
-@media screen and (max-width: 782px) {
-    body.orabooks-page.orabooks-divi-theme.admin-bar {
-        --orabooks-divi-admin-bar: 46px;
-    }
+    --orabooks-divi-admin-bar: var(--orabooks-wp-admin-bar, 0px);
 }
 
 /* Full-width: break out of Divi's content column */
@@ -146,7 +135,9 @@ body.orabooks-page.orabooks-divi-theme.orabooks-react-page {
 }
 
 /* Portaled React root: relative layout (not fixed overlay) */
+body.orabooks-page.orabooks-divi-theme.orabooks-react-page > #orabooks-app-root.orabooks-theme-portal,
 body.orabooks-page.orabooks-divi-theme.orabooks-react-page > #orabooks-app-root.orabooks-divi-portal,
+body.orabooks-page.orabooks-divi-theme.orabooks-react-page #orabooks-app-root.orabooks-theme-portal,
 body.orabooks-page.orabooks-divi-theme.orabooks-react-page #orabooks-app-root.orabooks-divi-portal {
     position: relative;
     display: block;
