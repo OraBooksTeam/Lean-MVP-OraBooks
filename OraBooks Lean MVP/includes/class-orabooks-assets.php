@@ -277,6 +277,7 @@ class OraBooks_Assets {
             true
         );
         wp_localize_script('orabooks-react-frontend', 'orabooks_ajax', $ajax_config);
+        self::enqueue_report_async_export_script('orabooks-react-frontend', $ajax_config);
 
         self::enqueue_theme_compat();
 
@@ -345,6 +346,7 @@ class OraBooks_Assets {
             true
         );
         wp_localize_script('orabooks-react-admin', 'orabooks_ajax', $ajax_config);
+        self::enqueue_report_async_export_script('orabooks-react-admin', $ajax_config);
     }
 
     /**
@@ -370,6 +372,7 @@ class OraBooks_Assets {
             true
         );
         wp_localize_script('orabooks-frontend-jquery', 'orabooks_ajax', $ajax_config);
+        self::enqueue_report_async_export_script('orabooks-frontend-jquery', $ajax_config);
     }
 
     /**
@@ -386,6 +389,18 @@ class OraBooks_Assets {
             true
         );
         wp_localize_script('orabooks-frontend-legacy', 'orabooks_ajax', $ajax_config);
+        self::enqueue_report_async_export_script('orabooks-frontend-legacy', $ajax_config);
+    }
+
+    private static function enqueue_report_async_export_script($dependency, $ajax_config) {
+        wp_enqueue_script(
+            'orabooks-report-async-export',
+            ORABOOKS_PLUGIN_URL . 'assets/js/report-async-export.js',
+            [$dependency],
+            ORABOOKS_VERSION,
+            true
+        );
+        wp_localize_script('orabooks-report-async-export', 'orabooks_ajax', $ajax_config);
     }
 
     /**
