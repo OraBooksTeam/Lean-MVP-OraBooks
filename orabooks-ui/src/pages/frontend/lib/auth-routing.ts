@@ -152,21 +152,14 @@ const AUTH_HASH_ROUTES = new Set(['/login', '/register', '/reset-password', '/ve
 export function syncInitialHashRoute(route: string) {
   const normalized = route.startsWith('/') ? route : `/${route}`;
   const currentHash = window.location.hash.replace(/^#/, '') || '';
-  const isAuthPage = AUTH_HASH_ROUTES.has(normalized);
+  const isAuthWpRoute = AUTH_HASH_ROUTES.has(normalized);
   const hashIsAuthRoute = AUTH_HASH_ROUTES.has(currentHash);
 
-  // Workspace WP pages (e.g. /dashboard/) must not keep #/login — that shows login on the wrong page.
-  const shouldReplace =
-    !currentHash
-    || currentHash === '/'
-    || (!isAuthPage && hashIsAuthRoute)
-    || (isAuthPage && currentHash !== normalized && !hashIsAuthRoute && !currentHash);
-
-  if (!shouldReplace && currentHash === normalized) {
+  if (!isAuthWpRoute && hashIsAuthRoute) {
+    // e.g. /dashboard/ + #/login → use #/dashboard
+  } else if (currentHash && currentHash !== normalized) {
     return;
-  }
-
-  if (!shouldReplace && currentHash && !(!isAuthPage && hashIsAuthRoute)) {
+  } else if (currentHash === normalized) {
     return;
   }
 
