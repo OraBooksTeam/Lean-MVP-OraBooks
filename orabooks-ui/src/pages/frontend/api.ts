@@ -903,6 +903,16 @@ export const api = {
   asyncQueueReplay: (jobId: number) => api.post('orabooks_async_queue_replay', { job_id: jobId }),
   observabilityDashboard: (hours = 24) =>
     api.post('orabooks_observability_dashboard', { hours }),
+  eventBusDeadLetters: () =>
+    api.post('orabooks_eventbus_dead_letters'),
+  eventBusPollNow: () =>
+    api.post('orabooks_eventbus_poll_now'),
+  eventBusReplay: (deadLetterId: number) =>
+    api.post('orabooks_eventbus_replay', { dead_letter_id: deadLetterId }),
+  eventBusReplayAll: () =>
+    api.post('orabooks_eventbus_replay_all'),
+  eventBusDiscard: (deadLetterId: number) =>
+    api.post('orabooks_eventbus_discard', { dead_letter_id: deadLetterId }),
   securityDashboard: (hours = 24) =>
     api.post('orabooks_security_dashboard', { hours }),
   securityVerifyControls: () =>
