@@ -64,6 +64,8 @@
  *   expect(html).toContain('&amp;'); // stays as-is
  */
 
+require('./jest.setup');
+
 const $ = require('jquery');
 const path = require('path');
 const fs = require('fs');
