@@ -1,4 +1,3 @@
-import { Routes, Route, Navigate } from 'react-router-dom';
 import type { ReactNode } from 'react';
 import RequireAuth from './components/RequireAuth';
 import LoginPage from './pages/LoginPage';
@@ -35,49 +34,68 @@ import JobQueuePage from './pages/JobQueuePage';
 import ObservabilityPage from './pages/ObservabilityPage';
 import NotificationAdminPage from './pages/NotificationAdminPage';
 import CommissionAdminPage from './pages/CommissionAdminPage';
+import { normalizeAppRoute, toWpUrl } from './lib/wp-routing';
+
+type RouteConfig = {
+  element: ReactNode;
+  requireAuth?: boolean;
+};
+
+const ROUTES: Record<string, RouteConfig> = {
+  '/': { element: <LoginPage />, requireAuth: false },
+  '/login': { element: <LoginPage />, requireAuth: false },
+  '/register': { element: <RegisterPage />, requireAuth: false },
+  '/reset-password': { element: <ResetPasswordPage />, requireAuth: false },
+  '/verify-email': { element: <VerifyEmailPage />, requireAuth: false },
+  '/tier-selection': { element: <TierSelectionPage /> },
+  '/dashboard': { element: <DashboardPage /> },
+  '/customers': { element: <CustomersPage /> },
+  '/vendors': { element: <VendorsPage /> },
+  '/inventory': { element: <InventoryPage /> },
+  '/bank-reconciliation': { element: <BankReconciliationPage /> },
+  '/reports': { element: <ReportsPage /> },
+  '/csv-imports': { element: <CsvImportsPage /> },
+  '/team': { element: <TeamPage /> },
+  '/attachments': { element: <AttachmentsPage /> },
+  '/invoices': { element: <InvoicesPage /> },
+  '/chart-of-accounts': { element: <ChartOfAccountsPage /> },
+  '/fiscal-periods': { element: <FiscalPeriodsPage /> },
+  '/tax-settings': { element: <TaxSettingsPage /> },
+  '/journals': { element: <JournalsPage /> },
+  '/approvals': { element: <ApprovalsPage /> },
+  '/ai-review': { element: <AiReviewPage /> },
+  '/expenses': { element: <ExpensesPage /> },
+  '/voice': { element: <VoicePage /> },
+  '/onboarding': { element: <PartnerOnboardingPage /> },
+  '/partner-onboarding': { element: <PartnerOnboardingPage /> },
+  '/partner/onboarding': { element: <PartnerOnboardingPage /> },
+  '/partner-program': { element: <PartnerProgramPage /> },
+  '/commissions': { element: <CommissionsPage /> },
+  '/notifications': { element: <NotificationsPage /> },
+  '/notification-preferences': { element: <NotificationPreferencesPage /> },
+  '/my-exports': { element: <ExportStatusPage /> },
+  '/profile': { element: <ProfilePage /> },
+  '/job-queue': { element: <JobQueuePage /> },
+  '/observability': { element: <ObservabilityPage /> },
+  '/notification-admin': { element: <NotificationAdminPage /> },
+  '/commission-admin': { element: <CommissionAdminPage /> },
+};
+
+export function renderFrontendPage(route: string) {
+  const key = normalizeAppRoute(route);
+  const config = ROUTES[key] ?? ROUTES['/dashboard'];
+  if (config.requireAuth === false) {
+    return config.element;
+  }
+  return <RequireAuth>{config.element}</RequireAuth>;
+}
+
+export function redirectToDefaultAppPage() {
+  window.location.replace(toWpUrl('/dashboard'));
+}
 
 export default function FrontendRoutes() {
-  const protectedPage = (page: ReactNode) => <RequireAuth>{page}</RequireAuth>;
-
-  return (
-    <Routes>
-      <Route path="/" element={<LoginPage />} />
-      <Route path="/login" element={<LoginPage />} />
-      <Route path="/register" element={<RegisterPage />} />
-      <Route path="/reset-password" element={<ResetPasswordPage />} />
-      <Route path="/verify-email" element={<VerifyEmailPage />} />
-      <Route path="/tier-selection" element={protectedPage(<TierSelectionPage />)} />
-      <Route path="/dashboard" element={protectedPage(<DashboardPage />)} />
-      <Route path="/customers" element={protectedPage(<CustomersPage />)} />
-      <Route path="/vendors" element={protectedPage(<VendorsPage />)} />
-      <Route path="/inventory" element={protectedPage(<InventoryPage />)} />
-      <Route path="/bank-reconciliation" element={protectedPage(<BankReconciliationPage />)} />
-      <Route path="/reports" element={protectedPage(<ReportsPage />)} />
-      <Route path="/csv-imports" element={protectedPage(<CsvImportsPage />)} />
-      <Route path="/team" element={protectedPage(<TeamPage />)} />
-      <Route path="/attachments" element={protectedPage(<AttachmentsPage />)} />
-      <Route path="/invoices" element={protectedPage(<InvoicesPage />)} />
-      <Route path="/chart-of-accounts" element={protectedPage(<ChartOfAccountsPage />)} />
-      <Route path="/fiscal-periods" element={protectedPage(<FiscalPeriodsPage />)} />
-      <Route path="/tax-settings" element={protectedPage(<TaxSettingsPage />)} />
-      <Route path="/journals" element={protectedPage(<JournalsPage />)} />
-      <Route path="/approvals" element={protectedPage(<ApprovalsPage />)} />
-      <Route path="/ai-review" element={protectedPage(<AiReviewPage />)} />
-      <Route path="/expenses" element={protectedPage(<ExpensesPage />)} />
-      <Route path="/voice" element={protectedPage(<VoicePage />)} />
-      <Route path="/partner-onboarding" element={protectedPage(<PartnerOnboardingPage />)} />
-      <Route path="/partner/onboarding" element={<Navigate to="/partner-onboarding" replace />} />
-      <Route path="/partner-program" element={protectedPage(<PartnerProgramPage />)} />
-      <Route path="/commissions" element={protectedPage(<CommissionsPage />)} />
-      <Route path="/notifications" element={protectedPage(<NotificationsPage />)} />
-      <Route path="/notification-preferences" element={protectedPage(<NotificationPreferencesPage />)} />
-      <Route path="/my-exports" element={protectedPage(<ExportStatusPage />)} />
-      <Route path="/profile" element={protectedPage(<ProfilePage />)} />
-      <Route path="/job-queue" element={protectedPage(<JobQueuePage />)} />
-      <Route path="/observability" element={protectedPage(<ObservabilityPage />)} />
-      <Route path="/notification-admin" element={protectedPage(<NotificationAdminPage />)} />
-      <Route path="/commission-admin" element={protectedPage(<CommissionAdminPage />)} />
-      <Route path="*" element={<Navigate to="/dashboard" replace />} />
-    </Routes>
-  );
+  const route =
+    document.getElementById('orabooks-app-root')?.dataset.initialRoute || '/dashboard';
+  return renderFrontendPage(route);
 }

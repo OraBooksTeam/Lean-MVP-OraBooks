@@ -1,0 +1,53 @@
+/** Map React route keys to WordPress page slugs when they differ. */
+const WP_PATH_ALIASES: Record<string, string> = {
+  '/partner-onboarding': '/onboarding',
+  '/partner/onboarding': '/onboarding',
+};
+
+export function normalizeAppRoute(route: string): string {
+  let path = route.trim();
+  if (path.startsWith('#')) {
+    path = path.replace(/^#\/?/, '/');
+  }
+  if (!path.startsWith('/')) {
+    path = `/${path}`;
+  }
+  path = path.replace(/\/$/, '') || '/dashboard';
+  return WP_PATH_ALIASES[path] ?? path;
+}
+
+/** Build a clean WordPress URL (trailing slash, optional query string). */
+export function toWpUrl(path: string): string {
+  if (path.startsWith('http://') || path.startsWith('https://')) {
+    return path;
+  }
+
+  const queryIndex = path.indexOf('?');
+  const pathname = queryIndex >= 0 ? path.slice(0, queryIndex) : path;
+  const search = queryIndex >= 0 ? path.slice(queryIndex) : '';
+
+  let normalized = pathname.startsWith('/') ? pathname : `/${pathname}`;
+  const routeKey = normalizeAppRoute(normalized);
+  normalized = WP_PATH_ALIASES[`${routeKey}`] ?? routeKey;
+  if (!normalized.endsWith('/')) {
+    normalized = `${normalized}/`;
+  }
+
+  return `${normalized}${search}`;
+}
+
+export function getCurrentAppRoute(): string {
+  return normalizeAppRoute(window.location.pathname);
+}
+
+/** Redirect legacy hash URLs (#/dashboard) to clean paths (/dashboard/). */
+export function migrateLegacyHashUrl() {
+  const hash = window.location.hash;
+  if (!hash.startsWith('#/')) {
+    return;
+  }
+
+  const target = toWpUrl(hash.slice(1));
+  const qs = window.location.search;
+  window.location.replace(`${target}${qs}`);
+}
