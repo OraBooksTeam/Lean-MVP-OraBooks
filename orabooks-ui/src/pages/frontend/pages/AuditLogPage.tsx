@@ -44,9 +44,10 @@ export default function AuditLogPage() {
   const orgId = context?.organization?.id;
   const canView = (context?.permissions || []).includes('view_audit_logs');
 
-  const buildParams = (f: AuditFilters) => {
+  const buildParams = (f: AuditFilters, resolvedOrgId?: number) => {
     const params: Record<string, string | number> = { limit: 100 };
-    if (orgId) params.org_id = orgId;
+    const id = resolvedOrgId ?? orgId;
+    if (id) params.org_id = id;
     if (f.user_id) params.user_id = Number(f.user_id);
     if (f.event_type) params.event_type = f.event_type;
     if (f.severity) params.severity = f.severity;
@@ -77,7 +78,7 @@ export default function AuditLogPage() {
       return;
     }
 
-    const res = await api.auditLogs(buildParams(f));
+    const res = await api.auditLogs(buildParams(f, nextContext?.organization?.id));
     if (res.error) setError(res.error);
     else setRows((res as any).data || []);
     setLoading(false);

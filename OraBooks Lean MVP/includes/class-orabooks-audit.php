@@ -241,6 +241,10 @@ class OraBooks_Audit {
         $user_id = orabooks_get_current_user_id();
         $org_id = self::resolve_audit_org_id($_GET['org_id'] ?? 0);
 
+        if (!$user_id && !current_user_can('manage_options')) {
+            orabooks_json_error('Not authenticated', 401);
+        }
+
         $args = [
             'event_type' => sanitize_text_field($_GET['event_type'] ?? ''),
             'user_id' => intval($_GET['user_id'] ?? 0),
@@ -273,6 +277,10 @@ class OraBooks_Audit {
     public function ajax_export_logs() {
         $user_id = orabooks_get_current_user_id();
         $org_id = self::resolve_audit_org_id($_GET['org_id'] ?? 0);
+
+        if (!$user_id && !current_user_can('manage_options')) {
+            orabooks_json_error('Not authenticated', 401);
+        }
 
         $args = [
             'event_type' => sanitize_text_field($_GET['event_type'] ?? ''),
