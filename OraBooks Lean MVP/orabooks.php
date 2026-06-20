@@ -63,9 +63,9 @@ require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-pwa.php';
 require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-rest-api.php';
 require_once ORABOOKS_PLUGIN_DIR . 'includes/helpers.php';
 
-$orabooks_accounting_loader = ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-accounting-loader.php';
-if (file_exists($orabooks_accounting_loader)) {
-    require_once $orabooks_accounting_loader;
+$orabooks_accounting_auth = ORABOOKS_PLUGIN_DIR . 'accounting/includes/class-obn-auth.php';
+if (file_exists($orabooks_accounting_auth)) {
+    require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-accounting-loader.php';
 }
 
 add_filter('script_loader_tag', ['OraBooks_Assets', 'filter_react_script_tag'], 10, 3);

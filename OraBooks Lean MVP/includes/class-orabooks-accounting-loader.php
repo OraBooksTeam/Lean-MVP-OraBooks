@@ -44,8 +44,18 @@ if (!function_exists('orabooks_can_access_accounting')) {
 class OraBooks_Accounting {
     private static $booted = false;
 
+    /**
+     * Whether the legacy PHP accounting module is present on disk.
+     */
+    public static function is_available() {
+        $dir = ORABOOKS_PLUGIN_DIR . 'accounting/';
+
+        return is_dir($dir . 'includes')
+            && file_exists($dir . 'includes/class-obn-auth.php');
+    }
+
     public static function init() {
-        if (self::$booted) {
+        if (self::$booted || !self::is_available()) {
             return;
         }
         self::$booted = true;
@@ -118,6 +128,10 @@ class OraBooks_Accounting {
     }
 
     public static function activate($network_wide = false) {
+        if (!self::is_available()) {
+            return;
+        }
+
         self::define_constants();
 
         if (!class_exists('OBN_Activator')) {
@@ -215,6 +229,10 @@ class OraBooks_Accounting {
     }
 
     public static function init_logic() {
+        if (!class_exists('OBN_Auth') || !class_exists('OBN_Dashboard') || !class_exists('OBN_Shortcodes')) {
+            return;
+        }
+
         global $wpdb;
 
         $table_sidebar = $wpdb->prefix . 'orabooks_db_sidebar';
