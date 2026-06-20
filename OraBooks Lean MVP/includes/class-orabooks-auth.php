@@ -1450,11 +1450,11 @@ class OraBooks_Auth {
 
         orabooks_persist_login_session($login_result);
 
-        orabooks_json_success($login_result);
+        orabooks_json_success(orabooks_redact_client_auth_response($login_result));
     }
     
     public function ajax_refresh_token() {
-        $refresh = sanitize_text_field($_POST['refresh_token'] ?? $_REQUEST['refresh_token'] ?? '');
+        $refresh = orabooks_get_refresh_token_from_request();
         if ($refresh === '') {
             orabooks_json_error('Refresh token required', 401);
         }
@@ -1467,7 +1467,7 @@ class OraBooks_Auth {
         $result = orabooks_enrich_login_response($result);
         orabooks_persist_login_session($result);
 
-        orabooks_json_success($result, 'Session refreshed');
+        orabooks_json_success(orabooks_redact_client_auth_response($result), 'Session refreshed');
     }
 
     public function ajax_logout() {
@@ -2059,6 +2059,9 @@ class OraBooks_Auth {
         $subdomain = strtolower(trim($_POST['subdomain'] ?? ''));
         $region_input = sanitize_text_field($_POST['region'] ?? '');
         $user_id = orabooks_get_current_user_id();
+        if (!$user_id) {
+            $user_id = orabooks_resolve_tier_selection_user_id();
+        }
         
         if (!$user_id) {
             orabooks_json_error('Please log in before selecting a plan.', 401);
