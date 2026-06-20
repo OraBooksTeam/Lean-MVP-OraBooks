@@ -611,6 +611,7 @@ function orabooks_get_admin_nav_items() {
             ['slug' => 'orabooks-partners', 'label' => __('Partners', 'orabooks'), 'route' => '/admin/partners'],
             ['slug' => 'orabooks-job-queue', 'label' => __('Job Queue', 'orabooks'), 'route' => '/admin/job-queue'],
             ['slug' => 'orabooks-observability', 'label' => __('Observability', 'orabooks'), 'route' => '/admin/observability'],
+            ['slug' => 'orabooks-event-dead-letter', 'label' => __('Event Dead Letters', 'orabooks'), 'route' => '/admin/event-dead-letter'],
             ['slug' => 'orabooks-security', 'label' => __('Security', 'orabooks'), 'route' => '/admin/security'],
             ['slug' => 'orabooks-coa', 'label' => __('Chart of Accounts', 'orabooks'), 'route' => '/admin/coa'],
             ['slug' => 'orabooks-customers', 'label' => __('Customers', 'orabooks'), 'route' => '/admin/customers'],
