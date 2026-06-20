@@ -19,7 +19,16 @@ export default function TierSelectionPage() {
     setChecking(true);
     setAvailable(null);
     const res = await api.post('orabooks_check_subdomain', { subdomain });
-    if (!res.error) {
+    if (res.error) {
+      const message = typeof res.error === 'string' ? res.error : 'Unable to check subdomain availability.';
+      if (message.toLowerCase().includes('too many')) {
+        setAvailable(null);
+        setMsg('Too many availability checks. Please wait a moment before trying again.');
+      } else {
+        setAvailable(false);
+        setMsg(message);
+      }
+    } else {
       setAvailable((res as any).data?.available ?? false);
       setMsg((res as any).data?.message || '');
     }
