@@ -320,15 +320,20 @@ class OraBooks_Notifications {
 
         // Check dependent notifications are already delivered
         foreach ($deps as $dep) {
+            $depends_on = is_object($dep) ? ($dep->depends_on ?? '') : '';
+            if ($depends_on === '') {
+                continue;
+            }
+
             $delivered = $wpdb->get_var($wpdb->prepare(
                 "SELECT COUNT(*) FROM {$table_notifications} WHERE event_type = %s AND user_id = %d AND correlation_id = %s AND status = 'delivered'",
-                $dep->depends_on, $user_id, $correlation_id
+                $depends_on, $user_id, $correlation_id
             ));
 
             if (!$delivered) {
                 // Dependency not met, schedule this notification for later check
                 // For MVP, we'll just proceed and mark the dependency gap in metadata
-                orabooks_log_event('notification_dependency_miss', "Dependency {$dep->depends_on} not met for {$event_type}", 'info', [
+                orabooks_log_event('notification_dependency_miss', "Dependency {$depends_on} not met for {$event_type}", 'info', [
                     'user_id'        => $user_id,
                     'correlation_id' => $correlation_id,
                 ]);

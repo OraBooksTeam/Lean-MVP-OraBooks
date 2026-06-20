@@ -831,7 +831,8 @@ class OraBooks_Auth_Test extends TestCase
         $this->assertIsArray($result);
         $this->assertEquals(42, $result['user_id']);
         $this->assertEquals('newuser@example.com', $result['email']);
-        $this->assertArrayHasKey('token', $result);
+        $this->assertArrayHasKey('requires_email_verification', $result);
+        $this->assertTrue($result['requires_email_verification']);
         $this->assertEquals(0, $result['is_partner']);
         $this->assertStringContainsString('Verification', $result['message']);
     }
