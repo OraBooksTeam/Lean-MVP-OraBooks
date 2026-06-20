@@ -534,39 +534,53 @@ class OraBooks_Team {
     }
     
     public function ajax_accept_invite() {
-        $token = isset($_REQUEST['token']) ? sanitize_text_field(wp_unslash($_REQUEST['token'])) : '';
-
-        if ($token === '') {
-            wp_die(esc_html__('Invalid invitation link.', 'orabooks'));
+        $user_id = orabooks_get_current_user_id();
+        if (!$user_id) {
+            orabooks_json_error('Please log in to accept this invitation.', 401);
         }
 
-        $result = self::accept_invite($token);
+        $token = sanitize_text_field($_POST['token'] ?? '');
+        if ($token === '') {
+            orabooks_json_error('Invitation token is required.', 400);
+        }
 
+        $result = self::accept_invite($token, $user_id);
         if (is_wp_error($result)) {
-            wp_die(esc_html($result->get_error_message()));
+            $status = $result->get_error_code() === 'invite_email_mismatch' ? 403 : 400;
+            orabooks_json_error($result->get_error_message(), $status);
         }
 
         if (!class_exists('OraBooks_Organization') || !class_exists('OraBooks_Auth')) {
-            wp_die(esc_html__('Team invite service is unavailable.', 'orabooks'));
+            orabooks_json_error('Team invite service is unavailable.', 503);
         }
 
         $org = OraBooks_Organization::get((int) $result['org_id']);
         if (!$org || empty($org->subdomain)) {
-            wp_redirect(orabooks_get_network_login_url('login'));
-            exit;
+            orabooks_json_error('Organization is not available yet.', 400);
         }
 
         $session = OraBooks_Auth::issue_auth_session(
             (int) $result['user_id'],
             (int) $result['org_id'],
-            $result['role']
+            $result['role'],
+            '/team/'
         );
 
         if (is_wp_error($session)) {
-            wp_die(esc_html($session->get_error_message()));
+            orabooks_json_error($session->get_error_message(), 400);
         }
 
-        wp_redirect($session['redirect_to']);
+        $session = orabooks_enrich_login_response($session);
+        orabooks_json_success(orabooks_redact_client_auth_response($session), 'Invitation accepted');
+    }
+
+    /**
+     * Legacy admin-ajax invite links redirect to the React accept-invite page.
+     */
+    public function ajax_accept_invite_legacy_redirect() {
+        $token = isset($_REQUEST['token']) ? sanitize_text_field(wp_unslash($_REQUEST['token'])) : '';
+        $destination = orabooks_get_accept_invite_url($token);
+        wp_redirect($destination);
         exit;
     }
 }
