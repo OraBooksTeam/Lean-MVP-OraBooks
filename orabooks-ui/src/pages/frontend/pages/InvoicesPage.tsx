@@ -112,6 +112,18 @@ export default function InvoicesPage() {
 
   useEffect(() => { void load(); }, []);
 
+  useEffect(() => {
+    const invoiceId = Number(getSearchParam('invoice_id') || 0);
+    if (invoiceId <= 0 || invoices.length === 0) {
+      return;
+    }
+
+    const match = invoices.find((invoice) => invoice.id === invoiceId);
+    if (match) {
+      setSelectedInvoice(match);
+    }
+  }, [invoices]);
+
   const reasonOptions = useMemo(() => {
     const config = taxConfigs.find((c) => c.jurisdiction === overrideJurisdiction);
     return config?.override_reasons?.length ? config.override_reasons : DEFAULT_REASONS;

@@ -37,6 +37,18 @@ export default function LoginPage() {
 
     absorbAuthTokensFromUrl();
 
+    const oidcError = new URLSearchParams(window.location.search).get('oidc_error');
+    if (oidcError) {
+      setError(decodeURIComponent(oidcError));
+      const params = new URLSearchParams(window.location.search);
+      params.delete('oidc_error');
+      params.delete('code');
+      params.delete('state');
+      const qs = params.toString();
+      window.history.replaceState(null, '', `${window.location.pathname}${qs ? `?${qs}` : ''}`);
+      return;
+    }
+
     if (hasStoredAuthToken()) {
       api.verifySession().then((res) => {
         if (!res.error) {

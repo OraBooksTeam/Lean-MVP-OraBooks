@@ -5,6 +5,7 @@ import Button from '@/components/Button';
 import { api } from '../api';
 import ClientShell from '../components/ClientShell';
 import PartnerProgramPage from './PartnerProgramPage';
+import { getSearchParam, toWpUrl } from '../lib/wp-routing';
 import {
   Banknote,
   FileText,
@@ -76,7 +77,15 @@ export default function DashboardPage() {
     setLoading(false);
   };
 
-  useEffect(() => { void load(); }, []);
+  useEffect(() => {
+    const invoiceId = getSearchParam('invoice_id');
+    if (invoiceId) {
+      window.location.replace(toWpUrl(`/invoices/?invoice_id=${encodeURIComponent(invoiceId)}`));
+      return;
+    }
+
+    void load();
+  }, []);
 
   if (loading) {
     return (

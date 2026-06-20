@@ -175,9 +175,9 @@ class OraBooks_Notifications_Test extends TestCase
         );
 
         $this->assertEquals(
-            'http://example.com/dashboard/?invoice_id=200',
+            'http://example.com/invoices/?invoice_id=200',
             $ref->invoke(null, 200),
-            'get_customer_dashboard_url with invoice_id appends query parameter'
+            'get_customer_dashboard_url with invoice_id deep-links to invoices'
         );
     }
 
@@ -424,9 +424,9 @@ class OraBooks_Notifications_Test extends TestCase
         $this->assertIsArray($payload, 'Notification payload should be a valid JSON object');
         $this->assertArrayHasKey('view_url', $payload, 'Payload should contain a view_url field');
         $this->assertEquals(
-            home_url('/dashboard/') . '?invoice_id=200',
+            home_url('/invoices/') . '?invoice_id=200',
             $payload['view_url'],
-            'Customer overdue notification view_url should point to the dashboard with invoice ID'
+            'Customer overdue notification view_url should point to invoices with invoice ID'
         );
     }
 
