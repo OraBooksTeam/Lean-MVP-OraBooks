@@ -650,9 +650,16 @@ if (!function_exists('admin_url')) {
 }
 
 if (!function_exists('add_query_arg')) {
-    function add_query_arg($key, $value, $url) {
+    function add_query_arg($key, $value = null, $url = null) {
+        if (is_array($key)) {
+            $query = $key;
+            $url = $value ?? '';
+            $separator = strpos($url, '?') === false ? '?' : '&';
+            return $url . $separator . http_build_query($query);
+        }
+
         $separator = strpos($url, '?') === false ? '?' : '&';
-        return $url . $separator . urlencode($key) . '=' . urlencode($value);
+        return $url . $separator . urlencode((string) $key) . '=' . urlencode((string) $value);
     }
 }
 
