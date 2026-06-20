@@ -11,11 +11,59 @@ type Vendor = {
   id: number;
   name: string;
   email?: string;
+  tax_id?: string;
   payment_terms?: number;
+  default_currency?: string;
+  auto_apply_credit?: number;
+  notes?: string;
   is_active?: number;
   payable_balance?: string | number;
   credit_balance?: string | number;
 };
+
+type VendorFormState = {
+  name: string;
+  email: string;
+  tax_id: string;
+  payment_terms: string;
+  default_currency: string;
+  auto_apply_credit: boolean;
+  notes: string;
+};
+
+const emptyVendorForm = (): VendorFormState => ({
+  name: '',
+  email: '',
+  tax_id: '',
+  payment_terms: '30',
+  default_currency: 'USD',
+  auto_apply_credit: true,
+  notes: '',
+});
+
+function vendorToForm(vendor: Vendor): VendorFormState {
+  return {
+    name: vendor.name,
+    email: vendor.email || '',
+    tax_id: vendor.tax_id || '',
+    payment_terms: String(vendor.payment_terms ?? 30),
+    default_currency: vendor.default_currency || 'USD',
+    auto_apply_credit: Number(vendor.auto_apply_credit ?? 1) === 1,
+    notes: vendor.notes || '',
+  };
+}
+
+function vendorFormPayload(form: VendorFormState) {
+  return {
+    name: form.name.trim(),
+    email: form.email.trim(),
+    tax_id: form.tax_id.trim(),
+    payment_terms: parseInt(form.payment_terms, 10) || 30,
+    default_currency: form.default_currency.trim() || 'USD',
+    auto_apply_credit: form.auto_apply_credit ? 1 : 0,
+    notes: form.notes.trim(),
+  };
+}
 
 type Bill = {
   id: number;
@@ -46,12 +94,17 @@ export default function VendorsPage() {
   const [actionBillId, setActionBillId] = useState<number | null>(null);
 
   const [showVendorForm, setShowVendorForm] = useState(false);
-  const [vendorForm, setVendorForm] = useState({ name: '', email: '', payment_terms: '30' });
+  const [editingVendor, setEditingVendor] = useState<Vendor | null>(null);
+  const [vendorForm, setVendorForm] = useState<VendorFormState>(emptyVendorForm());
 
   const [showBillForm, setShowBillForm] = useState(false);
   const [billForm, setBillForm] = useState({
     vendor_id: '',
     bill_date: new Date().toISOString().slice(0, 10),
+    due_date: '',
+    due_days: '30',
+    use_due_date: false,
+    currency: 'USD',
     subtotal_amount: '',
     jurisdiction: 'US',
     description: '',
@@ -64,7 +117,11 @@ export default function VendorsPage() {
     payment_date: new Date().toISOString().slice(0, 10),
     payment_method: 'bank_transfer',
     reference: '',
+    notes: '',
   });
+
+  const [creditNoteVendor, setCreditNoteVendor] = useState<Vendor | null>(null);
+  const [creditNoteForm, setCreditNoteForm] = useState({ amount: '', reason: '', credit_date: new Date().toISOString().slice(0, 10) });
 
   const orgId = context?.organization?.id;
 
@@ -145,16 +202,29 @@ export default function VendorsPage() {
     }
     setSaving(true);
     setError('');
-    const res = await api.vendorCreate(orgId, {
-      name: vendorForm.name.trim(),
-      email: vendorForm.email,
-      payment_terms: parseInt(vendorForm.payment_terms, 10) || 30,
-    });
+    const res = await api.vendorCreate(orgId, vendorFormPayload(vendorForm));
     if (res.error) setError(res.error);
     else {
       setSuccess('Vendor created.');
       setShowVendorForm(false);
-      setVendorForm({ name: '', email: '', payment_terms: '30' });
+      setVendorForm(emptyVendorForm());
+      await load();
+    }
+    setSaving(false);
+  };
+
+  const handleUpdateVendor = async () => {
+    if (!orgId || !editingVendor || !vendorForm.name.trim()) {
+      setError('Vendor name is required.');
+      return;
+    }
+    setSaving(true);
+    setError('');
+    const res = await api.vendorUpdate(orgId, editingVendor.id, vendorFormPayload(vendorForm));
+    if (res.error) setError(res.error);
+    else {
+      setSuccess('Vendor updated.');
+      setEditingVendor(null);
       await load();
     }
     setSaving(false);
@@ -167,13 +237,20 @@ export default function VendorsPage() {
     }
     setSaving(true);
     setError('');
-    const res = await api.billCreate(orgId, {
+    const payload: Record<string, unknown> = {
       vendor_id: parseInt(billForm.vendor_id, 10),
       bill_date: billForm.bill_date,
       subtotal_amount: parseFloat(billForm.subtotal_amount) || 0,
       jurisdiction: billForm.jurisdiction,
+      currency: billForm.currency || 'USD',
       description: billForm.description,
-    });
+    };
+    if (billForm.use_due_date && billForm.due_date) {
+      payload.due_date = billForm.due_date;
+    } else {
+      payload.due_days = parseInt(billForm.due_days, 10) || 30;
+    }
+    const res = await api.billCreate(orgId, payload);
     if (res.error) setError(res.error);
     else {
       setSuccess('Bill created in draft.');
