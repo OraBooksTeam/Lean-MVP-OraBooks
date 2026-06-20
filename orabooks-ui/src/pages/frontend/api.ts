@@ -328,6 +328,8 @@ export const api = {
     api.post('orabooks_verify_email_token', { token }),
   resendVerification: (email: string) =>
     api.post('orabooks_resend_verification', { email }),
+  acceptInvite: (token: string) =>
+    api.post('orabooks_accept_invite', { token }),
   setup2fa: () => api.post('orabooks_setup_2fa'),
   verify2faSetup: (otpCode: string) =>
     api.post('orabooks_verify_2fa_setup', { otp_code: otpCode }),
