@@ -6,8 +6,23 @@
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
+if (!class_exists('OraBooks_AsyncQueue', false)) {
+    class OraBooks_AsyncQueue {
+        private static $handlers = [];
+
+        public static function register_default_handlers() {
+            self::$handlers['partner_activity_check'] = static function () {
+                return true;
+            };
+        }
+
+        public static function get_handler($job_type) {
+            return self::$handlers[$job_type] ?? null;
+        }
+    }
+}
+
 require_once __DIR__ . '/../includes/class-orabooks-deploy-checks.php';
-require_once __DIR__ . '/../includes/class-orabooks-async-queue.php';
 
 class OraBooks_Deploy_Checks_Test extends TestCase
 {
