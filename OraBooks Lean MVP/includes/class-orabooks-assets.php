@@ -237,6 +237,7 @@ class OraBooks_Assets {
             'register_url' => orabooks_get_network_login_url('register'),
             'reset_password_url' => orabooks_get_network_login_url('reset-password'),
             'verify_email_url' => orabooks_get_network_login_url('verify-email'),
+            'accept_invite_url' => orabooks_get_network_login_url('accept-invite'),
             'tier_selection_url' => orabooks_get_network_login_url('tier-selection'),
             'admin_base' => admin_url('admin.php'),
             'platform_admin_url' => function_exists('orabooks_get_platform_admin_url')
