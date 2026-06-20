@@ -105,6 +105,7 @@ function NavLinks({
   linkClassName,
   activeClassName,
   inactiveClassName,
+  unreadCount = 0,
 }: {
   nav: NavItem[];
   currentRoute: string;
@@ -113,6 +114,7 @@ function NavLinks({
   linkClassName?: string;
   activeClassName: string;
   inactiveClassName: string;
+  unreadCount?: number;
 }) {
   return (
     <nav className={className}>
@@ -123,20 +125,30 @@ function NavLinks({
           linkClassName,
           active ? activeClassName : inactiveClassName
         );
+        const showUnread = item.href === '/notifications' && unreadCount > 0;
+        const label = (
+          <>
+            <Icon className="h-4 w-4 shrink-0" />
+            <span className="flex-1">{item.label}</span>
+            {showUnread && (
+              <span className="ml-auto rounded-full bg-accent px-2 py-0.5 text-xs font-bold text-white">
+                {unreadCount > 99 ? '99+' : unreadCount}
+              </span>
+            )}
+          </>
+        );
 
         if (item.external) {
           return (
             <a key={item.href} href={item.href} className={classNames} onClick={onNavigate}>
-              <Icon className="h-4 w-4 shrink-0" />
-              {item.label}
+              {label}
             </a>
           );
         }
 
         return (
           <WpLink key={item.href} to={item.href} className={classNames} onClick={onNavigate}>
-            <Icon className="h-4 w-4 shrink-0" />
-            {item.label}
+            {label}
           </WpLink>
         );
       })}
@@ -153,6 +165,7 @@ export default function ClientShell({
 }: ClientShellProps) {
   const currentRoute = getCurrentAppRoute();
   const [permissions, setPermissions] = useState<string[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
   const baseNav = isPartner ? partnerNav : customerNav;
   const nav = filterNavByPermissions(baseNav, permissions);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
@@ -168,6 +181,13 @@ export default function ClientShell({
       }
       if (Array.isArray(data?.permissions)) {
         setPermissions(data.permissions);
+      }
+    });
+
+    void api.notificationsUnreadCount().then((res) => {
+      const count = (res as any).data?.count ?? (res as any).data?.unread_count;
+      if (typeof count === 'number') {
+        setUnreadCount(count);
       }
     });
   }, []);
@@ -248,6 +268,7 @@ export default function ClientShell({
         nav={nav}
         currentRoute={currentRoute}
         onNavigate={closeMobileNav}
+        unreadCount={unreadCount}
         className="scrollbar-hide mt-6 min-h-0 flex-1 space-y-1.5 overflow-y-auto overscroll-contain"
         linkClassName="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition"
         activeClassName="bg-accent text-white shadow-sm"
