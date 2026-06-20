@@ -20,11 +20,11 @@ export default function RequireAuth({ children }: { children: ReactNode }) {
         return;
       }
 
-      clearStoredAuthTokens();
       if (redirectToLogin()) {
         return;
       }
 
+      clearStoredAuthTokens();
       setBlocked(true);
     });
   }, []);
