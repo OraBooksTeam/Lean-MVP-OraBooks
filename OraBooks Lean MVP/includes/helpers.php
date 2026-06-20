@@ -62,6 +62,7 @@ function orabooks_get_lean_mvp_page_definitions() {
         'team' => ['Team', '[orabooks_team]'],
         'commissions' => ['Commissions', '[orabooks_commission]'],
         'profile' => ['Profile', '[orabooks_profile]'],
+        'audit-log' => ['Audit Log', '[orabooks_audit_log]'],
         'notifications' => ['Notifications', '[orabooks_notification_center]'],
         'notification-preferences' => ['Notification Preferences', '[orabooks_notification_preferences]'],
         'my-exports' => ['My Exports', '[orabooks_export_status]'],

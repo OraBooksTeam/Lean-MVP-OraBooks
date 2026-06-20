@@ -52,6 +52,7 @@ class OraBooks_Shortcodes {
             add_shortcode('orabooks_tax_settings', [self::$instance, 'tax_settings_page']);
             add_shortcode('orabooks_journals', [self::$instance, 'journals_page']);
             add_shortcode('orabooks_profile', [self::$instance, 'profile_page']);
+            add_shortcode('orabooks_audit_log', [self::$instance, 'audit_log_page']);
         }
         return self::$instance;
     }
@@ -154,6 +155,10 @@ class OraBooks_Shortcodes {
 
     public function profile_page() {
         return $this->customer_react_page('/profile');
+    }
+
+    public function audit_log_page() {
+        return $this->customer_react_page('/audit-log');
     }
 
     public function team_page() {
