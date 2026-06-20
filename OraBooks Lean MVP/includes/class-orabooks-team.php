@@ -30,6 +30,7 @@ class OraBooks_Team {
             add_action('wp_ajax_nopriv_orabooks_resend_invite', [self::$instance, 'ajax_resend_invite']);
             add_action('wp_ajax_orabooks_cancel_invite', [self::$instance, 'ajax_cancel_invite']);
             add_action('wp_ajax_nopriv_orabooks_cancel_invite', [self::$instance, 'ajax_cancel_invite']);
+            add_action('wp_ajax_orabooks_accept_invite', [self::$instance, 'ajax_accept_invite']);
             add_action('wp_ajax_nopriv_orabooks_accept_invite', [self::$instance, 'ajax_accept_invite']);
         }
         return self::$instance;
@@ -41,6 +42,16 @@ class OraBooks_Team {
     
     private static function is_member_role($role) {
         return in_array($role, ['owner', 'admin', 'approver', 'staff', 'viewer'], true);
+    }
+
+    private static function build_invite_link($raw_token) {
+        return add_query_arg(
+            [
+                'action' => 'orabooks_accept_invite',
+                'token' => $raw_token,
+            ],
+            admin_url('admin-ajax.php')
+        );
     }
     
     public static function invite_user($org_id, $email, $role, $invited_by) {
@@ -103,7 +114,7 @@ class OraBooks_Team {
         
         return [
             'invite_id' => $invite_id,
-            'invite_link' => home_url('/orabooks-accept-invite?token=' . $raw_token)
+            'invite_link' => self::build_invite_link($raw_token),
         ];
     }
     
@@ -164,7 +175,11 @@ class OraBooks_Team {
             'role' => $invite->role
         ], $user->id, $invite->org_id);
         
-        return ['org_id' => $invite->org_id, 'role' => $invite->role];
+        return [
+            'org_id' => $invite->org_id,
+            'role' => $invite->role,
+            'user_id' => (int) $user->id,
+        ];
     }
     
     public static function update_role($org_id, $target_user_id, $new_role, $changed_by) {

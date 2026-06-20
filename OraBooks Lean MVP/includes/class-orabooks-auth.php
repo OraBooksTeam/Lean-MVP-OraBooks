@@ -610,6 +610,51 @@ class OraBooks_Auth {
             'is_partner' => $user->is_partner
         ]);
     }
+
+    /**
+     * Issue JWT + refresh tokens and persist cookies for programmatic auth flows.
+     */
+    public static function issue_auth_session($user_id, $org_id, $role, $redirect_to = '/dashboard/') {
+        global $wpdb;
+
+        $table_users = OraBooks_Database::table('users');
+        $user = $wpdb->get_row($wpdb->prepare(
+            "SELECT id, email, is_partner FROM {$table_users} WHERE id = %d",
+            (int) $user_id
+        ));
+
+        if (!$user) {
+            return new WP_Error('user_not_found', 'User not found');
+        }
+
+        $org = $org_id ? OraBooks_Organization::get((int) $org_id) : null;
+        $jwt = OraBooks_Secrets::generate_jwt([
+            'user_id' => $user->id,
+            'email' => $user->email,
+            'org_id' => (int) $org_id,
+            'role' => $role,
+            'subdomain' => $org ? $org->subdomain : '',
+            'is_partner' => (int) $user->is_partner,
+        ]);
+
+        $refresh_token = orabooks_random_string(32);
+        self::store_refresh_token($user->id, (int) $org_id, $refresh_token);
+
+        $payload = orabooks_enrich_login_response([
+            'token' => $jwt,
+            'refresh_token' => $refresh_token,
+            'user_id' => $user->id,
+            'org_id' => (int) $org_id,
+            'role' => $role,
+            'subdomain' => $org ? $org->subdomain : '',
+            'is_partner' => (int) $user->is_partner,
+            'redirect_to' => $redirect_to,
+        ]);
+
+        orabooks_persist_login_session($payload);
+
+        return $payload;
+    }
     
     /**
      * Handle partner first login - auto create org
