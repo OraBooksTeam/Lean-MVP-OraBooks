@@ -380,7 +380,7 @@ export default function VendorsPage() {
         </section>
 
         <div className="flex flex-wrap justify-end gap-2">
-          <Button size="sm" onClick={() => { setShowVendorForm(true); setError(''); setSuccess(''); }}>
+          <Button size="sm" onClick={() => { setShowVendorForm(true); setVendorForm(emptyVendorForm()); setError(''); setSuccess(''); }}>
             <Plus className="h-4 w-4" />
             Add vendor
           </Button>
@@ -563,6 +563,22 @@ export default function VendorsPage() {
               </Field>
               <Field label="Bill date"><Input type="date" value={billForm.bill_date} onChange={(e) => setBillForm((p) => ({ ...p, bill_date: e.target.value }))} /></Field>
               <div className="grid gap-4 sm:grid-cols-2">
+                <Field label="Currency">
+                  <Input value={billForm.currency} onChange={(e) => setBillForm((p) => ({ ...p, currency: e.target.value.toUpperCase() }))} maxLength={3} />
+                </Field>
+                <div className="flex items-end pb-2">
+                  <label className="flex items-center gap-2 text-sm text-slate-700">
+                    <input type="checkbox" checked={billForm.use_due_date} onChange={(e) => setBillForm((p) => ({ ...p, use_due_date: e.target.checked }))} />
+                    Explicit due date
+                  </label>
+                </div>
+              </div>
+              {billForm.use_due_date ? (
+                <Field label="Due date"><Input type="date" value={billForm.due_date} onChange={(e) => setBillForm((p) => ({ ...p, due_date: e.target.value }))} /></Field>
+              ) : (
+                <Field label="Due days"><Input type="number" min="1" value={billForm.due_days} onChange={(e) => setBillForm((p) => ({ ...p, due_days: e.target.value }))} /></Field>
+              )}
+              <div className="grid gap-4 sm:grid-cols-2">
                 <Field label="Subtotal"><Input type="number" min="0" step="0.01" value={billForm.subtotal_amount} onChange={(e) => setBillForm((p) => ({ ...p, subtotal_amount: e.target.value }))} /></Field>
                 <Field label="Jurisdiction">
                   <select value={billForm.jurisdiction} onChange={(e) => setBillForm((p) => ({ ...p, jurisdiction: e.target.value }))} className="w-full rounded-lg border border-border px-3 py-2.5 text-sm">
@@ -606,10 +622,27 @@ export default function VendorsPage() {
                 </select>
               </Field>
               <Field label="Reference"><Input value={paymentForm.reference} onChange={(e) => setPaymentForm((p) => ({ ...p, reference: e.target.value }))} /></Field>
+              <Field label="Notes"><Input value={paymentForm.notes} onChange={(e) => setPaymentForm((p) => ({ ...p, notes: e.target.value }))} /></Field>
             </div>
             <div className="mt-6 flex justify-end gap-2">
               <Button variant="secondary" onClick={() => setPaymentVendor(null)}>Cancel</Button>
               <Button onClick={handleRecordPayment} disabled={saving}>Record payment</Button>
+            </div>
+          </Modal>
+        )}
+
+        {creditNoteVendor && (
+          <Modal title="Create vendor credit note" onClose={() => setCreditNoteVendor(null)}>
+            <p className="mb-4 text-sm text-slate-600">{creditNoteVendor.name}</p>
+            {error && <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div>}
+            <div className="grid gap-4">
+              <Field label="Amount"><Input type="number" min="0" step="0.01" value={creditNoteForm.amount} onChange={(e) => setCreditNoteForm((p) => ({ ...p, amount: e.target.value }))} /></Field>
+              <Field label="Credit date"><Input type="date" value={creditNoteForm.credit_date} onChange={(e) => setCreditNoteForm((p) => ({ ...p, credit_date: e.target.value }))} /></Field>
+              <Field label="Reason"><Input value={creditNoteForm.reason} onChange={(e) => setCreditNoteForm((p) => ({ ...p, reason: e.target.value }))} placeholder="Return, adjustment, etc." /></Field>
+            </div>
+            <div className="mt-6 flex justify-end gap-2">
+              <Button variant="secondary" onClick={() => setCreditNoteVendor(null)}>Cancel</Button>
+              <Button onClick={handleCreateCreditNote} disabled={saving}>Create credit note</Button>
             </div>
           </Modal>
         )}
@@ -618,10 +651,37 @@ export default function VendorsPage() {
   );
 }
 
+function VendorFields({
+  form,
+  onChange,
+}: {
+  form: VendorFormState;
+  onChange: (next: VendorFormState) => void;
+}) {
+  const set = (patch: Partial<VendorFormState>) => onChange({ ...form, ...patch });
+
+  return (
+    <div className="grid gap-4">
+      <Field label="Name"><Input value={form.name} onChange={(e) => set({ name: e.target.value })} /></Field>
+      <Field label="Email"><Input type="email" value={form.email} onChange={(e) => set({ email: e.target.value })} /></Field>
+      <Field label="Tax ID"><Input value={form.tax_id} onChange={(e) => set({ tax_id: e.target.value })} /></Field>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Field label="Payment terms (days)"><Input type="number" min="0" value={form.payment_terms} onChange={(e) => set({ payment_terms: e.target.value })} /></Field>
+        <Field label="Default currency"><Input value={form.default_currency} onChange={(e) => set({ default_currency: e.target.value.toUpperCase() })} maxLength={3} /></Field>
+      </div>
+      <label className="flex items-center gap-2 text-sm text-slate-700">
+        <input type="checkbox" checked={form.auto_apply_credit} onChange={(e) => set({ auto_apply_credit: e.target.checked })} />
+        Auto-apply vendor credit on new bills
+      </label>
+      <Field label="Notes"><Input value={form.notes} onChange={(e) => set({ notes: e.target.value })} /></Field>
+    </div>
+  );
+}
+
 function Modal({ title, children, onClose }: { title: string; children: ReactNode; onClose: () => void }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4" onClick={onClose}>
-      <div className="w-full max-w-lg rounded-2xl border border-border bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+      <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-border bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between gap-3">
           <h3 className="text-lg font-semibold text-ink">{title}</h3>
           <button type="button" onClick={onClose} className="text-sm text-slate-500 hover:text-slate-700">Close</button>
