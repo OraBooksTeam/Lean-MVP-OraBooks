@@ -50,6 +50,7 @@ type NavItem = {
   href: string;
   icon: typeof Home;
   external?: boolean;
+  permission?: string;
 };
 
 const customerNav: NavItem[] = [
@@ -73,18 +74,24 @@ const customerNav: NavItem[] = [
   { label: 'Notifications', href: '/notifications', icon: Bell },
   { label: 'My Exports', href: '/my-exports', icon: Download },
   { label: 'Team', href: '/team', icon: UserCog },
+  { label: 'Audit Log', href: '/audit-log', icon: ShieldCheck, permission: 'view_audit_logs' },
   { label: 'Profile', href: '/profile', icon: Users },
 ];
 
 const partnerNav: NavItem[] = [
-  { label: 'Partner Program', href: '/dashboard', icon: Home },
-  { label: 'Commissions', href: '/commissions', icon: TrendingUp },
+  { label: 'Partner Program', href: '/dashboard', icon: Home, permission: 'partner_commission_access' },
+  { label: 'Commissions', href: '/commissions', icon: TrendingUp, permission: 'partner_commission_access' },
   { label: 'Onboarding', href: '/onboarding', icon: Users },
   { label: 'Notifications', href: '/notifications', icon: Bell },
   { label: 'My Exports', href: '/my-exports', icon: Download },
   { label: 'Team', href: '/team', icon: UserCog },
+  { label: 'Audit Log', href: '/audit-log', icon: ShieldCheck, permission: 'view_audit_logs' },
   { label: 'Profile', href: '/profile', icon: Users },
 ];
+
+function filterNavByPermissions(items: NavItem[], permissions: string[]) {
+  return items.filter((item) => !item.permission || permissions.includes(item.permission));
+}
 
 const adminBarTop = { top: 'var(--orabooks-wp-admin-bar, 0px)' } as const;
 const shellHeight = { minHeight: 'calc(100dvh - var(--orabooks-wp-admin-bar, 0px))' } as const;
@@ -145,16 +152,22 @@ export default function ClientShell({
   isPartner = false,
 }: ClientShellProps) {
   const currentRoute = getCurrentAppRoute();
-  const nav = isPartner ? partnerNav : customerNav;
+  const [permissions, setPermissions] = useState<string[]>([]);
+  const baseNav = isPartner ? partnerNav : customerNav;
+  const nav = filterNavByPermissions(baseNav, permissions);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
   const [userRole, setUserRole] = useState('');
 
   useEffect(() => {
     void api.frontendContext().then((res) => {
-      const role = (res as any).data?.role;
+      const data = (res as any).data;
+      const role = data?.role;
       if (typeof role === 'string' && role.trim() !== '') {
         setUserRole(role.charAt(0).toUpperCase() + role.slice(1));
+      }
+      if (Array.isArray(data?.permissions)) {
+        setPermissions(data.permissions);
       }
     });
   }, []);
