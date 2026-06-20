@@ -690,6 +690,18 @@ if (!function_exists('wp_next_scheduled')) {
     }
 }
 
+if (!function_exists('wp_schedule_event')) {
+    function wp_schedule_event($timestamp, $recurrence, $hook, $args = []) {
+        $GLOBALS['orabooks_test_wp_next_scheduled_hooks'][$hook] = $timestamp;
+        $GLOBALS['orabooks_test_wp_scheduled_events'][] = [
+            'hook' => $hook,
+            'recurrence' => $recurrence,
+            'timestamp' => $timestamp,
+        ];
+        return true;
+    }
+}
+
 if (!function_exists('admin_url')) {
     function admin_url($path = '') { return 'http://example.com/wp-admin/' . $path; }
 }

@@ -240,7 +240,7 @@ export default function AdminSettings() {
         </form>
       )}
 
-      <section className="glass-panel mt-6 overflow-hidden">
+      <section className="glass-panel mt-6 overflow-hidden" id="deploy-checks">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border bg-muted/60 px-6 py-4">
           <div className="flex items-center gap-2">
             <ShieldCheck className="h-5 w-5 text-primary" />

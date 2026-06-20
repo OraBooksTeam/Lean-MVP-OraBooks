@@ -112,4 +112,19 @@ class OraBooks_Deploy_Checks_Test extends TestCase
         $this->assertNotEmpty($db_check);
         $this->assertFalse($db_check[0]['ok']);
     }
+
+    #[Test]
+    public function test_ensure_mvp_cron_schedules_repairs_missing_hooks()
+    {
+        $GLOBALS['orabooks_test_wp_next_scheduled_hooks'] = [];
+        $GLOBALS['orabooks_test_wp_scheduled_events'] = [];
+
+        $repaired = OraBooks_DeployChecks::ensure_mvp_cron_schedules();
+
+        $this->assertCount(3, $repaired);
+        $this->assertContains('orabooks_async_queue_process', $repaired);
+
+        $again = OraBooks_DeployChecks::ensure_mvp_cron_schedules();
+        $this->assertSame([], $again);
+    }
 }

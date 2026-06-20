@@ -198,6 +198,15 @@ export default function AdminDashboard() {
       }
     >
       <div className="space-y-6">
+      {deployOk === false && (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          Deploy verification reported failures. Open{' '}
+          <a href={`${adminLink('orabooks-settings')}#deploy-checks`} className="font-semibold underline">
+            Platform Settings → Post-deploy verification
+          </a>{' '}
+          to review and repair.
+        </div>
+      )}
       {stats?.timestamp && (
         <p className="text-xs text-ink-secondary">Last updated: {new Date(stats.timestamp).toLocaleString()}</p>
       )}
