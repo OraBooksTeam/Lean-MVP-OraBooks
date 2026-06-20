@@ -194,7 +194,7 @@ export default function AdminDashboard() {
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {cards.map((card) => {
           const Icon = card.icon;
-          return (
+          const content = (
             <div key={card.label} className="stat-card">
               <div className={`inline-flex rounded-xl p-2.5 ${card.tone}`}>
                 <Icon className="h-5 w-5" />
@@ -204,6 +204,11 @@ export default function AdminDashboard() {
               <p className="mt-1 text-xs text-slate-500">{card.footer}</p>
             </div>
           );
+          return card.href ? (
+            <a key={card.label} href={card.href} className="block no-underline">
+              {content}
+            </a>
+          ) : content;
         })}
       </div>
 
