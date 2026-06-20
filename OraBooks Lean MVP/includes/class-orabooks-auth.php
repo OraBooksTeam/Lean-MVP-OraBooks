@@ -1422,32 +1422,28 @@ class OraBooks_Auth {
         if (!$user) {
             orabooks_json_error('User not found', 404);
         }
-        
-        $role = $user->org_id ? orabooks_get_user_role($user->id, $user->org_id) : 'viewer';
-        $jwt = OraBooks_Secrets::generate_jwt([
-            'user_id' => $user->id,
-            'email' => $user->email,
-            'org_id' => $user->org_id,
-            'role' => $role,
-            'is_partner' => $user->is_partner
-        ]);
-        
-        $refresh_token = orabooks_random_string(32);
-        self::store_refresh_token($user->id, $user->org_id, $refresh_token);
-        
-        orabooks_log_event('login_success', "2FA login successful for user $user_id", 'info', ['method' => !empty($otp) ? 'totp' : 'backup_code'], $user_id, $user->org_id);
 
-        $login_result = orabooks_enrich_login_response([
-            'token' => $jwt,
-            'refresh_token' => $refresh_token,
-            'user_id' => $user->id,
-            'org_id' => $user->org_id,
-            'role' => $role,
-            'is_partner' => $user->is_partner,
-        ]);
+        $expected_subdomain = (string) ($payload['expected_subdomain'] ?? '');
+
+        $login_result = self::complete_authenticated_login($user, $expected_subdomain);
+        if (is_wp_error($login_result)) {
+            orabooks_json_error(
+                $login_result->get_error_message(),
+                orabooks_auth_error_status_code($login_result->get_error_code())
+            );
+        }
+
+        orabooks_log_event(
+            'login_success',
+            "2FA login successful for user $user_id",
+            'info',
+            ['method' => !empty($otp) ? 'totp' : 'backup_code'],
+            $user_id,
+            $user->org_id
+        );
 
         orabooks_persist_login_session($login_result);
-        
+
         orabooks_json_success($login_result);
     }
     
