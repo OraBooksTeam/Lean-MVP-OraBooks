@@ -181,6 +181,11 @@ export default function AdminDashboard() {
       icon: Settings,
     },
     {
+      label: 'Deploy verification',
+      href: `${adminLink('orabooks-settings')}#deploy-checks`,
+      badge: deployOk === false ? 1 : 0,
+    },
+    {
       label: 'View Audit Log',
       href: adminLink('orabooks-audit'),
     },

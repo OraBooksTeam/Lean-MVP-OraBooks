@@ -251,11 +251,22 @@ export default function AdminSettings() {
               </p>
             </div>
           </div>
-          <Button onClick={runDeployChecks} variant="secondary" size="sm" disabled={deployLoading}>
-            <RefreshCw className={`h-4 w-4 ${deployLoading ? 'animate-spin' : ''}`} />
-            {deployLoading ? 'Running…' : 'Run checks'}
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button onClick={runDeployChecks} variant="secondary" size="sm" disabled={deployLoading || deployRepairing}>
+              <RefreshCw className={`h-4 w-4 ${deployLoading ? 'animate-spin' : ''}`} />
+              {deployLoading ? 'Running…' : 'Run checks'}
+            </Button>
+            {hasCronFailures && (
+              <Button onClick={repairDeployIssues} size="sm" disabled={deployLoading || deployRepairing}>
+                {deployRepairing ? 'Repairing…' : 'Repair crons'}
+              </Button>
+            )}
+          </div>
         </div>
+
+        {deployRepairMessage && (
+          <p className="px-6 pt-4 text-sm text-success">{deployRepairMessage}</p>
+        )}
 
         {deployError && (
           <p className="px-6 py-4 text-sm text-danger">{deployError}</p>
