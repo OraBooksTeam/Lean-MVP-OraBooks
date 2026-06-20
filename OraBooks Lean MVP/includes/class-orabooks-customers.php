@@ -210,7 +210,7 @@ class OraBooks_Customers {
             [
                 'user_id'   => $user_id,
                 'org_id'    => $org_id,
-                'is_active' => 1,
+                'is_active' => 0,
             ],
             ['%d', '%d', '%d']
         );
@@ -835,6 +835,8 @@ class OraBooks_Customers {
             $invoice->customer_id
         ));
         $customer_is_active = $customer ? (bool) $customer->is_active : false;
+
+        do_action('orabooks_customer_active_status_changed', $customer->user_id ?? 0, $customer_is_active, $org_id);
 
         // Create journal entry via SL-001 posting engine
         self::create_payment_journal_entry(
