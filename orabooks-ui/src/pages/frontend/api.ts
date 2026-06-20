@@ -619,14 +619,15 @@ export const api = {
   coaGet: (orgId: number) =>
     api.get('orabooks_get_coa', { org_id: orgId }),
   coaExport: (orgId: number) => {
+    const cfg = getAjaxConfig();
     const qs = new URLSearchParams();
     const token = getStoredToken();
     qs.set('action', 'orabooks_export_coa');
-    qs.set('_ajax_nonce', ORABOOKS_NONCE);
+    qs.set('_ajax_nonce', cfg.nonce);
     qs.set('org_id', String(orgId));
     if (token) qs.set('orabooks_token', token);
-    if (ORABOOKS_USER_ID) qs.set('current_user_id', String(ORABOOKS_USER_ID));
-    window.location.href = `${ORABOOKS_URL}?${qs.toString()}`;
+    if (cfg.current_user_id) qs.set('current_user_id', String(cfg.current_user_id));
+    window.location.href = `${cfg.ajax_url}?${qs.toString()}`;
   },
   fiscalPeriodsList: (orgId: number) =>
     api.get('orabooks_fiscal_periods_list', { org_id: orgId }),
@@ -785,16 +786,17 @@ export const api = {
   auditLogs: (filters = {}) =>
     api.get('orabooks_get_audit_logs', filters),
   exportAuditLogs: (filters = {}) => {
+    const cfg = getAjaxConfig();
     const qs = new URLSearchParams();
     const token = getStoredToken();
     qs.set('action', 'orabooks_export_audit_logs');
-    qs.set('_ajax_nonce', ORABOOKS_NONCE);
+    qs.set('_ajax_nonce', cfg.nonce);
     if (token) qs.set('orabooks_token', token);
-    if (ORABOOKS_USER_ID) qs.set('current_user_id', String(ORABOOKS_USER_ID));
+    if (cfg.current_user_id) qs.set('current_user_id', String(cfg.current_user_id));
     Object.entries(filters).forEach(([k, v]) => {
       if (v !== undefined && v !== null && v !== '') qs.set(k, String(v));
     });
-    window.location.href = `${ORABOOKS_URL}?${qs.toString()}`;
+    window.location.href = `${cfg.ajax_url}?${qs.toString()}`;
   },
   pendingPartners: () =>
     api.get('orabooks_admin_list_pending_partners'),
@@ -837,18 +839,19 @@ export const api = {
   notificationProviderHealth: (orgId: number) =>
     api.get('orabooks_notification_admin_provider_health', { org_id: orgId }),
   notificationAuditExport: async (orgId: number, startDate: string, endDate: string) => {
+    const cfg = getAjaxConfig();
     const qs = new URLSearchParams();
     const token = getStoredToken();
     qs.set('action', 'orabooks_notification_admin_audit_export');
-    qs.set('_ajax_nonce', ORABOOKS_NONCE);
+    qs.set('_ajax_nonce', cfg.nonce);
     qs.set('org_id', String(orgId));
     qs.set('start_date', startDate);
     qs.set('end_date', endDate);
     if (token) qs.set('orabooks_token', token);
-    if (ORABOOKS_USER_ID) qs.set('current_user_id', String(ORABOOKS_USER_ID));
+    if (cfg.current_user_id) qs.set('current_user_id', String(cfg.current_user_id));
 
     try {
-      const res = await fetch(`${ORABOOKS_URL}?${qs.toString()}`);
+      const res = await fetch(`${cfg.ajax_url}?${qs.toString()}`);
       const json = await res.json();
       if (!res.ok || json?.success === false) {
         return { error: extractError(json, 'Audit export failed.') };
