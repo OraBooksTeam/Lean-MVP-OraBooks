@@ -396,6 +396,40 @@ if (!function_exists('sanitize_text_field')) {
     function sanitize_text_field($str) { return is_string($str) ? trim($str) : ''; }
 }
 
+if (!function_exists('sanitize_key')) {
+    function sanitize_key($key) {
+        return preg_replace('/[^a-z0-9_\-]/', '', strtolower((string) $key));
+    }
+}
+
+if (!function_exists('wp_generate_password')) {
+    function wp_generate_password($length = 12, $special_chars = true, $extra_special_chars = false) {
+        return substr(str_repeat('a1b2c3d4', max(1, (int) ceil($length / 8))), 0, (int) $length);
+    }
+}
+
+if (!function_exists('wp_doing_ajax')) {
+    function wp_doing_ajax() { return false; }
+}
+
+if (!function_exists('wp_doing_cron')) {
+    function wp_doing_cron() { return false; }
+}
+
+if (!function_exists('wp_die')) {
+    function wp_die($message = '') { throw new RuntimeException((string) $message); }
+}
+
+if (!function_exists('wp_trim_words')) {
+    function wp_trim_words($text, $num_words = 55) {
+        $words = preg_split('/\s+/', trim((string) $text));
+        if (count($words) <= $num_words) {
+            return (string) $text;
+        }
+        return implode(' ', array_slice($words, 0, $num_words)) . '...';
+    }
+}
+
 if (!function_exists('sanitize_textarea_field')) {
     function sanitize_textarea_field($str) { return is_string($str) ? trim($str) : ''; }
 }
