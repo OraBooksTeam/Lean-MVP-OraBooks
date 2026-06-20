@@ -414,13 +414,14 @@ class OraBooks_Event_Module {
         self::process_outbox(5);
     }
 
-    public static function get_health() {
+    public static function get_health($org_id = 0) {
         global $wpdb;
         $outbox = self::table('event_outbox');
-        $pending = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$outbox} WHERE status = 'pending'");
-        $processing = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$outbox} WHERE status = 'processing'");
-        $sent = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$outbox} WHERE status = 'sent'");
-        $dead = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$outbox} WHERE status = 'dead_letter'");
+        $org_filter = self::sql_payload_org_clause($org_id);
+        $pending = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$outbox} WHERE status = 'pending'{$org_filter}");
+        $processing = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$outbox} WHERE status = 'processing'{$org_filter}");
+        $sent = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$outbox} WHERE status = 'sent'{$org_filter}");
+        $dead = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$outbox} WHERE status = 'dead_letter'{$org_filter}");
         $status = $dead > 0 ? 'critical' : ($pending > 50 || $processing > 10 ? 'degraded' : 'healthy');
 
         return [
@@ -433,22 +434,74 @@ class OraBooks_Event_Module {
         ];
     }
 
-    public static function get_dead_letters($limit = 50) {
+    public static function get_dead_letters($limit = 50, $org_id = 0) {
         global $wpdb;
         $table = self::table('event_dead_letter');
+        $org_filter = self::sql_payload_org_clause($org_id);
         return $wpdb->get_results($wpdb->prepare(
-            "SELECT * FROM {$table} WHERE status = 'open' ORDER BY created_at DESC LIMIT %d",
+            "SELECT * FROM {$table} WHERE status = 'open'{$org_filter} ORDER BY created_at DESC LIMIT %d",
             (int) $limit
         ));
     }
 
-    public static function replay_dead_letter($dead_letter_id, $user_id = 0) {
+    public static function resolve_event_org_scope() {
+        if (current_user_can('manage_options')) {
+            return 0;
+        }
+        if (!function_exists('orabooks_get_current_user_id')) {
+            return 0;
+        }
+        $user_id = (int) orabooks_get_current_user_id();
+        if ($user_id <= 0) {
+            return 0;
+        }
+        if (function_exists('orabooks_resolve_request_org_id')) {
+            return (int) orabooks_resolve_request_org_id($user_id, $_REQUEST['org_id'] ?? 0);
+        }
+        return function_exists('orabooks_get_current_org_id')
+            ? (int) orabooks_get_current_org_id($user_id)
+            : 0;
+    }
+
+    public static function get_event_org_id($record) {
+        $payload_raw = is_array($record) ? ($record['payload'] ?? '') : ($record->payload ?? '');
+        $payload = is_string($payload_raw) ? (json_decode($payload_raw, true) ?: []) : (array) $payload_raw;
+        return (int) ($payload['org_id'] ?? 0);
+    }
+
+    public static function assert_event_org_scope($record, $org_scope) {
+        if ($org_scope === null || (int) $org_scope <= 0) {
+            return true;
+        }
+        if (self::get_event_org_id($record) !== (int) $org_scope) {
+            return new WP_Error('forbidden', 'Event belongs to another organization');
+        }
+        return true;
+    }
+
+    private static function sql_payload_org_clause($org_id) {
+        if ((int) $org_id <= 0) {
+            return '';
+        }
+        global $wpdb;
+        return $wpdb->prepare(
+            " AND CAST(JSON_UNQUOTE(JSON_EXTRACT(payload, '$.org_id')) AS UNSIGNED) = %d",
+            (int) $org_id
+        );
+    }
+
+    public static function replay_dead_letter($dead_letter_id, $user_id = 0, $org_scope = null) {
         global $wpdb;
         $dead_table = self::table('event_dead_letter');
         $outbox = self::table('event_outbox');
         $dead = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$dead_table} WHERE id = %d", (int) $dead_letter_id));
         if (!$dead || $dead->status !== 'open') {
             return new WP_Error('not_found', 'Dead letter event was not found.');
+        }
+
+        $access = self::assert_event_org_scope($dead, $org_scope);
+        if (is_wp_error($access)) {
+            return $access;
         }
 
         $wpdb->update($outbox, [
@@ -474,13 +527,18 @@ class OraBooks_Event_Module {
         return true;
     }
 
-    public static function discard_dead_letter($dead_letter_id, $user_id = 0) {
+    public static function discard_dead_letter($dead_letter_id, $user_id = 0, $org_scope = null) {
         global $wpdb;
         $dead_table = self::table('event_dead_letter');
         $outbox = self::table('event_outbox');
         $dead = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$dead_table} WHERE id = %d", (int) $dead_letter_id));
         if (!$dead || $dead->status !== 'open') {
             return new WP_Error('not_found', 'Dead letter event was not found.');
+        }
+
+        $access = self::assert_event_org_scope($dead, $org_scope);
+        if (is_wp_error($access)) {
+            return $access;
         }
 
         $wpdb->update($outbox, ['status' => 'discarded'], ['id' => (int) $dead->outbox_id], ['%s'], ['%d']);
