@@ -17,7 +17,6 @@ function getAjaxConfig(): Required<Pick<AjaxConfig, 'ajax_url' | 'nonce'>> & Aja
 }
 
 const TOKEN_KEY = 'orabooks_token';
-const REFRESH_TOKEN_KEY = 'orabooks_refresh_token';
 
 type Json = Record<string, any> | any[] | null;
 type ApiResult<T = Json> =
@@ -40,27 +39,18 @@ function getStoredToken() {
   return window.localStorage.getItem(TOKEN_KEY) || '';
 }
 
-function getStoredRefreshToken() {
-  return window.localStorage.getItem(REFRESH_TOKEN_KEY) || '';
-}
-
 export function hasStoredAuthToken() {
-  return Boolean(getStoredToken() || getStoredRefreshToken());
+  return Boolean(getStoredToken());
 }
 
 function persistTokens(data: any) {
   if (data?.token) {
     window.localStorage.setItem(TOKEN_KEY, String(data.token));
   }
-
-  if (data?.refresh_token) {
-    window.localStorage.setItem(REFRESH_TOKEN_KEY, String(data.refresh_token));
-  }
 }
 
 export function clearPersistedAuthTokens() {
   window.localStorage.removeItem(TOKEN_KEY);
-  window.localStorage.removeItem(REFRESH_TOKEN_KEY);
 }
 
 function normalizeResponse<T = any>(json: any): ApiResult<T> {
@@ -131,11 +121,6 @@ async function parseResponse<T = any>(
 let refreshInFlight: Promise<boolean> | null = null;
 
 async function tryRefreshSession(): Promise<boolean> {
-  const refreshToken = getStoredRefreshToken();
-  if (!refreshToken) {
-    return false;
-  }
-
   if (refreshInFlight) {
     return refreshInFlight;
   }
@@ -145,7 +130,6 @@ async function tryRefreshSession(): Promise<boolean> {
     const body = new URLSearchParams();
     body.set('action', 'orabooks_refresh_token');
     body.set('_ajax_nonce', cfg.nonce);
-    body.set('refresh_token', refreshToken);
 
     try {
       const res = await fetch(cfg.ajax_url, {
@@ -164,6 +148,26 @@ async function tryRefreshSession(): Promise<boolean> {
   })();
 
   return refreshInFlight;
+}
+
+async function establishSession(token: string, refreshToken = '') {
+  const cfg = getAjaxConfig();
+  const body = new URLSearchParams();
+  body.set('action', 'orabooks_establish_session');
+  body.set('_ajax_nonce', cfg.nonce);
+  body.set('orabooks_token', token);
+  if (refreshToken) {
+    body.set('refresh_token', refreshToken);
+  }
+
+  const res = await fetch(cfg.ajax_url, {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=utf-8' },
+    body,
+  });
+
+  return parseResponse(res, { clearAuthOnFailure: false });
 }
 
 async function request<T = any>(
@@ -295,7 +299,9 @@ export const api = {
     return res;
   },
 
-  refreshToken: () => api.post('orabooks_refresh_token', { refresh_token: getStoredRefreshToken() }),
+  refreshToken: () => api.post('orabooks_refresh_token'),
+
+  establishSession: (token: string, refreshToken = '') => establishSession(token, refreshToken),
 
   // Auth
   login: (email: string, password: string) =>
@@ -320,6 +326,11 @@ export const api = {
     api.post('orabooks_reset_password', { token, password }),
   verifyEmailToken: (token: string) =>
     api.post('orabooks_verify_email_token', { token }),
+  resendVerification: (email: string) =>
+    api.post('orabooks_resend_verification', { email }),
+  setup2fa: () => api.post('orabooks_setup_2fa'),
+  verify2faSetup: (otpCode: string) =>
+    api.post('orabooks_verify_2fa_setup', { otp_code: otpCode }),
   getPartnerInfo: () =>
     api.post('orabooks_get_partner_info'),
   partnerOnboarding: () =>
