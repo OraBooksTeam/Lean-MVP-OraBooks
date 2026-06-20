@@ -1307,4 +1307,56 @@ class OraBooks_Customers_Test extends TestCase
         $this->assertCount(1, $result['customers']);
         $this->assertEquals('150.00', $result['customers'][0]->wallet_balance);
     }
+
+    #[Test]
+    public function test_create_customer_success()
+    {
+        global $wpdb;
+
+        $wpdb->test_insert_id = 42;
+        $wpdb->test_insert_callback = function ($table, $data) {
+            $this->assertArrayNotHasKey('user_id', $data);
+            $this->assertSame(5, $data['org_id']);
+            $this->assertSame('Acme Corp', $data['display_name']);
+            $this->assertSame('billing@acme.com', $data['contact_email']);
+            return 1;
+        };
+        $wpdb->test_get_var_callback = function ($query) {
+            if (stripos($query, 'contact_email') !== false) {
+                return null;
+            }
+            return null;
+        };
+        $wpdb->test_get_row_callback = function ($query) {
+            if (stripos($query, 'FROM') !== false && stripos($query, 'customers') !== false) {
+                return (object) [
+                    'id' => 42,
+                    'org_id' => 5,
+                    'display_name' => 'Acme Corp',
+                    'contact_email' => 'billing@acme.com',
+                    'email' => 'billing@acme.com',
+                    'is_active' => 0,
+                ];
+            }
+            return null;
+        };
+
+        $result = OraBooks_Customers::create_customer(5, [
+            'display_name' => 'Acme Corp',
+            'email' => 'billing@acme.com',
+        ]);
+
+        $this->assertIsObject($result);
+        $this->assertSame(42, (int) $result->id);
+        $this->assertSame('Acme Corp', $result->display_name);
+    }
+
+    #[Test]
+    public function test_create_customer_requires_name()
+    {
+        $result = OraBooks_Customers::create_customer(5, ['email' => 'billing@acme.com']);
+
+        $this->assertInstanceOf(WP_Error::class, $result);
+        $this->assertSame('missing_field', $result->get_error_code());
+    }
 }
