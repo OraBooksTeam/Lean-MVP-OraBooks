@@ -215,6 +215,8 @@ class OraBooks_Assets {
         );
         wp_localize_script('orabooks-react-frontend', 'orabooks_ajax', $ajax_config);
 
+        self::enqueue_theme_compat();
+
         if (function_exists('orabooks_is_divi_theme') && orabooks_is_divi_theme()) {
             self::enqueue_divi_compat();
         }
