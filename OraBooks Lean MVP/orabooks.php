@@ -345,6 +345,7 @@ function orabooks_deactivate() {
     wp_clear_scheduled_hook('orabooks_eventbus_process_outbox');
     wp_clear_scheduled_hook('orabooks_eventbus_retry_deadletter');
     wp_clear_scheduled_hook('orabooks_eventbus_monitor');
+    wp_clear_scheduled_hook('orabooks_events_process_outbox');
     wp_clear_scheduled_hook('orabooks_async_queue_process');
     wp_clear_scheduled_hook('orabooks_async_queue_heartbeat');
     wp_clear_scheduled_hook('orabooks_async_queue_monitor');
