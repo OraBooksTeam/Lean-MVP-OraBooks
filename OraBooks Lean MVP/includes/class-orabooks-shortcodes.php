@@ -122,180 +122,222 @@ class OraBooks_Shortcodes {
     }
 
     /**
-     * Lean MVP customer workspace routes use the React SPA (SL-021+).
-     * Legacy PHP accounting remains available via [orabooks_accounting] only.
+     * Customer workspace: React SPA elsewhere; PHP accounting workspace on Divi.
      */
-    private function customer_react_page($route, $require_login = true) {
-        return $this->react_page($route, $require_login);
+    private function customer_workspace_page($shortcode_tag, $route) {
+        return $this->resolve_frontend([
+            'route' => $route,
+            'accounting_view' => orabooks_get_merged_accounting_view_for_shortcode($shortcode_tag),
+        ]);
     }
 
     public function login_form() {
-        return $this->react_page('/login', false);
+        return $this->resolve_frontend([
+            'route' => '/login',
+            'php_view' => 'login',
+            'require_login' => false,
+        ]);
     }
     
     public function register_form() {
-        return $this->react_page('/register', false);
+        return $this->resolve_frontend([
+            'route' => '/register',
+            'php_view' => 'register',
+            'require_login' => false,
+        ]);
     }
     
     public function verify_email() {
-        return $this->react_page('/verify-email', false);
+        return $this->resolve_frontend([
+            'route' => '/verify-email',
+            'php_view' => 'verify-email',
+            'require_login' => false,
+        ]);
     }
     
     public function reset_password() {
-        return $this->react_page('/reset-password', false);
+        return $this->resolve_frontend([
+            'route' => '/reset-password',
+            'php_view' => 'reset-password',
+            'require_login' => false,
+        ]);
     }
     
     public function partner_onboarding() {
-        return $this->react_page('/partner-onboarding');
+        return $this->resolve_frontend([
+            'route' => '/partner-onboarding',
+            'php_view' => 'partner-onboarding',
+        ]);
     }
     
     public function tier_selection() {
-        return $this->react_page('/tier-selection');
+        return $this->resolve_frontend([
+            'route' => '/tier-selection',
+            'php_view' => 'tier-selection',
+        ]);
     }
     
     public function dashboard() {
-        return $this->react_page('/dashboard');
+        return $this->customer_workspace_page('orabooks_dashboard', '/dashboard');
     }
 
     public function customers_page() {
-        return $this->customer_react_page('/customers');
+        return $this->customer_workspace_page('orabooks_customers', '/customers');
     }
 
     public function vendors_page() {
-        return $this->customer_react_page('/vendors');
+        return $this->customer_workspace_page('orabooks_vendors', '/vendors');
     }
 
     public function inventory_page() {
-        return $this->customer_react_page('/inventory');
+        return $this->customer_workspace_page('orabooks_inventory', '/inventory');
     }
 
     public function bank_reconciliation_page() {
-        return $this->react_page('/bank-reconciliation');
+        return $this->customer_workspace_page('orabooks_bank_reconciliation', '/bank-reconciliation');
     }
 
     public function reports_page() {
-        return $this->customer_react_page('/reports');
+        return $this->customer_workspace_page('orabooks_reports', '/reports');
     }
 
     public function invoices_page() {
-        return $this->customer_react_page('/invoices');
+        return $this->customer_workspace_page('orabooks_invoices', '/invoices');
     }
 
     public function chart_of_accounts_page() {
-        return $this->customer_react_page('/chart-of-accounts');
+        return $this->customer_workspace_page('orabooks_chart_of_accounts', '/chart-of-accounts');
     }
 
     public function fiscal_periods_page() {
-        return $this->customer_react_page('/fiscal-periods');
+        return $this->customer_workspace_page('orabooks_fiscal_periods', '/fiscal-periods');
     }
 
     public function tax_settings_page() {
-        return $this->customer_react_page('/tax-settings');
+        return $this->customer_workspace_page('orabooks_tax_settings', '/tax-settings');
     }
 
     public function journals_page() {
-        return $this->customer_react_page('/journals');
+        return $this->customer_workspace_page('orabooks_journals', '/journals');
     }
 
     public function profile_page() {
-        return $this->react_page('/profile');
+        return $this->resolve_frontend([
+            'route' => '/profile',
+            'accounting_view' => 'dashboard',
+        ]);
     }
 
     public function team_page() {
-        return $this->react_page('/team');
+        return $this->resolve_frontend([
+            'route' => '/team',
+            'accounting_view' => 'employees',
+        ]);
     }
 
     public function attachments_page() {
-        return $this->react_page('/attachments');
+        return $this->resolve_frontend([
+            'route' => '/attachments',
+            'accounting_view' => 'dashboard',
+        ]);
     }
 
     public function approvals_page() {
-        return $this->react_page('/approvals');
+        return $this->resolve_frontend([
+            'route' => '/approvals',
+            'accounting_view' => 'dashboard',
+        ]);
     }
 
     public function ai_review_page() {
-        return $this->react_page('/ai-review');
+        return $this->resolve_frontend([
+            'route' => '/ai-review',
+            'accounting_view' => 'dashboard',
+        ]);
     }
 
     public function expenses_page() {
-        return $this->customer_react_page('/expenses');
+        return $this->customer_workspace_page('orabooks_expenses', '/expenses');
     }
 
     public function voice_page() {
-        return $this->react_page('/voice');
+        return $this->resolve_frontend([
+            'route' => '/voice',
+            'accounting_view' => 'dashboard',
+        ]);
     }
     
     /**
      * Partner Commission Dashboard Shortcode
      */
     public function commission_dashboard() {
-        return $this->react_page('/commissions');
+        return $this->resolve_frontend([
+            'route' => '/commissions',
+            'php_view' => 'partner-program',
+        ]);
     }
     
     /**
      * Partner Dashboard Shortcode (SL-139)
-     * Unified "Partner Program" page with status banners, attribution + commission stats,
-     * payout breakdown (Gross/Fee/Net), attribution table, and reactivation.
      */
     public function partner_dashboard() {
-        return $this->react_page('/partner-program');
+        return $this->resolve_frontend([
+            'route' => '/partner-program',
+            'php_view' => 'partner-program',
+        ]);
     }
     
     /**
      * Commission Admin Shortcode (Super Admin - config management)
      */
+    public function commission_admin() {
+        return $this->resolve_frontend([
+            'route' => '/commission-admin',
+            'react_only' => true,
+        ]);
+    }
+
     // ================================================================
     // NOTIFICATION CENTER SHORTCODES (SL-250)
     // ================================================================
 
-    /**
-     * Notification Center Shortcode
-     * Shows all notifications for the current user with filtering.
-     */
     public function notification_center() {
-        return $this->react_page('/notifications');
+        return $this->resolve_frontend([
+            'route' => '/notifications',
+            'php_view' => 'notifications',
+        ]);
     }
 
-    /**
-     * Notification Preferences Shortcode
-     * Allows user to configure notification channels, quiet hours, digest, language, escalation.
-     */
     public function notification_preferences() {
-        return $this->react_page('/notification-preferences');
+        return $this->resolve_frontend([
+            'route' => '/notification-preferences',
+            'php_view' => 'notification-preferences',
+        ]);
     }
 
-    /**
-     * Notification Admin Shortcode (Owner only)
-     * Shows org policies, provider health, audit export.
-     */
     public function notification_admin() {
-        return $this->react_page('/notification-admin');
+        return $this->resolve_frontend([
+            'route' => '/notification-admin',
+            'react_only' => true,
+        ]);
     }
     
-    /**
-     * Async Queue Dashboard Shortcode (Admin only)
-     */
     public function async_queue_dashboard() {
-        return $this->react_page('/job-queue');
+        return $this->resolve_frontend([
+            'route' => '/job-queue',
+            'react_only' => true,
+        ]);
     }
 
-    // ================================================================
-    // EXPORT STATUS SHORTCODE (SL-114)
-    // ================================================================
-
-    /**
-     * Export Status Page Shortcode
-     * Shows "My Exports" table with status, download, cancel.
-     */
     public function export_status() {
-        return $this->react_page('/my-exports');
+        return $this->resolve_frontend([
+            'route' => '/my-exports',
+            'php_view' => 'exports',
+        ]);
     }
 
-    /**
-     * CSV Import page shortcode (SL-113).
-     */
     public function csv_import_page() {
-        return $this->customer_react_page('/csv-imports');
+        return $this->customer_workspace_page('orabooks_csv_import', '/csv-imports');
     }
 
     /**
