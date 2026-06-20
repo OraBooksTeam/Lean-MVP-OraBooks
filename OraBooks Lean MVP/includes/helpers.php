@@ -1984,12 +1984,32 @@ function orabooks_log_event($event_type, $description, $severity = 'info', $meta
  */
 function orabooks_get_user_role($user_id, $org_id) {
     global $wpdb;
+    $user_id = (int) $user_id;
+    $org_id = (int) $org_id;
+
+    if ($user_id <= 0 || $org_id <= 0) {
+        return null;
+    }
+
     $table = orabooks_get_table_prefix() . 'orabooks_user_org';
-    return $wpdb->get_var($wpdb->prepare(
+    $role = $wpdb->get_var($wpdb->prepare(
         "SELECT role FROM {$table} WHERE user_id = %d AND org_id = %d",
         $user_id,
         $org_id
     ));
+
+    if ($role) {
+        return $role;
+    }
+
+    if (class_exists('OraBooks_Organization')) {
+        $org = OraBooks_Organization::get($org_id);
+        if ($org && (int) $org->owner_id === $user_id) {
+            return 'owner';
+        }
+    }
+
+    return null;
 }
 
 /**
