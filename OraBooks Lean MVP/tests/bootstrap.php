@@ -1426,6 +1426,13 @@ if (!file_exists($workflow_file)) {
 }
 require_once $workflow_file;
 
+$eventbus_file = __DIR__ . '/../includes/class-orabooks-event-bus.php';
+if (!file_exists($eventbus_file)) {
+    echo "ERROR: Cannot find class-orabooks-event-bus.php at {$eventbus_file}\n";
+    exit(1);
+}
+require_once $eventbus_file;
+
 $classification_file = __DIR__ . '/../includes/class-orabooks-classification.php';
 if (!file_exists($classification_file)) {
     echo "ERROR: Cannot find class-orabooks-classification.php at {$classification_file}\n";
