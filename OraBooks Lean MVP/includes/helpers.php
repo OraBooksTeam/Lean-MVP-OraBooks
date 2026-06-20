@@ -470,7 +470,7 @@ function orabooks_redirect_wp_path_to_spa_hash() {
     unset($query['orabooks_route']);
     $root = trailingslashit(home_url('/'));
     $qs = http_build_query($query);
-    $target = rtrim($root, '/') . '/' . ($qs !== '' ? '?' . $qs : '') . '#' . $hash_route;
+    $target = rtrim($root, '/') . ($qs !== '' ? '?' . $qs : '') . '#' . $hash_route;
 
     wp_safe_redirect($target, 302);
     exit;
@@ -607,6 +607,37 @@ function orabooks_provision_org_multisite($org_id, $subdomain, $title, $owner_us
     ], (int) $owner_user_id, $org_id);
 
     return $blog_id;
+}
+
+/**
+ * Point the org subsite homepage at the OraBooks SPA shell (hash routes).
+ */
+function orabooks_configure_org_spa_homepage($blog_id = 0) {
+    $blog_id = $blog_id > 0 ? (int) $blog_id : (int) get_current_blog_id();
+    if ($blog_id <= 0) {
+        return;
+    }
+
+    $switched = false;
+    if (function_exists('get_current_blog_id') && (int) get_current_blog_id() !== $blog_id && function_exists('switch_to_blog')) {
+        switch_to_blog($blog_id);
+        $switched = true;
+    }
+
+    $dashboard = get_page_by_path('dashboard', OBJECT, 'page');
+    if ($dashboard instanceof WP_Post) {
+        wp_update_post([
+            'ID' => $dashboard->ID,
+            'post_content' => '[orabooks_app]',
+        ]);
+
+        update_option('show_on_front', 'page');
+        update_option('page_on_front', (int) $dashboard->ID);
+    }
+
+    if ($switched && function_exists('restore_current_blog')) {
+        restore_current_blog();
+    }
 }
 
 /**
