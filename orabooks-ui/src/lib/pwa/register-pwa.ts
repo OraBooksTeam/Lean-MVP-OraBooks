@@ -1,6 +1,7 @@
 type PwaConfig = {
   enabled?: boolean;
   service_worker_url?: string;
+  service_worker_scope?: string;
 };
 
 declare global {
@@ -21,7 +22,10 @@ export function registerOraBooksPwa(): void {
   }
 
   window.addEventListener('load', () => {
-    void navigator.serviceWorker.register(config.service_worker_url!, { scope: './' }).catch(() => {
+    const scope = config.service_worker_scope
+      || new URL('./', config.service_worker_url).href;
+
+    void navigator.serviceWorker.register(config.service_worker_url!, { scope }).catch(() => {
       // Non-fatal — app still works without SW.
     });
   });
