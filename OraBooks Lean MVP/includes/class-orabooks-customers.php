@@ -61,6 +61,8 @@ class OraBooks_Customers {
 
         $charset_collate = $wpdb->get_charset_collate();
         $tables = [];
+        $table_users = OraBooks_Database::table('users');
+        $table_orgs = OraBooks_Database::table('organizations');
 
         // SL-021: customers table (is_active truth source for commission engine)
         $table_customers = OraBooks_Database::table('customers');
