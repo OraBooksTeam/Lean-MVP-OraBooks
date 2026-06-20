@@ -43,6 +43,8 @@ class OraBooks_Auth {
             add_action('wp_ajax_nopriv_orabooks_select_tier', [self::$instance, 'ajax_select_tier']);
             add_action('wp_ajax_nopriv_orabooks_refresh_token', [self::$instance, 'ajax_refresh_token']);
             add_action('wp_ajax_orabooks_refresh_token', [self::$instance, 'ajax_refresh_token']);
+            add_action('wp_ajax_nopriv_orabooks_establish_session', [self::$instance, 'ajax_establish_session']);
+            add_action('wp_ajax_orabooks_establish_session', [self::$instance, 'ajax_establish_session']);
             // SL-013: Google OIDC endpoints
             add_action('wp_ajax_nopriv_orabooks_oidc_initiate', [self::$instance, 'ajax_oidc_initiate']);
             add_action('wp_ajax_orabooks_oidc_initiate', [self::$instance, 'ajax_oidc_initiate']);
@@ -1468,6 +1470,41 @@ class OraBooks_Auth {
         orabooks_persist_login_session($result);
 
         orabooks_json_success(orabooks_redact_client_auth_response($result), 'Session refreshed');
+    }
+
+    /**
+     * One-time token exchange after cross-subdomain redirect (ob_t / ob_rt URL params).
+     */
+    public function ajax_establish_session() {
+        $token = sanitize_text_field($_POST['orabooks_token'] ?? '');
+        $refresh = sanitize_text_field($_POST['refresh_token'] ?? '');
+
+        if ($token === '') {
+            orabooks_json_error('Token required', 400);
+        }
+
+        $payload = OraBooks_Secrets::verify_jwt($token);
+        if (!$payload || empty($payload['user_id'])) {
+            orabooks_json_error('Invalid or expired token', 401);
+        }
+
+        if (($payload['purpose'] ?? '') === 'tier_selection') {
+            orabooks_json_error('Complete tier selection before establishing a session.', 403);
+        }
+
+        $session = [
+            'token' => $token,
+            'user_id' => (int) $payload['user_id'],
+        ];
+
+        if ($refresh !== '') {
+            $session['refresh_token'] = $refresh;
+        }
+
+        orabooks_persist_login_session($session);
+        orabooks_json_success([
+            'user_id' => (int) $payload['user_id'],
+        ], 'Session established');
     }
 
     public function ajax_logout() {
