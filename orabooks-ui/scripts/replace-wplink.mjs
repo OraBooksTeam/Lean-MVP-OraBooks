@@ -14,16 +14,22 @@ function walk(dir, files = []) {
 
 for (const file of walk(root)) {
   let src = fs.readFileSync(file, 'utf8');
-  if (!src.includes("from 'react-router-dom'") || !src.includes('Link')) continue;
-  if (src.includes('useSearchParams')) continue;
+  if (!src.includes('react-router-dom') && !src.includes('<Link')) continue;
 
   const rel = path.relative(path.dirname(file), path.join(root, 'components/WpLink')).replace(/\\/g, '/');
   const importPath = rel.startsWith('.') ? rel : `./${rel}`;
-  src = src.replace(
-    /import \{ Link \} from 'react-router-dom';\n/,
-    `import WpLink from '${importPath}';\n`
-  );
+
+  src = src.replace(/import \{ Link(?:, [^}]+)? \} from 'react-router-dom';\n?/g, '');
+  src = src.replace(/import \{ [^}]*Link[^}]* \} from 'react-router-dom';\n?/g, '');
   src = src.replace(/<Link /g, '<WpLink ');
+
+  if (src.includes('<WpLink') && !src.includes("from '../components/WpLink'") && !src.includes("from './WpLink'")) {
+    const firstImportEnd = src.indexOf('\n') + 1;
+    src = `${src.slice(0, firstImportEnd)}import WpLink from '${importPath}';\n${src.slice(firstImportEnd)}`;
+  }
+
   fs.writeFileSync(file, src);
-  console.log('updated', file);
+  if (src.includes('WpLink') || src.includes('react-router-dom')) {
+    console.log('processed', path.basename(file));
+  }
 }
