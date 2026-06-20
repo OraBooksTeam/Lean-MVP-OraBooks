@@ -74,6 +74,9 @@
         <testsuite name="OraBooks SL-302 Event Bus Tests">
             <file>OraBooks_EventBus_Test.php</file>
         </testsuite>
+        <testsuite name="OraBooks SL-303 Async Queue Tests">
+            <file>OraBooks_AsyncQueue_Test.php</file>
+        </testsuite>
         <testsuite name="OraBooks SL-022 Classification Tests">
             <file>OraBooks_Classification_Test.php</file>
         </testsuite>
