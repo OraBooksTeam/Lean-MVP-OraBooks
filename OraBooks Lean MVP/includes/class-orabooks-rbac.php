@@ -175,7 +175,7 @@ class OraBooks_RBAC {
     }
     
     /**
-     * Get all permissions for a role
+     * Get all permissions for a role (base matrix only; ignores org config).
      */
     public static function get_role_permissions($role) {
         $role_perms = [];
@@ -185,6 +185,24 @@ class OraBooks_RBAC {
             }
         }
         return $role_perms;
+    }
+
+    /**
+     * Effective permissions for a role in an org (includes partner_commission_for_staff_viewer).
+     */
+    public static function get_effective_permissions($role, $org_id = null) {
+        if (empty($role)) {
+            return [];
+        }
+
+        $effective = [];
+        foreach (array_keys(self::$permissions) as $permission) {
+            if (self::check_permission($role, $permission, $org_id)) {
+                $effective[] = $permission;
+            }
+        }
+
+        return $effective;
     }
     
     /**

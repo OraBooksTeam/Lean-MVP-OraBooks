@@ -99,7 +99,7 @@ class OraBooks_Ajax {
         $role = $org ? orabooks_get_user_role($user_id, (int) $org->id) : null;
         $permissions = [];
         if ($role && class_exists('OraBooks_RBAC')) {
-            $permissions = OraBooks_RBAC::get_role_permissions($role);
+            $permissions = OraBooks_RBAC::get_effective_permissions($role, $org ? (int) $org->id : null);
         }
 
         return [

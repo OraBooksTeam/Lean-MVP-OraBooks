@@ -33,8 +33,8 @@ class OraBooks_Audit {
         
         $table = OraBooks_Database::table('audit_logs');
         
-        if ($user_id === null && function_exists('get_current_user_id')) {
-            $user_id = get_current_user_id();
+        if ($user_id === null && function_exists('orabooks_get_current_user_id')) {
+            $user_id = orabooks_get_current_user_id();
         }
         
         // Sanitize metadata - remove sensitive data
@@ -144,7 +144,7 @@ class OraBooks_Audit {
         } elseif (empty($args['skip_view_log'])) {
             self::log_event('audit_log_viewed', 'Audit log accessed', 'info', [
                 'filters' => $args
-            ], get_current_user_id(), $all_orgs ? 0 : $org_id);
+            ], orabooks_get_current_user_id(), $all_orgs ? 0 : $org_id);
         }
         
         return $results;
@@ -212,15 +212,34 @@ class OraBooks_Audit {
         self::log_event('audit_log_exported', "Audit log exported as CSV", 'info', [
             'row_count' => count($logs),
             'format' => 'csv'
-        ], get_current_user_id(), $org_id);
+        ], orabooks_get_current_user_id(), $org_id);
         
         exit;
+    }
+
+    /**
+     * Resolve org scope for audit API calls (JWT-aware frontend).
+     */
+    private static function resolve_audit_org_id($requested_org_id) {
+        $org_id = intval($requested_org_id);
+        if ($org_id > 0) {
+            return $org_id;
+        }
+
+        if (function_exists('orabooks_get_current_org_id')) {
+            $current_org_id = orabooks_get_current_org_id();
+            if ($current_org_id) {
+                return (int) $current_org_id;
+            }
+        }
+
+        return 0;
     }
     
     // AJAX handlers
     public function ajax_get_logs() {
-        $user_id = get_current_user_id();
-        $org_id = intval($_GET['org_id'] ?? 0);
+        $user_id = orabooks_get_current_user_id();
+        $org_id = self::resolve_audit_org_id($_GET['org_id'] ?? 0);
 
         $args = [
             'event_type' => sanitize_text_field($_GET['event_type'] ?? ''),
@@ -252,8 +271,8 @@ class OraBooks_Audit {
     }
     
     public function ajax_export_logs() {
-        $user_id = get_current_user_id();
-        $org_id = intval($_GET['org_id'] ?? 0);
+        $user_id = orabooks_get_current_user_id();
+        $org_id = self::resolve_audit_org_id($_GET['org_id'] ?? 0);
 
         $args = [
             'event_type' => sanitize_text_field($_GET['event_type'] ?? ''),
