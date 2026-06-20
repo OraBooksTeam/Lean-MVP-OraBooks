@@ -4,17 +4,24 @@ import {
   absorbAuthTokensFromUrl,
   clearRedirectGuard,
   getNetworkLoginUrl,
+  isLogoutLanding,
   redirectToLogin,
 } from '../lib/auth-routing';
 import { toWpUrl } from '../lib/wp-routing';
 
 export default function RequireAuth({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(false);
-  const [errorMessage, setErrorMessage] = useState('');
   const loginUrl = toWpUrl(getNetworkLoginUrl());
 
   useEffect(() => {
     let cancelled = false;
+
+    if (isLogoutLanding()) {
+      redirectToLogin(true);
+      return () => {
+        cancelled = true;
+      };
+    }
 
     absorbAuthTokensFromUrl();
 
@@ -29,9 +36,6 @@ export default function RequireAuth({ children }: { children: ReactNode }) {
         return;
       }
 
-      const message =
-        typeof res.error === 'string' ? res.error : 'Please log in to continue.';
-      setErrorMessage(message);
       redirectToLogin(true);
     });
 
@@ -41,25 +45,14 @@ export default function RequireAuth({ children }: { children: ReactNode }) {
   }, []);
 
   if (!ready) {
-    if (errorMessage) {
-      return (
-        <div className="brand-page-bg flex min-h-screen items-center justify-center px-4">
-          <div className="max-w-md rounded-2xl border border-border bg-white p-6 text-center shadow-sm">
-            <p className="text-sm font-medium text-slate-600">{errorMessage}</p>
-            <a
-              href={loginUrl}
-              className="mt-4 inline-flex rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white"
-            >
-              Go to login
-            </a>
-          </div>
-        </div>
-      );
-    }
-
     return (
       <div className="brand-page-bg flex min-h-screen items-center justify-center">
         <p className="text-sm font-medium text-slate-600">Loading workspace…</p>
+        <noscript>
+          <a href={loginUrl} className="ml-2 text-sm text-primary">
+            Go to login
+          </a>
+        </noscript>
       </div>
     );
   }

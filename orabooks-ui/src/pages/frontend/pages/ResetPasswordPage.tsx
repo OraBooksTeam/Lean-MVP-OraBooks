@@ -48,7 +48,7 @@ export default function ResetPasswordPage() {
       else {
         setSuccess('Password reset successfully. You can now log in.');
         window.setTimeout(() => {
-        window.location.replace(toWpUrl('/login/'));
+        window.location.replace(getNetworkAuthUrl('login'));
         }, 1200);
       }
     } finally {
