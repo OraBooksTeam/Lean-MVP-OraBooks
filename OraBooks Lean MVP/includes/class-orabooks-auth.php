@@ -627,6 +627,20 @@ class OraBooks_Auth {
         
         // Generate partner code
         self::generate_partner_code($user->id, $org_result['org_id'], $partner_type, $organization_name);
+
+        global $wpdb;
+        $table_users = OraBooks_Database::table('users');
+        $wpdb->update(
+            $table_users,
+            [
+                'pending_partner_type' => null,
+                'pending_organization_name' => null,
+            ],
+            ['id' => $user->id],
+            [null, null],
+            ['%d']
+        );
+        unset($_SESSION['orabooks_partner_type'], $_SESSION['orabooks_partner_org_name']);
         
         $jwt = OraBooks_Secrets::generate_jwt([
             'user_id' => $user->id,
@@ -941,8 +955,8 @@ class OraBooks_Auth {
         $wpdb->update(
             $table_users,
             [
-                'email_verification_token' => $reset_token,
-                'email_verification_expires_at' => $expires
+                'password_reset_token' => $reset_token,
+                'password_reset_expires_at' => $expires
             ],
             ['id' => $user->id],
             ['%s', '%s'],
@@ -990,8 +1004,8 @@ class OraBooks_Auth {
             $table_users,
             [
                 'password_hash' => $password_hash,
-                'email_verification_token' => null,
-                'email_verification_expires_at' => null
+                'password_reset_token' => null,
+                'password_reset_expires_at' => null
             ],
             ['id' => $user->id],
             ['%s', null, null],
