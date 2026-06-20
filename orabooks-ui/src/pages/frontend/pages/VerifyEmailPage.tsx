@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { MailCheck } from 'lucide-react';
 import Button from '@/components/Button';
+import Input from '@/components/Input';
 import { api } from '../api';
 import { getNetworkAuthUrl } from '../lib/auth-routing';
 
@@ -9,10 +10,15 @@ export default function VerifyEmailPage() {
   const [loading, setLoading] = useState(!!token);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [email, setEmail] = useState('');
+  const [resendMsg, setResendMsg] = useState('');
+  const [resendError, setResendError] = useState('');
+  const [resendLoading, setResendLoading] = useState(false);
 
   useEffect(() => {
     if (!token) {
       setError('Invalid verification link.');
+      setLoading(false);
       return;
     }
     api.verifyEmailToken(token).then((res) => {
@@ -21,6 +27,20 @@ export default function VerifyEmailPage() {
       setLoading(false);
     });
   }, [token]);
+
+  const resend = async (e: FormEvent) => {
+    e.preventDefault();
+    setResendError('');
+    setResendMsg('');
+    setResendLoading(true);
+    const res = await api.resendVerification(email);
+    if (res.error) {
+      setResendError(typeof res.error === 'string' ? res.error : 'Unable to resend verification email.');
+    } else {
+      setResendMsg('If the email exists and is not yet verified, a new verification link has been sent (valid 24 hours).');
+    }
+    setResendLoading(false);
+  };
 
   return (
     <div className="brand-auth-bg flex min-h-screen items-center justify-center px-4 py-12">
@@ -37,8 +57,24 @@ export default function VerifyEmailPage() {
         ) : (
           <p className="mt-4 text-sm text-emerald-700">{success}</p>
         )}
+
+        <form onSubmit={resend} className="mt-8 space-y-3 text-left">
+          <p className="text-sm text-slate-600">Need a new link? Enter your email to resend verification (up to 3 times per hour).</p>
+          <Input
+            label="Email"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="you@company.com"
+            required
+          />
+          {resendMsg && <p className="text-sm text-primary">{resendMsg}</p>}
+          {resendError && <p className="text-sm text-danger">{resendError}</p>}
+          <Button type="submit" loading={resendLoading} className="w-full">Resend verification link</Button>
+        </form>
+
         <div className="mt-6">
-          <Button type="button" onClick={() => { window.location.href = getNetworkAuthUrl('login'); }}>
+          <Button type="button" variant="secondary" onClick={() => { window.location.href = getNetworkAuthUrl('login'); }}>
             Go to login
           </Button>
         </div>

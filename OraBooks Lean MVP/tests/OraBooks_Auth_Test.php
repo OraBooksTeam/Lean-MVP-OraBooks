@@ -375,11 +375,13 @@ class OraBooks_Auth_Test extends TestCase
         $this->assertArrayHasKey('user_id', $result);
         $this->assertEquals(42, $result['user_id']);
         $this->assertTrue($result['needs_tier_selection']);
-        $this->assertArrayHasKey('refresh_token', $result);
+        $this->assertArrayHasKey('tier_selection_token', $result);
+        $this->assertArrayNotHasKey('token', $result);
+        $this->assertArrayNotHasKey('refresh_token', $result);
 
         // Verify JWT payload
         $this->assertEquals(42, $GLOBALS['orabooks_test_last_jwt_payload']['user_id']);
-        $this->assertEquals('googleuser@example.com', $GLOBALS['orabooks_test_last_jwt_payload']['email']);
+        $this->assertEquals('tier_selection', $GLOBALS['orabooks_test_last_jwt_payload']['purpose']);
     }
 
     #[Test]
