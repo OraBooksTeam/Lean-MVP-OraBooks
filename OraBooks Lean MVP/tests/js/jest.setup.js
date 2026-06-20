@@ -182,10 +182,8 @@ jest.useFakeTimers();
 // The tests verify behavior around those flows without requiring navigation.
 const originalConsoleError = console.error.bind(console);
 jest.spyOn(console, 'error').mockImplementation((firstArg, ...rest) => {
-  if (firstArg instanceof Error && firstArg.message.includes('Not implemented: navigation')) {
-    return;
-  }
-  if (typeof firstArg === 'string' && firstArg.includes('Not implemented: navigation')) {
+  const message = firstArg && firstArg.message ? firstArg.message : String(firstArg);
+  if (message.includes('Not implemented: navigation')) {
     return;
   }
   originalConsoleError(firstArg, ...rest);
