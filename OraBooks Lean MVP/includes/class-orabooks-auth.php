@@ -1053,7 +1053,7 @@ class OraBooks_Auth {
         $result = self::login($email, $password, $subdomain);
         
         if (is_wp_error($result)) {
-            orabooks_json_error($result->get_error_message(), 401);
+            orabooks_json_error($result->get_error_message(), 200);
         }
         
         // Include detected subdomain in response so the frontend can use it
@@ -1745,7 +1745,7 @@ class OraBooks_Auth {
         $url = self::initiate_google_oauth($state_data);
 
         if (is_wp_error($url)) {
-            orabooks_json_error($url->get_error_message(), 400);
+            orabooks_json_error($url->get_error_message(), 200);
         }
 
         orabooks_json_success(['auth_url' => $url]);
