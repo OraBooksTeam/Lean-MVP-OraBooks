@@ -365,7 +365,7 @@ function JournalSection({
                       </Button>
                     )}
                     {actions(journal)}
-                    <Link to={`/attachments?resource_type=journal&resource_id=${journal.id}`}>
+                    <WpLink to={`/attachments?resource_type=journal&resource_id=${journal.id}`}>
                       <Button variant="secondary" size="sm">
                         <Paperclip className="h-3.5 w-3.5" />
                         Files
@@ -560,7 +560,7 @@ function JournalDetailPanel({
                 {(journal?.approval_round ?? 0) > 0 ? 'Resubmit for Approval' : 'Submit for Approval'}
               </Button>
             )}
-            <Link to={`/attachments?resource_type=journal&resource_id=${journalId}`}>
+            <WpLink to={`/attachments?resource_type=journal&resource_id=${journalId}`}>
               <Button variant="secondary" size="sm">
                 <Paperclip className="h-3.5 w-3.5" />
                 Attachments

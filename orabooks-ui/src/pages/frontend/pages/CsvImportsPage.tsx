@@ -258,7 +258,7 @@ export default function CsvImportsPage() {
                     <span>Escalated: {preview.row_counts.escalated ?? 0}</span>
                     <span>Failed: {preview.row_counts.failed ?? 0}</span>
                     {(preview.row_counts.escalated ?? 0) > 0 && (
-                      <Link to="/ai-review" className="inline-flex items-center gap-1 font-semibold text-amber-700 hover:underline">
+                      <WpLink to="/ai-review" className="inline-flex items-center gap-1 font-semibold text-amber-700 hover:underline">
                         <AlertTriangle className="h-3.5 w-3.5" />
                         Review in AI Queue
                       </Link>

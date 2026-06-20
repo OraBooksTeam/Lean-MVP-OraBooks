@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import WpLink from './WpLink';
+
 import { Download, Paperclip } from 'lucide-react';
 import { api } from '../api';
 
