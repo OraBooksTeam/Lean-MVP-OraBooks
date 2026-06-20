@@ -23,21 +23,19 @@ export default function LoginPage() {
   const [otp, setOtp] = useState('');
 
   useEffect(() => {
-    if (!hasStoredAuthToken()) {
-      return;
-    }
-
-    api.frontendContext().then((res) => {
-      if (!res.error) {
-        clearRedirectGuard();
-        const org = (res as any).data?.organization;
-        if (org?.subdomain) {
-          redirectToOrgSubdomain(org.subdomain, '/dashboard/', '/dashboard');
-          return;
+    if (hasStoredAuthToken()) {
+      api.frontendContext().then((res) => {
+        if (!res.error) {
+          clearRedirectGuard();
+          const org = (res as any).data?.organization;
+          if (org?.subdomain) {
+            redirectToOrgSubdomain(org.subdomain, '/dashboard/', '/dashboard');
+            return;
+          }
+          redirectAfterAuth((res as any).data || {});
         }
-        redirectAfterAuth((res as any).data || {});
-      }
-    });
+      });
+    }
 
     const url = new URL(window.location.href);
     const code = url.searchParams.get('code');
