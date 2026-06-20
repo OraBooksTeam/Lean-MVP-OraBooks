@@ -24,12 +24,25 @@ function walk(dir, base = '') {
 }
 
 const files = walk(outDir).sort();
+const manifestPath = path.join(outDir, 'deploy-manifest.json');
+let generatedAt = new Date().toISOString();
+
+if (fs.existsSync(manifestPath)) {
+  try {
+    const existingManifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+    if (JSON.stringify(existingManifest.files) === JSON.stringify(files)) {
+      generatedAt = existingManifest.generated_at || generatedAt;
+    }
+  } catch {
+    // Invalid or partial manifests are replaced below.
+  }
+}
+
 const manifest = {
-  generated_at: new Date().toISOString(),
+  generated_at: generatedAt,
   deploy_path: 'wp-content/plugins/OraBooks Lean MVP/assets/react/',
   files,
 };
 
-const manifestPath = path.join(outDir, 'deploy-manifest.json');
 fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2));
 console.log(`Deploy manifest written: ${files.length} files`);
