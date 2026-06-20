@@ -780,19 +780,14 @@ function orabooks_oidc_route_handler() {
         
         // Login successful — redirect to org workspace with auth cookies set
         $result = orabooks_enrich_login_response($result);
-        $redirect = $result['redirect_to'] ?? home_url('/dashboard/');
-        
-        // Store token in cookie for the frontend to pick up
-        if (!empty($result['token'])) {
-            orabooks_set_auth_token_cookie($result['token']);
-            orabooks_persist_login_session($result);
-        }
-        
-        wp_redirect(orabooks_append_auth_tokens_to_url(
-            $redirect,
-            (string) ($result['token'] ?? ''),
-            (string) ($result['refresh_token'] ?? '')
-        ));
+        orabooks_persist_login_session($result);
+
+        $redirect = $result['redirect_to'] ?? orabooks_get_org_workspace_url(
+            (int) ($result['org_id'] ?? 0),
+            '/dashboard/'
+        );
+
+        wp_redirect($redirect);
         exit;
     }
 }
