@@ -1291,6 +1291,13 @@ if (!function_exists('get_option')) {
     }
 }
 
+if (!function_exists('update_option')) {
+    function update_option($option, $value) {
+        $GLOBALS['orabooks_test_options'][$option] = $value;
+        return true;
+    }
+}
+
 if (!function_exists('orabooks_get_org_workspace_url')) {
     function orabooks_get_org_workspace_url($org_id, $path = '/dashboard/', $query_args = []) {
         $url = home_url('/' . ltrim((string) $path, '/'));
