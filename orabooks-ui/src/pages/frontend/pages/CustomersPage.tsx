@@ -531,7 +531,9 @@ function CustomerFields({
         <h4 className="text-sm font-bold uppercase tracking-wide text-ink">Basic Information</h4>
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Customer Code">
-            <Input value={form.customer_code || 'Auto-generated'} onChange={(e) => set({ customer_code: e.target.value })} placeholder="Auto-generated" />
+            <div className="rounded-lg border border-border bg-slate-100 px-3.5 py-2.5 text-sm text-slate-600">
+              {form.customer_code || 'Auto-generated from CUS-000001'}
+            </div>
           </Field>
           <Field label="Customer Name">
             <Input value={form.name} onChange={(e) => set({ name: e.target.value })} placeholder="Acme Corp" required />
@@ -568,12 +570,23 @@ function CustomerFields({
 
       <section className="space-y-4 rounded-2xl border border-border bg-slate-50/60 p-4">
         <h4 className="text-sm font-bold uppercase tracking-wide text-ink">Address Details</h4>
+        {countriesError && <p className="text-xs text-amber-700">{countriesError}</p>}
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Country">
-            <Input value={form.country_id} onChange={(e) => set({ country_id: e.target.value })} />
+            <CountrySelect
+              value={form.country_id}
+              countries={countries}
+              loading={countriesLoading}
+              onChange={(country) => set({ country_id: country, state_id: '' })}
+            />
           </Field>
           <Field label="State">
-            <Input value={form.state_id} onChange={(e) => set({ state_id: e.target.value })} />
+            <StateSelect
+              value={form.state_id}
+              country={form.country_id}
+              states={billingStates}
+              onChange={(state) => set({ state_id: state })}
+            />
           </Field>
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
@@ -604,10 +617,20 @@ function CustomerFields({
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Country">
-            <Input value={form.ship_country_id} onChange={(e) => set({ ship_country_id: e.target.value })} />
+            <CountrySelect
+              value={form.ship_country_id}
+              countries={countries}
+              loading={countriesLoading}
+              onChange={(country) => set({ ship_country_id: country, ship_state_id: '' })}
+            />
           </Field>
           <Field label="State">
-            <Input value={form.ship_state_id} onChange={(e) => set({ ship_state_id: e.target.value })} />
+            <StateSelect
+              value={form.ship_state_id}
+              country={form.ship_country_id}
+              states={shippingStates}
+              onChange={(state) => set({ ship_state_id: state })}
+            />
           </Field>
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
@@ -635,7 +658,7 @@ function CustomerFields({
             <select
               value={form.price_level_type}
               onChange={(e) => set({ price_level_type: e.target.value === 'Decrease' ? 'Decrease' : 'Increase' })}
-              className="w-full rounded-lg border border-border bg-white px-3.5 py-2.5 text-sm text-ink shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+              className={selectClassName}
             >
               <option value="Increase">Increase</option>
               <option value="Decrease">Decrease</option>
