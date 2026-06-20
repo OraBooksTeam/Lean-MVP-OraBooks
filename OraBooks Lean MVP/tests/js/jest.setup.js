@@ -1,147 +1,3 @@
-const $ = require('jquery');
-
-const ajaxResponses = {
-  get: [],
-  post: [],
-};
-
-function makeStorageMock() {
-  let values = {};
-
-  return {
-    getItem: jest.fn((key) => (Object.prototype.hasOwnProperty.call(values, key) ? values[key] : null)),
-    setItem: jest.fn((key, value) => {
-      values[key] = String(value);
-    }),
-    removeItem: jest.fn((key) => {
-      delete values[key];
-    }),
-    clear: jest.fn(() => {
-      values = {};
-    }),
-  };
-}
-
-function normalizeMethod(method) {
-  return String(method || 'GET').toLowerCase() === 'post' ? 'post' : 'get';
-}
-
-function makeJqXHR(call) {
-  const jqXHR = {
-    done(callback) {
-      call.callback = callback;
-      return jqXHR;
-    },
-    fail(callback) {
-      call.failCallback = callback;
-      return jqXHR;
-    },
-    always(callback) {
-      call.alwaysCallback = callback;
-      return jqXHR;
-    },
-  };
-
-  return jqXHR;
-}
-
-function enqueueAjax(method, url, data, callback) {
-  const normalizedMethod = normalizeMethod(method);
-  const call = {
-    url,
-    data: data || {},
-    callback,
-    failCallback: undefined,
-    alwaysCallback: undefined,
-  };
-
-  ajaxResponses[normalizedMethod].push(call);
-  return makeJqXHR(call);
-}
-
-function callMatchesFilter(call, filter) {
-  if (!filter) {
-    return true;
-  }
-
-  if (typeof filter === 'string') {
-    return call.data && call.data.action === filter;
-  }
-
-  return Object.entries(filter).every(([key, value]) => call.data && call.data[key] === value);
-}
-
-global.ajaxResponses = ajaxResponses;
-
-global.clearAjax = function clearAjax() {
-  ajaxResponses.get.length = 0;
-  ajaxResponses.post.length = 0;
-};
-
-global.latestAjax = function latestAjax(method) {
-  const queue = ajaxResponses[normalizeMethod(method)];
-  return queue.length ? queue[queue.length - 1] : null;
-};
-
-global.resolveAjax = function resolveAjax(method, response, filter) {
-  const queue = ajaxResponses[normalizeMethod(method)];
-  const index = queue.findIndex((call) => callMatchesFilter(call, filter));
-
-  if (index === -1) {
-    throw new Error(`No ${method} AJAX call found for ${JSON.stringify(filter || {})}`);
-  }
-
-  const [call] = queue.splice(index, 1);
-
-  if (typeof call.callback === 'function') {
-    call.callback(response);
-  }
-
-  if (typeof call.alwaysCallback === 'function') {
-    call.alwaysCallback(response);
-  }
-
-  return call;
-};
-
-beforeEach(() => {
-  global.clearAjax();
-
-  window.orabooks_ajax = {
-    ajax_url: 'https://orabooks.test/wp-admin/admin-ajax.php',
-    nonce: 'test-nonce',
-    current_user_id: 1,
-  };
-  global.orabooks_ajax = window.orabooks_ajax;
-
-  window.alert = jest.fn();
-  window.confirm = jest.fn(() => true);
-  window.prompt = jest.fn();
-  global.alert = window.alert;
-  global.confirm = window.confirm;
-  global.prompt = window.prompt;
-
-  Object.defineProperty(window, 'localStorage', {
-    configurable: true,
-    value: makeStorageMock(),
-  });
-  Object.defineProperty(window, 'sessionStorage', {
-    configurable: true,
-    value: makeStorageMock(),
-  });
-  global.localStorage = window.localStorage;
-  global.sessionStorage = window.sessionStorage;
-
-  $.get = jest.fn((url, data, callback) => enqueueAjax('get', url, data, callback));
-  $.post = jest.fn((url, data, callback) => enqueueAjax('post', url, data, callback));
-  $.ajax = jest.fn((options) => {
-    const method = options.type || options.method || 'GET';
-    const jqXHR = enqueueAjax(method, options.url, options.data, options.success);
-    const call = ajaxResponses[normalizeMethod(method)][ajaxResponses[normalizeMethod(method)].length - 1];
-    call.failCallback = options.error;
-    return jqXHR;
-  });
-});
 /**
  * Jest Setup for OraBooks JS Tests
  *
@@ -235,10 +91,15 @@ global.window.orabooks_ajax = {
 
 // Provide orabooks_ajax also on frontend (might have current_user_id)
 global.window.orabooks_ajax.current_user_id = 1;
+global.orabooks_ajax = global.window.orabooks_ajax;
 
-// Mock alert and confirm
+// Mock browser dialogs used by admin and frontend flows
 global.window.alert = jest.fn();
 global.window.confirm = jest.fn(() => true);
+global.window.prompt = jest.fn();
+global.alert = global.window.alert;
+global.confirm = global.window.confirm;
+global.prompt = global.window.prompt;
 
 // --- Mock window.location to prevent JSDOM navigation errors ---
 // JSDOM throws "Not implemented: navigation (except hash changes)" when
@@ -328,6 +189,7 @@ const localStorageMock = (() => {
   };
 })();
 Object.defineProperty(global.window, 'localStorage', { value: localStorageMock });
+global.localStorage = global.window.localStorage;
 
 // Mock sessionStorage (used by OIDC flow)
 const sessionStorageMock = (() => {
@@ -340,6 +202,7 @@ const sessionStorageMock = (() => {
   };
 })();
 Object.defineProperty(global.window, 'sessionStorage', { value: sessionStorageMock });
+global.sessionStorage = global.window.sessionStorage;
 
 // Expose jQuery as global
 global.window.jQuery = $;
@@ -397,6 +260,16 @@ jest.spyOn($, 'get').mockImplementation((url, data, callback) => {
 jest.spyOn($, 'post').mockImplementation((url, data, callback) => {
   const type = 'post';
   return createMockJqXHR(url, data, callback, type);
+});
+
+jest.spyOn($, 'ajax').mockImplementation((options) => {
+  const type = String(options.type || options.method || 'GET').toLowerCase() === 'post' ? 'post' : 'get';
+  const jqXHR = createMockJqXHR(options.url, options.data, options.success, type);
+  const entry = ajaxResponses[type][ajaxResponses[type].length - 1];
+  if (typeof options.error === 'function') {
+    entry.failCallback = options.error;
+  }
+  return jqXHR;
 });
 
 // Helper to resolve the latest AJAX call.
