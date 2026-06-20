@@ -97,7 +97,7 @@ async function parseResponse<T = any>(
   }
 
   if (!res.ok) {
-    if (clearAuthOnFailure && (res.status === 401 || res.status === 403)) {
+    if (clearAuthOnFailure && res.status === 401) {
       clearPersistedAuthTokens();
     }
     if (hasParsedJson) {

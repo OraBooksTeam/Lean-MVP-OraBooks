@@ -33,7 +33,9 @@ export default function WebhookSettingsPage() {
       return;
     }
 
-    const res = await api.webhookSettingsGet();
+    const res = await api.webhookSettingsGet(
+      nextContext?.organization?.id ? { org_id: nextContext.organization.id } : {}
+    );
     if (res.error) setError(res.error);
     else setUrls((res as any).data?.urls || '');
     setLoading(false);
@@ -46,7 +48,10 @@ export default function WebhookSettingsPage() {
   const save = async () => {
     setError('');
     setMessage('');
-    const res = await api.webhookSettingsSave(urls);
+    const res = await api.webhookSettingsSave(
+      urls,
+      context?.organization?.id ? { org_id: context.organization.id } : undefined
+    );
     if (res.error) setError(res.error);
     else {
       setUrls(res.data?.urls || urls);
