@@ -371,7 +371,6 @@ class OraBooks_Auth_Test extends TestCase
         $result = OraBooks_Auth::handle_google_callback('auth-code-new', 'test-state-new-user');
 
         $this->assertNotInstanceOf(WP_Error::class, $result);
-        $this->assertArrayHasKey('token', $result);
         $this->assertArrayHasKey('user_id', $result);
         $this->assertEquals(42, $result['user_id']);
         $this->assertTrue($result['needs_tier_selection']);
@@ -1134,7 +1133,9 @@ class OraBooks_Auth_Test extends TestCase
 
         $this->assertNotInstanceOf(WP_Error::class, $result);
         $this->assertTrue($result['needs_tier_selection']);
-        $this->assertArrayHasKey('token', $result);
+        $this->assertArrayHasKey('tier_selection_token', $result);
+        $this->assertArrayNotHasKey('token', $result);
+        $this->assertArrayNotHasKey('refresh_token', $result);
     }
 
     #[Test]
