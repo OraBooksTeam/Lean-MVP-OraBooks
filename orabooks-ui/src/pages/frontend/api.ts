@@ -1,6 +1,21 @@
-const ORABOOKS_NONCE = (window as any).orabooks_ajax?.nonce || '';
-const ORABOOKS_URL = (window as any).orabooks_ajax?.ajax_url || '/wp-admin/admin-ajax.php';
-const ORABOOKS_USER_ID = (window as any).orabooks_ajax?.current_user_id ?? null;
+type AjaxConfig = {
+  ajax_url?: string;
+  nonce?: string;
+  current_user_id?: number | null;
+  login_url?: string;
+};
+
+function getAjaxConfig(): Required<Pick<AjaxConfig, 'ajax_url' | 'nonce'>> & AjaxConfig {
+  const cfg = ((window as any).orabooks_ajax || {}) as AjaxConfig;
+  return {
+    ajax_url: cfg.ajax_url || '/wp-admin/admin-ajax.php',
+    nonce: cfg.nonce || '',
+    current_user_id: cfg.current_user_id ?? null,
+    login_url: cfg.login_url,
+    ...cfg,
+  };
+}
+
 const TOKEN_KEY = 'orabooks_token';
 const REFRESH_TOKEN_KEY = 'orabooks_refresh_token';
 
@@ -10,10 +25,14 @@ type ApiResult<T = Json> =
   | { data?: never; error: string; success?: never }
   | { data?: never; error?: never; success: true };
 
+type RequestOptions = {
+  clearAuthOnFailure?: boolean;
+};
+
 function extractError(data: any, fallback: string) {
   if (typeof data === 'string') return data;
   if (data?.message) return String(data.message);
-  if (data?.error) return String(data.error);
+  if (data?.error && typeof data.error === 'string') return String(data.error);
   return fallback;
 }
 
@@ -21,8 +40,12 @@ function getStoredToken() {
   return window.localStorage.getItem(TOKEN_KEY) || '';
 }
 
+function getStoredRefreshToken() {
+  return window.localStorage.getItem(REFRESH_TOKEN_KEY) || '';
+}
+
 export function hasStoredAuthToken() {
-  return Boolean(getStoredToken());
+  return Boolean(getStoredToken() || getStoredRefreshToken());
 }
 
 function persistTokens(data: any) {
@@ -33,6 +56,11 @@ function persistTokens(data: any) {
   if (data?.refresh_token) {
     window.localStorage.setItem(REFRESH_TOKEN_KEY, String(data.refresh_token));
   }
+}
+
+export function clearPersistedAuthTokens() {
+  window.localStorage.removeItem(TOKEN_KEY);
+  window.localStorage.removeItem(REFRESH_TOKEN_KEY);
 }
 
 function normalizeResponse<T = any>(json: any): ApiResult<T> {
@@ -61,7 +89,11 @@ function normalizeResponse<T = any>(json: any): ApiResult<T> {
   return json as ApiResult<T>;
 }
 
-async function parseResponse<T = any>(res: Response): Promise<ApiResult<T>> {
+async function parseResponse<T = any>(
+  res: Response,
+  options: RequestOptions = {}
+): Promise<ApiResult<T>> {
+  const clearAuthOnFailure = options.clearAuthOnFailure !== false;
   const text = await res.text();
   let parsed: any = null;
   let hasParsedJson = false;
@@ -74,9 +106,8 @@ async function parseResponse<T = any>(res: Response): Promise<ApiResult<T>> {
   }
 
   if (!res.ok) {
-    if (res.status === 401 || res.status === 403) {
-      window.localStorage.removeItem(TOKEN_KEY);
-      window.localStorage.removeItem(REFRESH_TOKEN_KEY);
+    if (clearAuthOnFailure && (res.status === 401 || res.status === 403)) {
+      clearPersistedAuthTokens();
     }
     if (hasParsedJson) {
       return { error: extractError(parsed, `OraBooks request failed with HTTP ${res.status}.`) };
@@ -97,16 +128,56 @@ async function parseResponse<T = any>(res: Response): Promise<ApiResult<T>> {
   }
 }
 
+let refreshInFlight: Promise<boolean> | null = null;
+
+async function tryRefreshSession(): Promise<boolean> {
+  const refreshToken = getStoredRefreshToken();
+  if (!refreshToken) {
+    return false;
+  }
+
+  if (refreshInFlight) {
+    return refreshInFlight;
+  }
+
+  refreshInFlight = (async () => {
+    const cfg = getAjaxConfig();
+    const body = new URLSearchParams();
+    body.set('action', 'orabooks_refresh_token');
+    body.set('_ajax_nonce', cfg.nonce);
+    body.set('refresh_token', refreshToken);
+
+    try {
+      const res = await fetch(cfg.ajax_url, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=utf-8' },
+        body,
+      });
+      const parsed = await parseResponse(res, { clearAuthOnFailure: false });
+      return !parsed.error;
+    } catch {
+      return false;
+    } finally {
+      refreshInFlight = null;
+    }
+  })();
+
+  return refreshInFlight;
+}
+
 async function request<T = any>(
   payload: Record<string, any>,
-  method = 'POST'
+  method = 'POST',
+  options: RequestOptions = {}
 ): Promise<ApiResult<T>> {
+  const cfg = getAjaxConfig();
   const body = new URLSearchParams();
   const token = getStoredToken();
   body.set('action', payload.action);
-  body.set('_ajax_nonce', ORABOOKS_NONCE);
+  body.set('_ajax_nonce', cfg.nonce);
   if (token) body.set('orabooks_token', token);
-  if (ORABOOKS_USER_ID) body.set('current_user_id', String(ORABOOKS_USER_ID));
+  if (cfg.current_user_id) body.set('current_user_id', String(cfg.current_user_id));
   Object.entries(payload).forEach(([k, v]) => {
     if (k === 'action' || k === '_ajax_nonce' || k === 'current_user_id') return;
     if (Array.isArray(v)) {
@@ -118,7 +189,7 @@ async function request<T = any>(
   });
 
   try {
-    const res = await fetch(ORABOOKS_URL, {
+    const res = await fetch(cfg.ajax_url, {
       method,
       credentials: 'include',
       headers: {
@@ -128,7 +199,7 @@ async function request<T = any>(
       body,
     });
 
-    return parseResponse<T>(res);
+    return parseResponse<T>(res, options);
   } catch (error) {
     return { error: error instanceof Error ? error.message : 'OraBooks request failed.' };
   }
@@ -136,54 +207,85 @@ async function request<T = any>(
 
 async function uploadRequest<T = any>(
   action: string,
-  formData: FormData
+  formData: FormData,
+  options: RequestOptions = {}
 ): Promise<ApiResult<T>> {
+  const cfg = getAjaxConfig();
   const token = getStoredToken();
   formData.set('action', action);
-  formData.set('_ajax_nonce', ORABOOKS_NONCE);
+  formData.set('_ajax_nonce', cfg.nonce);
   if (token) formData.set('orabooks_token', token);
-  if (ORABOOKS_USER_ID) formData.set('current_user_id', String(ORABOOKS_USER_ID));
+  if (cfg.current_user_id) formData.set('current_user_id', String(cfg.current_user_id));
 
   try {
-    const res = await fetch(ORABOOKS_URL, {
+    const res = await fetch(cfg.ajax_url, {
       method: 'POST',
       credentials: 'include',
       headers: token ? { Authorization: `Bearer ${token}` } : {},
       body: formData,
     });
 
-    return parseResponse<T>(res);
+    return parseResponse<T>(res, options);
   } catch (error) {
     return { error: error instanceof Error ? error.message : 'OraBooks upload failed.' };
   }
 }
 
 export const api = {
-  get<T = any>(action: string, params: Record<string, any> = {}): Promise<ApiResult<T>> {
+  get<T = any>(
+    action: string,
+    params: Record<string, any> = {},
+    options: RequestOptions = {}
+  ): Promise<ApiResult<T>> {
+    const cfg = getAjaxConfig();
     const qs = new URLSearchParams();
     const token = getStoredToken();
     qs.set('action', action);
-    qs.set('_ajax_nonce', ORABOOKS_NONCE);
+    qs.set('_ajax_nonce', cfg.nonce);
     if (token) qs.set('orabooks_token', token);
-    if (ORABOOKS_USER_ID) qs.set('current_user_id', String(ORABOOKS_USER_ID));
+    if (cfg.current_user_id) qs.set('current_user_id', String(cfg.current_user_id));
     Object.entries(params).forEach(([k, v]) => {
       if (typeof v === 'object') qs.set(k, JSON.stringify(v));
       else if (v !== undefined && v !== null && v !== '') qs.set(k, String(v));
     });
 
-    return fetch(`${ORABOOKS_URL}?${qs.toString()}`, {
+    return fetch(`${cfg.ajax_url}?${qs.toString()}`, {
       credentials: 'include',
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     })
-      .then((r) => parseResponse<T>(r))
+      .then((r) => parseResponse<T>(r, options))
       .catch((error) => ({
         error: error instanceof Error ? error.message : 'OraBooks request failed.',
       }));
   },
 
-  post<T = any>(action: string, params: Record<string, any> = {}): Promise<ApiResult<T>> {
-    return request<T>({ action, ...params }, 'POST');
+  post<T = any>(
+    action: string,
+    params: Record<string, any> = {},
+    options: RequestOptions = {}
+  ): Promise<ApiResult<T>> {
+    return request<T>({ action, ...params }, 'POST', options);
   },
+
+  async verifySession(): Promise<ApiResult<any>> {
+    let res = await api.get('orabooks_frontend_context', {}, { clearAuthOnFailure: false });
+    if (!res.error) {
+      return res;
+    }
+
+    const refreshed = await tryRefreshSession();
+    if (refreshed) {
+      res = await api.get('orabooks_frontend_context', {}, { clearAuthOnFailure: false });
+      if (!res.error) {
+        return res;
+      }
+    }
+
+    clearPersistedAuthTokens();
+    return res;
+  },
+
+  refreshToken: () => api.post('orabooks_refresh_token', { refresh_token: getStoredRefreshToken() }),
 
   // Auth
   login: (email: string, password: string) =>
