@@ -560,49 +560,69 @@ class OraBooks_Event_Module {
         if (!self::current_user_can_manage_events()) {
             wp_die(__('You do not have permission to view this page.', 'orabooks'));
         }
-        $health = self::get_health();
-        $dead_letters = self::get_dead_letters();
+        $org_scope = self::resolve_event_org_scope();
+        $health = self::get_health($org_scope);
+        $dead_letters = self::get_dead_letters(50, $org_scope);
         include ORABOOKS_PLUGIN_DIR . 'templates/events/dead-letter-replay.php';
+    }
+
+    private static function json_error_for_event_action($result) {
+        if (!is_wp_error($result)) {
+            return;
+        }
+        $code = $result->get_error_code() === 'forbidden' ? 403 : 404;
+        orabooks_json_error($result->get_error_message(), $code);
     }
 
     public static function ajax_dead_letters() {
         self::require_owner_ajax();
-        orabooks_json_success(['health' => self::get_health(), 'dead_letters' => self::get_dead_letters()]);
+        $org_scope = self::resolve_event_org_scope();
+        orabooks_json_success([
+            'health' => self::get_health($org_scope),
+            'dead_letters' => self::get_dead_letters(50, $org_scope),
+        ]);
     }
 
     public static function ajax_replay() {
         self::require_owner_ajax();
-        $result = self::replay_dead_letter((int) ($_POST['dead_letter_id'] ?? 0), get_current_user_id());
+        $org_scope = self::resolve_event_org_scope();
+        $scope = $org_scope > 0 ? $org_scope : null;
+        $result = self::replay_dead_letter((int) ($_POST['dead_letter_id'] ?? 0), get_current_user_id(), $scope);
         if (is_wp_error($result)) {
-            orabooks_json_error($result->get_error_message(), 404);
+            self::json_error_for_event_action($result);
         }
-        orabooks_json_success(['health' => self::get_health()]);
+        orabooks_json_success(['health' => self::get_health($org_scope)]);
     }
 
     public static function ajax_replay_all() {
         self::require_owner_ajax();
+        $org_scope = self::resolve_event_org_scope();
+        $scope = $org_scope > 0 ? $org_scope : null;
         $count = 0;
-        foreach (self::get_dead_letters(200) as $dead) {
-            $result = self::replay_dead_letter((int) $dead->id, get_current_user_id());
+        foreach (self::get_dead_letters(200, $org_scope) as $dead) {
+            $result = self::replay_dead_letter((int) $dead->id, get_current_user_id(), $scope);
             if (!is_wp_error($result)) {
                 $count++;
             }
         }
-        orabooks_json_success(['replayed' => $count, 'health' => self::get_health()]);
+        orabooks_json_success(['replayed' => $count, 'health' => self::get_health($org_scope)]);
     }
 
     public static function ajax_discard() {
         self::require_owner_ajax();
-        $result = self::discard_dead_letter((int) ($_POST['dead_letter_id'] ?? 0), get_current_user_id());
+        $org_scope = self::resolve_event_org_scope();
+        $scope = $org_scope > 0 ? $org_scope : null;
+        $result = self::discard_dead_letter((int) ($_POST['dead_letter_id'] ?? 0), get_current_user_id(), $scope);
         if (is_wp_error($result)) {
-            orabooks_json_error($result->get_error_message(), 404);
+            self::json_error_for_event_action($result);
         }
-        orabooks_json_success(['health' => self::get_health()]);
+        orabooks_json_success(['health' => self::get_health($org_scope)]);
     }
 
     public static function ajax_poll_now() {
         self::require_owner_ajax();
-        orabooks_json_success(['result' => self::process_outbox(50), 'health' => self::get_health()]);
+        $org_scope = self::resolve_event_org_scope();
+        orabooks_json_success(['result' => self::process_outbox(50), 'health' => self::get_health($org_scope)]);
     }
 
     private static function require_owner_ajax() {
@@ -691,6 +711,7 @@ class OraBooks_Event_Module {
                 'event_type' => $event->event_type,
                 'outbox_id' => (int) $event->id,
                 'aggregate_id' => (int) $event->aggregate_id,
+                'org_id' => (int) ($payload['org_id'] ?? 0),
                 'payload' => $payload,
             ], [
                 'queue_name' => 'webhooks',

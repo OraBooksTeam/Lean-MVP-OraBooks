@@ -6,8 +6,9 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-$stats = class_exists('OraBooks_AsyncQueue') ? OraBooks_AsyncQueue::get_queue_stats() : [];
-$jobs = class_exists('OraBooks_AsyncQueue') ? OraBooks_AsyncQueue::list_jobs(['limit' => 50]) : [];
+$org_id = class_exists('OraBooks_AsyncQueue') ? OraBooks_AsyncQueue::resolve_queue_org_scope() : 0;
+$stats = class_exists('OraBooks_AsyncQueue') ? OraBooks_AsyncQueue::get_queue_stats($org_id) : [];
+$jobs = class_exists('OraBooks_AsyncQueue') ? OraBooks_AsyncQueue::list_jobs(['limit' => 50, 'org_id' => $org_id]) : [];
 ?>
 <div class="wrap orabooks-job-monitor">
     <h1>Async Job Monitor</h1>
