@@ -1247,6 +1247,7 @@ class OraBooks_Ajax {
                 'total' => $total_invoices,
                 'paid'  => $paid_invoices,
             ],
+            'event_bus_health' => class_exists('OraBooks_Event_Module') ? OraBooks_Event_Module::get_health() : null,
             'timestamp' => current_time('mysql'),
         ];
         

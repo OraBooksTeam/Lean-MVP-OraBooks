@@ -58,7 +58,11 @@ export async function absorbAuthTokensFromUrl() {
   clearRedirectGuard();
 
   const { api } = await import('../api');
-  await api.establishSession(token, refresh || '');
+  try {
+    await api.establishSession(token, refresh || '');
+  } catch {
+    // Token is already in localStorage; session cookies may still be set on retry.
+  }
 
   return true;
 }
@@ -164,7 +168,7 @@ export function redirectAfterAuth(data: {
   replaceAppLocation('/dashboard/');
 }
 
-export function redirectToLogin(force = false, resetAuth = false) {
+export function redirectToLogin(force = false, resetAuth = false, reason: 'session_expired' | 'auth_reset' = 'session_expired') {
   if (!force) {
     const last = Number(window.sessionStorage.getItem(REDIRECT_GUARD_KEY) || 0);
     const now = Date.now();
@@ -181,7 +185,9 @@ export function redirectToLogin(force = false, resetAuth = false) {
   const loginUrl = (window as any).orabooks_ajax?.login_url;
   let destination = loginUrl ? normalizeWpAppPath(loginUrl) : normalizeWpAppPath(getNetworkLoginUrl());
   if (resetAuth) {
-    destination = appendSessionExpiredFlag(destination);
+    destination = reason === 'auth_reset'
+      ? appendAuthResetFlag(destination)
+      : appendSessionExpiredFlag(destination);
   }
 
   window.location.replace(destination);

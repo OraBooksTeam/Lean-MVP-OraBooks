@@ -1239,20 +1239,21 @@ function orabooks_set_auth_token_cookie($token) {
 
     $expiry = time() + orabooks_get_auth_token_cookie_ttl();
     $path = defined('COOKIEPATH') && COOKIEPATH ? COOKIEPATH : '/';
-    $domain = orabooks_get_auth_cookie_domain();
     $secure = is_ssl();
 
-    if (PHP_VERSION_ID >= 70300) {
-        setcookie('orabooks_token', $token, [
-            'expires'  => $expiry,
-            'path'     => $path,
-            'domain'   => $domain,
-            'secure'   => $secure,
-            'httponly' => true,
-            'samesite' => 'Lax',
-        ]);
-    } else {
-        setcookie('orabooks_token', $token, $expiry, $path, $domain, $secure, true);
+    foreach (orabooks_get_auth_cookie_domains() as $domain) {
+        if (PHP_VERSION_ID >= 70300) {
+            setcookie('orabooks_token', $token, [
+                'expires'  => $expiry,
+                'path'     => $path,
+                'domain'   => $domain,
+                'secure'   => $secure,
+                'httponly' => true,
+                'samesite' => 'Lax',
+            ]);
+        } else {
+            setcookie('orabooks_token', $token, $expiry, $path, $domain, $secure, true);
+        }
     }
 
     $_COOKIE['orabooks_token'] = $token;
