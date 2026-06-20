@@ -2016,11 +2016,43 @@ function orabooks_get_user_role($user_id, $org_id) {
  * Check if user has permission
  */
 function orabooks_has_permission($user_id, $org_id, $permission) {
+    if (class_exists('OBN_Access_Control')) {
+        return OBN_Access_Control::require_permission((int) $user_id, (int) $org_id, $permission);
+    }
+
     $role = orabooks_get_user_role($user_id, $org_id);
     if (!$role) {
         return false;
     }
     return OraBooks_RBAC::check_permission($role, $permission, $org_id);
+}
+
+/**
+ * Resolve org scope for AJAX requests (explicit org_id or tenant/subdomain context).
+ */
+function orabooks_resolve_request_org_id($user_id, $requested_org_id = 0) {
+    $org_id = (int) $requested_org_id;
+    if ($org_id > 0) {
+        return $org_id;
+    }
+
+    if (function_exists('orabooks_get_current_org_id')) {
+        $current_org_id = (int) orabooks_get_current_org_id((int) $user_id);
+        if ($current_org_id > 0) {
+            return $current_org_id;
+        }
+    }
+
+    if ((int) $user_id <= 0) {
+        return 0;
+    }
+
+    global $wpdb;
+    $table_users = OraBooks_Database::table('users');
+    return (int) $wpdb->get_var($wpdb->prepare(
+        "SELECT org_id FROM {$table_users} WHERE id = %d",
+        $user_id
+    ));
 }
 
 /**
