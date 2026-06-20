@@ -1515,7 +1515,7 @@ class OraBooks_Notifications {
     public function on_partner_low_activity_reminder_sent($user_id, $data) {
         self::send_notification((int) $user_id, 'partner_low_activity_reminder_sent', [
             'title'    => __('Partner Activity Reminder', 'orabooks'),
-            'message'  => __('We have not seen new customer referrals recently. Keep sharing your partner code.', 'orabooks'),
+            'message'  => __('You have no active customers and no new partner-code signups recently. Share your partner code to earn commissions.', 'orabooks'),
             'priority' => 'normal',
         ] + (array) $data, null);
     }

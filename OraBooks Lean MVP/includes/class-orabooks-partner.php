@@ -152,30 +152,34 @@ class OraBooks_Partner {
                 }
             }
             
-            // Low-activity reminder (regardless of active customers)
-            // Send if no attribution for 6 months, repeat every 3 months
-            $six_months = $now - (6 * 30 * 86400);
-            $three_months_ago = $now - (3 * 30 * 86400);
-            
-            if ($last_attr_ts === 0 || $last_attr_ts < $six_months) {
-                $reminder_sent = $p->low_activity_reminder_sent_at ? strtotime($p->low_activity_reminder_sent_at) : 0;
-                if ($reminder_sent === 0 || $reminder_sent < $three_months_ago) {
-                    $wpdb->update(
-                        $table_codes,
-                        ['low_activity_reminder_sent_at' => current_time('mysql')],
-                        ['id' => $p->id],
-                        ['%s'],
-                        ['%d']
-                    );
-                    
-                    orabooks_log_event('partner_low_activity_reminder_sent', "Low activity reminder sent to partner {$p->user_id}", 'info', [
-                        'months' => 6
-                    ], $p->user_id, null);
+            // Low-activity reminder (dormant partners only — SL-250 doctrine)
+            // active_customer_count = 0 AND last attribution >= 6 months; repeat every 3 months
+            if ($active_customers == 0) {
+                $six_months = $now - (6 * 30 * 86400);
+                $three_months_ago = $now - (3 * 30 * 86400);
 
-                    if (class_exists('OraBooks_Notifications')) {
-                        do_action('orabooks_partner_low_activity_reminder_sent', $p->user_id, [
+                if ($last_attr_ts === 0 || $last_attr_ts < $six_months) {
+                    $reminder_sent = $p->low_activity_reminder_sent_at ? strtotime($p->low_activity_reminder_sent_at) : 0;
+                    if ($reminder_sent === 0 || $reminder_sent < $three_months_ago) {
+                        $wpdb->update(
+                            $table_codes,
+                            ['low_activity_reminder_sent_at' => current_time('mysql')],
+                            ['id' => $p->id],
+                            ['%s'],
+                            ['%d']
+                        );
+
+                        orabooks_log_event('partner_low_activity_reminder_sent', "Low activity reminder sent to partner {$p->user_id}", 'info', [
                             'months' => 6,
-                        ]);
+                            'active_customer_count' => 0,
+                        ], $p->user_id, null);
+
+                        if (class_exists('OraBooks_Notifications')) {
+                            do_action('orabooks_partner_low_activity_reminder_sent', $p->user_id, [
+                                'months' => 6,
+                                'active_customer_count' => 0,
+                            ]);
+                        }
                     }
                 }
             }
@@ -189,12 +193,13 @@ class OraBooks_Partner {
         global $wpdb;
         
         $table_codes = OraBooks_Database::table('partner_codes');
+        $table_orgs = OraBooks_Database::table('organizations');
         $table_attributions = OraBooks_Database::table('partner_attributions');
         
         $code = $wpdb->get_row($wpdb->prepare(
             "SELECT pc.*, o.name as org_name, o.status as org_status
              FROM {$table_codes} pc
-             JOIN {$wpdb->prefix}orabooks_organizations o ON pc.org_id = o.id
+             JOIN {$table_orgs} o ON pc.org_id = o.id
              WHERE pc.user_id = %d
              ORDER BY pc.created_at DESC
              LIMIT 1",
@@ -910,6 +915,12 @@ class OraBooks_Partner {
             'reason' => $reason,
             'active_customer_count' => self::get_active_customer_count($user_id)
         ], $user_id, $org_id);
+
+        do_action('orabooks_partner_reactivation_requested', $org_id, [
+            'user_id' => $user_id,
+            'reason' => $reason,
+            'active_customer_count' => self::get_active_customer_count($user_id),
+        ]);
         
         orabooks_json_success([], 'Reactivation request submitted for review. An admin will review your request.');
     }
