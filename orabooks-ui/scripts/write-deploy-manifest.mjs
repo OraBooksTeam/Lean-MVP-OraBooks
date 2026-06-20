@@ -12,6 +12,10 @@ function walk(dir, base = '') {
   }
 
   for (const name of fs.readdirSync(dir)) {
+    if (base === '' && name === 'deploy-manifest.json') {
+      continue;
+    }
+
     const full = path.join(dir, name);
     const rel = path.posix.join(base, name);
     if (fs.statSync(full).isDirectory()) {
