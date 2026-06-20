@@ -571,12 +571,14 @@ class OraBooks_Customers {
         global $wpdb;
 
         $table = OraBooks_Database::table('customers');
-        $count = (int) $wpdb->get_var($wpdb->prepare(
-            "SELECT COUNT(*) FROM {$table} WHERE org_id = %d",
+        $last_number = (int) $wpdb->get_var($wpdb->prepare(
+            "SELECT COALESCE(MAX(CAST(SUBSTRING(customer_code, 5) AS UNSIGNED)), 0)
+             FROM {$table}
+             WHERE org_id = %d AND customer_code LIKE 'CUS-______'",
             (int) $org_id
         ));
 
-        return 'CUS-' . str_pad((string) ($count + 1), 6, '0', STR_PAD_LEFT);
+        return 'CUS-' . str_pad((string) ($last_number + 1), 6, '0', STR_PAD_LEFT);
     }
 
     /**
@@ -587,8 +589,7 @@ class OraBooks_Customers {
         $formats = [];
 
         if ($include_code) {
-            $code = sanitize_text_field($data['customer_code'] ?? '');
-            $updates['customer_code'] = $code !== '' ? $code : self::next_customer_code((int) $org_id);
+            $updates['customer_code'] = self::next_customer_code((int) $org_id);
             $formats[] = '%s';
         }
 
@@ -2319,25 +2320,6 @@ class OraBooks_Customers {
         if (isset($_POST['auto_apply_credit'])) {
             $updates['auto_apply_credit'] = (int) (bool) $_POST['auto_apply_credit'];
             $formats[] = '%d';
-        }
-
-        if (isset($_POST['customer_code'])) {
-            $customer_code = sanitize_text_field($_POST['customer_code']);
-            if ($customer_code !== '') {
-                $existing_code = $wpdb->get_var($wpdb->prepare(
-                    "SELECT id FROM {$table}
-                     WHERE org_id = %d AND id != %d AND customer_code IS NOT NULL AND LOWER(customer_code) = LOWER(%s)
-                     LIMIT 1",
-                    (int) $customer->org_id,
-                    $customer_id,
-                    $customer_code
-                ));
-                if ($existing_code) {
-                    orabooks_json_error('A customer with this code already exists for your organization.', 400);
-                }
-                $updates['customer_code'] = $customer_code;
-                $formats[] = '%s';
-            }
         }
 
         $profile_payload = self::customer_profile_payload($_POST, false);
