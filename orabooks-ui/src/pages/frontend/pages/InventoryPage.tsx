@@ -197,7 +197,7 @@ export default function InventoryPage() {
 
     setSaving(true);
     setError('');
-    const payload: Record<string, string | number> = {
+    const payload: Record<string, string | number | undefined> = {
       name: productForm.name.trim(),
       unit: productForm.unit.trim(),
       brand_name: productForm.brand_name.trim(),
