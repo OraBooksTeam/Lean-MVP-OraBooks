@@ -1524,13 +1524,11 @@ class OraBooks_Notifications {
      * Get the customer-facing dashboard URL for view links in notifications.
      * Optionally include an invoice ID for deep linking.
      */
-    private static function get_customer_dashboard_url(int $invoice_id = 0): string
+    private static function get_customer_dashboard_url(int $invoice_id = 0, int $org_id = 0): string
     {
-        $url = home_url('/dashboard/');
-        if ($invoice_id > 0) {
-            $url = add_query_arg('invoice_id', $invoice_id, $url);
-        }
-        return $url;
+        $query = $invoice_id > 0 ? ['invoice_id' => $invoice_id] : [];
+
+        return orabooks_get_org_workspace_url($org_id, '/dashboard/', $query);
     }
 
     /**
