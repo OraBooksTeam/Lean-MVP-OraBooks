@@ -898,8 +898,9 @@ class OraBooks_AsyncQueue {
                 return 'wp_mail failed';
             }
 
-            orabooks_log_event('email_sent', "Email sent to {$to}: {$subject}", 'info', [
-                'to'      => orabooks_mask_email($to),
+            $masked_to = is_array($to) ? array_map('orabooks_mask_email', $to) : orabooks_mask_email($to);
+            orabooks_log_event('email_sent', 'Email sent: ' . $subject, 'info', [
+                'to'      => $masked_to,
                 'subject' => $subject,
             ]);
 
@@ -1022,29 +1023,29 @@ class OraBooks_AsyncQueue {
         $org_id = intval($payload['org_id'] ?? 0);
         $date_from = sanitize_text_field($payload['date_from'] ?? $payload['start_date'] ?? '');
         $date_to = sanitize_text_field($payload['date_to'] ?? $payload['end_date'] ?? '');
-        $journal = OraBooks_Database::table('journal_entries');
+        $journal = OraBooks_Database::table('journals');
         $lines = OraBooks_Database::table('journal_lines');
-        $accounts = OraBooks_Database::table('chart_of_accounts');
+        $accounts = OraBooks_Database::table('accounts');
 
         $date_clause = '';
         $params = [$org_id];
         if ($date_from !== '') {
-            $date_clause .= ' AND je.entry_date >= %s';
+            $date_clause .= ' AND je.transaction_date >= %s';
             $params[] = $date_from;
         }
         if ($date_to !== '') {
-            $date_clause .= ' AND je.entry_date <= %s';
+            $date_clause .= ' AND je.transaction_date <= %s';
             $params[] = $date_to;
         }
 
         if ($report_type === 'journal') {
-            $sql = "SELECT je.entry_date, je.reference_no, je.description, coa.account_code, coa.account_name,
-                           jl.debit, jl.credit
+            $sql = "SELECT je.transaction_date, je.journal_number, je.source_type, coa.code AS account_code, coa.name AS account_name,
+                           jl.debit_amount AS debit, jl.credit_amount AS credit, jl.description
                     FROM {$journal} je
-                    JOIN {$lines} jl ON jl.journal_entry_id = je.id
+                    JOIN {$lines} jl ON jl.journal_id = je.id
                     LEFT JOIN {$accounts} coa ON coa.id = jl.account_id
                     WHERE je.org_id = %d {$date_clause}
-                    ORDER BY je.entry_date ASC, je.id ASC";
+                    ORDER BY je.transaction_date ASC, je.id ASC";
             return $wpdb->get_results($wpdb->prepare($sql, $params), ARRAY_A) ?: [];
         }
 
@@ -1054,10 +1055,10 @@ class OraBooks_AsyncQueue {
             $params[] = intval($payload['account_id']);
         }
         $sql = "SELECT coa.account_code, coa.account_name, coa.account_type,
-                       SUM(jl.debit) AS debit, SUM(jl.credit) AS credit,
-                       SUM(jl.debit - jl.credit) AS net_balance
+                       SUM(jl.debit_amount) AS debit, SUM(jl.credit_amount) AS credit,
+                       SUM(jl.debit_amount - jl.credit_amount) AS net_balance
                 FROM {$journal} je
-                JOIN {$lines} jl ON jl.journal_entry_id = je.id
+                JOIN {$lines} jl ON jl.journal_id = je.id
                 LEFT JOIN {$accounts} coa ON coa.id = jl.account_id
                 WHERE je.org_id = %d {$date_clause} {$account_filter}
                 GROUP BY jl.account_id, coa.account_code, coa.account_name, coa.account_type
