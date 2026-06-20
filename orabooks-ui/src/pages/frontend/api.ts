@@ -283,6 +283,10 @@ export const api = {
   },
 
   async verifySession(): Promise<ApiResult<any>> {
+    if (!hasStoredAuthToken()) {
+      await tryRefreshSession();
+    }
+
     let res = await api.get('orabooks_frontend_context', {}, { clearAuthOnFailure: false });
     if (!res.error) {
       return res;
@@ -344,8 +348,7 @@ export const api = {
     api.post('orabooks_partner_code_copied', { source }),
 
   // Dashboard / Stats
-  frontendContext: () =>
-    api.get('orabooks_frontend_context'),
+  frontendContext: () => api.verifySession(),
   customerDashboard: () =>
     api.get('orabooks_customer_dashboard'),
   vendorDashboard: () =>
