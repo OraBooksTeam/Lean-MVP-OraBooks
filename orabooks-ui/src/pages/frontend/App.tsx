@@ -35,6 +35,7 @@ import JobQueuePage from './pages/JobQueuePage';
 import ObservabilityPage from './pages/ObservabilityPage';
 import NotificationAdminPage from './pages/NotificationAdminPage';
 import CommissionAdminPage from './pages/CommissionAdminPage';
+import AuditLogPage from './pages/AuditLogPage';
 import { normalizeAppRoute, toWpUrl } from './lib/wp-routing';
 
 type RouteConfig = {
@@ -77,6 +78,7 @@ const ROUTES: Record<string, RouteConfig> = {
   '/notification-preferences': { element: <NotificationPreferencesPage /> },
   '/my-exports': { element: <ExportStatusPage /> },
   '/profile': { element: <ProfilePage /> },
+  '/audit-log': { element: <AuditLogPage /> },
   '/job-queue': { element: <JobQueuePage /> },
   '/observability': { element: <ObservabilityPage /> },
   '/notification-admin': { element: <NotificationAdminPage /> },
