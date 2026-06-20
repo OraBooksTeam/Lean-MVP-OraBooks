@@ -26,6 +26,7 @@ require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-database.php';
 require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-auth.php';
 require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-organization.php';
 require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-rbac.php';
+require_once ORABOOKS_PLUGIN_DIR . 'includes/class-obn-access-control.php';
 require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-team.php';
 require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-audit.php';
 require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-partner.php';
@@ -87,6 +88,7 @@ function orabooks_init() {
     OraBooks_Organization::init();
     OraBooks_Auth::init();
     OraBooks_RBAC::init();
+    OBN_Access_Control::init();
     OraBooks_Team::init();
     OraBooks_Audit::init();
     OraBooks_Partner::init();
