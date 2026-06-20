@@ -82,6 +82,7 @@ function orabooks_init() {
     load_plugin_textdomain('orabooks', false, dirname(plugin_basename(__FILE__)) . '/languages');
 
     orabooks_ensure_database();
+    orabooks_ensure_mvp_cron_schedules();
     
     // Initialize core classes
     OraBooks_Database::init();
@@ -332,6 +333,15 @@ function orabooks_ensure_database() {
             OraBooks_Database::install();
         }
     });
+}
+
+/**
+ * Ensure MVP cron schedules exist after FTP upload (no re-activation required).
+ */
+function orabooks_ensure_mvp_cron_schedules() {
+    if (class_exists('OraBooks_DeployChecks')) {
+        OraBooks_DeployChecks::ensure_mvp_cron_schedules();
+    }
 }
 
 // Deactivation hook

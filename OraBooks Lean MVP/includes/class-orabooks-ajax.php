@@ -24,6 +24,7 @@ class OraBooks_Ajax {
             add_action('wp_ajax_orabooks_platform_settings_get', [self::$instance, 'ajax_platform_settings_get']);
             add_action('wp_ajax_orabooks_platform_settings_save', [self::$instance, 'ajax_platform_settings_save']);
             add_action('wp_ajax_orabooks_deploy_checks', [self::$instance, 'ajax_deploy_checks']);
+            add_action('wp_ajax_orabooks_deploy_repair', [self::$instance, 'ajax_deploy_repair']);
             add_action('wp_ajax_orabooks_frontend_context', [self::$instance, 'ajax_frontend_context']);
             add_action('wp_ajax_orabooks_customer_dashboard', [self::$instance, 'ajax_customer_dashboard']);
             add_action('wp_ajax_orabooks_vendor_dashboard', [self::$instance, 'ajax_vendor_dashboard']);
@@ -1310,5 +1311,21 @@ class OraBooks_Ajax {
         }
 
         orabooks_json_success(OraBooks_DeployChecks::run());
+    }
+
+    /**
+     * Repair missing MVP cron schedules and re-run deploy checks (WP admin only).
+     */
+    public function ajax_deploy_repair() {
+        if (!current_user_can('manage_options')) {
+            orabooks_json_error('Permission denied', 403);
+        }
+
+        $repaired = OraBooks_DeployChecks::ensure_mvp_cron_schedules();
+
+        orabooks_json_success([
+            'repaired' => $repaired,
+            'checks' => OraBooks_DeployChecks::run(),
+        ]);
     }
 }

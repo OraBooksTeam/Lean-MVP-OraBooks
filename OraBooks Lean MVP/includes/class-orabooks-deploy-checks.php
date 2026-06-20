@@ -9,6 +9,39 @@ if (!defined('ABSPATH')) {
 
 class OraBooks_DeployChecks {
     /**
+     * MVP cron hooks verified after deploy (partner activity, async queue, customer active status).
+     *
+     * @return array<string, string> hook => recurrence
+     */
+    public static function mvp_cron_jobs() {
+        return [
+            'orabooks_partner_activity_check' => 'daily',
+            'orabooks_async_queue_process' => 'every_minute',
+            'orabooks_daily_active_status_refresh' => 'daily',
+        ];
+    }
+
+    /**
+     * Schedule missing MVP crons (idempotent). Returns hooks that were newly scheduled.
+     *
+     * @return string[]
+     */
+    public static function ensure_mvp_cron_schedules() {
+        $repaired = [];
+
+        foreach (self::mvp_cron_jobs() as $hook => $recurrence) {
+            if (wp_next_scheduled($hook)) {
+                continue;
+            }
+
+            wp_schedule_event(time(), $recurrence, $hook);
+            $repaired[] = $hook;
+        }
+
+        return $repaired;
+    }
+
+    /**
      * @return array{ok:bool,checks:array<int,array{id:string,label:string,ok:bool,detail:string}>,timestamp:string,environment:array<string,mixed>}
      */
     public static function run() {
@@ -88,11 +121,7 @@ class OraBooks_DeployChecks {
             $run_table_checks();
         }
 
-        $cron_hooks = [
-            'orabooks_partner_activity_check',
-            'orabooks_async_queue_process',
-            'orabooks_daily_active_status_refresh',
-        ];
+        $cron_hooks = array_keys(self::mvp_cron_jobs());
         foreach ($cron_hooks as $hook) {
             $next = wp_next_scheduled($hook);
             $add_check(
