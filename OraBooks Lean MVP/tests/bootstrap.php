@@ -446,6 +446,21 @@ if (!function_exists('get_current_user_id')) {
     }
 }
 
+if (!function_exists('get_userdata')) {
+    function get_userdata($user_id) {
+        $user_id = (int) $user_id;
+        if ($user_id <= 0) {
+            return false;
+        }
+
+        return (object) [
+            'ID' => $user_id,
+            'user_email' => $GLOBALS['orabooks_test_user_email'] ?? 'test@example.com',
+            'user_login' => $GLOBALS['orabooks_test_user_login'] ?? 'testuser',
+        ];
+    }
+}
+
 if (!function_exists('orabooks_get_current_user_id')) {
     function orabooks_get_current_user_id() {
         return get_current_user_id();
