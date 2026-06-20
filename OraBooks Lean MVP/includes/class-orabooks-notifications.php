@@ -33,6 +33,9 @@ class OraBooks_Notifications {
             // Listen for partner lifecycle events (SL-013/SL-139 integration)
             add_action('orabooks_partner_reactivation_requested', [self::$instance, 'on_partner_reactivation_requested'], 10, 2);
             add_action('orabooks_partner_reactivation_approved', [self::$instance, 'on_partner_reactivation_approved'], 10, 2);
+            add_action('orabooks_partner_inactivity_reminder_sent', [self::$instance, 'on_partner_inactivity_reminder_sent'], 10, 2);
+            add_action('orabooks_partner_code_inactivated', [self::$instance, 'on_partner_code_inactivated'], 10, 2);
+            add_action('orabooks_partner_low_activity_reminder_sent', [self::$instance, 'on_partner_low_activity_reminder_sent'], 10, 2);
 
             // Listen for export events (SL-114 integration)
             add_action('orabooks_export_ready', [self::$instance, 'on_export_ready'], 10, 2);
