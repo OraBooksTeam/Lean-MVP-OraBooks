@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
-import { getSearchParam, toWpUrl } from '../lib/wp-routing';
+import WpLink from '../components/WpLink';
+import { getSearchParam } from '../lib/wp-routing';
 
 import Button from '@/components/Button';
 import Input from '@/components/Input';
