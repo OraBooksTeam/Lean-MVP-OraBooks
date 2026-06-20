@@ -34,6 +34,14 @@ interface CustomerDashboardData {
   journal_statuses: { status: string; total: string | number }[];
   recent_journals: Record<string, any>[];
   recent_invoices: Record<string, any>[];
+  event_bus_health?: {
+    pending: number;
+    sent: number;
+    dead_letter: number;
+    status: string;
+    dashboard_url?: string;
+    can_manage?: boolean;
+  } | null;
   timestamp?: string;
 }
 
@@ -176,6 +184,19 @@ export default function DashboardPage() {
             <StatRow label="Active Customers" value={stats.active_customers ?? 0} />
             <StatRow label="Inactive Customers" value={stats.inactive_customers ?? 0} />
           </Panel>
+          {data?.event_bus_health?.can_manage && (
+            <Panel title="Event Bus Health">
+              <StatRow label="Status" value={(data.event_bus_health.status || 'healthy').toUpperCase()} />
+              <StatRow label="Pending Events" value={data.event_bus_health.pending ?? 0} />
+              <StatRow label="Sent Events" value={data.event_bus_health.sent ?? 0} />
+              <StatRow label="Dead Letters" value={data.event_bus_health.dead_letter ?? 0} />
+              {data.event_bus_health.dashboard_url && (
+                <a className="mt-3 inline-flex text-sm font-semibold text-primary" href={data.event_bus_health.dashboard_url}>
+                  Open dead letter replay
+                </a>
+              )}
+            </Panel>
+          )}
           <Panel title="Chart of Accounts">
             <DataList
               empty="No accounts loaded."
