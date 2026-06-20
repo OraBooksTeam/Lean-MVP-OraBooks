@@ -157,7 +157,7 @@ jQuery(document).ready(function($) {
     // Load organizations list
     window.orabooksLoadOrgs = function() {
         var $tbody = $('#orabooks-orgs-table-body');
-        $tbody.html('<tr><td colspan="8">Loading...</td></tr>');
+        $tbody.html('<tr><td colspan="9">Loading...</td></tr>');
         
         $.get(orabooks_ajax.ajax_url, {
             action: 'orabooks_list_orgs',
