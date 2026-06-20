@@ -475,12 +475,19 @@ function orabooks_orabooks_user_can_manage_platform($orabooks_user_id) {
  */
 function orabooks_auth_error_status_code($error_code) {
     $map = [
-        'subdomain_mismatch' => 403,
-        'email_not_verified' => 403,
-        'account_disabled'   => 403,
-        'org_inactive'       => 403,
-        'rate_limit'         => 429,
-        'invalid_credentials'=> 401,
+        'subdomain_mismatch'     => 403,
+        'email_not_verified'     => 403,
+        'account_disabled'       => 403,
+        'org_inactive'           => 403,
+        'terms_required'         => 400,
+        'org_name_required'      => 400,
+        'weak_password'          => 400,
+        'email_exists'           => 409,
+        'registration_disabled'  => 403,
+        'invalid_token'          => 401,
+        'oidc_email_conflict'    => 409,
+        'rate_limit'             => 429,
+        'invalid_credentials'    => 401,
     ];
 
     return $map[(string) $error_code] ?? 400;
@@ -525,7 +532,7 @@ function orabooks_get_wp_user_id_for_orabooks_user($orabooks_user_id) {
         return (int) $current;
     }
 
-    return 1;
+    return 0;
 }
 
 /**
@@ -864,7 +871,7 @@ function orabooks_maybe_redirect_to_org_subdomain() {
     }
 
     $org = OraBooks_Organization::get($org_id);
-    if (!$org || empty($org->subdomain) || $org->organization_type === 'partner') {
+    if (!$org || empty($org->subdomain)) {
         return;
     }
 
@@ -881,7 +888,10 @@ function orabooks_maybe_redirect_to_org_subdomain() {
                 exit;
             }
 
-            $destination = orabooks_build_org_url($org->subdomain, '/dashboard/');
+            $destination = orabooks_build_org_url(
+                $org->subdomain,
+                $org->organization_type === 'partner' ? '/dashboard/' : '/dashboard/'
+            );
             wp_redirect(orabooks_append_auth_tokens_to_url($destination));
             exit;
         }
