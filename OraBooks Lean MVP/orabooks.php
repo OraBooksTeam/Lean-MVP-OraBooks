@@ -2,7 +2,7 @@
 /**
  * Plugin Name: OraBooks - Multi-Tenant Accounting & Partner Platform
  * Plugin URI: https://orabooks.app
- * Description: Complete multi-tenant accounting platform with full GL workspace (sales, purchase, inventory, reports), partner/commission system, multi-org support, and tier-based access control.
+ * Description: Lean MVP multi-tenant accounting and partner platform (SL-004 through SL-139).
  * Version: 1.0.0
  * Network: true
  * Author: OraBooks Team

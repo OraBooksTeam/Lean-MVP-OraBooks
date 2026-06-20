@@ -218,16 +218,27 @@ jQuery(document).ready(function($) {
     });
     
     // Tier selection
+    function orabooksToggleTierRegionField() {
+        var isEnterprise = $('input[name="tier"]:checked').val() === 'enterprise';
+        $('#orabooks-tier-region-group').toggle(isEnterprise);
+        $('#tier-region').prop('required', isEnterprise);
+    }
+
+    $('input[name="tier"]').on('change', orabooksToggleTierRegionField);
+    orabooksToggleTierRegionField();
+
     $('#orabooks-tier-form').on('submit', function(e) {
         e.preventDefault();
         var $msg = $('#orabooks-tier-message');
+        var tier = $('input[name="tier"]:checked').val();
         
         $msg.hide();
         
         $.post(orabooks_ajax.ajax_url, {
             action: 'orabooks_select_tier',
-            tier: $('input[name="tier"]:checked').val(),
+            tier: tier,
             subdomain: $('#tier-subdomain').val(),
+            region: tier === 'enterprise' ? $('#tier-region').val() : '',
             orabooks_token: localStorage.getItem('orabooks_token') || ''
         }, function(response) {
             if (response.error) {
