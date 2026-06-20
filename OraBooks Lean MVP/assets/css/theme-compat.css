@@ -81,11 +81,11 @@ body.orabooks-page.orabooks-auth-page .is-layout-constrained {
     padding-right: 0 !important;
 }
 
-/* After React mounts to body, hide leftover WordPress page markup */
-body.orabooks-page:has(> #orabooks-app-root) main,
+/* After React mounts to body, hide leftover WordPress page markup (not .orabooks-client-main) */
+body.orabooks-page:has(> #orabooks-app-root) main:not(.orabooks-client-main),
 body.orabooks-page:has(> #orabooks-app-root) .wp-site-blocks > main,
-body.orabooks-page.orabooks-app-mounted.orabooks-react-page main,
-body.orabooks-page.orabooks-app-mounted.orabooks-auth-page main,
+body.orabooks-page.orabooks-app-mounted.orabooks-react-page main:not(.orabooks-client-main),
+body.orabooks-page.orabooks-app-mounted.orabooks-auth-page main:not(.orabooks-client-main),
 body.orabooks-page.orabooks-app-mounted.orabooks-react-page .wp-site-blocks > main,
 body.orabooks-page.orabooks-app-mounted.orabooks-auth-page .wp-site-blocks > main,
 body.orabooks-page.orabooks-app-mounted.orabooks-react-page #primary,
@@ -97,6 +97,13 @@ body.orabooks-page.orabooks-app-mounted.orabooks-auth-page #primary {
     padding: 0 !important;
     margin: 0 !important;
     visibility: hidden !important;
+}
+
+body.orabooks-page #orabooks-app-root .orabooks-client-main {
+    display: block !important;
+    visibility: visible !important;
+    height: auto !important;
+    overflow: visible !important;
 }
 
 body.orabooks-page:has(> #orabooks-app-root) .orabooks-react-page,
