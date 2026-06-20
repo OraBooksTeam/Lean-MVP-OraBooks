@@ -502,6 +502,15 @@ function orabooks_admin_menu() {
         'orabooks_admin_job_queue'
     );
 
+    add_submenu_page(
+        'orabooks',
+        'Webhook Settings',
+        'Webhook Settings',
+        'manage_options',
+        'orabooks-webhook-settings',
+        'orabooks_admin_webhook_settings'
+    );
+
     // Observability dashboard (admin only)
     add_submenu_page(
         'orabooks',
@@ -721,6 +730,9 @@ function orabooks_admin_notifications() {
 }
 function orabooks_admin_job_queue() {
     orabooks_admin_react_page('/admin/job-queue');
+}
+function orabooks_admin_webhook_settings() {
+    require ORABOOKS_PLUGIN_DIR . 'templates/settings/webhook-settings.php';
 }
 function orabooks_admin_observability() {
     orabooks_admin_react_page('/admin/observability');
