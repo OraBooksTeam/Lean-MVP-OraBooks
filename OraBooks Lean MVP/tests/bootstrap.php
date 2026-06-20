@@ -1131,6 +1131,16 @@ if (!function_exists('get_option')) {
     }
 }
 
+if (!function_exists('orabooks_get_org_workspace_url')) {
+    function orabooks_get_org_workspace_url($org_id, $path = '/dashboard/', $query_args = []) {
+        $url = home_url('/' . ltrim((string) $path, '/'));
+        if (!empty($query_args)) {
+            $url = add_query_arg($query_args, $url);
+        }
+        return $url;
+    }
+}
+
 if (!function_exists('orabooks_get_network_login_url')) {
     function orabooks_get_network_login_url($path = 'login') {
         return home_url('/' . ltrim((string) $path, '/') . '/');
