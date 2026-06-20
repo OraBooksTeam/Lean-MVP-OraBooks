@@ -191,6 +191,15 @@ export default function NotificationsPage() {
                     <StatusBadge status={n.status} />
                   </div>
                   {n.message && <p className="text-sm text-slate-600">{n.message}</p>}
+                  {n.payload?.view_url && (
+                    <a
+                      href={resolveNotificationViewUrl(String(n.payload.view_url))}
+                      onClick={(e) => e.stopPropagation()}
+                      className="mt-2 inline-flex text-xs font-semibold text-primary hover:text-primary-dark"
+                    >
+                      View details
+                    </a>
+                  )}
                   <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500">
                     <span>{n.created_at}</span>
                     <ChannelIcon channel={n.delivery_channel} />
