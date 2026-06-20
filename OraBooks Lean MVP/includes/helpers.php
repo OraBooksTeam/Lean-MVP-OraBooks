@@ -669,10 +669,21 @@ function orabooks_redirect_tenant_auth_to_network() {
     }
 
     if ($post->post_name === 'login' && function_exists('orabooks_is_user_logged_in') && orabooks_is_user_logged_in()) {
-        return;
+        if (orabooks_is_explicit_logout_request()) {
+            wp_redirect(orabooks_get_logout_redirect_url());
+            exit;
+        }
+
+        wp_redirect(orabooks_append_auth_tokens_to_url(home_url('/dashboard/')));
+        exit;
     }
 
-    wp_redirect(orabooks_get_network_login_url($post->post_name));
+    $target = orabooks_get_network_login_url($post->post_name);
+    if ($post->post_name === 'login' && orabooks_is_explicit_logout_request()) {
+        $target = orabooks_get_logout_redirect_url();
+    }
+
+    wp_redirect($target);
     exit;
 }
 
