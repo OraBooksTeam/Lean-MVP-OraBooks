@@ -1640,7 +1640,6 @@ class OraBooks_Auth_Test extends TestCase
     public function test_handle_google_callback_existing_user_email_conflict()
     {
         $this->storeValidOidcState('test-state-conflict');
-        // State data must be present to trigger the conflict check (if ($state_data && ...))
         $this->storeOidcStateData('test-state-conflict', [
             'user_type' => 'customer',
         ]);
@@ -1650,13 +1649,13 @@ class OraBooks_Auth_Test extends TestCase
             return (object)[
                 'id'                => 5,
                 'email'             => 'localuser@example.com',
-                'password_hash'     => '',
+                'password_hash'     => 'hashed-password-value',
                 'is_active'         => 1,
                 'is_email_verified' => 1,
                 'is_2fa_enabled'    => 0,
                 'org_id'            => null,
                 'is_partner'        => 0,
-                'auth_provider'     => 'local', // Local user — conflict
+                'auth_provider'     => 'local',
             ];
         };
 
