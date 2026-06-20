@@ -657,7 +657,7 @@ class OraBooks_Customers {
                         FROM {$table_invoices}
                         WHERE customer_id = c.id AND payment_status IN ('unpaid', 'partial', 'overdue')) as wallet_balance
                 FROM {$table} c
-                JOIN {$table_users} u ON c.user_id = u.id
+                LEFT JOIN {$table_users} u ON c.user_id = u.id
                 LEFT JOIN {$table_orgs} o ON c.org_id = o.id
                 WHERE {$where}
                 ORDER BY c.updated_at DESC
@@ -671,7 +671,7 @@ class OraBooks_Customers {
         $count_params = $params;
         array_pop($count_params); // remove limit
         array_pop($count_params); // remove offset
-        $count_sql = "SELECT COUNT(*) FROM {$table} c JOIN {$table_users} u ON c.user_id = u.id LEFT JOIN {$table_orgs} o ON c.org_id = o.id WHERE {$where}";
+        $count_sql = "SELECT COUNT(*) FROM {$table} c LEFT JOIN {$table_users} u ON c.user_id = u.id LEFT JOIN {$table_orgs} o ON c.org_id = o.id WHERE {$where}";
         $total = (int) $wpdb->get_var($wpdb->prepare($count_sql, $count_params));
 
         return [
@@ -778,23 +778,32 @@ class OraBooks_Customers {
         );
 
         // Synchronize the commission engine's customer_active_status read model
-        if (class_exists('OraBooks_Commission') && method_exists('OraBooks_Commission', 'refresh_customer_active_status')) {
-            OraBooks_Commission::refresh_customer_active_status($customer->user_id);
+        if (
+            !empty($customer->user_id)
+            && class_exists('OraBooks_Commission')
+            && method_exists('OraBooks_Commission', 'refresh_customer_active_status')
+        ) {
+            OraBooks_Commission::refresh_customer_active_status((int) $customer->user_id);
         }
 
         // Audit log
         if ($old_status !== (bool) $is_active) {
+            $customer_ref = !empty($customer->user_id)
+                ? (int) $customer->user_id
+                : (int) $customer->id;
+
             orabooks_log_event(
                 $is_active ? 'customer_activated' : 'customer_deactivated',
-                "Customer #{$customer->user_id} " . ($is_active ? 'activated' : 'deactivated'),
+                "Customer #{$customer_ref} " . ($is_active ? 'activated' : 'deactivated'),
                 'info',
                 ['customer_id' => $customer->id, 'user_id' => $customer->user_id, 'org_id' => $customer->org_id],
                 orabooks_get_current_user_id(),
                 $customer->org_id
             );
 
-            // Publish event for partner commission engine
-            do_action('orabooks_customer_active_status_changed', $customer->user_id, (bool) $is_active, $customer->org_id);
+            if (!empty($customer->user_id)) {
+                do_action('orabooks_customer_active_status_changed', (int) $customer->user_id, (bool) $is_active, $customer->org_id);
+            }
         }
 
         return true;
