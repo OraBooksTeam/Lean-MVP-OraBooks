@@ -739,6 +739,47 @@ class OraBooks_Posting {
             : new WP_Error('balance_insert_failed', 'Failed to create account balance.');
     }
 
+    /**
+     * Anti-corruption mapper for Stripe/Shopify/CSV/etc. sources.
+     *
+     * External integrations must pass through this canonical structure before
+     * creating journals; raw external payloads never write ledger tables.
+     */
+    public static function map_external_transaction($source_type, array $raw_data) {
+        $source_type = sanitize_key($source_type ?: 'external');
+        $source_id = isset($raw_data['id']) ? (string) $raw_data['id'] : '';
+        $transaction_date = sanitize_text_field(
+            $raw_data['transaction_date']
+            ?? $raw_data['date']
+            ?? $raw_data['created_at']
+            ?? gmdate('Y-m-d')
+        );
+
+        $lines = [];
+        foreach (($raw_data['lines'] ?? []) as $line) {
+            if (!is_array($line)) {
+                continue;
+            }
+            $lines[] = [
+                'account_code' => sanitize_text_field($line['account_code'] ?? $line['account'] ?? ''),
+                'debit' => round((float) ($line['debit'] ?? $line['debit_amount'] ?? 0), 2),
+                'credit' => round((float) ($line['credit'] ?? $line['credit_amount'] ?? 0), 2),
+                'description' => sanitize_text_field($line['description'] ?? ''),
+            ];
+        }
+
+        return [
+            'source_type' => $source_type,
+            'source_id' => $source_id,
+            'source_hash' => hash('sha256', self::canonical_json($raw_data)),
+            'transaction_date' => substr($transaction_date, 0, 10),
+            'lines' => $lines,
+            'metadata' => [
+                'external_source_type' => $source_type,
+            ],
+        ];
+    }
+
     private static function format_decimal($value) {
         return number_format(round((float) $value, 2), 2, '.', '');
     }

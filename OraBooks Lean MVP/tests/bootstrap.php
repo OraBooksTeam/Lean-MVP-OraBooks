@@ -1130,10 +1130,71 @@ if (!function_exists('orabooks_persist_login_session')) {
         if (!empty($login_result['token'])) {
             orabooks_set_auth_token_cookie($login_result['token']);
         }
+        if (!empty($login_result['refresh_token']) && function_exists('orabooks_set_refresh_token_cookie')) {
+            orabooks_set_refresh_token_cookie($login_result['refresh_token']);
+        }
         $user_id = !empty($login_result['user_id']) ? (int) $login_result['user_id'] : 0;
         if ($user_id > 0) {
             orabooks_establish_wp_session_for_orabooks_user($user_id, $password);
         }
+    }
+}
+
+if (!function_exists('orabooks_get_refresh_token_cookie_ttl')) {
+    function orabooks_get_refresh_token_cookie_ttl() {
+        return 604800;
+    }
+}
+
+if (!function_exists('orabooks_set_refresh_token_cookie')) {
+    function orabooks_set_refresh_token_cookie($token) {
+        $GLOBALS['orabooks_test_refresh_token_cookie'] = $token;
+    }
+}
+
+if (!function_exists('orabooks_clear_refresh_token_cookie')) {
+    function orabooks_clear_refresh_token_cookie() {
+        unset($GLOBALS['orabooks_test_refresh_token_cookie']);
+    }
+}
+
+if (!function_exists('orabooks_get_refresh_token_from_request')) {
+    function orabooks_get_refresh_token_from_request() {
+        return $GLOBALS['orabooks_test_refresh_token_cookie'] ?? '';
+    }
+}
+
+if (!function_exists('orabooks_redact_client_auth_response')) {
+    function orabooks_redact_client_auth_response($payload) {
+        if (!is_array($payload)) {
+            return $payload;
+        }
+        unset($payload['refresh_token']);
+        return $payload;
+    }
+}
+
+if (!function_exists('orabooks_set_2fa_secret')) {
+    function orabooks_set_2fa_secret($wp_user_id, $secret) {
+        $GLOBALS['orabooks_test_user_meta'][$wp_user_id]['orabooks_2fa_secret'] = $secret;
+    }
+}
+
+if (!function_exists('orabooks_get_2fa_secret')) {
+    function orabooks_get_2fa_secret($wp_user_id) {
+        return $GLOBALS['orabooks_test_user_meta'][$wp_user_id]['orabooks_2fa_secret'] ?? '';
+    }
+}
+
+if (!function_exists('orabooks_resolve_tier_selection_user_id')) {
+    function orabooks_resolve_tier_selection_user_id($token = '') {
+        return 0;
+    }
+}
+
+if (!function_exists('orabooks_clear_logout_landing_cookie')) {
+    function orabooks_clear_logout_landing_cookie() {
+        unset($GLOBALS['orabooks_test_logout_cookie']);
     }
 }
 
