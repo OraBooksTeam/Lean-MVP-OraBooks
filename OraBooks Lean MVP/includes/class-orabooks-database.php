@@ -1068,6 +1068,48 @@ class OraBooks_Database {
     }
 
     /**
+     * SL-303 guardrails for existing installs where dbDelta cannot alter ENUMs reliably.
+     */
+    private static function ensure_async_queue_schema($table_jobs) {
+        global $wpdb;
+
+        $cols = $wpdb->get_results("SHOW COLUMNS FROM {$table_jobs}");
+        $existing = [];
+        foreach ($cols as $col) {
+            $existing[] = $col->Field;
+        }
+
+        $adds = [
+            'last_attempt_at' => "ALTER TABLE {$table_jobs} ADD COLUMN last_attempt_at TIMESTAMP NULL AFTER completed_at",
+            'idempotency_key' => "ALTER TABLE {$table_jobs} ADD COLUMN idempotency_key VARCHAR(191) NULL AFTER heartbeat_at",
+            'cancelled_at' => "ALTER TABLE {$table_jobs} ADD COLUMN cancelled_at TIMESTAMP NULL AFTER idempotency_key",
+            'archived_at' => "ALTER TABLE {$table_jobs} ADD COLUMN archived_at TIMESTAMP NULL AFTER cancelled_at",
+        ];
+        foreach ($adds as $column => $sql) {
+            if (!in_array($column, $existing, true)) {
+                $wpdb->query($sql);
+            }
+        }
+
+        $status = $wpdb->get_row("SHOW COLUMNS FROM {$table_jobs} LIKE 'status'");
+        if ($status && strpos((string) $status->Type, 'cancelled') === false) {
+            $wpdb->query("ALTER TABLE {$table_jobs} MODIFY status ENUM('pending','processing','completed','failed','dead_letter','cancelled','discarded') DEFAULT 'pending'");
+        }
+
+        $indexes = $wpdb->get_results("SHOW INDEX FROM {$table_jobs}");
+        $existing_indexes = [];
+        foreach ($indexes as $index) {
+            $existing_indexes[$index->Key_name] = true;
+        }
+        if (empty($existing_indexes['uk_idempotency_key'])) {
+            $wpdb->query("ALTER TABLE {$table_jobs} ADD UNIQUE KEY uk_idempotency_key (idempotency_key)");
+        }
+        if (empty($existing_indexes['idx_queue_status_retry'])) {
+            $wpdb->query("ALTER TABLE {$table_jobs} ADD INDEX idx_queue_status_retry (queue_name, status, next_retry_at)");
+        }
+    }
+
+    /**
      * SL-001 guardrails that dbDelta cannot express reliably.
      *
      * MySQL has no deferred constraints, so journal line inserts remain editable while
