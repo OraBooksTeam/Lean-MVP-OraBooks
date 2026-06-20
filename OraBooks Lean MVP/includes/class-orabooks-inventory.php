@@ -315,6 +315,8 @@ class OraBooks_Inventory {
     public static function get_product($product_id, $org_id) {
         global $wpdb;
 
+        self::maybe_ensure_product_schema();
+
         $table = OraBooks_Database::table('products');
         return $wpdb->get_row($wpdb->prepare(
             "SELECT * FROM {$table} WHERE id = %d AND org_id = %d",
@@ -325,6 +327,8 @@ class OraBooks_Inventory {
 
     public static function get_product_by_sku($org_id, $sku) {
         global $wpdb;
+
+        self::maybe_ensure_product_schema();
 
         $table = OraBooks_Database::table('products');
         return $wpdb->get_row($wpdb->prepare(
@@ -337,13 +341,18 @@ class OraBooks_Inventory {
     public static function get_products_list($org_id, $args = []) {
         global $wpdb;
 
+        self::maybe_ensure_product_schema();
+
         $table = OraBooks_Database::table('products');
         $where = 'org_id = %d';
         $params = [intval($org_id)];
 
         if (!empty($args['search'])) {
-            $where .= ' AND (sku LIKE %s OR name LIKE %s)';
+            $where .= ' AND (sku LIKE %s OR name LIKE %s OR category_name LIKE %s OR brand_name LIKE %s OR barcode LIKE %s)';
             $search = '%' . $wpdb->esc_like($args['search']) . '%';
+            $params[] = $search;
+            $params[] = $search;
+            $params[] = $search;
             $params[] = $search;
             $params[] = $search;
         }
