@@ -659,7 +659,7 @@ class OraBooks_Customers {
                 "Customer #{$customer->user_id} " . ($is_active ? 'activated' : 'deactivated'),
                 'info',
                 ['customer_id' => $customer->id, 'user_id' => $customer->user_id, 'org_id' => $customer->org_id],
-                get_current_user_id(),
+                orabooks_get_current_user_id(),
                 $customer->org_id
             );
 
@@ -753,7 +753,7 @@ class OraBooks_Customers {
                 'tax_amount'      => $data['tax_amount'] ?? 0,
                 'tax_rate'        => $data['tax_rate'] ?? 0,
                 'tax_override_reason' => !empty($data['tax_override_reason']) ? sanitize_text_field($data['tax_override_reason']) : null,
-                'tax_override_by' => !empty($data['tax_override_reason']) ? get_current_user_id() : null,
+                'tax_override_by' => !empty($data['tax_override_reason']) ? orabooks_get_current_user_id() : null,
                 'tax_override_at' => !empty($data['tax_override_reason']) ? current_time('mysql') : null,
                 'currency'        => $data['currency'] ?? 'USD',
                 'payment_status'  => 'unpaid',
