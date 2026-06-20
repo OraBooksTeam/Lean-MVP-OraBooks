@@ -1546,11 +1546,25 @@ class OraBooks_Financial_Reports {
 
         switch ($report_type) {
             case 'profit_loss':
-                foreach (['revenue' => 'Revenue', 'expenses' => 'Expense'] as $key => $section) {
+                foreach (['revenue' => 'Revenue', 'cogs' => 'COGS', 'operating_expenses' => 'Operating Expenses'] as $key => $section) {
                     foreach ($report[$key] ?? [] as $item) {
                         $rows[] = array_merge(['section' => $section], $item);
                     }
                 }
+                $rows[] = [
+                    'section' => 'Summary',
+                    'code' => '',
+                    'name' => 'Gross Profit',
+                    'type' => '',
+                    'amount' => $report['gross_profit'] ?? 0,
+                ];
+                $rows[] = [
+                    'section' => 'Summary',
+                    'code' => '',
+                    'name' => 'Operating Income',
+                    'type' => '',
+                    'amount' => $report['operating_income'] ?? 0,
+                ];
                 $rows[] = [
                     'section' => 'Summary',
                     'code' => '',
@@ -1569,6 +1583,20 @@ class OraBooks_Financial_Reports {
                         $rows[] = array_merge(['section' => $section], $item);
                     }
                 }
+                $rows[] = [
+                    'section' => 'Summary',
+                    'code' => '',
+                    'name' => 'Total Assets',
+                    'type' => '',
+                    'amount' => $report['total_assets'] ?? 0,
+                ];
+                $rows[] = [
+                    'section' => 'Summary',
+                    'code' => '',
+                    'name' => 'Liabilities + Equity',
+                    'type' => '',
+                    'amount' => $report['liabilities_plus_equity'] ?? 0,
+                ];
                 return [
                     'columns' => ['section', 'code', 'name', 'type', 'amount'],
                     'rows' => $rows,
@@ -1596,9 +1624,20 @@ class OraBooks_Financial_Reports {
                 foreach ($report['accounts'] ?? [] as $item) {
                     $rows[] = $item;
                 }
+                $rows[] = [
+                    'code' => '',
+                    'name' => 'Totals',
+                    'type' => 'summary',
+                    'opening_balance' => '',
+                    'closing_balance' => '',
+                    'debit' => $report['total_debits'] ?? 0,
+                    'credit' => $report['total_credits'] ?? 0,
+                ];
                 return [
-                    'columns' => ['code', 'name', 'type', 'debit', 'credit'],
+                    'columns' => ['code', 'name', 'type', 'opening_balance', 'closing_balance', 'debit', 'credit'],
                     'rows' => $rows,
+                    'balanced' => !empty($report['balanced']),
+                    'balance_message' => $report['balance_message'] ?? '',
                 ];
 
             case 'changes_equity':
