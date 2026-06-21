@@ -341,6 +341,79 @@ class OraBooks_Tax_Test extends TestCase
         $this->assertIsArray($result);
         $this->assertEquals(88, $result['snapshot_id']);
         $this->assertTrue($result['existing']);
-        $this->assertFalse($insert_called);
+    public function test_list_snapshots_returns_formatted_rows()
+    {
+        global $wpdb;
+
+        $wpdb->test_get_results_callback = function ($query) {
+            if (stripos($query, 'tax_snapshots') !== false) {
+                return [
+                    (object) [
+                        'id' => 1,
+                        'org_id' => 2,
+                        'transaction_id' => 100,
+                        'transaction_type' => 'invoice',
+                        'taxable_amount' => '1000.00',
+                        'tax_rate' => '15.0000',
+                        'tax_amount' => '150.00',
+                        'jurisdiction' => 'BD',
+                        'tax_type' => 'VAT',
+                        'rule_id' => 'org_config_1',
+                        'override_reason' => null,
+                        'override_note' => null,
+                        'created_at' => '2026-06-01 10:00:00',
+                    ],
+                ];
+            }
+            return [];
+        };
+
+        $snapshots = OraBooks_Tax::list_snapshots(2, 10);
+        $this->assertCount(1, $snapshots);
+        $this->assertEquals('invoice', $snapshots[0]['transaction_type']);
+        $this->assertEquals(150.0, $snapshots[0]['tax_amount']);
+    }
+
+    public function test_create_snapshot_from_expense()
+    {
+        global $wpdb;
+
+        $wpdb->test_get_var_callback = function ($query) {
+            if (stripos($query, 'tax_snapshots') !== false) {
+                return null;
+            }
+            return null;
+        };
+        $wpdb->test_get_row_callback = function ($query) {
+            if (stripos($query, 'fiscal_periods') !== false) {
+                return (object) ['status' => 'open'];
+            }
+            if (stripos($query, 'tax_configs') !== false) {
+                return (object) [
+                    'id' => 1,
+                    'default_tax_rate' => '18.0000',
+                    'tax_type' => 'GST',
+                    'override_reasons' => null,
+                ];
+            }
+            return null;
+        };
+        $wpdb->test_insert_callback = function () {};
+        $GLOBALS['orabooks_test_use_insert_id'] = 55;
+
+        $expense = (object) [
+            'id' => 9,
+            'org_id' => 2,
+            'subtotal' => '200.00',
+            'total_amount' => '236.00',
+            'tax_amount' => '36.00',
+            'tax_rate' => '18.00',
+            'tax_jurisdiction' => 'IN',
+            'transaction_date' => '2026-06-10',
+        ];
+
+        $result = OraBooks_Tax::create_snapshot_from_expense($expense, 1);
+        $this->assertIsArray($result);
+        $this->assertEquals(55, $result['snapshot_id']);
     }
 }

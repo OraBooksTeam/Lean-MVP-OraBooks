@@ -440,7 +440,7 @@ export default function TaxSettingsPage() {
               <p className="text-sm font-medium text-slate-700">Allowed override reason codes</p>
               <p className="text-xs text-slate-500">Only selected codes can be used when overriding tax on invoices or expenses.</p>
               <div className="mt-2 grid gap-2 sm:grid-cols-2">
-                {availableReasons.map((reason) => (
+                {DEFAULT_OVERRIDE_REASONS.map((reason) => (
                   <label key={reason} className="flex items-start gap-2 rounded-lg border border-border bg-white px-3 py-2 text-sm">
                     <input
                       type="checkbox"

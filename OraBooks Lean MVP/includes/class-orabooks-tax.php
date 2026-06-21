@@ -283,7 +283,7 @@ class OraBooks_Tax {
             'jurisdiction' => $jurisdiction,
             'default_tax_rate' => $rate,
             'tax_type' => $tax_type,
-            'exemption_certificate_url' => isset($data['exemption_certificate_url']) ? esc_url_raw($data['exemption_certificate_url']) : null,
+            'exemption_certificate_url' => !empty($data['exemption_certificate_url']) ? esc_url_raw($data['exemption_certificate_url']) : null,
             'override_reasons' => wp_json_encode(array_values($override_reasons)),
             'is_active' => !empty($data['is_active']) ? 1 : 0,
         ];
