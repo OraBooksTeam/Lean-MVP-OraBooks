@@ -1359,4 +1359,98 @@ class OraBooks_Customers_Test extends TestCase
         $this->assertInstanceOf(WP_Error::class, $result);
         $this->assertSame('missing_field', $result->get_error_code());
     }
+
+    #[Test]
+    public function test_cancel_invoice_draft_success()
+    {
+        global $wpdb;
+
+        $wpdb->test_get_row_callback = function ($query) {
+            if (stripos($query, 'WHERE i.id') !== false) {
+                return $this->mockInvoice(['workflow_status' => 'draft']);
+            }
+            return null;
+        };
+        $wpdb->test_query_callback = function () {
+            return true;
+        };
+        $wpdb->test_update_callback = function ($table, $data) {
+            return isset($data['workflow_status']) && $data['workflow_status'] === 'cancelled';
+        };
+        $wpdb->test_insert_callback = function () {
+            return true;
+        };
+        $GLOBALS['orabooks_test_use_insert_id'] = 401;
+
+        $result = OraBooks_Customers::cancel_invoice(5, 100, 1, 'Customer request');
+
+        $this->assertIsObject($result);
+    }
+
+    #[Test]
+    public function test_cancel_invoice_sent_success()
+    {
+        global $wpdb;
+
+        $wpdb->test_get_row_callback = function ($query) {
+            if (stripos($query, 'WHERE i.id') !== false) {
+                return $this->mockInvoice(['workflow_status' => 'sent']);
+            }
+            return null;
+        };
+        $wpdb->test_query_callback = function () {
+            return true;
+        };
+        $wpdb->test_update_callback = function () {
+            return true;
+        };
+        $wpdb->test_insert_callback = function () {
+            return true;
+        };
+        $GLOBALS['orabooks_test_use_insert_id'] = 402;
+
+        $result = OraBooks_Customers::cancel_invoice(5, 100, 1);
+
+        $this->assertIsObject($result);
+    }
+
+    #[Test]
+    public function test_cancel_invoice_rejects_posted_status()
+    {
+        global $wpdb;
+
+        $wpdb->test_get_row_callback = function ($query) {
+            if (stripos($query, 'WHERE i.id') !== false) {
+                return $this->mockInvoice(['workflow_status' => 'posted']);
+            }
+            return null;
+        };
+
+        $result = OraBooks_Customers::cancel_invoice(5, 100, 1);
+
+        $this->assertInstanceOf(WP_Error::class, $result);
+        $this->assertEquals('invalid_status', $result->get_error_code());
+    }
+
+    #[Test]
+    public function test_cancel_invoice_rejects_partial_payment()
+    {
+        global $wpdb;
+
+        $wpdb->test_get_row_callback = function ($query) {
+            if (stripos($query, 'WHERE i.id') !== false) {
+                return $this->mockInvoice([
+                    'workflow_status' => 'sent',
+                    'payment_status' => 'partial',
+                    'paid_amount' => '100.00',
+                ]);
+            }
+            return null;
+        };
+
+        $result = OraBooks_Customers::cancel_invoice(5, 100, 1);
+
+        $this->assertInstanceOf(WP_Error::class, $result);
+        $this->assertEquals('has_payments', $result->get_error_code());
+    }
 }
