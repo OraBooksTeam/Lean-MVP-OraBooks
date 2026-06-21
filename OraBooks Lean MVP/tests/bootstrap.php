@@ -27,6 +27,13 @@ if (!defined('ORABOOKS_DB_VERSION')) {
     define('ORABOOKS_DB_VERSION', '1.0.1');
 }
 
+if (PHP_SAPI === 'cli' && !empty($argv)) {
+    $cli_args = implode(' ', $argv);
+    if (strpos($cli_args, 'OraBooks_Organization_Test') !== false || strpos($cli_args, 'phpunit-organization.xml') !== false) {
+        $GLOBALS['ORABOOKS_LOAD_REAL_ORGANIZATION'] = true;
+    }
+}
+
 // Define WordPress constants used by the exports class
 if (!defined('OBJECT')) {
     define('OBJECT', 'OBJECT');
