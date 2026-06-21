@@ -967,6 +967,15 @@ class OraBooks_Database {
             dbDelta($sql);
         }
 
+        $table_csv = OraBooks_Database::table('csv_imports');
+        $csv_cols = $wpdb->get_col("DESCRIBE {$table_csv}", 0);
+        if (is_array($csv_cols) && !in_array('attachment_id', $csv_cols, true)) {
+            $wpdb->query("ALTER TABLE {$table_csv} ADD COLUMN attachment_id BIGINT UNSIGNED NULL AFTER user_id");
+        }
+        if (is_array($csv_cols) && !in_array('source_headers', $csv_cols, true)) {
+            $wpdb->query("ALTER TABLE {$table_csv} ADD COLUMN source_headers JSON DEFAULT NULL AFTER header_mapping");
+        }
+
         if (!wp_next_scheduled('orabooks_csv_imports_purge')) {
             wp_schedule_event(time(), 'monthly', 'orabooks_csv_imports_purge');
         }

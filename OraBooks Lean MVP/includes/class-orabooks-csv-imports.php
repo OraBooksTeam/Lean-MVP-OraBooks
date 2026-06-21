@@ -1253,7 +1253,7 @@ class OraBooks_Csv_Imports {
         $full_path = $upload_dir['basedir'] . '/' . $storage_key;
 
         $encrypted = self::encrypt_file_content($content);
-        if ($encrypted === false) {
+        if ($encrypted === false || $encrypted === '') {
             return new WP_Error('storage_error', 'Could not encrypt CSV file');
         }
 
@@ -1300,7 +1300,7 @@ class OraBooks_Csv_Imports {
 
         if (str_ends_with($storage_key, '.enc')) {
             $content = self::decrypt_file_content($raw);
-            if ($content === false) {
+            if ($content === false || $content === null) {
                 return new WP_Error('file_read_error', 'Could not decrypt import file');
             }
             return $content;
@@ -1313,30 +1313,27 @@ class OraBooks_Csv_Imports {
         if (!function_exists('openssl_encrypt')) {
             return $data;
         }
+        $method = 'aes-256-cbc';
         $key = self::get_file_encryption_key();
-        $iv = openssl_random_pseudo_bytes(16);
-        $encrypted = openssl_encrypt($data, 'AES-256-CBC', $key, 0, $iv);
-        if ($encrypted === false) {
-            return false;
-        }
-        return $iv . $encrypted;
+        $iv = substr(hash('sha256', $key . '_csv_import_iv'), 0, 16);
+        return openssl_encrypt($data, $method, $key, 0, $iv);
     }
 
     private static function decrypt_file_content($data) {
-        if (!function_exists('openssl_decrypt') || strlen($data) < 17) {
+        if (!function_exists('openssl_decrypt')) {
             return $data;
         }
+        $method = 'aes-256-cbc';
         $key = self::get_file_encryption_key();
-        $iv = substr($data, 0, 16);
-        $encrypted = substr($data, 16);
-        return openssl_decrypt($encrypted, 'AES-256-CBC', $key, 0, $iv);
+        $iv = substr(hash('sha256', $key . '_csv_import_iv'), 0, 16);
+        return openssl_decrypt($data, $method, $key, 0, $iv);
     }
 
     private static function get_file_encryption_key() {
         if (class_exists('OraBooks_Secrets')) {
-            return hash('sha256', (string) OraBooks_Secrets::get_encryption_key(), true);
+            return OraBooks_Secrets::get_encryption_key();
         }
-        return hash('sha256', defined('ORABOOKS_JWT_SECRET') ? ORABOOKS_JWT_SECRET : 'orabooks-default', true);
+        return wp_salt('auth');
     }
 
     private static function mark_import_failed($import_id, $message) {

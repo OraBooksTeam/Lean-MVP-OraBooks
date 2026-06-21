@@ -627,6 +627,9 @@ class OraBooks_Ajax {
                 'vendor'         => 'Vendors',
                 'expense'        => 'Expenses',
                 'invoice'        => 'Invoices',
+                'journal'        => 'Journal Entries',
+                'price_list'     => 'Price Lists',
+                'payroll'        => 'Payroll',
             ];
             foreach (OraBooks_Csv_Imports::RESOURCE_TYPES as $type) {
                 $resource_types[] = [
