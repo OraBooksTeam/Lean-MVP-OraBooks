@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import Button from '@/components/Button';
 import { api } from '../api';
 import ClientShell from '../components/ClientShell';
@@ -145,7 +145,7 @@ export default function PartnerOnboardingPage() {
   );
 }
 
-function FieldLabel({ children, tooltip }: { children: React.ReactNode; tooltip: string }) {
+function FieldLabel({ children, tooltip }: { children: ReactNode; tooltip: string }) {
   return (
     <div className="flex items-center gap-1.5">
       <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">{children}</label>
