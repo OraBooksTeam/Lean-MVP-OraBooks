@@ -26,6 +26,7 @@ class OraBooks_Organization_Test extends TestCase
         $this->wpdb->test_get_row_callback = null;
         $this->wpdb->test_get_var_callback = null;
         $this->wpdb->test_update_callback = null;
+        $GLOBALS['orabooks_test_current_user_can'] = true;
         unset($GLOBALS['orabooks_test_jwt_payload']);
     }
 
@@ -141,6 +142,7 @@ class OraBooks_Organization_Test extends TestCase
 
     public function test_assert_tenant_access_blocks_cross_tenant_org()
     {
+        $GLOBALS['orabooks_test_current_user_can'] = false;
         $this->wpdb->test_get_var_callback = function () {
             return null;
         };
@@ -152,6 +154,7 @@ class OraBooks_Organization_Test extends TestCase
 
     public function test_resolve_request_org_id_blocks_foreign_org_id()
     {
+        $GLOBALS['orabooks_test_current_user_can'] = false;
         $this->wpdb->test_get_var_callback = function () {
             return null;
         };
