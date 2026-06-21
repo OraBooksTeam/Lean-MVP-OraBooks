@@ -332,7 +332,7 @@ class OraBooks_Approval_Test extends TestCase
             'approval_stale' => 0,
             'approval_round' => 2,
             'revision_number' => 3,
-            'created_by' => 5,
+            'created_by' => 0,
         ]);
 
         $updated = [];
