@@ -19,6 +19,7 @@ class OraBooks_DeployChecks {
             'orabooks_async_queue_process' => 'every_minute',
             'orabooks_async_queue_archive' => 'daily',
             'orabooks_daily_active_status_refresh' => 'daily',
+            'orabooks_team_cleanup_expired_invites' => 'daily',
         ];
     }
 

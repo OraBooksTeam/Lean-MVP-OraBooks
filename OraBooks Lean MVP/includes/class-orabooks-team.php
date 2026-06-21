@@ -34,6 +34,8 @@ class OraBooks_Team {
             add_action('wp_ajax_nopriv_orabooks_accept_invite', [self::$instance, 'ajax_accept_invite_legacy_redirect']);
             add_action('wp_ajax_orabooks_preview_invite', [self::$instance, 'ajax_preview_invite']);
             add_action('wp_ajax_nopriv_orabooks_preview_invite', [self::$instance, 'ajax_preview_invite']);
+            add_action('wp_ajax_orabooks_transfer_ownership', [self::$instance, 'ajax_transfer_ownership']);
+            add_action('orabooks_team_cleanup_expired_invites', [self::class, 'cleanup_expired_invites']);
         }
         return self::$instance;
     }
@@ -704,5 +706,24 @@ class OraBooks_Team {
             orabooks_json_error($preview->get_error_message(), 400);
         }
         orabooks_json_success($preview);
+    }
+
+    /**
+     * Reserved MVP endpoint — ownership transfer (SL-014 §5.10).
+     */
+    public function ajax_transfer_ownership() {
+        orabooks_json_error('Ownership transfer is not implemented in MVP.', 501);
+    }
+
+    /**
+     * Delete expired invite rows (optional nightly cleanup, SL-014 §5.11).
+     */
+    public static function cleanup_expired_invites() {
+        global $wpdb;
+
+        $table = OraBooks_Database::table('org_invites');
+        $deleted = $wpdb->query("DELETE FROM {$table} WHERE expires_at < NOW()");
+
+        return is_numeric($deleted) ? (int) $deleted : 0;
     }
 }

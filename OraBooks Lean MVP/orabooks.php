@@ -357,6 +357,7 @@ function orabooks_deactivate() {
     wp_clear_scheduled_hook('orabooks_monthly_payout_batch');
     wp_clear_scheduled_hook('orabooks_daily_commission_expiry');
     wp_clear_scheduled_hook('orabooks_daily_active_status_refresh');
+    wp_clear_scheduled_hook('orabooks_team_cleanup_expired_invites');
     wp_clear_scheduled_hook('orabooks_notification_provider_health_update');
     wp_clear_scheduled_hook('orabooks_notification_sla_check');
     wp_clear_scheduled_hook('orabooks_notification_device_cleanup');
