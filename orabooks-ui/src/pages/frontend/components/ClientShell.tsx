@@ -175,6 +175,7 @@ export default function ClientShell({
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
   const [userRole, setUserRole] = useState('');
+  const [needs2faSetup, setNeeds2faSetup] = useState(false);
 
   useEffect(() => {
     void api.frontendContext().then((res) => {
@@ -186,6 +187,7 @@ export default function ClientShell({
       if (Array.isArray(data?.permissions)) {
         setPermissions(data.permissions);
       }
+      setNeeds2faSetup(Boolean(data?.security?.needs_2fa_setup));
     });
 
     void api.notificationsUnreadCount().then((res) => {
@@ -374,6 +376,15 @@ export default function ClientShell({
               </div>
             </div>
           </header>
+          {needs2faSetup && currentRoute !== '/profile' && (
+            <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+              Your organization requires two-factor authentication.{' '}
+              <WpLink href="/profile#security-2fa" className="font-semibold text-primary underline">
+                Enable 2FA on your profile
+              </WpLink>{' '}
+              to continue using OraBooks.
+            </div>
+          )}
           {children}
         </div>
       </div>

@@ -1888,6 +1888,11 @@ if (!file_exists($auth_file)) {
 }
 require_once $auth_file;
 
+$two_factor_file = __DIR__ . '/../includes/class-orabooks-two-factor.php';
+if (file_exists($two_factor_file)) {
+    require_once $two_factor_file;
+}
+
 $customers_file = __DIR__ . '/../includes/class-orabooks-customers.php';
 if (!file_exists($customers_file)) {
     echo "ERROR: Cannot find class-orabooks-customers.php at {$customers_file}\n";
