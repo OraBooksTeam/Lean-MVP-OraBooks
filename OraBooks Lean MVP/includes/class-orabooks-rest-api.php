@@ -102,6 +102,61 @@ class OraBooks_Rest_Api {
             'callback'            => [__CLASS__, 'rest_state_transition'],
             'permission_callback' => [__CLASS__, 'can_execute_state_transition'],
         ]);
+
+        register_rest_route(self::NAMESPACE, '/auth/2fa/setup', [
+            'methods'             => WP_REST_Server::CREATABLE,
+            'callback'            => [__CLASS__, 'rest_2fa_setup'],
+            'permission_callback' => [__CLASS__, 'can_manage_own_2fa'],
+        ]);
+
+        register_rest_route(self::NAMESPACE, '/auth/2fa/verify-setup', [
+            'methods'             => WP_REST_Server::CREATABLE,
+            'callback'            => [__CLASS__, 'rest_2fa_verify_setup'],
+            'permission_callback' => [__CLASS__, 'can_manage_own_2fa'],
+        ]);
+
+        register_rest_route(self::NAMESPACE, '/auth/2fa/challenge', [
+            'methods'             => WP_REST_Server::CREATABLE,
+            'callback'            => [__CLASS__, 'rest_2fa_challenge'],
+            'permission_callback' => '__return_true',
+        ]);
+
+        register_rest_route(self::NAMESPACE, '/auth/2fa/disable', [
+            'methods'             => WP_REST_Server::CREATABLE,
+            'callback'            => [__CLASS__, 'rest_2fa_disable'],
+            'permission_callback' => [__CLASS__, 'can_manage_own_2fa'],
+        ]);
+
+        register_rest_route(self::NAMESPACE, '/auth/2fa/regenerate-backup-codes', [
+            'methods'             => WP_REST_Server::CREATABLE,
+            'callback'            => [__CLASS__, 'rest_2fa_regenerate_backup_codes'],
+            'permission_callback' => [__CLASS__, 'can_manage_own_2fa'],
+        ]);
+
+        register_rest_route(self::NAMESPACE, '/auth/2fa/status', [
+            'methods'             => WP_REST_Server::READABLE,
+            'callback'            => [__CLASS__, 'rest_2fa_status'],
+            'permission_callback' => [__CLASS__, 'can_manage_own_2fa'],
+        ]);
+
+        register_rest_route(self::NAMESPACE, '/auth/2fa/admin-recover', [
+            'methods'             => WP_REST_Server::CREATABLE,
+            'callback'            => [__CLASS__, 'rest_2fa_admin_recover'],
+            'permission_callback' => [__CLASS__, 'can_admin_recover_2fa'],
+        ]);
+
+        register_rest_route(self::NAMESPACE, '/org/security/2fa-policy', [
+            [
+                'methods'             => WP_REST_Server::READABLE,
+                'callback'            => [__CLASS__, 'rest_get_org_2fa_policy'],
+                'permission_callback' => [__CLASS__, 'can_manage_org_2fa_policy'],
+            ],
+            [
+                'methods'             => WP_REST_Server::EDITABLE,
+                'callback'            => [__CLASS__, 'rest_set_org_2fa_policy'],
+                'permission_callback' => [__CLASS__, 'can_manage_org_2fa_policy'],
+            ],
+        ]);
     }
 
     public static function rest_manifest() {
