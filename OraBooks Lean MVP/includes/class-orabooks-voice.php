@@ -578,12 +578,16 @@ class OraBooks_Voice {
             'tax_rate'        => (float) ($extracted['tax_rate'] ?? 0),
             'description'     => $extracted['description'] ?? 'Voice-created invoice',
             'transaction_date'=> $extracted['transaction_date'] ?? current_time('Y-m-d'),
-            'workflow_status' => 'submitted',
             'idempotency_key' => $idempotency_key,
         ]);
 
         if (is_wp_error($invoice)) {
             return $invoice;
+        }
+
+        $sent = OraBooks_Customers::send_invoice($org_id, (int) $invoice->id, (int) $user_id);
+        if (is_wp_error($sent)) {
+            return $sent;
         }
 
         return ['type' => 'invoice', 'id' => (int) $invoice->id];

@@ -713,14 +713,10 @@ class OraBooks_Csv_Imports {
             return $bill;
         }
 
-        $bills_table = OraBooks_Database::table('bills');
-        $wpdb->update(
-            $bills_table,
-            ['workflow_status' => 'submitted'],
-            ['id' => (int) $bill->id, 'org_id' => $org_id],
-            ['%s'],
-            ['%d', '%d']
-        );
+        $submitted = OraBooks_Vendors::submit_bill($org_id, (int) $bill->id, 0);
+        if (is_wp_error($submitted)) {
+            return $submitted;
+        }
 
         return [
             'resource_type' => 'expense',
