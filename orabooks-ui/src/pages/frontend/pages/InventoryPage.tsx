@@ -75,26 +75,62 @@ type ProductFormState = {
   item_type: 'Single' | 'Variants' | 'service';
 };
 
-const PRODUCT_CATEGORIES = ['General', 'Finished Goods', 'Raw Materials', 'Services', 'Consumables'];
-const PRODUCT_BRANDS = ['Generic', 'OraBooks'];
-const PRODUCT_UNITS = ['piece', 'box', 'kg', 'gram', 'liter', 'meter', 'hour', 'service'];
-const PRODUCT_TAXES = [
-  { name: 'No Tax', percent: 0 },
-  { name: 'GST 5%', percent: 5 },
-  { name: 'GST 12%', percent: 12 },
-  { name: 'GST 18%', percent: 18 },
-  { name: 'GST 28%', percent: 28 },
-  { name: 'VAT 15%', percent: 15 },
-];
-const PRODUCT_WAREHOUSES = ['Main Warehouse', 'Store Room', 'Retail Floor'];
+type LookupType = 'brand' | 'category' | 'unit' | 'tax' | 'warehouse';
+
+type InventoryLookup = {
+  id: number;
+  lookup_type: LookupType;
+  name: string;
+  code?: string | null;
+  tax_percent?: number | null;
+  description?: string | null;
+  warehouse_type?: string | null;
+};
+
+type LookupsMap = Record<LookupType, InventoryLookup[]>;
+
 const selectClassName = 'w-full rounded-lg border border-border bg-white px-3 py-2.5 text-sm text-ink shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20';
+
+function emptyLookups(): LookupsMap {
+  return { brand: [], category: [], unit: [], tax: [], warehouse: [] };
+}
+
+function normalizeLookupsResponse(data: unknown): LookupsMap {
+  const grouped = emptyLookups();
+  const payload = (data as { lookups?: unknown })?.lookups;
+  if (!payload) {
+    return grouped;
+  }
+  if (Array.isArray(payload)) {
+    payload.forEach((item) => {
+      const lookup = item as InventoryLookup;
+      if (lookup.lookup_type && grouped[lookup.lookup_type]) {
+        grouped[lookup.lookup_type].push(lookup);
+      }
+    });
+    return grouped;
+  }
+  Object.keys(grouped).forEach((type) => {
+    const items = (payload as Record<string, InventoryLookup[]>)[type];
+    if (Array.isArray(items)) {
+      grouped[type as LookupType] = items;
+    }
+  });
+  return grouped;
+}
+
+function defaultWarehouseName(lookups: LookupsMap): string {
+  return lookups.warehouse.find((item) => item.warehouse_type === 'system')?.name
+    || lookups.warehouse[0]?.name
+    || '';
+}
 
 function emptyProductForm(): ProductFormState {
   return {
     name: '',
     brand_name: '',
-    category_name: 'General',
-    unit: 'piece',
+    category_name: '',
+    unit: '',
     hsn: '',
     stock_keeping_unit: '',
     barcode: '',
@@ -113,7 +149,7 @@ function emptyProductForm(): ProductFormState {
     profit_margin: '0',
     sales_price: '',
     mrp: '',
-    warehouse_name: 'Main Warehouse',
+    warehouse_name: '',
     initial_stock: '',
     item_type: 'Single',
   };
@@ -132,6 +168,10 @@ export default function InventoryPage() {
 
   const [showProductForm, setShowProductForm] = useState(false);
   const [productForm, setProductForm] = useState<ProductFormState>(emptyProductForm());
+  const [lookups, setLookups] = useState<LookupsMap>(emptyLookups());
+  const [lookupModal, setLookupModal] = useState<LookupType | null>(null);
+  const [lookupSaving, setLookupSaving] = useState(false);
+  const [lookupError, setLookupError] = useState('');
 
   const [adjustProduct, setAdjustProduct] = useState<Product | null>(null);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
@@ -181,6 +221,83 @@ export default function InventoryPage() {
   };
 
   useEffect(() => { void load(); }, []);
+
+  const loadLookups = async (targetOrgId = orgId): Promise<LookupsMap> => {
+    if (!targetOrgId) {
+      return emptyLookups();
+    }
+    const res = await api.inventoryLookupsList(targetOrgId);
+    if (res.error) {
+      setError(res.error);
+      return emptyLookups();
+    }
+    const nextLookups = normalizeLookupsResponse((res as { data?: unknown }).data);
+    setLookups(nextLookups);
+    return nextLookups;
+  };
+
+  const openAddProduct = async () => {
+    if (!orgId) {
+      return;
+    }
+    setError('');
+    setSuccess('');
+    setLookupError('');
+    const nextLookups = await loadLookups(orgId);
+    const form = emptyProductForm();
+    form.category_name = nextLookups.category[0]?.name || '';
+    form.unit = nextLookups.unit[0]?.name || '';
+    form.warehouse_name = defaultWarehouseName(nextLookups);
+    setProductForm(form);
+    setShowProductForm(true);
+  };
+
+  const handleLookupCreated = (lookup: InventoryLookup) => {
+    setLookups((prev) => ({
+      ...prev,
+      [lookup.lookup_type]: [...prev[lookup.lookup_type], lookup].sort((a, b) => a.name.localeCompare(b.name)),
+    }));
+
+    setProductForm((prev) => {
+      const next = { ...prev };
+      if (lookup.lookup_type === 'brand') {
+        next.brand_name = lookup.name;
+      } else if (lookup.lookup_type === 'category') {
+        next.category_name = lookup.name;
+      } else if (lookup.lookup_type === 'unit') {
+        next.unit = lookup.name;
+      } else if (lookup.lookup_type === 'tax') {
+        next.tax_name = lookup.name;
+        next.tax_percent = String(lookup.tax_percent ?? 0);
+      } else if (lookup.lookup_type === 'warehouse') {
+        next.warehouse_name = lookup.name;
+      }
+      return next;
+    });
+    setLookupModal(null);
+    setLookupError('');
+  };
+
+  const handleCreateLookup = async (type: LookupType, data: Record<string, string>) => {
+    if (!orgId) {
+      return;
+    }
+    setLookupSaving(true);
+    setLookupError('');
+    const res = await api.inventoryLookupCreate(orgId, type, data);
+    if (res.error) {
+      setLookupError(res.error);
+      setLookupSaving(false);
+      return;
+    }
+    const lookup = (res as { data?: { lookup?: InventoryLookup } }).data?.lookup;
+    if (lookup) {
+      handleLookupCreated(lookup);
+    } else {
+      setLookupModal(null);
+    }
+    setLookupSaving(false);
+  };
 
   const handleSearch = () => { void load(); };
 
@@ -322,7 +439,7 @@ export default function InventoryPage() {
             />
           </div>
           <Button onClick={handleSearch} variant="secondary" size="sm">Search</Button>
-          <Button size="sm" onClick={() => { setShowProductForm(true); setProductForm(emptyProductForm()); setError(''); setSuccess(''); }}>
+          <Button size="sm" onClick={() => { void openAddProduct(); }}>
             <Plus className="h-4 w-4" />
             Add product
           </Button>
@@ -485,7 +602,12 @@ export default function InventoryPage() {
         {showProductForm && (
           <Modal title="Add product" onClose={() => setShowProductForm(false)}>
             {error && <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div>}
-            <ProductFields form={productForm} onChange={setProductForm} />
+            <ProductFields
+              form={productForm}
+              onChange={setProductForm}
+              lookups={lookups}
+              onOpenLookupModal={setLookupModal}
+            />
             <div className="mt-6 flex justify-end gap-2">
               <Button variant="secondary" onClick={() => setShowProductForm(false)}>Cancel</Button>
               <Button onClick={handleCreateProduct} loading={saving} disabled={!productForm.name.trim() || !productForm.category_name.trim() || !productForm.unit.trim() || !productForm.price.trim()}>
@@ -493,6 +615,17 @@ export default function InventoryPage() {
               </Button>
             </div>
           </Modal>
+        )}
+
+        {lookupModal && orgId && (
+          <LookupCreateModal
+            type={lookupModal}
+            orgId={orgId}
+            saving={lookupSaving}
+            error={lookupError}
+            onClose={() => { setLookupModal(null); setLookupError(''); }}
+            onSubmit={(data) => { void handleCreateLookup(lookupModal, data); }}
+          />
         )}
 
         {adjustProduct && (
@@ -530,9 +663,13 @@ export default function InventoryPage() {
 function ProductFields({
   form,
   onChange,
+  lookups,
+  onOpenLookupModal,
 }: {
   form: ProductFormState;
   onChange: (next: ProductFormState) => void;
+  lookups: LookupsMap;
+  onOpenLookupModal: (type: LookupType) => void;
 }) {
   const set = (patch: Partial<ProductFormState>) => onChange({ ...form, ...patch });
 
@@ -554,7 +691,7 @@ function ProductFields({
     });
   };
 
-  const selectedTax = PRODUCT_TAXES.find((tax) => tax.name === form.tax_name);
+  const selectedTax = lookups.tax.find((tax) => tax.name === form.tax_name);
 
   return (
     <div className="grid gap-6 lg:grid-cols-2">
@@ -571,16 +708,37 @@ function ProductFields({
 
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Brand">
-            <SelectWithCustom value={form.brand_name} options={PRODUCT_BRANDS} placeholder="- Select -" onChange={(value) => set({ brand_name: value })} />
+            <SelectWithAdd
+              value={form.brand_name}
+              options={lookups.brand}
+              placeholder="- Select -"
+              addTitle="Add Brand"
+              onChange={(value) => set({ brand_name: value })}
+              onAdd={() => onOpenLookupModal('brand')}
+            />
           </Field>
           <Field label="Category">
-            <SelectWithCustom value={form.category_name} options={PRODUCT_CATEGORIES} placeholder="- Select -" onChange={(value) => set({ category_name: value })} />
+            <SelectWithAdd
+              value={form.category_name}
+              options={lookups.category}
+              placeholder="- Select -"
+              addTitle="Add Category"
+              onChange={(value) => set({ category_name: value })}
+              onAdd={() => onOpenLookupModal('category')}
+            />
           </Field>
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Unit">
-            <SelectWithCustom value={form.unit} options={PRODUCT_UNITS} placeholder="- Select -" onChange={(value) => set({ unit: value })} />
+            <SelectWithAdd
+              value={form.unit}
+              options={lookups.unit}
+              placeholder="- Select -"
+              addTitle="Add Unit"
+              onChange={(value) => set({ unit: value })}
+              onAdd={() => onOpenLookupModal('unit')}
+            />
           </Field>
           <Field label="HSN">
             <Input value={form.hsn} onChange={(e) => set({ hsn: e.target.value })} placeholder="HSN Code" />
@@ -662,20 +820,19 @@ function ProductFields({
 
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Tax">
-            <select
+            <SelectWithAdd
               value={form.tax_name}
-              onChange={(e) => {
-                const tax = PRODUCT_TAXES.find((option) => option.name === e.target.value);
-                applyPricing({ tax_name: tax?.name || '', tax_percent: String(tax?.percent ?? 0) });
+              options={lookups.tax}
+              placeholder="- Select -"
+              addTitle="Add Tax"
+              getOptionLabel={(tax) => `${tax.name} (${tax.tax_percent ?? 0}%)`}
+              onChange={(value) => {
+                const tax = lookups.tax.find((option) => option.name === value);
+                applyPricing({ tax_name: tax?.name || '', tax_percent: String(tax?.tax_percent ?? 0) });
               }}
-              className={selectClassName}
-            >
-              <option value="">- Select -</option>
-              {PRODUCT_TAXES.map((tax) => (
-                <option key={tax.name} value={tax.name}>{tax.name}</option>
-              ))}
-            </select>
-            {selectedTax && <span className="text-xs text-slate-500">{selectedTax.percent}% tax selected</span>}
+              onAdd={() => onOpenLookupModal('tax')}
+            />
+            {selectedTax && <span className="mt-1 block text-xs text-slate-500">{selectedTax.tax_percent ?? 0}% tax selected</span>}
           </Field>
           <Field label="Tax Type">
             <select value={form.tax_type} onChange={(e) => applyPricing({ tax_type: e.target.value === 'Exclusive' ? 'Exclusive' : 'Inclusive' })} className={selectClassName}>
@@ -700,7 +857,14 @@ function ProductFields({
 
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Warehouse">
-            <SelectWithCustom value={form.warehouse_name} options={PRODUCT_WAREHOUSES} placeholder="- Select -" onChange={(value) => set({ warehouse_name: value })} />
+            <SelectWithAdd
+              value={form.warehouse_name}
+              options={lookups.warehouse}
+              placeholder="- Select -"
+              addTitle="Add Warehouse"
+              onChange={(value) => set({ warehouse_name: value })}
+              onAdd={() => onOpenLookupModal('warehouse')}
+            />
           </Field>
           <Field label="Opening Stock">
             <Input type="number" min="0" step="0.01" value={form.initial_stock} onChange={(e) => set({ initial_stock: e.target.value })} placeholder="0.00" />
@@ -719,44 +883,168 @@ function ProductFields({
   );
 }
 
-function SelectWithCustom({
+function SelectWithAdd({
   value,
   options,
   placeholder,
   onChange,
+  onAdd,
+  addTitle,
+  getOptionLabel,
 }: {
   value: string;
-  options: string[];
+  options: InventoryLookup[];
   placeholder: string;
   onChange: (value: string) => void;
+  onAdd: () => void;
+  addTitle: string;
+  getOptionLabel?: (item: InventoryLookup) => string;
 }) {
-  const [customMode, setCustomMode] = useState(false);
-  const isCustom = value && !options.includes(value);
-  const showCustomInput = customMode || isCustom;
+  const labelFor = getOptionLabel || ((item: InventoryLookup) => item.name);
 
   return (
-    <div className="grid gap-2">
+    <div className="flex gap-2">
       <select
-        value={showCustomInput ? '__custom__' : value}
-        onChange={(e) => {
-          if (e.target.value === '__custom__') {
-            setCustomMode(true);
-            return;
-          }
-          setCustomMode(false);
-          onChange(e.target.value);
-        }}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
         className={selectClassName}
       >
         <option value="">{placeholder}</option>
         {options.map((option) => (
-          <option key={option} value={option}>{option}</option>
+          <option key={option.id} value={option.name}>{labelFor(option)}</option>
         ))}
-        <option value="__custom__">Custom...</option>
       </select>
-      {showCustomInput && (
-        <Input value={value} onChange={(e) => onChange(e.target.value)} placeholder="Enter custom value" />
-      )}
+      <button
+        type="button"
+        onClick={onAdd}
+        title={addTitle}
+        className="inline-flex shrink-0 items-center justify-center rounded-lg border border-border bg-slate-50 px-3 py-2.5 text-slate-600 transition hover:bg-slate-100"
+      >
+        <Plus className="h-4 w-4" />
+      </button>
+    </div>
+  );
+}
+
+const LOOKUP_MODAL_TITLES: Record<LookupType, string> = {
+  brand: 'Add Brand',
+  category: 'Add Category',
+  unit: 'Add Unit',
+  tax: 'Add Tax',
+  warehouse: 'Add Warehouse',
+};
+
+function LookupCreateModal({
+  type,
+  orgId,
+  saving,
+  error,
+  onClose,
+  onSubmit,
+}: {
+  type: LookupType;
+  orgId: number;
+  saving: boolean;
+  error: string;
+  onClose: () => void;
+  onSubmit: (data: Record<string, string>) => void;
+}) {
+  const [name, setName] = useState('');
+  const [code, setCode] = useState('');
+  const [description, setDescription] = useState('');
+  const [taxPercent, setTaxPercent] = useState('');
+
+  useEffect(() => {
+    setName('');
+    setDescription('');
+    setTaxPercent('');
+    setCode('');
+
+    if (type === 'brand' || type === 'category') {
+      void api.inventoryLookupCode(orgId, type).then((res) => {
+        if (!res.error) {
+          setCode(String((res as { data?: { code?: string } }).data?.code || ''));
+        }
+      });
+    }
+  }, [type, orgId]);
+
+  const handleSubmit = () => {
+    if (!name.trim()) {
+      return;
+    }
+    const payload: Record<string, string> = {
+      name: name.trim(),
+      description: description.trim(),
+    };
+    if (type === 'brand' || type === 'category') {
+      payload.code = code.trim();
+    }
+    if (type === 'tax') {
+      payload.tax_percent = taxPercent.trim() || '0';
+    }
+    onSubmit(payload);
+  };
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/50 p-4" onClick={onClose}>
+      <div className="w-full max-w-md rounded-2xl border border-border bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between gap-3">
+          <h3 className="text-lg font-semibold text-ink">{LOOKUP_MODAL_TITLES[type]}</h3>
+          <button type="button" onClick={onClose} className="text-sm text-slate-500 hover:text-slate-700">Close</button>
+        </div>
+
+        <div className="mt-4 space-y-4">
+          {error && <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div>}
+
+          {(type === 'brand' || type === 'category') && (
+            <Field label={type === 'brand' ? 'Brand Code' : 'Category Code'}>
+              <Input value={code} readOnly placeholder="Generating..." />
+            </Field>
+          )}
+
+          <Field label={`${LOOKUP_MODAL_TITLES[type].replace('Add ', '')} Name`}>
+            <Input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder={`Enter ${type} name`}
+              required
+            />
+          </Field>
+
+          {type === 'tax' && (
+            <Field label="Tax Percentage">
+              <Input
+                type="number"
+                min="0"
+                step="0.01"
+                value={taxPercent}
+                onChange={(e) => setTaxPercent(e.target.value)}
+                placeholder="0.00"
+              />
+            </Field>
+          )}
+
+          {type !== 'tax' && (
+            <Field label="Description">
+              <textarea
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                rows={3}
+                placeholder="Optional description"
+                className="w-full rounded-lg border border-border bg-white px-3 py-2.5 text-sm text-ink shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+              />
+            </Field>
+          )}
+        </div>
+
+        <div className="mt-6 flex justify-end gap-2">
+          <Button variant="secondary" onClick={onClose}>Cancel</Button>
+          <Button onClick={handleSubmit} loading={saving} disabled={!name.trim() || (type === 'tax' && taxPercent.trim() === '')}>
+            Save
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }

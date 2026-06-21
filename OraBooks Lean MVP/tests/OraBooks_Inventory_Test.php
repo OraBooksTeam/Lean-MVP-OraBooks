@@ -50,6 +50,7 @@ class OraBooks_Inventory_Test extends TestCase
 
         $this->assertStringContainsString('orabooks_products', $sql);
         $this->assertStringContainsString('orabooks_inventory_movements', $sql);
+        $this->assertStringContainsString('orabooks_inventory_lookups', $sql);
         $this->assertStringContainsString('UNIQUE KEY uk_org_sku', $sql);
         $this->assertStringContainsString("ENUM('opening','purchase','sale','adjustment')", $sql);
     }

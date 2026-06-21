@@ -405,6 +405,22 @@ export const api = {
       ...(productId ? { product_id: productId } : {}),
       ...filters,
     }),
+  inventoryLookupsList: (orgId: number, lookupType?: string) =>
+    api.get('orabooks_inventory_lookups_list', {
+      org_id: orgId,
+      ...(lookupType ? { lookup_type: lookupType } : {}),
+    }),
+  inventoryLookupCreate: (orgId: number, lookupType: string, data: Record<string, unknown>) =>
+    api.post('orabooks_inventory_lookup_create', {
+      org_id: orgId,
+      lookup_type: lookupType,
+      ...data,
+    }),
+  inventoryLookupCode: (orgId: number, lookupType: string) =>
+    api.get('orabooks_inventory_lookup_code', {
+      org_id: orgId,
+      lookup_type: lookupType,
+    }),
   bankDashboard: () =>
     api.get('orabooks_bank_dashboard'),
   bankAccountsList: (orgId: number) =>

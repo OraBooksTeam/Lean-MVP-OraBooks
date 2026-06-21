@@ -29,6 +29,12 @@ class OraBooks_Inventory {
             add_action('wp_ajax_nopriv_orabooks_inventory_product_adjust', [self::$instance, 'ajax_adjust_stock']);
             add_action('wp_ajax_orabooks_inventory_movements', [self::$instance, 'ajax_movements']);
             add_action('wp_ajax_nopriv_orabooks_inventory_movements', [self::$instance, 'ajax_movements']);
+            add_action('wp_ajax_orabooks_inventory_lookups_list', [self::$instance, 'ajax_lookups_list']);
+            add_action('wp_ajax_nopriv_orabooks_inventory_lookups_list', [self::$instance, 'ajax_lookups_list']);
+            add_action('wp_ajax_orabooks_inventory_lookup_create', [self::$instance, 'ajax_lookup_create']);
+            add_action('wp_ajax_nopriv_orabooks_inventory_lookup_create', [self::$instance, 'ajax_lookup_create']);
+            add_action('wp_ajax_orabooks_inventory_lookup_code', [self::$instance, 'ajax_lookup_code']);
+            add_action('wp_ajax_nopriv_orabooks_inventory_lookup_code', [self::$instance, 'ajax_lookup_code']);
 
             add_action('orabooks_vendor_bill_posted', [self::$instance, 'on_vendor_bill_posted'], 10, 2);
             add_action('orabooks_invoice_posted', [self::$instance, 'on_invoice_posted'], 10, 2);
@@ -42,6 +48,7 @@ class OraBooks_Inventory {
         $charset_collate = $wpdb->get_charset_collate();
         $table_products = OraBooks_Database::table('products');
         $table_movements = OraBooks_Database::table('inventory_movements');
+        $table_lookups = OraBooks_Database::table('inventory_lookups');
         $table_orgs = OraBooks_Database::table('organizations');
 
         return [
@@ -104,7 +111,248 @@ class OraBooks_Inventory {
                 INDEX idx_reference (reference_type, reference_id),
                 INDEX idx_created (created_at)
             ) {$charset_collate};",
+            "CREATE TABLE IF NOT EXISTS {$table_lookups} (
+                id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                org_id BIGINT UNSIGNED NOT NULL,
+                lookup_type ENUM('brand','category','unit','tax','warehouse') NOT NULL,
+                name VARCHAR(120) NOT NULL,
+                code VARCHAR(50) NULL,
+                tax_percent DECIMAL(10,4) NULL,
+                description TEXT NULL,
+                warehouse_type VARCHAR(50) DEFAULT 'custom',
+                is_active TINYINT(1) DEFAULT 1,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE KEY uk_org_type_name (org_id, lookup_type, name),
+                FOREIGN KEY (org_id) REFERENCES {$table_orgs}(id) ON DELETE CASCADE,
+                INDEX idx_org_type (org_id, lookup_type)
+            ) {$charset_collate};",
         ];
+    }
+
+    private static function lookup_types() {
+        return ['brand', 'category', 'unit', 'tax', 'warehouse'];
+    }
+
+    private static function normalize_lookup_type($type) {
+        $type = sanitize_key((string) $type);
+        return in_array($type, self::lookup_types(), true) ? $type : '';
+    }
+
+    private static function maybe_ensure_lookup_schema() {
+        static $ran = false;
+        if ($ran) {
+            return;
+        }
+        $ran = true;
+
+        global $wpdb;
+        $table = OraBooks_Database::table('inventory_lookups');
+        if ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table)) === $table) {
+            return;
+        }
+
+        $upgrade = ABSPATH . 'wp-admin/includes/upgrade.php';
+        if (file_exists($upgrade)) {
+            require_once $upgrade;
+
+            $lookup_sql = array_values(array_filter(
+                self::get_create_table_sql(),
+                function ($sql) {
+                    return stripos($sql, 'orabooks_inventory_lookups') !== false;
+                }
+            ));
+
+            if (!empty($lookup_sql[0]) && function_exists('dbDelta')) {
+                dbDelta($lookup_sql[0]);
+            }
+        }
+    }
+
+    private static function format_lookup($row) {
+        return [
+            'id' => (int) $row->id,
+            'lookup_type' => $row->lookup_type,
+            'name' => $row->name,
+            'code' => $row->code,
+            'tax_percent' => $row->tax_percent !== null ? (float) $row->tax_percent : null,
+            'description' => $row->description,
+            'warehouse_type' => $row->warehouse_type,
+        ];
+    }
+
+    private static function seed_default_lookups($org_id) {
+        global $wpdb;
+        $table = OraBooks_Database::table('inventory_lookups');
+        $org_id = (int) $org_id;
+
+        $defaults = [
+            ['category', 'General', null, null, null, null],
+            ['unit', 'piece', null, null, null, null],
+            ['warehouse', 'Main Warehouse', null, null, null, 'system'],
+        ];
+
+        foreach ($defaults as $row) {
+            [$type, $name, $code, $tax_percent, $description, $warehouse_type] = $row;
+            $exists = $wpdb->get_var($wpdb->prepare(
+                "SELECT id FROM {$table} WHERE org_id = %d AND lookup_type = %s AND name = %s LIMIT 1",
+                $org_id,
+                $type,
+                $name
+            ));
+            if ($exists) {
+                continue;
+            }
+
+            $wpdb->insert($table, [
+                'org_id' => $org_id,
+                'lookup_type' => $type,
+                'name' => $name,
+                'code' => $code,
+                'tax_percent' => $tax_percent,
+                'description' => $description,
+                'warehouse_type' => $warehouse_type ?: 'custom',
+                'is_active' => 1,
+            ]);
+        }
+    }
+
+    public static function generate_lookup_code($org_id, $lookup_type) {
+        global $wpdb;
+        $table = OraBooks_Database::table('inventory_lookups');
+        $org_id = (int) $org_id;
+        $lookup_type = self::normalize_lookup_type($lookup_type);
+
+        if ($lookup_type === 'brand') {
+            $prefix = 'IBRAND-';
+        } elseif ($lookup_type === 'category') {
+            $prefix = 'ICAT-';
+        } else {
+            return '';
+        }
+
+        $next_id = (int) $wpdb->get_var($wpdb->prepare(
+            "SELECT COUNT(*) + 1 FROM {$table} WHERE org_id = %d AND lookup_type = %s",
+            $org_id,
+            $lookup_type
+        ));
+
+        return $prefix . str_pad((string) max(1, $next_id), 5, '0', STR_PAD_LEFT);
+    }
+
+    public static function get_lookups_list($org_id, $lookup_type = null) {
+        global $wpdb;
+        self::maybe_ensure_lookup_schema();
+        self::seed_default_lookups($org_id);
+
+        $table = OraBooks_Database::table('inventory_lookups');
+        $org_id = (int) $org_id;
+        $lookup_type = $lookup_type ? self::normalize_lookup_type($lookup_type) : '';
+
+        if ($lookup_type !== '') {
+            $rows = $wpdb->get_results($wpdb->prepare(
+                "SELECT * FROM {$table}
+                 WHERE org_id = %d AND lookup_type = %s AND is_active = 1
+                 ORDER BY name ASC",
+                $org_id,
+                $lookup_type
+            ));
+            return array_map([self::class, 'format_lookup'], $rows ?: []);
+        }
+
+        $grouped = [];
+        foreach (self::lookup_types() as $type) {
+            $grouped[$type] = [];
+        }
+
+        $rows = $wpdb->get_results($wpdb->prepare(
+            "SELECT * FROM {$table}
+             WHERE org_id = %d AND is_active = 1
+             ORDER BY lookup_type ASC, name ASC",
+            $org_id
+        ));
+
+        foreach ($rows ?: [] as $row) {
+            if (!isset($grouped[$row->lookup_type])) {
+                continue;
+            }
+            $grouped[$row->lookup_type][] = self::format_lookup($row);
+        }
+
+        return $grouped;
+    }
+
+    public static function create_lookup($org_id, $lookup_type, $data) {
+        global $wpdb;
+        self::maybe_ensure_lookup_schema();
+        self::seed_default_lookups($org_id);
+
+        $table = OraBooks_Database::table('inventory_lookups');
+        $org_id = (int) $org_id;
+        $lookup_type = self::normalize_lookup_type($lookup_type);
+
+        if ($org_id <= 0) {
+            return new WP_Error('invalid_org', 'Organization is required.');
+        }
+        if ($lookup_type === '') {
+            return new WP_Error('invalid_lookup_type', 'Invalid lookup type.');
+        }
+
+        $name = sanitize_text_field($data['name'] ?? '');
+        if ($name === '') {
+            return new WP_Error('missing_name', ucfirst($lookup_type) . ' name is required.');
+        }
+
+        $exists = $wpdb->get_var($wpdb->prepare(
+            "SELECT id FROM {$table} WHERE org_id = %d AND lookup_type = %s AND name = %s LIMIT 1",
+            $org_id,
+            $lookup_type,
+            $name
+        ));
+        if ($exists) {
+            return new WP_Error('duplicate_name', "A {$lookup_type} with this name already exists.");
+        }
+
+        $description = sanitize_textarea_field($data['description'] ?? '');
+        $insert = [
+            'org_id' => $org_id,
+            'lookup_type' => $lookup_type,
+            'name' => $name,
+            'description' => $description !== '' ? $description : null,
+            'is_active' => 1,
+        ];
+
+        if (in_array($lookup_type, ['brand', 'category'], true)) {
+            $code = sanitize_text_field($data['code'] ?? '');
+            if ($code === '') {
+                $code = self::generate_lookup_code($org_id, $lookup_type);
+            }
+            $insert['code'] = $code;
+        }
+
+        if ($lookup_type === 'tax') {
+            $tax_percent = isset($data['tax_percent']) ? floatval($data['tax_percent']) : null;
+            if ($tax_percent === null || $tax_percent < 0) {
+                return new WP_Error('invalid_tax_percent', 'Tax percentage is required.');
+            }
+            $insert['tax_percent'] = $tax_percent;
+        }
+
+        if ($lookup_type === 'warehouse') {
+            $insert['warehouse_type'] = sanitize_text_field($data['warehouse_type'] ?? 'custom') ?: 'custom';
+        }
+
+        $inserted = $wpdb->insert($table, $insert);
+        if (!$inserted) {
+            return new WP_Error('insert_failed', 'Failed to save ' . $lookup_type . '.');
+        }
+
+        $row = $wpdb->get_row($wpdb->prepare(
+            "SELECT * FROM {$table} WHERE id = %d AND org_id = %d LIMIT 1",
+            (int) $wpdb->insert_id,
+            $org_id
+        ));
+
+        return self::format_lookup($row);
     }
 
     private static function maybe_ensure_product_schema() {
@@ -821,5 +1069,40 @@ class OraBooks_Inventory {
             ? self::get_movements($org_id, $product_id, $_GET)
             : self::get_recent_movements($org_id, $_GET);
         orabooks_json_success(['movements' => $movements]);
+    }
+
+    public function ajax_lookups_list() {
+        $user_id = $this->current_user_id();
+        $org_id = intval($_GET['org_id'] ?? 0);
+        $this->require_inventory_permission($user_id, $org_id, ['view_reports']);
+        $lookup_type = sanitize_key($_GET['lookup_type'] ?? '');
+        $lookups = self::get_lookups_list($org_id, $lookup_type !== '' ? $lookup_type : null);
+        if ($lookup_type !== '') {
+            orabooks_json_success(['lookups' => $lookups]);
+            return;
+        }
+        orabooks_json_success(['lookups' => $lookups]);
+    }
+
+    public function ajax_lookup_create() {
+        $user_id = $this->current_user_id();
+        $org_id = intval($_POST['org_id'] ?? 0);
+        $this->require_inventory_permission($user_id, $org_id, ['manage_org_settings']);
+        $lookup_type = sanitize_key($_POST['lookup_type'] ?? '');
+        $result = self::create_lookup($org_id, $lookup_type, $_POST);
+        if (is_wp_error($result)) {
+            orabooks_json_error($result->get_error_message(), 400);
+        }
+        orabooks_json_success(['lookup' => $result]);
+    }
+
+    public function ajax_lookup_code() {
+        $user_id = $this->current_user_id();
+        $org_id = intval($_GET['org_id'] ?? 0);
+        $this->require_inventory_permission($user_id, $org_id, ['view_reports']);
+        $lookup_type = sanitize_key($_GET['lookup_type'] ?? '');
+        orabooks_json_success([
+            'code' => self::generate_lookup_code($org_id, $lookup_type),
+        ]);
     }
 }
