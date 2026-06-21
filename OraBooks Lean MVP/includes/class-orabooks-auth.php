@@ -587,7 +587,8 @@ class OraBooks_Auth {
             return self::issue_tier_selection_login($user);
         }
 
-        $org = OraBooks_Organization::get($user->org_id);
+        $org_id = orabooks_resolve_auth_org_id($user->id, (int) $user->org_id);
+        $org = $org_id ? OraBooks_Organization::get($org_id) : null;
         if ($org && $org->status !== 'active') {
             $partner_pending = $user->is_partner
                 && $org->organization_type === 'partner'
@@ -602,15 +603,11 @@ class OraBooks_Auth {
                 orabooks_log_event('login_subdomain_mismatch', "Subdomain mismatch for {$user->email}: expected {$expected_subdomain}, org has {$org->subdomain}", 'warning', [
                     'expected' => $expected_subdomain,
                     'actual' => $org->subdomain,
-                ], $user->id, $user->org_id);
+                ], $user->id, $org_id);
                 return new WP_Error('subdomain_mismatch', 'Invalid subdomain for this account.');
             }
         }
 
-        $org_id = orabooks_resolve_auth_org_id($user->id, (int) $user->org_id);
-        if ($org_id > 0) {
-            $org = OraBooks_Organization::get($org_id);
-        }
         $role = $org_id ? (orabooks_get_user_role($user->id, $org_id) ?: 'viewer') : 'viewer';
         $jwt = OraBooks_Secrets::generate_jwt([
             'user_id' => $user->id,
@@ -632,13 +629,13 @@ class OraBooks_Auth {
             }
         }
 
-        orabooks_log_event('login_success', "User logged in: {$user->email}", 'info', $login_meta, $user->id, $user->org_id);
+        orabooks_log_event('login_success', "User logged in: {$user->email}", 'info', $login_meta, $user->id, $org_id);
 
         return orabooks_enrich_login_response([
             'token' => $jwt,
             'refresh_token' => $refresh_token,
             'user_id' => $user->id,
-            'org_id' => $user->org_id,
+            'org_id' => $org_id,
             'role' => $role,
             'subdomain' => $org ? $org->subdomain : '',
             'is_partner' => $user->is_partner,
