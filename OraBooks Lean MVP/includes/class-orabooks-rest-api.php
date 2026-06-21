@@ -30,6 +30,12 @@ class OraBooks_Rest_Api {
             'permission_callback' => '__return_true',
         ]);
 
+        register_rest_route(self::NAMESPACE, '/pwa/service-worker', [
+            'methods'             => WP_REST_Server::READABLE,
+            'callback'            => [class_exists('OraBooks_Pwa') ? 'OraBooks_Pwa' : __CLASS__, 'rest_service_worker'],
+            'permission_callback' => '__return_true',
+        ]);
+
         register_rest_route(self::NAMESPACE, '/fiscal-periods', [
             [
                 'methods'             => WP_REST_Server::READABLE,
@@ -104,6 +110,14 @@ class OraBooks_Rest_Api {
         }
 
         return rest_ensure_response([]);
+    }
+
+    public static function rest_service_worker() {
+        if (class_exists('OraBooks_Pwa')) {
+            return OraBooks_Pwa::rest_service_worker();
+        }
+
+        return new WP_Error('orabooks_pwa_unavailable', 'PWA service worker unavailable.', ['status' => 503]);
     }
 
     public static function openapi_spec_path() {
