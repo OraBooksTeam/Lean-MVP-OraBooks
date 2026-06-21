@@ -193,6 +193,7 @@ class OraBooks_Partner_Test extends TestCase
                 'org_status'        => 'pending_setup',
                 'org_name'          => 'ABC Consulting',
                 'created_at'        => '2026-06-01 10:00:00',
+                'organization_type' => 'partner',
             ];
         };
 
@@ -202,11 +203,64 @@ class OraBooks_Partner_Test extends TestCase
         $this->assertEquals('PARTNER-ONBOARD', $result['partner_code']);
         $this->assertEquals('pending_review', $result['code_status']);
         $this->assertEquals('agency', $result['partner_type']);
+        $this->assertEquals('Agency', $result['partner_type_label']);
         $this->assertEquals('ABC Consulting', $result['organization_name']);
         $this->assertEquals('pending_setup', $result['org_status']);
         $this->assertFalse($result['bank_info_required']);
         $this->assertFalse($result['payment_settings_available']);
+        $this->assertStringContainsString('⏳', $result['status_message']);
         $this->assertStringContainsString('Awaiting admin approval', $result['status_message']);
+    }
+
+    #[Test]
+    public function test_get_onboarding_status_messages()
+    {
+        $this->assertStringContainsString('⏳', OraBooks_Partner::get_onboarding_status_message('pending_review', 'pending_setup'));
+        $this->assertStringContainsString('✅', OraBooks_Partner::get_onboarding_status_message('active', 'active'));
+        $this->assertStringContainsString('🚫', OraBooks_Partner::get_onboarding_status_message('disabled', 'active'));
+        $this->assertStringContainsString('🚫', OraBooks_Partner::get_onboarding_status_message('active', 'suspended'));
+        $this->assertStringContainsString('12 months', OraBooks_Partner::get_onboarding_status_message('inactive', 'active'));
+    }
+
+    #[Test]
+    public function test_format_partner_type_label()
+    {
+        $this->assertEquals('Agency', OraBooks_Partner::format_partner_type_label('agency'));
+        $this->assertEquals('Individual', OraBooks_Partner::format_partner_type_label('individual'));
+    }
+
+    private function mockPartnerOrgMember(int $orgId = 10): void
+    {
+        global $wpdb;
+
+        $wpdb->test_get_row_callback = function ($query) use ($orgId) {
+            if (stripos($query, 'partner_codes') !== false) {
+                return (object) [
+                    'partner_code'      => 'PARTNER-ONBOARD',
+                    'code_status'       => 'active',
+                    'partner_type'      => 'individual',
+                    'organization_name' => null,
+                    'org_status'        => 'active',
+                    'org_name'          => 'Partner Org',
+                    'created_at'        => '2026-06-01 10:00:00',
+                    'organization_type' => 'partner',
+                ];
+            }
+
+            return (object) [
+                'id'                  => 1,
+                'org_id'              => $orgId,
+                'is_partner'          => 1,
+                'organization_type'   => 'partner',
+            ];
+        };
+
+        $wpdb->test_get_var_callback = function ($query) use ($orgId) {
+            if (stripos($query, 'user_org') !== false || stripos($query, 'owner_id') !== false) {
+                return 1;
+            }
+            return null;
+        };
     }
 
     // ================================================================
@@ -1244,19 +1298,7 @@ class OraBooks_Partner_Test extends TestCase
     #[Test]
     public function test_ajax_partner_onboarding_success()
     {
-        global $wpdb;
-
-        $wpdb->test_get_row_callback = function ($query) {
-            return (object) [
-                'partner_code'      => 'PARTNER-ONBOARD',
-                'code_status'       => 'active',
-                'partner_type'      => 'individual',
-                'organization_name' => null,
-                'org_status'        => 'active',
-                'org_name'          => 'Partner Org',
-                'created_at'        => '2026-06-01 10:00:00',
-            ];
-        };
+        $this->mockPartnerOrgMember();
 
         $response = $this->callAjax('ajax_partner_onboarding');
 
@@ -1264,6 +1306,39 @@ class OraBooks_Partner_Test extends TestCase
         $this->assertEquals('PARTNER-ONBOARD', $response['data']['partner_code']);
         $this->assertEquals('active', $response['data']['code_status']);
         $this->assertFalse($response['data']['bank_info_required']);
+    }
+
+    #[Test]
+    public function test_ajax_partner_onboarding_denied_non_partner()
+    {
+        global $wpdb;
+
+        $wpdb->test_get_row_callback = function ($query) {
+            return (object) [
+                'id'                => 1,
+                'org_id'            => 10,
+                'is_partner'        => 0,
+                'organization_type' => 'customer',
+            ];
+        };
+
+        $response = $this->callAjax('ajax_partner_onboarding');
+
+        $this->assertTrue($response['error']);
+        $this->assertStringContainsString('Partner organization membership', $response['message']);
+    }
+
+    #[Test]
+    public function test_ajax_partner_onboarding_complete()
+    {
+        $this->mockPartnerOrgMember();
+
+        $response = $this->callAjax('ajax_partner_onboarding_complete');
+
+        $this->assertFalse($response['error']);
+        $this->assertTrue($response['data']['onboarding_completed']);
+        $this->assertEquals('/partner-program/', $response['data']['redirect_to']);
+        $this->assertTrue(orabooks_has_completed_partner_onboarding(1));
     }
 
     #[Test]

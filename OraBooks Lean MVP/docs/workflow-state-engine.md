@@ -2,6 +2,8 @@
 
 Central state machine for business records. All workflow status changes should go through `OraBooks_Workflow::transition()`.
 
+> **Completion report:** [SL-301-completion-report.md](./SL-301-completion-report.md) — full delivery summary, sign-off checklist, live verification guide.
+
 ## Supported record types
 
 | Record type | Status column | States |
