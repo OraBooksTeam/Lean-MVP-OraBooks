@@ -72,25 +72,32 @@ class OraBooks_Workflow_Integration {
                 break;
 
             case 'approve':
-            case 'reject':
-                if (class_exists('OraBooks_Approval') && OraBooks_Approval::user_can_approve($user_id, $org_id)) {
-                    if ($event === 'approve' && class_exists('OraBooks_Approval')) {
-                        $policy = OraBooks_Approval::get_policy($org_id);
-                        if ($policy && !empty($policy->maker_checker_required) && (int) ($record->created_by ?? 0) === $user_id) {
-                            return new WP_Error('maker_checker', __('Creator cannot approve own journal', 'orabooks'), ['status' => 403]);
-                        }
-                        if ($policy) {
-                            $mfa_check = OraBooks_Approval::verify_mfa_for_high_value(
-                                $user_id,
-                                (float) ($record->total_amount ?? 0),
-                                $policy,
-                                is_array($context) ? $context : []
-                            );
-                            if (is_wp_error($mfa_check)) {
-                                return $mfa_check;
-                            }
+                if (!self::has_permission($user_id, $org_id, 'approve_journal')
+                    && !(class_exists('OraBooks_Approval') && OraBooks_Approval::user_can_approve($user_id, $org_id))) {
+                    return self::deny('approve_journal');
+                }
+
+                if (class_exists('OraBooks_Approval')) {
+                    $policy = OraBooks_Approval::get_policy($org_id);
+                    if ($policy && !empty($policy->maker_checker_required) && (int) ($record->created_by ?? 0) === $user_id) {
+                        return new WP_Error('maker_checker', __('Creator cannot approve own journal', 'orabooks'), ['status' => 403]);
+                    }
+                    if ($policy) {
+                        $mfa_check = OraBooks_Approval::verify_mfa_for_high_value(
+                            $user_id,
+                            (float) ($record->total_amount ?? 0),
+                            $policy,
+                            is_array($context) ? $context : []
+                        );
+                        if (is_wp_error($mfa_check)) {
+                            return $mfa_check;
                         }
                     }
+                }
+                break;
+
+            case 'reject':
+                if (class_exists('OraBooks_Approval') && OraBooks_Approval::user_can_approve($user_id, $org_id)) {
                     break;
                 }
                 if (!self::has_permission($user_id, $org_id, 'approve_journal')) {
