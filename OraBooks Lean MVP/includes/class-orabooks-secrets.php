@@ -247,6 +247,9 @@ class OraBooks_Secrets {
             return get_option($option_key, false);
         });
         if ($stored) {
+            if ($key === 'encryption_key') {
+                return self::decrypt_with_key($stored, self::get_legacy_cipher_key());
+            }
             return self::decrypt($stored);
         }
         
@@ -271,7 +274,11 @@ class OraBooks_Secrets {
      */
     public static function set($key, $value) {
         $option_key = 'orabooks_secret_' . md5($key);
-        $encrypted = self::encrypt($value);
+        if ($key === 'encryption_key') {
+            $encrypted = self::encrypt_with_key($value, self::get_legacy_cipher_key());
+        } else {
+            $encrypted = self::encrypt($value);
+        }
         self::with_shared_options(function () use ($option_key, $encrypted) {
             update_option($option_key, $encrypted);
         });
