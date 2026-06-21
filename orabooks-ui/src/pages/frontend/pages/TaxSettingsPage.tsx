@@ -63,7 +63,6 @@ export default function TaxSettingsPage() {
   const [configs, setConfigs] = useState<TaxConfig[]>([]);
   const [jurisdictions, setJurisdictions] = useState<Jurisdiction[]>([]);
   const [snapshots, setSnapshots] = useState<TaxSnapshot[]>([]);
-  const [availableReasons, setAvailableReasons] = useState<string[]>(DEFAULT_OVERRIDE_REASONS);
   const [lockStatus, setLockStatus] = useState<{ tax_locked?: boolean; message?: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -137,9 +136,6 @@ export default function TaxSettingsPage() {
       const data = (configsRes as any).data || {};
       setConfigs(data.configs || []);
       setLockStatus(data.lock_status || null);
-      if (Array.isArray(data.override_reasons) && data.override_reasons.length) {
-        setAvailableReasons(data.override_reasons);
-      }
     }
 
     if (!jurisdictionsRes.error) {
