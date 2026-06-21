@@ -24,6 +24,10 @@ class OraBooks_Csv_Imports_Test extends TestCase
         $GLOBALS['orabooks_test_current_user_id'] = 1;
         $GLOBALS['orabooks_test_current_user_can'] = true;
         $GLOBALS['orabooks_test_use_insert_id'] = null;
+
+        if (class_exists('OraBooks_RBAC')) {
+            OraBooks_RBAC::init();
+        }
     }
 
     #[Test]
