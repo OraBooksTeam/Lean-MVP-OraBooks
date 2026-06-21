@@ -10,6 +10,9 @@
         <testsuite name="OraBooks SL-001 Posting Tests">
             <file>OraBooks_Posting_Test.php</file>
         </testsuite>
+        <testsuite name="OraBooks SL-008 Secrets Tests">
+            <file>OraBooks_Secrets_Test.php</file>
+        </testsuite>
         <testsuite name="OraBooks SL-003 RBAC Tests">
             <file>OraBooks_RBAC_Test.php</file>
             <file>OraBooks_Deploy_Checks_Test.php</file>

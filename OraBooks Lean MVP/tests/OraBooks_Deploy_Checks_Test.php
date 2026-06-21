@@ -37,6 +37,16 @@ class OraBooks_Deploy_Checks_Test extends TestCase
 
         update_option('orabooks_jwt_secret', 'test-jwt-secret');
         update_option('orabooks_db_version', ORABOOKS_DB_VERSION);
+        $GLOBALS['orabooks_test_secrets_status'] = [
+            'production_mode' => false,
+            'requires_tls' => false,
+            'jwt_secret_configured' => true,
+            'encryption_key_configured' => true,
+            'jwt_secret_length' => 64,
+            'last_rotated' => '',
+            'tls' => ['ok' => true, 'skipped' => true],
+            'https_active' => true,
+        ];
 
         OraBooks_AsyncQueue::register_default_handlers();
     }
@@ -51,6 +61,7 @@ class OraBooks_Deploy_Checks_Test extends TestCase
             'orabooks_async_queue_process' => time() + 60,
             'orabooks_async_queue_archive' => time() + 86400,
             'orabooks_daily_active_status_refresh' => time() + 7200,
+            'orabooks_team_cleanup_expired_invites' => time() + 86400,
         ];
 
         $wpdb->test_get_var_callback = function ($query) {
@@ -92,6 +103,7 @@ class OraBooks_Deploy_Checks_Test extends TestCase
             'orabooks_async_queue_process' => time() + 60,
             'orabooks_async_queue_archive' => time() + 86400,
             'orabooks_daily_active_status_refresh' => time() + 7200,
+            'orabooks_team_cleanup_expired_invites' => time() + 86400,
         ];
 
         $wpdb->test_get_var_callback = function ($query) {
@@ -123,7 +135,7 @@ class OraBooks_Deploy_Checks_Test extends TestCase
 
         $repaired = OraBooks_DeployChecks::ensure_mvp_cron_schedules();
 
-        $this->assertCount(4, $repaired);
+        $this->assertCount(5, $repaired);
         $this->assertContains('orabooks_async_queue_process', $repaired);
         $this->assertContains('orabooks_async_queue_archive', $repaired);
 
