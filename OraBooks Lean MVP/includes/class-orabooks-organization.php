@@ -65,7 +65,24 @@ class OraBooks_Organization {
         $owner_id = $data['owner_id'];
         $name = $data['name'] ?? ($organization_type === 'partner' ? 'Partner ' . $owner_id : 'Org_' . orabooks_random_string(8));
         $subdomain = $data['subdomain'] ?? ($organization_type === 'partner' ? 'partner-' . $owner_id : 'org-' . substr(md5(uniqid()), 0, 8));
-        $region = $data['region'] ?? 'us-east';
+
+        if ($organization_type === 'partner') {
+            $region = orabooks_get_default_region_for_tier('partner');
+        } else {
+            $tier_for_region = in_array($tier, ['free', 'premium', 'enterprise'], true) ? $tier : 'free';
+            $region_input = isset($data['region']) ? strtolower(trim((string) $data['region'])) : '';
+            $region_check = orabooks_validate_org_region(
+                $tier_for_region === 'enterprise' ? $region_input : orabooks_get_default_region_for_tier($tier_for_region),
+                $tier_for_region
+            );
+            if ($region_check !== true) {
+                return new WP_Error('invalid_region', $region_check);
+            }
+            $region = ($tier_for_region === 'enterprise')
+                ? $region_input
+                : orabooks_get_default_region_for_tier($tier_for_region);
+        }
+
         $status = $organization_type === 'partner' ? 'pending_setup' : 'active';
         
         $wpdb->insert(

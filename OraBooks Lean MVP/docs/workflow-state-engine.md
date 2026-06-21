@@ -63,29 +63,21 @@ All modules now use `OraBooks_Workflow::transition()`. See git history for Phase
 - Org health AJAX: `orabooks_workflow_health`
 - Platform dashboard: observability snapshot includes `workflow`
 
+## Definition of done (SL-301 MVP)
+
 - [x] No production path updates workflow fields without `OraBooks_Workflow::transition()`
 - [x] Invalid transition → 409 + `invalid_state_transition` audit
 - [x] FOR UPDATE + DB transaction on transition
 - [x] Preconditions hook + after_transition hook
 - [x] `state_machine_transitions.org_id` for tenant traceability
-- [x] Audit `state_changed` + optional `state_transition` event
+- [x] Audit `state_changed` + `state_transition` event + consumers
 - [x] All 5 record types migrated (journal, invoice, bill, expense, commission)
-- [x] Unit tests: valid, invalid, transaction, org_id, allowed_events
+- [x] Unit tests + observability metrics
 - [x] This document + transition matrices
 
-## Phase 3 — Events & observability (complete)
-
-- `state_transition` SL-302 consumers:
-  - `workflow_read_model` — read model dues bump
-  - `workflow_notifications` — org admin notifications (non-journal)
-  - `job_enqueue_bridge` — webhook async dispatch
-- RBAC/fiscal preconditions: `class-orabooks-workflow-integration.php`
-- Metrics: `workflow.transition_success_24h`, `workflow.transition_failure_24h`
-- Org health AJAX: `orabooks_workflow_health`
-- Platform dashboard: observability snapshot includes `workflow`
-
-## Definition of done (SL-301 MVP)
+## Dependencies
 
 - SL-009 Audit log
-- SL-302 Event bus (optional `state_transition` publish)
-- SL-003 RBAC (AJAX guards)
+- SL-302 Event bus (`state_transition` publish + consumers)
+- SL-003 RBAC (preconditions + AJAX guards)
+- SL-093 Observability (workflow metrics)
