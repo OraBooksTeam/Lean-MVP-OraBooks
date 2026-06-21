@@ -1169,7 +1169,7 @@ class OraBooks_Customers {
                 'workflow_status' => $data['workflow_status'] ?? 'draft',
                 'idempotency_key' => $data['idempotency_key'] ?? orabooks_uuid(),
             ],
-            ['%d', '%d', '%s', '%s', '%s', '%s', '%s', '%f', '%f', '%f', '%s', '%d', '%s', '%s', '%s', '%s', '%s']
+            ['%d', '%d', '%s', '%s', '%s', '%s', '%s', '%f', '%f', '%f', '%s', '%s', '%s', '%d', '%s', '%s', '%s', '%s', '%s']
         );
 
         $invoice_id = $wpdb->insert_id;
@@ -1255,12 +1255,13 @@ class OraBooks_Customers {
                 'tax_rate' => $new_tax_rate,
                 'tax_amount' => $new_tax_amount,
                 'total_amount' => $new_total,
+                'tax_jurisdiction' => $jurisdiction,
                 'tax_override_reason' => $reason_code,
                 'tax_override_by' => $user_id,
                 'tax_override_at' => current_time('mysql'),
             ],
             ['id' => $invoice_id, 'org_id' => $org_id],
-            ['%f', '%f', '%f', '%s', '%d', '%s'],
+            ['%f', '%f', '%f', '%s', '%s', '%d', '%s'],
             ['%d', '%d']
         );
 
