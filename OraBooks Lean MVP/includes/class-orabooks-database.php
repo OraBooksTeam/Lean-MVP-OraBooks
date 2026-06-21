@@ -326,6 +326,8 @@ class OraBooks_Database {
         $table_audit_archive = $table_prefix . 'orabooks_audit_logs_archive';
         $sql = "CREATE TABLE IF NOT EXISTS {$table_audit_archive} LIKE {$table_audit};";
         dbDelta($sql);
+
+        self::ensure_audit_immutability_triggers($table_audit);
         
         // ============================================================
         // SL-013: 2FA backup codes table

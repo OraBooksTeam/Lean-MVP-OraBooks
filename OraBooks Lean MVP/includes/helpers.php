@@ -2065,9 +2065,9 @@ function orabooks_validate_schema($schema_key, $value) {
 /**
  * Log audit event
  */
-function orabooks_log_event($event_type, $description, $severity = 'info', $metadata = null, $user_id = null, $org_id = null) {
+function orabooks_log_event($event_type, $description, $severity = 'info', $metadata = null, $user_id = null, $org_id = null, $correlation_id = null) {
     if (function_exists('OraBooks_Audit') && method_exists('OraBooks_Audit', 'log_event')) {
-        return OraBooks_Audit::log_event($event_type, $description, $severity, $metadata, $user_id, $org_id);
+        return OraBooks_Audit::log_event($event_type, $description, $severity, $metadata, $user_id, $org_id, $correlation_id);
     }
     return false;
 }
@@ -2339,6 +2339,41 @@ function orabooks_mask_email($email) {
     $domain = $parts[1] ?? '';
     $masked = substr($name, 0, 2) . str_repeat('*', max(0, strlen($name) - 2));
     return $masked . '@' . $domain;
+}
+
+/**
+ * Hash email for audit metadata (SL-009).
+ */
+function orabooks_hash_email($email) {
+    $email = strtolower(trim((string) $email));
+    if ($email === '') {
+        return '';
+    }
+    return hash('sha256', $email);
+}
+
+/**
+ * Request-scoped correlation ID for workflow tracing (SL-009).
+ */
+function orabooks_get_correlation_id($generate = true) {
+    if (!empty($GLOBALS['orabooks_correlation_id'])) {
+        return (string) $GLOBALS['orabooks_correlation_id'];
+    }
+    if (!$generate) {
+        return '';
+    }
+    $GLOBALS['orabooks_correlation_id'] = orabooks_uuid();
+    return $GLOBALS['orabooks_correlation_id'];
+}
+
+/**
+ * Set the active request correlation ID (SL-009).
+ */
+function orabooks_set_correlation_id($correlation_id) {
+    $correlation_id = trim((string) $correlation_id);
+    if ($correlation_id !== '') {
+        $GLOBALS['orabooks_correlation_id'] = $correlation_id;
+    }
 }
 
 /**
