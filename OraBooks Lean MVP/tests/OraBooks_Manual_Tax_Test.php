@@ -54,6 +54,8 @@ class OraBooks_Manual_Tax_Test extends TestCase
         $sql = implode("\n", OraBooks_Customers::get_create_table_sql());
 
         $this->assertStringContainsString('tax_rate DECIMAL(8,4)', $sql);
+        $this->assertStringContainsString('tax_jurisdiction VARCHAR(32)', $sql);
+        $this->assertStringContainsString('tax_type VARCHAR(32)', $sql);
         $this->assertStringContainsString('tax_override_reason VARCHAR(64)', $sql);
         $this->assertStringContainsString('tax_override_by BIGINT UNSIGNED', $sql);
         $this->assertStringContainsString('tax_override_at TIMESTAMP NULL', $sql);
