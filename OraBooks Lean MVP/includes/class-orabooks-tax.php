@@ -429,8 +429,86 @@ class OraBooks_Tax {
         return self::create_snapshot($payload, $user_id);
     }
 
+    /**
+     * Create or return an immutable tax snapshot for a posted expense.
+     */
+    public static function create_snapshot_from_expense($expense, $user_id = null) {
+        if (!$expense) {
+            return new WP_Error('invalid_expense', 'Expense is required for tax snapshot');
+        }
+
+        $subtotal = isset($expense->subtotal) ? (float) $expense->subtotal : 0.0;
+        $total = (float) ($expense->total_amount ?? 0);
+        $tax = (float) ($expense->tax_amount ?? 0);
+        $tax_base = $subtotal > 0 ? $subtotal : max(0, round($total - $tax, 2));
+
+        $payload = [
+            'org_id' => (int) $expense->org_id,
+            'transaction_id' => (int) $expense->id,
+            'transaction_type' => 'expense',
+            'amount' => $tax_base,
+            'jurisdiction' => sanitize_text_field($expense->tax_jurisdiction ?? 'US'),
+            'transaction_date' => $expense->transaction_date ?? current_time('Y-m-d'),
+            'tax_type' => sanitize_text_field($expense->tax_type ?? 'Sales Tax'),
+        ];
+
+        if (!empty($expense->tax_override_reason)) {
+            $payload['override'] = true;
+            $payload['override_tax_rate'] = (float) ($expense->tax_rate ?? 0);
+            $payload['override_reason'] = $expense->tax_override_reason;
+        } else {
+            $payload['override'] = false;
+        }
+
+        return self::create_snapshot($payload, $user_id);
+    }
+
+    public static function list_snapshots($org_id, $limit = 25) {
+        global $wpdb;
+        self::maybe_ensure_tax_schema();
+
+        $table = OraBooks_Database::table('tax_snapshots');
+        $limit = max(1, min(100, (int) $limit));
+        $rows = $wpdb->get_results($wpdb->prepare(
+            "SELECT * FROM {$table}
+             WHERE org_id = %d
+             ORDER BY created_at DESC
+             LIMIT %d",
+            (int) $org_id,
+            $limit
+        ));
+
+        return array_map([self::class, 'format_snapshot'], $rows ?: []);
+    }
+
+    private static function normalize_override_reasons($raw) {
+        $allowed = self::DEFAULT_OVERRIDE_REASONS;
+        $reasons = [];
+
+        if (is_string($raw) && $raw !== '') {
+            $decoded = json_decode($raw, true);
+            if (is_array($decoded)) {
+                $raw = $decoded;
+            } else {
+                $raw = array_map('trim', explode(',', $raw));
+            }
+        }
+
+        if (is_array($raw)) {
+            foreach ($raw as $reason) {
+                $reason = sanitize_text_field((string) $reason);
+                if ($reason !== '' && in_array($reason, $allowed, true)) {
+                    $reasons[] = $reason;
+                }
+            }
+        }
+
+        return $reasons ?: $allowed;
+    }
+
     public static function list_configs($org_id) {
         global $wpdb;
+        self::maybe_ensure_tax_schema();
 
         $table = OraBooks_Database::table('tax_configs');
         $rows = $wpdb->get_results($wpdb->prepare(
@@ -757,5 +835,16 @@ class OraBooks_Tax {
         }
 
         orabooks_json_success(['snapshot' => $snapshot]);
+    }
+
+    public function ajax_list_snapshots() {
+        $user_id = orabooks_get_current_user_id();
+        $org_id = intval($_GET['org_id'] ?? $_POST['org_id'] ?? 0);
+        $limit = intval($_GET['limit'] ?? $_POST['limit'] ?? 25);
+        $this->require_tax_access($user_id, $org_id, 'view_reports');
+
+        orabooks_json_success([
+            'snapshots' => self::list_snapshots($org_id, $limit),
+        ]);
     }
 }
