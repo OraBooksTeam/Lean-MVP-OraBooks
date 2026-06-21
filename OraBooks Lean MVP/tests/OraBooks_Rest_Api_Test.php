@@ -15,6 +15,8 @@ class OraBooks_Rest_Api_Test extends TestCase
 
         $this->assertSame('3.0.3', $spec['openapi'] ?? null);
         $this->assertArrayHasKey('/fiscal-periods', $spec['paths'] ?? []);
+        $this->assertArrayHasKey('/auth/2fa/setup', $spec['paths'] ?? []);
+        $this->assertArrayHasKey('/org/security/2fa-policy', $spec['paths'] ?? []);
         $this->assertArrayHasKey('/expenses/upload-receipt', $spec['paths'] ?? []);
         $this->assertArrayHasKey('/openapi.json', $spec['paths'] ?? []);
     }

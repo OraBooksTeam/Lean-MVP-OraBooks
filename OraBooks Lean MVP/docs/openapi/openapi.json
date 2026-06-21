@@ -267,6 +267,175 @@
           "409": { "description": "Duplicate idempotency key" }
         }
       }
+    },
+    "/auth/2fa/setup": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Start 2FA setup (TOTP secret, QR, backup codes)",
+        "responses": {
+          "200": { "description": "Setup payload with secret, qr_code_url, backup_codes" },
+          "400": { "description": "Already enabled or setup blocked" }
+        }
+      }
+    },
+    "/auth/2fa/verify-setup": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Verify OTP and enable 2FA",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["otp_code"],
+                "properties": { "otp_code": { "type": "string" } }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "2FA enabled" },
+          "400": { "description": "Invalid OTP" }
+        }
+      }
+    },
+    "/auth/2fa/challenge": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Complete login with TOTP or backup code",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["temp_token"],
+                "properties": {
+                  "temp_token": { "type": "string" },
+                  "otp_code": { "type": "string" },
+                  "backup_code": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Session issued" },
+          "401": { "description": "Invalid verification" }
+        }
+      }
+    },
+    "/auth/2fa/disable": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Disable 2FA (requires OTP; blocked when org requires 2FA)",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["otp_code"],
+                "properties": { "otp_code": { "type": "string" } }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "2FA disabled" },
+          "403": { "description": "Organization requires 2FA" }
+        }
+      }
+    },
+    "/auth/2fa/regenerate-backup-codes": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Regenerate backup codes (requires OTP)",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["otp_code"],
+                "properties": { "otp_code": { "type": "string" } }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "New backup codes (shown once)" }
+        }
+      }
+    },
+    "/auth/2fa/status": {
+      "get": {
+        "tags": ["Auth"],
+        "summary": "2FA status for current user",
+        "responses": {
+          "200": { "description": "is_2fa_enabled, remaining_backup_codes, org policy flags" }
+        }
+      }
+    },
+    "/auth/2fa/admin-recover": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Admin reset 2FA for a user (audit logged)",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["target_user_id", "justification"],
+                "properties": {
+                  "target_user_id": { "type": "integer" },
+                  "justification": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "2FA reset" },
+          "403": { "description": "Permission denied" }
+        }
+      }
+    },
+    "/org/security/2fa-policy": {
+      "get": {
+        "tags": ["Auth"],
+        "summary": "Get organization mandatory 2FA policy",
+        "parameters": [
+          { "in": "query", "name": "org_id", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": {
+          "200": { "description": "require_2fa flag" }
+        }
+      },
+      "put": {
+        "tags": ["Auth"],
+        "summary": "Set organization mandatory 2FA policy",
+        "parameters": [
+          { "in": "query", "name": "org_id", "required": true, "schema": { "type": "integer" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["require_2fa"],
+                "properties": { "require_2fa": { "type": "boolean" } }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Policy updated" }
+        }
+      }
     }
   },
   "components": {
