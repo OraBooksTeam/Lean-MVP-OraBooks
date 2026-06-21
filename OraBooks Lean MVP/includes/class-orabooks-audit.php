@@ -10,6 +10,13 @@ if (!defined('ABSPATH')) {
 }
 
 class OraBooks_Audit {
+
+    /** Event types that must not trigger audit_log_viewed recursion. */
+    private static $meta_event_types = [
+        'audit_log_viewed',
+        'audit_log_exported',
+        'audit_log_archival',
+    ];
     
     private static $instance = null;
     
@@ -21,16 +28,15 @@ class OraBooks_Audit {
             add_action('wp_ajax_orabooks_export_audit_logs', [self::$instance, 'ajax_export_logs']);
             add_action('wp_ajax_nopriv_orabooks_export_audit_logs', [self::$instance, 'ajax_export_logs']);
             
-            // Daily cleanup hook
             add_action('orabooks_daily_cleanup', [self::$instance, 'archive_old_logs']);
         }
         return self::$instance;
     }
     
     /**
-     * Log an audit event
+     * Log an audit event (SL-009 §5.2).
      */
-    public static function log_event($event_type, $description, $severity = 'info', $metadata = null, $user_id = null, $org_id = null) {
+    public static function log_event($event_type, $description, $severity = 'info', $metadata = null, $user_id = null, $org_id = null, $correlation_id = null) {
         global $wpdb;
         
         $table = OraBooks_Database::table('audit_logs');
@@ -38,8 +44,14 @@ class OraBooks_Audit {
         if ($user_id === null && function_exists('orabooks_get_current_user_id')) {
             $user_id = orabooks_get_current_user_id();
         }
+
+        $severity = in_array($severity, ['info', 'warning', 'critical'], true) ? $severity : 'info';
+        if ($correlation_id === null || trim((string) $correlation_id) === '') {
+            $correlation_id = function_exists('orabooks_get_correlation_id')
+                ? orabooks_get_correlation_id(true)
+                : orabooks_uuid();
+        }
         
-        // Sanitize metadata - remove sensitive data
         $sanitized = self::sanitize_metadata($metadata);
         
         $wpdb->insert(
@@ -47,13 +59,13 @@ class OraBooks_Audit {
             [
                 'org_id' => $org_id ?: 0,
                 'user_id' => $user_id ?: null,
-                'event_type' => $event_type,
+                'event_type' => (string) $event_type,
                 'severity' => $severity,
                 'description' => $description,
                 'ip_address' => orabooks_get_client_ip(),
                 'user_agent' => orabooks_get_user_agent(),
-                'correlation_id' => orabooks_uuid(),
-                'metadata' => $sanitized ? json_encode($sanitized) : null
+                'correlation_id' => (string) $correlation_id,
+                'metadata' => $sanitized ? wp_json_encode($sanitized) : null,
             ],
             ['%d', '%d', '%s', '%s', '%s', '%s', '%s', '%s', '%s']
         );
@@ -62,31 +74,42 @@ class OraBooks_Audit {
     }
     
     /**
-     * Sanitize metadata to remove secrets and PII
+     * Sanitize metadata to remove secrets and PII (SL-009 §5.1).
      */
     private static function sanitize_metadata($metadata) {
-        if (empty($metadata)) {
+        if (empty($metadata) || !is_array($metadata)) {
             return null;
         }
 
         if (class_exists('OraBooks_Secrets') && method_exists('OraBooks_Secrets', 'redact_sensitive')) {
-            return OraBooks_Secrets::redact_sensitive($metadata);
+            $metadata = OraBooks_Secrets::redact_sensitive($metadata);
         }
         
-        $sensitive_keys = ['password', 'token', 'secret', 'key', 'authorization', 'credit_card', 'ssn'];
+        $sensitive_keys = ['password', 'token', 'secret', 'key', 'authorization', 'credit_card', 'ssn', 'backup_code', 'totp'];
         $sanitized = [];
         
         foreach ($metadata as $key => $value) {
+            $key_lower = strtolower((string) $key);
             $should_mask = false;
             foreach ($sensitive_keys as $sk) {
-                if (stripos($key, $sk) !== false) {
+                if (stripos($key_lower, $sk) !== false) {
                     $should_mask = true;
                     break;
                 }
             }
+
             if ($should_mask) {
                 $sanitized[$key] = '[REDACTED]';
-            } elseif (is_array($value)) {
+                continue;
+            }
+
+            if (self::is_email_metadata_key($key_lower) && is_string($value) && $value !== '') {
+                $sanitized[$key . '_masked'] = orabooks_mask_email($value);
+                $sanitized[$key . '_hash'] = orabooks_hash_email($value);
+                continue;
+            }
+
+            if (is_array($value)) {
                 $sanitized[$key] = self::sanitize_metadata($value);
             } else {
                 $sanitized[$key] = $value;
@@ -94,6 +117,13 @@ class OraBooks_Audit {
         }
         
         return $sanitized;
+    }
+
+    private static function is_email_metadata_key($key_lower) {
+        if (in_array($key_lower, ['email', 'customer_email', 'user_email', 'partner_email'], true)) {
+            return true;
+        }
+        return (bool) preg_match('/_email$/', $key_lower);
     }
     
     /**
@@ -145,36 +175,40 @@ class OraBooks_Audit {
         $offset = $args['offset'] ?? 0;
         
         $sql = "SELECT * FROM {$table} WHERE {$where} ORDER BY created_at DESC LIMIT %d OFFSET %d";
-        $params[] = min($limit, 1000);
-        $params[] = $offset;
+        $params[] = min((int) $limit, 1000);
+        $params[] = (int) $offset;
         
         $results = $wpdb->get_results($wpdb->prepare($sql, $params));
         
-        // Log that audit was viewed (avoid infinite loop)
-        if (!empty($args['event_type']) && $args['event_type'] === 'audit_log_viewed') {
-            // Skip logging view events
-        } elseif (empty($args['skip_view_log'])) {
+        if (empty($args['skip_view_log']) && !self::should_skip_view_audit($args)) {
             self::log_event('audit_log_viewed', 'Audit log accessed', 'info', [
-                'filters' => $args
+                'filters' => array_diff_key($args, ['skip_view_log' => true]),
             ], orabooks_get_current_user_id(), $all_orgs ? 0 : $org_id);
         }
         
         return $results;
     }
+
+    private static function should_skip_view_audit($args) {
+        $event_type = $args['event_type'] ?? '';
+        return in_array($event_type, self::$meta_event_types, true);
+    }
     
     /**
-     * Archive old audit logs (retention 365 days by default)
+     * Archive old audit logs (retention 365 days by default, SL-009 §5.5).
      */
     public static function archive_old_logs() {
         global $wpdb;
         
-        $retention_days = get_option('orabooks_audit_retention_days', 365);
+        $retention_days = (int) get_option('orabooks_audit_retention_days', 365);
+        $retention_days = max(30, $retention_days);
         $table = OraBooks_Database::table('audit_logs');
         $archive_table = OraBooks_Database::table('audit_logs_archive');
         
-        $cutoff = date('Y-m-d H:i:s', time() - ($retention_days * 86400));
+        $cutoff = gmdate('Y-m-d H:i:s', time() - ($retention_days * DAY_IN_SECONDS));
         
-        $wpdb->query("START TRANSACTION");
+        $wpdb->query('START TRANSACTION');
+        $wpdb->query('SET @orabooks_audit_archival = 1');
         
         $moved = $wpdb->query($wpdb->prepare(
             "INSERT INTO {$archive_table} SELECT * FROM {$table} WHERE created_at < %s",
@@ -186,52 +220,84 @@ class OraBooks_Audit {
             $cutoff
         ));
         
-        $wpdb->query("COMMIT");
+        $wpdb->query('SET @orabooks_audit_archival = NULL');
+        $wpdb->query('COMMIT');
         
-        self::log_event('audit_log_archival', "Audit log archival completed", 'info', [
-            'records_moved' => $moved,
-            'cutoff_date' => $cutoff
-        ], null, null);
+        self::log_event('audit_log_archival', 'Audit log archival completed', 'info', [
+            'records_moved' => (int) $moved,
+            'cutoff_date' => $cutoff,
+            'retention_days' => $retention_days,
+        ], null, 0);
     }
     
     /**
-     * Export audit logs as CSV
+     * Export audit logs as CSV (SL-009 §5.4).
      */
     public static function export_csv($org_id, $args = []) {
-        $logs = self::get_logs($org_id, array_merge($args, ['limit' => 1000]));
-        
-        header('Content-Type: text/csv');
-        header('Content-Disposition: attachment; filename="audit_logs_' . date('Y-m-d') . '.csv"');
+        $logs = self::get_logs($org_id, array_merge($args, [
+            'limit' => 1000,
+            'skip_view_log' => true,
+        ]));
+
+        $org_slug = 'platform';
+        if ($org_id > 0 && class_exists('OraBooks_Organization')) {
+            $org = OraBooks_Organization::get($org_id);
+            if ($org && !empty($org->subdomain)) {
+                $org_slug = sanitize_title($org->subdomain);
+            }
+        }
+
+        $filename = 'audit_logs_' . $org_slug . '_' . gmdate('Y-m-d') . '.csv';
+
+        header('Content-Type: text/csv; charset=utf-8');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
         
         $output = fopen('php://output', 'w');
-        fputcsv($output, ['Timestamp', 'User ID', 'Event Type', 'Severity', 'Description', 'IP', 'Correlation ID', 'Metadata']);
+        fputcsv($output, [
+            'timestamp',
+            'user_id',
+            'user_email',
+            'event_type',
+            'severity',
+            'description',
+            'ip_address',
+            'user_agent',
+            'correlation_id',
+            'metadata',
+        ]);
         
         foreach ($logs as $log) {
+            $user_email = '';
+            if (!empty($log->user_id) && function_exists('orabooks_get_user_email')) {
+                $raw = orabooks_get_user_email((int) $log->user_id);
+                $user_email = $raw ? orabooks_mask_email($raw) : '';
+            }
+
             fputcsv($output, [
                 $log->created_at,
                 $log->user_id,
+                $user_email,
                 $log->event_type,
                 $log->severity,
                 $log->description,
                 $log->ip_address,
+                $log->user_agent,
                 $log->correlation_id,
-                $log->metadata
+                $log->metadata,
             ]);
         }
         
         fclose($output);
         
-        self::log_event('audit_log_exported', "Audit log exported as CSV", 'info', [
+        self::log_event('audit_log_exported', 'Audit log exported as CSV', 'info', [
             'row_count' => count($logs),
-            'format' => 'csv'
-        ], orabooks_get_current_user_id(), $org_id);
+            'format' => 'csv',
+            'filename' => $filename,
+        ], orabooks_get_current_user_id(), $org_id ?: 0);
         
         exit;
     }
 
-    /**
-     * Resolve org scope for audit API calls (JWT-aware frontend).
-     */
     private static function resolve_audit_org_id($requested_org_id) {
         $user_id = function_exists('orabooks_get_current_user_id') ? (int) orabooks_get_current_user_id() : 0;
         if (function_exists('orabooks_resolve_request_org_id')) {
@@ -252,15 +318,44 @@ class OraBooks_Audit {
 
         return 0;
     }
+
+    private static function assert_audit_access($user_id, $org_id) {
+        if (function_exists('current_user_can') && current_user_can('manage_options')) {
+            return true;
+        }
+
+        if ($user_id <= 0) {
+            orabooks_json_error('Not authenticated', 401);
+        }
+
+        if ($org_id <= 0) {
+            orabooks_json_error('Organization is required', 400);
+        }
+
+        if (function_exists('orabooks_assert_tenant_access')) {
+            $tenant = orabooks_assert_tenant_access($user_id, $org_id, false);
+            if (is_wp_error($tenant)) {
+                orabooks_json_error($tenant->get_error_message(), 403);
+            }
+        }
+
+        if (class_exists('OBN_Access_Control')) {
+            if (!OBN_Access_Control::require_permission($user_id, $org_id, 'view_audit_logs')) {
+                orabooks_json_error('You do not have permission to view audit logs. Contact Owner or Admin.', 403);
+            }
+            return true;
+        }
+
+        if (!orabooks_has_permission($user_id, $org_id, 'view_audit_logs')) {
+            orabooks_json_error('You do not have permission to view audit logs. Contact Owner or Admin.', 403);
+        }
+
+        return true;
+    }
     
-    // AJAX handlers
     public function ajax_get_logs() {
         $user_id = orabooks_get_current_user_id();
         $org_id = self::resolve_audit_org_id($_GET['org_id'] ?? 0);
-
-        if (!$user_id && !current_user_can('manage_options')) {
-            orabooks_json_error('Not authenticated', 401);
-        }
 
         $args = [
             'event_type' => sanitize_text_field($_GET['event_type'] ?? ''),
@@ -279,12 +374,7 @@ class OraBooks_Audit {
             }
             $logs = self::get_logs($org_id, $args);
         } else {
-            if (!$org_id) {
-                orabooks_json_error('Organization is required', 400);
-            }
-            if (!orabooks_has_permission($user_id, $org_id, 'view_audit_logs')) {
-                orabooks_json_error('Permission denied', 403);
-            }
+            self::assert_audit_access($user_id, $org_id);
             $logs = self::get_logs($org_id, $args);
         }
 
@@ -295,15 +385,13 @@ class OraBooks_Audit {
         $user_id = orabooks_get_current_user_id();
         $org_id = self::resolve_audit_org_id($_GET['org_id'] ?? 0);
 
-        if (!$user_id && !current_user_can('manage_options')) {
-            orabooks_json_error('Not authenticated', 401);
-        }
-
         $args = [
             'event_type' => sanitize_text_field($_GET['event_type'] ?? ''),
             'user_id' => intval($_GET['user_id'] ?? 0),
+            'severity' => sanitize_text_field($_GET['severity'] ?? ''),
             'from_date' => sanitize_text_field($_GET['from_date'] ?? ''),
             'to_date' => sanitize_text_field($_GET['to_date'] ?? ''),
+            'correlation_id' => sanitize_text_field($_GET['correlation_id'] ?? ''),
             'limit' => 1000,
             'skip_view_log' => true,
         ];
@@ -314,12 +402,7 @@ class OraBooks_Audit {
             }
             self::export_csv($org_id, $args);
         } else {
-            if (!$org_id) {
-                orabooks_json_error('Organization is required', 400);
-            }
-            if (!orabooks_has_permission($user_id, $org_id, 'view_audit_logs')) {
-                orabooks_json_error('Permission denied', 403);
-            }
+            self::assert_audit_access($user_id, $org_id);
             self::export_csv($org_id, $args);
         }
     }
