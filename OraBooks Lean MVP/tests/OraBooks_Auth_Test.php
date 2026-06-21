@@ -1384,6 +1384,15 @@ class OraBooks_Auth_Test extends TestCase
     #[Test]
     public function test_ajax_setup_2fa_success()
     {
+        global $wpdb;
+        $wpdb->test_get_row_callback = function () {
+            return (object) [
+                'id' => 1,
+                'email' => 'user@example.com',
+                'is_2fa_enabled' => 0,
+            ];
+        };
+
         $response = $this->callAjax('ajax_setup_2fa');
 
         $this->assertFalse($response['error']);
@@ -1412,6 +1421,15 @@ class OraBooks_Auth_Test extends TestCase
     #[Test]
     public function test_ajax_verify_2fa_setup_success()
     {
+        global $wpdb;
+        $wpdb->test_get_row_callback = function () {
+            return (object) [
+                'id' => 1,
+                'email' => 'user@example.com',
+                'is_2fa_enabled' => 0,
+            ];
+        };
+
         // Set up temp secret and backup codes
         $GLOBALS['orabooks_test_user_meta'][1]['orabooks_2fa_temp_secret'] = 'TESTSECRET123456';
         $GLOBALS['orabooks_test_user_meta'][1]['orabooks_2fa_temp_backup_codes'] = ['bc1', 'bc2', 'bc3'];
@@ -1431,6 +1449,11 @@ class OraBooks_Auth_Test extends TestCase
     #[Test]
     public function test_ajax_verify_2fa_setup_invalid_otp()
     {
+        global $wpdb;
+        $wpdb->test_get_row_callback = function () {
+            return (object) ['id' => 1, 'is_2fa_enabled' => 0];
+        };
+
         $GLOBALS['orabooks_test_user_meta'][1]['orabooks_2fa_temp_secret'] = 'TESTSECRET123456';
         $_POST['otp_code'] = 'wrong-otp';
 
@@ -1843,8 +1866,4 @@ class OraBooks_Auth_Test extends TestCase
         $result = OraBooks_Auth::handle_google_callback('auth-code-p2fa', 'test-state-partner-2fa');
 
         $this->assertNotInstanceOf(WP_Error::class, $result);
-        $this->assertTrue($result['requires_2fa']);
-        $this->assertEquals(20, $result['user_id']);
-        $this->assertArrayHasKey('temp_token', $result);
-    }
-}
+        $this->asse

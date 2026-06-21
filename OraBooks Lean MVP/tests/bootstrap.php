@@ -326,6 +326,20 @@ if (!class_exists('wpdb', false)) {
             return 1; // 1 row affected
         }
 
+        public function delete($table, $where, $where_format = []) {
+            $where_clauses = [];
+            foreach ($where as $col => $val) {
+                $where_clauses[] = is_null($val) ? "{$col} IS NULL" : "{$col} = '" . addslashes((string) $val) . "'";
+            }
+            $this->last_query = sprintf(
+                'DELETE FROM %s WHERE %s',
+                $table,
+                implode(' AND ', $where_clauses)
+            );
+
+            return 1;
+        }
+
         public function query($query) {
             $this->last_query = $query;
             // Allow test override
