@@ -326,7 +326,15 @@ class OraBooks_Secrets {
      * Derive AES key from the master encryption key (SL-008 §5.4).
      */
     private static function get_cipher_key() {
-        return hash('sha256', (string) self::get_encryption_key(), true);
+        $master = self::$secrets_cache['encryption_key'] ?? null;
+        if ($master === null || $master === '') {
+            $master = self::load_secret('encryption_key');
+        }
+        if ($master === null || $master === '') {
+            return hash('sha256', self::get_legacy_cipher_key(), true);
+        }
+
+        return hash('sha256', (string) $master, true);
     }
 
     /**
@@ -340,8 +348,14 @@ class OraBooks_Secrets {
      * Encrypt stored secrets using the master encryption key.
      */
     private static function encrypt($data) {
+        return self::encrypt_with_key($data, self::get_cipher_key());
+    }
+
+    private static function encrypt_with_key($data, $raw_key) {
         $method = 'aes-256-cbc';
-        $key = self::get_cipher_key();
+        $key = is_string($raw_key) && strlen($raw_key) === 32
+            ? $raw_key
+            : hash('sha256', (string) $raw_key, true);
         $iv = substr(hash('sha256', $key . '_iv'), 0, 16);
         return base64_encode(openssl_encrypt($data, $method, $key, 0, $iv));
     }
@@ -350,21 +364,34 @@ class OraBooks_Secrets {
      * Decrypt stored secret (supports legacy LOGGED_IN_KEY ciphertext).
      */
     private static function decrypt($data) {
-        $method = 'aes-256-cbc';
         $decoded = base64_decode((string) $data, true);
         if ($decoded === false) {
             return false;
         }
 
-        foreach ([self::get_cipher_key(), self::get_legacy_cipher_key()] as $key) {
-            $iv = substr(hash('sha256', $key . '_iv'), 0, 16);
-            $plaintext = openssl_decrypt($decoded, $method, $key, 0, $iv);
+        foreach ([self::get_cipher_key(), hash('sha256', self::get_legacy_cipher_key(), true)] as $key) {
+            $plaintext = self::decrypt_with_key($data, $key);
             if ($plaintext !== false) {
                 return $plaintext;
             }
         }
 
         return false;
+    }
+
+    private static function decrypt_with_key($data, $raw_key) {
+        $method = 'aes-256-cbc';
+        $decoded = base64_decode((string) $data, true);
+        if ($decoded === false) {
+            return false;
+        }
+
+        $key = is_string($raw_key) && strlen($raw_key) === 32
+            ? $raw_key
+            : hash('sha256', (string) $raw_key, true);
+        $iv = substr(hash('sha256', $key . '_iv'), 0, 16);
+        $plaintext = openssl_decrypt($decoded, $method, $key, 0, $iv);
+        return $plaintext !== false ? $plaintext : false;
     }
     
     /**
@@ -554,11 +581,17 @@ class OraBooks_Secrets {
      * Get encryption key for sensitive data (2FA, backup codes)
      */
     public static function get_encryption_key() {
-        $key = self::get('encryption_key');
+        if (!empty(self::$secrets_cache['encryption_key'])) {
+            return self::$secrets_cache['encryption_key'];
+        }
+
+        $key = self::load_secret('encryption_key');
         if (!$key) {
             $key = wp_generate_password(32, true, true);
             self::set('encryption_key', $key);
         }
+
+        self::$secrets_cache['encryption_key'] = $key;
         return $key;
     }
     
