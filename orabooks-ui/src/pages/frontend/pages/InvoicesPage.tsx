@@ -676,6 +676,25 @@ export default function InvoicesPage() {
             </div>
           </Modal>
         )}
+
+        {cancelInvoice && (
+          <Modal title="Cancel invoice" onClose={() => setCancelInvoice(null)}>
+            {error && <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div>}
+            <p className="text-sm text-slate-600">
+              Cancel invoice {cancelInvoice.invoice_number || `#${cancelInvoice.id}`}? This cannot be undone.
+            </p>
+            <div className="mt-4">
+              <label className="mb-1 block text-sm font-medium text-slate-700">Reason (optional)</label>
+              <Input value={cancelReason} onChange={(e) => setCancelReason(e.target.value)} placeholder="Why is this invoice being cancelled?" />
+            </div>
+            <div className="mt-6 flex justify-end gap-2">
+              <Button variant="secondary" onClick={() => setCancelInvoice(null)}>Keep invoice</Button>
+              <Button onClick={() => void handleCancelInvoice()} disabled={actionInvoiceId === cancelInvoice.id}>
+                Confirm cancel
+              </Button>
+            </div>
+          </Modal>
+        )}
       </div>
     </ClientShell>
   );

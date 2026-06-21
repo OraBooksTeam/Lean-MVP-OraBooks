@@ -92,6 +92,8 @@ export default function VendorsPage() {
   const [success, setSuccess] = useState('');
   const [saving, setSaving] = useState(false);
   const [actionBillId, setActionBillId] = useState<number | null>(null);
+  const [voidBill, setVoidBill] = useState<Bill | null>(null);
+  const [voidReason, setVoidReason] = useState('');
 
   const [showVendorForm, setShowVendorForm] = useState(false);
   const [editingVendor, setEditingVendor] = useState<Vendor | null>(null);
@@ -285,6 +287,26 @@ export default function VendorsPage() {
     if (res.error) setError(res.error);
     else {
       setSuccess(`Bill ${action === 'submit' ? 'submitted' : action === 'approve' ? 'approved' : 'posted'}.`);
+      await load();
+    }
+    setActionBillId(null);
+  };
+
+  const canVoidBill = (bill: Bill) =>
+    ['draft', 'submitted', 'approved'].includes(bill.workflow_status || '')
+    && !['paid', 'partial'].includes(bill.payment_status || '')
+    && Number(bill.paid_amount || 0) <= 0;
+
+  const handleVoidBill = async () => {
+    if (!orgId || !voidBill) return;
+    setActionBillId(voidBill.id);
+    setError('');
+    const res = await api.billVoid(orgId, voidBill.id, voidReason.trim());
+    if (res.error) setError(res.error);
+    else {
+      setSuccess('Bill voided.');
+      setVoidBill(null);
+      setVoidReason('');
       await load();
     }
     setActionBillId(null);
