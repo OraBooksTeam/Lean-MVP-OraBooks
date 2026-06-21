@@ -2204,17 +2204,6 @@ function orabooks_get_user_role($user_id, $org_id) {
         return null;
     }
 
-    $table = orabooks_get_table_prefix() . 'orabooks_user_org';
-    $role = $wpdb->get_var($wpdb->prepare(
-        "SELECT role FROM {$table} WHERE user_id = %d AND org_id = %d",
-        $user_id,
-        $org_id
-    ));
-
-    if ($role) {
-        return $role;
-    }
-
     if (class_exists('OraBooks_Organization')) {
         $org = OraBooks_Organization::get($org_id);
         if ($org && (int) $org->owner_id === $user_id) {
@@ -2222,7 +2211,64 @@ function orabooks_get_user_role($user_id, $org_id) {
         }
     }
 
-    return null;
+    $table = OraBooks_Database::table('user_org');
+    $role = $wpdb->get_var($wpdb->prepare(
+        "SELECT role FROM {$table} WHERE user_id = %d AND org_id = %d",
+        $user_id,
+        $org_id
+    ));
+
+    return $role ?: null;
+}
+
+/**
+ * Whether the user has an unused invite to the given organization.
+ */
+function orabooks_user_has_pending_invite($user_id, $org_id) {
+    global $wpdb;
+
+    $user_id = (int) $user_id;
+    $org_id = (int) $org_id;
+
+    if ($user_id <= 0 || $org_id <= 0) {
+        return false;
+    }
+
+    $table_users = OraBooks_Database::table('users');
+    $table_invites = OraBooks_Database::table('org_invites');
+    $email = $wpdb->get_var($wpdb->prepare(
+        "SELECT email FROM {$table_users} WHERE id = %d",
+        $user_id
+    ));
+
+    if (!$email) {
+        return false;
+    }
+
+    $pending = $wpdb->get_var($wpdb->prepare(
+        "SELECT id FROM {$table_invites} WHERE org_id = %d AND email = %s AND used = 0 AND expires_at > NOW() LIMIT 1",
+        $org_id,
+        $email
+    ));
+
+    return (bool) $pending;
+}
+
+/**
+ * Resolve org context for JWT/session issuance (subdomain wins over users.org_id).
+ */
+function orabooks_resolve_auth_org_id($user_id, $stored_org_id = 0) {
+    $user_id = (int) $user_id;
+    $stored_org_id = (int) $stored_org_id;
+
+    if ($user_id > 0 && function_exists('orabooks_get_current_org_id')) {
+        $resolved = (int) orabooks_get_current_org_id($user_id);
+        if ($resolved > 0) {
+            return $resolved;
+        }
+    }
+
+    return max(0, $stored_org_id);
 }
 
 /**
@@ -2532,6 +2578,13 @@ function orabooks_get_current_org_id($user_id = 0) {
                 if ($membership) {
                     return (int) $org->id;
                 }
+
+                if (orabooks_user_has_pending_invite($user_id, (int) $org->id)) {
+                    return (int) $org->id;
+                }
+
+                // On a tenant subdomain, never fall back to the user's personal org.
+                return (int) $org->id;
             }
         }
     }

@@ -273,9 +273,13 @@ class OraBooks_Team {
             ['%d', '%d', '%s']
         );
         
-        if (!$user->org_id) {
-            $wpdb->update($table_users, ['org_id' => $invite->org_id], ['id' => $user->id], ['%d'], ['%d']);
-        }
+        $wpdb->update(
+            $table_users,
+            ['org_id' => $invite->org_id],
+            ['id' => $user->id],
+            ['%d'],
+            ['%d']
+        );
         
         $wpdb->update(
             $table_invites,
