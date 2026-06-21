@@ -5,6 +5,7 @@ import { api } from '@/pages/frontend/api';
 import { getTenantDomainSuffix } from '@/lib/utils';
 import {
   clearTierSelectionToken,
+  getNetworkAuthUrl,
   getTierSelectionToken,
   redirectAfterAuth,
   storeTierSelectionToken,
@@ -94,7 +95,12 @@ export default function TierSelectionPage() {
       clearTierSelectionToken();
       redirectAfterAuth((res as any).data || {});
     } else {
-      setMsg(typeof res.error === 'string' ? res.error : 'Failed');
+      const message = typeof res.error === 'string' ? res.error : 'Failed';
+      if (message.toLowerCase().includes('pending team invitation')) {
+        window.location.replace(getNetworkAuthUrl('accept-invite'));
+        return;
+      }
+      setMsg(message);
     }
     setLoading(false);
   };
