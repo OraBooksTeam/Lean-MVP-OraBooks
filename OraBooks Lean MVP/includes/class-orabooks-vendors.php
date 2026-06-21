@@ -33,6 +33,8 @@ class OraBooks_Vendors {
             add_action('wp_ajax_nopriv_orabooks_bill_approve', [self::$instance, 'ajax_bill_approve']);
             add_action('wp_ajax_orabooks_bill_post', [self::$instance, 'ajax_bill_post']);
             add_action('wp_ajax_nopriv_orabooks_bill_post', [self::$instance, 'ajax_bill_post']);
+            add_action('wp_ajax_orabooks_bill_void', [self::$instance, 'ajax_bill_void']);
+            add_action('wp_ajax_nopriv_orabooks_bill_void', [self::$instance, 'ajax_bill_void']);
             add_action('wp_ajax_orabooks_vendor_payment_record', [self::$instance, 'ajax_record_payment']);
             add_action('wp_ajax_nopriv_orabooks_vendor_payment_record', [self::$instance, 'ajax_record_payment']);
             add_action('wp_ajax_orabooks_vendor_credit_note_create', [self::$instance, 'ajax_create_credit_note']);
@@ -574,6 +576,51 @@ class OraBooks_Vendors {
         return true;
     }
 
+    public static function void_bill($org_id, $bill_id, $user_id, $reason = null) {
+        $bill = self::get_bill($bill_id, $org_id);
+        if (!$bill) {
+            return new WP_Error('not_found', 'Bill not found');
+        }
+
+        if (!in_array($bill->workflow_status, ['draft', 'submitted', 'approved'], true)) {
+            return new WP_Error('invalid_status', 'Only draft, submitted, or approved bills can be voided');
+        }
+
+        $paid_amount = (float) ($bill->paid_amount ?? 0);
+        if ($paid_amount > 0 || in_array($bill->payment_status, ['paid', 'partial'], true)) {
+            return new WP_Error('has_payments', 'Cannot void a bill with recorded payments');
+        }
+
+        if (!class_exists('OraBooks_Workflow')) {
+            return new WP_Error('workflow_unavailable', 'Workflow engine unavailable');
+        }
+
+        $result = OraBooks_Workflow::transition('bill', $bill_id, 'void', [
+            'user_id' => (int) $user_id,
+            'org_id'  => (int) $org_id,
+            'reason'  => $reason,
+            'row_updates' => [
+                'payment_status' => 'void',
+            ],
+        ]);
+        if (is_wp_error($result)) {
+            return $result;
+        }
+
+        orabooks_log_event('vendor_bill_voided', "Bill {$bill->bill_number} voided", 'info', [
+            'bill_id' => (int) $bill_id,
+            'reason'  => $reason,
+        ], (int) $user_id, (int) $org_id);
+
+        do_action('orabooks_vendor_bill_voided', (int) $bill_id, [
+            'org_id'    => (int) $org_id,
+            'vendor_id' => (int) $bill->vendor_id,
+            'reason'    => $reason,
+        ]);
+
+        return self::get_bill($bill_id, $org_id);
+    }
+
     public static function post_bill($org_id, $bill_id, $user_id) {
         global $wpdb;
 
@@ -1109,6 +1156,23 @@ class OraBooks_Vendors {
             orabooks_json_error($result->get_error_message(), 400);
         }
         orabooks_json_success([], 'Bill posted');
+    }
+
+    public function ajax_bill_void() {
+        $user_id = $this->current_user_id();
+        $org_id = intval($_POST['org_id'] ?? 0);
+        $reason = isset($_POST['reason']) ? sanitize_textarea_field(wp_unslash($_POST['reason'])) : null;
+        $this->require_ap_permission($user_id, $org_id, ['submit_transaction', 'manage_org_settings']);
+        $result = self::void_bill($org_id, intval($_POST['bill_id'] ?? 0), $user_id, $reason);
+        if (is_wp_error($result)) {
+            $status = 400;
+            $data = $result->get_error_data();
+            if (is_array($data) && isset($data['status'])) {
+                $status = (int) $data['status'];
+            }
+            orabooks_json_error($result->get_error_message(), $status);
+        }
+        orabooks_json_success(['bill' => $result], 'Bill voided');
     }
 
     public function ajax_record_payment() {

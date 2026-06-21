@@ -46,6 +46,8 @@ class OraBooks_Customers {
             add_action('wp_ajax_nopriv_orabooks_invoice_send', [self::$instance, 'ajax_invoice_send']);
             add_action('wp_ajax_orabooks_invoice_post', [self::$instance, 'ajax_invoice_post']);
             add_action('wp_ajax_nopriv_orabooks_invoice_post', [self::$instance, 'ajax_invoice_post']);
+            add_action('wp_ajax_orabooks_invoice_cancel', [self::$instance, 'ajax_invoice_cancel']);
+            add_action('wp_ajax_nopriv_orabooks_invoice_cancel', [self::$instance, 'ajax_invoice_cancel']);
             add_action('wp_ajax_orabooks_invoice_record_payment', [self::$instance, 'ajax_record_payment']);
             add_action('wp_ajax_nopriv_orabooks_invoice_record_payment', [self::$instance, 'ajax_record_payment']);
             add_action('wp_ajax_orabooks_customer_stats', [self::$instance, 'ajax_customer_stats']);
@@ -1381,6 +1383,63 @@ class OraBooks_Customers {
     }
 
     /**
+     * Cancel an invoice (draft/sent → cancelled, SL-021 / SL-301).
+     */
+    public static function cancel_invoice($org_id, $invoice_id, $user_id, $reason = null) {
+        $org_id = (int) $org_id;
+        $invoice_id = (int) $invoice_id;
+        $user_id = (int) $user_id;
+
+        $invoice = self::get_invoice($invoice_id);
+        if (!$invoice || (int) $invoice->org_id !== $org_id) {
+            return new WP_Error('not_found', 'Invoice not found');
+        }
+
+        if (!in_array($invoice->workflow_status, ['draft', 'sent'], true)) {
+            return new WP_Error('invalid_status', 'Only draft or sent invoices can be cancelled');
+        }
+
+        if ($invoice->workflow_status === 'cancelled') {
+            return new WP_Error('already_cancelled', 'Invoice is already cancelled');
+        }
+
+        $paid_amount = (float) ($invoice->paid_amount ?? 0);
+        if ($paid_amount > 0 || in_array($invoice->payment_status, ['paid', 'partial'], true)) {
+            return new WP_Error('has_payments', 'Cannot cancel an invoice with recorded payments');
+        }
+
+        if (!class_exists('OraBooks_Workflow')) {
+            return new WP_Error('workflow_unavailable', 'Workflow engine unavailable');
+        }
+
+        $result = OraBooks_Workflow::transition('invoice', $invoice_id, 'cancel', [
+            'user_id' => $user_id,
+            'org_id'  => $org_id,
+            'reason'  => $reason,
+            'row_updates' => [
+                'payment_status' => 'cancelled',
+            ],
+        ]);
+        if (is_wp_error($result)) {
+            return $result;
+        }
+
+        orabooks_log_event('invoice_cancelled', "Invoice {$invoice->invoice_number} cancelled", 'info', [
+            'invoice_id' => $invoice_id,
+            'reason'     => $reason,
+        ], $user_id, $org_id);
+
+        do_action('orabooks_invoice_cancelled', $invoice_id, [
+            'org_id'         => $org_id,
+            'customer_id'    => (int) $invoice->customer_id,
+            'invoice_number' => $invoice->invoice_number,
+            'reason'         => $reason,
+        ]);
+
+        return self::get_invoice($invoice_id);
+    }
+
+    /**
      * Block send/post when customer is on credit hold or over credit limit.
      */
     private static function validate_customer_credit_for_invoice($invoice) {
@@ -2571,6 +2630,47 @@ class OraBooks_Customers {
         }
 
         orabooks_json_success(['invoice' => $result], 'Invoice posted');
+    }
+
+    /**
+     * Cancel a draft or sent invoice.
+     */
+    public function ajax_invoice_cancel() {
+        global $wpdb;
+        $user_id = orabooks_get_current_user_id();
+        $org_id = intval($_POST['org_id'] ?? 0);
+        $invoice_id = intval($_POST['invoice_id'] ?? 0);
+        $reason = isset($_POST['reason']) ? sanitize_textarea_field(wp_unslash($_POST['reason'])) : null;
+
+        if (!$user_id) {
+            orabooks_json_error('Not authenticated', 401);
+        }
+
+        if (!$org_id && $invoice_id) {
+            $table_invoices = OraBooks_Database::table('invoices');
+            $org_id = (int) $wpdb->get_var($wpdb->prepare(
+                "SELECT org_id FROM {$table_invoices} WHERE id = %d",
+                $invoice_id
+            ));
+        }
+
+        if (!$org_id || !$invoice_id) {
+            orabooks_json_error('Organization and invoice ID required', 400);
+        }
+
+        $this->require_customer_access($user_id, $org_id, 'create_invoice');
+
+        $result = self::cancel_invoice($org_id, $invoice_id, $user_id, $reason);
+        if (is_wp_error($result)) {
+            $status = 400;
+            $data = $result->get_error_data();
+            if (is_array($data) && isset($data['status'])) {
+                $status = (int) $data['status'];
+            }
+            orabooks_json_error($result->get_error_message(), $status);
+        }
+
+        orabooks_json_success(['invoice' => $result], 'Invoice cancelled');
     }
 
     /**
