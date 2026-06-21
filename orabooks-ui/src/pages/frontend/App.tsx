@@ -21,6 +21,7 @@ import CsvImportsPage from './pages/CsvImportsPage';
 import TeamPage from './pages/TeamPage';
 import AttachmentsPage from './pages/AttachmentsPage';
 import ApprovalsPage from './pages/ApprovalsPage';
+import ApprovalSettingsPage from './pages/ApprovalSettingsPage';
 import AiReviewPage from './pages/AiReviewPage';
 import ExpensesPage from './pages/ExpensesPage';
 import VoicePage from './pages/VoicePage';
@@ -67,6 +68,7 @@ const ROUTES: Record<string, RouteConfig> = {
   '/tax-settings': { element: <TaxSettingsPage /> },
   '/journals': { element: <JournalsPage /> },
   '/approvals': { element: <ApprovalsPage /> },
+  '/approval-settings': { element: <ApprovalSettingsPage /> },
   '/ai-review': { element: <AiReviewPage /> },
   '/expenses': { element: <ExpensesPage /> },
   '/voice': { element: <VoicePage /> },

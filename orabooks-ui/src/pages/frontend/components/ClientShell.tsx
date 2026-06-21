@@ -71,6 +71,7 @@ const customerNav: NavItem[] = [
   { label: 'Attachments', href: '/attachments', icon: Paperclip, permission: 'view_reports' },
   { label: 'AI Review', href: '/ai-review', icon: Bot, permission: 'view_ai_review_queue' },
   { label: 'Approvals', href: '/approvals', icon: ShieldCheck, permission: 'approve_journal' },
+  { label: 'Approval Settings', href: '/approval-settings', icon: ShieldCheck, permission: 'manage_org_settings' },
   { label: 'Notifications', href: '/notifications', icon: Bell },
   { label: 'My Exports', href: '/my-exports', icon: Download, permission: 'export_reports' },
   { label: 'Team', href: '/team', icon: UserCog, permission: 'manage_employees' },

@@ -793,8 +793,20 @@ export const api = {
       description: data.description || '',
       lines: data.lines ? JSON.stringify(data.lines) : '',
     }),
-  approvalDashboard: () =>
-    api.get('orabooks_approval_dashboard'),
+  approvalDashboard: (sort = 'age', order = 'ASC') =>
+    api.get('orabooks_approval_dashboard', { sort, order }),
+  approvalPolicyGet: (orgId: number) =>
+    api.get('orabooks_approval_policy_get', { org_id: orgId }),
+  approvalPolicySave: (orgId: number, data: Record<string, unknown>) =>
+    api.post('orabooks_approval_policy_save', { org_id: orgId, ...data }),
+  approvalDelegationsList: (orgId: number) =>
+    api.get('orabooks_approval_delegations_list', { org_id: orgId }),
+  approvalDelegationCreate: (
+    orgId: number,
+    data: { delegate_user_id: number; delegator_user_id?: number; starts_at: string; ends_at: string }
+  ) => api.post('orabooks_approval_delegation_create', { org_id: orgId, ...data }),
+  approvalDelegationRevoke: (orgId: number, delegationId: number) =>
+    api.post('orabooks_approval_delegation_revoke', { org_id: orgId, delegation_id: delegationId }),
   aiReviewDashboard: () =>
     api.get('orabooks_ai_review_dashboard'),
   aiReviewList: (orgId: number, filters: { status?: string; limit?: number } = {}) =>

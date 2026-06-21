@@ -37,6 +37,7 @@ class OraBooks_Shortcodes {
             add_shortcode('orabooks_team', [self::$instance, 'team_page']);
             add_shortcode('orabooks_attachments', [self::$instance, 'attachments_page']);
             add_shortcode('orabooks_approvals', [self::$instance, 'approvals_page']);
+            add_shortcode('orabooks_approval_settings', [self::$instance, 'approval_settings_page']);
             add_shortcode('orabooks_ai_review', [self::$instance, 'ai_review_page']);
             add_shortcode('orabooks_expenses', [self::$instance, 'expenses_page']);
             add_shortcode('orabooks_voice', [self::$instance, 'voice_page']);
