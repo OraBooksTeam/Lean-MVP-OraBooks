@@ -37,12 +37,22 @@ interface ClientShellProps {
   eyebrow?: string;
   children: ReactNode;
   organization?: {
+    id?: number;
     name?: string;
     tier?: string;
     status?: string;
     organization_type?: string;
   } | null;
+  role?: string | null;
   isPartner?: boolean;
+}
+
+function formatRoleLabel(role: string): string {
+  const normalized = role.trim().toLowerCase();
+  if (!normalized) {
+    return '';
+  }
+  return normalized.charAt(0).toUpperCase() + normalized.slice(1);
 }
 
 type NavItem = {
@@ -166,6 +176,7 @@ export default function ClientShell({
   eyebrow,
   children,
   organization,
+  role: roleProp,
   isPartner = false,
 }: ClientShellProps) {
   const currentRoute = getCurrentAppRoute();
@@ -175,15 +186,21 @@ export default function ClientShell({
   const nav = filterNavByPermissions(baseNav, permissions);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
-  const [userRole, setUserRole] = useState('');
+  const [userRole, setUserRole] = useState(() => (typeof roleProp === 'string' ? formatRoleLabel(roleProp) : ''));
   const [needs2faSetup, setNeeds2faSetup] = useState(false);
+
+  useEffect(() => {
+    if (typeof roleProp === 'string' && roleProp.trim() !== '') {
+      setUserRole(formatRoleLabel(roleProp));
+    }
+  }, [roleProp]);
 
   useEffect(() => {
     void api.frontendContext().then((res) => {
       const data = (res as any).data;
-      const role = data?.role;
+      const role = typeof roleProp === 'string' && roleProp.trim() !== '' ? roleProp : data?.role;
       if (typeof role === 'string' && role.trim() !== '') {
-        setUserRole(role.charAt(0).toUpperCase() + role.slice(1));
+        setUserRole(formatRoleLabel(role));
       }
       if (Array.isArray(data?.permissions)) {
         setPermissions(data.permissions);
@@ -197,7 +214,7 @@ export default function ClientShell({
         setUnreadCount(count);
       }
     });
-  }, []);
+  }, [currentRoute, organization?.id, roleProp]);
 
   const handleLogout = async (event: MouseEvent<HTMLAnchorElement>) => {
     event.preventDefault();

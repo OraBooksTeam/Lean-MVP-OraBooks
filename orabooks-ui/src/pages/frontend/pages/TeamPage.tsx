@@ -129,6 +129,7 @@ export default function TeamPage() {
       title="Team"
       eyebrow="Members & invitations"
       organization={data?.context?.organization}
+      role={data?.context?.role}
       isPartner={isPartner}
     >
       <div className="space-y-5">
