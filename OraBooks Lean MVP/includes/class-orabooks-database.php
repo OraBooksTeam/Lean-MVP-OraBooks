@@ -758,6 +758,7 @@ class OraBooks_Database {
         $table_sm = $table_prefix . 'orabooks_state_machine_transitions';
         $sql = "CREATE TABLE IF NOT EXISTS {$table_sm} (
             id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            org_id BIGINT UNSIGNED NULL,
             record_type VARCHAR(50) NOT NULL,
             record_id BIGINT UNSIGNED NOT NULL,
             from_state VARCHAR(50) NOT NULL,
@@ -768,9 +769,20 @@ class OraBooks_Database {
             metadata JSON NULL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             INDEX idx_record (record_type, record_id),
+            INDEX idx_org_created (org_id, created_at),
             INDEX idx_created (created_at)
         ) {$charset_collate};";
         dbDelta($sql);
+
+        $sm_cols = $wpdb->get_results("SHOW COLUMNS FROM {$table_sm}");
+        $sm_existing = [];
+        foreach ($sm_cols ?: [] as $col) {
+            $sm_existing[] = $col->Field;
+        }
+        if (!in_array('org_id', $sm_existing, true)) {
+            $wpdb->query("ALTER TABLE {$table_sm} ADD COLUMN org_id BIGINT UNSIGNED NULL AFTER id");
+            $wpdb->query("ALTER TABLE {$table_sm} ADD INDEX idx_org_created (org_id, created_at)");
+        }
         
         // ============================================================
         // Add missing columns to outbox_messages table for SL-302 EventBus
