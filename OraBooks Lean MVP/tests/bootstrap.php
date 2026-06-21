@@ -858,6 +858,16 @@ if (!function_exists('orabooks_log_event')) {
 
 if (!function_exists('orabooks_publish_event')) {
     function orabooks_publish_event($event_type, $aggregate_id, $payload = []) {
+        if (array_key_exists('orabooks_test_publish_event_override', $GLOBALS)) {
+            $override = $GLOBALS['orabooks_test_publish_event_override'];
+            if ($override === false) {
+                return false;
+            }
+            if ($override instanceof WP_Error) {
+                return $override;
+            }
+            return $override;
+        }
         return 100; // Mock outbox message ID
     }
 }
