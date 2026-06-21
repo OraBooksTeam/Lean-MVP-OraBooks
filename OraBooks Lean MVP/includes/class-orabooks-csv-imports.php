@@ -470,9 +470,13 @@ class OraBooks_Csv_Imports {
                 case 'initial_cost':
                 case 'low_stock_threshold':
                 case 'payment_terms':
+                case 'unit_price':
                     $parsed[$field] = is_numeric(str_replace([',', '$'], '', $value))
                         ? floatval(str_replace([',', '$'], '', $value))
                         : $value;
+                    break;
+                case 'customer_id':
+                    $parsed[$field] = intval($value);
                     break;
                 default:
                     $parsed[$field] = sanitize_text_field($value);
@@ -1211,6 +1215,12 @@ class OraBooks_Csv_Imports {
             'initial_cost'  => ['cost', 'unit_cost', 'initial_cost'],
             'tax_id'        => ['tax_id', 'vat_number', 'gstin'],
             'payment_terms' => ['payment_terms', 'terms', 'due_days'],
+            'employee_name' => ['employee', 'employee_name', 'worker', 'staff_name'],
+            'unit_price'    => ['unit_price', 'price', 'list_price', 'rate'],
+            'debit_account' => ['debit_account', 'debit', 'expense_account'],
+            'credit_account'=> ['credit_account', 'credit', 'offset_account'],
+            'account_code'  => ['account', 'account_code', 'gl_code'],
+            'transaction_date' => ['transaction_date', 'journal_date', 'posting_date'],
         ];
 
         $fields = self::get_required_fields($resource_type);
@@ -1239,14 +1249,40 @@ class OraBooks_Csv_Imports {
         }
 
         $safe_name = sanitize_file_name($filename);
-        $storage_key = 'orabooks-imports/' . intval($org_id) . '/' . wp_hash($content . microtime(true)) . '_' . $safe_name;
+        $storage_key = 'orabooks-imports/' . intval($org_id) . '/' . wp_hash($content . microtime(true)) . '_' . $safe_name . '.enc';
         $full_path = $upload_dir['basedir'] . '/' . $storage_key;
 
-        if (file_put_contents($full_path, $content) === false) {
+        $encrypted = self::encrypt_file_content($content);
+        if ($encrypted === false) {
+            return new WP_Error('storage_error', 'Could not encrypt CSV file');
+        }
+
+        if (file_put_contents($full_path, $encrypted) === false) {
             return new WP_Error('storage_error', 'Could not save CSV file');
         }
 
         return ['storage_key' => $storage_key, 'full_path' => $full_path];
+    }
+
+    /**
+     * Read CSV bytes from attachment (SL-203) or encrypted local storage.
+     */
+    public static function read_import_file($import) {
+        if (!empty($import->attachment_id) && class_exists('OraBooks_Attachments')) {
+            $attachment = OraBooks_Attachments::get_attachment((int) $import->attachment_id, (int) $import->org_id);
+            if ($attachment && !empty($attachment->current_version_id)) {
+                $version = OraBooks_Attachments::get_version((int) $attachment->current_version_id, (int) $import->org_id);
+                if ($version && !empty($version->storage_path)) {
+                    return OraBooks_Attachments::read_stored_file($version->storage_path);
+                }
+            }
+        }
+
+        if (!empty($import->storage_key)) {
+            return self::read_stored_file($import->storage_key);
+        }
+
+        return new WP_Error('file_missing', 'Import file not found');
     }
 
     public static function read_stored_file($storage_key) {
@@ -1257,12 +1293,50 @@ class OraBooks_Csv_Imports {
             return new WP_Error('file_missing', 'Import file not found');
         }
 
-        $content = file_get_contents($path);
-        if ($content === false) {
+        $raw = file_get_contents($path);
+        if ($raw === false) {
             return new WP_Error('file_read_error', 'Could not read import file');
         }
 
-        return $content;
+        if (str_ends_with($storage_key, '.enc')) {
+            $content = self::decrypt_file_content($raw);
+            if ($content === false) {
+                return new WP_Error('file_read_error', 'Could not decrypt import file');
+            }
+            return $content;
+        }
+
+        return $raw;
+    }
+
+    private static function encrypt_file_content($data) {
+        if (!function_exists('openssl_encrypt')) {
+            return $data;
+        }
+        $key = self::get_file_encryption_key();
+        $iv = openssl_random_pseudo_bytes(16);
+        $encrypted = openssl_encrypt($data, 'AES-256-CBC', $key, 0, $iv);
+        if ($encrypted === false) {
+            return false;
+        }
+        return $iv . $encrypted;
+    }
+
+    private static function decrypt_file_content($data) {
+        if (!function_exists('openssl_decrypt') || strlen($data) < 17) {
+            return $data;
+        }
+        $key = self::get_file_encryption_key();
+        $iv = substr($data, 0, 16);
+        $encrypted = substr($data, 16);
+        return openssl_decrypt($encrypted, 'AES-256-CBC', $key, 0, $iv);
+    }
+
+    private static function get_file_encryption_key() {
+        if (class_exists('OraBooks_Secrets')) {
+            return hash('sha256', (string) OraBooks_Secrets::get_encryption_key(), true);
+        }
+        return hash('sha256', defined('ORABOOKS_JWT_SECRET') ? ORABOOKS_JWT_SECRET : 'orabooks-default', true);
     }
 
     private static function mark_import_failed($import_id, $message) {
@@ -1322,6 +1396,13 @@ class OraBooks_Csv_Imports {
     private function require_customer_org_access($user_id, $org_id) {
         if (!$user_id) {
             orabooks_json_error('Not authenticated', 401);
+        }
+
+        if (function_exists('orabooks_assert_tenant_access')) {
+            $tenant = orabooks_assert_tenant_access($user_id, $org_id, false);
+            if (is_wp_error($tenant)) {
+                orabooks_json_error($tenant->get_error_message(), 403);
+            }
         }
 
         $isolation = OraBooks_Auth::require_customer_org($user_id, $org_id);
