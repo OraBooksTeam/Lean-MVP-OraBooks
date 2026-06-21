@@ -1584,6 +1584,99 @@ function orabooks_get_2fa_secret($wp_user_id) {
 }
 
 /**
+ * Store temporary TOTP secret during 2FA setup (encrypted at rest).
+ */
+function orabooks_set_2fa_temp_secret($wp_user_id, $secret) {
+    if ($wp_user_id <= 0 || $secret === '') {
+        return;
+    }
+
+    $stored = class_exists('OraBooks_Secrets')
+        ? OraBooks_Secrets::encrypt_sensitive((string) $secret)
+        : (string) $secret;
+
+    update_user_meta((int) $wp_user_id, 'orabooks_2fa_temp_secret', $stored);
+}
+
+/**
+ * Read temporary TOTP secret during 2FA setup.
+ */
+function orabooks_get_2fa_temp_secret($wp_user_id) {
+    if ($wp_user_id <= 0) {
+        return '';
+    }
+
+    $stored = get_user_meta((int) $wp_user_id, 'orabooks_2fa_temp_secret', true);
+    if ($stored === '' || $stored === null) {
+        return '';
+    }
+
+    if (class_exists('OraBooks_Secrets')) {
+        return OraBooks_Secrets::decrypt_sensitive($stored);
+    }
+
+    return (string) $stored;
+}
+
+/**
+ * Store temporary backup codes during 2FA setup (encrypted JSON at rest).
+ *
+ * @param string[] $codes
+ */
+function orabooks_set_2fa_temp_backup_codes($wp_user_id, array $codes) {
+    if ($wp_user_id <= 0 || empty($codes)) {
+        return;
+    }
+
+    $payload = wp_json_encode(array_values($codes));
+    $stored = class_exists('OraBooks_Secrets')
+        ? OraBooks_Secrets::encrypt_sensitive($payload)
+        : $payload;
+
+    update_user_meta((int) $wp_user_id, 'orabooks_2fa_temp_backup_codes', $stored);
+}
+
+/**
+ * @return string[]
+ */
+function orabooks_get_2fa_temp_backup_codes($wp_user_id) {
+    if ($wp_user_id <= 0) {
+        return [];
+    }
+
+    $stored = get_user_meta((int) $wp_user_id, 'orabooks_2fa_temp_backup_codes', true);
+    if ($stored === '' || $stored === null) {
+        return [];
+    }
+
+    if (is_array($stored)) {
+        return array_values($stored);
+    }
+
+    $decoded = class_exists('OraBooks_Secrets')
+        ? OraBooks_Secrets::decrypt_sensitive($stored)
+        : (string) $stored;
+
+    if ($decoded === '' || $decoded === null) {
+        return [];
+    }
+
+    if ($decoded[0] === '[') {
+        $json = json_decode($decoded, true);
+        return is_array($json) ? array_values($json) : [];
+    }
+
+    return [(string) $decoded];
+}
+
+/**
+ * Normalize backup codes for comparison (case-insensitive, no spaces).
+ */
+function orabooks_normalize_backup_code($code) {
+    return strtoupper(preg_replace('/\s+/', '', (string) $code));
+}
+
+/**
  * Resolve user ID from a tier-selection JWT (SL-013: no session until org exists).
  */
 function orabooks_resolve_tier_selection_user_id($token = '') {
