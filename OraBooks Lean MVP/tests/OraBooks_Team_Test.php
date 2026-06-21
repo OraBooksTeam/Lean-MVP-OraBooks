@@ -408,9 +408,9 @@ class OraBooks_Team_Test extends TestCase
     {
         global $wpdb;
 
-        $wpdb->test_query_callback = function ($query) {
-            $this->assertStringContainsString('DELETE FROM', $query);
-            $this->assertStringContainsString('expires_at < NOW()', $query);
+        $last_query = '';
+        $wpdb->test_query_callback = function ($query) use (&$last_query) {
+            $last_query = $query;
 
             return 4;
         };
@@ -418,6 +418,8 @@ class OraBooks_Team_Test extends TestCase
         $deleted = OraBooks_Team::cleanup_expired_invites();
 
         $this->assertSame(4, $deleted);
+        $this->assertStringContainsString('DELETE FROM', $last_query);
+        $this->assertStringContainsString('expires_at < NOW()', $last_query);
     }
 
     #[Test]
@@ -433,10 +435,6 @@ class OraBooks_Team_Test extends TestCase
             (object) ['id' => 2],
         ];
 
-        $original_list_members = null;
-        $original_list_invites = null;
-
-        // Use reflection-free approach: mock via get_results on list queries
         global $wpdb;
         $wpdb->test_get_results_callback = function ($query) use ($members, $invites) {
             if (stripos($query, 'user_org') !== false) {
