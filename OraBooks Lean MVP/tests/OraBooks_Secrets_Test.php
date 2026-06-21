@@ -12,9 +12,24 @@ class OraBooks_Secrets_Test extends TestCase
     {
         parent::setUp();
 
+        $this->reset_secrets_cache();
         $GLOBALS['orabooks_test_options'] = [];
         OraBooks_Secrets::set('jwt_secret', 'initial-jwt-secret-with-enough-length-for-tests');
         OraBooks_Secrets::set('encryption_key', 'initial-encryption-key-32chars-min');
+        update_option('orabooks_jwt_secret_grace_until', time() + 3600);
+    }
+
+    private function reset_secrets_cache(): void
+    {
+        $ref = new ReflectionClass(OraBooks_Secrets::class);
+        foreach (['secrets_cache', 'access_logged', 'bootstrapped'] as $property) {
+            if (!$ref->hasProperty($property)) {
+                continue;
+            }
+            $prop = $ref->getProperty($property);
+            $prop->setAccessible(true);
+            $prop->setValue(null, $property === 'bootstrapped' ? false : []);
+        }
     }
 
     #[Test]
