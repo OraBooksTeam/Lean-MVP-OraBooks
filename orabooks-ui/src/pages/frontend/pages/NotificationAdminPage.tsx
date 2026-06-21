@@ -11,6 +11,7 @@ type Tab = 'policy' | 'health' | 'audit';
 
 export default function NotificationAdminPage() {
   const [tab, setTab] = useState<Tab>('policy');
+  const [context, setContext] = useState<any>(null);
   const [policy, setPolicy] = useState({
     monthly_budget: '',
     mandatory_event_types: [] as string[],
@@ -30,10 +31,12 @@ export default function NotificationAdminPage() {
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
 
-  const orgId = 0;
+  const orgId = Number(context?.organization?.id || context?.user?.org_id || 0);
+  const isPlatformAdmin = Boolean(ORABOOKS_AJAX.is_admin);
+  const canManage = isPlatformAdmin || context?.user?.role === 'owner';
 
-  const loadPolicy = () =>
-    api.notificationPolicyGet(orgId).then((res: any) => {
+  const loadPolicy = (resolvedOrgId: number) =>
+    api.notificationPolicyGet(resolvedOrgId).then((res: any) => {
       if (res.error) return;
       const p = res.data || {};
       const parseList = (val: unknown) => {
@@ -59,17 +62,33 @@ export default function NotificationAdminPage() {
       });
     });
 
-  const loadHealth = () =>
-    api.notificationProviderHealth(orgId).then((res: any) => {
+  const loadHealth = (resolvedOrgId: number) =>
+    api.notificationProviderHealth(resolvedOrgId).then((res: any) => {
       if (!res.error) setHealth(res.data || []);
     });
 
   useEffect(() => {
-    if (!ORABOOKS_AJAX.is_admin) {
-      setLoading(false);
-      return;
-    }
-    Promise.all([loadPolicy(), loadHealth()]).finally(() => setLoading(false));
+    api.frontendContext().then((res: any) => {
+      if (res.error) {
+        setError(res.error || 'Please log in to manage notification settings.');
+        setLoading(false);
+        return;
+      }
+      const data = res.data;
+      setContext(data);
+      const resolvedOrgId = Number(data?.organization?.id || data?.user?.org_id || 0);
+      const allowed = Boolean(ORABOOKS_AJAX.is_admin) || data?.user?.role === 'owner';
+      if (!allowed) {
+        setLoading(false);
+        return;
+      }
+      if (!resolvedOrgId) {
+        setError('Organization context is required.');
+        setLoading(false);
+        return;
+      }
+      Promise.all([loadPolicy(resolvedOrgId), loadHealth(resolvedOrgId)]).finally(() => setLoading(false));
+    });
   }, []);
 
   const toggleList = (field: 'mandatory_event_types' | 'prohibited_channels' | 'escalation_fallback_chain', value: string) => {
@@ -84,6 +103,10 @@ export default function NotificationAdminPage() {
     e.preventDefault();
     setError('');
     setMessage('');
+    if (!orgId) {
+      setError('Organization context is required.');
+      return;
+    }
     const res = await api.notificationPolicySave(orgId, policy);
     if (res.error) setError(res.error);
     else setMessage('Policy saved.');
@@ -93,6 +116,10 @@ export default function NotificationAdminPage() {
     e.preventDefault();
     setError('');
     setMessage('');
+    if (!orgId) {
+      setError('Organization context is required.');
+      return;
+    }
     const res = await api.notificationAuditExport(orgId, auditStart, auditEnd);
     if (res.error) {
       setError(res.error);
@@ -119,16 +146,22 @@ export default function NotificationAdminPage() {
     []
   );
 
-  if (!ORABOOKS_AJAX.is_admin) {
+  if (!canManage) {
     return (
       <ClientShell title="Access denied" eyebrow="Notifications">
-        <p className="text-sm text-danger">Admin access is required for notification settings.</p>
+        <p className="text-sm text-danger">
+          Only organization owners can manage notification policies. Contact your org owner for access.
+        </p>
       </ClientShell>
     );
   }
 
   return (
-    <ClientShell title="Notification Settings (Admin)" eyebrow="Notifications">
+    <ClientShell
+      title="Notification Settings (Admin)"
+      eyebrow="Notifications"
+      organization={context?.organization}
+    >
       <div className="mb-4 flex flex-wrap gap-2">
         {tabs.map((t) => (
           <button
@@ -223,7 +256,7 @@ export default function NotificationAdminPage() {
         </form>
       ) : tab === 'health' ? (
         <div className="space-y-4">
-          <Button variant="secondary" size="sm" onClick={() => loadHealth()}>
+          <Button variant="secondary" size="sm" onClick={() => orgId && loadHealth(orgId)}>
             <RefreshCw className="h-4 w-4" />
             Refresh
           </Button>
