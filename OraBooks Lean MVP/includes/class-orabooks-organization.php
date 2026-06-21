@@ -230,6 +230,16 @@ class OraBooks_Organization {
     }
     
     /**
+     * fraud_freeze is terminal — no status transitions allowed (SL-004).
+     */
+    private static function assert_not_fraud_frozen($org) {
+        if ($org && ($org->status ?? '') === 'fraud_freeze') {
+            return new WP_Error('fraud_freeze_terminal', 'Organization is permanently frozen and cannot be modified.');
+        }
+        return true;
+    }
+    
+    /**
      * Suspend organization
      */
     public static function suspend($org_id, $admin_id) {
@@ -238,6 +248,11 @@ class OraBooks_Organization {
         $org = self::get($org_id);
         if (!$org) {
             return new WP_Error('not_found', 'Organization not found');
+        }
+
+        $frozen = self::assert_not_fraud_frozen($org);
+        if (is_wp_error($frozen)) {
+            return $frozen;
         }
         
         $wpdb->update(
@@ -266,6 +281,11 @@ class OraBooks_Organization {
         if (!$org || $org->organization_type !== 'customer') {
             return new WP_Error('invalid', 'Only customer orgs can be directly reactivated');
         }
+
+        $frozen = self::assert_not_fraud_frozen($org);
+        if (is_wp_error($frozen)) {
+            return $frozen;
+        }
         
         $wpdb->update(
             OraBooks_Database::table('organizations'),
@@ -289,6 +309,11 @@ class OraBooks_Organization {
         $org = self::get($org_id);
         if (!$org || $org->organization_type !== 'partner') {
             return new WP_Error('invalid', 'Only partner orgs use this workflow');
+        }
+
+        $frozen = self::assert_not_fraud_frozen($org);
+        if (is_wp_error($frozen)) {
+            return $frozen;
         }
         
         $table = OraBooks_Database::table('partner_reactivation_reviews');
@@ -318,6 +343,12 @@ class OraBooks_Organization {
         
         if (!$review) {
             return new WP_Error('not_found', 'Review request not found');
+        }
+
+        $org = self::get((int) $review->org_id);
+        $frozen = self::assert_not_fraud_frozen($org);
+        if (is_wp_error($frozen)) {
+            return $frozen;
         }
         
         $wpdb->update(
