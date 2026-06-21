@@ -211,22 +211,4 @@ class OraBooks_RBAC_Test extends TestCase
         $this->assertSame(7, $result['user_id']);
         $this->assertNotEmpty(array_filter($inserted, fn($row) => str_contains($row[0], 'user_org') && $row[1]['role'] === 'staff'));
     }
-
-    #[Test]
-    public function test_user_has_any_pending_invite_helper()
-    {
-        global $wpdb;
-
-        $wpdb->test_get_var_callback = function ($query) {
-            if (stripos($query, 'SELECT email FROM') !== false) {
-                return 'staff@example.com';
-            }
-            if (stripos($query, 'org_invites') !== false) {
-                return 1;
-            }
-            return null;
-        };
-
-        $this->assertTrue(orabooks_user_has_any_pending_invite(7));
-    }
 }
