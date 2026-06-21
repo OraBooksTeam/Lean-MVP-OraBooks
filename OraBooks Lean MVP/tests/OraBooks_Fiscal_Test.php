@@ -156,8 +156,84 @@ class OraBooks_Fiscal_Test extends TestCase
             return [];
         };
 
-        $result = OraBooks_Fiscal::paginate_periods(2, ['status' => 'OPEN']);
+        $result = OraBooks_Fiscal::paginate_periods(2, ['status' => 'open']);
         $this->assertCount(1, $result['items']);
-        $this->assertSame('OPEN', $result['items'][0]['status']);
+        $this->assertSame('open', $result['items'][0]['status']);
+    }
+
+    #[Test]
+    public function test_close_period_requires_hard_confirm_for_hard_close()
+    {
+        global $wpdb;
+
+        $wpdb->test_get_row_callback = function () {
+            return (object) [
+                'id' => 10,
+                'org_id' => 2,
+                'period_start' => '2026-06-01',
+                'period_end' => '2026-06-30',
+                'status' => 'open',
+            ];
+        };
+
+        $result = OraBooks_Fiscal::close_period(10, 2, 'hard', 1, 'note', ['hard_confirm' => false]);
+        $this->assertInstanceOf(WP_Error::class, $result);
+        $this->assertSame('hard_confirm_required', $result->get_error_code());
+    }
+
+    #[Test]
+    public function test_can_reverse_blocks_hard_closed_period()
+    {
+        global $wpdb;
+
+        $wpdb->test_get_var_callback = function ($query) {
+            if (stripos($query, 'fiscal_periods') !== false) {
+                return 'hard_closed';
+            }
+            return null;
+        };
+
+        $result = OraBooks_Fiscal::can_reverse(2, '2026-05-15');
+        $this->assertInstanceOf(WP_Error::class, $result);
+        $this->assertSame('fiscal_hard_closed', $result->get_error_code());
+    }
+
+    #[Test]
+    public function test_can_modify_account_structure_blocks_after_close()
+    {
+        global $wpdb;
+
+        $wpdb->test_get_var_callback = function ($query) {
+            if (stripos($query, 'fiscal_periods') !== false) {
+                return 1;
+            }
+            return 0;
+        };
+
+        $result = OraBooks_Fiscal::can_modify_account_structure(2);
+        $this->assertInstanceOf(WP_Error::class, $result);
+        $this->assertSame('fiscal_account_locked', $result->get_error_code());
+    }
+
+    #[Test]
+    public function test_reopen_soft_closed_period_succeeds()
+    {
+        global $wpdb;
+
+        $wpdb->test_get_row_callback = function () {
+            return (object) [
+                'id' => 10,
+                'org_id' => 2,
+                'period_start' => '2026-05-01',
+                'period_end' => '2026-05-31',
+                'status' => 'soft_closed',
+            ];
+        };
+        $wpdb->test_update_callback = function () {
+            return 1;
+        };
+
+        $result = OraBooks_Fiscal::reopen_period(10, 2, 1, 'Month-end correction');
+        $this->assertTrue($result);
     }
 }
