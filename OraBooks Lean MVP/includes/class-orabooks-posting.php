@@ -248,7 +248,7 @@ class OraBooks_Posting {
                 'last_submitted_at' => gmdate('Y-m-d H:i:s'),
                 'last_submitted_by' => (int) $user_id,
                 'approval_stale' => 0,
-                'approved_snapshot_hash' => $snapshot_hash,
+                'approved_snapshot_hash' => null,
                 'rejected_reason' => null,
             ],
         ]);

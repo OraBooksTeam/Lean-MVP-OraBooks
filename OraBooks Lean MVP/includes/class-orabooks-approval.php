@@ -180,6 +180,15 @@ class OraBooks_Approval {
             'delegate_user_id' => (int) $delegate_user_id,
         ], $created_by, $org_id);
 
+        self::publish_event('approval_delegated', $id, [
+            'org_id'             => (int) $org_id,
+            'delegation_id'      => $id,
+            'delegator_user_id'  => (int) $delegator_user_id,
+            'delegate_user_id'   => (int) $delegate_user_id,
+            'starts_at'          => $starts_at,
+            'ends_at'            => $ends_at,
+        ]);
+
         return ['id' => $id];
     }
 
@@ -548,16 +557,44 @@ class OraBooks_Approval {
         ], ['%s', '%d', '%s']);
     }
 
+    public static function has_history_action($journal_id, $action, $approval_round = null) {
+        global $wpdb;
+
+        $table = OraBooks_Database::table('journal_approval_history');
+        if ($approval_round !== null) {
+            return (int) $wpdb->get_var($wpdb->prepare(
+                "SELECT COUNT(*) FROM {$table}
+                 WHERE journal_id = %d AND action = %s AND approval_round = %d",
+                (int) $journal_id,
+                (string) $action,
+                (int) $approval_round
+            )) > 0;
+        }
+
+        return (int) $wpdb->get_var($wpdb->prepare(
+            "SELECT COUNT(*) FROM {$table} WHERE journal_id = %d AND action = %s",
+            (int) $journal_id,
+            (string) $action
+        )) > 0;
+    }
+
     public static function get_pending_queue($org_id, $sort = 'created_at', $order = 'ASC') {
         global $wpdb;
 
         $allowed_sort = [
             'created_at'   => 'created_at',
             'total_amount' => 'total_amount',
-            'age'          => 'created_at',
+            'amount'       => 'total_amount',
+            'age'          => 'last_submitted_at',
+            'risk'         => 'total_amount',
         ];
         $column = $allowed_sort[$sort] ?? 'created_at';
         $direction = strtoupper($order) === 'DESC' ? 'DESC' : 'ASC';
+        if ($sort === 'age') {
+            $direction = strtoupper($order) === 'DESC' ? 'ASC' : 'DESC';
+        } elseif ($sort === 'risk') {
+            $direction = 'DESC';
+        }
 
         $table = OraBooks_Database::table('journals');
         return $wpdb->get_results($wpdb->prepare(
@@ -601,6 +638,9 @@ class OraBooks_Approval {
                 'Approval expired'
             );
 
+            self::publish_event('approval_expired', (int) $journal->id, [
+                'org_id' => (int) $journal->org_id,
+            ]);
             self::publish_event('journal_approval_expired', (int) $journal->id, [
                 'org_id' => (int) $journal->org_id,
             ]);
@@ -608,7 +648,7 @@ class OraBooks_Approval {
             if (class_exists('OraBooks_Notifications') && (int) $journal->created_by > 0) {
                 OraBooks_Notifications::notify(
                     (int) $journal->created_by,
-                    'journal_approval_expired',
+                    'approval_expired',
                     [
                         'journal_id' => (int) $journal->id,
                         'org_id'     => (int) $journal->org_id,
@@ -638,6 +678,11 @@ class OraBooks_Approval {
         );
 
         foreach ($rows as $journal) {
+            $reminder_key = 'orabooks_appr_rem_' . (int) $journal->id;
+            if (get_transient($reminder_key)) {
+                continue;
+            }
+
             if (class_exists('OraBooks_Notifications') && (int) $journal->approved_by > 0) {
                 OraBooks_Notifications::notify(
                     (int) $journal->approved_by,
@@ -650,6 +695,8 @@ class OraBooks_Approval {
                     (int) $journal->org_id
                 );
             }
+
+            set_transient($reminder_key, 1, DAY_IN_SECONDS);
         }
     }
 
@@ -670,6 +717,10 @@ class OraBooks_Approval {
         );
 
         foreach ($rows as $journal) {
+            if (self::has_history_action((int) $journal->id, 'escalate', (int) $journal->approval_round)) {
+                continue;
+            }
+
             self::record_history(
                 (int) $journal->id,
                 'escalate',
