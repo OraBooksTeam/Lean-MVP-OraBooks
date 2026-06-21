@@ -3,7 +3,7 @@ import WpLink from '../components/WpLink';
 import Button from '@/components/Button';
 import { api } from '../api';
 import ClientShell from '../components/ClientShell';
-import { AlertTriangle, FileSpreadsheet, RefreshCw, Upload } from 'lucide-react';
+import { AlertTriangle, FileSpreadsheet, Info, RefreshCw, Upload } from 'lucide-react';
 import { getSearchParam } from '../lib/wp-routing';
 
 const fieldClass =
@@ -21,9 +21,12 @@ export default function CsvImportsPage() {
   const [preview, setPreview] = useState<any>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
   const [confirming, setConfirming] = useState(false);
+  const [headerMapping, setHeaderMapping] = useState<Record<string, string>>({});
+  const [rowEdits, setRowEdits] = useState<Record<number, Record<string, string>>>({});
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const orgId = data?.context?.organization?.id;
+  const confidenceThreshold = preview?.confidence_threshold ?? data?.limits?.confidence_threshold ?? 70;
 
   const load = async () => {
     setLoading(true);
@@ -57,9 +60,19 @@ export default function CsvImportsPage() {
     setSelectedImportId(importId);
     setPreviewLoading(true);
     setPreview(null);
+    setRowEdits({});
     const res = await api.csvImportGet(orgId, importId);
     if (res.error) setError(res.error);
-    else setPreview((res as any).data);
+    else {
+      const payload = (res as any).data;
+      setPreview(payload);
+      const mapping = payload?.import?.header_mapping || {};
+      setHeaderMapping(
+        Object.fromEntries(
+          Object.entries(mapping).map(([key, value]) => [String(key), String(value ?? '')])
+        )
+      );
+    }
     setPreviewLoading(false);
   };
 
@@ -99,16 +112,18 @@ export default function CsvImportsPage() {
         ? crypto.randomUUID()
         : `confirm-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
-    const res = await api.csvImportConfirm(orgId, selectedImportId, idempotencyKey);
+    const res = await api.csvImportConfirm(orgId, selectedImportId, idempotencyKey, {
+      header_mapping: headerMapping,
+      rows: rowEdits,
+    });
     if (res.error) {
       setError(res.error);
     } else {
       const result = (res as any).data;
-      const processed = result?.processed_rows ?? result?.row_counts?.processed;
+      const processed = result?.processed ?? result?.processed_rows ?? 0;
+      const escalated = result?.escalated ?? 0;
       setSuccess(
-        processed != null
-          ? `Import confirmed. ${processed} row(s) processed.`
-          : 'Import confirmed successfully.',
+        `Import confirmed. ${processed} row(s) processed${escalated ? `, ${escalated} sent to AI review` : ''}.`
       );
       await load();
       await loadPreview(selectedImportId);
@@ -116,9 +131,25 @@ export default function CsvImportsPage() {
     setConfirming(false);
   };
 
+  const updateRowField = (rowIndex: number, field: string, value: string) => {
+    setRowEdits((prev) => ({
+      ...prev,
+      [rowIndex]: { ...(prev[rowIndex] || {}), [field]: value },
+    }));
+  };
+
+  const getRowParsed = (row: any) => ({
+    ...(row.parsed_data || {}),
+    ...(rowEdits[row.row_index] || {}),
+  });
+
   const imports = data?.recent_imports || [];
   const stats = data?.stats || {};
   const maxMb = Math.round((data?.limits?.max_file_size || 10485760) / 1048576);
+  const headers: string[] = preview?.headers?.length
+    ? preview.headers
+    : Object.keys(preview?.import?.header_mapping || {}).map((idx) => `Column ${Number(idx) + 1}`);
+  const fieldOptions: Array<{ id: string; label: string }> = preview?.field_options || [];
 
   return (
     <ClientShell title="CSV Imports" eyebrow="Bulk data ingestion" organization={data?.context?.organization}>
@@ -135,12 +166,21 @@ export default function CsvImportsPage() {
             <Upload className="h-5 w-5 text-primary" />
             <h2 className="font-bold text-ink">Upload CSV</h2>
           </div>
-          <p className="mt-3 text-sm text-slate-600">
-            Max file size {maxMb} MB, up to {(data?.limits?.max_rows ?? 10000).toLocaleString()} rows per import.
-          </p>
+          <div className="mt-3 flex flex-wrap gap-4 text-sm text-slate-600">
+            <span className="inline-flex items-center gap-1.5" title="Supported formats: CSV, UTF-8 encoding. Max 10MB.">
+              <Info className="h-4 w-4 text-primary" />
+              CSV, UTF-8, max {maxMb} MB
+            </span>
+            <span className="inline-flex items-center gap-1.5" title="Low confidence rows will be sent to AI review queue.">
+              <AlertTriangle className="h-4 w-4 text-amber-600" />
+              Rows below {confidenceThreshold}% confidence go to AI review
+            </span>
+          </div>
           <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <label className="block">
-              <span className="mb-1.5 block text-xs font-semibold uppercase text-slate-500">Resource type</span>
+              <span className="mb-1.5 block text-xs font-semibold uppercase text-slate-500" title="What does this CSV represent?">
+                Resource type
+              </span>
               <select
                 className={fieldClass}
                 value={resourceType}
@@ -166,7 +206,7 @@ export default function CsvImportsPage() {
             <div className="flex items-end">
               <Button onClick={handleUpload} disabled={uploading || !selectedFile} className="w-full">
                 <Upload className="h-4 w-4" />
-                {uploading ? 'Uploading...' : 'Upload'}
+                {uploading ? 'Uploading...' : 'Upload CSV'}
               </Button>
             </div>
           </div>
@@ -267,61 +307,119 @@ export default function CsvImportsPage() {
               </div>
               {preview?.import?.status === 'pending_confirm' && (
                 <Button onClick={handleConfirm} disabled={confirming}>
-                  {confirming ? 'Confirming...' : 'Confirm Import'}
+                  {confirming ? 'Importing...' : 'Confirm & Import'}
                 </Button>
               )}
             </div>
 
             {previewLoading ? (
               <p className="px-5 py-8 text-center text-sm text-slate-500">Loading preview...</p>
-            ) : !preview?.rows?.length ? (
+            ) : preview?.import?.status === 'uploaded' || preview?.import?.status === 'parsing' || preview?.import?.status === 'mapping' ? (
               <p className="px-5 py-8 text-center text-sm text-slate-500">
-                {preview?.import?.status === 'uploaded' || preview?.import?.status === 'parsing'
-                  ? 'Import is still being parsed. Refresh in a moment.'
-                  : 'No preview rows available.'}
+                Import is still being parsed. Refresh in a moment.
               </p>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="min-w-full text-left text-sm">
-                  <thead>
-                    <tr className="border-b border-border bg-slate-50/70 text-xs uppercase text-slate-500">
-                      <th className="px-5 py-3 font-semibold">Row</th>
-                      <th className="px-5 py-3 font-semibold">Confidence</th>
-                      <th className="px-5 py-3 font-semibold">Status</th>
-                      <th className="px-5 py-3 font-semibold">Parsed Data</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border">
-                    {preview.rows.map((row: any) => (
-                      <tr
-                        key={row.id}
-                        className={`hover:bg-slate-50/70 ${row.status === 'escalated' ? 'bg-amber-50/80' : ''}`}
-                      >
-                        <td className="px-5 py-3 font-mono text-xs">{row.row_index + 1}</td>
-                        <td className="px-5 py-3">
-                          <ConfidenceBadge value={row.confidence_avg} threshold={data?.limits?.confidence_threshold ?? 70} />
-                        </td>
-                        <td className="px-5 py-3">
-                          <span
-                            className={`badge border capitalize ${
-                              row.status === 'escalated'
-                                ? 'border-amber-200 bg-amber-50 text-amber-800'
-                                : row.status === 'failed'
-                                  ? 'border-red-200 bg-red-50 text-red-800'
-                                  : 'border-slate-200 bg-slate-50 text-slate-700'
-                            }`}
+              <>
+                {headers.length > 0 && preview?.import?.status === 'pending_confirm' && (
+                  <div className="border-b border-border px-5 py-4">
+                    <h3 className="text-sm font-bold uppercase tracking-wide text-slate-500">Column mapping</h3>
+                    <p className="mt-1 text-xs text-slate-500" title="Map column to field.">
+                      Map each CSV column to the target field for {formatResourceType(preview.import.resource_type, data?.resource_types)}.
+                    </p>
+                    <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                      {headers.map((header, index) => (
+                        <label key={`${header}-${index}`} className="block text-sm">
+                          <span className="mb-1 block font-medium text-ink">{header || `Column ${index + 1}`}</span>
+                          <select
+                            className={fieldClass}
+                            value={headerMapping[String(index)] || ''}
+                            onChange={(e) =>
+                              setHeaderMapping((prev) => ({ ...prev, [String(index)]: e.target.value }))
+                            }
                           >
-                            {row.status}
-                          </span>
-                        </td>
-                        <td className="px-5 py-3 font-mono text-xs text-slate-600">
-                          {JSON.stringify(row.parsed_data || {})}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                            {fieldOptions.map((opt) => (
+                              <option key={opt.id || 'ignore'} value={opt.id}>
+                                {opt.label}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {!preview?.rows?.length ? (
+                  <p className="px-5 py-8 text-center text-sm text-slate-500">No preview rows available.</p>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full text-left text-sm">
+                      <thead>
+                        <tr className="border-b border-border bg-slate-50/70 text-xs uppercase text-slate-500">
+                          <th className="px-5 py-3 font-semibold">Row</th>
+                          <th className="px-5 py-3 font-semibold">Confidence</th>
+                          <th className="px-5 py-3 font-semibold">Status</th>
+                          <th className="px-5 py-3 font-semibold">Fields (editable)</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-border">
+                        {preview.rows.map((row: any) => {
+                          const parsed = getRowParsed(row);
+                          const fields = Object.entries(parsed).filter(([key]) => key !== 'resource_type');
+                          return (
+                            <tr
+                              key={row.id}
+                              className={`hover:bg-slate-50/70 ${row.status === 'escalated' ? 'bg-amber-50/80' : ''}`}
+                            >
+                              <td className="px-5 py-3 font-mono text-xs">{row.row_index + 1}</td>
+                              <td className="px-5 py-3">
+                                <ConfidenceBadge value={row.confidence_avg} threshold={confidenceThreshold} />
+                              </td>
+                              <td className="px-5 py-3">
+                                <span
+                                  className={`badge border capitalize ${
+                                    row.status === 'escalated'
+                                      ? 'border-amber-200 bg-amber-50 text-amber-800'
+                                      : row.status === 'failed'
+                                        ? 'border-red-200 bg-red-50 text-red-800'
+                                        : 'border-slate-200 bg-slate-50 text-slate-700'
+                                  }`}
+                                >
+                                  {row.status}
+                                </span>
+                              </td>
+                              <td className="px-5 py-3">
+                                <div className="space-y-2">
+                                  {fields.length === 0 ? (
+                                    <span className="text-xs text-slate-400">No mapped fields</span>
+                                  ) : (
+                                    fields.map(([field, value]) => (
+                                      <label key={field} className="flex items-center gap-2 text-xs">
+                                        <span className="w-28 shrink-0 font-semibold text-slate-500">{field}</span>
+                                        {preview?.import?.status === 'pending_confirm' ? (
+                                          <input
+                                            type="text"
+                                            className="min-w-0 flex-1 rounded border border-border px-2 py-1 text-xs"
+                                            value={String(value ?? '')}
+                                            title="Edit manually."
+                                            onChange={(e) => updateRowField(row.row_index, field, e.target.value)}
+                                          />
+                                        ) : (
+                                          <span className="font-mono text-slate-600">{String(value ?? '')}</span>
+                                        )}
+                                      </label>
+                                    ))
+                                  )}
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </>
             )}
           </div>
         )}
@@ -375,10 +473,17 @@ function StatusBadge({ status }: { status: string }) {
 
 function ConfidenceBadge({ value, threshold }: { value: number | null; threshold: number }) {
   if (value == null) return <span className="text-slate-400">—</span>;
-  const low = value < threshold;
+  const level = value >= 85 ? 'High' : value >= threshold ? 'Medium' : 'Low';
+  const cls =
+    level === 'High'
+      ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
+      : level === 'Medium'
+        ? 'border-amber-200 bg-amber-50 text-amber-800'
+        : 'border-orange-200 bg-orange-50 text-orange-800';
+
   return (
-    <span className={`font-semibold ${low ? 'text-amber-700' : 'text-emerald-700'}`}>
-      {value.toFixed(1)}%
+    <span className={`badge border font-semibold ${cls}`} title="AI confidence score for mapped fields.">
+      {value.toFixed(0)}% {level}
     </span>
   );
 }
