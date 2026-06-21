@@ -513,8 +513,24 @@ class OraBooks_Csv_Imports {
             }
         }
 
-        if (!empty($parsed['bill_date']) || !empty($parsed['invoice_date'])) {
-            $date_val = $parsed['bill_date'] ?? $parsed['invoice_date'];
+        if (in_array($resource_type, ['expense', 'invoice'], true) && !empty($parsed['tax_amount']) && is_numeric($parsed['tax_amount'])) {
+            $total = (float) ($parsed['total_amount'] ?? 0);
+            $tax = (float) $parsed['tax_amount'];
+            if ($total > 0) {
+                $ratio = $tax / $total;
+                if ($ratio > 0.5 || $ratio < 0) {
+                    $scores[] = 35;
+                    $risks[] = 'tax_amount_unusual';
+                } elseif (class_exists('OraBooks_Tax')) {
+                    $scores[] = 88;
+                } else {
+                    $scores[] = 80;
+                }
+            }
+        }
+
+        if (!empty($parsed['bill_date']) || !empty($parsed['invoice_date']) || !empty($parsed['transaction_date'])) {
+            $date_val = $parsed['bill_date'] ?? $parsed['invoice_date'] ?? $parsed['transaction_date'];
             $ts = strtotime((string) $date_val);
             $scores[] = ($ts !== false) ? 90 : 30;
             if ($ts === false) {
