@@ -577,4 +577,143 @@ class OraBooks_Rest_Api {
 
         return rest_ensure_response($result);
     }
+
+    public static function can_manage_own_2fa($request) {
+        return self::current_user_id() > 0;
+    }
+
+    public static function can_admin_recover_2fa($request) {
+        $user_id = self::current_user_id();
+        if ($user_id <= 0) {
+            return new WP_Error('unauthorized', 'Not authenticated.', ['status' => 401]);
+        }
+
+        if (function_exists('current_user_can') && current_user_can('manage_options')) {
+            return true;
+        }
+
+        $org_id = self::resolve_org_id($request);
+        if ($org_id > 0 && OraBooks_RBAC::require_permission($user_id, $org_id, 'manage_org_settings')) {
+            return true;
+        }
+
+        return new WP_Error('forbidden', 'Permission denied.', ['status' => 403]);
+    }
+
+    public static function can_manage_org_2fa_policy($request) {
+        $context = self::require_org_access($request, 'manage_org_settings');
+        return !is_wp_error($context);
+    }
+
+    public static function rest_2fa_setup(WP_REST_Request $request) {
+        $result = OraBooks_TwoFactor::setup(self::current_user_id());
+        if (is_wp_error($result)) {
+            $result->add_data(['status' => (int) ($result->get_error_data()['status'] ?? 400)]);
+            return $result;
+        }
+
+        return rest_ensure_response($result);
+    }
+
+    public static function rest_2fa_verify_setup(WP_REST_Request $request) {
+        $result = OraBooks_TwoFactor::verify_setup(
+            self::current_user_id(),
+            sanitize_text_field($request->get_param('otp_code') ?? $request->get_param('otpCode') ?? '')
+        );
+
+        if (is_wp_error($result)) {
+            $result->add_data(['status' => (int) ($result->get_error_data()['status'] ?? 400)]);
+            return $result;
+        }
+
+        return rest_ensure_response($result);
+    }
+
+    public static function rest_2fa_challenge(WP_REST_Request $request) {
+        $result = OraBooks_TwoFactor::challenge(
+            sanitize_text_field($request->get_param('temp_token') ?? $request->get_param('tempToken') ?? ''),
+            sanitize_text_field($request->get_param('otp_code') ?? $request->get_param('otpCode') ?? ''),
+            sanitize_text_field($request->get_param('backup_code') ?? $request->get_param('backupCode') ?? '')
+        );
+
+        if (is_wp_error($result)) {
+            $result->add_data(['status' => (int) ($result->get_error_data()['status'] ?? 401)]);
+            return $result;
+        }
+
+        return rest_ensure_response(orabooks_redact_client_auth_response($result));
+    }
+
+    public static function rest_2fa_disable(WP_REST_Request $request) {
+        $result = OraBooks_TwoFactor::disable(
+            self::current_user_id(),
+            sanitize_text_field($request->get_param('otp_code') ?? $request->get_param('otpCode') ?? '')
+        );
+
+        if (is_wp_error($result)) {
+            $result->add_data(['status' => (int) ($result->get_error_data()['status'] ?? 400)]);
+            return $result;
+        }
+
+        return rest_ensure_response($result);
+    }
+
+    public static function rest_2fa_regenerate_backup_codes(WP_REST_Request $request) {
+        $result = OraBooks_TwoFactor::regenerate_backup_codes(
+            self::current_user_id(),
+            sanitize_text_field($request->get_param('otp_code') ?? $request->get_param('otpCode') ?? '')
+        );
+
+        if (is_wp_error($result)) {
+            $result->add_data(['status' => (int) ($result->get_error_data()['status'] ?? 400)]);
+            return $result;
+        }
+
+        return rest_ensure_response($result);
+    }
+
+    public static function rest_2fa_status(WP_REST_Request $request) {
+        return rest_ensure_response(OraBooks_TwoFactor::get_status(self::current_user_id()));
+    }
+
+    public static function rest_2fa_admin_recover(WP_REST_Request $request) {
+        $result = OraBooks_TwoFactor::admin_recover(
+            (int) ($request->get_param('target_user_id') ?? $request->get_param('targetUserId') ?? 0),
+            self::current_user_id(),
+            sanitize_textarea_field($request->get_param('justification') ?? '')
+        );
+
+        if (is_wp_error($result)) {
+            $result->add_data(['status' => (int) ($result->get_error_data()['status'] ?? 400)]);
+            return $result;
+        }
+
+        return rest_ensure_response($result);
+    }
+
+    public static function rest_get_org_2fa_policy(WP_REST_Request $request) {
+        $context = self::require_org_access($request, 'manage_org_settings');
+        if (is_wp_error($context)) {
+            return $context;
+        }
+
+        return rest_ensure_response(OraBooks_TwoFactor::get_org_policy($context['org_id']));
+    }
+
+    public static function rest_set_org_2fa_policy(WP_REST_Request $request) {
+        $context = self::require_org_access($request, 'manage_org_settings');
+        if (is_wp_error($context)) {
+            return $context;
+        }
+
+        $enabled = rest_sanitize_boolean($request->get_param('require_2fa') ?? $request->get_param('require2fa') ?? false);
+        $result = OraBooks_TwoFactor::set_org_requires_2fa($context['org_id'], $enabled, $context['user_id']);
+
+        if (is_wp_error($result)) {
+            $result->add_data(['status' => (int) ($result->get_error_data()['status'] ?? 400)]);
+            return $result;
+        }
+
+        return rest_ensure_response($result);
+    }
 }
