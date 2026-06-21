@@ -1,6 +1,8 @@
 # Generates SL-301 complete Word report (.docx)
 $ErrorActionPreference = 'Stop'
-$outPath = Join-Path $PSScriptRoot 'SL-301-Workflow-State-Engine-Complete-Report.docx'
+$docName = 'SL-301-Workflow-State-Engine-Complete-Report.docx'
+$localPath = Join-Path $env:TEMP $docName
+$outPath = Join-Path $PSScriptRoot $docName
 
 $word = New-Object -ComObject Word.Application
 $word.Visible = $false
@@ -368,12 +370,13 @@ Add-P 'Prepared by: OraBooks Development Team'
 Add-P 'Document: SL-301-Workflow-State-Engine-Complete-Report.docx'
 Add-P 'Location: OraBooks Lean MVP\docs\'
 
-# Save
-$format = 16  # wdFormatDocumentDefault = docx
-if (Test-Path $outPath) { Remove-Item $outPath -Force }
-$doc.SaveAs([ref]$outPath, [ref]$format)
+# Save locally first (Word COM cannot save reliably to UNC paths)
+$format = 16
+if (Test-Path $localPath) { Remove-Item $localPath -Force }
+$doc.SaveAs2($localPath, $format)
 $doc.Close()
 $word.Quit()
 [System.Runtime.Interopservices.Marshal]::ReleaseComObject($word) | Out-Null
 
+Copy-Item -Path $localPath -Destination $outPath -Force
 Write-Host "Created: $outPath"
