@@ -229,7 +229,7 @@ class OraBooks_Rest_Api {
             return new WP_Error('forbidden', 'Permission denied.', ['status' => 403]);
         }
 
-        if (class_exists('OraBooks_TwoFactor')) {
+        if (class_exists('OraBooks_TwoFactor') && $permission !== 'manage_org_settings') {
             $compliance = OraBooks_TwoFactor::assert_org_compliance($user_id, $org_id);
             if (is_wp_error($compliance)) {
                 return $compliance;
