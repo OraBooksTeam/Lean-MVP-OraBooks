@@ -340,6 +340,17 @@ export const api = {
   setup2fa: () => api.post('orabooks_setup_2fa'),
   verify2faSetup: (otpCode: string) =>
     api.post('orabooks_verify_2fa_setup', { otp_code: otpCode }),
+  disable2fa: (otpCode: string) =>
+    api.post('orabooks_disable_2fa', { otp_code: otpCode }),
+  regenerate2faBackupCodes: (otpCode: string) =>
+    api.post('orabooks_regenerate_2fa_backup_codes', { otp_code: otpCode }),
+  twoFactorStatus: () => api.post('orabooks_2fa_status'),
+  adminRecover2fa: (targetUserId: number, justification: string) =>
+    api.post('orabooks_admin_2fa_recover', { target_user_id: targetUserId, justification }),
+  getOrg2faPolicy: (orgId: number) =>
+    api.post('orabooks_org_2fa_policy_get', { org_id: orgId }),
+  setOrg2faPolicy: (orgId: number, require2fa: boolean) =>
+    api.post('orabooks_org_2fa_policy_set', { org_id: orgId, require_2fa: require2fa ? '1' : '0' }),
   getPartnerInfo: () =>
     api.post('orabooks_get_partner_info'),
   partnerOnboarding: () =>
