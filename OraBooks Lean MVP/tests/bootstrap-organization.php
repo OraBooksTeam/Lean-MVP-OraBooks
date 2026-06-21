@@ -7,8 +7,6 @@ $GLOBALS['ORABOOKS_LOAD_REAL_ORGANIZATION'] = true;
 
 require __DIR__ . '/bootstrap.php';
 
-require_once __DIR__ . '/../includes/helpers.php';
-
 if (!function_exists('do_action')) {
     function do_action($hook, ...$args) {
         $GLOBALS['orabooks_test_actions'][$hook][] = $args;
