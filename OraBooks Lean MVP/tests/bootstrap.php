@@ -1914,6 +1914,12 @@ if (file_exists($workflow_integration_file)) {
 
 if (class_exists('OraBooks_Workflow')) {
     OraBooks_Workflow::init();
+    $GLOBALS['orabooks_workflow_bootstrap_filters'] = [];
+    foreach (['orabooks_workflow_preconditions', 'orabooks_workflow_after_transition', 'orabooks_workflow_row_updates', 'orabooks_workflow_state_machines'] as $tag) {
+        if (!empty($GLOBALS['orabooks_test_filters'][$tag])) {
+            $GLOBALS['orabooks_workflow_bootstrap_filters'][$tag] = $GLOBALS['orabooks_test_filters'][$tag];
+        }
+    }
 }
 
 $eventbus_file = __DIR__ . '/../includes/class-orabooks-event-bus.php';

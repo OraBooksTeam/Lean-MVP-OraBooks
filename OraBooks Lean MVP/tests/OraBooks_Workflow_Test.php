@@ -26,20 +26,9 @@ class OraBooks_Workflow_Test extends TestCase
         $GLOBALS['orabooks_test_current_user_can'] = true;
         $GLOBALS['orabooks_test_use_insert_id'] = null;
         $GLOBALS['orabooks_test_log_events'] = [];
-        $this->reset_test_filters_preserving_workflow();
+        $GLOBALS['orabooks_test_filters'] = $GLOBALS['orabooks_workflow_bootstrap_filters'] ?? [];
         $GLOBALS['orabooks_test_actions'] = [];
         $GLOBALS['orabooks_test_publish_event_result'] = 100;
-    }
-
-    private function reset_test_filters_preserving_workflow(): void
-    {
-        $preserve = [];
-        foreach (['orabooks_workflow_preconditions', 'orabooks_workflow_after_transition', 'orabooks_workflow_row_updates', 'orabooks_workflow_state_machines'] as $tag) {
-            if (!empty($GLOBALS['orabooks_test_filters'][$tag])) {
-                $preserve[$tag] = $GLOBALS['orabooks_test_filters'][$tag];
-            }
-        }
-        $GLOBALS['orabooks_test_filters'] = $preserve;
     }
 
     private function mock_journal_for_update(object $journal): void
