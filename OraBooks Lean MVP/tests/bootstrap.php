@@ -871,7 +871,22 @@ if (!function_exists('is_wp_error')) {
 
 if (!function_exists('orabooks_check_rate_limit')) {
     function orabooks_check_rate_limit($key, $max_attempts, $period_seconds = 3600) {
+        if (array_key_exists('orabooks_test_rate_limit_allowed', $GLOBALS)) {
+            return (bool) $GLOBALS['orabooks_test_rate_limit_allowed'];
+        }
         return true; // Allow all requests in tests
+    }
+}
+
+if (!function_exists('orabooks_get_accept_invite_url')) {
+    function orabooks_get_accept_invite_url($token = '') {
+        $url = 'https://example.com/accept-invite';
+        $token = trim((string) $token);
+        if ($token === '') {
+            return $url;
+        }
+
+        return $url . '?token=' . rawurlencode($token);
     }
 }
 
