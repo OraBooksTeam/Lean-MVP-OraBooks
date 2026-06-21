@@ -602,15 +602,38 @@ if (!function_exists('delete_transient')) {
 }
 
 if (!function_exists('do_action')) {
-    function do_action($tag, ...$args) { /* no-op */ }
+    function do_action($tag, ...$args) {
+        if (empty($GLOBALS['orabooks_test_actions'][$tag])) {
+            return;
+        }
+        foreach ($GLOBALS['orabooks_test_actions'][$tag] as $callback) {
+            call_user_func_array($callback, $args);
+        }
+    }
 }
 
 if (!function_exists('add_action')) {
-    function add_action($tag, $callback, $priority = 10, $accepted_args = 1) { /* no-op */ }
+    function add_action($tag, $callback, $priority = 10, $accepted_args = 1) {
+        $GLOBALS['orabooks_test_actions'][$tag][] = $callback;
+        return true;
+    }
+}
+
+if (!function_exists('add_filter')) {
+    function add_filter($tag, $callback, $priority = 10, $accepted_args = 1) {
+        $GLOBALS['orabooks_test_filters'][$tag][] = $callback;
+        return true;
+    }
 }
 
 if (!function_exists('apply_filters')) {
     function apply_filters($tag, $value, ...$args) {
+        if (empty($GLOBALS['orabooks_test_filters'][$tag])) {
+            return $value;
+        }
+        foreach ($GLOBALS['orabooks_test_filters'][$tag] as $callback) {
+            $value = call_user_func_array($callback, array_merge([$value], $args));
+        }
         return $value;
     }
 }
