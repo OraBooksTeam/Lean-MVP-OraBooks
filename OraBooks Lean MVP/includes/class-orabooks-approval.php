@@ -305,22 +305,14 @@ class OraBooks_Approval {
             return new WP_Error('maker_checker', 'Creator cannot approve own journal');
         }
 
-        $mfa_check = self::verify_mfa_for_high_value(
-            $user_id,
-            (float) $journal->total_amount,
-            $policy,
-            $args
-        );
-        if (is_wp_error($mfa_check)) {
-            return $mfa_check;
-        }
-
         $current_hash = self::compute_snapshot_hash((int) $journal_id);
         $expires_at = gmdate('Y-m-d H:i:s', time() + ((int) ($policy->approval_expiry_hours ?? 72) * 3600));
 
         $transition = OraBooks_Workflow::transition('journal', (int) $journal_id, 'approve', [
             'user_id' => (int) $user_id,
             'org_id' => (int) $journal->org_id,
+            'mfa_otp' => $args['mfa_otp'] ?? null,
+            'mfa_verified' => !empty($args['mfa_verified']),
             'row_updates' => [
                 'approved_by' => (int) $user_id,
                 'approved_at' => gmdate('Y-m-d H:i:s'),
@@ -960,8 +952,4 @@ class OraBooks_Approval {
         }
 
         $rows = self::list_delegations($org_id);
-        orabooks_json_success([
-            'delegations' => array_map([self::class, 'format_delegation'], $rows ?: []),
-        ]);
-    }
-}
+        orabooks_json_success([

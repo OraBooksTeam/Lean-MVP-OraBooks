@@ -1076,7 +1076,6 @@ class OraBooks_Expenses {
             'user_id' => (int) $user_id,
             'org_id'  => (int) $org_id,
             'row_updates' => [
-                'lock_status' => 'locked',
                 'posted_by'   => (int) $user_id,
                 'posted_at'   => current_time('mysql'),
                 'journal_id'  => (int) $journal_id,
@@ -1084,6 +1083,17 @@ class OraBooks_Expenses {
         ]);
         if (is_wp_error($transition)) {
             return $transition;
+        }
+
+        $lock_transition = OraBooks_Workflow::transition('expense', (int) $expense_id, 'lock', [
+            'user_id' => (int) $user_id,
+            'org_id'  => (int) $org_id,
+            'row_updates' => [
+                'lock_status' => 'locked',
+            ],
+        ]);
+        if (is_wp_error($lock_transition)) {
+            return $lock_transition;
         }
 
         if (class_exists('OraBooks_Tax') && method_exists('OraBooks_Tax', 'create_snapshot_from_expense')) {
