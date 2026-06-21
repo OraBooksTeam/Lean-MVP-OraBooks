@@ -895,6 +895,11 @@ function orabooks_enrich_login_response($login_result) {
         return $login_result;
     }
 
+    if (!empty($login_result['needs_accept_invite'])) {
+        $login_result['redirect_to'] = orabooks_get_network_login_url('accept-invite');
+        return $login_result;
+    }
+
     $user_id = !empty($login_result['user_id']) ? (int) $login_result['user_id'] : 0;
     if (
         $user_id > 0
@@ -2219,6 +2224,47 @@ function orabooks_get_user_role($user_id, $org_id) {
     ));
 
     return $role ?: null;
+}
+
+/**
+ * Fetch the newest unused invite for an email address (SL-014 invite-first onboarding).
+ *
+ * @return object|null
+ */
+function orabooks_get_pending_invite_for_email($email) {
+    global $wpdb;
+
+    $email = sanitize_email((string) $email);
+    if ($email === '') {
+        return null;
+    }
+
+    $table_invites = OraBooks_Database::table('org_invites');
+
+    return $wpdb->get_row($wpdb->prepare(
+        "SELECT * FROM {$table_invites} WHERE email = %s AND used = 0 AND expires_at > NOW() ORDER BY created_at DESC LIMIT 1",
+        $email
+    ));
+}
+
+/**
+ * Whether the user has any unused team invite (any org).
+ */
+function orabooks_user_has_any_pending_invite($user_id) {
+    global $wpdb;
+
+    $user_id = (int) $user_id;
+    if ($user_id <= 0) {
+        return false;
+    }
+
+    $table_users = OraBooks_Database::table('users');
+    $email = $wpdb->get_var($wpdb->prepare(
+        "SELECT email FROM {$table_users} WHERE id = %d",
+        $user_id
+    ));
+
+    return orabooks_get_pending_invite_for_email((string) $email) !== null;
 }
 
 /**
