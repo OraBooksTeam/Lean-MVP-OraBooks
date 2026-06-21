@@ -243,7 +243,7 @@ Add-Table @('#', 'Criterion', 'Status') @(
     @('7', '5 record types migrated', 'DONE'),
     @('8', 'Invoice cancel end-to-end (backend + AJAX + UI)', 'DONE'),
     @('9', 'Bill void end-to-end (backend + AJAX + UI)', 'DONE'),
-    @('10', 'Expense post → lock workflow transition', 'DONE'),
+    @('10', 'Expense post then lock workflow transition', 'DONE'),
     @('11', 'REST POST /api/internal/state/transition', 'DONE'),
     @('12', 'Journal MFA + maker-checker in centralized preconditions', 'DONE'),
     @('13', 'Concurrency (FOR UPDATE) unit test', 'DONE'),
@@ -313,8 +313,8 @@ Add-Table @('Check', 'Where', 'What to Look For') @(
 
 Add-H2 '13.5 Database Verification (Optional — phpMyAdmin)'
 Add-P 'After a journal transition, run:'
-Add-P 'SELECT * FROM wp_orabooks_state_machine_transitions WHERE record_type = ''journal'' ORDER BY id DESC LIMIT 5;'
-Add-P 'SELECT action, details, created_at FROM wp_orabooks_audit_logs WHERE action IN (''state_changed'',''invalid_state_transition'') ORDER BY id DESC LIMIT 10;'
+Add-P "SELECT * FROM wp_orabooks_state_machine_transitions WHERE record_type = 'journal' ORDER BY id DESC LIMIT 5;"
+Add-P "SELECT action, details, created_at FROM wp_orabooks_audit_logs WHERE action IN ('state_changed','invalid_state_transition') ORDER BY id DESC LIMIT 10;"
 Add-P 'Verify: from_state, to_state, event, org_id populated correctly.'
 
 Add-H2 '13.6 REST API Test (Optional — Postman/cURL)'
@@ -366,7 +366,7 @@ Add-P 'All core engine requirements, caller migrations, event integration, obser
 Add-P ''
 Add-P 'Prepared by: OraBooks Development Team'
 Add-P 'Document: SL-301-Workflow-State-Engine-Complete-Report.docx'
-Add-P 'Location: OraBooks Lean MVP/docs/'
+Add-P 'Location: OraBooks Lean MVP\docs\'
 
 # Save
 $format = 16  # wdFormatDocumentDefault = docx
