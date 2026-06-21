@@ -339,7 +339,7 @@ class OraBooks_Approval_Test extends TestCase
         $inserted = [];
 
         $wpdb->test_get_results_callback = function ($query) use ($journal) {
-            if (stripos($query, "status = 'approved'") !== false) {
+            if (stripos($query, 'journals') !== false && stripos($query, 'approved') !== false) {
                 return [$journal];
             }
             return [];
@@ -349,13 +349,15 @@ class OraBooks_Approval_Test extends TestCase
             return 1;
         };
         $wpdb->test_insert_callback = function ($table, $data) use (&$inserted) {
-            $inserted[] = $data;
+            if (stripos((string) $table, 'journal_approval_history') !== false) {
+                $inserted[] = $data;
+            }
             return 1;
         };
 
         OraBooks_Approval::cron_expire_stale_approvals();
 
-        $this->assertSame(1, $updated['approval_stale']);
+        $this->assertSame(1, $updated['approval_stale'] ?? null);
         $this->assertNotEmpty($inserted);
         $this->assertSame('expire', $inserted[0]['action']);
     }
