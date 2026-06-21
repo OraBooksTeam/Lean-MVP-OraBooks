@@ -378,8 +378,7 @@ class OraBooks_Posting {
         if (class_exists('OraBooks_Approval')) {
             OraBooks_Approval::on_rejected($journal_id, $user_id, (int) $journal->org_id, $reason);
         }
-        self::transition('journal', $journal_id, 'reject', $user_id);
-        
+
         orabooks_log_event('journal_rejected', "Journal #$journal_id rejected: $reason", 'warning', [
             'journal_id' => $journal_id,
             'reason' => $reason

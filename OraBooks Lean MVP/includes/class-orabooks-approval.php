@@ -318,15 +318,21 @@ class OraBooks_Approval {
         $current_hash = self::compute_snapshot_hash((int) $journal_id);
         $expires_at = gmdate('Y-m-d H:i:s', time() + ((int) ($policy->approval_expiry_hours ?? 72) * 3600));
 
-        $wpdb->update($table, [
-            'status'                 => 'approved',
-            'approved_by'            => (int) $user_id,
-            'approved_at'            => gmdate('Y-m-d H:i:s'),
-            'approved_snapshot_hash' => $current_hash,
-            'approval_expires_at'  => $expires_at,
-            'approval_stale'         => 0,
-            'lock_after_approval'    => 1,
-        ], ['id' => (int) $journal_id], ['%s', '%d', '%s', '%s', '%s', '%d', '%d'], ['%d']);
+        $transition = OraBooks_Workflow::transition('journal', (int) $journal_id, 'approve', [
+            'user_id' => (int) $user_id,
+            'org_id' => (int) $journal->org_id,
+            'row_updates' => [
+                'approved_by' => (int) $user_id,
+                'approved_at' => gmdate('Y-m-d H:i:s'),
+                'approved_snapshot_hash' => $current_hash,
+                'approval_expires_at' => $expires_at,
+                'approval_stale' => 0,
+                'lock_after_approval' => 1,
+            ],
+        ]);
+        if (is_wp_error($transition)) {
+            return $transition;
+        }
 
         self::record_history(
             (int) $journal_id,
@@ -336,10 +342,6 @@ class OraBooks_Approval {
             (int) $journal->approval_round,
             (int) $journal->revision_number
         );
-
-        if (class_exists('OraBooks_Posting')) {
-            OraBooks_Posting::transition('journal', (int) $journal_id, 'approve', (int) $user_id);
-        }
 
         self::publish_event('journal_approved', (int) $journal_id, [
             'org_id'     => (int) $journal->org_id,
@@ -415,16 +417,26 @@ class OraBooks_Approval {
 
         $new_revision = (int) $journal->revision_number + 1;
 
-        $wpdb->update($table, [
-            'status'                 => 'draft',
-            'approved_snapshot_hash' => null,
-            'approved_by'            => null,
-            'approved_at'            => null,
-            'approval_expires_at'    => null,
-            'lock_after_approval'    => 0,
-            'approval_stale'         => 1,
-            'revision_number'        => $new_revision,
-        ], ['id' => (int) $journal_id], ['%s', null, null, null, null, '%d', '%d', '%d'], ['%d']);
+        if (!class_exists('OraBooks_Workflow')) {
+            return false;
+        }
+
+        $transition = OraBooks_Workflow::transition('journal', (int) $journal_id, 'edit', [
+            'user_id' => (int) $user_id,
+            'org_id' => (int) $journal->org_id,
+            'row_updates' => [
+                'approved_snapshot_hash' => null,
+                'approved_by' => null,
+                'approved_at' => null,
+                'approval_expires_at' => null,
+                'lock_after_approval' => 0,
+                'approval_stale' => 1,
+                'revision_number' => $new_revision,
+            ],
+        ]);
+        if (is_wp_error($transition)) {
+            return false;
+        }
 
         self::record_history(
             (int) $journal_id,
