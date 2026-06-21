@@ -622,6 +622,13 @@ class OraBooks_Posting {
             return new WP_Error('invalid_status', 'Only posted journals can be reversed.');
         }
 
+        if (class_exists('OraBooks_Fiscal') && method_exists('OraBooks_Fiscal', 'can_reverse')) {
+            $reverse_check = OraBooks_Fiscal::can_reverse($org_id, $journal->transaction_date);
+            if (is_wp_error($reverse_check)) {
+                return $reverse_check;
+            }
+        }
+
         $lines = self::get_journal_lines($journal_id);
         if (empty($lines)) {
             return new WP_Error('no_lines', 'Journal has no lines to reverse.');

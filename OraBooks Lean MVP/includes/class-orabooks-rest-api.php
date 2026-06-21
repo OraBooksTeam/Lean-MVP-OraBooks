@@ -258,12 +258,14 @@ class OraBooks_Rest_Api {
         }
 
         $close_type = sanitize_text_field($request->get_param('closeType') ?: 'soft');
+        $hard_confirm = rest_sanitize_boolean($request->get_param('hardConfirm') ?? $request->get_param('hard_confirm') ?? false);
         $result = OraBooks_Fiscal::close_period(
             (int) $request['id'],
             $context['org_id'],
             $close_type,
             $context['user_id'],
-            sanitize_textarea_field($request->get_param('note') ?? '')
+            sanitize_textarea_field($request->get_param('note') ?? ''),
+            ['hard_confirm' => $hard_confirm]
         );
 
         if (is_wp_error($result)) {
@@ -272,7 +274,12 @@ class OraBooks_Rest_Api {
         }
 
         $period = OraBooks_Fiscal::get_period((int) $request['id'], $context['org_id']);
-        return rest_ensure_response(['success' => true, 'period' => OraBooks_Fiscal::format_period_for_api($period)]);
+        return rest_ensure_response([
+            'success'  => true,
+            'period'   => OraBooks_Fiscal::format_period_for_api($period),
+            'warnings' => $result['warnings'] ?? [],
+            'pending'  => $result['pending'] ?? [],
+        ]);
     }
 
     public static function rest_reopen_fiscal_period(WP_REST_Request $request) {
