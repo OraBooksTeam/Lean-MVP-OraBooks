@@ -21,6 +21,7 @@ interface AuditFilters {
   from_date: string;
   to_date: string;
   org_id: string;
+  correlation_id: string;
 }
 
 const emptyFilters: AuditFilters = {
@@ -30,6 +31,7 @@ const emptyFilters: AuditFilters = {
   from_date: '',
   to_date: '',
   org_id: '',
+  correlation_id: '',
 };
 
 export default function AdminAudit() {
@@ -47,6 +49,7 @@ export default function AdminAudit() {
     if (f.severity) params.severity = f.severity;
     if (f.from_date) params.from_date = f.from_date;
     if (f.to_date) params.to_date = `${f.to_date} 23:59:59`;
+    if (f.correlation_id) params.correlation_id = f.correlation_id;
     if (isAdmin && f.org_id) params.org_id = Number(f.org_id);
     return params;
   };
@@ -82,6 +85,7 @@ export default function AdminAudit() {
         <div className="flex gap-2">
           <button
             onClick={exportCsv}
+            title="Export audit log as CSV. Includes all events for compliance."
             className="flex items-center gap-1.5 rounded-lg border border-border bg-white px-3 py-2 text-sm font-medium shadow-sm transition hover:bg-slate-50"
           >
             <Download className="h-4 w-4" />
