@@ -132,6 +132,13 @@ class OraBooks_Csv_Imports_Test extends TestCase
             if (stripos($query, 'csv_imports') !== false && stripos($query, 'WHERE id') !== false) {
                 return $import;
             }
+            if (stripos($query, 'organizations') !== false) {
+                return (object) [
+                    'id'                 => 1,
+                    'status'             => 'active',
+                    'organization_type'  => 'customer',
+                ];
+            }
             return null;
         };
 
