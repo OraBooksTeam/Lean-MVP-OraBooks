@@ -465,6 +465,6 @@ class OraBooks_Approval_Test extends TestCase
 
         OraBooks_Workflow::init();
         $result = OraBooks_Posting::promote_to_review_pending(10, 2, $journal);
-        $this->assertNotWPError($result);
+        $this->assertTrue($result === true || !is_wp_error($result));
     }
 }
