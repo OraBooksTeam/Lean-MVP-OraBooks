@@ -313,7 +313,11 @@ function orabooks_activate($network_wide = false) {
     add_option('orabooks_block_same_email_domain', 0);
     add_option('orabooks_partner_commission_for_staff_viewer', 0);
     add_option('orabooks_audit_retention_days', 365);
-    add_option('orabooks_jwt_secret', wp_generate_password(64, true, true));
+    if (class_exists('OraBooks_Secrets')) {
+        OraBooks_Secrets::bootstrap();
+        OraBooks_Secrets::get_jwt_secret();
+        OraBooks_Secrets::get_encryption_key();
+    }
     add_option('orabooks_jwt_expiry', 900); // 15 min
     add_option('orabooks_refresh_token_expiry', 604800); // 7 days
 }

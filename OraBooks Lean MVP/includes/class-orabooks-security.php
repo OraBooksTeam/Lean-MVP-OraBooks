@@ -720,6 +720,18 @@ class OraBooks_Security {
         $all_ok = !in_array(false, $status['configured'], true);
         $scan_status = $all_ok ? 'pass' : 'warn';
 
+        if (class_exists('OraBooks_Secrets') && method_exists('OraBooks_Secrets', 'check_tls_certificate')) {
+            $tls = OraBooks_Secrets::check_tls_certificate();
+            $status['tls_certificate'] = $tls;
+
+            if (!empty($tls['expired'])) {
+                $all_ok = false;
+                $scan_status = 'fail';
+            } elseif (!empty($tls['expiring_soon'])) {
+                $scan_status = $scan_status === 'pass' ? 'warn' : $scan_status;
+            }
+        }
+
         self::store_scan_result(
             'security_headers',
             $scan_status,

@@ -68,6 +68,10 @@ class OraBooks_Audit {
         if (empty($metadata)) {
             return null;
         }
+
+        if (class_exists('OraBooks_Secrets') && method_exists('OraBooks_Secrets', 'redact_sensitive')) {
+            return OraBooks_Secrets::redact_sensitive($metadata);
+        }
         
         $sensitive_keys = ['password', 'token', 'secret', 'key', 'authorization', 'credit_card', 'ssn'];
         $sanitized = [];
@@ -80,7 +84,13 @@ class OraBooks_Audit {
                     break;
                 }
             }
-            $sanitized[$key] = $should_mask ? '[REDACTED]' : $value;
+            if ($should_mask) {
+                $sanitized[$key] = '[REDACTED]';
+            } elseif (is_array($value)) {
+                $sanitized[$key] = self::sanitize_metadata($value);
+            } else {
+                $sanitized[$key] = $value;
+            }
         }
         
         return $sanitized;
