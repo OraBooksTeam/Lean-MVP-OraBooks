@@ -645,6 +645,13 @@ export const api = {
     api.get('orabooks_commission_aging', { partner_user_id: partnerUserId ?? 0 }),
   commissionEscrow: (partnerUserId?: number) =>
     api.get('orabooks_commission_escrow_schedule', { partner_user_id: partnerUserId ?? 0 }),
+  commissionByCustomer: (partnerUserId?: number) =>
+    api.get('orabooks_commission_by_customer', { partner_user_id: partnerUserId ?? 0 }),
+  commissionReleaseHistory: (escrowId = 0, partnerUserId?: number) =>
+    api.get('orabooks_commission_release_history', {
+      partner_user_id: partnerUserId ?? 0,
+      escrow_id: escrowId,
+    }),
 
   // Org / Users
   listOrgs: (type = '', status = '') =>
