@@ -705,12 +705,13 @@ class OraBooks_Expenses {
                 'tax_amount'          => $new_tax_amount,
                 'total_amount'        => $new_total,
                 'subtotal'            => $tax_base,
+                'tax_jurisdiction'    => $jurisdiction,
                 'tax_override_reason' => $reason_code,
                 'tax_override_by'     => $user_id,
                 'tax_override_at'     => current_time('mysql'),
             ],
             ['id' => $expense_id, 'org_id' => $org_id],
-            ['%f', '%f', '%f', '%f', '%s', '%d', '%s'],
+            ['%f', '%f', '%f', '%f', '%s', '%s', '%d', '%s'],
             ['%d', '%d']
         );
 
