@@ -775,10 +775,14 @@ if (!class_exists('WP_Error', false)) {
     class WP_Error
     {
         private $errors = [];
+        private $error_data = [];
 
         public function __construct($code = '', $message = '', $data = '') {
             if ($code) {
                 $this->errors[$code][] = $message;
+                if ($data !== '') {
+                    $this->error_data[$code] = $data;
+                }
             }
         }
 
@@ -792,6 +796,13 @@ if (!class_exists('WP_Error', false)) {
                 $code = $this->get_error_code();
             }
             return $this->errors[$code][0] ?? '';
+        }
+
+        public function get_error_data($code = '') {
+            if (empty($code)) {
+                $code = $this->get_error_code();
+            }
+            return $this->error_data[$code] ?? null;
         }
 
         public function get_error_messages($code = '') {
