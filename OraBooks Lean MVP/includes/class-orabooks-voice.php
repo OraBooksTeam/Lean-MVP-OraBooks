@@ -16,6 +16,7 @@ class OraBooks_Voice {
 
     const CONFIDENCE_THRESHOLD = 70.0;
     const MAX_AUDIO_SIZE       = 10485760; // 10 MB
+    const MAX_RECORDING_SECONDS = 120;
     const MAX_RETRIES          = 3;
     const RATE_LIMIT_MAX       = 5;
     const RATE_LIMIT_PERIOD    = 60;
@@ -169,9 +170,27 @@ class OraBooks_Voice {
             'status'                => $row->status,
             'derived_resource_type' => $row->derived_resource_type,
             'derived_resource_id'   => $row->derived_resource_id ? (int) $row->derived_resource_id : null,
+            'idempotency_key'       => $row->idempotency_key ?? null,
+            'processing_retry_count'=> isset($row->processing_retry_count) ? (int) $row->processing_retry_count : 0,
+            'dead_letter_reason'    => $row->dead_letter_reason ?? null,
+            'field_confidences'     => $extracted['field_confidences'] ?? [],
             'created_at'            => $row->created_at,
             'updated_at'            => $row->updated_at,
         ];
+    }
+
+    public static function compute_overall_risk_level(array $risk_scores, $confidence_avg) {
+        $max_risk = empty($risk_scores) ? 0 : max(array_map('floatval', $risk_scores));
+        $confidence_avg = (float) $confidence_avg;
+
+        if ($max_risk >= 70 || $confidence_avg < 60) {
+            return 'high';
+        }
+        if ($max_risk >= 30 || $confidence_avg < self::CONFIDENCE_THRESHOLD) {
+            return 'medium';
+        }
+
+        return 'low';
     }
 
     public static function upload_voice($org_id, $user_id, $filename, $content, $mime_type = '', $idempotency_key = '') {
@@ -256,6 +275,7 @@ class OraBooks_Voice {
 
         orabooks_log_event('voice_uploaded', "Voice input #{$voice_id} uploaded", 'info', [
             'voice_input_id' => $voice_id,
+            'correlation_id' => function_exists('orabooks_get_correlation_id') ? orabooks_get_correlation_id() : '',
         ], $user_id, $org_id);
 
         $row = self::get_voice_input($voice_id, $org_id);
@@ -291,6 +311,14 @@ class OraBooks_Voice {
                     'processing_retry_count' => $retry,
                     'dead_letter_reason' => $e->getMessage(),
                 ], ['id' => $voice_id], ['%s', '%d', '%s'], ['%d']);
+
+                self::notify_transcription_failure($voice_id, $org_id, (int) $row->user_id, $e->getMessage());
+
+                orabooks_log_event('voice_transcription_failed', "Voice input #{$voice_id} dead-lettered", 'warning', [
+                    'voice_input_id' => $voice_id,
+                    'reason' => $e->getMessage(),
+                    'correlation_id' => function_exists('orabooks_get_correlation_id') ? orabooks_get_correlation_id() : '',
+                ], (int) $row->user_id, $org_id);
             } else {
                 $wpdb->update($table, [
                     'processing_retry_count' => $retry,
