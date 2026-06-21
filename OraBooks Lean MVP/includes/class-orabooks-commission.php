@@ -1939,67 +1939,85 @@ class OraBooks_Commission {
     }
 
     public function ajax_commission_stats() {
-        $context = $this->require_partner_commission_user();
-        $user_id = $context['user_id'];
+        $context = $this->require_partner_commission_user('commission_stats');
+        $partner_user_id = $this->resolve_partner_user_id($context);
 
-        // Determine which partner to show stats for
-        $partner_user_id = intval($_GET['partner_user_id'] ?? $user_id);
-        
         $stats = self::get_commission_stats($partner_user_id);
         $config = self::get_config();
-        
+
         if ($config) {
             $stats['min_payout_threshold'] = $config->min_payout_threshold;
             $stats['yearly_percentages'] = $config->yearly_percentages;
             $stats['max_years'] = $config->max_years;
             $stats['currency'] = $config->currency;
+            $stats['payout_fee_type'] = $config->payout_fee_type;
+            $stats['payout_fee_rate'] = $config->payout_fee_rate;
+            $stats['yearly_breakdown_template'] = self::build_yearly_breakdown($config, 0);
         }
-        
+
+        $correlation_id = function_exists('orabooks_get_correlation_id')
+            ? orabooks_get_correlation_id()
+            : '';
+
+        orabooks_log_event('commission_dashboard_viewed', 'Partner viewed commission dashboard', 'info', [
+            'partner_user_id' => $partner_user_id,
+            'correlation_id' => $correlation_id,
+        ], $context['user_id'], (int) $context['org_id']);
+
         orabooks_json_success($stats);
     }
 
     public function ajax_commission_earned() {
-        $context = $this->require_partner_commission_user();
-        $user_id = $context['user_id'];
+        $context = $this->require_partner_commission_user('commission_earned');
+        $partner_user_id = $this->resolve_partner_user_id($context);
 
-        $partner_user_id = intval($_GET['partner_user_id'] ?? $user_id);
-        
         $args = [
             'status' => sanitize_text_field($_GET['status'] ?? ''),
             'from_date' => sanitize_text_field($_GET['from_date'] ?? ''),
             'to_date' => sanitize_text_field($_GET['to_date'] ?? ''),
             'limit' => intval($_GET['limit'] ?? 50),
-            'offset' => intval($_GET['offset'] ?? 0)
+            'offset' => intval($_GET['offset'] ?? 0),
         ];
-        
+
         $earned = self::get_earned_commissions($partner_user_id, $args);
         orabooks_json_success($earned);
     }
 
     public function ajax_commission_payouts() {
-        $context = $this->require_partner_commission_user();
-        $user_id = $context['user_id'];
+        $context = $this->require_partner_commission_user('commission_payouts');
+        $partner_user_id = $this->resolve_partner_user_id($context);
 
-        $partner_user_id = intval($_GET['partner_user_id'] ?? $user_id);
-        
         $args = [
             'status' => sanitize_text_field($_GET['status'] ?? ''),
             'limit' => intval($_GET['limit'] ?? 20),
-            'offset' => intval($_GET['offset'] ?? 0)
+            'offset' => intval($_GET['offset'] ?? 0),
         ];
-        
+
         $payouts = self::get_payouts($partner_user_id, $args);
         orabooks_json_success($payouts);
     }
 
     public function ajax_commission_aging() {
-        $context = $this->require_partner_commission_user();
-        $user_id = $context['user_id'];
+        $context = $this->require_partner_commission_user('commission_aging');
+        $partner_user_id = $this->resolve_partner_user_id($context);
 
-        $partner_user_id = intval($_GET['partner_user_id'] ?? $user_id);
-        
         $aging = self::get_aging_report($partner_user_id);
         orabooks_json_success($aging);
+    }
+
+    public function ajax_commission_by_customer() {
+        $context = $this->require_partner_commission_user('commission_by_customer');
+        $partner_user_id = $this->resolve_partner_user_id($context);
+
+        orabooks_json_success(self::get_commission_by_customer($partner_user_id));
+    }
+
+    public function ajax_release_history() {
+        $context = $this->require_partner_commission_user('commission_release_history');
+        $partner_user_id = $this->resolve_partner_user_id($context);
+        $escrow_id = intval($_GET['escrow_id'] ?? 0);
+
+        orabooks_json_success(self::get_release_history($partner_user_id, $escrow_id));
     }
 
     public function ajax_commission_config() {
@@ -2049,12 +2067,10 @@ class OraBooks_Commission {
     }
 
     public function ajax_escrow_schedule() {
-        $context = $this->require_partner_commission_user();
-        $user_id = $context['user_id'];
-
-        $partner_user_id = intval($_GET['partner_user_id'] ?? $user_id);
+        $context = $this->require_partner_commission_user('commission_escrow');
+        $partner_user_id = $this->resolve_partner_user_id($context);
         $escrows = self::get_escrow_schedule($partner_user_id);
-        
+
         orabooks_json_success($escrows);
     }
 }
