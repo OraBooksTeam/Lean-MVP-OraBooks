@@ -128,6 +128,12 @@ export default function AdminAudit() {
           value={filters.event_type}
           onChange={(e) => setFilters((prev) => ({ ...prev, event_type: e.target.value }))}
         />
+        <input
+          className="rounded-lg border border-border bg-white px-3 py-2 text-sm outline-none"
+          placeholder="Correlation ID"
+          value={filters.correlation_id}
+          onChange={(e) => setFilters((prev) => ({ ...prev, correlation_id: e.target.value }))}
+        />
         <select
           className="rounded-lg border border-border bg-white px-3 py-2 text-sm outline-none"
           value={filters.severity}
@@ -136,7 +142,7 @@ export default function AdminAudit() {
           <option value="">All severities</option>
           <option value="info">Info</option>
           <option value="warning">Warning</option>
-          <option value="error">Error</option>
+          <option value="critical">Critical</option>
         </select>
         <div className="flex items-center gap-1.5 rounded-lg border border-border bg-white px-3 py-2 text-sm">
           <Calendar className="h-4 w-4 text-slate-500" />
@@ -212,6 +218,7 @@ function SeverityBadge({ severity }: { severity?: string }) {
   const map: Record<string, string> = {
     info: 'bg-sky-50 text-sky-700 border-sky-200',
     warning: 'bg-amber-50 text-amber-700 border-amber-200',
+    critical: 'bg-red-50 text-red-700 border-red-200',
     error: 'bg-red-50 text-red-700 border-red-200',
   };
   const cls = map[severity || ''] || 'bg-slate-100 text-slate-600 border-slate-200';

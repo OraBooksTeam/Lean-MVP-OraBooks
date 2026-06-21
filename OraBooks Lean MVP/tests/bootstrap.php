@@ -32,6 +32,9 @@ if (PHP_SAPI === 'cli' && !empty($argv)) {
     if (strpos($cli_args, 'OraBooks_Organization_Test') !== false || strpos($cli_args, 'phpunit-organization.xml') !== false) {
         $GLOBALS['ORABOOKS_LOAD_REAL_ORGANIZATION'] = true;
     }
+    if (strpos($cli_args, 'OraBooks_Audit_Test') !== false || strpos($cli_args, 'phpunit-audit.xml') !== false) {
+        $GLOBALS['ORABOOKS_LOAD_REAL_AUDIT'] = true;
+    }
 }
 
 // Define WordPress constants used by the exports class
