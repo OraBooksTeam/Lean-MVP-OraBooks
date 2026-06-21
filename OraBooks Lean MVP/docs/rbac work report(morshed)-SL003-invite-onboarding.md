@@ -136,7 +136,7 @@ cd "OraBooks Lean MVP/tests"
 vendor/bin/phpunit --configuration phpunit.xml OraBooks_RBAC_Test.php
 ```
 
-**Expected:** 10 tests pass (includes invite-first onboarding tests).
+**Expected:** 9 tests pass (includes invite-first onboarding test).
 
 ---
 
