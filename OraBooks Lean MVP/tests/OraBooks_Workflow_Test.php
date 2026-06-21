@@ -400,4 +400,19 @@ class OraBooks_Workflow_Test extends TestCase
             return null;
         };
         $wpdb->test_update_callback = function ($table, $data) {
-            r
+            return isset($data['workflow_status']) && $data['workflow_status'] === 'cancelled';
+        };
+        $wpdb->test_insert_callback = function () {
+            return true;
+        };
+        $GLOBALS['orabooks_test_use_insert_id'] = 903;
+
+        $result = OraBooks_Workflow::transition('invoice', 21, 'cancel', [
+            'user_id' => 1,
+            'org_id'  => 3,
+        ]);
+
+        $this->assertIsArray($result);
+        $this->assertEquals('cancelled', $result['to_state']);
+    }
+}

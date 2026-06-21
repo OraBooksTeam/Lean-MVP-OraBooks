@@ -14,7 +14,13 @@ class OraBooks_Workflow_Integration_Test extends TestCase
 
         $GLOBALS['orabooks_test_has_permission'] = true;
         $GLOBALS['orabooks_test_log_events'] = [];
-        $GLOBALS['orabooks_test_filters'] = [];
+        $preserve = [];
+        foreach (['orabooks_workflow_preconditions', 'orabooks_workflow_after_transition'] as $tag) {
+            if (!empty($GLOBALS['orabooks_test_filters'][$tag])) {
+                $preserve[$tag] = $GLOBALS['orabooks_test_filters'][$tag];
+            }
+        }
+        $GLOBALS['orabooks_test_filters'] = $preserve;
         $GLOBALS['orabooks_test_actions'] = [];
     }
 
