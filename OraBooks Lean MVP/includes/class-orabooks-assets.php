@@ -117,6 +117,7 @@ class OraBooks_Assets {
             'orabooks_journals',
             'orabooks_profile',
             'orabooks_approvals',
+            'orabooks_approval_settings',
             'orabooks_ai_review',
             'orabooks_expenses',
             'orabooks_voice',

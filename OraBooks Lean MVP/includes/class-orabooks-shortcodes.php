@@ -179,6 +179,10 @@ class OraBooks_Shortcodes {
         return $this->customer_react_page('/approvals');
     }
 
+    public function approval_settings_page() {
+        return $this->customer_react_page('/approval-settings');
+    }
+
     public function ai_review_page() {
         return $this->customer_react_page('/ai-review');
     }
