@@ -727,6 +727,111 @@ class OraBooks_Event_Module {
         return true;
     }
 
+    public static function consume_state_transition_read_model($event, array $payload) {
+        global $wpdb;
+
+        $org_id = (int) ($payload['org_id'] ?? 0);
+        $record_type = sanitize_key($payload['record_type'] ?? '');
+        if ($org_id <= 0 || $record_type === '') {
+            return true;
+        }
+
+        $table = self::table('read_model_dues');
+        $party_type = in_array($record_type, ['bill', 'expense'], true) ? 'supplier' : 'customer';
+        $party_id = (int) ($payload['record_id'] ?? $event->aggregate_id);
+
+        if ($party_id <= 0) {
+            return true;
+        }
+
+        $wpdb->replace($table, [
+            'org_id' => $org_id,
+            'party_type' => $party_type,
+            'party_id' => $party_id,
+            'total_due' => (float) ($payload['amount_due'] ?? 0),
+            'source_event_id' => (int) $event->id,
+        ], ['%d', '%s', '%d', '%f', '%d']);
+
+        return true;
+    }
+
+    public static function consume_state_transition_notifications($event, array $payload) {
+        $org_id = (int) ($payload['org_id'] ?? 0);
+        $record_type = sanitize_key($payload['record_type'] ?? '');
+        $wf_event = sanitize_key($payload['event'] ?? '');
+
+        if ($org_id <= 0 || $record_type === '' || $wf_event === '') {
+            return true;
+        }
+
+        if ($record_type === 'journal') {
+            return true;
+        }
+
+        $notify_map = [
+            'bill' => ['submit', 'approve', 'post', 'void'],
+            'invoice' => ['send', 'post', 'cancel'],
+            'expense' => ['submit', 'ai_review', 'approve', 'post'],
+            'commission' => ['pay', 'expire'],
+        ];
+
+        if (empty($notify_map[$record_type]) || !in_array($wf_event, $notify_map[$record_type], true)) {
+            return true;
+        }
+
+        global $wpdb;
+        $wpdb->insert(self::table('event_notifications'), [
+            'outbox_id' => (int) $event->id,
+            'org_id' => $org_id,
+            'user_id' => (int) ($payload['triggered_by'] ?? 0),
+            'event_type' => 'state_transition',
+            'title' => self::workflow_notification_title($record_type, $wf_event),
+            'body' => wp_json_encode($payload),
+            'severity' => in_array($wf_event, ['void', 'cancel', 'expire', 'reject'], true) ? 'warning' : 'info',
+        ], ['%d', '%d', '%d', '%s', '%s', '%s', '%s']);
+
+        if (class_exists('OraBooks_Notifications')) {
+            self::notify_org_admins_state_transition($org_id, $record_type, $wf_event, $payload);
+        }
+
+        return true;
+    }
+
+    private static function workflow_notification_title($record_type, $wf_event) {
+        return sprintf('%s %s', ucfirst($record_type), str_replace('_', ' ', $wf_event));
+    }
+
+    private static function notify_org_admins_state_transition($org_id, $record_type, $wf_event, array $payload) {
+        global $wpdb;
+
+        $table = OraBooks_Database::table('user_org');
+        $admins = $wpdb->get_results($wpdb->prepare(
+            "SELECT user_id FROM {$table} WHERE org_id = %d AND role IN ('owner','admin','approver')",
+            (int) $org_id
+        ));
+
+        $record_id = (int) ($payload['record_id'] ?? 0);
+        $title = self::workflow_notification_title($record_type, $wf_event);
+
+        foreach ($admins ?: [] as $admin) {
+            OraBooks_Notifications::notify((int) $admin->user_id, 'state_transition', [
+                'title' => $title,
+                'message' => sprintf(
+                    '%s #%d moved to %s via %s',
+                    $record_type,
+                    $record_id,
+                    $payload['to_state'] ?? '',
+                    $wf_event
+                ),
+                'record_type' => $record_type,
+                'record_id' => $record_id,
+                'event' => $wf_event,
+                'org_id' => (int) $org_id,
+                'priority' => 'normal',
+            ], (int) $org_id);
+        }
+    }
+
     private static function notification_title($event_type) {
         $titles = [
             'return_approved' => 'Return approved',

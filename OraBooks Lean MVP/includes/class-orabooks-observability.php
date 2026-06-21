@@ -25,6 +25,7 @@ class OraBooks_Observability {
         'async_queue_dead'      => 20,
         'notification_dead'     => 25,
         'export_failed_24h'     => 15,
+        'workflow_failures_24h' => 20,
     ];
 
     public static function init() {
