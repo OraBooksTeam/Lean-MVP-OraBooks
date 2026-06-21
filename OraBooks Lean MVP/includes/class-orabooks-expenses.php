@@ -855,16 +855,33 @@ class OraBooks_Expenses {
         $risk = $expense->ocr_risk_level ?: 'medium';
 
         if ($confidence >= self::CONFIDENCE_THRESHOLD && $risk === 'low') {
-            $update['workflow_status'] = 'submitted';
+            $workflow_event = 'submit';
             $event = 'expense_submitted';
             $log_event = 'expense_submitted';
+            $target_status = 'submitted';
         } else {
-            $update['workflow_status'] = 'ai_review';
+            $workflow_event = 'ai_review';
             $event = 'expense_escalated';
             $log_event = 'expense_escalated_to_ai_review';
+            $target_status = 'ai_review';
         }
 
-        $wpdb->update($table, $update, ['id' => intval($expense_id)]);
+        unset($update['workflow_status']);
+        if (!empty($update)) {
+            $wpdb->update($table, $update, ['id' => intval($expense_id), 'org_id' => intval($org_id)]);
+        }
+
+        if (!class_exists('OraBooks_Workflow')) {
+            return new WP_Error('workflow_unavailable', 'Workflow engine unavailable');
+        }
+
+        $transition = OraBooks_Workflow::transition('expense', (int) $expense_id, $workflow_event, [
+            'user_id' => (int) $user_id,
+            'org_id'  => (int) $org_id,
+        ]);
+        if (is_wp_error($transition)) {
+            return $transition;
+        }
 
         if (function_exists('orabooks_publish_event')) {
             orabooks_publish_event($event, intval($expense_id), [
@@ -876,7 +893,7 @@ class OraBooks_Expenses {
             ]);
         }
 
-        if ($update['workflow_status'] === 'ai_review' && class_exists('OraBooks_Ai_Review')) {
+        if ($target_status === 'ai_review' && class_exists('OraBooks_Ai_Review')) {
             OraBooks_Ai_Review::enqueue(
                 intval($org_id),
                 'expense',
@@ -893,7 +910,7 @@ class OraBooks_Expenses {
             );
         }
 
-        orabooks_log_event($log_event, "Expense #{$expense_id} routed to {$update['workflow_status']}", 'info', [
+        orabooks_log_event($log_event, "Expense #{$expense_id} routed to {$target_status}", 'info', [
             'expense_id' => intval($expense_id),
             'confidence' => $confidence,
             'risk_level' => $risk,
@@ -915,12 +932,21 @@ class OraBooks_Expenses {
             return new WP_Error('invalid_status', 'Expense is not awaiting approval');
         }
 
-        $table = OraBooks_Database::table(self::TABLE_EXPENSES);
-        $wpdb->update($table, [
-            'workflow_status' => 'approved',
-            'approved_by'     => intval($user_id),
-            'approved_at'     => current_time('mysql'),
-        ], ['id' => intval($expense_id)], ['%s', '%d', '%s'], ['%d']);
+        if (!class_exists('OraBooks_Workflow')) {
+            return new WP_Error('workflow_unavailable', 'Workflow engine unavailable');
+        }
+
+        $transition = OraBooks_Workflow::transition('expense', (int) $expense_id, 'approve', [
+            'user_id' => (int) $user_id,
+            'org_id'  => (int) $org_id,
+            'row_updates' => [
+                'approved_by' => (int) $user_id,
+                'approved_at' => current_time('mysql'),
+            ],
+        ]);
+        if (is_wp_error($transition)) {
+            return $transition;
+        }
 
         orabooks_log_event('expense_approved', "Expense #{$expense_id} approved", 'info', [
             'expense_id' => intval($expense_id),
@@ -954,10 +980,18 @@ class OraBooks_Expenses {
             return new WP_Error('invalid_status', 'Expense is not awaiting approval');
         }
 
-        $table = OraBooks_Database::table(self::TABLE_EXPENSES);
-        $wpdb->update($table, [
-            'workflow_status' => 'draft',
-        ], ['id' => intval($expense_id)], ['%s'], ['%d']);
+        if (!class_exists('OraBooks_Workflow')) {
+            return new WP_Error('workflow_unavailable', 'Workflow engine unavailable');
+        }
+
+        $transition = OraBooks_Workflow::transition('expense', (int) $expense_id, 'reject', [
+            'user_id' => (int) $user_id,
+            'org_id'  => (int) $org_id,
+            'reason'  => $reason,
+        ]);
+        if (is_wp_error($transition)) {
+            return $transition;
+        }
 
         if (class_exists('OraBooks_Ai_Review')) {
             OraBooks_Ai_Review::resolve_ai_review_by_resource(intval($org_id), 'expense', intval($expense_id), $user_id);
@@ -1331,13 +1365,4 @@ class OraBooks_Expenses {
             $org_id,
             $expense_id,
             $user_id,
-            sanitize_text_field($_POST['jurisdiction'] ?? 'US')
-        );
-
-        if (is_wp_error($result)) {
-            orabooks_json_error($result->get_error_message(), 400);
-        }
-
-        orabooks_json_success(['expense' => $result], 'Tax override cleared');
-    }
-}
+            sanitize_text_
