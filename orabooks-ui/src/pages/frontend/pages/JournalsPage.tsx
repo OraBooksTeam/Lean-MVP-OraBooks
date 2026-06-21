@@ -274,12 +274,12 @@ export default function JournalsPage() {
                 ) : journals.map((journal) => (
                   <tr
                     key={journal.id}
-                    className={`cursor-pointer hover:bg-slate-50/70 ${selectedId === journal.id ? 'bg-sky-50/70' : ''}`}
+                    className={`cursor-pointer transition hover:bg-accent/5 ${selectedId === journal.id ? 'bg-accent/10 ring-2 ring-inset ring-accent/30' : ''}`}
                     onClick={() => setSelectedId(journal.id)}
                   >
                     <td className="px-5 py-3 font-semibold text-ink">{journal.journal_number || `Journal #${journal.id}`}</td>
                     <td className="px-5 py-3 text-slate-600">{journal.transaction_date || 'Not set'}</td>
-                    <td className="px-5 py-3"><StatusBadge status={journal.status} /></td>
+                    <td className="px-5 py-3"><StatusBadge status={journal.status} rejected={Boolean(journal.rejected_reason)} /></td>
                     <td className="px-5 py-3 text-slate-600">{journal.source_type || 'Manual'}</td>
                     <td className="px-5 py-3 text-right font-bold text-ink">{money(journal.total_amount)}</td>
                   </tr>
@@ -302,7 +302,25 @@ export default function JournalsPage() {
                     </h3>
                     <p className="text-sm text-slate-500">{selectedJournal.transaction_date}</p>
                   </div>
-                  <StatusBadge status={selectedJournal.status} />
+                  <StatusBadge status={selectedJournal.status} rejected={wasRejected || Boolean(selectedJournal.rejected_reason)} />
+                </div>
+
+                <div className="flex gap-2 border-b border-border">
+                  <button
+                    type="button"
+                    onClick={() => setDetailTab('lines')}
+                    className={`px-3 py-2 text-sm font-semibold transition ${detailTab === 'lines' ? 'border-b-2 border-accent text-accent' : 'text-slate-500 hover:text-ink'}`}
+                  >
+                    Journal Lines
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDetailTab('history')}
+                    className={`px-3 py-2 text-sm font-semibold transition ${detailTab === 'history' ? 'border-b-2 border-accent text-accent' : 'text-slate-500 hover:text-ink'}`}
+                    title="Immutable audit trail."
+                  >
+                    Approval History
+                  </button>
                 </div>
 
                 {selectedJournal.ai_confidence != null ? (
