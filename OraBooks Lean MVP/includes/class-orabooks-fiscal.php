@@ -79,11 +79,6 @@ class OraBooks_Fiscal {
             return [];
         }
 
-        $map = [
-            'open'         => 'OPEN',
-            'soft_closed'  => 'SOFT_CLOSED',
-            'hard_closed'  => 'HARD_CLOSED',
-        ];
         $db_status = strtolower((string) $row->status);
 
         return [
@@ -91,13 +86,92 @@ class OraBooks_Fiscal {
             'org_id'        => (int) $row->org_id,
             'period_start'  => $row->period_start,
             'period_end'    => $row->period_end,
-            'status'        => $map[$db_status] ?? strtoupper($db_status),
+            'status'        => $db_status,
+            'status_label'  => self::status_label($db_status),
             'closed_by'     => isset($row->closed_by) ? (int) $row->closed_by : null,
             'closed_at'     => $row->closed_at ?? null,
             'reopened_by'   => isset($row->reopened_by) ? (int) $row->reopened_by : null,
             'reopened_at'   => $row->reopened_at ?? null,
             'reopen_reason' => $row->reopen_reason ?? null,
+            'can_close'     => $db_status === 'open',
+            'can_reopen'    => $db_status === 'soft_closed',
+            'can_override_reopen' => $db_status === 'hard_closed',
         ];
+    }
+
+    public static function status_label($status) {
+        $map = [
+            'open'         => 'Open',
+            'soft_closed'  => 'Soft Closed',
+            'hard_closed'  => 'Hard Closed',
+        ];
+
+        return $map[strtolower((string) $status)] ?? ucwords(str_replace('_', ' ', (string) $status));
+    }
+
+    public static function list_periods_for_api($org_id) {
+        $rows = self::list_periods($org_id);
+        $items = [];
+
+        foreach ($rows ?: [] as $row) {
+            $formatted = self::format_period_for_api($row);
+            $pending = self::count_pending_transactions($org_id, $row->period_start, $row->period_end);
+            $formatted['pending_drafts'] = $pending['draft_journals'];
+            $formatted['pending_submitted'] = $pending['submitted_journals'];
+            $formatted['pending_total'] = $pending['total'];
+            $items[] = $formatted;
+        }
+
+        return $items;
+    }
+
+    public static function count_pending_transactions($org_id, $period_start, $period_end) {
+        global $wpdb;
+
+        $table = OraBooks_Database::table('journals');
+        $draft_journals = (int) $wpdb->get_var($wpdb->prepare(
+            "SELECT COUNT(*) FROM {$table}
+             WHERE org_id = %d
+               AND status = 'draft'
+               AND transaction_date >= %s
+               AND transaction_date <= %s",
+            $org_id,
+            $period_start,
+            $period_end
+        ));
+        $submitted_journals = (int) $wpdb->get_var($wpdb->prepare(
+            "SELECT COUNT(*) FROM {$table}
+             WHERE org_id = %d
+               AND status IN ('submitted', 'review_pending', 'approved')
+               AND transaction_date >= %s
+               AND transaction_date <= %s",
+            $org_id,
+            $period_start,
+            $period_end
+        ));
+
+        return [
+            'draft_journals'     => $draft_journals,
+            'submitted_journals' => $submitted_journals,
+            'total'              => $draft_journals + $submitted_journals,
+        ];
+    }
+
+    public static function get_period_status($org_id, $transaction_date) {
+        global $wpdb;
+
+        $table = OraBooks_Database::table('fiscal_periods');
+        $status = $wpdb->get_var($wpdb->prepare(
+            "SELECT status FROM {$table}
+             WHERE org_id = %d AND period_start <= %s AND period_end >= %s
+             ORDER BY period_start DESC
+             LIMIT 1",
+            $org_id,
+            $transaction_date,
+            $transaction_date
+        ));
+
+        return $status ? strtolower((string) $status) : 'open';
     }
 
     public static function paginate_periods($org_id, array $args = []) {
@@ -111,7 +185,7 @@ class OraBooks_Fiscal {
         $filtered = [];
         foreach ($rows ?: [] as $row) {
             $formatted = self::format_period_for_api($row);
-            if ($status_filter !== '' && $formatted['status'] !== $status_filter) {
+            if ($status_filter !== '' && strtoupper($formatted['status']) !== $status_filter && $formatted['status'] !== strtolower($status_filter)) {
                 continue;
             }
             if ($year > 0 && (int) substr((string) $row->period_start, 0, 4) !== $year) {
