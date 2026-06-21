@@ -178,13 +178,6 @@ class OraBooks_Ajax {
             orabooks_json_error('Partner accounts cannot perform accounting operations.', 403);
         }
 
-        if (class_exists('OraBooks_TwoFactor')) {
-            $compliance = OraBooks_TwoFactor::assert_org_compliance($context['user_id'], $org_id);
-            if (is_wp_error($compliance)) {
-                orabooks_json_error($compliance->get_error_message(), 403);
-            }
-        }
-
         if (!OraBooks_RBAC::require_permission($context['user_id'], $org_id, 'view_reports')) {
             orabooks_json_error('Permission denied', 403);
         }

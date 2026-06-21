@@ -622,9 +622,88 @@ class OraBooks_TwoFactor {
 
         return new WP_Error(
             '2fa_setup_required',
-            'Two-factor authentication is required by your organization. Enable 2FA in Profile → Security before continuing.',
+            'Two-factor authentication is required by your organization. Enable 2FA on the Security page before continuing.',
             ['status' => 403]
         );
+    }
+
+    /**
+     * AJAX actions exempt from org-wide 2FA compliance enforcement.
+     *
+     * @return string[]
+     */
+    public static function get_2fa_compliance_exempt_actions() {
+        return [
+            'orabooks_login',
+            'orabooks_register',
+            'orabooks_verify_email',
+            'orabooks_verify_email_token',
+            'orabooks_resend_verification',
+            'orabooks_forgot_password',
+            'orabooks_reset_password',
+            'orabooks_check_subdomain',
+            'orabooks_get_org_by_subdomain',
+            'orabooks_setup_2fa',
+            'orabooks_verify_2fa_setup',
+            'orabooks_2fa_challenge',
+            'orabooks_disable_2fa',
+            'orabooks_regenerate_2fa_backup_codes',
+            'orabooks_reveal_2fa_backup_codes',
+            'orabooks_2fa_status',
+            'orabooks_admin_2fa_recover',
+            'orabooks_org_2fa_policy_get',
+            'orabooks_org_2fa_policy_set',
+            'orabooks_logout',
+            'orabooks_refresh_token',
+            'orabooks_establish_session',
+            'orabooks_frontend_context',
+            'orabooks_oidc_initiate',
+            'orabooks_oidc_callback',
+            'orabooks_select_tier',
+        ];
+    }
+
+    public static function is_2fa_compliance_exempt_action($action) {
+        return in_array(sanitize_key((string) $action), self::get_2fa_compliance_exempt_actions(), true);
+    }
+
+    public function maybe_enforce_ajax_2fa_compliance() {
+        if (!wp_doing_ajax()) {
+            return;
+        }
+
+        $action = sanitize_key($_REQUEST['action'] ?? '');
+        if ($action === '' || strpos($action, 'orabooks_') !== 0) {
+            return;
+        }
+
+        if (self::is_2fa_compliance_exempt_action($action)) {
+            return;
+        }
+
+        if (!orabooks_is_user_logged_in()) {
+            return;
+        }
+
+        $user_id = orabooks_get_current_user_id();
+        if ($user_id <= 0) {
+            return;
+        }
+
+        global $wpdb;
+        $org_id = (int) $wpdb->get_var($wpdb->prepare(
+            "SELECT org_id FROM " . OraBooks_Database::table('users') . " WHERE id = %d",
+            $user_id
+        ));
+
+        if ($org_id <= 0) {
+            return;
+        }
+
+        $compliance = self::assert_org_compliance($user_id, $org_id);
+        if (is_wp_error($compliance)) {
+            orabooks_json_error($compliance->get_error_message(), 403);
+        }
     }
 
     /**
@@ -726,6 +805,11 @@ class OraBooks_TwoFactor {
                 ['%d', '%s']
             );
         }
+
+        $wp_user_id = orabooks_get_wp_user_id_for_orabooks_user((int) $orabooks_user_id);
+        if ($wp_user_id > 0) {
+            orabooks_set_2fa_backup_codes_encrypted($wp_user_id, $codes);
+        }
     }
 
     private static function clear_2fa_credentials($orabooks_user_id, $wp_user_id) {
@@ -738,6 +822,7 @@ class OraBooks_TwoFactor {
             delete_user_meta($wp_user_id, 'orabooks_2fa_secret');
             delete_user_meta($wp_user_id, 'orabooks_2fa_temp_secret');
             delete_user_meta($wp_user_id, 'orabooks_2fa_temp_backup_codes');
+            delete_user_meta($wp_user_id, 'orabooks_2fa_backup_codes_encrypted');
         }
     }
 
@@ -773,6 +858,23 @@ class OraBooks_TwoFactor {
         }
 
         orabooks_json_success($result, 'Backup codes regenerated');
+    }
+
+    public function ajax_reveal_backup_codes() {
+        if (!orabooks_is_user_logged_in()) {
+            orabooks_json_error('Not authenticated', 401);
+        }
+
+        $result = self::reveal_backup_codes(
+            orabooks_get_current_user_id(),
+            sanitize_text_field($_POST['otp_code'] ?? '')
+        );
+
+        if (is_wp_error($result)) {
+            orabooks_json_error($result->get_error_message(), (int) ($result->get_error_data()['status'] ?? 400));
+        }
+
+        orabooks_json_success($result, 'Backup codes retrieved');
     }
 
     public function ajax_status() {
