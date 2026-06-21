@@ -955,6 +955,25 @@ function orabooks_enrich_login_response($login_result) {
         );
     }
 
+    if (class_exists('OraBooks_TwoFactor')) {
+        $login_result = OraBooks_TwoFactor::enrich_login_response($login_result);
+        if (!empty($login_result['needs_2fa_setup'])) {
+            if (!empty($login_result['subdomain'])) {
+                $login_result['redirect_to'] = orabooks_build_org_url($login_result['subdomain'], '/profile/');
+            } else {
+                $login_result['redirect_to'] = orabooks_get_network_login_url('profile');
+            }
+            if (!empty($login_result['token'])) {
+                $login_result['redirect_to'] = orabooks_append_auth_tokens_to_url(
+                    (string) $login_result['redirect_to'],
+                    (string) $login_result['token'],
+                    (string) ($login_result['refresh_token'] ?? '')
+                );
+            }
+            $login_result['redirect_to'] .= '#security-2fa';
+        }
+    }
+
     return $login_result;
 }
 

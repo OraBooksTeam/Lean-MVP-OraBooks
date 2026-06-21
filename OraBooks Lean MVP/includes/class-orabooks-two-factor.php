@@ -243,8 +243,6 @@ class OraBooks_TwoFactor {
             $user->org_id
         );
 
-        $login_result = self::enrich_login_response($login_result);
-
         if (empty($login_result['needs_tier_selection'])) {
             orabooks_persist_login_session($login_result);
         }
@@ -559,10 +557,6 @@ class OraBooks_TwoFactor {
         $needs_setup = self::user_needs_2fa_setup($user_id, $org_id);
         $login_result['needs_2fa_setup'] = $needs_setup;
         $login_result['org_require_2fa'] = $org_id > 0 ? self::org_requires_2fa($org_id) : false;
-
-        if ($needs_setup) {
-            $login_result['redirect_to'] = orabooks_get_network_login_url('profile') . '#security-2fa';
-        }
 
         return $login_result;
     }

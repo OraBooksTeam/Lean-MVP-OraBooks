@@ -31,6 +31,7 @@ require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-team.php';
 require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-audit.php';
 require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-partner.php';
 require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-secrets.php';
+require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-two-factor.php';
 require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-ai-providers.php';
 require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-coa.php';
 require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-fiscal.php';
