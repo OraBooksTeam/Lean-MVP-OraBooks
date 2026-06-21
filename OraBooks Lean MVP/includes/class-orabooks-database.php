@@ -1031,6 +1031,12 @@ class OraBooks_Database {
         if (!in_array('tax_override_at', $existing_expense_cols)) {
             $wpdb->query("ALTER TABLE {$table_expenses} ADD COLUMN tax_override_at TIMESTAMP NULL AFTER tax_override_by");
         }
+        if (!in_array('tax_jurisdiction', $existing_expense_cols)) {
+            $wpdb->query("ALTER TABLE {$table_expenses} ADD COLUMN tax_jurisdiction VARCHAR(32) NULL AFTER tax_rate");
+        }
+        if (!in_array('tax_type', $existing_expense_cols)) {
+            $wpdb->query("ALTER TABLE {$table_expenses} ADD COLUMN tax_type VARCHAR(32) NULL AFTER tax_jurisdiction");
+        }
 
         if (!wp_next_scheduled('orabooks_expenses_ocr_process')) {
             wp_schedule_event(time(), 'every_5_minutes', 'orabooks_expenses_ocr_process');

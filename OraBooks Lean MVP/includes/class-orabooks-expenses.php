@@ -86,6 +86,8 @@ class OraBooks_Expenses {
                 subtotal DECIMAL(20,2) DEFAULT NULL,
                 tax_amount DECIMAL(20,2) DEFAULT NULL,
                 tax_rate DECIMAL(5,2) DEFAULT NULL,
+                tax_jurisdiction VARCHAR(32) DEFAULT NULL,
+                tax_type VARCHAR(32) DEFAULT NULL,
                 total_amount DECIMAL(20,2) DEFAULT NULL,
                 currency CHAR(3) DEFAULT 'USD',
                 payment_method VARCHAR(50) DEFAULT NULL,
