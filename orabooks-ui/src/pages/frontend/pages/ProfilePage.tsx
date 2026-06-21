@@ -14,8 +14,10 @@ export default function ProfilePage() {
   const [setupLoading, setSetupLoading] = useState(false);
   const [verifyLoading, setVerifyLoading] = useState(false);
   const [qrUrl, setQrUrl] = useState('');
+  const [totpSecret, setTotpSecret] = useState('');
   const [backupCodes, setBackupCodes] = useState<string[]>([]);
   const [otp, setOtp] = useState('');
+  const setupActive = Boolean(qrUrl || totpSecret);
 
   const load = async () => {
     setLoading(true);

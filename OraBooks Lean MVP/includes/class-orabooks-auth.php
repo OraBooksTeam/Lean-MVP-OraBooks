@@ -1334,12 +1334,14 @@ class OraBooks_Auth {
         orabooks_set_2fa_temp_secret($wp_user_id, $secret);
 
         $email = get_userdata($wp_user_id)->user_email ?? (string) $user->email;
+        $otpauth_uri = OraBooks_Secrets::get_totp_provisioning_uri($secret, $email);
         $qr_url = OraBooks_Secrets::get_totp_qr_url($secret, $email);
         $backup_codes = OraBooks_Secrets::generate_backup_codes();
         orabooks_set_2fa_temp_backup_codes($wp_user_id, $backup_codes);
         
         orabooks_json_success([
             'secret' => $secret,
+            'otpauth_uri' => $otpauth_uri,
             'qr_code_url' => $qr_url,
             'backup_codes' => $backup_codes,
         ]);

@@ -1000,8 +1000,12 @@ if (!class_exists('OraBooks_Secrets', false)) {
             return $GLOBALS['orabooks_test_totp_secret'] ?? 'TESTSECRET123456';
         }
 
+        public static function get_totp_provisioning_uri($secret, $email) {
+            return 'otpauth://totp/OraBooks%3A' . rawurlencode((string) $email) . '?secret=' . strtoupper((string) $secret) . '&issuer=OraBooks';
+        }
+
         public static function get_totp_qr_url($secret, $email) {
-            return 'otpauth://totp/' . urlencode($email) . '?secret=' . $secret . '&issuer=OraBooks';
+            return 'https://quickchart.io/qr?size=200&text=' . rawurlencode(self::get_totp_provisioning_uri($secret, $email));
         }
 
         public static function generate_backup_codes() {

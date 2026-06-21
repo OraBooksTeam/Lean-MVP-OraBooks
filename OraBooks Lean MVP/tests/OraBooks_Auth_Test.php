@@ -1400,9 +1400,11 @@ class OraBooks_Auth_Test extends TestCase
 
         $this->assertFalse($response['error']);
         $this->assertArrayHasKey('secret', $response['data']);
+        $this->assertArrayHasKey('otpauth_uri', $response['data']);
         $this->assertArrayHasKey('qr_code_url', $response['data']);
         $this->assertArrayHasKey('backup_codes', $response['data']);
-        $this->assertStringContainsString('otpauth://', $response['data']['qr_code_url']);
+        $this->assertStringContainsString('otpauth://', $response['data']['otpauth_uri']);
+        $this->assertStringContainsString('quickchart.io/qr', $response['data']['qr_code_url']);
         $this->assertCount(8, $response['data']['backup_codes']);
     }
 

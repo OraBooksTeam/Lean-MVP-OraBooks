@@ -687,13 +687,27 @@ class OraBooks_Secrets {
     }
     
     /**
-     * Generate QR code URL for TOTP setup
+     * Build the otpauth provisioning URI for authenticator apps (RFC 6238).
+     */
+    public static function get_totp_provisioning_uri($secret, $email) {
+        $issuer = 'OraBooks';
+        $label = $issuer . ':' . (string) $email;
+
+        return sprintf(
+            'otpauth://totp/%s?secret=%s&issuer=%s',
+            rawurlencode($label),
+            strtoupper((string) $secret),
+            rawurlencode($issuer)
+        );
+    }
+
+    /**
+     * Generate QR code image URL for TOTP setup.
      */
     public static function get_totp_qr_url($secret, $email) {
-        $issuer = rawurlencode('OraBooks');
-        $label = rawurlencode('OraBooks:' . (string) $email);
-        $encoded = rawurlencode('otpauth://totp/' . $label . '?secret=' . strtoupper((string) $secret) . '&issuer=' . $issuer);
-        return 'https://chart.googleapis.com/chart?chs=200x200&chld=M|0&cht=qr&chl=' . $encoded;
+        $otpauth = self::get_totp_provisioning_uri($secret, $email);
+
+        return 'https://quickchart.io/qr?size=200&margin=1&text=' . rawurlencode($otpauth);
     }
 
     /**
