@@ -204,6 +204,14 @@ class OraBooks_Observability {
         ]);
         $snapshots['exports'] = ['pending' => $export_pending, 'failed_24h' => $export_failed_24h, 'status' => $export_status];
 
+        // Workflow engine (SL-301)
+        $workflow_health = self::get_workflow_health();
+        self::record_metric('workflow', 'transition_success_24h', (float) ($workflow_health['transitions_24h'] ?? 0));
+        self::record_metric('workflow', 'transition_failure_24h', (float) ($workflow_health['failures_24h'] ?? 0));
+        $workflow_status = ($workflow_health['failures_24h'] ?? 0) >= self::$thresholds['workflow_failures_24h'] ? 'degraded' : 'healthy';
+        self::record_health_check('workflow', $workflow_status, $workflow_health);
+        $snapshots['workflow'] = array_merge($workflow_health, ['status' => $workflow_status]);
+
         orabooks_log_event('observability_metrics_collected', 'Platform metrics collected', 'info', [
             'services' => array_keys($snapshots),
         ]);
@@ -240,6 +248,9 @@ class OraBooks_Observability {
         }
         if (($snapshots['exports']['failed_24h'] ?? 0) > $thresholds['export_failed_24h']) {
             $alerts[] = self::build_alert('export_failures', 'Export failure rate elevated', $snapshots['exports']);
+        }
+        if (($snapshots['workflow']['failures_24h'] ?? 0) > $thresholds['workflow_failures_24h']) {
+            $alerts[] = self::build_alert('workflow_failures', 'Workflow transition failure rate elevated', $snapshots['workflow']);
         }
 
         foreach ($alerts as $alert) {
@@ -288,6 +299,47 @@ class OraBooks_Observability {
             'latest_health'   => $latest_health,
             'aggregates_24h'  => $recent_metrics,
             'thresholds'      => apply_filters('orabooks_observability_thresholds', self::$thresholds),
+            'workflow_by_org' => self::get_workflow_health(),
+        ];
+    }
+
+    /**
+     * Workflow transition health (global or org-scoped).
+     */
+    public static function get_workflow_health($org_id = 0) {
+        global $wpdb;
+
+        $org_id = (int) $org_id;
+        $since = gmdate('Y-m-d H:i:s', time() - 86400);
+        $transitions_table = OraBooks_Database::table('state_machine_transitions');
+        $audit_table = OraBooks_Database::table('audit_logs');
+
+        $transition_sql = "SELECT COUNT(*) FROM {$transitions_table} WHERE created_at >= %s";
+        $transition_params = [$since];
+        if ($org_id > 0) {
+            $transition_sql .= ' AND org_id = %d';
+            $transition_params[] = $org_id;
+        }
+        $transitions_24h = (int) $wpdb->get_var($wpdb->prepare($transition_sql, ...$transition_params));
+
+        $failure_sql = "SELECT COUNT(*) FROM {$audit_table}
+            WHERE created_at >= %s
+              AND event_type IN ('invalid_state_transition', 'workflow_transition_failed', 'workflow_precondition_failed')";
+        $failure_params = [$since];
+        if ($org_id > 0) {
+            $failure_sql .= ' AND org_id = %d';
+            $failure_params[] = $org_id;
+        }
+        $failures_24h = (int) $wpdb->get_var($wpdb->prepare($failure_sql, ...$failure_params));
+
+        $total = $transitions_24h + $failures_24h;
+
+        return [
+            'org_id'           => $org_id > 0 ? $org_id : null,
+            'transitions_24h'  => $transitions_24h,
+            'failures_24h'     => $failures_24h,
+            'failure_rate'     => $total > 0 ? round($failures_24h / $total, 4) : 0.0,
+            'window_hours'     => 24,
         ];
     }
 
