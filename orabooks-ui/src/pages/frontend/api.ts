@@ -642,6 +642,10 @@ export const api = {
     api.post('orabooks_suspend_org', { org_id: orgId }),
   activateOrg: (orgId: number) =>
     api.post('orabooks_activate_org', { org_id: orgId }),
+  changeOrgRegion: (orgId: number, region: string) =>
+    api.post('orabooks_change_org_region', { org_id: orgId, region }),
+  getOrgBySubdomain: (subdomain: string) =>
+    api.get('orabooks_get_org_by_subdomain', { subdomain }),
   listUsers: () =>
     api.get('orabooks_list_users'),
 
