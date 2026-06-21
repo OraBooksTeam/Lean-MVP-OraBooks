@@ -908,6 +908,56 @@ class OraBooks_Csv_Imports {
         ];
     }
 
+    private static function create_journal_from_row($org_id, array $parsed, $idempotency, $user_id) {
+        if (!class_exists('OraBooks_Posting')) {
+            return new WP_Error('missing_module', 'Posting module unavailable');
+        }
+
+        $amount = (float) ($parsed['amount'] ?? $parsed['total_amount'] ?? 0);
+        if ($amount <= 0) {
+            return new WP_Error('missing_amount', 'Journal amount is required');
+        }
+
+        $debit_account = $parsed['debit_account'] ?? $parsed['account_code'] ?? '';
+        $credit_account = $parsed['credit_account'] ?? '1000';
+        if ($debit_account === '') {
+            return new WP_Error('missing_account', 'Debit account code is required for journal import');
+        }
+
+        $journal_id = OraBooks_Posting::create_journal([
+            'org_id'           => $org_id,
+            'transaction_date' => $parsed['transaction_date'] ?? current_time('Y-m-d'),
+            'source_type'      => 'csv_import',
+            'source_id'        => null,
+            'idempotency_key'  => $idempotency,
+            'metadata'         => ['description' => $parsed['description'] ?? 'CSV journal import'],
+        ], $user_id > 0 ? $user_id : orabooks_get_current_user_id());
+
+        if (!$journal_id) {
+            return new WP_Error('db_error', 'Failed to create journal');
+        }
+
+        $description = $parsed['description'] ?? 'CSV import';
+        $lines_result = OraBooks_Posting::add_lines($journal_id, [
+            ['account_code' => $debit_account, 'debit' => $amount, 'description' => $description],
+            ['account_code' => $credit_account, 'credit' => $amount, 'description' => $description],
+        ]);
+
+        if (is_wp_error($lines_result)) {
+            return $lines_result;
+        }
+
+        $submit = OraBooks_Posting::submit_journal($journal_id, $user_id > 0 ? $user_id : orabooks_get_current_user_id());
+        if (is_wp_error($submit)) {
+            return $submit;
+        }
+
+        return [
+            'resource_type' => 'journal',
+            'resource_id'   => (int) $journal_id,
+        ];
+    }
+
     // ================================================================
     // QUERIES & HELPERS
     // ================================================================
@@ -952,7 +1002,54 @@ class OraBooks_Csv_Imports {
         return [
             'import' => self::format_import($import),
             'rows'   => array_map([self::class, 'format_row'], $rows ?: []),
+            'headers' => json_decode($import->source_headers ?: '[]', true) ?: [],
+            'field_options' => self::get_mappable_field_options($import->resource_type),
+            'confidence_threshold' => self::CONFIDENCE_THRESHOLD,
         ];
+    }
+
+    /**
+     * Fields available for column mapping dropdowns (SL-113 UI).
+     */
+    public static function get_mappable_field_options($resource_type) {
+        $labels = [
+            'sku'              => 'SKU / Item Code',
+            'name'             => 'Name',
+            'email'            => 'Email',
+            'vendor_name'      => 'Vendor',
+            'employee_name'    => 'Employee Name',
+            'customer_id'      => 'Customer ID',
+            'total_amount'     => 'Amount',
+            'unit_price'       => 'Unit Price',
+            'tax_amount'       => 'Tax Amount',
+            'description'      => 'Description',
+            'bill_date'        => 'Bill Date',
+            'invoice_date'     => 'Invoice Date',
+            'transaction_date' => 'Transaction Date',
+            'initial_stock'    => 'Quantity / Stock',
+            'initial_cost'     => 'Cost',
+            'debit_account'    => 'Debit Account',
+            'credit_account'   => 'Credit Account',
+            'account_code'     => 'Account Code',
+            'payment_terms'    => 'Payment Terms',
+            'tax_id'           => 'Tax ID',
+            'unit'             => 'Unit of Measure',
+        ];
+
+        $fields = array_unique(array_merge(
+            self::get_required_fields($resource_type),
+            array_keys(self::get_field_aliases($resource_type))
+        ));
+
+        $options = [['id' => '', 'label' => '— Ignore —']];
+        foreach ($fields as $field) {
+            $options[] = [
+                'id'    => $field,
+                'label' => $labels[$field] ?? ucwords(str_replace('_', ' ', $field)),
+            ];
+        }
+
+        return $options;
     }
 
     public static function get_import_summary($import_id, $org_id) {
@@ -1051,6 +1148,8 @@ class OraBooks_Csv_Imports {
             'total_rows'        => (int) $import->total_rows,
             'processed_rows'    => (int) $import->processed_rows,
             'header_mapping'    => json_decode($import->header_mapping ?: '{}', true),
+            'source_headers'    => json_decode($import->source_headers ?: '[]', true),
+            'attachment_id'     => isset($import->attachment_id) ? (int) $import->attachment_id : null,
             'created_at'        => $import->created_at,
         ];
     }
@@ -1087,6 +1186,9 @@ class OraBooks_Csv_Imports {
             'vendor'         => ['name'],
             'expense'        => ['vendor_name', 'total_amount'],
             'invoice'        => ['customer_id', 'total_amount'],
+            'journal'        => ['debit_account', 'total_amount'],
+            'price_list'     => ['sku', 'name'],
+            'payroll'        => ['employee_name'],
         ];
 
         return $map[$resource_type] ?? ['name'];
