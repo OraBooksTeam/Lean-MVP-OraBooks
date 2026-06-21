@@ -284,6 +284,7 @@ class OraBooks_Team {
 
         $table_users = OraBooks_Database::table('users');
         $table_user_org = OraBooks_Database::table('user_org');
+        $table_invites = OraBooks_Database::table('org_invites');
         $expected_user_id = (int) $expected_user_id;
 
         if (!self::is_invite_role($invite->role)) {
