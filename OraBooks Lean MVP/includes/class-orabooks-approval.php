@@ -952,4 +952,8 @@ class OraBooks_Approval {
         }
 
         $rows = self::list_delegations($org_id);
-        orabooks_json_success([
+        orabooks_json_success([
+            'delegations' => array_map([self::class, 'format_delegation'], $rows ?: []),
+        ]);
+    }
+}

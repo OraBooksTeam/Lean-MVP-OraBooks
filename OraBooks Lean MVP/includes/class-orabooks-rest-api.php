@@ -90,6 +90,12 @@ class OraBooks_Rest_Api {
             'callback'            => [__CLASS__, 'rest_confirm_expense'],
             'permission_callback' => [__CLASS__, 'can_manage_expenses'],
         ]);
+
+        register_rest_route(self::NAMESPACE, '/internal/state/transition', [
+            'methods'             => WP_REST_Server::CREATABLE,
+            'callback'            => [__CLASS__, 'rest_state_transition'],
+            'permission_callback' => [__CLASS__, 'can_execute_state_transition'],
+        ]);
     }
 
     public static function rest_manifest() {
