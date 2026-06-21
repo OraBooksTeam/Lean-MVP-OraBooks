@@ -155,11 +155,26 @@ class OraBooks_Vendors_Test extends TestCase
         $wpdb->test_get_row_callback = function ($query) {
             return $this->mockBill(['workflow_status' => 'draft']);
         };
+        $wpdb->test_query_callback = function () {
+            return true;
+        };
+
+        $status_updated = false;
+        $wpdb->test_update_callback = function ($table, $data) use (&$status_updated) {
+            if (isset($data['workflow_status']) && $data['workflow_status'] === 'submitted') {
+                $status_updated = true;
+            }
+            return true;
+        };
+        $wpdb->test_insert_callback = function () {
+            return true;
+        };
+        $GLOBALS['orabooks_test_use_insert_id'] = 301;
 
         $result = OraBooks_Vendors::submit_bill(5, 100, 1);
 
         $this->assertTrue($result);
-        $this->assertStringContainsString("workflow_status = 'submitted'", $wpdb->last_query);
+        $this->assertTrue($status_updated);
     }
 
     #[Test]
