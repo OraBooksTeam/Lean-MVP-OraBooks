@@ -1784,6 +1784,11 @@ if (!file_exists($workflow_file)) {
 }
 require_once $workflow_file;
 
+$workflow_integration_file = __DIR__ . '/../includes/class-orabooks-workflow-integration.php';
+if (file_exists($workflow_integration_file)) {
+    require_once $workflow_integration_file;
+}
+
 $eventbus_file = __DIR__ . '/../includes/class-orabooks-event-bus.php';
 if (!file_exists($eventbus_file)) {
     echo "ERROR: Cannot find class-orabooks-event-bus.php at {$eventbus_file}\n";

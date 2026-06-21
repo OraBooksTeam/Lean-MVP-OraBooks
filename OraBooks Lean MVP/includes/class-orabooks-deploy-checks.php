@@ -129,6 +129,7 @@ class OraBooks_DeployChecks {
                 'partner_attributions',
                 'audit_logs',
                 'refresh_tokens',
+                'state_machine_transitions',
             ];
 
             foreach ($required_tables as $name) {
