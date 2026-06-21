@@ -369,6 +369,28 @@
         }
       }
     },
+    "/auth/2fa/reveal-backup-codes": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "View unused backup codes without regenerating (requires OTP)",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["otp_code"],
+                "properties": { "otp_code": { "type": "string" } }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Unused backup codes" },
+          "404": { "description": "No codes available to reveal" }
+        }
+      }
+    },
     "/auth/2fa/status": {
       "get": {
         "tags": ["Auth"],
