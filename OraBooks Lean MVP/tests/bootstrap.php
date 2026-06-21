@@ -1487,6 +1487,19 @@ if (!function_exists('orabooks_get_2fa_temp_backup_codes')) {
     }
 }
 
+if (!function_exists('orabooks_set_2fa_backup_codes_encrypted')) {
+    function orabooks_set_2fa_backup_codes_encrypted($wp_user_id, array $codes) {
+        $GLOBALS['orabooks_test_user_meta'][$wp_user_id]['orabooks_2fa_backup_codes_encrypted'] = $codes;
+    }
+}
+
+if (!function_exists('orabooks_get_2fa_backup_codes_encrypted')) {
+    function orabooks_get_2fa_backup_codes_encrypted($wp_user_id) {
+        $codes = $GLOBALS['orabooks_test_user_meta'][$wp_user_id]['orabooks_2fa_backup_codes_encrypted'] ?? [];
+        return is_array($codes) ? $codes : [];
+    }
+}
+
 if (!function_exists('orabooks_normalize_backup_code')) {
     function orabooks_normalize_backup_code($code) {
         return strtoupper(preg_replace('/\s+/', '', (string) $code));
