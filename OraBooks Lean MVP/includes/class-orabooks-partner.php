@@ -274,10 +274,10 @@ class OraBooks_Partner {
 
         $code = $wpdb->get_row($wpdb->prepare(
             "SELECT pc.partner_code, pc.status as code_status, pc.partner_type, pc.organization_name,
-                    pc.created_at, o.status as org_status, o.name as org_name
+                    pc.created_at, pc.org_id, o.status as org_status, o.name as org_name, o.organization_type
              FROM {$table_codes} pc
              JOIN {$table_orgs} o ON pc.org_id = o.id
-             WHERE pc.user_id = %d
+             WHERE pc.user_id = %d AND o.organization_type = 'partner'
              ORDER BY pc.created_at DESC
              LIMIT 1",
             $user_id
@@ -291,6 +291,7 @@ class OraBooks_Partner {
             'partner_code' => $code->partner_code,
             'code_status' => $code->code_status,
             'partner_type' => $code->partner_type,
+            'partner_type_label' => self::format_partner_type_label($code->partner_type),
             'organization_name' => $code->organization_name,
             'org_status' => $code->org_status,
             'org_name' => $code->org_name,
@@ -301,21 +302,70 @@ class OraBooks_Partner {
         ];
     }
 
-    private static function get_onboarding_status_message($code_status, $org_status) {
+    public static function format_partner_type_label($partner_type) {
+        $labels = [
+            'individual' => 'Individual',
+            'agency' => 'Agency',
+            'accountant' => 'Accountant',
+            'consultant' => 'Consultant',
+        ];
+
+        $key = strtolower(trim((string) $partner_type));
+        if (isset($labels[$key])) {
+            return $labels[$key];
+        }
+
+        return ucwords(str_replace('_', ' ', $key));
+    }
+
+    public static function get_onboarding_status_message($code_status, $org_status) {
         if ($org_status === 'suspended' || $code_status === 'disabled') {
-            return 'Your partner code has been disabled. Contact support.';
+            return '🚫 Your code has been disabled. Contact support.';
         }
 
         switch ($code_status) {
             case 'pending_review':
-                return 'Awaiting admin approval. Your code is not yet active.';
+                return '⏳ Awaiting admin approval. Your code is not yet active.';
             case 'active':
-                return 'Your code is active. Share it to earn commissions.';
+                return '✅ Your code is active. Share it to earn commissions.';
             case 'inactive':
-                return "Your partner code is inactive because you have no active customers and haven't brought any new customer in the last 12 months. Request reactivation from dashboard.";
+                return "🚫 Your partner code is inactive because you have no active customers and haven't brought any new customer in the last 12 months. Request reactivation from dashboard.";
             default:
                 return 'Partner code status: ' . $code_status;
         }
+    }
+
+    /**
+     * Ensure caller belongs to a partner organization (SL-139 onboarding access).
+     *
+     * @return object|WP_Error User row with org_id, is_partner, organization_type.
+     */
+    public static function assert_partner_org_member($user_id) {
+        global $wpdb;
+
+        $table_users = OraBooks_Database::table('users');
+        $table_orgs = OraBooks_Database::table('organizations');
+
+        $user = $wpdb->get_row($wpdb->prepare(
+            "SELECT u.id, u.org_id, u.is_partner, o.organization_type
+             FROM {$table_users} u
+             LEFT JOIN {$table_orgs} o ON u.org_id = o.id
+             WHERE u.id = %d",
+            $user_id
+        ));
+
+        if (!$user || !(int) $user->is_partner || ($user->organization_type ?? '') !== 'partner') {
+            return new WP_Error('not_partner', 'Access denied. Partner organization membership required.');
+        }
+
+        if ((int) $user->org_id > 0) {
+            $tenant = orabooks_assert_tenant_access($user_id, (int) $user->org_id, false);
+            if (is_wp_error($tenant)) {
+                return $tenant;
+            }
+        }
+
+        return $user;
     }
     
     /**
@@ -851,19 +901,19 @@ class OraBooks_Partner {
         }
 
         if ($org_status === 'payout_hold') {
-            return ['type' => 'warning', 'message' => 'Payout hold: commissions are being tracked but withdrawal is temporarily disabled.'];
+            return ['type' => 'warning', 'message' => '⚠️ Payout hold: commissions are being tracked but withdrawal is temporarily disabled.'];
         }
 
         if ($org_status === 'suspended') {
-            return ['type' => 'readonly', 'message' => 'Partner program is readonly. Contact support for reactivation.'];
+            return ['type' => 'readonly', 'message' => '🔒 Partner program is readonly. Contact support for reactivation.'];
         }
 
         if ($code_status === 'inactive') {
-            return ['type' => 'inactive', 'message' => 'Your partner program is inactive. You have no active customers and no new partner-code customer for 12 months. You cannot earn commissions until reactivated.'];
+            return ['type' => 'inactive', 'message' => '⚠️ Your partner program is inactive. You have no active customers and no new referral for 12 months. You cannot earn commissions until reactivated.'];
         }
 
         if ($is_dormant) {
-            return ['type' => 'info', 'message' => 'You have no active customers. Share your partner code with new customers to earn commissions.'];
+            return ['type' => 'info', 'message' => '💡 You have no active customers. Refer new customers to earn commissions.'];
         }
 
         return null;
