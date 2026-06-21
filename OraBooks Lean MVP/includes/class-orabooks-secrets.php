@@ -305,10 +305,11 @@ class OraBooks_Secrets {
         }
 
         if (function_exists('orabooks_log_event')) {
-            orabooks_log_event('secret_rotated', 'Secret rotated successfully', 'warning', [
-                'secret_key' => $key,
-                'grace_seconds' => $grace_seconds,
-            ]);
+            $meta = ['secret_key' => $key];
+            if ($key === 'jwt_secret') {
+                $meta['grace_seconds'] = $grace_seconds ?? self::JWT_ROTATION_GRACE_SECONDS;
+            }
+            orabooks_log_event('secret_rotated', 'Secret rotated successfully', 'warning', $meta);
         }
 
         return true;

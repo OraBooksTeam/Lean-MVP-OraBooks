@@ -63,8 +63,41 @@ class OraBooks_DeployChecks {
             ];
         };
 
-        $jwt_secret = get_option('orabooks_jwt_secret');
-        $add_check('jwt_secret', 'JWT secret configured', !empty($jwt_secret));
+        $secrets_ok = true;
+        $secrets_detail = '';
+
+        if (class_exists('OraBooks_Secrets')) {
+            $status = OraBooks_Secrets::get_status();
+            $secrets_ok = !empty($status['jwt_secret_configured'])
+                && !empty($status['encryption_key_configured']);
+
+            if (OraBooks_Secrets::requires_tls() && empty($status['https_active'])) {
+                $secrets_ok = false;
+                $secrets_detail = 'HTTPS required in production';
+            }
+
+            $tls = $status['tls'] ?? [];
+            if (!empty($tls['expired'])) {
+                $secrets_ok = false;
+                $secrets_detail = 'TLS certificate expired for ' . ($tls['host'] ?? 'site host');
+            } elseif (!empty($tls['expiring_soon'])) {
+                $secrets_detail = 'TLS certificate expiring in ' . ($tls['days_remaining'] ?? '?') . ' days';
+            }
+        } else {
+            $legacy_jwt = get_option('orabooks_jwt_secret');
+            $secrets_ok = !empty($legacy_jwt);
+        }
+
+        $add_check('jwt_secret', 'JWT secret configured', $secrets_ok, $secrets_detail);
+
+        $add_check(
+            'encryption_key',
+            'Encryption key configured',
+            class_exists('OraBooks_Secrets')
+                ? !empty(OraBooks_Secrets::get_status()['encryption_key_configured'])
+                : true,
+            $secrets_detail
+        );
 
         $db_version = get_option('orabooks_db_version');
         $expected_db_version = defined('ORABOOKS_DB_VERSION') ? ORABOOKS_DB_VERSION : '1.0.1';
