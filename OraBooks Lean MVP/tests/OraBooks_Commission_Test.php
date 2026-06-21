@@ -582,4 +582,51 @@ class OraBooks_Commission_Test extends TestCase
 
         $this->assertEquals(0, $insertCount);
     }
+
+    #[Test]
+    public function test_build_yearly_breakdown_uses_config_percentages()
+    {
+        $config = $this->config();
+        $breakdown = OraBooks_Commission::build_yearly_breakdown($config, 64.2);
+
+        $this->assertCount(6, $breakdown);
+        $this->assertEquals(1, $breakdown[0]['year']);
+        $this->assertEquals(20.0, $breakdown[0]['percentage']);
+        $this->assertEquals(24.0, $breakdown[0]['amount']); // 10*12*20%
+    }
+
+    #[Test]
+    public function test_get_commission_by_customer_masks_email_and_includes_breakdown()
+    {
+        global $wpdb;
+
+        $wpdb->test_get_row_callback = function ($query) {
+            if (stripos($query, 'partner_commission_config') !== false) {
+                return $this->config();
+            }
+            return null;
+        };
+        $wpdb->test_get_results_callback = function ($query) {
+            return [(object) [
+                'escrow_id' => 1,
+                'customer_id' => 9,
+                'customer_email' => 'rahul@gmail.com',
+                'total_amount' => 64.2,
+                'released_amount' => 10.0,
+                'remaining_amount' => 54.2,
+                'remaining_amount_status' => 'pending',
+                'currency' => 'USD',
+                'earned_to_date' => 10.0,
+                'paid_to_date' => 0.0,
+                'next_expiry' => '2032-01-31 00:00:00',
+            ]];
+        };
+
+        $rows = OraBooks_Commission::get_commission_by_customer(5);
+
+        $this->assertCount(1, $rows);
+        $this->assertStringContainsString('***', $rows[0]->customer_email_masked);
+        $this->assertCount(6, $rows[0]->yearly_breakdown);
+        $this->assertEquals(64.2, (float) $rows[0]->total_amount);
+    }
 }

@@ -235,7 +235,7 @@ Add-Table @('Rule', 'Detail') @(
 Add-H1 '11. Definition of Done — Final Status (15/15 Complete)'
 Add-Table @('#', 'Criterion', 'Status') @(
     @('1', 'All workflow updates via OraBooks_Workflow::transition()', 'DONE'),
-    @('2', 'Invalid transition → 409 + audit', 'DONE'),
+    @('2', 'Invalid transition returns 409 and audit log', 'DONE'),
     @('3', 'FOR UPDATE + DB transaction', 'DONE'),
     @('4', 'Preconditions + after_transition hooks', 'DONE'),
     @('5', 'state_machine_transitions.org_id', 'DONE'),
@@ -294,13 +294,13 @@ Add-Table @('Step', 'Action', 'Expected') @(
 
 Add-H2 '13.3 Record Type Smoke Tests'
 Add-Table @('#', 'Record', 'Page URL', 'Steps', 'Expected Final State') @(
-    @('1', 'Journal', '/journals + /approvals', 'Create draft → Submit → Approve → Post', 'locked'),
-    @('2', 'Invoice', '/invoices', 'Create → Send → Record full payment', 'posted'),
-    @('3', 'Invoice Cancel', '/invoices', 'Create draft → Click Cancel → Confirm', 'cancelled'),
-    @('4', 'Bill', '/vendors', 'Create bill → Submit → Approve → Post', 'posted'),
-    @('5', 'Bill Void', '/vendors', 'Create draft bill → Click Void → Confirm', 'void'),
-    @('6', 'Expense', '/expenses', 'Upload/confirm → Submit → Approve → Post', 'locked'),
-    @('7', 'Commission', '/commissions', 'Earned row → Pay action', 'paid')
+    @('1', 'Journal', '/journals and /approvals', 'Create draft, Submit, Approve, Post', 'locked'),
+    @('2', 'Invoice', '/invoices', 'Create, Send, Record full payment', 'posted'),
+    @('3', 'Invoice Cancel', '/invoices', 'Create draft, Click Cancel, Confirm', 'cancelled'),
+    @('4', 'Bill', '/vendors', 'Create bill, Submit, Approve, Post', 'posted'),
+    @('5', 'Bill Void', '/vendors', 'Create draft bill, Click Void, Confirm', 'void'),
+    @('6', 'Expense', '/expenses', 'Upload, Submit, Approve, Post', 'locked'),
+    @('7', 'Commission', '/commissions', 'Earned row, Pay action', 'paid')
 )
 
 Add-H2 '13.4 Audit & Observability Verification'
@@ -325,18 +325,18 @@ Add-P 'Expected: 200 with transition result, or 409 for invalid transition.'
 
 Add-H2 '13.7 Live Test Checklist (Print & Sign Off)'
 Add-Table @('Done?', 'Test Item') @(
-    @('☐', 'PHPUnit full suite pass (local/CI)'),
-    @('☐', 'Deploy checks green on production'),
-    @('☐', 'Journal: draft → review → approved → posted → locked'),
-    @('☐', 'Invoice: draft → sent → posted (via payment)'),
-    @('☐', 'Invoice Cancel: draft → cancelled'),
-    @('☐', 'Bill: draft → submitted → approved → posted'),
-    @('☐', 'Bill Void: draft → void'),
-    @('☐', 'Expense: submit → approve → post → locked'),
-    @('☐', 'Commission: earned → paid'),
-    @('☐', 'Audit log shows state_changed entries'),
-    @('☐', 'Observability workflow metrics healthy'),
-    @('☐', 'Invalid transition blocked + audited')
+    @('[ ]', 'PHPUnit full suite pass (local/CI)'),
+    @('[ ]', 'Deploy checks green on production'),
+    @('[ ]', 'Journal: draft to review to approved to posted to locked'),
+    @('[ ]', 'Invoice: draft to sent to posted (via payment)'),
+    @('[ ]', 'Invoice Cancel: draft to cancelled'),
+    @('[ ]', 'Bill: draft to submitted to approved to posted'),
+    @('[ ]', 'Bill Void: draft to void'),
+    @('[ ]', 'Expense: submit to approve to post to locked'),
+    @('[ ]', 'Commission: earned to paid'),
+    @('[ ]', 'Audit log shows state_changed entries'),
+    @('[ ]', 'Observability workflow metrics healthy'),
+    @('[ ]', 'Invalid transition blocked and audited')
 )
 
 # ===== 14 DEFERRALS =====
