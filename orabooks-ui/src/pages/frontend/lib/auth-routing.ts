@@ -230,7 +230,7 @@ export function getAuthResetLoginUrl() {
 
 type NetworkAuthPage = 'login' | 'register' | 'reset-password' | 'verify-email' | 'tier-selection' | 'accept-invite';
 
-export function getNetworkAuthUrl(page: NetworkAuthPage) {
+export function getNetworkAuthUrl(page: NetworkAuthPage, params: Record<string, string> = {}) {
   const cfg = (window as any).orabooks_ajax || {};
   const configured =
     page === 'login'
@@ -245,11 +245,31 @@ export function getNetworkAuthUrl(page: NetworkAuthPage) {
               ? cfg.accept_invite_url
             : cfg.tier_selection_url;
 
-  if (typeof configured === 'string' && configured.trim() !== '') {
-    return configured;
+  const base = typeof configured === 'string' && configured.trim() !== ''
+    ? configured
+    : toWpUrl(`/${page}/`);
+
+  if (Object.keys(params).length === 0) {
+    return base;
   }
 
-  return toWpUrl(`/${page}/`);
+  try {
+    const target = new URL(base, window.location.href);
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== '') {
+        target.searchParams.set(key, value);
+      }
+    });
+    target.hash = '';
+    return `${target.origin}${target.pathname}${target.search}`;
+  } catch {
+    const separator = base.includes('?') ? '&' : '?';
+    const query = Object.entries(params)
+      .filter(([, value]) => value !== '')
+      .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`)
+      .join('&');
+    return query ? `${base}${separator}${query}` : base;
+  }
 }
 
 export function isLogoutLanding() {

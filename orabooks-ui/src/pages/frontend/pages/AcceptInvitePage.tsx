@@ -8,6 +8,12 @@ import {
   storePendingInviteToken,
 } from '../lib/auth-routing';
 
+type InvitePreview = {
+  email?: string;
+  role?: string;
+  org_name?: string;
+};
+
 export default function AcceptInvitePage() {
   const token = useMemo(() => {
     const fromUrl = new URLSearchParams(window.location.search).get('token') || '';
@@ -21,6 +27,7 @@ export default function AcceptInvitePage() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [needsLogin, setNeedsLogin] = useState(false);
+  const [preview, setPreview] = useState<InvitePreview | null>(null);
 
   useEffect(() => {
     if (!token) {
@@ -29,13 +36,18 @@ export default function AcceptInvitePage() {
       return;
     }
 
-    if (!hasStoredAuthToken()) {
-      setNeedsLogin(true);
-      setLoading(false);
-      return;
-    }
-
     void (async () => {
+      const previewRes = await api.previewInvite(token);
+      if (!previewRes.error) {
+        setPreview((previewRes as any).data || null);
+      }
+
+      if (!hasStoredAuthToken()) {
+        setNeedsLogin(true);
+        setLoading(false);
+        return;
+      }
+
       const res = await api.acceptInvite(token);
       if (res.error) {
         const message = typeof res.error === 'string' ? res.error : 'Unable to accept invitation.';
@@ -52,8 +64,8 @@ export default function AcceptInvitePage() {
     })();
   }, [token]);
 
+  const registerUrl = getNetworkAuthUrl('register', preview?.email ? { email: preview.email } : {});
   const loginUrl = getNetworkAuthUrl('login');
-  const registerUrl = getNetworkAuthUrl('register');
 
   return (
     <div className="brand-auth-bg flex min-h-screen items-center justify-center px-4 py-12">
@@ -68,7 +80,15 @@ export default function AcceptInvitePage() {
         ) : needsLogin ? (
           <>
             <p className="mt-4 text-sm text-slate-600">
-              Log in or create an account with the email address that received this invitation, then return here to join the team.
+              {preview?.org_name
+                ? `You have been invited to join ${preview.org_name}${preview.role ? ` as ${preview.role}` : ''}.`
+                : 'Log in or create an account with the email address that received this invitation.'}
+            </p>
+            {preview?.email && (
+              <p className="mt-2 text-sm font-semibold text-ink">{preview.email}</p>
+            )}
+            <p className="mt-3 text-sm text-slate-600">
+              After you sign in, you will be added to the organization automatically.
             </p>
             <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-center">
               <Button type="button" onClick={() => { window.location.href = loginUrl; }}>

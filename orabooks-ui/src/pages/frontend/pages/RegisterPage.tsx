@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useState, useEffect, type FormEvent } from 'react';
 import Button from '@/components/Button';
 import Input from '@/components/Input';
 import { api } from '../api';
@@ -16,6 +16,13 @@ export default function RegisterPage() {
   const [acceptTerms, setAcceptTerms] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const invitedEmail = new URLSearchParams(window.location.search).get('email') || '';
+    if (invitedEmail) {
+      setEmail(invitedEmail);
+    }
+  }, []);
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
