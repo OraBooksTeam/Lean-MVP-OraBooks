@@ -599,9 +599,6 @@ class OraBooks_Vendors {
             'user_id' => (int) $user_id,
             'org_id'  => (int) $org_id,
             'reason'  => $reason,
-            'row_updates' => [
-                'payment_status' => 'void',
-            ],
         ]);
         if (is_wp_error($result)) {
             return $result;
