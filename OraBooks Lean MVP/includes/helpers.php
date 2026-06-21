@@ -962,9 +962,9 @@ function orabooks_enrich_login_response($login_result) {
         $login_result = OraBooks_TwoFactor::enrich_login_response($login_result);
         if (!empty($login_result['needs_2fa_setup'])) {
             if (!empty($login_result['subdomain'])) {
-                $login_result['redirect_to'] = orabooks_build_org_url($login_result['subdomain'], '/profile/');
+                $login_result['redirect_to'] = orabooks_build_org_url($login_result['subdomain'], '/security-2fa/');
             } else {
-                $login_result['redirect_to'] = orabooks_get_network_login_url('profile');
+                $login_result['redirect_to'] = orabooks_get_network_login_url('security-2fa');
             }
             if (!empty($login_result['token'])) {
                 $login_result['redirect_to'] = orabooks_append_auth_tokens_to_url(
@@ -973,7 +973,6 @@ function orabooks_enrich_login_response($login_result) {
                     (string) ($login_result['refresh_token'] ?? '')
                 );
             }
-            $login_result['redirect_to'] .= '#security-2fa';
         }
     }
 
@@ -1715,6 +1714,57 @@ function orabooks_get_2fa_temp_backup_codes($wp_user_id) {
     }
 
     $stored = get_user_meta((int) $wp_user_id, 'orabooks_2fa_temp_backup_codes', true);
+    if ($stored === '' || $stored === null) {
+        return [];
+    }
+
+    if (is_array($stored)) {
+        return array_values($stored);
+    }
+
+    $decoded = class_exists('OraBooks_Secrets')
+        ? OraBooks_Secrets::decrypt_sensitive($stored)
+        : (string) $stored;
+
+    if ($decoded === '' || $decoded === null) {
+        return [];
+    }
+
+    if ($decoded[0] === '[') {
+        $json = json_decode($decoded, true);
+        return is_array($json) ? array_values($json) : [];
+    }
+
+    return [(string) $decoded];
+}
+
+/**
+ * Store encrypted backup codes for OTP-gated re-display (hashes remain authoritative).
+ *
+ * @param string[] $codes
+ */
+function orabooks_set_2fa_backup_codes_encrypted($wp_user_id, array $codes) {
+    if ($wp_user_id <= 0 || empty($codes)) {
+        return;
+    }
+
+    $payload = wp_json_encode(array_values($codes));
+    $stored = class_exists('OraBooks_Secrets')
+        ? OraBooks_Secrets::encrypt_sensitive($payload)
+        : $payload;
+
+    update_user_meta((int) $wp_user_id, 'orabooks_2fa_backup_codes_encrypted', $stored);
+}
+
+/**
+ * @return string[]
+ */
+function orabooks_get_2fa_backup_codes_encrypted($wp_user_id) {
+    if ($wp_user_id <= 0) {
+        return [];
+    }
+
+    $stored = get_user_meta((int) $wp_user_id, 'orabooks_2fa_backup_codes_encrypted', true);
     if ($stored === '' || $stored === null) {
         return [];
     }

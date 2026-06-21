@@ -578,7 +578,7 @@ class OraBooks_Auth {
      * @param object $user
      * @return array<string, mixed>|WP_Error
      */
-    public static function complete_authenticated_login($user, $expected_subdomain = '') {
+    public static function complete_authenticated_login($user, $expected_subdomain = '', array $session_context = []) {
         if ($user->is_partner && !$user->org_id) {
             return self::handle_partner_first_login($user);
         }
@@ -618,9 +618,17 @@ class OraBooks_Auth {
         ]);
 
         $refresh_token = orabooks_random_string(32);
-        self::store_refresh_token($user->id, $user->org_id, $refresh_token);
+        self::store_refresh_token($user->id, $user->org_id, $refresh_token, $session_context);
 
-        orabooks_log_event('login_success', "User logged in: {$user->email}", 'info', [], $user->id, $user->org_id);
+        $login_meta = [];
+        if (!empty($session_context['via_2fa'])) {
+            $login_meta['via_2fa'] = true;
+            if (!empty($session_context['auth_method'])) {
+                $login_meta['auth_method'] = (string) $session_context['auth_method'];
+            }
+        }
+
+        orabooks_log_event('login_success', "User logged in: {$user->email}", 'info', $login_meta, $user->id, $user->org_id);
 
         return orabooks_enrich_login_response([
             'token' => $jwt,
@@ -915,10 +923,15 @@ class OraBooks_Auth {
     /**
      * Store refresh token
      */
-    private static function store_refresh_token($user_id, $org_id, $token) {
+    private static function store_refresh_token($user_id, $org_id, $token, array $extra_metadata = []) {
         global $wpdb;
         $table = OraBooks_Database::table('refresh_tokens');
         $expires = date('Y-m-d H:i:s', time() + orabooks_get_refresh_token_cookie_ttl());
+
+        $device_metadata = array_merge([
+            'ip' => orabooks_get_client_ip(),
+            'user_agent' => orabooks_get_user_agent(),
+        ], $extra_metadata);
         
         $wpdb->insert(
             $table,
@@ -927,10 +940,7 @@ class OraBooks_Auth {
                 'org_id' => $org_id,
                 'token_hash' => orabooks_hash_token($token),
                 'expires_at' => $expires,
-                'device_metadata' => json_encode([
-                    'ip' => orabooks_get_client_ip(),
-                    'user_agent' => orabooks_get_user_agent()
-                ])
+                'device_metadata' => json_encode($device_metadata),
             ],
             ['%d', '%d', '%s', '%s', '%s']
         );
