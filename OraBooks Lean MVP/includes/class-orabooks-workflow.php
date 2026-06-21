@@ -98,6 +98,7 @@ class OraBooks_Workflow {
                     'submit'    => ['from' => 'draft', 'to' => 'submitted'],
                     'ai_review' => ['from' => ['draft', 'submitted'], 'to' => 'ai_review'],
                     'approve'   => ['from' => ['submitted', 'ai_review'], 'to' => 'approved'],
+                    'reject'    => ['from' => ['submitted', 'ai_review'], 'to' => 'draft'],
                     'post'      => ['from' => 'approved', 'to' => 'posted'],
                     'lock'      => ['from' => 'posted', 'to' => 'locked'],
                 ],
@@ -586,17 +587,44 @@ class OraBooks_Workflow {
         return (bool) $strict;
     }
 
-    private static function begin_transaction() {
+    private static function build_update_formats(array $data) {
+        $formats = [];
+        foreach ($data as $value) {
+            if (is_int($value)) {
+                $formats[] = '%d';
+            } elseif (is_float($value)) {
+                $formats[] = '%f';
+            } elseif ($value === null) {
+                $formats[] = '%s';
+            } elseif (is_numeric($value)) {
+                $formats[] = strpos((string) $value, '.') !== false ? '%f' : '%d';
+            } else {
+                $formats[] = '%s';
+            }
+        }
+        return $formats;
+    }
+
+    private static function begin_transaction($skip = false) {
+        if ($skip) {
+            return;
+        }
         global $wpdb;
         $wpdb->query('START TRANSACTION');
     }
 
-    private static function commit_transaction() {
+    private static function commit_transaction($skip = false) {
+        if ($skip) {
+            return;
+        }
         global $wpdb;
         $wpdb->query('COMMIT');
     }
 
-    private static function rollback_transaction() {
+    private static function rollback_transaction($skip = false) {
+        if ($skip) {
+            return;
+        }
         global $wpdb;
         $wpdb->query('ROLLBACK');
     }

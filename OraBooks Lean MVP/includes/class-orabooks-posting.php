@@ -39,12 +39,34 @@ class OraBooks_Posting {
         return self::$instance;
     }
     
+    /**
+     * @deprecated Use OraBooks_Workflow::transition() directly.
+     */
     public static function transition($record_type, $record_id, $event, $user_id, $reason = null) {
-        if (class_exists('OraBooks_Workflow')) {
-            return OraBooks_Workflow::record_transition($record_type, $record_id, $event, $user_id, $reason);
+        if (!class_exists('OraBooks_Workflow')) {
+            return new WP_Error('workflow_unavailable', 'Workflow engine unavailable');
         }
 
-        return new WP_Error('workflow_unavailable', 'Workflow engine unavailable');
+        return OraBooks_Workflow::transition($record_type, (int) $record_id, $event, [
+            'user_id'       => (int) $user_id,
+            'reason'        => $reason,
+            'update_status' => false,
+        ]);
+    }
+
+    /**
+     * Execute a journal workflow transition with optional row updates.
+     *
+     * @return array|WP_Error
+     */
+    private static function journal_transition($journal_id, $event, $user_id, array $context = []) {
+        if (!class_exists('OraBooks_Workflow')) {
+            return new WP_Error('workflow_unavailable', 'Workflow engine unavailable');
+        }
+
+        return OraBooks_Workflow::transition('journal', (int) $journal_id, $event, array_merge([
+            'user_id' => (int) $user_id,
+        ], $context));
     }
     
     /**
