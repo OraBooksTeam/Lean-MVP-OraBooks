@@ -267,7 +267,7 @@ class OraBooks_Secrets {
     }
     
     /**
-     * Store a secret
+     * Store a secret (encrypted at rest).
      */
     public static function set($key, $value) {
         $option_key = 'orabooks_secret_' . md5($key);
@@ -277,25 +277,86 @@ class OraBooks_Secrets {
         });
         self::$secrets_cache[$key] = $value;
     }
+
+    /**
+     * Rotate a secret with optional grace period for JWT verification (SL-008 §5.2).
+     */
+    public static function rotate_secret($key, $new_value, $grace_seconds = null) {
+        $key = sanitize_key((string) $key);
+        $new_value = (string) $new_value;
+        if ($key === '' || $new_value === '') {
+            return new WP_Error('invalid_rotation', 'Secret key and value are required.');
+        }
+
+        $current = self::get($key);
+        if ($current) {
+            self::set($key . '_previous', $current);
+        }
+
+        self::set($key, $new_value);
+        unset(self::$secrets_cache[$key . '_previous']);
+
+        if ($key === 'jwt_secret') {
+            $grace_seconds = $grace_seconds ?? self::JWT_ROTATION_GRACE_SECONDS;
+            self::with_shared_options(function () use ($grace_seconds) {
+                update_option('orabooks_jwt_secret_grace_until', time() + max(300, (int) $grace_seconds));
+                update_option('orabooks_secrets_last_rotated', current_time('mysql', true));
+            });
+        }
+
+        if (function_exists('orabooks_log_event')) {
+            orabooks_log_event('secret_rotated', 'Secret rotated successfully', 'warning', [
+                'secret_key' => $key,
+                'grace_seconds' => $grace_seconds,
+            ]);
+        }
+
+        return true;
+    }
+
+    /**
+     * Derive AES key from the master encryption key (SL-008 §5.4).
+     */
+    private static function get_cipher_key() {
+        return hash('sha256', (string) self::get_encryption_key(), true);
+    }
+
+    /**
+     * Legacy cipher key for secrets encrypted before master-key migration.
+     */
+    private static function get_legacy_cipher_key() {
+        return defined('LOGGED_IN_KEY') ? LOGGED_IN_KEY : wp_salt('logged_in');
+    }
     
     /**
-     * Simple encryption for stored secrets (use in production: vault/KMS)
+     * Encrypt stored secrets using the master encryption key.
      */
     private static function encrypt($data) {
         $method = 'aes-256-cbc';
-        $key = defined('LOGGED_IN_KEY') ? LOGGED_IN_KEY : wp_salt('logged_in');
+        $key = self::get_cipher_key();
         $iv = substr(hash('sha256', $key . '_iv'), 0, 16);
         return base64_encode(openssl_encrypt($data, $method, $key, 0, $iv));
     }
     
     /**
-     * Decrypt stored secret
+     * Decrypt stored secret (supports legacy LOGGED_IN_KEY ciphertext).
      */
     private static function decrypt($data) {
         $method = 'aes-256-cbc';
-        $key = defined('LOGGED_IN_KEY') ? LOGGED_IN_KEY : wp_salt('logged_in');
-        $iv = substr(hash('sha256', $key . '_iv'), 0, 16);
-        return openssl_decrypt(base64_decode($data), $method, $key, 0, $iv);
+        $decoded = base64_decode((string) $data, true);
+        if ($decoded === false) {
+            return false;
+        }
+
+        foreach ([self::get_cipher_key(), self::get_legacy_cipher_key()] as $key) {
+            $iv = substr(hash('sha256', $key . '_iv'), 0, 16);
+            $plaintext = openssl_decrypt($decoded, $method, $key, 0, $iv);
+            if ($plaintext !== false) {
+                return $plaintext;
+            }
+        }
+
+        return false;
     }
     
     /**
