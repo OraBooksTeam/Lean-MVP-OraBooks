@@ -775,6 +775,8 @@ export const api = {
       transaction_type: transactionType,
       transaction_id: transactionId,
     }),
+  taxListSnapshots: (orgId: number, limit = 25) =>
+    api.get('orabooks_tax_snapshots_list', { org_id: orgId, limit }),
   journalsList: (orgId: number, filters = {}) =>
     api.get('orabooks_get_journals', { org_id: orgId, ...filters }),
   journalGet: (orgId: number, journalId: number) =>
