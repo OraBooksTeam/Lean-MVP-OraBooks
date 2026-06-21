@@ -341,7 +341,21 @@ class OraBooks_Voice {
             'voice_input_id' => $voice_id,
             'confidence_avg' => $result['confidence_avg'],
             'overall_risk_level' => $result['overall_risk_level'],
+            'correlation_id' => function_exists('orabooks_get_correlation_id') ? orabooks_get_correlation_id() : '',
         ], (int) $row->user_id, $org_id);
+    }
+
+    private static function notify_transcription_failure($voice_id, $org_id, $user_id, $reason) {
+        if (!class_exists('OraBooks_Notifications') || $user_id <= 0) {
+            return;
+        }
+
+        OraBooks_Notifications::send_notification($user_id, 'voice_transcription_failed', [
+            'title' => 'Voice transcription failed',
+            'message' => 'Your voice input could not be transcribed after multiple attempts. Please try again or enter the transaction manually.',
+            'voice_input_id' => (int) $voice_id,
+            'reason' => $reason,
+        ], (int) $org_id);
     }
 
     public function cron_process_pending() {
@@ -391,13 +405,11 @@ class OraBooks_Voice {
             'spoofing_risk'            => 5,
         ];
 
-        $overall_risk = 'low';
-        $max_risk = max($risk_scores);
-        if ($max_risk >= 70 || $confidence_avg < 60) {
-            $overall_risk = 'high';
-        } elseif ($max_risk >= 30 || $confidence_avg < 70) {
-            $overall_risk = 'medium';
-        }
+        $overall_risk = self::compute_overall_risk_level($risk_scores, $confidence_avg);
+
+        $subtotal = round($amount / 1.05, 2);
+        $tax_amount = round($amount - $subtotal, 2);
+        $due_date = gmdate('Y-m-d', strtotime('+30 days'));
 
         $transcript = sprintf(
             'Create a %s for %s amount %.2f dollars dated today category office supplies',
@@ -409,17 +421,28 @@ class OraBooks_Voice {
         $extracted = [
             'transaction_type'  => $type,
             'vendor'            => $vendor,
+            'vendor_tax_id'     => 'TAX-' . (($seed % 900000) + 100000),
             'customer'          => $customer,
             'amount'            => $amount,
             'total_amount'      => $amount,
+            'subtotal'          => $subtotal,
             'currency'          => 'USD',
             'transaction_date'  => current_time('Y-m-d'),
-            'tax_amount'        => round($amount * 0.05, 2),
+            'due_date'          => $due_date,
+            'tax_amount'        => $tax_amount,
             'tax_rate'          => 5.0,
             'tax_type'          => 'Sales Tax',
-            'tax_jurisdiction'  => 'US',
+            'tax_jurisdiction'  => 'US-CA',
+            'tax_registration_number' => 'REG-' . (($seed % 90000) + 10000),
             'category'          => 'Office Supplies',
             'description'       => ucfirst($type) . ' from voice command',
+            'line_items'        => [[
+                'description' => 'Consulting',
+                'quantity'    => 1,
+                'unit_price'  => $subtotal,
+                'total'       => $subtotal,
+                'tax_rate'    => 5.0,
+            ]],
             'field_confidences' => $field_confidences,
         ];
 
@@ -447,12 +470,21 @@ class OraBooks_Voice {
             return new WP_Error('invalid_status', 'Voice input must be processed before confirm');
         }
 
+        if (!empty($voice->derived_resource_id)) {
+            return new WP_Error('already_submitted', 'This voice input has already been submitted.', ['status' => 409]);
+        }
+
         $table = OraBooks_Database::table(self::TABLE_VOICE);
+        $idempotency_key = sanitize_text_field($idempotency_key);
+
+        if ($idempotency_key !== '' && !empty($voice->idempotency_key) && $voice->idempotency_key === $idempotency_key) {
+            return self::format_voice_input($voice);
+        }
 
         if ($idempotency_key !== '') {
             $existing = $wpdb->get_var($wpdb->prepare(
                 "SELECT id FROM {$table} WHERE idempotency_key = %s AND id != %d",
-                sanitize_text_field($idempotency_key),
+                $idempotency_key,
                 intval($voice_id)
             ));
             if ($existing) {
@@ -473,7 +505,7 @@ class OraBooks_Voice {
         $confidence = (float) ($voice->confidence_avg ?? 0);
         $risk = $voice->overall_risk_level ?: 'medium';
         $update = [
-            'idempotency_key'   => sanitize_text_field($idempotency_key),
+            'idempotency_key'   => $idempotency_key,
             'extracted_data'    => wp_json_encode($extracted),
         ];
 
@@ -504,6 +536,9 @@ class OraBooks_Voice {
                 'voice_input_id' => (int) $voice_id,
                 'resource_type'  => $derived['type'],
                 'resource_id'    => (int) $derived['id'],
+                'overall_risk_level' => $risk,
+                'confidence_avg' => $confidence,
+                'correlation_id' => function_exists('orabooks_get_correlation_id') ? orabooks_get_correlation_id() : '',
             ], $user_id, $org_id);
         } else {
             $update['status'] = 'escalated';
@@ -538,6 +573,7 @@ class OraBooks_Voice {
                 'voice_input_id' => (int) $voice_id,
                 'confidence'     => $confidence,
                 'risk_level'     => $risk,
+                'correlation_id' => function_exists('orabooks_get_correlation_id') ? orabooks_get_correlation_id() : '',
             ], $user_id, $org_id);
         }
 
