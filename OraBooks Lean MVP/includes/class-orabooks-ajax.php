@@ -1061,6 +1061,8 @@ class OraBooks_Ajax {
             ],
             'limits' => [
                 'max_file_size' => OraBooks_Voice::MAX_AUDIO_SIZE,
+                'max_duration_seconds' => OraBooks_Voice::MAX_RECORDING_SECONDS,
+                'retention_days' => OraBooks_Voice::RETENTION_DAYS,
             ],
             'timestamp' => current_time('mysql'),
         ]);

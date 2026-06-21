@@ -729,6 +729,16 @@ class OraBooks_Voice {
             orabooks_json_error('Not authenticated', 401);
         }
 
+        $org_id = (int) $org_id;
+        if ($org_id <= 0) {
+            orabooks_json_error('Organization is required', 400);
+        }
+
+        $tenant = orabooks_assert_tenant_access($user_id, $org_id, false);
+        if (is_wp_error($tenant)) {
+            orabooks_json_error($tenant->get_error_message(), 403);
+        }
+
         $isolation = OraBooks_Auth::require_customer_org($user_id, $org_id);
         if (is_wp_error($isolation)) {
             orabooks_json_error($isolation->get_error_message(), 403);
@@ -803,7 +813,10 @@ class OraBooks_Voice {
 
         $result = self::confirm_voice($voice_id, $org_id, $user_id, $idempotency_key, $edited);
         if (is_wp_error($result)) {
-            $code = $result->get_error_code() === 'duplicate' ? 409 : 400;
+            $code = 400;
+            if ($result->get_error_code() === 'duplicate' || $result->get_error_code() === 'already_submitted') {
+                $code = 409;
+            }
             orabooks_json_error($result->get_error_message(), $code);
         }
 
