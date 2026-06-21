@@ -39,6 +39,7 @@ export default function ProfilePage() {
       setSecurityError(typeof res.error === 'string' ? res.error : 'Unable to start 2FA setup.');
     } else {
       setQrUrl(String((res as any).data?.qr_code_url || ''));
+      setTotpSecret(String((res as any).data?.secret || ''));
       setBackupCodes(Array.isArray((res as any).data?.backup_codes) ? (res as any).data.backup_codes : []);
       setSecurityMsg('Scan the QR code with your authenticator app, then enter the 6-digit code to enable 2FA.');
     }
@@ -58,6 +59,7 @@ export default function ProfilePage() {
         : backupCodes;
       setSecurityMsg('Two-factor authentication is now enabled. Save your backup codes in a secure place.');
       setQrUrl('');
+      setTotpSecret('');
       setOtp('');
       setBackupCodes(confirmedCodes);
       await load();
@@ -131,15 +133,32 @@ export default function ProfilePage() {
                     <p className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{securityError}</p>
                   )}
 
-                  {!twoFaEnabled && !qrUrl && (
+                  {!twoFaEnabled && !setupActive && (
                     <Button type="button" className="mt-4" loading={setupLoading} onClick={start2faSetup}>
                       Enable 2FA
                     </Button>
                   )}
 
-                  {qrUrl && (
+                  {setupActive && (
                     <form onSubmit={verify2faSetup} className="mt-4 space-y-4">
-                      <img src={qrUrl} alt="2FA QR code" className="mx-auto h-44 w-44 rounded-lg border border-border bg-white p-2" />
+                      {qrUrl && (
+                        <img
+                          src={qrUrl}
+                          alt="2FA QR code"
+                          className="mx-auto h-44 w-44 rounded-lg border border-border bg-white p-2"
+                        />
+                      )}
+                      {totpSecret && (
+                        <div className="rounded-lg border border-border bg-white p-3">
+                          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                            Manual setup key
+                          </p>
+                          <p className="mt-2 break-all font-mono text-sm">{totpSecret}</p>
+                          <p className="mt-2 text-xs text-slate-500">
+                            If the QR code does not load, enter this key manually in your authenticator app (issuer: OraBooks).
+                          </p>
+                        </div>
+                      )}
                       {backupCodes.length > 0 && (
                         <div className="rounded-lg border border-border bg-white p-3">
                           <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Backup codes (save these now)</p>
