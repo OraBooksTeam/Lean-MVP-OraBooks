@@ -73,7 +73,9 @@ Add-Bullet 'SL-001 Posting, SL-003 RBAC, SL-009 Audit, SL-250 Notifications, SL-
 Add-H2 '10. Status'
 Add-P 'SL-002 Lean MVP: COMPLETE - all checklist gaps from Phase 0-4 addressed.'
 
-$doc.SaveAs([ref]$localPath, [ref]16)
+$format = 16
+if (Test-Path $localPath) { Remove-Item $localPath -Force }
+$doc.SaveAs2($localPath, $format)
 $doc.Close()
 $word.Quit()
 [System.Runtime.Interopservices.Marshal]::ReleaseComObject($word) | Out-Null
