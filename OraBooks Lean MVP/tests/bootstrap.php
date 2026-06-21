@@ -1596,9 +1596,23 @@ if (!function_exists('orabooks_get_default_region_for_tier')) {
 
 if (!function_exists('orabooks_validate_org_region')) {
     function orabooks_validate_org_region($region, $tier) {
-        if ($tier === 'enterprise' && trim((string) $region) === '') {
-            return 'Please select a data residency region.';
+        $region = strtolower(trim((string) $region));
+        $allowed = orabooks_get_allowed_regions();
+
+        if ($tier === 'enterprise') {
+            if ($region === '') {
+                return 'Please select a data residency region.';
+            }
+            if (!in_array($region, $allowed, true)) {
+                return 'Invalid region selected.';
+            }
+            return true;
         }
+
+        if ($region !== '' && $region !== orabooks_get_default_region_for_tier($tier)) {
+            return 'Region cannot be changed for this plan.';
+        }
+
         return true;
     }
 }
