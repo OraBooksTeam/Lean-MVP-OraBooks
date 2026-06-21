@@ -605,7 +605,9 @@ class OraBooks_Secrets {
         $jwt_expiry = self::with_shared_options(function () {
             return (int) get_option('orabooks_jwt_expiry', 3600);
         });
-        $payload['exp'] = time() + max(300, $jwt_expiry);
+        if (empty($payload['exp']) || (int) $payload['exp'] <= time()) {
+            $payload['exp'] = time() + max(300, $jwt_expiry);
+        }
         $payload_encoded = self::base64url_encode(json_encode($payload));
         $signature = self::base64url_encode(
             hash_hmac('sha256', "$header.$payload_encoded", $secret, true)
