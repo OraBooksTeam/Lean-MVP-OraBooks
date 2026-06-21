@@ -14,7 +14,7 @@ export default defineConfig({
     'import.meta.env.DEV': 'false',
   },
   build: {
-    outDir: path.resolve(__dirname, '../OraBooks Lean MVP/assets/react'),
+    outDir: path.resolve(__dirname, '../assets/react'),
     emptyOutDir: false,
     cssCodeSplit: false,
     codeSplitting: false,

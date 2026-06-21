@@ -10,7 +10,7 @@ export default defineConfig({
   root: 'src',
   publicDir: '../public',
   build: {
-    outDir: path.resolve(__dirname, '../OraBooks Lean MVP/assets/react'),
+    outDir: path.resolve(__dirname, '../assets/react'),
     emptyOutDir: true,
     cssCodeSplit: false,
     rollupOptions: {

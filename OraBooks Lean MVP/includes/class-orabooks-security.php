@@ -694,7 +694,7 @@ class OraBooks_Security {
             }
         }
 
-        $ui_package = dirname(ORABOOKS_PLUGIN_DIR) . '/orabooks-ui/package.json';
+        $ui_package = ORABOOKS_PLUGIN_DIR . 'orabooks-ui/package.json';
         if (file_exists($ui_package)) {
             $pkg_json = json_decode(file_get_contents($ui_package), true);
             $deps = array_merge(
