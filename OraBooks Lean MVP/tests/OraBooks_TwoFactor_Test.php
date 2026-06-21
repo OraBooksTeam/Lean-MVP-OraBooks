@@ -148,4 +148,30 @@ class OraBooks_TwoFactor_Test extends TestCase
         $this->assertInstanceOf(WP_Error::class, $result);
         $this->assertSame('2fa_setup_required', $result->get_error_code());
     }
+
+    #[Test]
+    public function test_compliance_exempt_actions_include_2fa_setup()
+    {
+        $this->assertTrue(OraBooks_TwoFactor::is_2fa_compliance_exempt_action('orabooks_setup_2fa'));
+        $this->assertTrue(OraBooks_TwoFactor::is_2fa_compliance_exempt_action('orabooks_reveal_2fa_backup_codes'));
+        $this->assertFalse(OraBooks_TwoFactor::is_2fa_compliance_exempt_action('orabooks_customer_dashboard'));
+    }
+
+    #[Test]
+    public function test_reveal_backup_codes_requires_valid_otp()
+    {
+        global $wpdb;
+
+        $wpdb->test_get_row_callback = function () {
+            return (object) [
+                'id' => 3,
+                'org_id' => 5,
+                'is_2fa_enabled' => 1,
+            ];
+        };
+
+        $result = OraBooks_TwoFactor::reveal_backup_codes(3, '000000');
+        $this->assertInstanceOf(WP_Error::class, $result);
+        $this->assertSame('invalid_otp', $result->get_error_code());
+    }
 }
