@@ -71,4 +71,34 @@ class OraBooks_Voice_Test extends TestCase
         $this->assertSame('expense', $formatted['extracted_data']['transaction_type']);
         $this->assertSame(88.5, $formatted['confidence_avg']);
     }
+
+    #[Test]
+    public function test_compute_overall_risk_level_rules()
+    {
+        $this->assertSame('low', OraBooks_Voice::compute_overall_risk_level([
+            'amount_risk' => 10,
+            'vendor_risk' => 5,
+        ], 88));
+
+        $this->assertSame('medium', OraBooks_Voice::compute_overall_risk_level([
+            'amount_risk' => 35,
+        ], 75));
+
+        $this->assertSame('high', OraBooks_Voice::compute_overall_risk_level([
+            'amount_risk' => 75,
+        ], 80));
+    }
+
+    #[Test]
+    public function test_nlu_stub_includes_tax_and_due_date_fields()
+    {
+        $result = OraBooks_Voice::run_nlu_stub('expense-command.webm', 12);
+        $extracted = $result['extracted_data'];
+
+        $this->assertArrayHasKey('due_date', $extracted);
+        $this->assertArrayHasKey('vendor_tax_id', $extracted);
+        $this->assertArrayHasKey('subtotal', $extracted);
+        $this->assertArrayHasKey('tax_registration_number', $extracted);
+        $this->assertNotEmpty($extracted['line_items']);
+    }
 }
