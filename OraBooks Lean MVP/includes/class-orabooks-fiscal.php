@@ -22,6 +22,8 @@ class OraBooks_Fiscal {
             add_action('wp_ajax_nopriv_orabooks_fiscal_period_close', [self::$instance, 'ajax_close_period']);
             add_action('wp_ajax_orabooks_fiscal_period_reopen', [self::$instance, 'ajax_reopen_period']);
             add_action('wp_ajax_nopriv_orabooks_fiscal_period_reopen', [self::$instance, 'ajax_reopen_period']);
+            add_action('wp_ajax_orabooks_fiscal_period_override_reopen', [self::$instance, 'ajax_override_reopen_period']);
+            add_action('wp_ajax_nopriv_orabooks_fiscal_period_override_reopen', [self::$instance, 'ajax_override_reopen_period']);
             add_action('orabooks_monthly_fiscal_period_rollover', [__CLASS__, 'cron_ensure_periods']);
         }
         return self::$instance;
@@ -412,41 +414,56 @@ class OraBooks_Fiscal {
      * Check whether posting is allowed for a transaction date.
      */
     public static function can_post($org_id, $transaction_date) {
+        $status = self::get_period_status($org_id, $transaction_date);
+
+        if (in_array($status, ['soft_closed', 'hard_closed'], true)) {
+            return new WP_Error('fiscal_closed', 'Fiscal period is closed. Cannot post.', ['status' => 409]);
+        }
+
+        return true;
+    }
+
+    /**
+     * Hard-closed periods block reversals; soft-closed periods still allow them.
+     */
+    public static function can_reverse($org_id, $transaction_date) {
+        if (self::get_period_status($org_id, $transaction_date) === 'hard_closed') {
+            return new WP_Error('fiscal_hard_closed', 'Hard-closed fiscal period cannot be reversed.', ['status' => 409]);
+        }
+
+        return true;
+    }
+
+    /**
+     * Chart-of-accounts structural edits are blocked once any period is closed.
+     */
+    public static function can_modify_account_structure($org_id) {
         global $wpdb;
 
         $table = OraBooks_Database::table('fiscal_periods');
-        $fiscal = $wpdb->get_row($wpdb->prepare(
-            "SELECT status FROM {$table}
-             WHERE org_id = %d AND period_start <= %s AND period_end >= %s
-             ORDER BY period_start DESC
-             LIMIT 1",
-            $org_id,
-            $transaction_date,
-            $transaction_date
+        $closed = (int) $wpdb->get_var($wpdb->prepare(
+            "SELECT COUNT(*) FROM {$table}
+             WHERE org_id = %d AND status IN ('soft_closed', 'hard_closed')",
+            $org_id
         ));
 
-        if ($fiscal && in_array($fiscal->status, ['soft_closed', 'hard_closed'], true)) {
-            return new WP_Error('fiscal_closed', 'Fiscal period is closed. Cannot post.');
+        if ($closed > 0) {
+            return new WP_Error(
+                'fiscal_account_locked',
+                'Account type and normal balance cannot be changed after a fiscal period has been closed.',
+                ['status' => 409]
+            );
         }
 
         return true;
     }
 
     public static function is_period_hard_closed($org_id, $date) {
-        global $wpdb;
+        return self::get_period_status($org_id, $date) === 'hard_closed';
+    }
 
-        $table = OraBooks_Database::table('fiscal_periods');
-        $status = $wpdb->get_var($wpdb->prepare(
-            "SELECT status FROM {$table}
-             WHERE org_id = %d AND period_start <= %s AND period_end >= %s
-             ORDER BY period_start DESC
-             LIMIT 1",
-            $org_id,
-            $date,
-            $date
-        ));
-
-        return $status === 'hard_closed';
+    public static function is_period_closed($org_id, $date) {
+        return in_array(self::get_period_status($org_id, $date), ['soft_closed', 'hard_closed'], true);
     }
 
     private static function ensure_month_period($org_id, DateTimeImmutable $date) {
@@ -494,7 +511,7 @@ class OraBooks_Fiscal {
             orabooks_json_error('Permission denied', 403);
         }
 
-        orabooks_json_success(self::list_periods($org_id));
+        orabooks_json_success(self::list_periods_for_api($org_id));
     }
 
     public function ajax_close_period() {
@@ -503,6 +520,7 @@ class OraBooks_Fiscal {
         $period_id = intval($_POST['period_id'] ?? 0);
         $close_type = sanitize_text_field($_POST['close_type'] ?? 'soft');
         $note = sanitize_textarea_field($_POST['note'] ?? '');
+        $hard_confirm = !empty($_POST['hard_confirm']);
 
         $isolation = OraBooks_Auth::require_customer_org($user_id, $org_id);
         if (is_wp_error($isolation)) {
@@ -513,12 +531,19 @@ class OraBooks_Fiscal {
             orabooks_json_error('Permission denied', 403);
         }
 
-        $result = self::close_period($period_id, $org_id, $close_type, $user_id, $note);
+        $result = self::close_period($period_id, $org_id, $close_type, $user_id, $note, [
+            'hard_confirm' => $hard_confirm,
+        ]);
         if (is_wp_error($result)) {
             orabooks_json_error($result->get_error_message(), 409);
         }
 
-        orabooks_json_success(['period_id' => $period_id, 'status' => $close_type === 'hard' ? 'hard_closed' : 'soft_closed']);
+        orabooks_json_success([
+            'period_id' => $period_id,
+            'status'    => $result['status'],
+            'warnings'  => $result['warnings'],
+            'pending'   => $result['pending'],
+        ]);
     }
 
     public function ajax_reopen_period() {
@@ -537,6 +562,29 @@ class OraBooks_Fiscal {
         }
 
         $result = self::reopen_period($period_id, $org_id, $user_id, $reason);
+        if (is_wp_error($result)) {
+            orabooks_json_error($result->get_error_message(), 409);
+        }
+
+        orabooks_json_success(['period_id' => $period_id, 'status' => 'open']);
+    }
+
+    public function ajax_override_reopen_period() {
+        $user_id = orabooks_get_current_user_id();
+        $org_id = intval($_POST['org_id'] ?? 0);
+        $period_id = intval($_POST['period_id'] ?? 0);
+        $justification = sanitize_textarea_field($_POST['justification'] ?? '');
+
+        if (!current_user_can('manage_options')) {
+            orabooks_json_error('Platform admin permission required', 403);
+        }
+
+        $isolation = OraBooks_Auth::require_customer_org($user_id, $org_id);
+        if (is_wp_error($isolation)) {
+            orabooks_json_error($isolation->get_error_message(), 403);
+        }
+
+        $result = self::override_reopen_period($period_id, $org_id, $user_id, $justification);
         if (is_wp_error($result)) {
             orabooks_json_error($result->get_error_message(), 409);
         }
