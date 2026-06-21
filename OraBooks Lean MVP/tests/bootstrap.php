@@ -89,6 +89,7 @@ if (!class_exists('wpdb', false)) {
     public $test_query_callback       = null;
     public $test_insert_callback      = null;
     public $test_update_callback      = null;
+    public $test_delete_callback      = null;
     public $test_get_col_callback     = null;
 
     /** Register SHOW COLUMNS results so dbDelta calls don't crash */
@@ -346,6 +347,10 @@ if (!class_exists('wpdb', false)) {
                 $table,
                 implode(' AND ', $where_clauses)
             );
+
+            if ($this->test_delete_callback !== null) {
+                return ($this->test_delete_callback)($table, $where, $where_format);
+            }
 
             return 1;
         }
