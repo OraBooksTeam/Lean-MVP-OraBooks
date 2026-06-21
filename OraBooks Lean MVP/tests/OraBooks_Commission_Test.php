@@ -318,17 +318,34 @@ class OraBooks_Commission_Test extends TestCase
                     'org_id' => 10,
                 ];
             }
+            if (stripos($query, 'FOR UPDATE') !== false && stripos($query, 'commissions_earned') !== false) {
+                return (object) [
+                    'id' => 99,
+                    'org_id' => 10,
+                    'status' => 'earned',
+                ];
+            }
             return null;
         };
-        $wpdb->test_update_callback = function ($table) use (&$updatedPayout) {
+        $wpdb->test_get_results_callback = function ($query) {
+            if (stripos($query, 'commissions_earned') !== false && stripos($query, 'payout_id') !== false) {
+                return [(object) ['id' => 99, 'org_id' => 10]];
+            }
+            return [];
+        };
+        $wpdb->test_update_callback = function ($table, $data) use (&$updatedPayout, &$updatedEarned) {
             if ($table === 'wp_test_orabooks_commission_payouts') {
                 $updatedPayout = true;
             }
-        };
-        $wpdb->test_query_callback = function ($query) use (&$updatedEarned) {
-            if (stripos($query, 'commissions_earned') !== false) {
+            if ($table === 'wp_test_orabooks_commissions_earned' && ($data['status'] ?? '') === 'paid') {
                 $updatedEarned = true;
             }
+        };
+        $wpdb->test_query_callback = function () {
+            return true;
+        };
+        $wpdb->test_insert_callback = function () {
+            return true;
         };
 
         $result = OraBooks_Commission::settle_payout(42, 9001, '2026-02-03');
@@ -456,6 +473,16 @@ class OraBooks_Commission_Test extends TestCase
             if (stripos($query, 'partner_commission_config') !== false) {
                 return $this->config(['expiry_accounting_action' => 'reverse_expense']);
             }
+            if (stripos($query, 'FOR UPDATE') !== false && stripos($query, 'commissions_earned') !== false) {
+                return (object) [
+                    'id' => 88,
+                    'org_id' => 10,
+                    'partner_user_id' => 5,
+                    'customer_id' => 9,
+                    'amount' => 12.50,
+                    'status' => 'earned',
+                ];
+            }
             return null;
         };
         $wpdb->test_get_results_callback = function ($query) {
@@ -470,10 +497,16 @@ class OraBooks_Commission_Test extends TestCase
             }
             return [];
         };
-        $wpdb->test_update_callback = function ($table) use (&$expiredUpdated) {
-            if ($table === 'wp_test_orabooks_commissions_earned') {
+        $wpdb->test_update_callback = function ($table, $data) use (&$expiredUpdated) {
+            if ($table === 'wp_test_orabooks_commissions_earned' && ($data['status'] ?? '') === 'expired') {
                 $expiredUpdated = true;
             }
+        };
+        $wpdb->test_query_callback = function () {
+            return true;
+        };
+        $wpdb->test_insert_callback = function () {
+            return true;
         };
 
         $result = OraBooks_Commission::process_expiry();
