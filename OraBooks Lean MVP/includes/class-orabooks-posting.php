@@ -241,15 +241,20 @@ class OraBooks_Posting {
             ? OraBooks_Approval::compute_snapshot_hash($journal_id)
             : self::compute_snapshot_hash($journal_id);
 
-        $wpdb->update($table, [
-            'status' => 'review_pending',
-            'approval_round' => $new_round,
-            'last_submitted_at' => gmdate('Y-m-d H:i:s'),
-            'last_submitted_by' => $user_id,
-            'approval_stale' => 0,
-            'approved_snapshot_hash' => $snapshot_hash,
-            'rejected_reason' => null
-        ], ['id' => $journal_id], ['%s', '%d', '%s', '%d', '%d', '%s', null], ['%d']);
+        $transition = self::journal_transition($journal_id, 'submit', $user_id, [
+            'org_id' => (int) $journal->org_id,
+            'row_updates' => [
+                'approval_round' => $new_round,
+                'last_submitted_at' => gmdate('Y-m-d H:i:s'),
+                'last_submitted_by' => (int) $user_id,
+                'approval_stale' => 0,
+                'approved_snapshot_hash' => $snapshot_hash,
+                'rejected_reason' => null,
+            ],
+        ]);
+        if (is_wp_error($transition)) {
+            return $transition;
+        }
 
         if (class_exists('OraBooks_Approval')) {
             OraBooks_Approval::record_history($journal_id, 'submit', $user_id, $snapshot_hash, $new_round, $journal->revision_number);
@@ -257,7 +262,6 @@ class OraBooks_Posting {
         } else {
             self::record_approval_history($journal_id, 'submit', $user_id, $snapshot_hash, $new_round, $journal->revision_number);
         }
-        self::transition('journal', $journal_id, 'submit', $user_id);
 
         orabooks_log_event('journal_submitted', "Journal #$journal_id submitted for approval", 'info', [
             'journal_id' => $journal_id,
@@ -310,19 +314,24 @@ class OraBooks_Posting {
         
         $current_hash = self::compute_snapshot_hash($journal_id);
         $expires_at = date('Y-m-d H:i:s', time() + (($policy->approval_expiry_hours ?? 72) * 3600));
-        
-        $wpdb->update($table, [
-            'status' => 'approved',
-            'approved_by' => $user_id,
-            'approved_at' => gmdate('Y-m-d H:i:s'),
-            'approved_snapshot_hash' => $current_hash,
-            'approval_expires_at' => $expires_at,
-            'lock_after_approval' => 1
-        ], ['id' => $journal_id], ['%s', '%d', '%s', '%s', '%s', '%d'], ['%d']);
-        
+
+        $transition = self::journal_transition($journal_id, 'approve', $user_id, [
+            'org_id' => (int) $journal->org_id,
+            'row_updates' => [
+                'approved_by' => (int) $user_id,
+                'approved_at' => gmdate('Y-m-d H:i:s'),
+                'approved_snapshot_hash' => $current_hash,
+                'approval_expires_at' => $expires_at,
+                'approval_stale' => 0,
+                'lock_after_approval' => 1,
+            ],
+        ]);
+        if (is_wp_error($transition)) {
+            return $transition;
+        }
+
         self::record_approval_history($journal_id, 'approve', $user_id, $current_hash, $journal->approval_round, $journal->revision_number);
-        self::transition('journal', $journal_id, 'approve', $user_id);
-        
+
         orabooks_log_event('journal_approved', "Journal #$journal_id approved by user $user_id", 'info', [
             'journal_id' => $journal_id
         ], $user_id, $journal->org_id);
@@ -351,14 +360,20 @@ class OraBooks_Posting {
             return new WP_Error('invalid_status', 'Journal not in review_pending');
         }
         
-        $wpdb->update($table, [
-            'status' => 'draft',
-            'rejected_reason' => $reason,
-            'approved_snapshot_hash' => null,
-            'lock_after_approval' => 0,
-            'approval_stale' => 0
-        ], ['id' => $journal_id], ['%s', '%s', null, '%d', '%d'], ['%d']);
-        
+        $transition = self::journal_transition($journal_id, 'reject', $user_id, [
+            'org_id' => (int) $journal->org_id,
+            'reason' => $reason,
+            'row_updates' => [
+                'rejected_reason' => $reason,
+                'approved_snapshot_hash' => null,
+                'lock_after_approval' => 0,
+                'approval_stale' => 0,
+            ],
+        ]);
+        if (is_wp_error($transition)) {
+            return $transition;
+        }
+
         self::record_approval_history($journal_id, 'reject', $user_id, null, $journal->approval_round, $journal->revision_number, $reason);
         if (class_exists('OraBooks_Approval')) {
             OraBooks_Approval::on_rejected($journal_id, $user_id, (int) $journal->org_id, $reason);
@@ -509,15 +524,30 @@ class OraBooks_Posting {
 
         $posted_at = gmdate('Y-m-d H:i:s');
 
-        // Update journal — posted entries are immediately locked (immutable)
-        $wpdb->update($table_journals, [
-            'status' => 'locked',
-            'posted_by' => $user_id,
+        $post_meta = [
+            'posted_by' => (int) $user_id,
             'posted_at' => $posted_at,
             'journal_number' => $journal_number,
             'journal_hash' => $journal_hash,
-            'previous_hash' => $previous_hash
-        ], ['id' => $journal_id], ['%s', '%d', '%s', '%s', '%s', '%s'], ['%d']);
+            'previous_hash' => $previous_hash,
+        ];
+
+        $post_transition = self::journal_transition($journal_id, 'post', $user_id, [
+            'org_id' => (int) $journal->org_id,
+            'row_updates' => $post_meta,
+            'skip_transaction' => true,
+        ]);
+        if (is_wp_error($post_transition)) {
+            return $post_transition;
+        }
+
+        $lock_transition = self::journal_transition($journal_id, 'lock', $user_id, [
+            'org_id' => (int) $journal->org_id,
+            'skip_transaction' => true,
+        ]);
+        if (is_wp_error($lock_transition)) {
+            return $lock_transition;
+        }
 
         // Publish event via Event Bus (SL-302)
         if (class_exists('OraBooks_EventBus')) {
@@ -544,9 +574,6 @@ class OraBooks_Posting {
         self::maybe_emit_fraud_hooks($journal, $lines);
 
         self::bump_read_models_for_journal_posted((int) $journal->org_id);
-
-        self::transition('journal', $journal_id, 'post', $user_id);
-        self::transition('journal', $journal_id, 'lock', $user_id);
 
         do_action('orabooks_journal_posted', (int) $journal_id, [
             'org_id' => (int) $journal->org_id,
@@ -636,15 +663,15 @@ class OraBooks_Posting {
             return $line_result;
         }
 
-        $wpdb->update(
-            $table_journals,
-            ['status' => 'reversed'],
-            ['id' => $journal_id, 'org_id' => $org_id],
-            ['%s'],
-            ['%d', '%d']
-        );
-
-        self::transition('journal', $journal_id, 'reverse', $user_id, $reason);
+        $reverse_transition = self::journal_transition($journal_id, 'reverse', $user_id, [
+            'org_id' => (int) $org_id,
+            'reason' => $reason,
+            'skip_transaction' => true,
+        ]);
+        if (is_wp_error($reverse_transition)) {
+            self::rollback_transaction();
+            return $reverse_transition;
+        }
 
         if (class_exists('OraBooks_EventBus')) {
             OraBooks_EventBus::publish('journal_reversed', $journal_id, [
