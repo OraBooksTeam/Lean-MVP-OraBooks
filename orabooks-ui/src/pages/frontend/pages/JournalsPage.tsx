@@ -5,7 +5,8 @@ import Button from '@/components/Button';
 import Input from '@/components/Input';
 import { api } from '../api';
 import ClientShell from '../components/ClientShell';
-import { Bot, Landmark, Paperclip, Plus, RefreshCw } from 'lucide-react';
+import { Bot, Landmark, Paperclip, Plus, RefreshCw, Send } from 'lucide-react';
+import WorkflowModal from '../components/WorkflowModal';
 
 type Journal = {
   id: number;
@@ -51,6 +52,10 @@ export default function JournalsPage() {
   const [creditAccount, setCreditAccount] = useState('');
   const [entryAmount, setEntryAmount] = useState('');
   const [entryDescription, setEntryDescription] = useState('');
+  const [detailTab, setDetailTab] = useState<'lines' | 'history'>('lines');
+  const [mfaThreshold, setMfaThreshold] = useState(10000);
+  const [rejectModalOpen, setRejectModalOpen] = useState(false);
+  const [mfaModal, setMfaModal] = useState({ open: false, code: '' });
 
   const orgId = context?.organization?.id;
   const currentUserId = context?.user?.id;
@@ -86,6 +91,12 @@ export default function JournalsPage() {
     });
     if (res.error) setError(res.error || 'Unable to load journals.');
     else setJournals((res as any).data?.journals || []);
+
+    const dash = await api.approvalDashboard();
+    if (!(dash as any).error) {
+      setMfaThreshold(Number((dash as any).data?.policy?.mfa_amount_threshold ?? 10000));
+    }
+
     setLoading(false);
   };
 
@@ -110,6 +121,19 @@ export default function JournalsPage() {
   );
 
   const lines: JournalLine[] = detail?.lines || [];
+  const approvalHistory = detail?.approval_history || [];
+  const wasRejected = approvalHistory.some((row: any) => row.action === 'reject');
+
+  const approveJournal = async (mfaOtp?: string) => {
+    if (!selectedJournal) return;
+    const amount = Number(selectedJournal.total_amount || 0);
+    if (amount >= mfaThreshold && !mfaOtp) {
+      setMfaModal({ open: true, code: '' });
+      return;
+    }
+    await runAction(() => api.approveJournal(selectedJournal.id, mfaOtp), 'Journal approved.');
+    setMfaModal({ open: false, code: '' });
+  };
 
   const runAction = async (action: () => Promise<any>, successMessage: string) => {
     setActionLoading(true);
