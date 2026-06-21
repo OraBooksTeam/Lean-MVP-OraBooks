@@ -134,6 +134,8 @@ class OraBooks_Customers {
             total_amount DECIMAL(20,2) NOT NULL DEFAULT 0,
             tax_amount DECIMAL(20,2) DEFAULT 0,
             tax_rate DECIMAL(8,4) DEFAULT 0,
+            tax_jurisdiction VARCHAR(32) NULL,
+            tax_type VARCHAR(32) NULL,
             tax_override_reason VARCHAR(64) NULL,
             tax_override_by BIGINT UNSIGNED NULL,
             tax_override_at TIMESTAMP NULL,
@@ -231,6 +233,8 @@ class OraBooks_Customers {
             'total_amount'          => "ALTER TABLE {$table_invoices} ADD COLUMN total_amount DECIMAL(20,2) NOT NULL DEFAULT 0",
             'tax_amount'            => "ALTER TABLE {$table_invoices} ADD COLUMN tax_amount DECIMAL(20,2) DEFAULT 0",
             'tax_rate'              => "ALTER TABLE {$table_invoices} ADD COLUMN tax_rate DECIMAL(8,4) DEFAULT 0",
+            'tax_jurisdiction'      => "ALTER TABLE {$table_invoices} ADD COLUMN tax_jurisdiction VARCHAR(32) NULL",
+            'tax_type'              => "ALTER TABLE {$table_invoices} ADD COLUMN tax_type VARCHAR(32) NULL",
             'tax_override_reason'   => "ALTER TABLE {$table_invoices} ADD COLUMN tax_override_reason VARCHAR(64) NULL",
             'tax_override_by'       => "ALTER TABLE {$table_invoices} ADD COLUMN tax_override_by BIGINT UNSIGNED NULL",
             'tax_override_at'       => "ALTER TABLE {$table_invoices} ADD COLUMN tax_override_at TIMESTAMP NULL",
@@ -1101,11 +1105,15 @@ class OraBooks_Customers {
                     if (!is_wp_error($tax_result)) {
                         $data['tax_amount'] = $tax_result['tax_amount'];
                         $data['tax_rate'] = $tax_result['tax_rate'];
+                        $data['tax_jurisdiction'] = $jurisdiction;
+                        $data['tax_type'] = $tax_result['tax_type'] ?? 'Sales Tax';
                         $data['total_amount'] = round($subtotal + $tax_result['tax_amount'], 2);
                     } else {
                         $data['total_amount'] = $subtotal;
                         $data['tax_amount'] = 0;
                         $data['tax_rate'] = 0;
+                        $data['tax_jurisdiction'] = $jurisdiction;
+                        $data['tax_type'] = 'Sales Tax';
                     }
                 } else {
                     $data['total_amount'] = $subtotal;
@@ -1151,6 +1159,8 @@ class OraBooks_Customers {
                 'total_amount'    => $data['total_amount'],
                 'tax_amount'      => $data['tax_amount'] ?? 0,
                 'tax_rate'        => $data['tax_rate'] ?? 0,
+                'tax_jurisdiction'=> !empty($data['tax_jurisdiction']) ? strtoupper(sanitize_text_field($data['tax_jurisdiction'])) : null,
+                'tax_type'        => !empty($data['tax_type']) ? sanitize_text_field($data['tax_type']) : null,
                 'tax_override_reason' => !empty($data['tax_override_reason']) ? sanitize_text_field($data['tax_override_reason']) : null,
                 'tax_override_by' => !empty($data['tax_override_reason']) ? orabooks_get_current_user_id() : null,
                 'tax_override_at' => !empty($data['tax_override_reason']) ? current_time('mysql') : null,
