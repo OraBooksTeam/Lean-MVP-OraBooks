@@ -1,14 +1,14 @@
-/* OraBooks PWA service worker — shell cache + offline receipt sync hook */
-const CACHE_VERSION = 'orabooks-pwa-v1';
+/* OraBooks PWA service worker — shell cache + offline navigation fallback */
+const CACHE_VERSION = 'orabooks-pwa-v2';
 const SHELL_CACHE = CACHE_VERSION + '-shell';
 
-const SHELL_ASSETS = [
-  './manifest.webmanifest',
-];
+const OFFLINE_PAGE = '/expenses/';
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(SHELL_CACHE).then((cache) => cache.addAll(SHELL_ASSETS)).then(() => self.skipWaiting())
+    caches.open(SHELL_CACHE).then((cache) => cache.addAll([
+      OFFLINE_PAGE,
+    ])).then(() => self.skipWaiting())
   );
 });
 
@@ -29,7 +29,29 @@ self.addEventListener('fetch', (event) => {
   }
 
   const url = new URL(request.url);
-  if (url.pathname.includes('/assets/pwa/') || url.pathname.includes('/assets/react/')) {
+
+  if (request.mode === 'navigate') {
+    event.respondWith(
+      fetch(request)
+        .then((response) => {
+          if (response && response.status === 200) {
+            const copy = response.clone();
+            caches.open(SHELL_CACHE).then((cache) => cache.put(request, copy));
+          }
+          return response;
+        })
+        .catch(() =>
+          caches.match(request).then((cached) => cached || caches.match(OFFLINE_PAGE))
+        )
+    );
+    return;
+  }
+
+  if (
+    url.pathname.includes('/assets/pwa/')
+    || url.pathname.includes('/assets/react/')
+    || url.pathname.includes('/wp-json/api/pwa/')
+  ) {
     event.respondWith(
       caches.open(SHELL_CACHE).then((cache) =>
         cache.match(request).then((cached) => cached || fetch(request).then((response) => {
