@@ -77,6 +77,8 @@ export default function InvoicesPage() {
   const [overrideJurisdiction, setOverrideJurisdiction] = useState('US');
   const [taxLocked, setTaxLocked] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
+  const [cancelInvoice, setCancelInvoice] = useState<Invoice | null>(null);
+  const [cancelReason, setCancelReason] = useState('');
 
   const orgId = context?.organization?.id;
   const permissions: string[] = context?.permissions || [];
@@ -164,6 +166,12 @@ export default function InvoicesPage() {
   const canPost = (invoice: Invoice) =>
     canCreateInvoice && ['draft', 'sent'].includes(invoice.workflow_status || '');
 
+  const canCancel = (invoice: Invoice) =>
+    canCreateInvoice
+    && ['draft', 'sent'].includes(invoice.workflow_status || '')
+    && !['paid', 'partial'].includes(invoice.payment_status || '')
+    && Number(invoice.paid_amount || 0) <= 0;
+
   const runInvoiceAction = async (action: 'send' | 'post', invoiceId: number) => {
     if (!orgId) return;
     setActionInvoiceId(invoiceId);
@@ -174,6 +182,21 @@ export default function InvoicesPage() {
     if (res.error) setError(res.error);
     else {
       setSuccess(action === 'send' ? 'Invoice sent.' : 'Invoice posted to AR.');
+      await load();
+    }
+    setActionInvoiceId(null);
+  };
+
+  const handleCancelInvoice = async () => {
+    if (!orgId || !cancelInvoice) return;
+    setActionInvoiceId(cancelInvoice.id);
+    setError('');
+    const res = await api.invoiceCancel(orgId, cancelInvoice.id, cancelReason.trim());
+    if (res.error) setError(res.error);
+    else {
+      setSuccess('Invoice cancelled.');
+      setCancelInvoice(null);
+      setCancelReason('');
       await load();
     }
     setActionInvoiceId(null);
@@ -473,6 +496,11 @@ export default function InvoicesPage() {
                         <Button size="sm" variant="secondary" onClick={() => openPayment(invoice)}>
                           <Wallet className="h-3.5 w-3.5" />
                           Pay
+                        </Button>
+                      )}
+                      {canCancel(invoice) && (
+                        <Button size="sm" variant="secondary" disabled={actionInvoiceId === invoice.id} onClick={() => { setCancelInvoice(invoice); setCancelReason(''); setError(''); }}>
+                          Cancel
                         </Button>
                       )}
                       {canOverride(invoice) && (

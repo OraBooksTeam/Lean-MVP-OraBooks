@@ -373,6 +373,8 @@ export const api = {
     api.post('orabooks_bill_approve', { org_id: orgId, bill_id: billId }),
   billPost: (orgId: number, billId: number) =>
     api.post('orabooks_bill_post', { org_id: orgId, bill_id: billId }),
+  billVoid: (orgId: number, billId: number, reason = '') =>
+    api.post('orabooks_bill_void', { org_id: orgId, bill_id: billId, reason }),
   vendorPaymentRecord: (orgId: number, data: Record<string, unknown>) =>
     api.post('orabooks_vendor_payment_record', { org_id: orgId, ...data }),
   apAging: (orgId: number, asOfDate?: string) =>
@@ -668,6 +670,8 @@ export const api = {
     api.post('orabooks_invoice_send', { org_id: orgId, invoice_id: invoiceId }),
   invoicePost: (orgId: number, invoiceId: number) =>
     api.post('orabooks_invoice_post', { org_id: orgId, invoice_id: invoiceId }),
+  invoiceCancel: (orgId: number, invoiceId: number, reason = '') =>
+    api.post('orabooks_invoice_cancel', { org_id: orgId, invoice_id: invoiceId, reason }),
   invoiceOverrideTax: (
     orgId: number,
     invoiceId: number,
