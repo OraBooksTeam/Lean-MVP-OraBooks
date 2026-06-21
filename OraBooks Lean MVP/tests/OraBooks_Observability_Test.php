@@ -158,7 +158,7 @@ class OraBooks_Observability_Test extends TestCase
                 return (object) ['total' => 100, 'good' => 99, 'bad' => 1];
             }
             if (stripos($query, 'notifications') !== false) {
-                return (object) ['total' => 1000, 'good' => 996, 'bad' => 4];
+                return (object) ['total' => 1000, 'good' => 998, 'bad' => 2];
             }
             if (stripos($query, 'async_jobs') !== false) {
                 return (object) ['total' => 200, 'good' => 198, 'bad' => 2];
