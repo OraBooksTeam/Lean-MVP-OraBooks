@@ -53,6 +53,11 @@ class OraBooks_Workflow {
             add_action('wp_ajax_orabooks_workflow_transitions', [self::$instance, 'ajax_get_transitions']);
             add_action('wp_ajax_orabooks_workflow_allowed_events', [self::$instance, 'ajax_allowed_events']);
             add_action('wp_ajax_orabooks_workflow_transition', [self::$instance, 'ajax_transition']);
+            add_action('wp_ajax_orabooks_workflow_health', [self::$instance, 'ajax_workflow_health']);
+        }
+
+        if (class_exists('OraBooks_Workflow_Integration')) {
+            OraBooks_Workflow_Integration::init();
         }
 
         return self::$instance;
@@ -233,12 +238,14 @@ class OraBooks_Workflow {
 
             $validation = self::validate_transition($record_type, $current_state, $event);
             if (is_wp_error($validation)) {
+                self::track_failure($record_type, $event, $resolved_org_id, $validation->get_error_code(), $context);
                 self::rollback_transaction($skip_transaction);
                 return $validation;
             }
 
             $preconditions = self::check_preconditions($record_type, $event, $record, $context);
             if (is_wp_error($preconditions)) {
+                self::track_failure($record_type, $event, $resolved_org_id, $preconditions->get_error_code(), $context);
                 self::rollback_transaction($skip_transaction);
                 return $preconditions;
             }
@@ -541,7 +548,35 @@ class OraBooks_Workflow {
 
         return orabooks_has_permission($user_id, $org_id, 'manage_settings')
             || orabooks_has_permission($user_id, $org_id, 'submit_transaction')
-            || orabooks_has_permission($user_id, $org_id, 'approve_transaction');
+            || orabooks_has_permission($user_id, $org_id, 'approve_journal');
+    }
+
+    public function ajax_workflow_health() {
+        $user_id = orabooks_get_current_user_id();
+        $org_id = orabooks_get_current_org_id($user_id);
+
+        if (!$user_id || !$org_id) {
+            orabooks_json_error('Authentication required', 401);
+        }
+
+        if (!orabooks_has_permission($user_id, $org_id, 'view_audit_logs')
+            && !orabooks_has_permission($user_id, $org_id, 'manage_settings')) {
+            orabooks_json_error('Permission denied', 403);
+        }
+
+        if (!class_exists('OraBooks_Observability')) {
+            orabooks_json_error('Observability module unavailable', 503);
+        }
+
+        orabooks_json_success([
+            'workflow' => OraBooks_Observability::get_workflow_health($org_id),
+        ]);
+    }
+
+    private static function track_failure($record_type, $event, $org_id, $reason, $context) {
+        if (class_exists('OraBooks_Workflow_Integration')) {
+            OraBooks_Workflow_Integration::track_failure($record_type, $event, (int) $org_id, (string) $reason, is_array($context) ? $context : []);
+        }
     }
 
     /**
