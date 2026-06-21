@@ -2,8 +2,8 @@
   "name": "OraBooks",
   "short_name": "OraBooks",
   "description": "Multi-tenant accounting — receipts, expenses, and approvals on the go.",
-  "start_url": "../",
-  "scope": "../",
+  "start_url": "/dashboard/",
+  "scope": "/",
   "display": "standalone",
   "orientation": "portrait-primary",
   "background_color": "#f4f8fc",
@@ -11,10 +11,22 @@
   "categories": ["finance", "business", "productivity"],
   "icons": [
     {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
       "src": "icons/icon.svg",
       "sizes": "any",
       "type": "image/svg+xml",
-      "purpose": "any maskable"
+      "purpose": "any"
     }
   ],
   "shortcuts": [
@@ -22,7 +34,7 @@
       "name": "Expenses",
       "short_name": "Expenses",
       "description": "Scan or upload a receipt",
-      "url": "../#/expenses"
+      "url": "/expenses/"
     }
   ]
 }
