@@ -32,6 +32,8 @@ class OraBooks_Team {
             add_action('wp_ajax_nopriv_orabooks_cancel_invite', [self::$instance, 'ajax_cancel_invite']);
             add_action('wp_ajax_orabooks_accept_invite', [self::$instance, 'ajax_accept_invite']);
             add_action('wp_ajax_nopriv_orabooks_accept_invite', [self::$instance, 'ajax_accept_invite_legacy_redirect']);
+            add_action('wp_ajax_orabooks_preview_invite', [self::$instance, 'ajax_preview_invite']);
+            add_action('wp_ajax_nopriv_orabooks_preview_invite', [self::$instance, 'ajax_preview_invite']);
         }
         return self::$instance;
     }
@@ -104,6 +106,40 @@ class OraBooks_Team {
         }
 
         return (bool) $sent;
+    }
+
+    /**
+     * Preview a pending invite without accepting it (SL-014).
+     */
+    public static function preview_invite($raw_token) {
+        global $wpdb;
+
+        $raw_token = sanitize_text_field((string) $raw_token);
+        if ($raw_token === '') {
+            return new WP_Error('invalid_invite', 'Invalid or expired invitation');
+        }
+
+        $table_invites = OraBooks_Database::table('org_invites');
+        $token_hash = orabooks_hash_token($raw_token);
+
+        $invite = $wpdb->get_row($wpdb->prepare(
+            "SELECT * FROM {$table_invites} WHERE token_hash = %s AND used = 0 AND expires_at > NOW()",
+            $token_hash
+        ));
+
+        if (!$invite) {
+            return new WP_Error('invalid_invite', 'Invalid or expired invitation');
+        }
+
+        $org = OraBooks_Organization::get((int) $invite->org_id);
+
+        return [
+            'email' => $invite->email,
+            'role' => $invite->role,
+            'org_id' => (int) $invite->org_id,
+            'org_name' => $org ? $org->name : '',
+            'expires_at' => $invite->expires_at,
+        ];
     }
     
     public static function invite_user($org_id, $email, $role, $invited_by) {
@@ -659,5 +695,14 @@ class OraBooks_Team {
         $destination = orabooks_get_accept_invite_url($token);
         wp_redirect($destination);
         exit;
+    }
+
+    public function ajax_preview_invite() {
+        $token = sanitize_text_field($_REQUEST['token'] ?? $_POST['token'] ?? '');
+        $preview = self::preview_invite($token);
+        if (is_wp_error($preview)) {
+            orabooks_json_error($preview->get_error_message(), 400);
+        }
+        orabooks_json_success($preview);
     }
 }
