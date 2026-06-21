@@ -30,9 +30,9 @@ class OraBooks_Fiscal_Test extends TestCase
     {
         global $wpdb;
 
-        $wpdb->test_get_row_callback = function ($query) {
+        $wpdb->test_get_var_callback = function ($query) {
             if (stripos($query, 'fiscal_periods') !== false) {
-                return (object) ['status' => 'soft_closed'];
+                return 'soft_closed';
             }
             return null;
         };
@@ -40,6 +40,7 @@ class OraBooks_Fiscal_Test extends TestCase
         $result = OraBooks_Fiscal::can_post(4, '2026-06-15');
         $this->assertInstanceOf(WP_Error::class, $result);
         $this->assertSame('fiscal_closed', $result->get_error_code());
+        $this->assertSame(409, $result->get_error_data()['status']);
     }
 
     #[Test]
@@ -47,9 +48,9 @@ class OraBooks_Fiscal_Test extends TestCase
     {
         global $wpdb;
 
-        $wpdb->test_get_row_callback = function ($query) {
+        $wpdb->test_get_var_callback = function ($query) {
             if (stripos($query, 'fiscal_periods') !== false) {
-                return (object) ['status' => 'open'];
+                return 'open';
             }
             return null;
         };

@@ -36,7 +36,8 @@ class OraBooks_Rest_Api_Test extends TestCase
             'status' => 'soft_closed',
         ]);
 
-        $this->assertSame('SOFT_CLOSED', $formatted['status']);
+        $this->assertSame('soft_closed', $formatted['status']);
+        $this->assertSame('Soft Closed', $formatted['status_label']);
         $this->assertSame(3, $formatted['id']);
     }
 
