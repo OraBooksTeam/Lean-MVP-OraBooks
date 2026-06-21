@@ -578,7 +578,7 @@ class OraBooks_Auth {
      * @param object $user
      * @return array<string, mixed>|WP_Error
      */
-    private static function complete_authenticated_login($user, $expected_subdomain = '') {
+    public static function complete_authenticated_login($user, $expected_subdomain = '') {
         if ($user->is_partner && !$user->org_id) {
             return self::handle_partner_first_login($user);
         }
