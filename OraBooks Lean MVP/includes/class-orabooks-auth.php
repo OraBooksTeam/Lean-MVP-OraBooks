@@ -1299,25 +1299,38 @@ class OraBooks_Auth {
             orabooks_json_error('Authentication required', 401);
         }
 
+        global $wpdb;
+        $table_users = OraBooks_Database::table('users');
+        $user = $wpdb->get_row($wpdb->prepare(
+            "SELECT id, email, is_2fa_enabled FROM {$table_users} WHERE id = %d",
+            (int) $orabooks_user_id
+        ));
+
+        if (!$user) {
+            orabooks_json_error('User not found', 404);
+        }
+
+        if (!empty($user->is_2fa_enabled)) {
+            orabooks_json_error('Two-factor authentication is already enabled', 400);
+        }
+
         $wp_user_id = orabooks_ensure_wp_user_link_for_orabooks_user($orabooks_user_id);
         if ($wp_user_id <= 0) {
             orabooks_json_error('Unable to link a WordPress account for 2FA setup. Contact support if this persists.', 400);
         }
 
         $secret = OraBooks_Secrets::generate_totp_secret();
+        orabooks_set_2fa_temp_secret($wp_user_id, $secret);
 
-        update_user_meta($wp_user_id, 'orabooks_2fa_temp_secret', $secret);
-
-        $email = get_userdata($wp_user_id)->user_email ?? '';
+        $email = get_userdata($wp_user_id)->user_email ?? (string) $user->email;
         $qr_url = OraBooks_Secrets::get_totp_qr_url($secret, $email);
         $backup_codes = OraBooks_Secrets::generate_backup_codes();
-
-        update_user_meta($wp_user_id, 'orabooks_2fa_temp_backup_codes', $backup_codes);
+        orabooks_set_2fa_temp_backup_codes($wp_user_id, $backup_codes);
         
         orabooks_json_success([
             'secret' => $secret,
             'qr_code_url' => $qr_url,
-            'backup_codes' => $backup_codes
+            'backup_codes' => $backup_codes,
         ]);
     }
     
@@ -1332,8 +1345,23 @@ class OraBooks_Auth {
             orabooks_json_error('Unable to link a WordPress account for 2FA setup. Contact support if this persists.', 400);
         }
 
-        $otp = $_POST['otp_code'] ?? '';
-        $temp_secret = get_user_meta($wp_user_id, 'orabooks_2fa_temp_secret', true);
+        global $wpdb;
+        $table_users = OraBooks_Database::table('users');
+        $user = $wpdb->get_row($wpdb->prepare(
+            "SELECT id, is_2fa_enabled FROM {$table_users} WHERE id = %d",
+            (int) $orabooks_user_id
+        ));
+
+        if (!$user) {
+            orabooks_json_error('User not found', 404);
+        }
+
+        if (!empty($user->is_2fa_enabled)) {
+            orabooks_json_error('Two-factor authentication is already enabled', 400);
+        }
+
+        $otp = OraBooks_Secrets::normalize_totp_code($_POST['otp_code'] ?? '');
+        $temp_secret = orabooks_get_2fa_temp_secret($wp_user_id);
         
         if (!$temp_secret) {
             orabooks_json_error('2FA setup not initiated', 400);
@@ -1343,14 +1371,13 @@ class OraBooks_Auth {
             orabooks_json_error('Invalid OTP code', 400);
         }
         
-        // Store 2FA secret permanently (encrypted at rest per SL-013)
         orabooks_set_2fa_secret($wp_user_id, $temp_secret);
         delete_user_meta($wp_user_id, 'orabooks_2fa_temp_secret');
 
-        $backup_codes = get_user_meta($wp_user_id, 'orabooks_2fa_temp_backup_codes', true);
+        $backup_codes = orabooks_get_2fa_temp_backup_codes($wp_user_id);
         if ($backup_codes) {
-            global $wpdb;
             $table = OraBooks_Database::table('2fa_backup_codes');
+            $wpdb->delete($table, ['user_id' => (int) $orabooks_user_id], ['%d']);
             foreach ($backup_codes as $code) {
                 $wpdb->insert(
                     $table,
@@ -1361,8 +1388,6 @@ class OraBooks_Auth {
             delete_user_meta($wp_user_id, 'orabooks_2fa_temp_backup_codes');
         }
 
-        global $wpdb;
-        $table_users = OraBooks_Database::table('users');
         $wpdb->update(
             $table_users,
             ['is_2fa_enabled' => 1],
@@ -1372,13 +1397,13 @@ class OraBooks_Auth {
         );
 
         orabooks_log_event('2fa_enabled', "2FA enabled for user $orabooks_user_id", 'info', [], $orabooks_user_id, null);
-        orabooks_json_success([], '2FA enabled successfully');
+        orabooks_json_success(['backup_codes' => $backup_codes], '2FA enabled successfully');
     }
     
     public function ajax_2fa_challenge() {
-        $temp_token = $_POST['temp_token'] ?? '';
-        $otp = $_POST['otp_code'] ?? '';
-        $backup_code = $_POST['backup_code'] ?? '';
+        $temp_token = sanitize_text_field($_POST['temp_token'] ?? '');
+        $otp = OraBooks_Secrets::normalize_totp_code($_POST['otp_code'] ?? '');
+        $backup_code = orabooks_normalize_backup_code($_POST['backup_code'] ?? '');
         
         $payload = OraBooks_Secrets::verify_jwt($temp_token);
         if (!$payload || ($payload['purpose'] ?? '') !== '2fa_challenge') {
@@ -1386,16 +1411,28 @@ class OraBooks_Auth {
         }
         
         $user_id = (int) $payload['user_id'];
+        $rate_key = '2fa_challenge_' . orabooks_get_client_ip() . '_' . $user_id;
+        if (!orabooks_check_rate_limit($rate_key, 5, 900)) {
+            orabooks_log_event('login_failure', '2FA challenge rate limit exceeded', 'warning', [], $user_id, null);
+            orabooks_json_error('Too many failed verification attempts. Try again after 15 minutes.', 429);
+        }
+
         $wp_user_id = orabooks_get_wp_user_id_for_orabooks_user($user_id);
         if ($wp_user_id <= 0) {
             $wp_user_id = orabooks_ensure_wp_user_link_for_orabooks_user($user_id);
         }
         $secret = orabooks_get_2fa_secret($wp_user_id);
-        
-        if (!empty($otp) && OraBooks_Secrets::verify_totp($secret, $otp)) {
-            // Valid OTP - proceed with login
-        } elseif (!empty($backup_code)) {
-            // Check backup code
+        if ($secret === '') {
+            orabooks_json_error('Two-factor authentication is not configured for this account', 400);
+        }
+
+        $verified = false;
+        $method = '';
+
+        if ($otp !== '' && OraBooks_Secrets::verify_totp($secret, $otp)) {
+            $verified = true;
+            $method = 'totp';
+        } elseif ($backup_code !== '') {
             global $wpdb;
             $table = OraBooks_Database::table('2fa_backup_codes');
             $stored = $wpdb->get_results($wpdb->prepare(
@@ -1403,7 +1440,6 @@ class OraBooks_Auth {
                 $user_id
             ));
             
-            $valid = false;
             foreach ($stored as $row) {
                 if (OraBooks_Secrets::verify_password($backup_code, $row->code_hash)) {
                     $wpdb->update(
@@ -1413,25 +1449,30 @@ class OraBooks_Auth {
                         ['%d'],
                         ['%d']
                     );
-                    $valid = true;
+                    $verified = true;
+                    $method = 'backup_code';
                     break;
                 }
             }
-            
-            if (!$valid) {
-                orabooks_json_error('Invalid or already used backup code', 401);
-            }
-        } else {
-            orabooks_json_error('Invalid verification code', 401);
+        }
+
+        if (!$verified) {
+            orabooks_log_event('login_failure', 'Invalid 2FA verification attempt', 'warning', [
+                'method' => $otp !== '' ? 'totp' : 'backup_code',
+            ], $user_id, null);
+            orabooks_json_error($backup_code !== '' ? 'Invalid or already used backup code' : 'Invalid verification code', 401);
         }
         
-        // Complete login
         global $wpdb;
         $table_users = OraBooks_Database::table('users');
         $user = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$table_users} WHERE id = %d", $user_id));
         
         if (!$user) {
             orabooks_json_error('User not found', 404);
+        }
+
+        if (!$user->is_2fa_enabled) {
+            orabooks_json_error('Two-factor authentication is not enabled for this account', 400);
         }
 
         $expected_subdomain = (string) ($payload['expected_subdomain'] ?? '');
@@ -1448,7 +1489,7 @@ class OraBooks_Auth {
             'login_success',
             "2FA login successful for user $user_id",
             'info',
-            ['method' => !empty($otp) ? 'totp' : 'backup_code'],
+            ['method' => $method],
             $user_id,
             $user->org_id
         );

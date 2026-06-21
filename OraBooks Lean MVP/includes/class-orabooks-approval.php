@@ -257,12 +257,21 @@ class OraBooks_Approval {
             return true;
         }
 
-        $otp = trim((string) ($args['mfa_otp'] ?? ''));
+        $otp = OraBooks_Secrets::normalize_totp_code($args['mfa_otp'] ?? '');
         if ($otp === '') {
             return new WP_Error('mfa_required', 'High-value approval requires two-factor authentication');
         }
 
-        $secret = get_user_meta((int) $user_id, 'orabooks_2fa_secret', true);
+        $wp_user_id = function_exists('orabooks_get_wp_user_id_for_orabooks_user')
+            ? orabooks_get_wp_user_id_for_orabooks_user((int) $user_id)
+            : 0;
+        if ($wp_user_id <= 0 && function_exists('orabooks_ensure_wp_user_link_for_orabooks_user')) {
+            $wp_user_id = orabooks_ensure_wp_user_link_for_orabooks_user((int) $user_id);
+        }
+
+        $secret = function_exists('orabooks_get_2fa_secret')
+            ? orabooks_get_2fa_secret($wp_user_id)
+            : get_user_meta((int) $wp_user_id, 'orabooks_2fa_secret', true);
         if (!$secret) {
             return new WP_Error('2fa_not_enabled', 'Two-factor authentication is not enabled for this user');
         }
