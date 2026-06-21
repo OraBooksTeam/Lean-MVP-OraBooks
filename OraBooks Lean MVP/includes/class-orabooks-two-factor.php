@@ -20,8 +20,11 @@ class OraBooks_TwoFactor {
 
         self::$instance = new self();
 
+        add_action('init', [self::$instance, 'maybe_enforce_ajax_2fa_compliance'], 1);
+
         add_action('wp_ajax_orabooks_disable_2fa', [self::$instance, 'ajax_disable_2fa']);
         add_action('wp_ajax_orabooks_regenerate_2fa_backup_codes', [self::$instance, 'ajax_regenerate_backup_codes']);
+        add_action('wp_ajax_orabooks_reveal_2fa_backup_codes', [self::$instance, 'ajax_reveal_backup_codes']);
         add_action('wp_ajax_orabooks_2fa_status', [self::$instance, 'ajax_status']);
         add_action('wp_ajax_orabooks_admin_2fa_recover', [self::$instance, 'ajax_admin_recover']);
         add_action('wp_ajax_orabooks_org_2fa_policy_get', [self::$instance, 'ajax_org_policy_get']);
@@ -229,7 +232,10 @@ class OraBooks_TwoFactor {
         }
 
         $expected_subdomain = (string) ($payload['expected_subdomain'] ?? '');
-        $login_result = OraBooks_Auth::complete_authenticated_login($user, $expected_subdomain);
+        $login_result = OraBooks_Auth::complete_authenticated_login($user, $expected_subdomain, [
+            'via_2fa' => true,
+            'auth_method' => $method,
+        ]);
         if (is_wp_error($login_result)) {
             return $login_result;
         }
@@ -339,6 +345,93 @@ class OraBooks_TwoFactor {
             'backup_codes' => $backup_codes,
             'remaining_backup_codes' => count($backup_codes),
         ];
+    }
+
+    /**
+     * Re-display unused backup codes after OTP verification (no regeneration).
+     *
+     * @return array<string, mixed>|WP_Error
+     */
+    public static function reveal_backup_codes($orabooks_user_id, $otp_code) {
+        global $wpdb;
+
+        $orabooks_user_id = (int) $orabooks_user_id;
+        $table_users = OraBooks_Database::table('users');
+        $user = $wpdb->get_row($wpdb->prepare(
+            "SELECT id, org_id, is_2fa_enabled FROM {$table_users} WHERE id = %d",
+            $orabooks_user_id
+        ));
+
+        if (!$user || empty($user->is_2fa_enabled)) {
+            return new WP_Error('2fa_not_enabled', 'Two-factor authentication is not enabled', ['status' => 400]);
+        }
+
+        $wp_user_id = orabooks_get_wp_user_id_for_orabooks_user($orabooks_user_id);
+        $secret = $wp_user_id > 0 ? orabooks_get_2fa_secret($wp_user_id) : '';
+        $otp = OraBooks_Secrets::normalize_totp_code($otp_code);
+
+        if ($secret === '' || !OraBooks_Secrets::verify_totp($secret, $otp)) {
+            return new WP_Error('invalid_otp', 'Invalid OTP code', ['status' => 400]);
+        }
+
+        $stored_codes = $wp_user_id > 0 ? orabooks_get_2fa_backup_codes_encrypted($wp_user_id) : [];
+        if (empty($stored_codes)) {
+            return new WP_Error(
+                'backup_codes_unavailable',
+                'Backup codes cannot be retrieved. Regenerate new codes if needed.',
+                ['status' => 404]
+            );
+        }
+
+        $unused_codes = self::filter_unused_backup_codes($orabooks_user_id, $stored_codes);
+        if (empty($unused_codes)) {
+            return new WP_Error('no_backup_codes_remaining', 'No unused backup codes remain', ['status' => 404]);
+        }
+
+        orabooks_log_event(
+            '2fa_backup_codes_revealed',
+            "Backup codes viewed for user {$orabooks_user_id}",
+            'info',
+            [],
+            $orabooks_user_id,
+            $user->org_id
+        );
+
+        return [
+            'backup_codes' => $unused_codes,
+            'remaining_backup_codes' => count($unused_codes),
+        ];
+    }
+
+    /**
+     * @param string[] $codes
+     * @return string[]
+     */
+    private static function filter_unused_backup_codes($orabooks_user_id, array $codes) {
+        global $wpdb;
+
+        $table = OraBooks_Database::table('2fa_backup_codes');
+        $rows = $wpdb->get_results($wpdb->prepare(
+            "SELECT code_hash FROM {$table} WHERE user_id = %d AND used = 0",
+            (int) $orabooks_user_id
+        ));
+
+        if (empty($rows)) {
+            return [];
+        }
+
+        $unused = [];
+        foreach ($codes as $code) {
+            $normalized = orabooks_normalize_backup_code($code);
+            foreach ($rows as $row) {
+                if (OraBooks_Secrets::verify_password($normalized, $row->code_hash)) {
+                    $unused[] = $code;
+                    break;
+                }
+            }
+        }
+
+        return $unused;
     }
 
     /**
