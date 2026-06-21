@@ -115,6 +115,8 @@ class OraBooks_Csv_Imports_Test extends TestCase
     {
         global $wpdb;
 
+        $GLOBALS['orabooks_test_has_permission'] = true;
+
         $import = (object) [
             'id'                       => 10,
             'org_id'                   => 1,
