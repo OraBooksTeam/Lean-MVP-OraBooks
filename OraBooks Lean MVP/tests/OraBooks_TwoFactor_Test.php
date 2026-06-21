@@ -94,7 +94,7 @@ class OraBooks_TwoFactor_Test extends TestCase
     {
         global $wpdb;
 
-        $GLOBALS['orabooks_test_current_user_can'] = ['manage_options' => true];
+        $GLOBALS['orabooks_test_current_user_can'] = true;
         $wpdb->test_get_row_callback = function () {
             return (object) [
                 'id' => 2,
@@ -117,19 +117,20 @@ class OraBooks_TwoFactor_Test extends TestCase
     {
         global $wpdb;
 
+        $updated_config = null;
         $wpdb->test_get_row_callback = function () {
             return (object) ['id' => 5, 'config' => wp_json_encode(['foo' => 'bar'])];
         };
-        $wpdb->test_update_callback = function ($table, $data) {
-            $config = json_decode($data['config'], true);
-            $this->assertTrue($config['require_2fa']);
-            $this->assertSame('bar', $config['foo']);
+        $wpdb->test_update_callback = function ($table, $data) use (&$updated_config) {
+            $updated_config = json_decode($data['config'], true);
             return 1;
         };
 
         $result = OraBooks_TwoFactor::set_org_requires_2fa(5, true, 1);
         $this->assertSame(5, $result['org_id']);
         $this->assertTrue($result['require_2fa']);
+        $this->assertTrue($updated_config['require_2fa']);
+        $this->assertSame('bar', $updated_config['foo']);
     }
 
     #[Test]
