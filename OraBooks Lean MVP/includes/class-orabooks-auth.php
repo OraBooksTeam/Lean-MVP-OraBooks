@@ -607,18 +607,22 @@ class OraBooks_Auth {
             }
         }
 
-        $role = $user->org_id ? orabooks_get_user_role($user->id, $user->org_id) : 'viewer';
+        $org_id = orabooks_resolve_auth_org_id($user->id, (int) $user->org_id);
+        if ($org_id > 0) {
+            $org = OraBooks_Organization::get($org_id);
+        }
+        $role = $org_id ? (orabooks_get_user_role($user->id, $org_id) ?: 'viewer') : 'viewer';
         $jwt = OraBooks_Secrets::generate_jwt([
             'user_id' => $user->id,
             'email' => $user->email,
-            'org_id' => $user->org_id,
+            'org_id' => $org_id,
             'role' => $role,
             'subdomain' => $org ? $org->subdomain : '',
             'is_partner' => $user->is_partner,
         ]);
 
         $refresh_token = orabooks_random_string(32);
-        self::store_refresh_token($user->id, $user->org_id, $refresh_token, $session_context);
+        self::store_refresh_token($user->id, $org_id, $refresh_token, $session_context);
 
         $login_meta = [];
         if (!empty($session_context['via_2fa'])) {
@@ -983,29 +987,30 @@ class OraBooks_Auth {
             return new WP_Error('user_not_found', 'User not found');
         }
         
-        $role = $user->org_id ? orabooks_get_user_role($user->id, $user->org_id) : 'viewer';
-        $org = $user->org_id ? OraBooks_Organization::get($user->org_id) : null;
+        $org_id = orabooks_resolve_auth_org_id($user->id, (int) $user->org_id);
+        $role = $org_id ? (orabooks_get_user_role($user->id, $org_id) ?: 'viewer') : 'viewer';
+        $org = $org_id ? OraBooks_Organization::get($org_id) : null;
 
         // Generate new tokens
         $new_jwt = OraBooks_Secrets::generate_jwt([
             'user_id' => $user->id,
             'email' => $user->email,
-            'org_id' => $user->org_id,
+            'org_id' => $org_id,
             'role' => $role,
             'subdomain' => $org ? $org->subdomain : '',
             'is_partner' => $user->is_partner,
         ]);
         
         $new_refresh = orabooks_random_string(32);
-        self::store_refresh_token($user->id, $user->org_id, $new_refresh);
+        self::store_refresh_token($user->id, $org_id, $new_refresh);
         
-        orabooks_log_event('refresh_token_rotated', "Refresh token rotated for user {$user->id}", 'info', [], $user->id, $user->org_id);
+        orabooks_log_event('refresh_token_rotated', "Refresh token rotated for user {$user->id}", 'info', [], $user->id, $org_id);
         
         return [
             'token' => $new_jwt,
             'refresh_token' => $new_refresh,
             'user_id' => (int) $user->id,
-            'org_id' => $user->org_id ? (int) $user->org_id : null,
+            'org_id' => $org_id ? (int) $org_id : null,
             'role' => $role,
             'subdomain' => $org ? $org->subdomain : '',
             'is_partner' => (bool) $user->is_partner,
