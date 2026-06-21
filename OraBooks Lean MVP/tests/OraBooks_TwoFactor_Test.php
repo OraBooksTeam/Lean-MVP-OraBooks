@@ -1,0 +1,154 @@
+<?php
+/**
+ * Unit Tests for OraBooks_TwoFactor (SL-013)
+ */
+
+use PHPUnit\Framework\Attributes\Test;
+use PHPUnit\Framework\TestCase;
+
+class OraBooks_TwoFactor_Test extends TestCase
+{
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $GLOBALS['orabooks_test_log_events'] = [];
+        $GLOBALS['orabooks_test_user_meta'] = [];
+
+        global $wpdb;
+        $wpdb->test_get_row_callback = null;
+        $wpdb->test_get_var_callback = null;
+        $wpdb->test_get_results_callback = null;
+        $wpdb->test_update_callback = null;
+        $wpdb->test_query_callback = null;
+        $wpdb->insert_id = 0;
+    }
+
+    #[Test]
+    public function test_org_requires_2fa_reads_config_json()
+    {
+        global $wpdb;
+
+        $wpdb->test_get_var_callback = function ($query) {
+            if (stripos($query, 'config') !== false) {
+                return wp_json_encode(['require_2fa' => true]);
+            }
+            return null;
+        };
+
+        $this->assertTrue(OraBooks_TwoFactor::org_requires_2fa(5));
+    }
+
+    #[Test]
+    public function test_user_needs_2fa_setup_when_org_requires_and_user_disabled()
+    {
+        global $wpdb;
+
+        $wpdb->test_get_var_callback = function ($query) {
+            if (stripos($query, 'config') !== false) {
+                return wp_json_encode(['require_2fa' => true]);
+            }
+            if (stripos($query, 'is_2fa_enabled') !== false) {
+                return 0;
+            }
+            return null;
+        };
+
+        $this->assertTrue(OraBooks_TwoFactor::user_needs_2fa_setup(3, 5));
+    }
+
+    #[Test]
+    public function test_disable_blocked_when_org_requires_2fa()
+    {
+        global $wpdb;
+
+        $wpdb->test_get_row_callback = function () {
+            return (object) [
+                'id' => 3,
+                'org_id' => 5,
+                'is_2fa_enabled' => 1,
+            ];
+        };
+        $wpdb->test_get_var_callback = function ($query) {
+            if (stripos($query, 'config') !== false) {
+                return wp_json_encode(['require_2fa' => true]);
+            }
+            return null;
+        };
+
+        $result = OraBooks_TwoFactor::disable(3, '123456');
+        $this->assertInstanceOf(WP_Error::class, $result);
+        $this->assertSame('org_2fa_required', $result->get_error_code());
+    }
+
+    #[Test]
+    public function test_admin_recover_requires_justification()
+    {
+        $result = OraBooks_TwoFactor::admin_recover(2, 1, '   ');
+        $this->assertInstanceOf(WP_Error::class, $result);
+        $this->assertSame('justification_required', $result->get_error_code());
+    }
+
+    #[Test]
+    public function test_admin_recover_platform_admin_succeeds()
+    {
+        global $wpdb;
+
+        $GLOBALS['orabooks_test_current_user_can'] = ['manage_options' => true];
+        $wpdb->test_get_row_callback = function () {
+            return (object) [
+                'id' => 2,
+                'org_id' => 5,
+                'email' => 'locked@example.com',
+                'is_2fa_enabled' => 1,
+            ];
+        };
+        $wpdb->test_update_callback = function () {
+            return 1;
+        };
+
+        $result = OraBooks_TwoFactor::admin_recover(2, 1, 'User lost authenticator device');
+        $this->assertIsArray($result);
+        $this->assertFalse($result['is_2fa_enabled']);
+    }
+
+    #[Test]
+    public function test_set_org_requires_2fa_updates_config()
+    {
+        global $wpdb;
+
+        $wpdb->test_get_row_callback = function () {
+            return (object) ['id' => 5, 'config' => wp_json_encode(['foo' => 'bar'])];
+        };
+        $wpdb->test_update_callback = function ($table, $data) {
+            $config = json_decode($data['config'], true);
+            $this->assertTrue($config['require_2fa']);
+            $this->assertSame('bar', $config['foo']);
+            return 1;
+        };
+
+        $result = OraBooks_TwoFactor::set_org_requires_2fa(5, true, 1);
+        $this->assertSame(5, $result['org_id']);
+        $this->assertTrue($result['require_2fa']);
+    }
+
+    #[Test]
+    public function test_assert_org_compliance_blocks_when_setup_required()
+    {
+        global $wpdb;
+
+        $wpdb->test_get_var_callback = function ($query) {
+            if (stripos($query, 'config') !== false) {
+                return wp_json_encode(['require_2fa' => true]);
+            }
+            if (stripos($query, 'is_2fa_enabled') !== false) {
+                return 0;
+            }
+            return null;
+        };
+
+        $result = OraBooks_TwoFactor::assert_org_compliance(3, 5);
+        $this->assertInstanceOf(WP_Error::class, $result);
+        $this->assertSame('2fa_setup_required', $result->get_error_code());
+    }
+}
