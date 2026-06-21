@@ -100,6 +100,9 @@ class OraBooks_Team_Test extends TestCase
     #[Test]
     public function test_invite_user_rejects_rate_limit(): void
     {
+        global $wpdb;
+
+        $wpdb->test_get_var_callback = fn() => null;
         $GLOBALS['orabooks_test_rate_limit_allowed'] = false;
 
         $result = OraBooks_Team::invite_user(10, 'new@example.com', 'staff', 1);
