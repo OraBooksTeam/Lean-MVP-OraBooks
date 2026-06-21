@@ -109,6 +109,16 @@ class OraBooks_Ajax {
                 : OraBooks_RBAC::get_effective_permissions($role, $org ? (int) $org->id : null);
         }
 
+        $org_require_2fa = $org && class_exists('OraBooks_TwoFactor')
+            ? OraBooks_TwoFactor::org_requires_2fa((int) $org->id)
+            : false;
+        $needs_2fa_setup = $org && class_exists('OraBooks_TwoFactor')
+            ? OraBooks_TwoFactor::user_needs_2fa_setup($user_id, (int) $org->id)
+            : false;
+        $remaining_backup_codes = class_exists('OraBooks_TwoFactor')
+            ? OraBooks_TwoFactor::count_remaining_backup_codes($user_id)
+            : 0;
+
         return [
             'user_id' => $user_id,
             'user' => [
@@ -117,6 +127,7 @@ class OraBooks_Ajax {
                 'is_partner' => (bool) $user->is_partner,
                 'is_email_verified' => (bool) $user->is_email_verified,
                 'is_2fa_enabled' => (bool) $user->is_2fa_enabled,
+                'remaining_backup_codes' => $remaining_backup_codes,
             ],
             'organization' => $org ? [
                 'id' => (int) $org->id,
@@ -127,7 +138,12 @@ class OraBooks_Ajax {
                 'status' => $org->status,
                 'organization_type' => $org->organization_type,
                 'owner_id' => (int) $org->owner_id,
+                'require_2fa' => $org_require_2fa,
             ] : null,
+            'security' => [
+                'needs_2fa_setup' => $needs_2fa_setup,
+                'org_require_2fa' => $org_require_2fa,
+            ],
             'role' => $role,
             'permissions' => $permissions,
             'permission_matrix' => class_exists('OBN_Access_Control') ? OBN_Access_Control::get_permission_matrix(true) : [],
