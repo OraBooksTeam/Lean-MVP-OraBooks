@@ -2053,6 +2053,41 @@ if (!function_exists('orabooks_mask_email')) {
     }
 }
 
+if (!function_exists('orabooks_hash_email')) {
+    function orabooks_hash_email($email) {
+        $email = strtolower(trim((string) $email));
+        return $email === '' ? '' : hash('sha256', $email);
+    }
+}
+
+if (!function_exists('orabooks_get_correlation_id')) {
+    function orabooks_get_correlation_id($generate = true) {
+        if (!empty($GLOBALS['orabooks_correlation_id'])) {
+            return (string) $GLOBALS['orabooks_correlation_id'];
+        }
+        if (!$generate) {
+            return '';
+        }
+        $GLOBALS['orabooks_correlation_id'] = orabooks_uuid();
+        return $GLOBALS['orabooks_correlation_id'];
+    }
+}
+
+if (!function_exists('orabooks_set_correlation_id')) {
+    function orabooks_set_correlation_id($correlation_id) {
+        $correlation_id = trim((string) $correlation_id);
+        if ($correlation_id !== '') {
+            $GLOBALS['orabooks_correlation_id'] = $correlation_id;
+        }
+    }
+}
+
+if (!function_exists('sanitize_title')) {
+    function sanitize_title($title) {
+        return strtolower(preg_replace('/[^a-z0-9]+/i', '-', (string) $title));
+    }
+}
+
 // Stub OraBooks_RBAC
 if (!class_exists('OraBooks_RBAC', false)) {
     class OraBooks_RBAC {
