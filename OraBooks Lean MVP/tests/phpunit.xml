@@ -28,6 +28,7 @@
         </testsuite>
         <testsuite name="OraBooks SL-013 Auth Tests">
             <file>OraBooks_Auth_Test.php</file>
+            <file>OraBooks_TwoFactor_Test.php</file>
         </testsuite>
         <testsuite name="OraBooks SL-021 Customers Tests">
             <file>OraBooks_Customers_Test.php</file>
