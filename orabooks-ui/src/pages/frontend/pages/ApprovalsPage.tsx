@@ -1,9 +1,11 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import WpLink from '../components/WpLink';
 import Button from '@/components/Button';
+import Input from '@/components/Input';
 import { api } from '../api';
 import ClientShell from '../components/ClientShell';
-import { CheckCircle2, Eye, Paperclip, RefreshCw, Send, ShieldCheck, XCircle } from 'lucide-react';
+import WorkflowModal from '../components/WorkflowModal';
+import { CheckCircle2, Eye, Paperclip, RefreshCw, Send, Settings2, ShieldCheck, XCircle } from 'lucide-react';
 import { getSearchParam } from '../lib/wp-routing';
 
 export default function ApprovalsPage() {
@@ -16,15 +18,28 @@ export default function ApprovalsPage() {
   const [selectedJournalId, setSelectedJournalId] = useState<number | null>(null);
   const [journalDetail, setJournalDetail] = useState<any>(null);
   const [detailLoading, setDetailLoading] = useState(false);
+  const [sort, setSort] = useState('age');
+  const [sortOrder, setSortOrder] = useState('ASC');
+  const [rejectModal, setRejectModal] = useState<{ open: boolean; journalId: number | null; reason: string }>({
+    open: false,
+    journalId: null,
+    reason: '',
+  });
+  const [mfaModal, setMfaModal] = useState<{ open: boolean; journalId: number | null; amount: number; code: string }>({
+    open: false,
+    journalId: null,
+    amount: 0,
+    code: '',
+  });
 
   const caps = data?.capabilities || {};
   const orgId = data?.context?.organization?.id;
 
-  const load = async () => {
+  const load = async (nextSort = sort, nextOrder = sortOrder) => {
     setLoading(true);
     setError('');
     setSuccess('');
-    const res = await api.approvalDashboard();
+    const res = await api.approvalDashboard(nextSort, nextOrder);
     if (res.error) setError(res.error || 'Unable to load approvals.');
     else setData((res as any).data);
     setLoading(false);
@@ -76,39 +91,43 @@ export default function ApprovalsPage() {
     setActionId(null);
   };
 
-  const handleApprove = async (journalId: number, amount = 0, mfaThreshold = 10000) => {
+  const handleApprove = async (journalId: number, amount = 0, mfaThreshold = 10000, mfaOtp?: string) => {
+    if (amount >= mfaThreshold && !mfaOtp) {
+      setMfaModal({ open: true, journalId, amount, code: '' });
+      return;
+    }
+
     setActionId(journalId);
     setError('');
-    let mfaOtp: string | undefined;
-    if (amount >= mfaThreshold) {
-      const code = window.prompt('This approval exceeds the MFA threshold. Enter your 6-digit 2FA code:');
-      if (!code?.trim()) {
-        setActionId(null);
-        return;
-      }
-      mfaOtp = code.trim();
-    }
     const res = await api.approveJournal(journalId, mfaOtp);
     if (res.error) setError(res.error);
     else {
       setSuccess('Journal approved.');
+      setMfaModal({ open: false, journalId: null, amount: 0, code: '' });
       await refreshAfterAction(journalId);
     }
     setActionId(null);
   };
 
-  const handleReject = async (journalId: number) => {
-    const reason = window.prompt('Enter rejection reason:');
-    if (!reason?.trim()) return;
+  const handleReject = async (journalId: number, reason: string) => {
+    if (!reason.trim()) {
+      setError('Rejection reason is required.');
+      return;
+    }
     setActionId(journalId);
     setError('');
     const res = await api.rejectJournal(journalId, reason.trim());
     if (res.error) setError(res.error);
     else {
       setSuccess('Journal rejected and returned to draft.');
+      setRejectModal({ open: false, journalId: null, reason: '' });
       await refreshAfterAction(journalId);
     }
     setActionId(null);
+  };
+
+  const openRejectModal = (journalId: number) => {
+    setRejectModal({ open: true, journalId, reason: '' });
   };
 
   const handlePost = async (journalId: number) => {
@@ -133,11 +152,41 @@ export default function ApprovalsPage() {
           <Metric label="Posted (MTD)" value={data?.stats?.posted_mtd ?? 0} tone="success" />
         </div>
 
-        <div className="flex justify-end">
-          <Button onClick={load} variant="secondary" size="sm">
-            <RefreshCw className="h-4 w-4" />
-            Refresh
-          </Button>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-wrap items-center gap-2">
+            <label className="text-sm font-semibold text-ink" htmlFor="approval-sort">
+              Sort pending by
+            </label>
+            <select
+              id="approval-sort"
+              value={sort}
+              onChange={(event) => {
+                const nextSort = event.target.value;
+                setSort(nextSort);
+                void load(nextSort, sortOrder);
+              }}
+              className="rounded-lg border border-border bg-white px-3 py-2 text-sm text-ink shadow-sm focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
+            >
+              <option value="age">Age (oldest first)</option>
+              <option value="amount">Amount</option>
+              <option value="risk">Risk (high amount)</option>
+              <option value="created_at">Created date</option>
+            </select>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {caps.manage_policy && (
+              <WpLink to="/approval-settings">
+                <Button variant="secondary" size="sm">
+                  <Settings2 className="h-4 w-4" />
+                  Settings
+                </Button>
+              </WpLink>
+            )}
+            <Button onClick={() => void load()} variant="secondary" size="sm">
+              <RefreshCw className="h-4 w-4" />
+              Refresh
+            </Button>
+          </div>
         </div>
 
         {error && (
@@ -167,7 +216,7 @@ export default function ApprovalsPage() {
               setJournalDetail(null);
             }}
             onApprove={(id, amount) => void handleApprove(id, amount, Number(data?.policy?.mfa_amount_threshold ?? 10000))}
-            onReject={(id) => void handleReject(id)}
+            onReject={(id) => openRejectModal(id)}
             onPost={(id) => void handlePost(id)}
             onSubmit={(id, round) => void handleSubmit(id, round)}
             mfaThreshold={Number(data?.policy?.mfa_amount_threshold ?? 10000)}
