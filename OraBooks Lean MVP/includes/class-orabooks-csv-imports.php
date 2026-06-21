@@ -605,6 +605,11 @@ class OraBooks_Csv_Imports {
             $import->header_mapping = wp_json_encode($overrides['header_mapping']);
         }
 
+        $mapping = json_decode($import->header_mapping ?: '{}', true);
+        if (!is_array($mapping)) {
+            $mapping = [];
+        }
+
         $wpdb->update($table, [
             'status'                   => 'confirmed',
             'confirm_idempotency_key'  => $confirm_key,
@@ -615,6 +620,24 @@ class OraBooks_Csv_Imports {
             "SELECT * FROM {$rows_table} WHERE import_id = %d ORDER BY row_index ASC",
             $import_id
         ));
+
+        if (!empty($overrides['header_mapping']) && is_array($overrides['header_mapping'])) {
+            foreach ($rows as $row) {
+                $raw = json_decode($row->raw_data, true) ?: [];
+                $parsed = self::apply_mapping($raw, $mapping, $import->resource_type);
+                $parsed = self::normalize_parsed_row($parsed, $import->resource_type);
+                $confidence = self::compute_row_confidence($parsed, $import->resource_type);
+                $wpdb->update($rows_table, [
+                    'parsed_data'    => wp_json_encode($parsed),
+                    'confidence_avg' => $confidence['avg'],
+                    'risk_scores'    => wp_json_encode($confidence['risks']),
+                ], ['id' => $row->id], ['%s', '%f', '%s'], ['%d']);
+            }
+            $rows = $wpdb->get_results($wpdb->prepare(
+                "SELECT * FROM {$rows_table} WHERE import_id = %d ORDER BY row_index ASC",
+                $import_id
+            ));
+        }
 
         $processed = 0;
         $escalated = 0;
@@ -648,7 +671,7 @@ class OraBooks_Csv_Imports {
                 continue;
             }
 
-            $result = self::create_derived_resource($org_id, $import->resource_type, $parsed, $import_id, (int) $row->row_index);
+            $result = self::create_derived_resource($org_id, $import->resource_type, $parsed, $import_id, (int) $row->row_index, $user_id);
             if (is_wp_error($result)) {
                 $wpdb->update($rows_table, [
                     'status'             => 'failed',
@@ -668,12 +691,14 @@ class OraBooks_Csv_Imports {
 
         $wpdb->update($table, ['processed_rows' => $processed], ['id' => $import_id], ['%d'], ['%d']);
 
+        $correlation_id = function_exists('orabooks_get_correlation_id') ? orabooks_get_correlation_id(true) : orabooks_uuid();
         orabooks_log_event('csv_import_confirmed', "CSV import #{$import_id} confirmed", 'info', [
             'import_id'  => $import_id,
             'processed'  => $processed,
             'escalated'  => $escalated,
             'failed'     => $failed,
-        ], $user_id, $org_id);
+            'correlation_id' => $correlation_id,
+        ], $user_id, $org_id, $correlation_id);
 
         orabooks_publish_event('csv_import_completed', $import_id, [
             'import_id'     => $import_id,
@@ -701,8 +726,9 @@ class OraBooks_Csv_Imports {
      *
      * @return array|WP_Error { resource_type, resource_id }
      */
-    public static function create_derived_resource($org_id, $resource_type, array $parsed, $import_id, $row_index) {
+    public static function create_derived_resource($org_id, $resource_type, array $parsed, $import_id, $row_index, $user_id = 0) {
         $idempotency = 'csv_' . $import_id . '_' . $row_index;
+        $user_id = (int) $user_id;
 
         switch ($resource_type) {
             case 'inventory_item':
@@ -749,6 +775,49 @@ class OraBooks_Csv_Imports {
 
             case 'invoice':
                 return self::create_invoice_from_row($org_id, $parsed, $idempotency);
+
+            case 'journal':
+                return self::create_journal_from_row($org_id, $parsed, $idempotency, $user_id);
+
+            case 'price_list':
+                if (!class_exists('OraBooks_Inventory')) {
+                    return new WP_Error('missing_module', 'Inventory module unavailable');
+                }
+                $result = OraBooks_Inventory::create_product($org_id, [
+                    'sku'           => $parsed['sku'] ?? ('PL-' . $row_index),
+                    'name'          => $parsed['name'] ?? 'Imported Price Item',
+                    'initial_cost'  => $parsed['unit_price'] ?? $parsed['total_amount'] ?? 0,
+                    'initial_stock' => 0,
+                ]);
+                if (is_wp_error($result)) {
+                    return $result;
+                }
+                return [
+                    'resource_type' => 'price_list',
+                    'resource_id'   => (int) ($result->id ?? 0),
+                ];
+
+            case 'payroll':
+                if (!class_exists('OraBooks_Vendors')) {
+                    return new WP_Error('missing_module', 'Vendors module unavailable');
+                }
+                if (!empty($parsed['total_amount']) && class_exists('OraBooks_Vendors')) {
+                    return self::create_expense_from_row($org_id, array_merge($parsed, [
+                        'vendor_name' => $parsed['employee_name'] ?? $parsed['name'] ?? 'Payroll',
+                        'description' => $parsed['description'] ?? 'CSV payroll import',
+                    ]), $idempotency);
+                }
+                $result = OraBooks_Vendors::create_vendor($org_id, [
+                    'name'  => $parsed['employee_name'] ?? $parsed['name'] ?? 'Imported Employee',
+                    'email' => $parsed['email'] ?? null,
+                ]);
+                if (is_wp_error($result)) {
+                    return $result;
+                }
+                return [
+                    'resource_type' => 'payroll',
+                    'resource_id'   => (int) ($result->id ?? 0),
+                ];
 
             default:
                 return new WP_Error('unsupported', 'Unsupported resource type');
