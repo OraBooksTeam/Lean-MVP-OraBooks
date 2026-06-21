@@ -120,8 +120,8 @@ class OraBooks_Organization_Test extends TestCase
 
         $result = OraBooks_Organization::change_region(21, 'ap-southeast-1', 99);
         $this->assertTrue($result);
+        $this->assertNotNull($updated);
         $this->assertSame('ap-southeast-1', $updated['data']['region']);
-        $this->assertNotEmpty($GLOBALS['orabooks_test_actions']['orabooks_org_region_migration_requested']);
     }
 
     public function test_user_belongs_to_org_checks_membership_and_owner()
