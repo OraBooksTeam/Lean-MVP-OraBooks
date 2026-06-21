@@ -14,11 +14,6 @@ export default function VerifyEmailPage() {
   const [resendMsg, setResendMsg] = useState('');
   const [resendError, setResendError] = useState('');
   const [resendLoading, setResendLoading] = useState(false);
-  const [pendingInviteToken, setPendingInviteToken] = useState('');
-
-  useEffect(() => {
-    setPendingInviteToken(window.sessionStorage.getItem('orabooks_pending_invite_token') || '');
-  }, []);
 
   useEffect(() => {
     if (!token) {
@@ -26,19 +21,21 @@ export default function VerifyEmailPage() {
       setLoading(false);
       return;
     }
+    const pendingInvite = window.sessionStorage.getItem('orabooks_pending_invite_token') || '';
     api.verifyEmailToken(token).then((res) => {
       if (res.error) setError(typeof res.error === 'string' ? res.error : 'Verification failed');
       else {
         setSuccess(
-          pendingInviteToken
+          pendingInvite
             ? 'Email verified. Log in to finish joining your team.'
             : 'Email verified successfully. You can now log in.'
         );
       }
       setLoading(false);
     });
-  }, [token, pendingInviteToken]);
+  }, [token]);
 
+  const pendingInviteToken = window.sessionStorage.getItem('orabooks_pending_invite_token') || '';
   const loginUrl = pendingInviteToken
     ? getAcceptInviteUrl(pendingInviteToken)
     : getNetworkAuthUrl('login');
