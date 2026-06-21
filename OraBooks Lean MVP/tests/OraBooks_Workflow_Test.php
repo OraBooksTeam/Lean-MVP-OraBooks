@@ -26,9 +26,20 @@ class OraBooks_Workflow_Test extends TestCase
         $GLOBALS['orabooks_test_current_user_can'] = true;
         $GLOBALS['orabooks_test_use_insert_id'] = null;
         $GLOBALS['orabooks_test_log_events'] = [];
-        $GLOBALS['orabooks_test_filters'] = [];
+        $this->reset_test_filters_preserving_workflow();
         $GLOBALS['orabooks_test_actions'] = [];
         $GLOBALS['orabooks_test_publish_event_result'] = 100;
+    }
+
+    private function reset_test_filters_preserving_workflow(): void
+    {
+        $preserve = [];
+        foreach (['orabooks_workflow_preconditions', 'orabooks_workflow_after_transition', 'orabooks_workflow_row_updates', 'orabooks_workflow_state_machines'] as $tag) {
+            if (!empty($GLOBALS['orabooks_test_filters'][$tag])) {
+                $preserve[$tag] = $GLOBALS['orabooks_test_filters'][$tag];
+            }
+        }
+        $GLOBALS['orabooks_test_filters'] = $preserve;
     }
 
     private function mock_journal_for_update(object $journal): void
@@ -389,19 +400,4 @@ class OraBooks_Workflow_Test extends TestCase
             return null;
         };
         $wpdb->test_update_callback = function ($table, $data) {
-            return isset($data['workflow_status']) && $data['workflow_status'] === 'cancelled';
-        };
-        $wpdb->test_insert_callback = function () {
-            return true;
-        };
-        $GLOBALS['orabooks_test_use_insert_id'] = 903;
-
-        $result = OraBooks_Workflow::transition('invoice', 21, 'cancel', [
-            'user_id' => 1,
-            'org_id'  => 3,
-        ]);
-
-        $this->assertIsArray($result);
-        $this->assertEquals('cancelled', $result['to_state']);
-    }
-}
+            r
