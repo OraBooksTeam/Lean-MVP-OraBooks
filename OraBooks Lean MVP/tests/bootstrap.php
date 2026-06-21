@@ -1580,6 +1580,37 @@ if (!function_exists('orabooks_resolve_authenticated_user_id')) {
     }
 }
 
+if (!function_exists('orabooks_has_completed_partner_onboarding')) {
+    function orabooks_has_completed_partner_onboarding($user_id) {
+        $user_id = (int) $user_id;
+        $wp_user_id = orabooks_get_wp_user_id_for_orabooks_user($user_id);
+        if ($wp_user_id <= 0) {
+            return false;
+        }
+        return (bool) get_user_meta($wp_user_id, 'orabooks_partner_onboarding_completed', true);
+    }
+}
+
+if (!function_exists('orabooks_mark_partner_onboarding_completed')) {
+    function orabooks_mark_partner_onboarding_completed($user_id) {
+        $user_id = (int) $user_id;
+        $wp_user_id = orabooks_get_wp_user_id_for_orabooks_user($user_id);
+        if ($wp_user_id <= 0) {
+            return false;
+        }
+        update_user_meta($wp_user_id, 'orabooks_partner_onboarding_completed', '1');
+        return true;
+    }
+}
+
+if (!function_exists('orabooks_get_partner_post_login_path')) {
+    function orabooks_get_partner_post_login_path($user_id) {
+        return orabooks_has_completed_partner_onboarding($user_id)
+            ? '/partner-program/'
+            : '/partner/onboarding/';
+    }
+}
+
 if (!function_exists('orabooks_enrich_login_response')) {
     function orabooks_enrich_login_response($login_result) {
         if (!is_array($login_result)) {
