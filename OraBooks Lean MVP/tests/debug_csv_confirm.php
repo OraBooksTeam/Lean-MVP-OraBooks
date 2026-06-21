@@ -37,6 +37,10 @@ $wpdb->test_get_var_callback = function ($query) {
     return null;
 };
 
+$org = OraBooks_Organization::get(1);
+echo "ORG: " . var_export($org, true) . "\n";
+echo "ROLE: " . var_export(orabooks_get_user_role(1, 1), true) . "\n";
+
 $perm = OraBooks_RBAC::require_permission(1, 1, 'submit_transaction');
 echo "PERM: " . var_export($perm, true) . "\n";
 
