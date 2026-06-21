@@ -3,7 +3,7 @@ import { MailCheck } from 'lucide-react';
 import Button from '@/components/Button';
 import Input from '@/components/Input';
 import { api } from '../api';
-import { getNetworkAuthUrl } from '../lib/auth-routing';
+import { getNetworkAuthUrl, getAcceptInviteUrl } from '../lib/auth-routing';
 
 export default function VerifyEmailPage() {
   const token = useMemo(() => new URLSearchParams(window.location.search).get('token') || '', []);
@@ -14,6 +14,11 @@ export default function VerifyEmailPage() {
   const [resendMsg, setResendMsg] = useState('');
   const [resendError, setResendError] = useState('');
   const [resendLoading, setResendLoading] = useState(false);
+  const [pendingInviteToken, setPendingInviteToken] = useState('');
+
+  useEffect(() => {
+    setPendingInviteToken(window.sessionStorage.getItem('orabooks_pending_invite_token') || '');
+  }, []);
 
   useEffect(() => {
     if (!token) {
@@ -23,10 +28,20 @@ export default function VerifyEmailPage() {
     }
     api.verifyEmailToken(token).then((res) => {
       if (res.error) setError(typeof res.error === 'string' ? res.error : 'Verification failed');
-      else setSuccess('Email verified successfully. You can now log in.');
+      else {
+        setSuccess(
+          pendingInviteToken
+            ? 'Email verified. Log in to finish joining your team.'
+            : 'Email verified successfully. You can now log in.'
+        );
+      }
       setLoading(false);
     });
-  }, [token]);
+  }, [token, pendingInviteToken]);
+
+  const loginUrl = pendingInviteToken
+    ? getAcceptInviteUrl(pendingInviteToken)
+    : getNetworkAuthUrl('login');
 
   const resend = async (e: FormEvent) => {
     e.preventDefault();
@@ -73,8 +88,8 @@ export default function VerifyEmailPage() {
         </form>
 
         <div className="mt-6">
-          <Button type="button" variant="secondary" onClick={() => { window.location.href = getNetworkAuthUrl('login'); }}>
-            Go to login
+          <Button type="button" variant="secondary" onClick={() => { window.location.href = loginUrl; }}>
+            {pendingInviteToken ? 'Continue to team invite' : 'Go to login'}
           </Button>
         </div>
       </div>
