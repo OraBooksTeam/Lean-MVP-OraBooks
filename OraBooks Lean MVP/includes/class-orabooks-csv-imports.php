@@ -23,14 +23,20 @@ class OraBooks_Csv_Imports {
     const RETENTION_DAYS     = 90;
     const PREVIEW_ROW_LIMIT  = 10;
 
-    /** Supported resource types for MVP import. */
+    /** Supported resource types for MVP import (SL-113). */
     const RESOURCE_TYPES = [
         'inventory_item',
         'contact',
         'vendor',
         'expense',
         'invoice',
+        'journal',
+        'price_list',
+        'payroll',
     ];
+
+    /** Accounting resources require approval queue (workflow_status=submitted). */
+    const ACCOUNTING_RESOURCE_TYPES = ['expense', 'invoice', 'journal'];
 
     private static $instance = null;
 
@@ -39,6 +45,7 @@ class OraBooks_Csv_Imports {
             self::$instance = new self();
 
             add_action('orabooks_csv_imports_purge', [self::$instance, 'cron_purge_old_imports']);
+            add_action('orabooks_daily_cleanup', [self::$instance, 'cron_purge_old_imports']);
 
             add_action('wp_ajax_orabooks_csv_upload', [self::$instance, 'ajax_upload']);
             add_action('wp_ajax_nopriv_orabooks_csv_upload', [self::$instance, 'ajax_upload']);
@@ -70,11 +77,13 @@ class OraBooks_Csv_Imports {
                 id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
                 org_id BIGINT UNSIGNED NOT NULL,
                 user_id BIGINT UNSIGNED NOT NULL,
-                storage_key VARCHAR(500) NOT NULL COMMENT 'Path under wp_upload_dir/orabooks-imports',
+                attachment_id BIGINT UNSIGNED DEFAULT NULL COMMENT 'SL-203 encrypted attachment',
+                storage_key VARCHAR(500) NOT NULL DEFAULT '' COMMENT 'Encrypted path under wp_upload_dir/orabooks-imports',
                 original_filename VARCHAR(255) NOT NULL,
                 file_hash VARCHAR(64) NOT NULL,
                 resource_type VARCHAR(50) NOT NULL,
                 header_mapping JSON DEFAULT NULL,
+                source_headers JSON DEFAULT NULL,
                 total_rows INT UNSIGNED DEFAULT 0,
                 processed_rows INT UNSIGNED DEFAULT 0,
                 status ENUM('uploaded','parsing','mapping','pending_confirm','confirmed','failed') DEFAULT 'uploaded',
@@ -154,6 +163,10 @@ class OraBooks_Csv_Imports {
 
         if ($content === '' || strlen($content) > self::MAX_FILE_SIZE) {
             return new WP_Error('invalid_file', 'CSV file is empty or exceeds 10MB limit');
+        }
+
+        if (function_exists('mb_check_encoding') && !mb_check_encoding($content, 'UTF-8')) {
+            return new WP_Error('invalid_encoding', 'CSV must be UTF-8 encoded');
         }
 
         if ($idempotency_key === '') {
