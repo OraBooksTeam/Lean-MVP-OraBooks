@@ -1127,6 +1127,44 @@ class OraBooks_Database {
     }
 
     /**
+     * SL-009: DB-level immutability for audit_logs (archival bypass via session var).
+     */
+    private static function ensure_audit_immutability_triggers($table_audit) {
+        global $wpdb;
+
+        $update_trigger = 'orabooks_prevent_audit_update';
+        $delete_trigger = 'orabooks_prevent_audit_delete';
+
+        $exists = $wpdb->get_var($wpdb->prepare(
+            "SELECT TRIGGER_NAME FROM information_schema.TRIGGERS WHERE TRIGGER_SCHEMA = DATABASE() AND TRIGGER_NAME = %s",
+            $update_trigger
+        ));
+        if (!$exists) {
+            $wpdb->query(
+                "CREATE TRIGGER {$update_trigger} BEFORE UPDATE ON {$table_audit}
+                 FOR EACH ROW
+                 SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Audit logs are immutable (application update forbidden)'"
+            );
+        }
+
+        $exists = $wpdb->get_var($wpdb->prepare(
+            "SELECT TRIGGER_NAME FROM information_schema.TRIGGERS WHERE TRIGGER_SCHEMA = DATABASE() AND TRIGGER_NAME = %s",
+            $delete_trigger
+        ));
+        if (!$exists) {
+            $wpdb->query(
+                "CREATE TRIGGER {$delete_trigger} BEFORE DELETE ON {$table_audit}
+                 FOR EACH ROW
+                 BEGIN
+                    IF @orabooks_audit_archival IS NULL OR @orabooks_audit_archival <> 1 THEN
+                        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Audit logs cannot be deleted directly. Use archival process.';
+                    END IF;
+                 END"
+            );
+        }
+    }
+
+    /**
      * SL-001 guardrails that dbDelta cannot express reliably.
      *
      * MySQL has no deferred constraints, so journal line inserts remain editable while
