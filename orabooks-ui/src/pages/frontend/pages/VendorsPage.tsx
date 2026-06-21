@@ -537,6 +537,11 @@ export default function VendorsPage() {
                           Post
                         </Button>
                       )}
+                      {canVoidBill(bill) && (
+                        <Button size="sm" variant="secondary" disabled={actionBillId === bill.id} onClick={() => { setVoidBill(bill); setVoidReason(''); setError(''); }}>
+                          Void
+                        </Button>
+                      )}
                       <WpLink to={`/attachments?resource_type=bill&resource_id=${bill.id}`}>
                         <Button size="sm" variant="secondary">
                           <Paperclip className="h-3.5 w-3.5" />
@@ -665,6 +670,25 @@ export default function VendorsPage() {
             <div className="mt-6 flex justify-end gap-2">
               <Button variant="secondary" onClick={() => setCreditNoteVendor(null)}>Cancel</Button>
               <Button onClick={handleCreateCreditNote} disabled={saving}>Create credit note</Button>
+            </div>
+          </Modal>
+        )}
+
+        {voidBill && (
+          <Modal title="Void bill" onClose={() => setVoidBill(null)}>
+            {error && <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div>}
+            <p className="text-sm text-slate-600">
+              Void bill {voidBill.bill_number || `#${voidBill.id}`}? Posted bills cannot be voided.
+            </p>
+            <div className="mt-4">
+              <label className="mb-1 block text-sm font-medium text-slate-700">Reason (optional)</label>
+              <Input value={voidReason} onChange={(e) => setVoidReason(e.target.value)} placeholder="Why is this bill being voided?" />
+            </div>
+            <div className="mt-6 flex justify-end gap-2">
+              <Button variant="secondary" onClick={() => setVoidBill(null)}>Keep bill</Button>
+              <Button onClick={() => void handleVoidBill()} disabled={actionBillId === voidBill.id}>
+                Confirm void
+              </Button>
             </div>
           </Modal>
         )}
