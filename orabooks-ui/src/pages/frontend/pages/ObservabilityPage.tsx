@@ -31,7 +31,7 @@ export default function ObservabilityPage() {
       isPartner={context?.is_partner}
     >
       <p className="mb-4 text-sm text-slate-600">
-        Queue depth, lag, failure rates, and subsystem health snapshots.
+        SLO compliance, error budgets, queue depth, lag, failure rates, and subsystem health snapshots.
       </p>
       <ObservabilityPanel />
     </ClientShell>
