@@ -344,6 +344,8 @@ export const api = {
     api.post('orabooks_disable_2fa', { otp_code: otpCode }),
   regenerate2faBackupCodes: (otpCode: string) =>
     api.post('orabooks_regenerate_2fa_backup_codes', { otp_code: otpCode }),
+  reveal2faBackupCodes: (otpCode: string) =>
+    api.post('orabooks_reveal_2fa_backup_codes', { otp_code: otpCode }),
   twoFactorStatus: () => api.post('orabooks_2fa_status'),
   adminRecover2fa: (targetUserId: number, justification: string) =>
     api.post('orabooks_admin_2fa_recover', { target_user_id: targetUserId, justification }),

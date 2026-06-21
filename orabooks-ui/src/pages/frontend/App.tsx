@@ -28,6 +28,7 @@ import VoicePage from './pages/VoicePage';
 import FiscalPeriodsPage from './pages/FiscalPeriodsPage';
 import TaxSettingsPage from './pages/TaxSettingsPage';
 import ProfilePage from './pages/ProfilePage';
+import Security2faPage from './pages/Security2faPage';
 import NotificationPreferencesPage from './pages/NotificationPreferencesPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
 import VerifyEmailPage from './pages/VerifyEmailPage';
@@ -81,6 +82,8 @@ const ROUTES: Record<string, RouteConfig> = {
   '/notification-preferences': { element: <NotificationPreferencesPage /> },
   '/my-exports': { element: <ExportStatusPage /> },
   '/profile': { element: <ProfilePage /> },
+  '/security/2fa': { element: <Security2faPage /> },
+  '/security-2fa': { element: <Security2faPage /> },
   '/audit-log': { element: <AuditLogPage /> },
   '/job-queue': { element: <JobQueuePage /> },
   '/webhook-settings': { element: <WebhookSettingsPage /> },

@@ -377,11 +377,11 @@ export default function ClientShell({
               </div>
             </div>
           </header>
-          {needs2faSetup && currentRoute !== '/profile' && (
+          {needs2faSetup && currentRoute !== '/security/2fa' && currentRoute !== '/profile' && (
             <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
               Your organization requires two-factor authentication.{' '}
-              <WpLink href="/profile#security-2fa" className="font-semibold text-primary underline">
-                Enable 2FA on your profile
+              <WpLink href="/security/2fa" className="font-semibold text-primary underline">
+                Set up 2FA on the security page
               </WpLink>{' '}
               to continue using OraBooks.
             </div>

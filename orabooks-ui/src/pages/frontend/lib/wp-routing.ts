@@ -2,6 +2,11 @@
 const WP_PATH_ALIASES: Record<string, string> = {
   '/partner-onboarding': '/onboarding',
   '/partner/onboarding': '/onboarding',
+  '/security/2fa': '/security-2fa',
+};
+
+const APP_ROUTE_ALIASES: Record<string, string> = {
+  '/security-2fa': '/security/2fa',
 };
 
 export function normalizeAppRoute(route: string): string {
@@ -13,6 +18,9 @@ export function normalizeAppRoute(route: string): string {
     path = `/${path}`;
   }
   path = path.replace(/\/$/, '') || '/dashboard';
+  if (APP_ROUTE_ALIASES[path]) {
+    return APP_ROUTE_ALIASES[path];
+  }
   return WP_PATH_ALIASES[path] ?? path;
 }
 
