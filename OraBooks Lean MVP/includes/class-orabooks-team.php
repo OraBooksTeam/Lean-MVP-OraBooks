@@ -571,7 +571,19 @@ class OraBooks_Team {
         $invite = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$table} WHERE id = %d", $invite_id));
         
         orabooks_log_event('invite_resent', "Invite resent to {$invite->email}", 'info', [], $user_id, $org_id);
-        orabooks_json_success(['invite_link' => self::build_invite_link($raw_token)], 'Invitation resent');
+
+        $org = OraBooks_Organization::get($org_id);
+        $email_sent = self::send_invite_email(
+            $invite->email,
+            $org ? $org->name : 'Organization',
+            $invite->role,
+            $raw_token
+        );
+
+        orabooks_json_success([
+            'invite_link' => self::build_invite_link($raw_token),
+            'email_sent' => $email_sent,
+        ], 'Invitation resent');
     }
     
     public function ajax_cancel_invite() {
