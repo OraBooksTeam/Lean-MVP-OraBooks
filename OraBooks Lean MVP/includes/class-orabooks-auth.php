@@ -1854,7 +1854,7 @@ class OraBooks_Auth {
 
         $result = orabooks_enrich_login_response($result);
 
-        if (empty($result['needs_tier_selection'])) {
+        if (empty($result['needs_tier_selection']) && empty($result['needs_accept_invite'])) {
             orabooks_persist_login_session($result);
         } else {
             orabooks_clear_logout_landing_cookie();
