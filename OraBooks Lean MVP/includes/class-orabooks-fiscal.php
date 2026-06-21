@@ -302,7 +302,7 @@ class OraBooks_Fiscal {
         ));
     }
 
-    public static function close_period($period_id, $org_id, $close_type, $user_id, $note = null) {
+    public static function close_period($period_id, $org_id, $close_type, $user_id, $note = null, $options = []) {
         global $wpdb;
 
         $close_type = $close_type === 'hard' ? 'hard_closed' : 'soft_closed';
@@ -314,6 +314,19 @@ class OraBooks_Fiscal {
 
         if ($period->status !== 'open') {
             return new WP_Error('invalid_status', 'Only open periods can be closed.');
+        }
+
+        if ($close_type === 'hard_closed' && empty($options['hard_confirm'])) {
+            return new WP_Error('hard_confirm_required', 'Hard close requires explicit confirmation.');
+        }
+
+        $pending = self::count_pending_transactions($org_id, $period->period_start, $period->period_end);
+        $warnings = [];
+        if ($pending['total'] > 0) {
+            $warnings[] = sprintf(
+                '%d unposted journal(s) remain in this period.',
+                $pending['total']
+            );
         }
 
         $table = OraBooks_Database::table('fiscal_periods');
@@ -337,9 +350,15 @@ class OraBooks_Fiscal {
             'period_id' => $period_id,
             'close_type' => $close_type,
             'note' => $note,
+            'pending_total' => $pending['total'],
         ], $user_id, $org_id);
 
-        return true;
+        return [
+            'success'  => true,
+            'status'   => $close_type,
+            'warnings' => $warnings,
+            'pending'  => $pending,
+        ];
     }
 
     public static function reopen_period($period_id, $org_id, $user_id, $reason) {
