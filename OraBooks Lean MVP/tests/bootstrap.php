@@ -858,6 +858,9 @@ if (!function_exists('orabooks_json_success')) {
 // 5. Stub OraBooks_Secrets
 // ---------------------------------------------------------------------------
 if (!class_exists('OraBooks_Secrets', false)) {
+    if (!empty($GLOBALS['ORABOOKS_LOAD_REAL_SECRETS'])) {
+        require_once __DIR__ . '/../includes/class-orabooks-secrets.php';
+    } else {
     /**
      * Minimal OraBooks_Secrets stub for testing.
      *
@@ -947,6 +950,71 @@ if (!class_exists('OraBooks_Secrets', false)) {
             return $payload;
         }
 
+        public static function get_jwt_secret() {
+            return $GLOBALS['orabooks_test_jwt_secret'] ?? 'test-jwt-secret-with-sufficient-length-for-sl008';
+        }
+
+        public static function get_encryption_key() {
+            return $GLOBALS['orabooks_test_encryption_key'] ?? 'test-encryption-key-32chars-min!!';
+        }
+
+        public static function get_status() {
+            if (isset($GLOBALS['orabooks_test_secrets_status'])) {
+                return $GLOBALS['orabooks_test_secrets_status'];
+            }
+
+            return [
+                'production_mode' => false,
+                'requires_tls' => false,
+                'jwt_secret_configured' => true,
+                'encryption_key_configured' => true,
+                'jwt_secret_length' => strlen(self::get_jwt_secret()),
+                'last_rotated' => '',
+                'tls' => ['ok' => true, 'skipped' => true],
+                'https_active' => true,
+            ];
+        }
+
+        public static function requires_tls() {
+            return (bool) ($GLOBALS['orabooks_test_requires_tls'] ?? false);
+        }
+
+        public static function check_tls_certificate($host = null, $port = 443) {
+            return $GLOBALS['orabooks_test_tls_certificate'] ?? [
+                'ok' => true,
+                'skipped' => true,
+                'host' => $host ?: 'localhost',
+            ];
+        }
+
+        public static function mask_value($value) {
+            $value = (string) $value;
+            if ($value === '') {
+                return '';
+            }
+            if (strlen($value) <= 8) {
+                return '****';
+            }
+            return substr($value, 0, 4) . '…' . substr($value, -4);
+        }
+
+        public static function redact_sensitive($data) {
+            if (!is_array($data)) {
+                return $data;
+            }
+            $redacted = [];
+            foreach ($data as $key => $value) {
+                if (stripos((string) $key, 'secret') !== false || stripos((string) $key, 'token') !== false) {
+                    $redacted[$key] = '[REDACTED]';
+                } elseif (is_array($value)) {
+                    $redacted[$key] = self::redact_sensitive($value);
+                } else {
+                    $redacted[$key] = $value;
+                }
+            }
+            return $redacted;
+        }
+
         public static function encrypt_sensitive($plaintext) {
             return 'enc:' . (string) $plaintext;
         }
@@ -957,6 +1025,7 @@ if (!class_exists('OraBooks_Secrets', false)) {
             }
             return (string) $stored;
         }
+    }
     }
 }
 
