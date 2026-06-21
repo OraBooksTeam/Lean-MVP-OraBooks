@@ -47,6 +47,64 @@ class OraBooks_Team {
     private static function build_invite_link($raw_token) {
         return orabooks_get_accept_invite_url($raw_token);
     }
+
+    /**
+     * Send team invitation email (SL-014).
+     *
+     * @return bool True when wp_mail succeeds or mail is unavailable in CLI/tests.
+     */
+    private static function send_invite_email($email, $org_name, $role, $raw_token) {
+        if (!function_exists('wp_mail')) {
+            return true;
+        }
+
+        $invite_link = self::build_invite_link($raw_token);
+        $site_name = function_exists('get_bloginfo') ? get_bloginfo('name') : 'OraBooks';
+        if ($site_name === '') {
+            $site_name = 'OraBooks';
+        }
+
+        $subject = sprintf('[%s] You have been invited to join %s', $site_name, $org_name);
+        $message = sprintf(
+            "You have been invited to join %s on %s as %s.\n\nAccept your invitation using this secure link (valid for 7 days):\n%s\n\nIf you did not expect this invitation, you can ignore this email.",
+            $org_name,
+            $site_name,
+            $role,
+            $invite_link
+        );
+
+        $from_email = function_exists('get_option') ? get_option('admin_email') : '';
+        if (function_exists('is_multisite') && is_multisite() && function_exists('get_site_option')) {
+            $network_email = get_site_option('admin_email');
+            if (!empty($network_email) && is_email($network_email)) {
+                $from_email = $network_email;
+            }
+        }
+        if (empty($from_email) || !is_email($from_email)) {
+            $from_email = 'wordpress@' . (isset($_SERVER['HTTP_HOST']) ? preg_replace('/:\d+$/', '', $_SERVER['HTTP_HOST']) : 'localhost');
+        }
+
+        $headers = [
+            'Content-Type: text/plain; charset=UTF-8',
+            sprintf('From: %s <%s>', $site_name, $from_email),
+        ];
+
+        $content_type_filter = static function () {
+            return 'text/plain';
+        };
+        add_filter('wp_mail_content_type', $content_type_filter);
+        $sent = wp_mail($email, $subject, $message, $headers);
+        remove_filter('wp_mail_content_type', $content_type_filter);
+
+        if (!$sent) {
+            orabooks_log_event('invite_email_failed', "Failed to send invite email to {$email}", 'warning', [
+                'org_name' => $org_name,
+                'role' => $role,
+            ]);
+        }
+
+        return (bool) $sent;
+    }
     
     public static function invite_user($org_id, $email, $role, $invited_by) {
         global $wpdb;
@@ -105,10 +163,13 @@ class OraBooks_Team {
             'role' => $role,
             'email' => $email
         ], $invited_by, $org_id);
+
+        $email_sent = self::send_invite_email($email, $org->name, $role, $raw_token);
         
         return [
             'invite_id' => $invite_id,
             'invite_link' => self::build_invite_link($raw_token),
+            'email_sent' => $email_sent,
         ];
     }
     
