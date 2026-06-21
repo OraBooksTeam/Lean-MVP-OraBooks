@@ -129,17 +129,14 @@ class OraBooks_Csv_Imports_Test extends TestCase
         ];
 
         $wpdb->test_get_row_callback = function ($query) use ($import) {
-            if (stripos($query, 'csv_imports') !== false && stripos($query, 'WHERE id') !== false) {
+            if (stripos($query, 'csv_imports') !== false) {
                 return $import;
             }
-            if (stripos($query, 'organizations') !== false) {
-                return (object) [
-                    'id'                 => 1,
-                    'status'             => 'active',
-                    'organization_type'  => 'customer',
-                ];
-            }
-            return null;
+            return (object) [
+                'id'                => 1,
+                'status'            => 'active',
+                'organization_type' => 'customer',
+            ];
         };
 
         $wpdb->test_get_var_callback = function ($query) {
