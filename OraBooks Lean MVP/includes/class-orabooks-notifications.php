@@ -810,6 +810,13 @@ class OraBooks_Notifications {
                     'latency_ms'      => $latency_ms,
                     'org_id'          => $org_id,
                 ], null, $org_id);
+
+                if (class_exists('OraBooks_Observability')) {
+                    OraBooks_Observability::record_metric('notifications', 'critical_sla_breach_count', 1, $org_id, [
+                        'notification_id' => (int) $n->id,
+                        'latency_ms'    => $latency_ms,
+                    ]);
+                }
             }
         }
     }
