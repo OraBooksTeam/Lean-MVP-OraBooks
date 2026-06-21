@@ -720,7 +720,7 @@ class OraBooks_Ajax {
         $capabilities = [
             'invite_user' => in_array('manage_employees', $effective_permissions, true),
             'change_role' => in_array('manage_roles', $effective_permissions, true),
-            'remove_user' => in_array('manage_employees', $effective_permissions, true),
+            'remove_user' => in_array('remove_user', $effective_permissions, true),
             'manage_employees' => in_array('manage_employees', $effective_permissions, true),
             'manage_roles' => in_array('manage_roles', $effective_permissions, true),
         ];

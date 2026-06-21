@@ -453,7 +453,7 @@ class OraBooks_Team {
 
         $this->require_org_member_access($user_id, $org_id);
         
-        if (!OraBooks_RBAC::require_permission($user_id, $org_id, 'manage_employees')) {
+        if (!OraBooks_RBAC::require_permission($user_id, $org_id, 'remove_user')) {
             orabooks_json_error('Permission denied', 403);
         }
         
