@@ -200,6 +200,7 @@ class OraBooks_Event_Module {
             'purchase_received' => ['event_version'],
             'return_approved' => ['event_version'],
             'reimbursement_submitted' => ['event_version'],
+            'state_transition' => ['event_version', 'org_id', 'record_type', 'event', 'from_state', 'to_state'],
         ];
 
         foreach (($required[$event_type] ?? ['event_version']) as $field) {
@@ -228,6 +229,10 @@ class OraBooks_Event_Module {
 
         self::register_consumer('return_approved', 'approver_notifications', [__CLASS__, 'consume_approver_notifications']);
         self::register_consumer('reimbursement_submitted', 'approver_notifications', [__CLASS__, 'consume_approver_notifications']);
+
+        self::register_consumer('state_transition', 'workflow_read_model', [__CLASS__, 'consume_state_transition_read_model']);
+        self::register_consumer('state_transition', 'workflow_notifications', [__CLASS__, 'consume_state_transition_notifications']);
+        self::register_consumer('state_transition', 'job_enqueue_bridge', [__CLASS__, 'consume_job_enqueue_bridge']);
     }
 
     public static function process_outbox($limit = 25) {

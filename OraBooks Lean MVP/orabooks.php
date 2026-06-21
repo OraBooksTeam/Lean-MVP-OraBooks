@@ -36,6 +36,7 @@ require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-coa.php';
 require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-fiscal.php';
 require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-tax.php';
 require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-workflow.php';
+require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-workflow-integration.php';
 require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-posting.php';
 require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-approval.php';
 require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-deploy-checks.php';
