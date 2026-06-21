@@ -96,6 +96,7 @@ class OraBooks_Notifications {
         add_action('orabooks_notification_device_cleanup', [self::$instance, 'cron_deactivate_stale_devices']);
         add_action('orabooks_notification_delivery_retry', [self::$instance, 'cron_retry_deliveries']);
         add_action('orabooks_daily_overdue_digest', [self::$instance, 'cron_send_overdue_digest']);
+        add_action('orabooks_daily_cleanup', [self::$instance, 'cron_notification_retention']);
     }
 
     // ================================================================
@@ -127,7 +128,12 @@ class OraBooks_Notifications {
         }
 
         $priority = !empty($payload['priority']) ? $payload['priority'] : 'normal';
-        $correlation_id = !empty($payload['correlation_id']) ? $payload['correlation_id'] : orabooks_uuid();
+        $correlation_id = !empty($payload['correlation_id'])
+            ? $payload['correlation_id']
+            : (function_exists('orabooks_get_correlation_id') ? orabooks_get_correlation_id(true) : orabooks_uuid());
+        if (function_exists('orabooks_set_correlation_id')) {
+            orabooks_set_correlation_id($correlation_id);
+        }
         $title = !empty($payload['title']) ? $payload['title'] : '';
         $message = !empty($payload['message']) ? $payload['message'] : '';
 
@@ -135,6 +141,20 @@ class OraBooks_Notifications {
         if ($priority !== 'critical') {
             // Smart deduplication (60s window)
             if (self::should_deduplicate($event_type, $user_id, $payload)) {
+                orabooks_log_event(
+                    'notification_deduplicated',
+                    "Duplicate {$event_type} suppressed for user {$user_id}",
+                    'info',
+                    [
+                        'event_type'     => $event_type,
+                        'user_id'        => $user_id,
+                        'org_id'         => $org_id,
+                        'correlation_id' => $correlation_id,
+                    ],
+                    $user_id,
+                    $org_id,
+                    $correlation_id
+                );
                 return false;
             }
 
@@ -172,6 +192,12 @@ class OraBooks_Notifications {
         $user_prefs = self::get_user_preferences($user_id);
         $org_policy = self::get_org_policy($org_id);
         $channels = self::resolve_channels($event_type, $user_prefs, $org_policy);
+        if ($priority !== 'critical' && self::is_in_quiet_hours($user_prefs)) {
+            $channels = array_values(array_intersect($channels, ['inapp']));
+            if (empty($channels)) {
+                $channels = ['inapp'];
+            }
+        }
         $max_escalation = !empty($org_policy) ? (int)$org_policy->max_escalation_attempts : 3;
 
         // Attempt delivery with cross-channel escalation
@@ -186,7 +212,7 @@ class OraBooks_Notifications {
             // Multi-region routing
             $provider = self::select_provider($channel, $org_id);
 
-            $result = self::attempt_delivery($notification_id, $channel, $provider, $user_id, $title, $message, $payload);
+            $result = self::attempt_delivery($notification_id, $channel, $provider, $user_id, $title, $message, $payload, $org_id);
 
             if ($result['success']) {
                 // Log cost
@@ -2067,5 +2093,3 @@ class OraBooks_Notifications {
      */
     public static function notify($user_id, $event_type, $payload = [], $org_id = null) {
         return self::send_notification($user_id, $event_type, $payload, $org_id);
-    }
-}
