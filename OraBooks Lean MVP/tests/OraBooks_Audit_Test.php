@@ -75,9 +75,9 @@ class OraBooks_Audit_Test extends TestCase
 
     public function test_get_logs_skips_view_event_when_requested()
     {
-        $insert_count = 0;
-        $this->wpdb->test_insert_callback = function () use (&$insert_count) {
-            $insert_count++;
+        $inserts = [];
+        $this->wpdb->test_insert_callback = function ($table, $data) use (&$inserts) {
+            $inserts[] = $data;
             return 1;
         };
         $this->wpdb->test_get_results_callback = function () {
@@ -85,11 +85,11 @@ class OraBooks_Audit_Test extends TestCase
         };
 
         OraBooks_Audit::get_logs(1, ['skip_view_log' => true]);
-        $this->assertSame(0, $insert_count);
+        $this->assertCount(0, $inserts);
 
         OraBooks_Audit::get_logs(1, []);
-        $this->assertSame(1, $insert_count);
-        $this->assertSame('audit_log_viewed', $GLOBALS['orabooks_test_last_audit_insert']['event_type'] ?? null);
+        $this->assertCount(1, $inserts);
+        $this->assertSame('audit_log_viewed', $inserts[0]['event_type']);
     }
 
     public function test_archive_old_logs_sets_archival_session_var()
