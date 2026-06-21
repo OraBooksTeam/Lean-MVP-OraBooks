@@ -199,6 +199,7 @@ class OraBooks_Workflow {
         $metadata = $context['metadata'] ?? null;
         $update_status = array_key_exists('update_status', $context) ? (bool) $context['update_status'] : true;
         $org_id = isset($context['org_id']) ? (int) $context['org_id'] : null;
+        $skip_transaction = !empty($context['skip_transaction']);
 
         $map = self::$record_map[$record_type] ?? null;
         if (!$map) {
@@ -209,7 +210,7 @@ class OraBooks_Workflow {
         $status_col = $map['status_column'];
         $org_col = $map['org_id_column'];
 
-        self::begin_transaction();
+        self::begin_transaction($skip_transaction);
 
         try {
             $sql = "SELECT * FROM {$table} WHERE id = %d";
@@ -222,7 +223,7 @@ class OraBooks_Workflow {
 
             $record = $wpdb->get_row($wpdb->prepare($sql, ...$params));
             if (!$record) {
-                self::rollback_transaction();
+                self::rollback_transaction($skip_transaction);
                 return new WP_Error('not_found', __('Record not found', 'orabooks'));
             }
 
@@ -231,29 +232,43 @@ class OraBooks_Workflow {
 
             $validation = self::validate_transition($record_type, $current_state, $event);
             if (is_wp_error($validation)) {
-                self::rollback_transaction();
+                self::rollback_transaction($skip_transaction);
                 return $validation;
             }
 
             $preconditions = self::check_preconditions($record_type, $event, $record, $context);
             if (is_wp_error($preconditions)) {
-                self::rollback_transaction();
+                self::rollback_transaction($skip_transaction);
                 return $preconditions;
             }
 
             $machines = self::get_machines();
             $to_state = $machines[$record_type]['transitions'][$event]['to'];
 
-            if ($update_status) {
+            $row_updates = apply_filters(
+                'orabooks_workflow_row_updates',
+                is_array($context['row_updates'] ?? null) ? $context['row_updates'] : [],
+                $record_type,
+                $event,
+                $record,
+                $context
+            );
+
+            if ($update_status || !empty($row_updates)) {
+                $update_data = $row_updates;
+                if ($update_status) {
+                    $update_data[$status_col] = $to_state;
+                }
+
                 $updated = $wpdb->update(
                     $table,
-                    [$status_col => $to_state],
+                    $update_data,
                     ['id' => $record_id],
-                    ['%s'],
+                    self::build_update_formats($update_data),
                     ['%d']
                 );
                 if ($updated === false) {
-                    self::rollback_transaction();
+                    self::rollback_transaction($skip_transaction);
                     return new WP_Error('db_error', __('Failed to update record status', 'orabooks'));
                 }
             }
@@ -270,7 +285,7 @@ class OraBooks_Workflow {
                 $resolved_org_id
             );
             if ($transition_id <= 0) {
-                self::rollback_transaction();
+                self::rollback_transaction($skip_transaction);
                 return new WP_Error('db_error', __('Failed to persist transition', 'orabooks'));
             }
 
@@ -284,15 +299,15 @@ class OraBooks_Workflow {
                 $record
             );
             if (self::should_rollback_on_publish_failure($publish_result, $context)) {
-                self::rollback_transaction();
+                self::rollback_transaction($skip_transaction);
                 return is_wp_error($publish_result)
                     ? $publish_result
                     : new WP_Error('event_publish_failed', __('Failed to publish state_transition event', 'orabooks'));
             }
 
-            self::commit_transaction();
+            self::commit_transaction($skip_transaction);
         } catch (Exception $e) {
-            self::rollback_transaction();
+            self::rollback_transaction($skip_transaction);
             return new WP_Error('transition_failed', $e->getMessage());
         }
 
