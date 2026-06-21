@@ -257,8 +257,8 @@ class OraBooks_Auth {
         orabooks_log_event('user_registered', "User registered: $email ($user_type)", 'info', [
             'user_type' => $user_type
         ], $user_id, null);
-        
-        return [
+
+        $response = [
             'user_id' => $user_id,
             'email' => $email,
             'message' => $email_warning
@@ -272,6 +272,21 @@ class OraBooks_Auth {
             'pending_wp_activation' => $pending_wp_signup ? 1 : 0,
             'wp_user_id' => $wp_user_id,
         ];
+
+        $pending_invite = orabooks_get_pending_invite_for_email($email);
+        if ($pending_invite && $user_type === 'customer') {
+            $invite_org = class_exists('OraBooks_Organization')
+                ? OraBooks_Organization::get((int) $pending_invite->org_id)
+                : null;
+            $response['has_pending_invite'] = true;
+            $response['pending_invite_role'] = $pending_invite->role;
+            $response['pending_invite_org_name'] = $invite_org ? $invite_org->name : '';
+            $response['message'] = $email_warning
+                ? $response['message']
+                : 'Account created. Verify your email, then log in to join your team workspace.';
+        }
+
+        return $response;
     }
 
     /**
