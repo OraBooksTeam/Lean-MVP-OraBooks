@@ -30,7 +30,7 @@ export default function AdminCsvImports() {
     api.csvImportsDashboard().then((res) => {
       if (res.error) setError(res.error);
       else {
-        setImports(res.data?.imports || []);
+        setImports(res.data?.imports || res.data?.recent_imports || []);
         setIsPlatformAdmin(Boolean(res.data?.is_platform_admin));
       }
       setLoading(false);
@@ -49,7 +49,7 @@ export default function AdminCsvImports() {
   return (
     <AdminPageShell
       title="CSV Imports"
-      description="Bulk import jobs for customers, vendors, and chart-of-account data."
+      description="Bulk import jobs for expenses, invoices, inventory, contacts, journals, and more."
       actions={
         <Button onClick={load} variant="secondary" size="sm">
           <RefreshCw className="h-4 w-4" />
@@ -64,9 +64,9 @@ export default function AdminCsvImports() {
           <p className="text-xs font-bold uppercase tracking-wide text-slate-500">Total</p>
           <p className="mt-2 text-3xl font-black text-ink">{imports.length}</p>
         </div>
-        {['parsed', 'processing', 'completed', 'failed'].map((status) => (
+        {['pending_confirm', 'confirmed', 'failed', 'parsing'].map((status) => (
           <div key={status} className="stat-card">
-            <p className="text-xs font-bold uppercase tracking-wide text-slate-500">{status}</p>
+            <p className="text-xs font-bold uppercase tracking-wide text-slate-500">{status.replace(/_/g, ' ')}</p>
             <p className="mt-2 text-3xl font-black text-ink">{statusCounts[status] || 0}</p>
           </div>
         ))}
@@ -103,7 +103,7 @@ export default function AdminCsvImports() {
                   {isPlatformAdmin && (
                     <td className="px-5 py-3 font-mono text-xs text-slate-600">{row.org_id}</td>
                   )}
-                  <td className="px-5 py-3 font-medium text-ink">{row.resource_type}</td>
+                  <td className="px-5 py-3 font-medium text-ink">{row.resource_type.replace(/_/g, ' ')}</td>
                   <td className="px-5 py-3 text-slate-600">{row.original_filename}</td>
                   <td className="px-5 py-3">
                     <StatusBadge status={row.status} />
@@ -134,12 +134,13 @@ export default function AdminCsvImports() {
 
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, string> = {
-    completed: 'bg-success/10 text-success border-success/20',
-    parsed: 'bg-primary/10 text-primary border-primary/20',
-    processing: 'bg-amber-50 text-amber-700 border-amber-200',
+    uploaded: 'bg-slate-100 text-slate-600 border-slate-200',
+    parsing: 'bg-blue-50 text-blue-800 border-blue-200',
+    mapping: 'bg-indigo-50 text-indigo-800 border-indigo-200',
+    pending_confirm: 'bg-amber-50 text-amber-700 border-amber-200',
+    confirmed: 'bg-success/10 text-success border-success/20',
     failed: 'bg-red-50 text-red-700 border-red-200',
-    pending: 'bg-slate-100 text-slate-600 border-slate-200',
   };
-  const cls = map[status] || map.pending;
-  return <span className={`badge border ${cls}`}>{status}</span>;
+  const cls = map[status] || map.uploaded;
+  return <span className={`badge border capitalize ${cls}`}>{status.replace(/_/g, ' ')}</span>;
 }

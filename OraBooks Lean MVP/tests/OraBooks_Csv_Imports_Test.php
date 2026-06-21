@@ -145,4 +145,43 @@ class OraBooks_Csv_Imports_Test extends TestCase
         $this->assertInstanceOf(WP_Error::class, $result);
         $this->assertEquals('duplicate_confirm', $result->get_error_code());
     }
+
+    #[Test]
+    public function test_resource_types_include_sl113_extended_types()
+    {
+        $types = OraBooks_Csv_Imports::RESOURCE_TYPES;
+        $this->assertContains('journal', $types);
+        $this->assertContains('price_list', $types);
+        $this->assertContains('payroll', $types);
+    }
+
+    #[Test]
+    public function test_get_mappable_field_options_for_journal()
+    {
+        $options = OraBooks_Csv_Imports::get_mappable_field_options('journal');
+        $ids = array_column($options, 'id');
+        $this->assertContains('debit_account', $ids);
+        $this->assertContains('total_amount', $ids);
+    }
+
+    #[Test]
+    public function test_compute_row_confidence_flags_unusual_tax_ratio()
+    {
+        $parsed = [
+            'vendor_name'  => 'Acme',
+            'total_amount' => 100,
+            'tax_amount'   => 80,
+        ];
+        $confidence = OraBooks_Csv_Imports::compute_row_confidence($parsed, 'expense');
+        $this->assertContains('tax_amount_unusual', $confidence['risks']);
+    }
+
+    #[Test]
+    public function test_suggest_header_mapping_for_journal_debit_column()
+    {
+        $headers = ['Date', 'Debit Account', 'Amount', 'Memo'];
+        $mapping = OraBooks_Csv_Imports::suggest_header_mapping($headers, 'journal');
+        $this->assertEquals('debit_account', $mapping['1'] ?? null);
+        $this->assertEquals('total_amount', $mapping['2'] ?? null);
+    }
 }

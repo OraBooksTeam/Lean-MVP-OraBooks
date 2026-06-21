@@ -1344,6 +1344,16 @@ class OraBooks_Csv_Imports {
             'status'        => 'failed',
             'error_message' => sanitize_text_field($message),
         ], ['id' => intval($import_id)], ['%s', '%s'], ['%d']);
+
+        $import = self::get_import($import_id);
+        if ($import) {
+            orabooks_publish_event('csv_import_failed', $import_id, [
+                'import_id' => $import_id,
+                'org_id'    => (int) $import->org_id,
+                'user_id'   => (int) $import->user_id,
+                'reason'    => $message,
+            ]);
+        }
     }
 
     /**
