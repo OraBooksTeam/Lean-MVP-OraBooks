@@ -695,7 +695,7 @@ class OraBooks_Team {
      */
     public function ajax_accept_invite_nopriv() {
         $method = strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET');
-        $has_post_token = isset($_POST['token']) && sanitize_text_field(wp_unslash($_POST['token'])) !== '';
+        $has_post_token = isset($_POST['token']) && sanitize_text_field((string) wp_unslash($_POST['token'])) !== '';
 
         if ($method === 'GET' && !$has_post_token) {
             $this->ajax_accept_invite_legacy_redirect();
