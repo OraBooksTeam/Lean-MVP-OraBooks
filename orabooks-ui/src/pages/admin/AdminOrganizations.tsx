@@ -4,6 +4,8 @@ import { api } from '../api';
 import Button from '@/components/Button';
 import { ShieldCheck, ShieldOff } from 'lucide-react';
 
+const REGIONS = ['us-east', 'eu-west-1', 'ap-southeast-1'] as const;
+
 interface Org {
   id: number;
   name: string;
@@ -11,6 +13,7 @@ interface Org {
   organization_type: string;
   tier: string;
   status: string;
+  region?: string;
   created_at: string;
 }
 
@@ -48,6 +51,17 @@ export default function AdminOrganizations() {
     api.activateOrg(id).then(() => load());
   };
 
+  const changeRegion = (id: number, region: string) => {
+    if (!confirm(`Change data residency to ${region}? This queues an async migration.`)) return;
+    api.changeOrgRegion(id, region).then((res) => {
+      if (res.error) {
+        alert(res.error);
+        return;
+      }
+      load();
+    });
+  };
+
   return (
     <AdminPageShell
       title="Organizations"
@@ -73,6 +87,8 @@ export default function AdminOrganizations() {
           <option value="active">Active</option>
           <option value="pending_setup">Pending Setup</option>
           <option value="suspended">Suspended</option>
+          <option value="payout_hold">Payout Hold</option>
+          <option value="fraud_freeze">Fraud Freeze</option>
         </select>
       </div>
       <div className="glass-panel overflow-hidden">
@@ -84,6 +100,7 @@ export default function AdminOrganizations() {
               <th className="px-5 py-3 font-semibold">Subdomain</th>
               <th className="px-5 py-3 font-semibold">Type</th>
               <th className="px-5 py-3 font-semibold">Tier</th>
+              <th className="px-5 py-3 font-semibold">Region</th>
               <th className="px-5 py-3 font-semibold">Status</th>
               <th className="px-5 py-3 font-semibold">Created</th>
               <th className="px-5 py-3 font-semibold">Actions</th>
@@ -91,9 +108,9 @@ export default function AdminOrganizations() {
           </thead>
           <tbody className="divide-y divide-border">
             {loading ? (
-              <tr><td colSpan={8} className="px-5 py-6 text-center text-slate-500">Loading…</td></tr>
+              <tr><td colSpan={9} className="px-5 py-6 text-center text-slate-500">Loading…</td></tr>
             ) : orgs.length === 0 ? (
-              <tr><td colSpan={8} className="px-5 py-6 text-center text-slate-500">No organizations found.</td></tr>
+              <tr><td colSpan={9} className="px-5 py-6 text-center text-slate-500">No organizations found.</td></tr>
             ) : orgs.map((org) => (
               <tr key={org.id} className="transition hover:bg-slate-50/60">
                 <td className="px-5 py-3 font-mono text-slate-600">{org.id}</td>
@@ -101,6 +118,9 @@ export default function AdminOrganizations() {
                 <td className="px-5 py-3 font-mono text-xs text-slate-600">{org.subdomain}</td>
                 <td className="px-5 py-3 capitalize text-slate-600">{org.organization_type}</td>
                 <td className="px-5 py-3 capitalize text-slate-600">{org.tier}</td>
+                <td className="px-5 py-3">
+                  <RegionCell org={org} onChange={changeRegion} />
+                </td>
                 <td className="px-5 py-3"><StatusBadge status={org.status} /></td>
                 <td className="px-5 py-3 text-slate-600">{org.created_at}</td>
                 <td className="px-5 py-3">
@@ -115,6 +135,34 @@ export default function AdminOrganizations() {
   );
 }
 
+function RegionCell({
+  org,
+  onChange,
+}: {
+  org: Org;
+  onChange: (id: number, region: string) => void;
+}) {
+  const region = org.region || 'us-east';
+  const canChange = org.organization_type === 'customer' && org.tier === 'enterprise' && org.status !== 'fraud_freeze';
+
+  if (!canChange) {
+    return <span className="font-mono text-xs text-slate-600">{region}</span>;
+  }
+
+  return (
+    <select
+      value={region}
+      onChange={(e) => onChange(org.id, e.target.value)}
+      className="rounded border border-border bg-white px-2 py-1 font-mono text-xs"
+      title="Enterprise data residency (SL-004)"
+    >
+      {REGIONS.map((r) => (
+        <option key={r} value={r}>{r}</option>
+      ))}
+    </select>
+  );
+}
+
 function OrgActions({
   org,
   onSuspend,
@@ -126,6 +174,10 @@ function OrgActions({
 }) {
   const isPartner = org.organization_type === 'partner';
   const partnersUrl = adminLink('orabooks-partners');
+
+  if (org.status === 'fraud_freeze') {
+    return <span className="text-xs text-red-600">Permanently frozen</span>;
+  }
 
   if (org.status === 'active') {
     return (
@@ -174,6 +226,8 @@ function StatusBadge({ status }: { status?: string }) {
     active: 'bg-emerald-50 text-emerald-700 border-emerald-200',
     pending_setup: 'bg-amber-50 text-amber-700 border-amber-200',
     suspended: 'bg-red-50 text-red-700 border-red-200',
+    payout_hold: 'bg-orange-50 text-orange-700 border-orange-200',
+    fraud_freeze: 'bg-red-100 text-red-800 border-red-300',
   };
   const cls = map[status || ''] || 'bg-slate-100 text-slate-600 border-slate-200';
   return <span className={`badge border ${cls}`}>{status || '—'}</span>;
