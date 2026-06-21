@@ -2583,8 +2583,8 @@ function orabooks_get_current_org_id($user_id = 0) {
                     return (int) $org->id;
                 }
 
-                // On a tenant subdomain, never fall back to the user's personal org.
-                return (int) $org->id;
+                // On a tenant subdomain without access, do not fall back to the user's personal org.
+                return 0;
             }
         }
     }
