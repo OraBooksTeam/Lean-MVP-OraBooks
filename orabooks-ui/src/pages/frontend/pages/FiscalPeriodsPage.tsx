@@ -10,12 +10,19 @@ type FiscalPeriod = {
   period_start: string;
   period_end: string;
   status: 'open' | 'soft_closed' | 'hard_closed';
+  status_label?: string;
   closed_by?: number | null;
   closed_at?: string | null;
   reopened_by?: number | null;
   reopened_at?: string | null;
   reopen_reason?: string | null;
+  pending_total?: number;
+  can_close?: boolean;
+  can_reopen?: boolean;
+  can_override_reopen?: boolean;
 };
+
+const ORABOOKS_AJAX = (window as any).orabooks_ajax || {};
 
 export default function FiscalPeriodsPage() {
   const [context, setContext] = useState<any>(null);
@@ -27,10 +34,16 @@ export default function FiscalPeriodsPage() {
   const [closeModalId, setCloseModalId] = useState<number | null>(null);
   const [closeType, setCloseType] = useState<'soft' | 'hard'>('soft');
   const [closeNote, setCloseNote] = useState('');
+  const [hardConfirm, setHardConfirm] = useState(false);
+  const [closeWarnings, setCloseWarnings] = useState<string[]>([]);
   const [reopenModalId, setReopenModalId] = useState<number | null>(null);
   const [reopenReason, setReopenReason] = useState('');
+  const [overrideModalId, setOverrideModalId] = useState<number | null>(null);
+  const [overrideReason, setOverrideReason] = useState('');
 
   const orgId = context?.organization?.id;
+  const isPlatformAdmin = Boolean(ORABOOKS_AJAX.is_admin);
+  const closeModalPeriod = periods.find((period) => period.id === closeModalId);
 
   const load = async () => {
     setLoading(true);
@@ -60,19 +73,35 @@ export default function FiscalPeriodsPage() {
 
   useEffect(() => { void load(); }, []);
 
+  const resetCloseModal = () => {
+    setCloseModalId(null);
+    setCloseNote('');
+    setCloseType('soft');
+    setHardConfirm(false);
+    setCloseWarnings([]);
+  };
+
   const handleClose = async () => {
     if (!orgId || !closeModalId) return;
+    if (closeType === 'hard' && !hardConfirm) {
+      setError('Hard close requires explicit confirmation.');
+      return;
+    }
+
     setActionId(closeModalId);
     setError('');
     setSuccess('');
-    const res = await api.fiscalPeriodClose(orgId, closeModalId, closeType, closeNote);
+    const res = await api.fiscalPeriodClose(orgId, closeModalId, closeType, closeNote, closeType === 'hard');
     if (res.error) {
       setError(res.error);
     } else {
-      setSuccess('Fiscal period closed.');
-      setCloseModalId(null);
-      setCloseNote('');
-      setCloseType('soft');
+      const warnings = (res as any).data?.warnings || [];
+      setSuccess(
+        warnings.length > 0
+          ? `Fiscal period closed. Warning: ${warnings.join(' ')}`
+          : 'Fiscal period closed.'
+      );
+      resetCloseModal();
       await load();
     }
     setActionId(null);
@@ -98,6 +127,26 @@ export default function FiscalPeriodsPage() {
     setActionId(null);
   };
 
+  const handleOverrideReopen = async () => {
+    if (!orgId || !overrideModalId || !overrideReason.trim()) {
+      setError('A mandatory justification is required for admin override reopen.');
+      return;
+    }
+    setActionId(overrideModalId);
+    setError('');
+    setSuccess('');
+    const res = await api.fiscalPeriodOverrideReopen(orgId, overrideModalId, overrideReason.trim());
+    if (res.error) {
+      setError(res.error);
+    } else {
+      setSuccess('Hard-closed fiscal period override-reopened. Audit log recorded.');
+      setOverrideModalId(null);
+      setOverrideReason('');
+      await load();
+    }
+    setActionId(null);
+  };
+
   return (
     <ClientShell
       title="Fiscal Periods"
@@ -108,8 +157,9 @@ export default function FiscalPeriodsPage() {
       <div className="space-y-5">
         <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50/80 p-4 text-sm text-amber-900">
           <Lock className="mt-0.5 h-4 w-4 shrink-0" />
-          <p>
-            Soft close blocks new transactions. Hard close locks the period completely. Reopening a soft-closed period requires a reason and is recorded in the audit log.
+          <p title="Soft close: no new transactions. Hard close: completely locked. Reopen requires approval.">
+            Soft close blocks new transactions. Hard close locks the period completely and blocks reversals.
+            Reopening a soft-closed period requires a reason and is recorded in the audit log.
           </p>
         </div>
 
@@ -131,50 +181,79 @@ export default function FiscalPeriodsPage() {
                 <th className="px-5 py-3 font-semibold">Start</th>
                 <th className="px-5 py-3 font-semibold">End</th>
                 <th className="px-5 py-3 font-semibold">Status</th>
+                <th className="px-5 py-3 font-semibold">Closed By</th>
+                <th className="px-5 py-3 font-semibold">Closed At</th>
                 <th className="px-5 py-3 font-semibold">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
               {loading ? (
-                <tr><td colSpan={5} className="px-5 py-8 text-center text-slate-500">Loading periods...</td></tr>
+                <tr><td colSpan={7} className="px-5 py-8 text-center text-slate-500">Loading periods...</td></tr>
               ) : periods.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-5 py-10 text-center">
+                  <td colSpan={7} className="px-5 py-10 text-center">
                     <CalendarRange className="mx-auto h-8 w-8 text-slate-300" />
                     <p className="mt-2 text-sm text-slate-500">No fiscal periods found.</p>
                   </td>
                 </tr>
               ) : periods.map((period) => (
                 <tr key={period.id} className="hover:bg-slate-50/70">
-                  <td className="px-5 py-3 font-semibold text-ink">{formatPeriodLabel(period)}</td>
+                  <td className="px-5 py-3 font-semibold text-ink">
+                    <div>{formatPeriodLabel(period)}</div>
+                    {(period.pending_total ?? 0) > 0 && period.status === 'open' && (
+                      <p className="mt-1 text-xs text-amber-700">
+                        {period.pending_total} unposted journal(s) in period
+                      </p>
+                    )}
+                  </td>
                   <td className="px-5 py-3 text-slate-600">{period.period_start}</td>
                   <td className="px-5 py-3 text-slate-600">{period.period_end}</td>
                   <td className="px-5 py-3">
-                    <StatusBadge status={period.status} />
+                    <StatusBadge status={period.status} label={period.status_label} />
                   </td>
+                  <td className="px-5 py-3 text-slate-600">{period.closed_by ? `#${period.closed_by}` : '—'}</td>
+                  <td className="px-5 py-3 text-slate-600">{period.closed_at || '—'}</td>
                   <td className="px-5 py-3">
-                    {period.status === 'open' ? (
+                    {period.status === 'open' || period.can_close ? (
                       <Button
                         size="sm"
                         variant="secondary"
                         disabled={actionId === period.id}
-                        onClick={() => setCloseModalId(period.id)}
+                        onClick={() => {
+                          setCloseWarnings([]);
+                          setCloseModalId(period.id);
+                        }}
+                        title="Soft or hard close. Transactions will be blocked."
                       >
                         <Lock className="h-3.5 w-3.5" />
                         Close Period
                       </Button>
-                    ) : period.status === 'soft_closed' ? (
+                    ) : period.status === 'soft_closed' || period.can_reopen ? (
                       <Button
                         size="sm"
                         variant="secondary"
                         disabled={actionId === period.id}
                         onClick={() => setReopenModalId(period.id)}
+                        title="Reopen period. Reason required."
                       >
                         <Unlock className="h-3.5 w-3.5" />
                         Reopen
                       </Button>
+                    ) : isPlatformAdmin && (period.can_override_reopen || period.status === 'hard_closed') ? (
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        disabled={actionId === period.id}
+                        onClick={() => setOverrideModalId(period.id)}
+                        title="Platform admin override reopen with audit trail."
+                      >
+                        <Unlock className="h-3.5 w-3.5" />
+                        Admin Reopen
+                      </Button>
                     ) : (
-                      <span className="text-xs text-slate-400">Locked</span>
+                      <span className="text-xs text-slate-400" title="Hard-closed periods cannot be reopened without admin override.">
+                        Locked
+                      </span>
                     )}
                   </td>
                 </tr>
@@ -185,18 +264,35 @@ export default function FiscalPeriodsPage() {
       </div>
 
       {closeModalId ? (
-        <Modal title="Close fiscal period" onClose={() => setCloseModalId(null)}>
-          <p className="text-sm text-slate-600">Choose how to close this period. Hard close is irreversible without admin override.</p>
+        <Modal title="Close fiscal period" onClose={resetCloseModal}>
+          <p className="text-sm text-slate-600" title="Soft close: no new transactions. Hard close: completely locked. Reopen requires approval.">
+            Choose how to close this period. Hard close is irreversible without admin override.
+          </p>
+          {(closeModalPeriod?.pending_total ?? 0) > 0 && (
+            <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+              Warning: {closeModalPeriod?.pending_total} unposted journal(s) remain in this period.
+            </div>
+          )}
           <div className="mt-4 space-y-2 text-sm">
-            <label className="flex items-center gap-2">
-              <input type="radio" checked={closeType === 'soft'} onChange={() => setCloseType('soft')} />
+            <label className="flex items-center gap-2" title="Block new transactions; reversals still allowed.">
+              <input type="radio" checked={closeType === 'soft'} onChange={() => { setCloseType('soft'); setHardConfirm(false); }} />
               Soft close — block new transactions
             </label>
-            <label className="flex items-center gap-2">
+            <label className="flex items-center gap-2" title="Hard close irreversible without admin override.">
               <input type="radio" checked={closeType === 'hard'} onChange={() => setCloseType('hard')} />
               Hard close — completely locked
             </label>
           </div>
+          {closeType === 'hard' && (
+            <label className="mt-4 flex items-start gap-2 text-sm text-slate-700">
+              <input
+                type="checkbox"
+                checked={hardConfirm}
+                onChange={(e) => setHardConfirm(e.target.checked)}
+              />
+              I understand hard close is irreversible without platform admin override.
+            </label>
+          )}
           <div className="mt-4">
             <Input
               value={closeNote}
@@ -204,16 +300,23 @@ export default function FiscalPeriodsPage() {
               placeholder="Optional note for audit log"
             />
           </div>
+          {closeWarnings.length > 0 && (
+            <div className="mt-3 text-sm text-amber-700">{closeWarnings.join(' ')}</div>
+          )}
           <div className="mt-5 flex justify-end gap-2">
-            <Button variant="secondary" onClick={() => setCloseModalId(null)}>Cancel</Button>
-            <Button onClick={handleClose} disabled={actionId === closeModalId}>Confirm close</Button>
+            <Button variant="secondary" onClick={resetCloseModal}>Cancel</Button>
+            <Button onClick={handleClose} disabled={actionId === closeModalId || (closeType === 'hard' && !hardConfirm)}>
+              Confirm close
+            </Button>
           </div>
         </Modal>
       ) : null}
 
       {reopenModalId ? (
         <Modal title="Reopen fiscal period" onClose={() => setReopenModalId(null)}>
-          <p className="text-sm text-slate-600">Why are you reopening this period? This will be recorded in the audit log.</p>
+          <p className="text-sm text-slate-600" title="Why reopening? (audit trail)">
+            Why are you reopening this period? This will be recorded in the audit log.
+          </p>
           <div className="mt-4">
             <textarea
               value={reopenReason}
@@ -226,6 +329,29 @@ export default function FiscalPeriodsPage() {
           <div className="mt-5 flex justify-end gap-2">
             <Button variant="secondary" onClick={() => setReopenModalId(null)}>Cancel</Button>
             <Button onClick={handleReopen} disabled={actionId === reopenModalId || !reopenReason.trim()}>Confirm reopen</Button>
+          </div>
+        </Modal>
+      ) : null}
+
+      {overrideModalId ? (
+        <Modal title="Admin override reopen" onClose={() => setOverrideModalId(null)}>
+          <p className="text-sm text-slate-600">
+            Override reopen a hard-closed period. Mandatory justification is written to the audit log.
+          </p>
+          <div className="mt-4">
+            <textarea
+              value={overrideReason}
+              onChange={(e) => setOverrideReason(e.target.value)}
+              rows={4}
+              className="w-full rounded-lg border border-border bg-white px-3.5 py-2.5 text-sm text-ink shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+              placeholder="Mandatory justification (required)"
+            />
+          </div>
+          <div className="mt-5 flex justify-end gap-2">
+            <Button variant="secondary" onClick={() => setOverrideModalId(null)}>Cancel</Button>
+            <Button onClick={handleOverrideReopen} disabled={actionId === overrideModalId || !overrideReason.trim()}>
+              Confirm override reopen
+            </Button>
           </div>
         </Modal>
       ) : null}
@@ -247,18 +373,18 @@ function Modal({ title, children, onClose }: { title: string; children: ReactNod
   );
 }
 
-function StatusBadge({ status }: { status: FiscalPeriod['status'] }) {
+function StatusBadge({ status, label }: { status: FiscalPeriod['status']; label?: string }) {
   const map = {
     open: 'border-emerald-200 bg-emerald-50 text-emerald-700',
     soft_closed: 'border-amber-200 bg-amber-50 text-amber-700',
     hard_closed: 'border-rose-200 bg-rose-50 text-rose-700',
   };
-  const label = {
+  const defaultLabel = {
     open: 'Open',
     soft_closed: 'Soft Closed',
     hard_closed: 'Hard Closed',
   };
-  return <span className={`badge border ${map[status]}`}>{label[status]}</span>;
+  return <span className={`badge border ${map[status]}`}>{label || defaultLabel[status]}</span>;
 }
 
 function formatPeriodLabel(period: FiscalPeriod) {

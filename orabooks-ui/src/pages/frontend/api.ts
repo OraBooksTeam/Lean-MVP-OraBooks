@@ -721,18 +721,25 @@ export const api = {
   },
   fiscalPeriodsList: (orgId: number) =>
     api.get('orabooks_fiscal_periods_list', { org_id: orgId }),
-  fiscalPeriodClose: (orgId: number, periodId: number, closeType: 'soft' | 'hard', note = '') =>
+  fiscalPeriodClose: (orgId: number, periodId: number, closeType: 'soft' | 'hard', note = '', hardConfirm = false) =>
     api.post('orabooks_fiscal_period_close', {
       org_id: orgId,
       period_id: periodId,
       close_type: closeType,
       note,
+      hard_confirm: hardConfirm ? 1 : 0,
     }),
   fiscalPeriodReopen: (orgId: number, periodId: number, reason: string) =>
     api.post('orabooks_fiscal_period_reopen', {
       org_id: orgId,
       period_id: periodId,
       reason,
+    }),
+  fiscalPeriodOverrideReopen: (orgId: number, periodId: number, justification: string) =>
+    api.post('orabooks_fiscal_period_override_reopen', {
+      org_id: orgId,
+      period_id: periodId,
+      justification,
     }),
   taxListConfigs: (orgId: number) =>
     api.get('orabooks_tax_configs_list', { org_id: orgId }),
