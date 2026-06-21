@@ -12,7 +12,11 @@ import {
   queueReceipt,
   syncQueuedReceipts,
 } from '@/lib/pwa/offline-receipt-queue';
-import { onOnline } from '@/lib/pwa/register-pwa';
+import {
+  isMobileDevice,
+  isStandalonePwa,
+  onOnline,
+} from '@/lib/pwa/register-pwa';
 import { Camera, CheckCircle2, CloudOff, Paperclip, Percent, Receipt, RefreshCw, Sparkles, Upload, XCircle } from 'lucide-react';
 
 const fieldClass =
@@ -49,6 +53,7 @@ export default function ExpensesPage() {
   const [saving, setSaving] = useState(false);
   const [offlineQueueCount, setOfflineQueueCount] = useState(0);
   const [syncingOffline, setSyncingOffline] = useState(false);
+  const [showMobileCamera, setShowMobileCamera] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
 
@@ -99,6 +104,19 @@ export default function ExpensesPage() {
       setSyncingOffline(false);
     }
   };
+
+  useEffect(() => {
+    const updateCameraVisibility = () => {
+      setShowMobileCamera(isMobileDevice() || isStandalonePwa());
+    };
+
+    updateCameraVisibility();
+    window.addEventListener('resize', updateCameraVisibility);
+    return () => window.removeEventListener('resize', updateCameraVisibility);
+  }, []);
+
+  useEffect(() => {
+  }, []);
 
   useEffect(() => {
     void refreshOfflineQueue();
@@ -375,15 +393,17 @@ export default function ExpensesPage() {
                 <Receipt className="h-4 w-4" />
                 {uploading ? 'Processing...' : 'Upload Receipt'}
               </Button>
-              <Button
-                variant="secondary"
-                onClick={() => cameraInputRef.current?.click()}
-                disabled={uploading}
-                title="Take a photo of receipt."
-              >
-                <Camera className="h-4 w-4" />
-                Scan with Camera
-              </Button>
+              {showMobileCamera && (
+                <Button
+                  variant="secondary"
+                  onClick={() => cameraInputRef.current?.click()}
+                  disabled={uploading}
+                  title="Take a photo of receipt."
+                >
+                  <Camera className="h-4 w-4" />
+                  Scan with Camera
+                </Button>
+              )}
               <input
                 ref={cameraInputRef}
                 type="file"
@@ -393,10 +413,22 @@ export default function ExpensesPage() {
                 onChange={handleCameraCapture}
               />
             </div>
-            <p className="mt-2 flex items-center gap-1.5 text-xs text-slate-500">
-              <Camera className="h-3.5 w-3.5" />
-              PWA camera scan on mobile; receipts queue offline until connectivity returns.
-            </p>
+            {(showMobileCamera || offlineQueueCount > 0) && (
+              <p className="mt-2 flex items-center gap-1.5 text-xs text-slate-500">
+                {showMobileCamera && (
+                  <>
+                    <Camera className="h-3.5 w-3.5" />
+                    PWA camera scan on mobile; receipts queue offline until connectivity returns.
+                  </>
+                )}
+                {offlineQueueCount > 0 && isOffline() && (
+                  <span className="inline-flex items-center gap-1 text-amber-700">
+                    <CloudOff className="h-3.5 w-3.5" />
+                    You are offline — queued receipts will sync automatically when back online.
+                  </span>
+                )}
+              </p>
+            )}
           </div>
         )}
 
