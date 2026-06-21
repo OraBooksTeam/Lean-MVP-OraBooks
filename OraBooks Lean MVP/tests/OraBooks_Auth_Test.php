@@ -1586,7 +1586,7 @@ class OraBooks_Auth_Test extends TestCase
             if (stripos($query, 'orabooks_2fa_backup_codes') !== false) {
                 return [(object)[
                     'id'        => 1,
-                    'code_hash' => password_hash('valid-backup-001', PASSWORD_DEFAULT),
+                    'code_hash' => password_hash('VALID-BACKUP-001', PASSWORD_DEFAULT),
                     'used'      => 0,
                 ]];
             }
