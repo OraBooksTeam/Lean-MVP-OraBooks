@@ -152,11 +152,20 @@ class OraBooks_Organization {
         
         // Audit log
         $event_type = $organization_type === 'partner' ? 'partner_org_created' : 'org_created';
-        orabooks_log_event($event_type, "Organization created: $name ($subdomain)", 'info', [
+        $audit_meta = [
             'organization_type' => $organization_type,
             'tier' => $tier,
-            'org_id' => $org_id
-        ], $owner_id, $org_id);
+            'org_id' => $org_id,
+        ];
+        if ($organization_type === 'partner') {
+            if (!empty($data['partner_type'])) {
+                $audit_meta['partner_type'] = $data['partner_type'];
+            }
+            if (!empty($data['organization_name'])) {
+                $audit_meta['organization_name'] = $data['organization_name'];
+            }
+        }
+        orabooks_log_event($event_type, "Organization created: $name ($subdomain)", 'info', $audit_meta, $owner_id, $org_id);
 
         if ($organization_type === 'customer' && function_exists('orabooks_provision_org_multisite')) {
             orabooks_provision_org_multisite($org_id, $subdomain, $name, $owner_id);
@@ -460,6 +469,9 @@ class OraBooks_Organization {
             );
             
             orabooks_log_event('partner_reactivation_approved', "Partner reactivation approved", 'info', [], $admin_id, $review->org_id);
+            orabooks_log_event('partner_reactivated', 'Partner organization reactivated', 'info', [
+                'review_id' => (int) $review_id,
+            ], $admin_id, $review->org_id);
         } else {
             orabooks_log_event('partner_reactivation_denied', "Partner reactivation denied: $notes", 'warning', [
                 'reason' => $notes

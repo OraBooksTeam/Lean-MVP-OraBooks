@@ -374,7 +374,10 @@ class OraBooks_Auth {
         
         orabooks_log_event('partner_attribution_created', "Partner attribution created (pending)", 'info', [
             'partner_user_id' => $code->user_id,
-            'partner_code' => $code->partner_code
+            'partner_code' => $code->partner_code,
+            'partner_type' => $code->partner_type ?? null,
+            'organization_name' => $code->organization_name ?? null,
+            'customer_email' => $customer_email,
         ], $customer_user_id, null);
         
         return true;
@@ -883,9 +886,17 @@ class OraBooks_Auth {
                 );
             }
             
+            $partner_code_row = $wpdb->get_row($wpdb->prepare(
+                "SELECT partner_type, organization_name FROM {$table_codes} WHERE user_id = %d ORDER BY created_at DESC LIMIT 1",
+                $pending->partner_user_id
+            ));
+
             orabooks_log_event('partner_attribution_verified', "Partner attribution verified", 'info', [
                 'attribution_id' => $pending->id,
-                'partner_user_id' => $pending->partner_user_id
+                'partner_user_id' => $pending->partner_user_id,
+                'partner_type' => $partner_code_row->partner_type ?? null,
+                'organization_name' => $partner_code_row->organization_name ?? null,
+                'customer_email' => $pending->customer_email ?? '',
             ], $user->id, $user->org_id);
             
             // Fire event for SL-068 Commission Engine

@@ -197,6 +197,10 @@ class OraBooks_Partner {
                             'months' => 6,
                             'active_customer_count' => 0,
                         ], $p->user_id, null);
+                        orabooks_log_event('partner_became_dormant', 'Partner became dormant (zero active customers)', 'warning', [
+                            'active_customer_count' => 0,
+                            'partner_user_id' => (int) $p->user_id,
+                        ], $p->user_id, null);
 
                         if (class_exists('OraBooks_Notifications')) {
                             do_action('orabooks_partner_low_activity_reminder_sent', $p->user_id, [
