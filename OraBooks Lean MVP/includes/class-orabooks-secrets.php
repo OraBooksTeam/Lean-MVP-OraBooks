@@ -395,8 +395,151 @@ class OraBooks_Secrets {
         if (!$secret) {
             $secret = wp_generate_password(64, true, true);
             self::set('jwt_secret', $secret);
+            self::with_shared_options(function () use ($secret) {
+                if (!get_option('orabooks_secrets_last_rotated')) {
+                    update_option('orabooks_secrets_last_rotated', current_time('mysql', true));
+                }
+            });
         }
         return $secret;
+    }
+
+    /**
+     * JWT secrets valid for verification (current + grace-period previous).
+     *
+     * @return string[]
+     */
+    private static function get_jwt_verification_secrets() {
+        $secrets = [self::get_jwt_secret()];
+        $grace_until = (int) self::with_shared_options(function () {
+            return (int) get_option('orabooks_jwt_secret_grace_until', 0);
+        });
+
+        if ($grace_until > time()) {
+            $previous = self::get('jwt_secret_previous');
+            if ($previous) {
+                $secrets[] = $previous;
+            }
+        }
+
+        return array_values(array_unique(array_filter($secrets)));
+    }
+
+    /**
+     * Check remote TLS certificate expiry for the site host (SL-008 §5.5).
+     */
+    public static function check_tls_certificate($host = null, $port = 443) {
+        $host = strtolower(trim((string) ($host ?: parse_url(home_url(), PHP_URL_HOST))));
+        if ($host === '' || in_array($host, ['localhost', '127.0.0.1', '::1'], true)) {
+            return [
+                'ok' => true,
+                'skipped' => true,
+                'host' => $host,
+                'reason' => 'local_or_missing_host',
+            ];
+        }
+
+        if (!function_exists('stream_socket_client')) {
+            return [
+                'ok' => true,
+                'skipped' => true,
+                'host' => $host,
+                'reason' => 'stream_socket_client_unavailable',
+            ];
+        }
+
+        $context = stream_context_create([
+            'ssl' => [
+                'capture_peer_cert' => true,
+                'verify_peer' => false,
+                'verify_peer_name' => false,
+            ],
+        ]);
+
+        $client = @stream_socket_client(
+            'ssl://' . $host . ':' . (int) $port,
+            $errno,
+            $errstr,
+            10,
+            STREAM_CLIENT_CONNECT,
+            $context
+        );
+
+        if (!$client) {
+            if (function_exists('orabooks_log_event')) {
+                orabooks_log_event('tls_certificate_check_failed', 'Unable to inspect TLS certificate', 'warning', [
+                    'host' => $host,
+                    'error' => $errstr,
+                    'errno' => $errno,
+                ]);
+            }
+
+            return [
+                'ok' => false,
+                'host' => $host,
+                'error' => $errstr ?: 'connection_failed',
+            ];
+        }
+
+        $params = stream_context_get_params($client);
+        fclose($client);
+
+        $cert = $params['options']['ssl']['peer_certificate'] ?? null;
+        if (!$cert) {
+            return [
+                'ok' => false,
+                'host' => $host,
+                'error' => 'peer_certificate_missing',
+            ];
+        }
+
+        $parsed = openssl_x509_parse($cert);
+        $expires_at = isset($parsed['validTo_time_t']) ? (int) $parsed['validTo_time_t'] : 0;
+        $days_remaining = $expires_at > 0 ? (int) floor(($expires_at - time()) / DAY_IN_SECONDS) : null;
+        $expired = $days_remaining !== null && $days_remaining < 0;
+        $expiring_soon = $days_remaining !== null && $days_remaining >= 0 && $days_remaining <= self::TLS_EXPIRY_WARN_DAYS;
+
+        if ($expired && function_exists('orabooks_log_event')) {
+            orabooks_log_event('tls_certificate_expired', 'TLS certificate has expired', 'critical', [
+                'host' => $host,
+                'expires_at' => gmdate('c', $expires_at),
+            ]);
+        } elseif ($expiring_soon && function_exists('orabooks_log_event')) {
+            orabooks_log_event('tls_certificate_expiring', 'TLS certificate expiring soon', 'warning', [
+                'host' => $host,
+                'days_remaining' => $days_remaining,
+                'expires_at' => gmdate('c', $expires_at),
+            ]);
+        }
+
+        return [
+            'ok' => !$expired,
+            'host' => $host,
+            'expires_at' => $expires_at ? gmdate('c', $expires_at) : null,
+            'days_remaining' => $days_remaining,
+            'expired' => $expired,
+            'expiring_soon' => $expiring_soon,
+        ];
+    }
+
+    /**
+     * Health snapshot for deploy/security dashboards.
+     */
+    public static function get_status() {
+        $jwt = self::get_jwt_secret();
+        $encryption = self::get_encryption_key();
+        $tls = self::check_tls_certificate();
+
+        return [
+            'production_mode' => self::is_production(),
+            'requires_tls' => self::requires_tls(),
+            'jwt_secret_configured' => strlen((string) $jwt) >= self::MIN_JWT_SECRET_LENGTH,
+            'encryption_key_configured' => strlen((string) $encryption) >= self::MIN_ENCRYPTION_KEY_LENGTH,
+            'jwt_secret_length' => strlen((string) $jwt),
+            'last_rotated' => get_option('orabooks_secrets_last_rotated', ''),
+            'tls' => $tls,
+            'https_active' => function_exists('is_ssl') ? is_ssl() : false,
+        ];
     }
     
     /**
@@ -438,16 +581,22 @@ class OraBooks_Secrets {
             return false;
         }
         
-        $secret = self::get_jwt_secret();
         $header = $parts[0];
         $payload = $parts[1];
         $signature = $parts[2];
-        
-        $expected = self::base64url_encode(
-            hash_hmac('sha256', "$header.$payload", $secret, true)
-        );
-        
-        if (!hash_equals($expected, $signature)) {
+
+        $verified = false;
+        foreach (self::get_jwt_verification_secrets() as $secret) {
+            $expected = self::base64url_encode(
+                hash_hmac('sha256', "$header.$payload", $secret, true)
+            );
+            if (hash_equals($expected, $signature)) {
+                $verified = true;
+                break;
+            }
+        }
+
+        if (!$verified) {
             return false;
         }
         
