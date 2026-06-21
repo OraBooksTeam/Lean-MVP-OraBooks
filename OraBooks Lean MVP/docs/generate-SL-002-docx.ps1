@@ -15,7 +15,7 @@ function Add-H2([string]$text) { Set-Style 'Heading 2'; $sel.TypeText($text); $s
 function Add-P([string]$text) { Set-Style 'Normal'; $sel.TypeText($text); $sel.TypeParagraph() }
 function Add-Bullet([string]$text) { Set-Style 'Normal'; $sel.Range.ListFormat.ApplyBulletDefault(); $sel.TypeText($text); $sel.TypeParagraph(); $sel.Range.ListFormat.RemoveNumbers() }
 
-Add-H1 'SL-002 – AI Entry Approval Gate'
+Add-H1 'SL-002 AI Entry Approval Gate'
 Add-P 'OraBooks Lean MVP — Complete Implementation Report'
 Add-P ('Generated: ' + (Get-Date -Format 'yyyy-MM-dd HH:mm'))
 
