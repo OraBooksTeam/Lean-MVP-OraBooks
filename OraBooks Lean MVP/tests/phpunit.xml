@@ -84,6 +84,9 @@
         <testsuite name="OraBooks SL-009 Audit Tests">
             <file>OraBooks_Audit_Test.php</file>
         </testsuite>
+        <testsuite name="OraBooks SL-014 Team Tests">
+            <file>OraBooks_Team_Test.php</file>
+        </testsuite>
         <testsuite name="OraBooks SL-004 Organization Tests">
             <file>OraBooks_Organization_Test.php</file>
         </testsuite>
