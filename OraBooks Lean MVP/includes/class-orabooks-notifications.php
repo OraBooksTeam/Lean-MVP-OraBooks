@@ -253,16 +253,22 @@ class OraBooks_Notifications {
                 'user_id'      => $user_id,
                 'channels'     => $attempted_channels,
                 'org_id'       => $org_id,
-            ], null, $org_id);
-        }
+            ], null, $org_id, $correlation_id);
 
-        // Log audit event
-        orabooks_log_event('notification_sent', "Notification {$event_type} sent to user {$user_id}", 'info', [
-            'notification_id' => $notification_id,
-            'priority'        => $priority,
-            'correlation_id'  => $correlation_id,
-            'delivered'       => $delivered,
-        ], null, $org_id);
+            orabooks_log_event('notification_failed', "Notification {$event_type} failed for user {$user_id}", 'warning', [
+                'notification_id' => $notification_id,
+                'priority'        => $priority,
+                'correlation_id'  => $correlation_id,
+                'channels'        => $attempted_channels,
+            ], null, $org_id, $correlation_id);
+        } else {
+            orabooks_log_event('notification_sent', "Notification {$event_type} sent to user {$user_id}", 'info', [
+                'notification_id' => $notification_id,
+                'priority'        => $priority,
+                'correlation_id'  => $correlation_id,
+                'channel'         => end($attempted_channels) ?: null,
+            ], null, $org_id, $correlation_id);
+        }
 
         return $notification_id;
     }
@@ -420,24 +426,49 @@ class OraBooks_Notifications {
         return $default_channels;
     }
 
+    /**
+     * Whether the current time falls within the user's quiet-hours window.
+     */
+    private static function is_in_quiet_hours($user_prefs) {
+        if (empty($user_prefs) || empty($user_prefs->quiet_hours_start) || empty($user_prefs->quiet_hours_end)) {
+            return false;
+        }
+
+        $now = current_time('H:i');
+        $start = substr((string) $user_prefs->quiet_hours_start, 0, 5);
+        $end = substr((string) $user_prefs->quiet_hours_end, 0, 5);
+
+        if ($start <= $end) {
+            return $now >= $start && $now < $end;
+        }
+
+        return $now >= $start || $now < $end;
+    }
+
     // ================================================================
     // MULTI-REGION PROVIDER SELECTION
     // ================================================================
 
+    private static function get_org_region($org_id) {
+        global $wpdb;
+
+        if (!$org_id) {
+            return 'us-east';
+        }
+
+        $table_orgs = OraBooks_Database::table('organizations');
+        $org = $wpdb->get_var($wpdb->prepare(
+            "SELECT region FROM {$table_orgs} WHERE id = %d",
+            $org_id
+        ));
+
+        return $org ? (string) $org : 'us-east';
+    }
+
     private static function select_provider($channel, $org_id) {
         global $wpdb;
 
-        // Get org region
-        $org_region = 'us-east';
-        if ($org_id) {
-            $table_orgs = OraBooks_Database::table('organizations');
-            $org = $wpdb->get_var($wpdb->prepare(
-                "SELECT region FROM {$table_orgs} WHERE id = %d", $org_id
-            ));
-            if ($org) {
-                $org_region = $org;
-            }
-        }
+        $org_region = self::get_org_region($org_id);
 
         $table_health = OraBooks_Database::table('delivery_provider_health');
 
@@ -486,14 +517,16 @@ class OraBooks_Notifications {
     // DELIVERY ATTEMPT (stub - real providers would be integrated)
     // ================================================================
 
-    private static function attempt_delivery($notification_id, $channel, $provider, $user_id, $title, $message, $payload) {
+    private static function attempt_delivery($notification_id, $channel, $provider, $user_id, $title, $message, $payload, $org_id = 0) {
         // MVP stub: mark as success for inapp, log for others
         // Future: integrate with AWS SES, FCM, etc.
-        
+
+        $region = self::get_org_region($org_id);
         $proof = [
             'notification_id' => $notification_id,
             'channel'         => $channel,
             'provider'        => $provider,
+            'region'          => $region,
             'timestamp'       => current_time('mysql', true),
             'signature'       => hash_hmac('sha256', "{$notification_id}:{$channel}:{$provider}", defined('ORABOOKS_JWT_SECRET') ? ORABOOKS_JWT_SECRET : 'orabooks-default'),
         ];
@@ -836,7 +869,7 @@ class OraBooks_Notifications {
             );
             
             $provider = self::select_provider($notif->delivery_channel ?? 'email', $notif->org_id);
-            $result = self::attempt_delivery($notif->id, $channels[0] ?? 'inapp', $provider, $notif->user_id, $notif->title, $notif->message, $payload);
+            $result = self::attempt_delivery($notif->id, $channels[0] ?? 'inapp', $provider, $notif->user_id, $notif->title, $notif->message, $payload, (int) $notif->org_id);
             
             if ($result['success']) {
                 $wpdb->update(
@@ -1143,13 +1176,39 @@ class OraBooks_Notifications {
     public static function mark_read($notification_id, $user_id) {
         global $wpdb;
         $table = OraBooks_Database::table('notifications');
-        return $wpdb->update(
+        $notification_id = (int) $notification_id;
+        $user_id = (int) $user_id;
+
+        if ($notification_id <= 0 || $user_id <= 0) {
+            return new WP_Error('invalid', 'Invalid notification or user');
+        }
+
+        $row = $wpdb->get_row($wpdb->prepare(
+            "SELECT id, user_id FROM {$table} WHERE id = %d",
+            $notification_id
+        ));
+
+        if (!$row) {
+            return new WP_Error('not_found', 'Notification not found');
+        }
+
+        if ((int) $row->user_id !== $user_id) {
+            return new WP_Error('forbidden', 'Notification does not belong to this user');
+        }
+
+        $updated = $wpdb->update(
             $table,
             ['is_read' => 1, 'read_at' => current_time('mysql', true)],
-            ['id' => $notification_id, 'user_id' => $user_id],
+            ['id' => $notification_id],
             ['%d', '%s'],
-            ['%d', '%d']
+            ['%d']
         );
+
+        if ($updated === false) {
+            return new WP_Error('db_error', 'Failed to mark notification as read');
+        }
+
+        return true;
     }
 
     public static function mark_all_read($user_id) {
@@ -1182,9 +1241,23 @@ class OraBooks_Notifications {
         if (!$org_id) {
             orabooks_json_error('Organization required', 400);
         }
-        if (!current_user_can('manage_options') && !OraBooks_RBAC::require_permission($user_id, $org_id, 'manage_org_settings')) {
-            orabooks_json_error('Permission denied', 403);
+
+        if (function_exists('orabooks_assert_tenant_access')) {
+            $tenant = orabooks_assert_tenant_access($user_id, $org_id, false);
+            if (is_wp_error($tenant)) {
+                orabooks_json_error($tenant->get_error_message(), 403);
+            }
         }
+
+        if (current_user_can('manage_options')) {
+            return $user_id;
+        }
+
+        $role = orabooks_get_user_role($user_id, $org_id);
+        if ($role !== 'owner') {
+            orabooks_json_error('Only organization owners can manage notification policies.', 403);
+        }
+
         return $user_id;
     }
 
@@ -2093,3 +2166,5 @@ class OraBooks_Notifications {
      */
     public static function notify($user_id, $event_type, $payload = [], $org_id = null) {
         return self::send_notification($user_id, $event_type, $payload, $org_id);
+    }
+}
