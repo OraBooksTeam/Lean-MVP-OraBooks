@@ -135,6 +135,9 @@ export function redirectToOrgSubdomain(subdomain: string, wpPath = '/dashboard/'
 
 export function redirectAfterAuth(data: {
   needs_tier_selection?: boolean;
+  needs_accept_invite?: boolean;
+  invite_onboarded?: boolean;
+  tier_selection_token?: string;
   redirect_to?: string;
   subdomain?: string;
   is_partner?: boolean;
@@ -143,6 +146,16 @@ export function redirectAfterAuth(data: {
   clearRedirectGuard();
   clearLogoutSessionFlag();
   clearTierSelectionToken();
+
+  if (data?.needs_accept_invite) {
+    const pendingInvite = window.sessionStorage.getItem('orabooks_pending_invite_token') || '';
+    if (pendingInvite) {
+      window.location.replace(getAcceptInviteUrl(pendingInvite));
+      return;
+    }
+    window.location.replace(normalizeWpAppPath(getNetworkAuthUrl('accept-invite')));
+    return;
+  }
 
   if (data?.needs_tier_selection) {
     if (data?.tier_selection_token) {
