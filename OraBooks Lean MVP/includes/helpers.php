@@ -836,6 +836,50 @@ function orabooks_append_auth_tokens_to_url($url, $token = '', $refresh_token = 
 }
 
 /**
+ * Whether a partner user has finished the first-login onboarding screen.
+ */
+function orabooks_has_completed_partner_onboarding($user_id) {
+    $user_id = (int) $user_id;
+    if ($user_id <= 0) {
+        return false;
+    }
+
+    $wp_user_id = orabooks_get_wp_user_id_for_orabooks_user($user_id);
+    if ($wp_user_id <= 0) {
+        return false;
+    }
+
+    return (bool) get_user_meta($wp_user_id, 'orabooks_partner_onboarding_completed', true);
+}
+
+/**
+ * Mark partner onboarding complete (Continue to Dashboard).
+ */
+function orabooks_mark_partner_onboarding_completed($user_id) {
+    $user_id = (int) $user_id;
+    if ($user_id <= 0) {
+        return false;
+    }
+
+    $wp_user_id = orabooks_get_wp_user_id_for_orabooks_user($user_id);
+    if ($wp_user_id <= 0) {
+        return false;
+    }
+
+    update_user_meta($wp_user_id, 'orabooks_partner_onboarding_completed', '1');
+    return true;
+}
+
+/**
+ * Default post-login path for partner users.
+ */
+function orabooks_get_partner_post_login_path($user_id) {
+    return orabooks_has_completed_partner_onboarding($user_id)
+        ? '/partner-program/'
+        : '/partner/onboarding/';
+}
+
+/**
  * Add subdomain + absolute redirect URL to login/auth API payloads.
  */
 function orabooks_enrich_login_response($login_result) {
@@ -893,7 +937,11 @@ function orabooks_enrich_login_response($login_result) {
             }
         }
     } elseif (!empty($login_result['subdomain'])) {
-        $path = !empty($login_result['is_partner']) ? '/partner/onboarding/' : '/dashboard/';
+        if (!empty($login_result['is_partner']) && $user_id > 0) {
+            $path = orabooks_get_partner_post_login_path($user_id);
+        } else {
+            $path = !empty($login_result['is_partner']) ? '/partner/onboarding/' : '/dashboard/';
+        }
         $login_result['redirect_to'] = orabooks_build_org_url($login_result['subdomain'], $path);
     } else {
         $login_result['redirect_to'] = orabooks_get_network_login_url('dashboard');

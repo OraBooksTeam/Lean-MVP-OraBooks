@@ -22,6 +22,8 @@ class OraBooks_Partner {
             add_action('wp_ajax_nopriv_orabooks_get_partner_info', [self::$instance, 'ajax_get_partner_info']);
             add_action('wp_ajax_orabooks_partner_onboarding', [self::$instance, 'ajax_partner_onboarding']);
             add_action('wp_ajax_nopriv_orabooks_partner_onboarding', [self::$instance, 'ajax_partner_onboarding']);
+            add_action('wp_ajax_orabooks_partner_onboarding_complete', [self::$instance, 'ajax_partner_onboarding_complete']);
+            add_action('wp_ajax_nopriv_orabooks_partner_onboarding_complete', [self::$instance, 'ajax_partner_onboarding_complete']);
             add_action('wp_ajax_orabooks_request_reactivation', [self::$instance, 'ajax_request_reactivation']);
             add_action('wp_ajax_nopriv_orabooks_request_reactivation', [self::$instance, 'ajax_request_reactivation']);
             
