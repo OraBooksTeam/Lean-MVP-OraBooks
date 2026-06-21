@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import WpLink from '../components/WpLink';
 import Button from '@/components/Button';
 import { api } from '../api';
@@ -190,8 +190,8 @@ export default function CommissionsPage() {
                 ) : customers.map((row: any) => {
                   const isOpen = expanded === row.escrow_id;
                   return (
-                    <>
-                      <tr key={row.escrow_id} className="hover:bg-slate-50/70">
+                    <Fragment key={row.escrow_id}>
+                      <tr className="hover:bg-slate-50/70">
                         <td className="px-5 py-3">
                           <button
                             type="button"
@@ -214,7 +214,7 @@ export default function CommissionsPage() {
                         </td>
                       </tr>
                       {isOpen && row.yearly_breakdown?.length > 0 && (
-                        <tr key={`${row.escrow_id}-breakdown`} className="bg-slate-50/50">
+                        <tr className="bg-slate-50/50">
                           <td colSpan={7} className="px-8 py-3">
                             <p className="mb-2 text-xs font-semibold uppercase text-slate-500">Yearly breakdown</p>
                             <div className="flex flex-wrap gap-2">
@@ -227,7 +227,7 @@ export default function CommissionsPage() {
                           </td>
                         </tr>
                       )}
-                    </>
+                    </Fragment>
                   );
                 })}
               </tbody>

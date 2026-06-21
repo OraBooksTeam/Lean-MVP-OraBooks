@@ -165,6 +165,7 @@ export default function CommissionConfigPanel() {
           </div>
           <p className="text-xs text-slate-500">
             If fee type is percentage, e.g. 2.5 = 2.5%. If flat, enter the dollar amount.
+            Partner type (individual, agency, etc.) does not affect commission rates in MVP — all partners use this platform config.
           </p>
           {error && <p className="text-sm text-danger">{error}</p>}
           {message && <p className="text-sm text-emerald-700">{message}</p>}
