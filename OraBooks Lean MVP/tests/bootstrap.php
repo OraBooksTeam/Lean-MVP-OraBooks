@@ -1370,6 +1370,37 @@ if (!function_exists('orabooks_get_2fa_secret')) {
     }
 }
 
+if (!function_exists('orabooks_set_2fa_temp_secret')) {
+    function orabooks_set_2fa_temp_secret($wp_user_id, $secret) {
+        $GLOBALS['orabooks_test_user_meta'][$wp_user_id]['orabooks_2fa_temp_secret'] = $secret;
+    }
+}
+
+if (!function_exists('orabooks_get_2fa_temp_secret')) {
+    function orabooks_get_2fa_temp_secret($wp_user_id) {
+        return $GLOBALS['orabooks_test_user_meta'][$wp_user_id]['orabooks_2fa_temp_secret'] ?? '';
+    }
+}
+
+if (!function_exists('orabooks_set_2fa_temp_backup_codes')) {
+    function orabooks_set_2fa_temp_backup_codes($wp_user_id, array $codes) {
+        $GLOBALS['orabooks_test_user_meta'][$wp_user_id]['orabooks_2fa_temp_backup_codes'] = $codes;
+    }
+}
+
+if (!function_exists('orabooks_get_2fa_temp_backup_codes')) {
+    function orabooks_get_2fa_temp_backup_codes($wp_user_id) {
+        $codes = $GLOBALS['orabooks_test_user_meta'][$wp_user_id]['orabooks_2fa_temp_backup_codes'] ?? [];
+        return is_array($codes) ? $codes : [];
+    }
+}
+
+if (!function_exists('orabooks_normalize_backup_code')) {
+    function orabooks_normalize_backup_code($code) {
+        return strtoupper(preg_replace('/\s+/', '', (string) $code));
+    }
+}
+
 if (!function_exists('orabooks_resolve_tier_selection_user_id')) {
     function orabooks_resolve_tier_selection_user_id($token = '') {
         return 0;
