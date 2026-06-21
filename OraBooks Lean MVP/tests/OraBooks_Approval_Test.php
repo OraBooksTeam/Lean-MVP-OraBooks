@@ -24,6 +24,7 @@ class OraBooks_Approval_Test extends TestCase
 
         $GLOBALS['orabooks_test_current_user_id'] = 2;
         $GLOBALS['orabooks_test_current_user_can'] = true;
+        $GLOBALS['orabooks_test_has_permission'] = true;
         $GLOBALS['orabooks_test_use_insert_id'] = null;
         $GLOBALS['orabooks_test_totp_secret'] = 'TESTSECRET123456';
         $GLOBALS['orabooks_test_verify_totp_result'] = true;
