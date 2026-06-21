@@ -244,7 +244,7 @@ export default function ApprovalsPage() {
                     variant="secondary"
                     size="sm"
                     disabled={actionId === journal.id}
-                    onClick={() => void handleReject(journal.id)}
+                    onClick={() => openRejectModal(journal.id)}
                   >
                     <XCircle className="h-3.5 w-3.5" />
                     Reject
@@ -334,6 +334,58 @@ export default function ApprovalsPage() {
           </table>
         </div>
       </div>
+
+      <WorkflowModal
+        open={rejectModal.open}
+        title="Reject Journal"
+        description="Reject with reason. Journal returns to draft."
+        confirmLabel="Reject"
+        confirmVariant="danger"
+        confirmDisabled={!rejectModal.reason.trim()}
+        loading={actionId === rejectModal.journalId}
+        onClose={() => setRejectModal({ open: false, journalId: null, reason: '' })}
+        onConfirm={() => {
+          if (rejectModal.journalId) {
+            void handleReject(rejectModal.journalId, rejectModal.reason);
+          }
+        }}
+      >
+        <Input
+          label="Rejection reason"
+          value={rejectModal.reason}
+          onChange={(e) => setRejectModal((prev) => ({ ...prev, reason: e.target.value }))}
+          placeholder="Explain why this journal is rejected"
+        />
+      </WorkflowModal>
+
+      <WorkflowModal
+        open={mfaModal.open}
+        title="High-Risk Approval"
+        description="High value approval requires MFA. Enter your 6-digit 2FA code."
+        confirmLabel="Verify & Approve"
+        loading={actionId === mfaModal.journalId}
+        confirmDisabled={mfaModal.code.trim().length < 6}
+        onClose={() => setMfaModal({ open: false, journalId: null, amount: 0, code: '' })}
+        onConfirm={() => {
+          if (mfaModal.journalId) {
+            void handleApprove(
+              mfaModal.journalId,
+              mfaModal.amount,
+              Number(data?.policy?.mfa_amount_threshold ?? 10000),
+              mfaModal.code.trim()
+            );
+          }
+        }}
+      >
+        <Input
+          label="6-digit code"
+          value={mfaModal.code}
+          onChange={(e) => setMfaModal((prev) => ({ ...prev, code: e.target.value.replace(/\D/g, '').slice(0, 6) }))}
+          placeholder="000000"
+          inputMode="numeric"
+          autoComplete="one-time-code"
+        />
+      </WorkflowModal>
     </ClientShell>
   );
 }
