@@ -557,6 +557,14 @@ class OraBooks_Auth {
      * @return array<string, mixed>
      */
     private static function issue_tier_selection_login($user) {
+        if (orabooks_user_has_any_pending_invite((int) $user->id)) {
+            return [
+                'needs_accept_invite' => true,
+                'user_id' => (int) $user->id,
+                'message' => 'Please accept your team invitation to continue.',
+            ];
+        }
+
         $tier_selection_token = OraBooks_Secrets::generate_jwt([
             'user_id' => $user->id,
             'email' => $user->email,
@@ -573,6 +581,39 @@ class OraBooks_Auth {
     }
 
     /**
+     * Auto-accept a pending team invite and issue a tenant session (SL-003 Option A).
+     *
+     * @param object $user
+     * @return array<string, mixed>|WP_Error
+     */
+    private static function try_invite_first_onboarding($user) {
+        if (!class_exists('OraBooks_Team') || !orabooks_user_has_any_pending_invite((int) $user->id)) {
+            return new WP_Error('no_pending_invite', 'No pending team invitation');
+        }
+
+        $accepted = OraBooks_Team::accept_pending_invite_for_user((int) $user->id);
+        if (is_wp_error($accepted)) {
+            return $accepted;
+        }
+
+        $session = self::issue_auth_session(
+            (int) $accepted['user_id'],
+            (int) $accepted['org_id'],
+            (string) $accepted['role'],
+            '/team/'
+        );
+
+        if (is_wp_error($session)) {
+            return $session;
+        }
+
+        $session['invite_onboarded'] = true;
+        $session['message'] = 'Team invitation accepted. Welcome to your workspace.';
+
+        return orabooks_enrich_login_response($session);
+    }
+
+    /**
      * Complete login after password/OIDC/2FA verification (partner org, tier selection, or normal session).
      *
      * @param object $user
@@ -581,6 +622,13 @@ class OraBooks_Auth {
     public static function complete_authenticated_login($user, $expected_subdomain = '', array $session_context = []) {
         if ($user->is_partner && !$user->org_id) {
             return self::handle_partner_first_login($user);
+        }
+
+        if (!$user->is_partner) {
+            $invite_session = self::try_invite_first_onboarding($user);
+            if (!is_wp_error($invite_session)) {
+                return $invite_session;
+            }
         }
 
         if (!$user->is_partner && !$user->org_id) {
@@ -2019,6 +2067,13 @@ class OraBooks_Auth {
         
         if (!$user || $user->is_partner) {
             orabooks_json_error('Only customers can select tiers', 400);
+        }
+
+        if (orabooks_user_has_any_pending_invite((int) $user_id)) {
+            orabooks_json_error(
+                'You have a pending team invitation. Log in again to join your team instead of creating a new organization.',
+                403
+            );
         }
 
         if (!empty($user->org_id)) {
