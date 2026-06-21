@@ -923,6 +923,11 @@ class OraBooks_Partner {
         }
         $org_id = intval($_POST['org_id'] ?? 0);
         $reason = sanitize_textarea_field($_POST['reason'] ?? '');
+
+        $tenant = orabooks_assert_tenant_access($user_id, $org_id);
+        if (is_wp_error($tenant)) {
+            orabooks_json_error($tenant->get_error_message(), 403);
+        }
         
         if (!orabooks_check_rate_limit('reactivate_' . $user_id, 5, 3600)) {
             orabooks_json_error('Too many reactivation attempts. Please try again later.', 429);

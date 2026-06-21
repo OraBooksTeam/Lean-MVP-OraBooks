@@ -1100,6 +1100,9 @@ $GLOBALS['orabooks_test_last_jwt_payload'] = null;
 // 6. Stub OraBooks_Organization
 // ---------------------------------------------------------------------------
 if (!class_exists('OraBooks_Organization', false)) {
+    if (!empty($GLOBALS['ORABOOKS_LOAD_REAL_ORGANIZATION'])) {
+        require_once __DIR__ . '/../includes/class-orabooks-organization.php';
+    } else {
     /**
      * Minimal OraBooks_Organization stub for testing.
      *
@@ -1141,6 +1144,7 @@ if (!class_exists('OraBooks_Organization', false)) {
         public static function review_reactivation($review_id, $admin_id, $decision, $notes) {
             return true;
         }
+    }
     }
 }
 

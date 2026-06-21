@@ -1106,6 +1106,58 @@ class OraBooks_Ajax {
         }
         orabooks_json_success([], 'Organization activated');
     }
+
+    /**
+     * SL-004 §5.6: Change enterprise customer data residency (super admin).
+     */
+    public function ajax_change_org_region() {
+        if (!current_user_can('manage_options')) {
+            orabooks_json_error('Permission denied', 403);
+        }
+
+        $org_id = intval($_POST['org_id'] ?? 0);
+        $region = sanitize_text_field($_POST['region'] ?? '');
+        $admin_id = function_exists('orabooks_get_current_user_id')
+            ? orabooks_get_current_user_id()
+            : get_current_user_id();
+
+        $result = OraBooks_Organization::change_region($org_id, $region, (int) $admin_id);
+        if (is_wp_error($result)) {
+            orabooks_json_error($result->get_error_message(), 400);
+        }
+
+        orabooks_json_success(['region' => strtolower(trim($region))], 'Organization region updated');
+    }
+
+    /**
+     * SL-004 §5.2: Resolve organization by subdomain (active orgs only).
+     */
+    public function ajax_get_org_by_subdomain() {
+        $subdomain = sanitize_text_field($_GET['subdomain'] ?? $_POST['subdomain'] ?? '');
+        if ($subdomain === '') {
+            orabooks_json_error('Subdomain required', 400);
+        }
+
+        if (!orabooks_check_rate_limit('org_subdomain_lookup_' . md5($subdomain), 60, 60)) {
+            orabooks_json_error('Too many requests', 429);
+        }
+
+        $org = OraBooks_Organization::get_active_by_subdomain($subdomain);
+        if (is_wp_error($org)) {
+            $code = $org->get_error_code() === 'org_inactive' ? 403 : 404;
+            orabooks_json_error($org->get_error_message(), $code);
+        }
+
+        orabooks_json_success([
+            'id' => (int) $org->id,
+            'name' => $org->name,
+            'subdomain' => $org->subdomain,
+            'tier' => $org->tier,
+            'organization_type' => $org->organization_type,
+            'region' => $org->region,
+            'status' => $org->status,
+        ]);
+    }
     
     public function ajax_list_users() {
         if (!current_user_can('manage_options')) {
