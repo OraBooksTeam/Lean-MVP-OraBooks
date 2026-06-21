@@ -498,8 +498,17 @@ jQuery(document).ready(function($) {
                 if (response.data.token) {
                     localStorage.setItem('orabooks_token', response.data.token);
                 }
+                if (response.data.refresh_token) {
+                    localStorage.setItem('orabooks_refresh_token', response.data.refresh_token);
+                }
                 setTimeout(function() {
-                    window.location.href = '/dashboard/';
+                    if (response.data.redirect_to) {
+                        window.location.href = response.data.redirect_to;
+                    } else if (response.data.needs_tier_selection) {
+                        window.location.href = '/tier-selection/';
+                    } else {
+                        window.location.href = '/dashboard/';
+                    }
                 }, 1000);
             }
         }).fail(function() {
