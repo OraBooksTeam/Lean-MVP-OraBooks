@@ -844,6 +844,47 @@ class OraBooks_Notifications {
     }
 
     /**
+     * Cron: Purge notifications past org retention policy (default 365 days).
+     */
+    public function cron_notification_retention() {
+        global $wpdb;
+
+        $table = OraBooks_Database::table('notifications');
+        $policy_table = OraBooks_Database::table('org_notification_policies');
+        $orgs_table = OraBooks_Database::table('organizations');
+        $default_days = 365;
+        $total = 0;
+
+        $org_ids = $wpdb->get_col("SELECT id FROM {$orgs_table}");
+        foreach ($org_ids as $org_id) {
+            $override = $wpdb->get_var($wpdb->prepare(
+                "SELECT retention_override_days FROM {$policy_table} WHERE org_id = %d",
+                $org_id
+            ));
+            $days = $override ? max(30, (int) $override) : $default_days;
+            $cutoff = gmdate('Y-m-d H:i:s', time() - ($days * DAY_IN_SECONDS));
+            $total += (int) $wpdb->query($wpdb->prepare(
+                "DELETE FROM {$table} WHERE org_id = %d AND created_at < %s",
+                $org_id,
+                $cutoff
+            ));
+        }
+
+        $cutoff = gmdate('Y-m-d H:i:s', time() - ($default_days * DAY_IN_SECONDS));
+        $total += (int) $wpdb->query($wpdb->prepare(
+            "DELETE FROM {$table} WHERE (org_id = 0 OR org_id IS NULL) AND created_at < %s",
+            $cutoff
+        ));
+
+        if ($total > 0) {
+            orabooks_log_event('notification_retention_purge', "Purged {$total} expired notifications", 'info', [
+                'deleted_count' => $total,
+                'default_days'  => $default_days,
+            ]);
+        }
+    }
+
+    /**
      * Cron: Retry pending/dead deliveries
      */
     public function cron_retry_deliveries() {
