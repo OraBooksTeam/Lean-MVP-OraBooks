@@ -680,52 +680,154 @@ class OraBooks_Secrets {
     }
     
     /**
-     * Generate TOTP secret for 2FA
+     * Generate TOTP secret for 2FA (Base32, RFC 6238).
      */
     public static function generate_totp_secret() {
-        return bin2hex(random_bytes(20));
+        return self::base32_encode(random_bytes(20));
     }
     
     /**
      * Generate QR code URL for TOTP setup
      */
     public static function get_totp_qr_url($secret, $email) {
-        $issuer = 'OraBooks';
-        $encoded = urlencode("otpauth://totp/$issuer:$email?secret=$secret&issuer=$issuer");
-        return "https://chart.googleapis.com/chart?chs=200x200&chld=M|0&cht=qr&chl=$encoded";
+        $issuer = rawurlencode('OraBooks');
+        $label = rawurlencode('OraBooks:' . (string) $email);
+        $encoded = rawurlencode('otpauth://totp/' . $label . '?secret=' . strtoupper((string) $secret) . '&issuer=' . $issuer);
+        return 'https://chart.googleapis.com/chart?chs=200x200&chld=M|0&cht=qr&chl=' . $encoded;
+    }
+
+    /**
+     * Normalize a user-entered OTP to six digits.
+     */
+    public static function normalize_totp_code($code) {
+        $code = preg_replace('/\D+/', '', (string) $code);
+        return strlen($code) === 6 ? $code : '';
     }
     
     /**
      * Verify TOTP code (+/- 30 sec drift)
      */
     public static function verify_totp($secret, $code) {
-        // For MVP: simplified check using time-based OTP
-        // Production: use dedicated TOTP library
+        $code = self::normalize_totp_code($code);
+        if ($code === '') {
+            return false;
+        }
+
+        $key = self::decode_totp_secret($secret);
+        if ($key === '') {
+            return false;
+        }
+
         $time_slice = floor(time() / 30);
         for ($i = -1; $i <= 1; $i++) {
-            $expected = self::generate_totp_code($secret, $time_slice + $i);
+            $expected = self::generate_totp_code($key, $time_slice + $i);
             if (hash_equals($expected, $code)) {
                 return true;
             }
         }
+
         return false;
     }
     
     /**
-     * Generate TOTP code (RFC 6238 simplified)
+     * Generate TOTP code (RFC 6238)
      */
-    private static function generate_totp_code($secret, $time_slice) {
-        $key = pack('H*', $secret);
-        $counter = pack('J', $time_slice);
+    private static function generate_totp_code($key, $time_slice) {
+        $counter = self::pack_counter($time_slice);
         $hash = hash_hmac('sha1', $counter, $key, true);
         $offset = ord($hash[19]) & 0xf;
-        $code = (
+        $value = (
             ((ord($hash[$offset]) & 0x7f) << 24) |
             ((ord($hash[$offset + 1]) & 0xff) << 16) |
             ((ord($hash[$offset + 2]) & 0xff) << 8) |
             (ord($hash[$offset + 3]) & 0xff)
         ) % 1000000;
-        return str_pad($code, 6, '0', STR_PAD_LEFT);
+
+        return str_pad((string) $value, 6, '0', STR_PAD_LEFT);
+    }
+
+    private static function pack_counter($time_slice) {
+        $time_slice = (int) $time_slice;
+        if (PHP_INT_SIZE >= 8) {
+            $packed = pack('J', $time_slice);
+            if ($packed !== false) {
+                return $packed;
+            }
+        }
+
+        return pack('N*', 0, $time_slice);
+    }
+
+    /**
+     * Decode stored/generated TOTP secrets (Base32, hex, or legacy ASCII test values).
+     */
+    private static function decode_totp_secret($secret) {
+        $secret = strtoupper(preg_replace('/\s+/', '', (string) $secret));
+        if ($secret === '') {
+            return '';
+        }
+
+        if (preg_match('/^[A-Z2-7=]+$/', $secret)) {
+            $decoded = self::base32_decode($secret);
+            if ($decoded !== '') {
+                return $decoded;
+            }
+        }
+
+        if (preg_match('/^[0-9A-F]+$/', $secret) && (strlen($secret) % 2) === 0) {
+            $decoded = hex2bin($secret);
+            if ($decoded !== false) {
+                return $decoded;
+            }
+        }
+
+        return (string) $secret;
+    }
+
+    private static function base32_encode($data) {
+        $alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+        $binary = (string) $data;
+        $buffer = 0;
+        $bits = 0;
+        $output = '';
+
+        for ($i = 0, $len = strlen($binary); $i < $len; $i++) {
+            $buffer = ($buffer << 8) | ord($binary[$i]);
+            $bits += 8;
+            while ($bits >= 5) {
+                $bits -= 5;
+                $output .= $alphabet[($buffer >> $bits) & 31];
+            }
+        }
+
+        if ($bits > 0) {
+            $output .= $alphabet[($buffer << (5 - $bits)) & 31];
+        }
+
+        return $output;
+    }
+
+    private static function base32_decode($data) {
+        $alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+        $data = strtoupper(rtrim((string) $data, '='));
+        $buffer = 0;
+        $bits = 0;
+        $output = '';
+
+        for ($i = 0, $len = strlen($data); $i < $len; $i++) {
+            $pos = strpos($alphabet, $data[$i]);
+            if ($pos === false) {
+                return '';
+            }
+            $buffer = ($buffer << 5) | $pos;
+            $bits += 5;
+            if ($bits >= 8) {
+                $bits -= 8;
+                $output .= chr(($buffer >> $bits) & 255);
+            }
+        }
+
+        return $output;
     }
     
     /**
