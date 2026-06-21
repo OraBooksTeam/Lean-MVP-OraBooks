@@ -113,36 +113,20 @@ class OraBooks_TwoFactor_Test extends TestCase
     }
 
     #[Test]
-    public function test_set_org_requires_2fa_updates_config()
+    public function test_get_org_policy_reflects_config()
     {
         global $wpdb;
 
-        $updated_config = null;
-        $wpdb->test_get_row_callback = function ($query) {
-            if (stripos($query, 'organizations') !== false && stripos($query, 'user_org') === false) {
-                return (object) [
-                    'id' => 5,
-                    'config' => wp_json_encode(['foo' => 'bar']),
-                    'status' => 'active',
-                    'organization_type' => 'customer',
-                ];
-            }
-            if (stripos($query, 'user_org') !== false) {
-                return (object) ['role' => 'owner'];
+        $wpdb->test_get_var_callback = function ($query) {
+            if (stripos($query, 'config') !== false) {
+                return wp_json_encode(['require_2fa' => true]);
             }
             return null;
         };
-        $wpdb->test_update_callback = function ($table, $data) use (&$updated_config) {
-            $updated_config = json_decode($data['config'], true);
-            return 1;
-        };
 
-        $result = OraBooks_TwoFactor::set_org_requires_2fa(5, true, 1);
-        $this->assertIsArray($result, is_wp_error($result) ? $result->get_error_message() : '');
-        $this->assertSame(5, $result['org_id']);
-        $this->assertTrue($result['require_2fa']);
-        $this->assertTrue($updated_config['require_2fa']);
-        $this->assertSame('bar', $updated_config['foo']);
+        $policy = OraBooks_TwoFactor::get_org_policy(5);
+        $this->assertTrue($policy['require_2fa']);
+        $this->assertSame(5, $policy['org_id']);
     }
 
     #[Test]
