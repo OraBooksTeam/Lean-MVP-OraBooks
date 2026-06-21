@@ -1866,4 +1866,8 @@ class OraBooks_Auth_Test extends TestCase
         $result = OraBooks_Auth::handle_google_callback('auth-code-p2fa', 'test-state-partner-2fa');
 
         $this->assertNotInstanceOf(WP_Error::class, $result);
-        $this->asse
+        $this->assertTrue($result['requires_2fa']);
+        $this->assertEquals(20, $result['user_id']);
+        $this->assertArrayHasKey('temp_token', $result);
+    }
+}
