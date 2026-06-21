@@ -1086,6 +1086,9 @@ class OraBooks_Auth_Test extends TestCase
         $this->assertTrue($result['requires_2fa']);
         $this->assertArrayHasKey('temp_token', $result);
         $this->assertEquals(1, $result['user_id']);
+        $this->assertEquals('2fa_challenge', $GLOBALS['orabooks_test_last_jwt_payload']['purpose']);
+        $this->assertLessThanOrEqual(time() + 301, (int) $GLOBALS['orabooks_test_last_jwt_payload']['exp']);
+        $this->assertGreaterThan(time() + 240, (int) $GLOBALS['orabooks_test_last_jwt_payload']['exp']);
     }
 
     #[Test]
@@ -1466,6 +1469,11 @@ class OraBooks_Auth_Test extends TestCase
     #[Test]
     public function test_ajax_verify_2fa_setup_not_initiated()
     {
+        global $wpdb;
+        $wpdb->test_get_row_callback = function () {
+            return (object) ['id' => 1, 'is_2fa_enabled' => 0];
+        };
+
         $_POST['otp_code'] = '123456';
 
         $response = $this->callAjax('ajax_verify_2fa_setup');
