@@ -92,6 +92,7 @@ function orabooks_init() {
     OraBooks_Secrets::init();
     OraBooks_Organization::init();
     OraBooks_Auth::init();
+    OraBooks_TwoFactor::init();
     OraBooks_RBAC::init();
     OBN_Access_Control::init();
     OraBooks_Team::init();

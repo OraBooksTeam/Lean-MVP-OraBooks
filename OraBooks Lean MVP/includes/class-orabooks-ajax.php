@@ -95,7 +95,7 @@ class OraBooks_Ajax {
         $org_id = orabooks_get_current_org_id($user_id);
 
         $org = $org_id ? $wpdb->get_row($wpdb->prepare(
-            "SELECT id, name, tier, subdomain, region, status, organization_type, owner_id
+            "SELECT id, name, tier, subdomain, region, status, organization_type, owner_id, config
              FROM {$table_orgs}
              WHERE id = %d",
             $org_id
