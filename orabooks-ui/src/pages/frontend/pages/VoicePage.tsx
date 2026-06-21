@@ -231,7 +231,7 @@ export default function VoicePage() {
       <div className="space-y-5">
         <div
           className="rounded-xl border border-primary/20 bg-primary/5 p-4 text-sm text-slate-700"
-          title="Commission is calculated monthly (prorata) by SL-068."
+          title="Speak transaction in any language. Max 2 minutes."
         >
           Speak a transaction in any language. Max {maxDuration / 60} minutes, {maxMb}MB upload limit.
           Audio is encrypted and retained for {data?.limits?.retention_days ?? 90} days unless legal hold applies.
