@@ -51,10 +51,13 @@ export default function ProfilePage() {
     if (res.error) {
       setSecurityError(typeof res.error === 'string' ? res.error : 'Invalid code.');
     } else {
-      setSecurityMsg('Two-factor authentication is now enabled.');
+      const confirmedCodes = Array.isArray((res as any).data?.backup_codes)
+        ? (res as any).data.backup_codes
+        : backupCodes;
+      setSecurityMsg('Two-factor authentication is now enabled. Save your backup codes in a secure place.');
       setQrUrl('');
       setOtp('');
-      setBackupCodes([]);
+      setBackupCodes(confirmedCodes);
       await load();
     }
     setVerifyLoading(false);
@@ -151,14 +154,25 @@ export default function ProfilePage() {
                         onChange={(e) => setOtp(e.target.value)}
                         placeholder="000000"
                         inputMode="numeric"
-                        maxLength={8}
+                        maxLength={6}
                         required
                       />
                       <Button type="submit" loading={verifyLoading}>Verify and enable</Button>
                     </form>
                   )}
 
-                  {twoFaEnabled && (
+                  {twoFaEnabled && backupCodes.length > 0 && (
+                        <div className="mt-4 rounded-lg border border-border bg-white p-3">
+                          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Backup codes (save these now)</p>
+                          <ul className="mt-2 grid grid-cols-2 gap-1 font-mono text-sm">
+                            {backupCodes.map((code) => (
+                              <li key={code}>{code}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                  {twoFaEnabled && backupCodes.length === 0 && (
                     <p className="mt-4 text-sm text-emerald-700">Two-factor authentication is active on this account.</p>
                   )}
                 </div>
