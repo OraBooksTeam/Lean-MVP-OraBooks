@@ -341,6 +341,256 @@ class OraBooks_Observability {
             'aggregates_24h'  => $recent_metrics,
             'thresholds'      => apply_filters('orabooks_observability_thresholds', self::$thresholds),
             'workflow_by_org' => self::get_workflow_health(),
+            'slos'            => self::get_slo_dashboard(),
+        ];
+    }
+
+    public static function get_slo_definitions() {
+        return apply_filters('orabooks_observability_slos', self::$slos);
+    }
+
+    /**
+     * Compute SLO compliance and error budget for all platform objectives.
+     */
+    public static function get_slo_dashboard($window_days = null) {
+        $definitions = self::get_slo_definitions();
+        $results = [];
+
+        foreach ($definitions as $slo_id => $definition) {
+            $days = $window_days ?? (int) ($definition['window_days'] ?? 30);
+            $sli = self::collect_sli($slo_id, $days);
+            $results[$slo_id] = self::build_slo_status($slo_id, $definition, $sli, $days);
+        }
+
+        return [
+            'window_days' => $window_days ?? 30,
+            'objectives'  => $results,
+            'summary'     => self::summarize_slo_dashboard($results),
+        ];
+    }
+
+    public static function evaluate_error_budgets() {
+        $dashboard = self::get_slo_dashboard();
+        $thresholds = apply_filters('orabooks_observability_thresholds', self::$thresholds);
+        $min_budget = (float) ($thresholds['slo_error_budget_min'] ?? 10);
+        $alerts = [];
+
+        foreach ($dashboard['objectives'] as $slo_id => $objective) {
+            $remaining = (float) ($objective['error_budget_remaining_percent'] ?? 0);
+            if ($objective['status'] === 'breached') {
+                $alerts[] = self::build_alert(
+                    'slo_breach_' . $slo_id,
+                    sprintf('%s SLO breached', $objective['name']),
+                    $objective
+                );
+                continue;
+            }
+
+            if ($remaining <= $min_budget) {
+                $alerts[] = self::build_alert(
+                    'slo_budget_low_' . $slo_id,
+                    sprintf('%s error budget nearly exhausted', $objective['name']),
+                    $objective
+                );
+            }
+        }
+
+        return $alerts;
+    }
+
+    private static function collect_sli($slo_id, $window_days) {
+        global $wpdb;
+
+        $window_days = max(1, min(90, (int) $window_days));
+        $since = gmdate('Y-m-d H:i:s', time() - ($window_days * 86400));
+
+        switch ($slo_id) {
+            case 'notifications_delivery':
+                $table = OraBooks_Database::table('notifications');
+                $row = $wpdb->get_row($wpdb->prepare(
+                    "SELECT
+                        COUNT(*) AS total,
+                        SUM(CASE WHEN status = 'delivered' THEN 1 ELSE 0 END) AS good,
+                        SUM(CASE WHEN status IN ('failed', 'dead_letter') THEN 1 ELSE 0 END) AS bad
+                     FROM {$table}
+                     WHERE created_at >= %s",
+                    $since
+                ));
+                return self::normalize_sli_row($row);
+
+            case 'notifications_critical_latency':
+                $table = OraBooks_Database::table('notifications');
+                $latency_ms = (int) (self::$slos[$slo_id]['latency_ms'] ?? 5000);
+                $row = $wpdb->get_row($wpdb->prepare(
+                    "SELECT
+                        COUNT(*) AS total,
+                        SUM(CASE WHEN TIMESTAMPDIFF(MICROSECOND, created_at, delivered_at) / 1000 <= %d THEN 1 ELSE 0 END) AS good,
+                        SUM(CASE WHEN TIMESTAMPDIFF(MICROSECOND, created_at, delivered_at) / 1000 > %d THEN 1 ELSE 0 END) AS bad
+                     FROM {$table}
+                     WHERE priority = 'critical'
+                       AND status = 'delivered'
+                       AND delivered_at IS NOT NULL
+                       AND created_at >= %s",
+                    $latency_ms,
+                    $latency_ms,
+                    $since
+                ));
+                return self::normalize_sli_row($row);
+
+            case 'async_queue_success':
+                if (class_exists('OraBooks_AsyncQueue')) {
+                    $table = OraBooks_Database::table('async_jobs');
+                    $row = $wpdb->get_row($wpdb->prepare(
+                        "SELECT
+                            COUNT(*) AS total,
+                            SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) AS good,
+                            SUM(CASE WHEN status IN ('failed', 'dead_letter') THEN 1 ELSE 0 END) AS bad
+                         FROM {$table}
+                         WHERE created_at >= %s",
+                        $since
+                    ));
+                    return self::normalize_sli_row($row);
+                }
+                return self::empty_sli();
+
+            case 'workflow_transitions':
+                $health = self::get_workflow_health(0);
+                $total = (int) ($health['transitions_24h'] ?? 0) + (int) ($health['failures_24h'] ?? 0);
+                if ($window_days > 1) {
+                    $transitions_table = OraBooks_Database::table('state_machine_transitions');
+                    $audit_table = OraBooks_Database::table('audit_logs');
+                    $good = (int) $wpdb->get_var($wpdb->prepare(
+                        "SELECT COUNT(*) FROM {$transitions_table} WHERE created_at >= %s",
+                        $since
+                    ));
+                    $bad = (int) $wpdb->get_var($wpdb->prepare(
+                        "SELECT COUNT(*) FROM {$audit_table}
+                         WHERE created_at >= %s
+                           AND event_type IN ('invalid_state_transition', 'workflow_transition_failed', 'workflow_precondition_failed')",
+                        $since
+                    ));
+                    $total = $good + $bad;
+                } else {
+                    $good = (int) ($health['transitions_24h'] ?? 0);
+                    $bad = (int) ($health['failures_24h'] ?? 0);
+                    $total = $good + $bad;
+                }
+
+                return [
+                    'total'            => $total,
+                    'good'             => $good,
+                    'bad'              => $bad,
+                    'current_percent'  => $total > 0 ? round(($good / $total) * 100, 4) : 100.0,
+                ];
+
+            case 'eventbus_processing':
+                $outbox = OraBooks_Database::table('outbox_messages');
+                $row = $wpdb->get_row($wpdb->prepare(
+                    "SELECT
+                        COUNT(*) AS total,
+                        SUM(CASE WHEN status IN ('processed', 'completed') THEN 1 ELSE 0 END) AS good,
+                        SUM(CASE WHEN status = 'dead_letter' THEN 1 ELSE 0 END) AS bad
+                     FROM {$outbox}
+                     WHERE created_at >= %s",
+                    $since
+                ));
+                return self::normalize_sli_row($row);
+
+            default:
+                return self::empty_sli();
+        }
+    }
+
+    private static function normalize_sli_row($row) {
+        $total = (int) ($row->total ?? 0);
+        $good = (int) ($row->good ?? 0);
+        $bad = (int) ($row->bad ?? 0);
+
+        if ($total <= 0 && ($good + $bad) > 0) {
+            $total = $good + $bad;
+        }
+
+        return [
+            'total'           => $total,
+            'good'            => $good,
+            'bad'             => $bad,
+            'current_percent' => $total > 0 ? round(($good / $total) * 100, 4) : 100.0,
+        ];
+    }
+
+    private static function empty_sli() {
+        return [
+            'total'           => 0,
+            'good'            => 0,
+            'bad'             => 0,
+            'current_percent' => 100.0,
+        ];
+    }
+
+    private static function build_slo_status($slo_id, $definition, $sli, $window_days) {
+        $target = (float) ($definition['target_percent'] ?? 99.0);
+        $current = (float) ($sli['current_percent'] ?? 100.0);
+        $total = (int) ($sli['total'] ?? 0);
+        $allowed_bad = $total > 0 ? ($total * ((100 - $target) / 100)) : 0.0;
+        $actual_bad = (float) ($sli['bad'] ?? 0);
+        $budget_used = $allowed_bad > 0 ? min(100, round(($actual_bad / $allowed_bad) * 100, 2)) : 0.0;
+        $budget_remaining = max(0, round(100 - $budget_used, 2));
+        $burn_rate = $window_days > 0 ? round($budget_used / $window_days, 2) : 0.0;
+
+        $status = 'healthy';
+        if ($current < $target || ($allowed_bad > 0 && $actual_bad > $allowed_bad)) {
+            $status = 'breached';
+        } elseif ($budget_remaining <= 25) {
+            $status = 'at_risk';
+        }
+
+        self::record_metric('slo', $slo_id . '_compliance_percent', $current);
+        self::record_metric('slo', $slo_id . '_error_budget_remaining', $budget_remaining);
+
+        return [
+            'id'                              => $slo_id,
+            'name'                            => $definition['name'] ?? $slo_id,
+            'description'                     => $definition['description'] ?? '',
+            'target_percent'                  => $target,
+            'current_percent'                 => $current,
+            'window_days'                     => $window_days,
+            'sample_total'                    => $total,
+            'sample_good'                     => (int) ($sli['good'] ?? 0),
+            'sample_bad'                      => (int) ($sli['bad'] ?? 0),
+            'error_budget_allowed_failures'   => round($allowed_bad, 2),
+            'error_budget_used_failures'      => round($actual_bad, 2),
+            'error_budget_remaining_percent'  => $budget_remaining,
+            'error_budget_burn_rate_per_day' => $burn_rate,
+            'status'                          => $status,
+            'meets_slo'                       => $current >= $target,
+        ];
+    }
+
+    private static function summarize_slo_dashboard($objectives) {
+        $total = count($objectives);
+        $healthy = 0;
+        $at_risk = 0;
+        $breached = 0;
+
+        foreach ($objectives as $objective) {
+            switch ($objective['status'] ?? 'healthy') {
+                case 'breached':
+                    $breached++;
+                    break;
+                case 'at_risk':
+                    $at_risk++;
+                    break;
+                default:
+                    $healthy++;
+                    break;
+            }
+        }
+
+        return [
+            'total'    => $total,
+            'healthy'  => $healthy,
+            'at_risk'  => $at_risk,
+            'breached' => $breached,
         ];
     }
 
