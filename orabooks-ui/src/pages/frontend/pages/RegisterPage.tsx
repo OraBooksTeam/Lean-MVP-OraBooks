@@ -2,8 +2,14 @@ import { useState, useEffect, type FormEvent } from 'react';
 import Button from '@/components/Button';
 import Input from '@/components/Input';
 import { api } from '../api';
-import { getNetworkAuthUrl } from '../lib/auth-routing';
+import { getNetworkAuthUrl, storePendingInviteToken } from '../lib/auth-routing';
 import { UserPlus } from 'lucide-react';
+
+type InvitePreview = {
+  email?: string;
+  role?: string;
+  org_name?: string;
+};
 
 export default function RegisterPage() {
   const [email, setEmail] = useState('');
@@ -16,9 +22,40 @@ export default function RegisterPage() {
   const [acceptTerms, setAcceptTerms] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [invitePreview, setInvitePreview] = useState<InvitePreview | null>(null);
 
   useEffect(() => {
-    const invitedEmail = new URLSearchParams(window.location.search).get('email') || '';
+    const params = new URLSearchParams(window.location.search);
+    const invitedEmail = params.get('email') || '';
+    const inviteToken = params.get('token') || '';
+
+    if (inviteToken) {
+      storePendingInviteToken(inviteToken);
+      void api.previewInvite(inviteToken).then((res) => {
+        if (!res.error) {
+          const preview = (res as any).data as InvitePreview;
+          setInvitePreview(preview);
+          if (preview?.email) {
+            setEmail(preview.email);
+          }
+        }
+      });
+      return;
+    }
+
+    const storedToken = window.sessionStorage.getItem('orabooks_pending_invite_token') || '';
+    if (storedToken) {
+      void api.previewInvite(storedToken).then((res) => {
+        if (!res.error) {
+          const preview = (res as any).data as InvitePreview;
+          setInvitePreview(preview);
+          if (preview?.email) {
+            setEmail(preview.email);
+          }
+        }
+      });
+    }
+
     if (invitedEmail) {
       setEmail(invitedEmail);
     }
@@ -28,6 +65,9 @@ export default function RegisterPage() {
     e.preventDefault();
     setError('');
     if (password !== confirm) return setError('Passwords do not match');
+    if (invitePreview?.email && email.trim().toLowerCase() !== invitePreview.email.trim().toLowerCase()) {
+      return setError('Use the same email address that received the team invitation.');
+    }
     setLoading(true);
     try {
       const res = await api.register({
@@ -77,6 +117,7 @@ export default function RegisterPage() {
   };
 
   const needsOrg = ['agency', 'reseller', 'strategic_partner'].includes(partnerType);
+  const invitedFlow = Boolean(invitePreview?.org_name || invitePreview?.role);
 
   return (
     <div className="brand-auth-bg flex min-h-screen items-center justify-center px-4 py-12">
@@ -86,26 +127,48 @@ export default function RegisterPage() {
           <UserPlus className="h-6 w-6 text-white" />
         </div>
         <h2 className="text-center text-2xl font-bold text-ink">Create Account</h2>
-        <p className="mt-2 text-center text-sm text-slate-600">Start your OraBooks journey.</p>
+        {invitedFlow ? (
+          <div className="mt-4 rounded-xl border border-primary/20 bg-primary/5 p-4 text-sm text-slate-700">
+            <p className="font-semibold text-ink">Team invitation</p>
+            <p className="mt-1">
+              You were invited to join{' '}
+              <strong>{invitePreview?.org_name || 'a workspace'}</strong>
+              {invitePreview?.role ? (
+                <>
+                  {' '}
+                  as <strong className="capitalize">{invitePreview.role}</strong>
+                </>
+              ) : null}
+              .
+            </p>
+            <p className="mt-2 text-slate-600">
+              After email verification and login, you will join that team directly. You do not need to create your own company workspace.
+            </p>
+          </div>
+        ) : (
+          <p className="mt-2 text-center text-sm text-slate-600">Start your OraBooks journey.</p>
+        )}
         <form onSubmit={submit} className="mt-6 space-y-4">
           <div className="grid gap-4 md:grid-cols-2">
-            <Input label="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+            <Input label="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required readOnly={Boolean(invitePreview?.email)} />
             <Input label="Password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={8} hint="Min 8 characters with mixed case, number, special char." />
             <Input label="Confirm Password" type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} required />
-            <div>
-              <label className="mb-1.5 block text-sm font-medium text-slate-700">I am a:</label>
-              <select
-                value={userType}
-                onChange={(e) => setUserType(e.target.value as any)}
-                className="w-full rounded-lg border border-border bg-white px-3.5 py-2.5 text-sm text-ink shadow-sm transition focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-              >
-                <option value="customer">Customer</option>
-                <option value="partner">Partner</option>
-              </select>
-            </div>
+            {!invitedFlow && (
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-slate-700">I am a:</label>
+                <select
+                  value={userType}
+                  onChange={(e) => setUserType(e.target.value as any)}
+                  className="w-full rounded-lg border border-border bg-white px-3.5 py-2.5 text-sm text-ink shadow-sm transition focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                >
+                  <option value="customer">Customer</option>
+                  <option value="partner">Partner</option>
+                </select>
+              </div>
+            )}
           </div>
 
-          {userType === 'partner' && (
+          {userType === 'partner' && !invitedFlow && (
             <div className="grid gap-4 md:grid-cols-2">
               <div>
                 <label className="mb-1.5 block text-sm font-medium text-slate-700">Partner Type</label>
@@ -127,11 +190,11 @@ export default function RegisterPage() {
             </div>
           )}
 
-          {userType === 'customer' && (
+          {userType === 'customer' && !invitedFlow && (
             <Input label="Partner Code (Optional)" value={partnerCode} onChange={(e) => setPartnerCode(e.target.value)} placeholder="PARTNER-XXXX" />
           )}
 
-          {userType === 'partner' && (
+          {userType === 'partner' && !invitedFlow && (
             <label className="flex items-center gap-2 text-sm text-slate-700">
               <input type="checkbox" checked={acceptTerms} onChange={(e) => setAcceptTerms(e.target.checked)} className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary" />
               I agree to Partner Terms v1.0
@@ -139,7 +202,9 @@ export default function RegisterPage() {
           )}
 
           {error && <p className="text-sm text-danger">{error}</p>}
-          <Button type="submit" loading={loading} className="w-full">Create Account</Button>
+          <Button type="submit" loading={loading} className="w-full">
+            {invitedFlow ? 'Create account & join team' : 'Create Account'}
+          </Button>
         </form>
         <div className="my-6 flex items-center gap-3">
           <div className="h-px flex-1 bg-border" />
