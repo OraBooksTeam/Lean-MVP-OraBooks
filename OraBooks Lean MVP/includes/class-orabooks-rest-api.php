@@ -416,4 +416,82 @@ class OraBooks_Rest_Api {
 
         return rest_ensure_response(['expense' => $result]);
     }
+
+    public static function can_execute_state_transition($request) {
+        $user_id = self::current_user_id();
+        if ($user_id <= 0) {
+            return new WP_Error('unauthorized', 'Not authenticated.', ['status' => 401]);
+        }
+
+        $org_id = self::resolve_org_id($request);
+        if ($org_id <= 0) {
+            return new WP_Error('org_required', 'org_id is required.', ['status' => 400]);
+        }
+
+        $isolation = OraBooks_Auth::require_customer_org($user_id, $org_id);
+        if (is_wp_error($isolation)) {
+            return new WP_Error('forbidden', $isolation->get_error_message(), ['status' => 403]);
+        }
+
+        if (function_exists('current_user_can') && current_user_can('manage_options')) {
+            return true;
+        }
+
+        $allowed = orabooks_has_permission($user_id, $org_id, 'manage_settings')
+            || orabooks_has_permission($user_id, $org_id, 'submit_transaction')
+            || orabooks_has_permission($user_id, $org_id, 'approve_journal');
+
+        if (!$allowed) {
+            return new WP_Error('forbidden', 'Permission denied.', ['status' => 403]);
+        }
+
+        return true;
+    }
+
+    public static function rest_state_transition(WP_REST_Request $request) {
+        if (!class_exists('OraBooks_Workflow')) {
+            return new WP_Error('workflow_unavailable', 'Workflow engine unavailable.', ['status' => 503]);
+        }
+
+        $user_id = self::current_user_id();
+        $org_id = self::resolve_org_id($request);
+        $record_type = sanitize_text_field($request->get_param('record_type') ?? '');
+        $record_id = (int) $request->get_param('record_id');
+        $event = sanitize_text_field($request->get_param('event') ?? '');
+        $reason = $request->get_param('reason');
+        $reason = $reason !== null ? sanitize_textarea_field((string) $reason) : null;
+
+        if ($record_type === '' || $record_id <= 0 || $event === '') {
+            return new WP_Error('invalid_request', 'record_type, record_id, and event are required.', ['status' => 400]);
+        }
+
+        $context = [
+            'user_id' => $user_id,
+            'org_id'  => $org_id,
+            'reason'  => $reason,
+        ];
+
+        if ($request->get_param('mfa_otp') !== null) {
+            $context['mfa_otp'] = sanitize_text_field((string) $request->get_param('mfa_otp'));
+        }
+        if ($request->get_param('mfa_verified') !== null) {
+            $context['mfa_verified'] = (bool) $request->get_param('mfa_verified');
+        }
+
+        $result = OraBooks_Workflow::transition($record_type, $record_id, $event, $context);
+        if (is_wp_error($result)) {
+            $status = 400;
+            $data = $result->get_error_data();
+            if (is_array($data) && isset($data['status'])) {
+                $status = (int) $data['status'];
+            }
+            if ($result->get_error_code() === 'invalid_transition') {
+                $status = 409;
+            }
+            $result->add_data(['status' => $status]);
+            return $result;
+        }
+
+        return rest_ensure_response($result);
+    }
 }
