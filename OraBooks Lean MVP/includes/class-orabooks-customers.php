@@ -1696,7 +1696,17 @@ class OraBooks_Customers {
             $paid_at = null;
         }
 
-        // Update invoice
+        $recorded_by = (int) ($data['recorded_by'] ?? $data['user_id'] ?? 0);
+        if (($new_status === 'paid' || $new_status === 'partial')
+            && in_array($invoice->workflow_status, ['draft', 'sent'], true)
+            && class_exists('OraBooks_Workflow')) {
+            OraBooks_Workflow::transition('invoice', (int) $invoice_id, 'post', [
+                'org_id'  => (int) $org_id,
+                'user_id' => $recorded_by,
+            ]);
+        }
+
+        // Update invoice payment fields (workflow_status handled by engine when applicable)
         $wpdb->update(
             $table_invoices,
             [
@@ -1704,10 +1714,9 @@ class OraBooks_Customers {
                 'paid_amount'       => $total_paid,
                 'paid_at'           => $paid_at,
                 'last_payment_date' => $payment_date,
-                'workflow_status'   => ($new_status === 'paid' || $new_status === 'partial') ? 'posted' : $invoice->workflow_status,
             ],
             ['id' => $invoice_id],
-            ['%s', '%f', '%s', '%s', '%s'],
+            ['%s', '%f', '%s', '%s'],
             ['%d']
         );
 

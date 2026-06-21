@@ -62,15 +62,23 @@ $events = OraBooks_Workflow::allowed_events('journal', 'draft'); // ['submit', '
 
 ## Definition of done (SL-301 MVP)
 
-- [ ] No production path updates workflow fields without `OraBooks_Workflow::transition()`
+- [x] No production path updates workflow fields without `OraBooks_Workflow::transition()`
 - [x] Invalid transition → 409 + `invalid_state_transition` audit
 - [x] FOR UPDATE + DB transaction on transition
 - [x] Preconditions hook + after_transition hook
 - [x] `state_machine_transitions.org_id` for tenant traceability
 - [x] Audit `state_changed` + optional `state_transition` event
-- [ ] All 5 record types migrated (journal, invoice, bill, expense, commission)
+- [x] All 5 record types migrated (journal, invoice, bill, expense, commission)
 - [x] Unit tests: valid, invalid, transaction, org_id, allowed_events
 - [x] This document + transition matrices
+
+## Phase 2 migration notes
+
+- Journal: `journal_transition()` helper; post uses `post` then `lock` inside posting TX (`skip_transaction`)
+- Expense: `reject` event added; submit routes to `submit` or `ai_review`
+- Bill/Invoice: `row_updates` for approval/post metadata (no `update_status => false`)
+- Commission: `pay` / `expire` per earned row
+- Voice/CSV: create draft → workflow send/submit
 
 ## Dependencies
 

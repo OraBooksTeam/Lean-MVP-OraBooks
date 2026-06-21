@@ -739,12 +739,16 @@ class OraBooks_Csv_Imports {
             'tax_amount'      => $parsed['tax_amount'] ?? 0,
             'invoice_date'    => $parsed['invoice_date'] ?? current_time('Y-m-d'),
             'description'     => $parsed['description'] ?? 'CSV import',
-            'workflow_status' => 'submitted',
             'idempotency_key' => $idempotency,
         ]);
 
         if (is_wp_error($invoice)) {
             return $invoice;
+        }
+
+        $sent = OraBooks_Customers::send_invoice($org_id, (int) $invoice->id, 0);
+        if (is_wp_error($sent)) {
+            return $sent;
         }
 
         return [
