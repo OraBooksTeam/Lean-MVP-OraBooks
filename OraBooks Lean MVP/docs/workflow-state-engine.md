@@ -72,7 +72,16 @@ $events = OraBooks_Workflow::allowed_events('journal', 'draft'); // ['submit', '
 - [x] Unit tests: valid, invalid, transaction, org_id, allowed_events
 - [x] This document + transition matrices
 
-## Phase 2 migration notes
+## Phase 3 — Events & observability (complete)
+
+- `state_transition` SL-302 consumers:
+  - `workflow_read_model` — read model dues bump
+  - `workflow_notifications` — org admin notifications (non-journal)
+  - `job_enqueue_bridge` — webhook async dispatch
+- RBAC/fiscal preconditions: `class-orabooks-workflow-integration.php`
+- Metrics: `workflow.transition_success_24h`, `workflow.transition_failure_24h`
+- Org health AJAX: `orabooks_workflow_health`
+- Platform dashboard: observability snapshot includes `workflow`
 
 - Journal: `journal_transition()` helper; post uses `post` then `lock` inside posting TX (`skip_transaction`)
 - Expense: `reject` event added; submit routes to `submit` or `ai_review`
