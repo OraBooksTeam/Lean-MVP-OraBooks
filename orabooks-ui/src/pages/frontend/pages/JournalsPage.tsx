@@ -20,6 +20,7 @@ type Journal = {
   reversal_of_id?: number | null;
   reversal_reason?: string | null;
   rejected_reason?: string | null;
+  approval_round?: number;
 };
 
 type JournalLine = {
@@ -113,6 +114,7 @@ export default function JournalsPage() {
 
   useEffect(() => {
     if (selectedId && orgId) void loadDetail(selectedId, orgId);
+    setDetailTab('lines');
   }, [selectedId, orgId]);
 
   const selectedJournal: Journal | undefined = useMemo(
@@ -489,13 +491,14 @@ export default function JournalsPage() {
         }}
         onConfirm={() => {
           if (!selectedJournal) return;
-          void runAction(
-            () => api.rejectJournal(selectedJournal.id, rejectReason.trim()),
-            'Journal rejected and returned to draft.'
-          ).then(() => {
+          void (async () => {
+            await runAction(
+              () => api.rejectJournal(selectedJournal.id, rejectReason.trim()),
+              'Journal rejected and returned to draft.'
+            );
             setRejectModalOpen(false);
             setRejectReason('');
-          });
+          })();
         }}
       >
         <Input
