@@ -156,4 +156,77 @@ class OraBooks_RBAC_Test extends TestCase
             $this->assertStringContainsString('log in', strtolower($payload['message']));
         }
     }
+
+    #[Test]
+    public function test_accept_pending_invite_for_user_assigns_invited_role()
+    {
+        global $wpdb;
+
+        $invite = (object) [
+            'id' => 9,
+            'org_id' => 42,
+            'email' => 'staff@example.com',
+            'role' => 'staff',
+        ];
+        $user = (object) [
+            'id' => 7,
+            'email' => 'staff@example.com',
+            'org_id' => null,
+        ];
+
+        $inserted = [];
+        $updated = [];
+        $wpdb->test_get_row_callback = function ($query) use ($invite, $user) {
+            if (stripos($query, 'FROM') !== false && stripos($query, 'org_invites') !== false) {
+                return $invite;
+            }
+            if (stripos($query, 'FROM') !== false && stripos($query, 'users') !== false) {
+                return $user;
+            }
+            return null;
+        };
+        $wpdb->test_get_var_callback = function ($query) {
+            if (stripos($query, 'user_org') !== false) {
+                return null;
+            }
+            return null;
+        };
+        $wpdb->test_insert_callback = function ($table, $data) use (&$inserted) {
+            $inserted[] = [$table, $data];
+            return 1;
+        };
+        $wpdb->test_update_callback = function ($table, $data) use (&$updated) {
+            $updated[] = [$table, $data];
+            return 1;
+        };
+        $wpdb->test_query_callback = function () {
+            return 1;
+        };
+
+        $result = OraBooks_Team::accept_pending_invite_for_user(7);
+
+        $this->assertIsArray($result);
+        $this->assertSame(42, $result['org_id']);
+        $this->assertSame('staff', $result['role']);
+        $this->assertSame(7, $result['user_id']);
+        $this->assertNotEmpty(array_filter($inserted, fn($row) => str_contains($row[0], 'user_org') && $row[1]['role'] === 'staff'));
+    }
+
+    #[Test]
+    public function test_user_has_any_pending_invite_helper()
+    {
+        global $wpdb;
+
+        $wpdb->test_get_var_callback = function ($query) {
+            if (stripos($query, 'SELECT email FROM') !== false) {
+                return 'staff@example.com';
+            }
+            if (stripos($query, 'org_invites') !== false) {
+                return 1;
+            }
+            return null;
+        };
+
+        $this->assertTrue(orabooks_user_has_any_pending_invite(7));
+    }
 }

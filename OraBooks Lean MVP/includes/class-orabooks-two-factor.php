@@ -249,7 +249,7 @@ class OraBooks_TwoFactor {
             $user->org_id
         );
 
-        if (empty($login_result['needs_tier_selection'])) {
+        if (empty($login_result['needs_tier_selection']) && empty($login_result['needs_accept_invite'])) {
             orabooks_persist_login_session($login_result);
         }
 
