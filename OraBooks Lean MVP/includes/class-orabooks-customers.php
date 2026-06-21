@@ -1349,6 +1349,16 @@ class OraBooks_Customers {
         }
 
         $journal_id = self::create_invoice_journal($invoice, $user_id);
+        if (is_wp_error($journal_id)) {
+            return $journal_id;
+        }
+
+        if ($journal_id && class_exists('OraBooks_Posting')) {
+            $submit = OraBooks_Posting::submit_journal((int) $journal_id, $user_id);
+            if (is_wp_error($submit)) {
+                return $submit;
+            }
+        }
 
         if (!class_exists('OraBooks_Workflow')) {
             return new WP_Error('workflow_unavailable', 'Workflow engine unavailable');

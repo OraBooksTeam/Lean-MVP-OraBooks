@@ -20,6 +20,9 @@ class OraBooks_DeployChecks {
             'orabooks_async_queue_archive' => 'daily',
             'orabooks_daily_active_status_refresh' => 'daily',
             'orabooks_team_cleanup_expired_invites' => 'daily',
+            'orabooks_approval_expire_stale' => 'hourly',
+            'orabooks_approval_escalate_overdue' => 'hourly',
+            'orabooks_approval_expiry_reminders' => 'hourly',
         ];
     }
 
@@ -130,6 +133,10 @@ class OraBooks_DeployChecks {
                 'audit_logs',
                 'refresh_tokens',
                 'state_machine_transitions',
+                'journal_approval_history',
+                'approval_policies',
+                'approval_delegations',
+                'journals',
             ];
 
             foreach ($required_tables as $name) {
