@@ -38,8 +38,38 @@ class OraBooks_Tax {
             add_action('wp_ajax_nopriv_orabooks_tax_snapshot', [self::$instance, 'ajax_create_snapshot']);
             add_action('wp_ajax_orabooks_tax_get_snapshot', [self::$instance, 'ajax_get_snapshot']);
             add_action('wp_ajax_nopriv_orabooks_tax_get_snapshot', [self::$instance, 'ajax_get_snapshot']);
+            add_action('wp_ajax_orabooks_tax_snapshots_list', [self::$instance, 'ajax_list_snapshots']);
+            add_action('wp_ajax_nopriv_orabooks_tax_snapshots_list', [self::$instance, 'ajax_list_snapshots']);
         }
         return self::$instance;
+    }
+
+    private static function maybe_ensure_tax_schema() {
+        static $ran = false;
+        if ($ran) {
+            return;
+        }
+        $ran = true;
+
+        global $wpdb;
+        $tables = [
+            OraBooks_Database::table('tax_configs') => [
+                'exemption_certificate_url' => 'TEXT NULL',
+                'override_reasons' => 'JSON NULL',
+            ],
+        ];
+
+        foreach ($tables as $table => $columns) {
+            if ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table)) !== $table) {
+                continue;
+            }
+            $existing = $wpdb->get_col("SHOW COLUMNS FROM {$table}", 0);
+            foreach ($columns as $column => $definition) {
+                if (!in_array($column, $existing, true)) {
+                    $wpdb->query("ALTER TABLE {$table} ADD COLUMN {$column} {$definition}");
+                }
+            }
+        }
     }
 
     public static function get_create_table_sql() {
@@ -152,6 +182,7 @@ class OraBooks_Tax {
     }
 
     public static function calculate($data) {
+        self::maybe_ensure_tax_schema();
         $org_id = intval($data['org_id'] ?? 0);
         $amount = round(floatval($data['amount'] ?? 0), 2);
         $jurisdiction = strtoupper(sanitize_text_field($data['jurisdiction'] ?? 'US'));
@@ -214,6 +245,7 @@ class OraBooks_Tax {
 
     public static function save_config($org_id, $data, $user_id = null) {
         global $wpdb;
+        self::maybe_ensure_tax_schema();
 
         $org_id = intval($org_id);
         $user_id = $user_id ? intval($user_id) : get_current_user_id();
@@ -238,10 +270,7 @@ class OraBooks_Tax {
         }
 
         $table = OraBooks_Database::table('tax_configs');
-        $override_reasons = $data['override_reasons'] ?? self::DEFAULT_OVERRIDE_REASONS;
-        if (!is_array($override_reasons)) {
-            $override_reasons = self::DEFAULT_OVERRIDE_REASONS;
-        }
+        $override_reasons = self::normalize_override_reasons($data['override_reasons'] ?? null);
 
         $existing_id = $wpdb->get_var($wpdb->prepare(
             "SELECT id FROM {$table} WHERE org_id = %d AND jurisdiction = %s",
@@ -259,12 +288,14 @@ class OraBooks_Tax {
             'is_active' => !empty($data['is_active']) ? 1 : 0,
         ];
 
+        $formats = ['%d', '%s', '%f', '%s', '%s', '%s', '%d'];
+
         if ($existing_id) {
             $wpdb->update(
                 $table,
                 $payload,
                 ['id' => $existing_id],
-                ['%d', '%s', '%f', '%s', '%s', '%s', '%d'],
+                $formats,
                 ['%d']
             );
             $config_id = intval($existing_id);
@@ -272,7 +303,7 @@ class OraBooks_Tax {
             $wpdb->insert(
                 $table,
                 $payload,
-                ['%d', '%s', '%f', '%s', '%s', '%s', '%d']
+                $formats
             );
             $config_id = intval($wpdb->insert_id);
         }
