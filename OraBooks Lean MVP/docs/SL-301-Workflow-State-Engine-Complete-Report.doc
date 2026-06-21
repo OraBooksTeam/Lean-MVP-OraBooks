@@ -1,0 +1,368 @@
+<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
+<head>
+<meta charset="utf-8">
+<meta name="ProgId" content="Word.Document">
+<meta name="Generator" content="OraBooks SL-301 Report Generator">
+<title>SL-301 Workflow State Engine - Complete Report</title>
+<!--[if gte mso 9]><xml>
+<w:WordDocument><w:View>Print</w:View><w:Zoom>100</w:Zoom></w:WordDocument>
+</xml><![endif]-->
+<style>
+@page { size: A4; margin: 2cm; }
+body { font-family: Calibri, Arial, sans-serif; font-size: 11pt; color: #1a1a1a; line-height: 1.45; }
+.cover { text-align: center; margin-top: 80px; margin-bottom: 60px; }
+.cover h1 { font-size: 28pt; color: #1e3a5f; margin-bottom: 8px; }
+.cover h2 { font-size: 16pt; color: #4a5568; font-weight: normal; }
+.cover .meta { margin-top: 40px; font-size: 12pt; }
+.cover .status { display: inline-block; background: #d1fae5; color: #065f46; padding: 8px 20px; font-weight: bold; margin-top: 16px; }
+h1 { font-size: 18pt; color: #1e3a5f; border-bottom: 2px solid #1e3a5f; padding-bottom: 4px; margin-top: 28px; page-break-before: always; }
+h1.first { page-break-before: avoid; }
+h2 { font-size: 14pt; color: #2d3748; margin-top: 20px; }
+h3 { font-size: 12pt; color: #4a5568; margin-top: 14px; }
+table { border-collapse: collapse; width: 100%; margin: 12px 0 20px 0; font-size: 10.5pt; }
+th { background: #1e3a5f; color: #fff; padding: 8px 10px; text-align: left; }
+td { border: 1px solid #cbd5e0; padding: 7px 10px; vertical-align: top; }
+tr:nth-child(even) td { background: #f7fafc; }
+.done { color: #065f46; font-weight: bold; }
+ul { margin: 8px 0 16px 0; }
+li { margin-bottom: 4px; }
+code { font-family: Consolas, monospace; background: #edf2f7; padding: 1px 4px; font-size: 10pt; }
+pre { background: #f7fafc; border: 1px solid #e2e8f0; padding: 12px; font-family: Consolas, monospace; font-size: 9.5pt; }
+.box { background: #ebf8ff; border-left: 4px solid #3182ce; padding: 12px 16px; margin: 16px 0; }
+.box-bn { background: #fffbeb; border-left: 4px solid #d97706; padding: 12px 16px; margin: 16px 0; }
+.footer { margin-top: 40px; font-size: 9pt; color: #718096; text-align: center; border-top: 1px solid #e2e8f0; padding-top: 12px; }
+</style>
+</head>
+<body>
+
+<div class="cover">
+<h1>SL-301</h1>
+<h2>Workflow State Engine<br>Complete Delivery &amp; Testing Report</h2>
+<p class="meta"><strong>Project:</strong> OraBooks Lean MVP<br>
+<strong>Report Date:</strong> 20 June 2026<br>
+<strong>Document Version:</strong> 1.0</p>
+<p><span class="status">STATUS: COMPLETE — MVP SIGN-OFF READY</span></p>
+</div>
+
+<h1 class="first">1. Executive Summary</h1>
+<p>SL-301 delivers a <strong>central Workflow State Engine</strong> for OraBooks. Every business-record status change flows through a single entry point: <code>OraBooks_Workflow::transition()</code>. The engine validates transitions, locks database rows (FOR UPDATE), runs inside a DB transaction, writes audit logs, and publishes <code>state_transition</code> events.</p>
+<p>Implementation covers <strong>five record types</strong> (journal, invoice, bill, expense, commission), <strong>three API surfaces</strong> (PHP, guarded AJAX, REST), RBAC/fiscal/MFA preconditions, observability metrics, and React UI including invoice cancel and bill void.</p>
+<div class="box"><strong>Bottom Line:</strong> SL-301 is <strong>100% complete</strong> for Lean MVP sign-off. All 15 Definition of Done items are satisfied. The only intentional deferral is a dynamic <code>state_machine_config</code> database table (spec allows hard-coded machines for MVP).</div>
+
+<h1>2. Problem Statement (Before SL-301)</h1>
+<ul>
+<li>Workflow status fields updated directly in module code — no single validation path</li>
+<li>Inconsistent behaviour across journal, invoice, bill, expense modules</li>
+<li>No unified audit trail for state changes</li>
+<li>Race conditions possible under concurrent requests</li>
+<li>Difficult tenant-scoped traceability</li>
+<li>RBAC and fiscal guards scattered across callers</li>
+</ul>
+
+<h1>3. Solution Architecture</h1>
+<p><strong>Flow:</strong> UI / AJAX / REST → Module method → <code>OraBooks_Workflow::transition()</code> → Validate → Preconditions (RBAC / MFA / Fiscal) → DB Transaction + FOR UPDATE → Update status → Persist transition log → COMMIT → Audit + Event Bus → Observability metrics.</p>
+<h2>3.1 Core Design Principles</h2>
+<ul>
+<li><strong>Single write path</strong> — No production code updates workflow columns without <code>transition()</code></li>
+<li><strong>Atomic transitions</strong> — START TRANSACTION, SELECT FOR UPDATE, validate, update, COMMIT or ROLLBACK</li>
+<li><strong>Fail closed</strong> — Invalid transitions return HTTP 409 and log <code>invalid_state_transition</code></li>
+<li><strong>Tenant traceability</strong> — <code>state_machine_transitions.org_id</code> on every row</li>
+<li><strong>Extensibility</strong> — Hooks: <code>orabooks_workflow_preconditions</code>, <code>orabooks_workflow_after_transition</code></li>
+</ul>
+
+<h1>4. Delivery Phases (All Complete)</h1>
+<table>
+<tr><th>Phase</th><th>Scope</th><th>Status</th></tr>
+<tr><td>Phase 0</td><td>Inventory, state matrices, migration backlog, DoD checklist</td><td class="done">Complete</td></tr>
+<tr><td>Phase 1</td><td>Core engine: transactions, FOR UPDATE, hooks, AJAX, org_id column</td><td class="done">Complete</td></tr>
+<tr><td>Phase 2</td><td>Caller migration — all 5 record types use transition()</td><td class="done">Complete</td></tr>
+<tr><td>Phase 3</td><td>Events, RBAC/fiscal preconditions, observability, health AJAX</td><td class="done">Complete</td></tr>
+<tr><td>Phase 4</td><td>Gap closure: cancel, void, expense lock, REST, MFA centralization</td><td class="done">Complete</td></tr>
+</table>
+
+<h1>5. State Machines — 100% Fully Wired</h1>
+
+<h2>5.1 Journal (journals.status)</h2>
+<p><strong>States:</strong> draft, review_pending, approved, posted, locked, reversed</p>
+<p><strong>Transitions:</strong> submit, approve, reject, post, lock, reverse, edit</p>
+<p><strong>Flow:</strong> draft → submit → review_pending → approve → approved → post → posted → lock → locked. Reject returns to draft. Reverse from posted/locked.</p>
+<p><strong>Files:</strong> class-orabooks-posting.php, class-orabooks-approval.php. Post auto-chains lock.</p>
+
+<h2>5.2 Invoice (invoices.workflow_status)</h2>
+<p><strong>States:</strong> draft, sent, posted, cancelled</p>
+<p><strong>Transitions:</strong> send, post, cancel — <strong>ALL WIRED end-to-end</strong></p>
+<p><strong>Backend:</strong> send_invoice(), post_invoice(), cancel_invoice()</p>
+<p><strong>AJAX:</strong> orabooks_invoice_send, orabooks_invoice_post, orabooks_invoice_cancel</p>
+<p><strong>UI:</strong> /invoices — Send, Post, Pay, Cancel buttons</p>
+
+<h2>5.3 Bill (bills.workflow_status)</h2>
+<p><strong>States:</strong> draft, submitted, approved, posted, void</p>
+<p><strong>Transitions:</strong> submit, approve, post, void — <strong>ALL WIRED end-to-end</strong></p>
+<p><strong>Backend:</strong> submit_bill(), approve_bill(), post_bill(), void_bill()</p>
+<p><strong>AJAX:</strong> orabooks_bill_submit, orabooks_bill_approve, orabooks_bill_post, orabooks_bill_void</p>
+<p><strong>UI:</strong> /vendors — Submit, Approve, Post, Void buttons</p>
+
+<h2>5.4 Expense (expenses.workflow_status)</h2>
+<p><strong>States:</strong> draft, submitted, ai_review, approved, posted, locked</p>
+<p><strong>Transitions:</strong> submit, ai_review, approve, reject, post, lock — <strong>ALL WIRED</strong></p>
+<p>Post automatically chains lock transition (journal pattern).</p>
+<p><strong>File:</strong> class-orabooks-expenses.php | <strong>UI:</strong> /expenses</p>
+
+<h2>5.5 Commission (commissions_earned.status)</h2>
+<p><strong>States:</strong> earned, paid, expired | <strong>Transitions:</strong> pay, expire — WIRED</p>
+<p><strong>File:</strong> class-orabooks-commission.php | <strong>UI:</strong> /commissions</p>
+
+<h1>6. Key Implementation Files</h1>
+<table>
+<tr><th>Category</th><th>File</th><th>Purpose</th></tr>
+<tr><td>Engine</td><td>includes/class-orabooks-workflow.php</td><td>State machines, transition(), AJAX, health</td></tr>
+<tr><td>Integration</td><td>includes/class-orabooks-workflow-integration.php</td><td>RBAC, fiscal, MFA, maker-checker</td></tr>
+<tr><td>Database</td><td>includes/class-orabooks-database.php</td><td>state_machine_transitions table + org_id</td></tr>
+<tr><td>REST</td><td>includes/class-orabooks-rest-api.php</td><td>POST /api/internal/state/transition</td></tr>
+<tr><td>Observability</td><td>includes/class-orabooks-observability.php</td><td>Workflow metrics + health</td></tr>
+<tr><td>Deploy</td><td>includes/class-orabooks-deploy-checks.php</td><td>Post-deploy table verification</td></tr>
+<tr><td>Events</td><td>includes/events/class-orabooks-event-module.php</td><td>3 state_transition consumers</td></tr>
+<tr><td>Journal</td><td>class-orabooks-posting.php, class-orabooks-approval.php</td><td>All journal transitions</td></tr>
+<tr><td>Invoice</td><td>class-orabooks-customers.php</td><td>send, post, cancel</td></tr>
+<tr><td>Bill</td><td>class-orabooks-vendors.php</td><td>submit, approve, post, void</td></tr>
+<tr><td>Expense</td><td>class-orabooks-expenses.php</td><td>submit through lock</td></tr>
+<tr><td>Commission</td><td>class-orabooks-commission.php</td><td>pay, expire</td></tr>
+<tr><td>UI</td><td>orabooks-ui/.../InvoicesPage.tsx</td><td>Cancel button + modal</td></tr>
+<tr><td>UI</td><td>orabooks-ui/.../VendorsPage.tsx</td><td>Void button + modal</td></tr>
+</table>
+
+<h1>7. API Reference</h1>
+<h2>7.1 PHP</h2>
+<pre>OraBooks_Workflow::transition('invoice', $invoice_id, 'cancel', [
+    'user_id' => $user_id,
+    'org_id'  => $org_id,
+    'reason'  => 'Customer request',
+]);
+
+OraBooks_Workflow::allowed_events('bill', 'submitted');
+// Returns: ['approve', 'void']</pre>
+
+<h2>7.2 AJAX Endpoints</h2>
+<table>
+<tr><th>Action</th><th>Purpose</th></tr>
+<tr><td>orabooks_workflow_transitions</td><td>Transition history for a record</td></tr>
+<tr><td>orabooks_workflow_allowed_events</td><td>Allowed events from current state</td></tr>
+<tr><td>orabooks_workflow_transition</td><td>Execute transition (guarded)</td></tr>
+<tr><td>orabooks_workflow_health</td><td>Org workflow health snapshot</td></tr>
+<tr><td>orabooks_invoice_cancel</td><td>Cancel draft/sent invoice</td></tr>
+<tr><td>orabooks_bill_void</td><td>Void draft/submitted/approved bill</td></tr>
+</table>
+
+<h2>7.3 REST API</h2>
+<p><strong>Endpoint:</strong> POST /wp-json/api/internal/state/transition</p>
+<p><strong>Headers:</strong> X-OraBooks-Org-Id: {org_id}, Authorization (JWT)</p>
+<p><strong>Body:</strong> record_type, record_id, event, reason (optional), mfa_otp (optional)</p>
+<p><strong>Permission:</strong> manage_settings OR submit_transaction OR approve_journal</p>
+
+<h1>8. Cross-Cutting Integration</h1>
+<h2>8.1 Audit (SL-009)</h2>
+<table>
+<tr><th>Event</th><th>When</th></tr>
+<tr><td>state_changed</td><td>Successful transition</td></tr>
+<tr><td>invalid_state_transition</td><td>Rejected transition (409)</td></tr>
+<tr><td>workflow_transition_failed</td><td>Precondition or publish failure</td></tr>
+</table>
+
+<h2>8.2 Event Bus (SL-302)</h2>
+<p>Publishes <code>state_transition</code> with: org_id, record_type, record_id, event, from_state, to_state</p>
+<ul>
+<li><strong>workflow_read_model</strong> — bumps read-model dues counters</li>
+<li><strong>workflow_notifications</strong> — org admin notifications (non-journal)</li>
+<li><strong>job_enqueue_bridge</strong> — async webhook dispatch</li>
+</ul>
+
+<h2>8.3 RBAC and MFA (SL-003 / SL-002)</h2>
+<ul>
+<li>Journal: submit/approve/reject/post/reverse permissions + fiscal period checks</li>
+<li>Journal approve: maker-checker + MFA for high-value (centralized preconditions)</li>
+<li>Expense: manage_expenses / approve_expense per event</li>
+<li>Invoice/Bill: create_invoice / manage_settings; cancel and void guarded</li>
+</ul>
+
+<h2>8.4 Observability (SL-093)</h2>
+<ul>
+<li>workflow.transition_success_24h / workflow.transition_failure_24h</li>
+<li>Dashboards: /observability (org) and /admin/observability (platform)</li>
+</ul>
+
+<h1>9. Database</h1>
+<p><strong>Table:</strong> wp_orabooks_state_machine_transitions</p>
+<table>
+<tr><th>Column</th><th>Purpose</th></tr>
+<tr><td>org_id</td><td>Tenant traceability</td></tr>
+<tr><td>record_type</td><td>journal, invoice, bill, expense, commission</td></tr>
+<tr><td>record_id</td><td>Business record primary key</td></tr>
+<tr><td>from_state / to_state</td><td>State change</td></tr>
+<tr><td>event</td><td>Triggering event name</td></tr>
+<tr><td>triggered_by</td><td>User ID</td></tr>
+<tr><td>reason</td><td>Optional free text</td></tr>
+<tr><td>created_at</td><td>Timestamp</td></tr>
+</table>
+
+<h1>10. Business Rules — Cancel and Void</h1>
+<h2>Invoice Cancel</h2>
+<table>
+<tr><th>Rule</th><th>Detail</th></tr>
+<tr><td>Allowed states</td><td>draft, sent</td></tr>
+<tr><td>Blocked if</td><td>paid, partial, or paid_amount &gt; 0</td></tr>
+<tr><td>Side effect</td><td>Sets payment_status = cancelled</td></tr>
+<tr><td>Posted invoices</td><td>Cannot cancel</td></tr>
+</table>
+<h2>Bill Void</h2>
+<table>
+<tr><th>Rule</th><th>Detail</th></tr>
+<tr><td>Allowed states</td><td>draft, submitted, approved</td></tr>
+<tr><td>Blocked if</td><td>paid, partial, or paid_amount &gt; 0</td></tr>
+<tr><td>Posted bills</td><td>Cannot void</td></tr>
+</table>
+
+<h1>11. Definition of Done — Final Status (15/15)</h1>
+<table>
+<tr><th>#</th><th>Criterion</th><th>Status</th></tr>
+<tr><td>1</td><td>All workflow updates via OraBooks_Workflow::transition()</td><td class="done">DONE</td></tr>
+<tr><td>2</td><td>Invalid transition returns 409 and audit log</td><td class="done">DONE</td></tr>
+<tr><td>3</td><td>FOR UPDATE + DB transaction</td><td class="done">DONE</td></tr>
+<tr><td>4</td><td>Preconditions + after_transition hooks</td><td class="done">DONE</td></tr>
+<tr><td>5</td><td>state_machine_transitions.org_id</td><td class="done">DONE</td></tr>
+<tr><td>6</td><td>Audit + state_transition event + consumers</td><td class="done">DONE</td></tr>
+<tr><td>7</td><td>5 record types migrated</td><td class="done">DONE</td></tr>
+<tr><td>8</td><td>Invoice cancel end-to-end (backend + AJAX + UI)</td><td class="done">DONE</td></tr>
+<tr><td>9</td><td>Bill void end-to-end (backend + AJAX + UI)</td><td class="done">DONE</td></tr>
+<tr><td>10</td><td>Expense post then lock workflow transition</td><td class="done">DONE</td></tr>
+<tr><td>11</td><td>REST POST /api/internal/state/transition</td><td class="done">DONE</td></tr>
+<tr><td>12</td><td>Journal MFA + maker-checker in centralized preconditions</td><td class="done">DONE</td></tr>
+<tr><td>13</td><td>Concurrency (FOR UPDATE) unit test</td><td class="done">DONE</td></tr>
+<tr><td>14</td><td>Unit tests + observability metrics</td><td class="done">DONE</td></tr>
+<tr><td>15</td><td>Documentation</td><td class="done">DONE</td></tr>
+</table>
+
+<h1>12. Testing Guide — Part A: Automated (PHPUnit)</h1>
+
+<h2>12.1 Full Test Suite</h2>
+<p><strong>Folder:</strong> OraBooks Lean MVP</p>
+<pre>php tests/vendor/bin/phpunit -c tests/phpunit.xml</pre>
+<p><strong>Expected:</strong> All tests pass (563+ tests in full suite).</p>
+
+<h2>12.2 SL-301 Focused Tests (32 tests)</h2>
+<pre>php tests/vendor/bin/phpunit -c tests/phpunit.xml --filter "OraBooks_Workflow|OraBooks_Customers_Test::test_cancel|OraBooks_Vendors_Test::test_void|OraBooks_Approval_Test|OraBooks_Rest_Api_Test::test_rest_state|OraBooks_Workflow_Integration"</pre>
+<p><strong>Expected:</strong> OK (32 tests, 83 assertions)</p>
+
+<h2>12.3 Test File Coverage</h2>
+<table>
+<tr><th>Test File</th><th>What It Tests</th></tr>
+<tr><td>OraBooks_Workflow_Test.php</td><td>Engine validation, rollback, FOR UPDATE lock, cancel transition</td></tr>
+<tr><td>OraBooks_Workflow_Integration_Test.php</td><td>RBAC, maker-checker, MFA, expense lock preconditions</td></tr>
+<tr><td>OraBooks_Customers_Test.php</td><td>Invoice cancel: draft, sent, posted reject, payment reject</td></tr>
+<tr><td>OraBooks_Vendors_Test.php</td><td>Bill void: draft success, posted reject, payment reject</td></tr>
+<tr><td>OraBooks_Observability_Test.php</td><td>Workflow health metrics by org</td></tr>
+<tr><td>OraBooks_Rest_Api_Test.php</td><td>REST state transition validation</td></tr>
+<tr><td>OraBooks_Deploy_Checks_Test.php</td><td>state_machine_transitions table in deploy checks</td></tr>
+<tr><td>OraBooks_Approval_Test.php</td><td>Journal approve MFA and maker-checker via workflow</td></tr>
+</table>
+
+<h1>13. Testing Guide — Part B: Live Server (Manual)</h1>
+
+<div class="box-bn">
+<strong>Bangla Guide (Live Test):</strong> Deploy er por niche dewa step gulo follow korle SL-301 production e 100% verify hobe. Shared folder theke auto-push complete howar por prothome WP Admin load koro (DB migration), tarpor test org subdomain e login koro.
+</div>
+
+<h2>13.1 Pre-requisites</h2>
+<ul>
+<li>Shared folder theke code auto-push / deploy complete hoyeche confirm koro</li>
+<li>WordPress Admin ba org page ekbar load koro (DB migration trigger hobe)</li>
+<li>orabooks-ui theke <code>npm run build</code> koro — mapped drive theke (Cancel/Void button er jonno)</li>
+<li>Test org subdomain e login koro: https://yourorg.yourdomain.com/dashboard/</li>
+</ul>
+
+<h2>13.2 Deploy Health Check</h2>
+<table>
+<tr><th>Step</th><th>Action</th><th>Expected</th></tr>
+<tr><td>1</td><td>WP Admin load / deploy checks run</td><td>JWT secret OK, DB version OK</td></tr>
+<tr><td>2</td><td>Verify table state_machine_transitions exists</td><td>Deploy check green</td></tr>
+<tr><td>3</td><td>Cron jobs scheduled</td><td>All MVP crons green</td></tr>
+</table>
+
+<h2>13.3 Record Type Smoke Tests</h2>
+<table>
+<tr><th>#</th><th>Record</th><th>Page</th><th>Steps</th><th>Final State</th></tr>
+<tr><td>1</td><td>Journal</td><td>/journals + /approvals</td><td>Create draft, Submit, Approve, Post</td><td>locked</td></tr>
+<tr><td>2</td><td>Invoice</td><td>/invoices</td><td>Create, Send, Record full payment</td><td>posted</td></tr>
+<tr><td>3</td><td>Invoice Cancel</td><td>/invoices</td><td>Create draft, Click Cancel, Confirm</td><td>cancelled</td></tr>
+<tr><td>4</td><td>Bill</td><td>/vendors</td><td>Create, Submit, Approve, Post</td><td>posted</td></tr>
+<tr><td>5</td><td>Bill Void</td><td>/vendors</td><td>Create draft, Click Void, Confirm</td><td>void</td></tr>
+<tr><td>6</td><td>Expense</td><td>/expenses</td><td>Upload, Submit, Approve, Post</td><td>locked</td></tr>
+<tr><td>7</td><td>Commission</td><td>/commissions</td><td>Earned row, Pay action</td><td>paid</td></tr>
+</table>
+
+<h2>13.4 Audit and Observability</h2>
+<table>
+<tr><th>Check</th><th>Where</th><th>What to Look For</th></tr>
+<tr><td>Audit log</td><td>/audit-log</td><td>state_changed entries after each transition</td></tr>
+<tr><td>Invalid transition</td><td>Try submit on posted journal</td><td>Error + invalid_state_transition in audit</td></tr>
+<tr><td>Observability</td><td>/observability</td><td>workflow.transition_success_24h increasing</td></tr>
+<tr><td>Platform admin</td><td>/admin/observability</td><td>Workflow health: healthy</td></tr>
+</table>
+
+<h2>13.5 Database Verification (phpMyAdmin — Optional)</h2>
+<pre>SELECT * FROM wp_orabooks_state_machine_transitions
+WHERE record_type = 'journal' ORDER BY id DESC LIMIT 5;
+
+SELECT action, details, created_at FROM wp_orabooks_audit_logs
+WHERE action IN ('state_changed','invalid_state_transition')
+ORDER BY id DESC LIMIT 10;</pre>
+
+<h2>13.6 Live Test Sign-Off Checklist</h2>
+<table>
+<tr><th>Done?</th><th>Test Item</th></tr>
+<tr><td>[ ]</td><td>PHPUnit full suite pass (local/CI)</td></tr>
+<tr><td>[ ]</td><td>Deploy checks green on production</td></tr>
+<tr><td>[ ]</td><td>Journal: draft to review to approved to posted to locked</td></tr>
+<tr><td>[ ]</td><td>Invoice: draft to sent to posted (via payment)</td></tr>
+<tr><td>[ ]</td><td>Invoice Cancel: draft to cancelled</td></tr>
+<tr><td>[ ]</td><td>Bill: draft to submitted to approved to posted</td></tr>
+<tr><td>[ ]</td><td>Bill Void: draft to void</td></tr>
+<tr><td>[ ]</td><td>Expense: submit to approve to post to locked</td></tr>
+<tr><td>[ ]</td><td>Commission: earned to paid</td></tr>
+<tr><td>[ ]</td><td>Audit log shows state_changed entries</td></tr>
+<tr><td>[ ]</td><td>Observability workflow metrics healthy</td></tr>
+<tr><td>[ ]</td><td>Invalid transition blocked and audited</td></tr>
+</table>
+
+<h1>14. Intentional MVP Deferrals</h1>
+<table>
+<tr><th>Item</th><th>Reason</th><th>Impact</th></tr>
+<tr><td>state_machine_config DB table</td><td>Spec allows hard-coded machines for MVP</td><td>Low — filter hook available</td></tr>
+<tr><td>Dynamic per-org machine editing UI</td><td>Future admin feature</td><td>Low</td></tr>
+<tr><td>Reconciliation workflow</td><td>Out of SL-301 scope</td><td>N/A</td></tr>
+</table>
+
+<h1>15. Dependency Map</h1>
+<ul>
+<li><strong>SL-003 RBAC</strong> — preconditions, AJAX guards</li>
+<li><strong>SL-009 Audit Log</strong> — state_changed, invalid_state_transition</li>
+<li><strong>SL-002 Approval</strong> — journal MFA, maker-checker</li>
+<li><strong>SL-302 Event Bus</strong> — state_transition publish + 3 consumers</li>
+<li><strong>SL-093 Observability</strong> — workflow metrics, health dashboard</li>
+<li><strong>SL-021 Invoices</strong> — send, post, cancel</li>
+<li><strong>SL-027 Vendors/AP</strong> — submit, approve, post, void</li>
+<li><strong>SL-304 REST API</strong> — internal state transition route</li>
+</ul>
+
+<h1>16. Sign-Off Recommendation</h1>
+<p><strong>SL-301 is RECOMMENDED FOR MVP SIGN-OFF.</strong></p>
+<p>All core engine requirements, caller migrations, event integration, observability, gap-closure items (cancel, void, expense lock, REST, MFA), automated tests, and documentation are complete.</p>
+
+<div class="footer">
+OraBooks Lean MVP — SL-301 Workflow State Engine Complete Report<br>
+Document: SL-301-Workflow-State-Engine-Complete-Report.doc<br>
+Location: OraBooks Lean MVP/docs/<br>
+Generated: 20 June 2026
+</div>
+
+</body>
+</html>
