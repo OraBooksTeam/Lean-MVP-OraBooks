@@ -116,6 +116,7 @@ class OraBooks_Assets {
             'orabooks_tax_settings',
             'orabooks_journals',
             'orabooks_profile',
+            'orabooks_security_2fa',
             'orabooks_approvals',
             'orabooks_approval_settings',
             'orabooks_ai_review',

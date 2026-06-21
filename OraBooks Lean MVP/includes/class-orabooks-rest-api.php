@@ -133,6 +133,12 @@ class OraBooks_Rest_Api {
             'permission_callback' => [__CLASS__, 'can_manage_own_2fa'],
         ]);
 
+        register_rest_route(self::NAMESPACE, '/auth/2fa/reveal-backup-codes', [
+            'methods'             => WP_REST_Server::CREATABLE,
+            'callback'            => [__CLASS__, 'rest_2fa_reveal_backup_codes'],
+            'permission_callback' => [__CLASS__, 'can_manage_own_2fa'],
+        ]);
+
         register_rest_route(self::NAMESPACE, '/auth/2fa/status', [
             'methods'             => WP_REST_Server::READABLE,
             'callback'            => [__CLASS__, 'rest_2fa_status'],
@@ -660,6 +666,20 @@ class OraBooks_Rest_Api {
 
     public static function rest_2fa_regenerate_backup_codes(WP_REST_Request $request) {
         $result = OraBooks_TwoFactor::regenerate_backup_codes(
+            self::current_user_id(),
+            sanitize_text_field($request->get_param('otp_code') ?? $request->get_param('otpCode') ?? '')
+        );
+
+        if (is_wp_error($result)) {
+            $result->add_data(['status' => (int) ($result->get_error_data()['status'] ?? 400)]);
+            return $result;
+        }
+
+        return rest_ensure_response($result);
+    }
+
+    public static function rest_2fa_reveal_backup_codes(WP_REST_Request $request) {
+        $result = OraBooks_TwoFactor::reveal_backup_codes(
             self::current_user_id(),
             sanitize_text_field($request->get_param('otp_code') ?? $request->get_param('otpCode') ?? '')
         );

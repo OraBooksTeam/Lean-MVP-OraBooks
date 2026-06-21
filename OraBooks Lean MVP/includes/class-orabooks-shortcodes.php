@@ -53,6 +53,7 @@ class OraBooks_Shortcodes {
             add_shortcode('orabooks_tax_settings', [self::$instance, 'tax_settings_page']);
             add_shortcode('orabooks_journals', [self::$instance, 'journals_page']);
             add_shortcode('orabooks_profile', [self::$instance, 'profile_page']);
+            add_shortcode('orabooks_security_2fa', [self::$instance, 'security_2fa_page']);
             add_shortcode('orabooks_audit_log', [self::$instance, 'audit_log_page']);
             add_shortcode('orabooks_webhook_settings', [self::$instance, 'webhook_settings_page']);
         }
@@ -157,6 +158,10 @@ class OraBooks_Shortcodes {
 
     public function profile_page() {
         return $this->customer_react_page('/profile');
+    }
+
+    public function security_2fa_page() {
+        return $this->customer_react_page('/security/2fa');
     }
 
     public function audit_log_page() {
