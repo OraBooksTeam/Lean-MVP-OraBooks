@@ -91,6 +91,7 @@ class OraBooks_Observability_Test extends TestCase
         $this->assertArrayHasKey('async_queue', $result['snapshots']);
         $this->assertArrayHasKey('notifications', $result['snapshots']);
         $this->assertArrayHasKey('exports', $result['snapshots']);
+        $this->assertArrayHasKey('workflow', $result['snapshots']);
         $this->assertContains($result['snapshots']['eventbus']['status'], ['healthy', 'degraded', 'critical']);
     }
 
@@ -108,6 +109,7 @@ class OraBooks_Observability_Test extends TestCase
             ],
             'notifications' => ['pending' => 10, 'dead_letter' => 30, 'status' => 'critical'],
             'exports' => ['pending' => 5, 'failed_24h' => 20, 'status' => 'critical'],
+            'workflow' => ['transitions_24h' => 100, 'failures_24h' => 25, 'status' => 'degraded'],
         ];
 
         $result = OraBooks_Observability::evaluate_thresholds($snapshots);
@@ -123,5 +125,26 @@ class OraBooks_Observability_Test extends TestCase
         $status = $ref->invoke(null, 10, 100, 25, 20);
 
         $this->assertEquals('critical', $status);
+    }
+
+    #[Test]
+    public function test_get_workflow_health_supports_org_scope()
+    {
+        global $wpdb;
+
+        $queries = [];
+        $wpdb->test_get_var_callback = function ($query) use (&$queries) {
+            $queries[] = $query;
+            return stripos($query, 'state_machine_transitions') !== false ? 12 : 2;
+        };
+
+        $health = OraBooks_Observability::get_workflow_health(7);
+
+        $this->assertEquals(7, $health['org_id']);
+        $this->assertEquals(12, $health['transitions_24h']);
+        $this->assertEquals(2, $health['failures_24h']);
+        $this->assertTrue(
+            (bool) array_filter($queries, fn($q) => stripos($q, 'org_id =') !== false)
+        );
     }
 }
