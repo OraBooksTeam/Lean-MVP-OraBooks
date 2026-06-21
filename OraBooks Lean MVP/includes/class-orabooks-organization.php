@@ -201,6 +201,79 @@ class OraBooks_Organization {
         }
         return $org;
     }
+
+    /**
+     * Public lookup by subdomain for auth/routing (SL-004 §5.2).
+     * Returns WP_Error when org is missing or not active.
+     *
+     * @return object|WP_Error
+     */
+    public static function get_active_by_subdomain($subdomain) {
+        $org = self::get_by_subdomain($subdomain);
+        if (!$org) {
+            return new WP_Error('org_not_found', 'Organization not found.');
+        }
+
+        if (($org->status ?? '') !== 'active') {
+            return new WP_Error('org_inactive', 'This organization is not active.');
+        }
+
+        return $org;
+    }
+
+    /**
+     * Change data residency for enterprise customer orgs (SL-004 §5.6).
+     *
+     * @return true|WP_Error
+     */
+    public static function change_region($org_id, $region, $admin_id) {
+        global $wpdb;
+
+        $org = self::get($org_id);
+        if (!$org) {
+            return new WP_Error('not_found', 'Organization not found');
+        }
+
+        $frozen = self::assert_not_fraud_frozen($org);
+        if (is_wp_error($frozen)) {
+            return $frozen;
+        }
+
+        if ($org->organization_type !== 'customer' || $org->tier !== 'enterprise') {
+            return new WP_Error('invalid_type', 'Region changes are only allowed for enterprise customer organizations.');
+        }
+
+        $region = strtolower(trim((string) $region));
+        $region_check = orabooks_validate_org_region($region, 'enterprise');
+        if ($region_check !== true) {
+            return new WP_Error('invalid_region', $region_check);
+        }
+
+        if ($org->region === $region) {
+            return true;
+        }
+
+        $old_region = $org->region;
+        $wpdb->update(
+            OraBooks_Database::table('organizations'),
+            ['region' => $region],
+            ['id' => (int) $org_id],
+            ['%s'],
+            ['%d']
+        );
+
+        wp_cache_delete("org_subdomain_{$org->subdomain}", 'orabooks');
+
+        orabooks_log_event('org_region_changed', 'Organization data residency region changed', 'warning', [
+            'old_region' => $old_region,
+            'new_region' => $region,
+            'migration' => 'queued',
+        ], (int) $admin_id, (int) $org_id);
+
+        do_action('orabooks_org_region_migration_requested', (int) $org_id, $old_region, $region);
+
+        return true;
+    }
     
     /**
      * Update organization tier
