@@ -495,11 +495,18 @@ export const api = {
   },
   csvImportGet: (orgId: number, importId: number) =>
     api.get('orabooks_csv_import_get', { org_id: orgId, import_id: importId }),
-  csvImportConfirm: (orgId: number, importId: number, idempotencyKey: string) =>
+  csvImportConfirm: (
+    orgId: number,
+    importId: number,
+    idempotencyKey: string,
+    overrides?: { header_mapping?: Record<string, string>; rows?: Record<number, Record<string, unknown>> }
+  ) =>
     api.post('orabooks_csv_import_confirm', {
       org_id: orgId,
       import_id: importId,
       idempotency_key: idempotencyKey,
+      ...(overrides?.header_mapping ? { header_mapping: JSON.stringify(overrides.header_mapping) } : {}),
+      ...(overrides?.rows ? { row_overrides: JSON.stringify(overrides.rows) } : {}),
     }),
   csvImportsList: (orgId: number) =>
     api.get('orabooks_csv_imports_list', { org_id: orgId }),
