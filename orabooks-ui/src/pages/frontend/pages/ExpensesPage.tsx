@@ -116,9 +116,6 @@ export default function ExpensesPage() {
   }, []);
 
   useEffect(() => {
-  }, []);
-
-  useEffect(() => {
     void refreshOfflineQueue();
     return onOnline(() => {
       void syncOfflineQueue();

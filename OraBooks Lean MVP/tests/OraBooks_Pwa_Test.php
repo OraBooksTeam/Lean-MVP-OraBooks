@@ -17,6 +17,8 @@ class OraBooks_Pwa_Test extends TestCase
         $this->assertSame('standalone', $manifest['display']);
         $this->assertNotEmpty($manifest['icons']);
         $this->assertNotEmpty($manifest['shortcuts']);
+        $this->assertSame(home_url('/dashboard/'), $manifest['start_url']);
+        $this->assertSame(home_url('/'), $manifest['scope']);
     }
 
     #[Test]
@@ -26,7 +28,20 @@ class OraBooks_Pwa_Test extends TestCase
 
         $this->assertTrue($config['pwa']['enabled']);
         $this->assertStringContainsString('/wp-json/api/pwa/manifest', $config['pwa']['manifest_url']);
-        $this->assertStringContainsString('/assets/pwa/', $config['pwa']['service_worker_scope']);
+        $this->assertStringContainsString('/wp-json/api/pwa/service-worker', $config['pwa']['service_worker_url']);
+        $this->assertSame(home_url('/'), $config['pwa']['service_worker_scope']);
         $this->assertTrue($config['pwa']['offline_queue']);
+    }
+
+    #[Test]
+    public function test_rest_service_worker_serves_javascript_with_allowed_header()
+    {
+        $response = OraBooks_Pwa::rest_service_worker();
+
+        $this->assertInstanceOf(WP_REST_Response::class, $response);
+        $this->assertSame(200, $response->get_status());
+        $this->assertStringContainsString('install', (string) $response->get_data());
+        $this->assertSame('application/javascript; charset=utf-8', $response->get_headers()['Content-Type']);
+        $this->assertSame('/', $response->get_headers()['Service-Worker-Allowed']);
     }
 }

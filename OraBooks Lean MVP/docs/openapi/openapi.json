@@ -35,6 +35,15 @@
         }
       }
     },
+    "/pwa/service-worker": {
+      "get": {
+        "tags": ["PWA"],
+        "summary": "Service worker script",
+        "responses": {
+          "200": { "description": "JavaScript service worker with Service-Worker-Allowed header" }
+        }
+      }
+    },
     "/fiscal-periods": {
       "get": {
         "tags": ["Fiscal"],
