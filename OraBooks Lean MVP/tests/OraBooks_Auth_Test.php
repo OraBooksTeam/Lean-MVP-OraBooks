@@ -1600,6 +1600,7 @@ class OraBooks_Auth_Test extends TestCase
                 'email'      => 'admin@example.com',
                 'org_id'     => 1,
                 'is_partner' => 0,
+                'is_2fa_enabled' => 1,
             ];
         };
 
