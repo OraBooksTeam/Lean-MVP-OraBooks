@@ -958,18 +958,59 @@ class OraBooks_Partner {
             orabooks_json_error('Too many requests', 429);
         }
 
+        $access = self::assert_partner_org_member($user_id);
+        if (is_wp_error($access)) {
+            orabooks_json_error($access->get_error_message(), 403);
+        }
+
         $info = self::get_onboarding_info($user_id);
 
         if (!$info) {
             orabooks_json_error('No partner onboarding info found', 404);
         }
 
+        $correlation_id = function_exists('orabooks_get_correlation_id')
+            ? orabooks_get_correlation_id()
+            : '';
+
         orabooks_log_event('partner_onboarding_viewed', 'Partner viewed onboarding page', 'info', [
             'partner_user_id' => $user_id,
-            'code_status' => $info['code_status']
-        ], $user_id, null);
+            'code_status' => $info['code_status'],
+            'correlation_id' => $correlation_id,
+        ], $user_id, (int) ($access->org_id ?? 0));
 
         orabooks_json_success($info);
+    }
+
+    public function ajax_partner_onboarding_complete() {
+        $user_id = orabooks_get_current_user_id();
+        if (!$user_id) {
+            orabooks_json_error('Not authenticated', 401);
+        }
+
+        if (!orabooks_check_rate_limit('partner_onboarding_complete_' . $user_id, 30, 60)) {
+            orabooks_json_error('Too many requests', 429);
+        }
+
+        $access = self::assert_partner_org_member($user_id);
+        if (is_wp_error($access)) {
+            orabooks_json_error($access->get_error_message(), 403);
+        }
+
+        orabooks_mark_partner_onboarding_completed($user_id);
+
+        $correlation_id = function_exists('orabooks_get_correlation_id')
+            ? orabooks_get_correlation_id()
+            : '';
+
+        orabooks_log_event('partner_onboarding_completed', 'Partner completed onboarding', 'info', [
+            'correlation_id' => $correlation_id,
+        ], $user_id, (int) ($access->org_id ?? 0));
+
+        orabooks_json_success([
+            'redirect_to' => '/partner-program/',
+            'onboarding_completed' => true,
+        ]);
     }
     
     public function ajax_request_reactivation() {
@@ -1073,13 +1114,28 @@ class OraBooks_Partner {
         if (!$user_id) {
             orabooks_json_error('Not authenticated', 401);
         }
+
+        $access = self::assert_partner_org_member($user_id);
+        if (is_wp_error($access)) {
+            orabooks_json_error($access->get_error_message(), 403);
+        }
+
+        if (!orabooks_check_rate_limit('partner_code_copied_' . $user_id, 60, 60)) {
+            orabooks_json_error('Too many requests', 429);
+        }
+
         $source = sanitize_text_field($_POST['source'] ?? 'dashboard');
-        
+
+        $correlation_id = function_exists('orabooks_get_correlation_id')
+            ? orabooks_get_correlation_id()
+            : '';
+
         orabooks_log_event('partner_code_copied', 'Partner copied their code', 'info', [
             'source' => $source,
-            'ip' => orabooks_get_client_ip()
-        ], $user_id, null);
-        
+            'ip' => orabooks_get_client_ip(),
+            'correlation_id' => $correlation_id,
+        ], $user_id, (int) ($access->org_id ?? 0));
+
         orabooks_json_success([], 'copied');
     }
     
