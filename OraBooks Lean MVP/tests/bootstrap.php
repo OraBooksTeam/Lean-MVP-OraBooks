@@ -1629,6 +1629,101 @@ if (!function_exists('orabooks_org_allows_subdomain_access')) {
     }
 }
 
+if (!function_exists('orabooks_get_verified_jwt_payload')) {
+    function orabooks_get_verified_jwt_payload() {
+        return $GLOBALS['orabooks_test_jwt_payload'] ?? null;
+    }
+}
+
+if (!function_exists('orabooks_user_belongs_to_org')) {
+    function orabooks_user_belongs_to_org($user_id, $org_id) {
+        $user_id = (int) $user_id;
+        $org_id = (int) $org_id;
+        if ($user_id <= 0 || $org_id <= 0) {
+            return false;
+        }
+
+        global $wpdb;
+        $table_user_org = OraBooks_Database::table('user_org');
+        $member = $wpdb->get_var($wpdb->prepare(
+            "SELECT 1 FROM {$table_user_org} WHERE user_id = %d AND org_id = %d LIMIT 1",
+            $user_id,
+            $org_id
+        ));
+        if ($member) {
+            return true;
+        }
+
+        $table_orgs = OraBooks_Database::table('organizations');
+        $owner = $wpdb->get_var($wpdb->prepare(
+            "SELECT 1 FROM {$table_orgs} WHERE id = %d AND owner_id = %d LIMIT 1",
+            $org_id,
+            $user_id
+        ));
+
+        return (bool) $owner;
+    }
+}
+
+if (!function_exists('orabooks_assert_tenant_access')) {
+    function orabooks_assert_tenant_access($user_id, $org_id, $require_active = false) {
+        $user_id = (int) $user_id;
+        $org_id = (int) $org_id;
+
+        if ($org_id <= 0) {
+            return new WP_Error('no_org', 'No organization found.');
+        }
+
+        if ($user_id <= 0) {
+            return new WP_Error('not_authenticated', 'Authentication required.');
+        }
+
+        if (!function_exists('current_user_can') || !current_user_can('manage_options')) {
+            if (!orabooks_user_belongs_to_org($user_id, $org_id)) {
+                return new WP_Error('tenant_isolation', 'You do not have access to this organization.');
+            }
+
+            $payload = orabooks_get_verified_jwt_payload();
+            if ($payload && !empty($payload['org_id']) && (int) $payload['org_id'] !== $org_id) {
+                return new WP_Error('tenant_isolation', 'Organization context mismatch.');
+            }
+        }
+
+        if ($require_active && class_exists('OraBooks_Organization')) {
+            $org = OraBooks_Organization::get($org_id);
+            if (!$org || ($org->status ?? '') !== 'active') {
+                return new WP_Error('org_inactive', 'Your organization is not active. Please contact support.');
+            }
+        }
+
+        return true;
+    }
+}
+
+if (!function_exists('orabooks_resolve_request_org_id')) {
+    function orabooks_resolve_request_org_id($user_id, $requested_org_id = 0) {
+        $user_id = (int) $user_id;
+        $requested_org_id = (int) $requested_org_id;
+        $is_platform_admin = function_exists('current_user_can') && current_user_can('manage_options');
+
+        if ($requested_org_id > 0) {
+            if (!$is_platform_admin) {
+                $allowed = orabooks_assert_tenant_access($user_id, $requested_org_id, false);
+                if (is_wp_error($allowed)) {
+                    return 0;
+                }
+            }
+            return $requested_org_id;
+        }
+
+        if ($user_id > 0 && function_exists('orabooks_get_current_org_id')) {
+            return (int) orabooks_get_current_org_id($user_id);
+        }
+
+        return 0;
+    }
+}
+
 if (!function_exists('orabooks_get_user_role')) {
     function orabooks_get_user_role($user_id, $org_id) {
         if (isset($GLOBALS['orabooks_test_get_user_role_callback'])) {
