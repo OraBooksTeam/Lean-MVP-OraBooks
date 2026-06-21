@@ -1699,6 +1699,125 @@ class OraBooks_Commission {
     }
 
     /**
+     * Per-customer commission summary for SL-068 dashboard table.
+     */
+    public static function get_commission_by_customer($partner_user_id) {
+        global $wpdb;
+
+        $table_escrow = OraBooks_Database::table('commission_escrow_schedule');
+        $table_earned = OraBooks_Database::table('commissions_earned');
+        $table_users = OraBooks_Database::table('users');
+        $config = self::get_config();
+
+        $rows = $wpdb->get_results($wpdb->prepare(
+            "SELECT
+                e.id AS escrow_id,
+                e.customer_id,
+                u.email AS customer_email,
+                e.total_amount,
+                e.released_amount,
+                e.remaining_amount,
+                e.remaining_amount_status,
+                e.currency,
+                COALESCE((
+                    SELECT SUM(ce.amount) FROM {$table_earned} ce
+                    WHERE ce.partner_user_id = e.partner_user_id
+                      AND ce.customer_id = e.customer_id
+                      AND ce.status IN ('earned', 'paid', 'expired')
+                ), 0) AS earned_to_date,
+                COALESCE((
+                    SELECT SUM(ce.amount) FROM {$table_earned} ce
+                    WHERE ce.partner_user_id = e.partner_user_id
+                      AND ce.customer_id = e.customer_id
+                      AND ce.status = 'paid'
+                ), 0) AS paid_to_date,
+                (
+                    SELECT MIN(ce.expires_at) FROM {$table_earned} ce
+                    WHERE ce.partner_user_id = e.partner_user_id
+                      AND ce.customer_id = e.customer_id
+                      AND ce.status = 'earned'
+                ) AS next_expiry
+             FROM {$table_escrow} e
+             JOIN {$table_users} u ON e.customer_id = u.id
+             WHERE e.partner_user_id = %d
+             ORDER BY e.created_at DESC",
+            $partner_user_id
+        ));
+
+        foreach ($rows as &$row) {
+            $row->customer_email_masked = orabooks_mask_email($row->customer_email);
+            $row->yearly_breakdown = self::build_yearly_breakdown($config, (float) $row->total_amount);
+        }
+
+        return $rows;
+    }
+
+    /**
+     * Monthly release history for drill-down (all escrows or one escrow).
+     */
+    public static function get_release_history($partner_user_id, $escrow_id = 0) {
+        global $wpdb;
+
+        $table_release = OraBooks_Database::table('commission_release_schedule');
+        $table_escrow = OraBooks_Database::table('commission_escrow_schedule');
+        $table_users = OraBooks_Database::table('users');
+
+        $where = 'e.partner_user_id = %d';
+        $params = [$partner_user_id];
+
+        if ($escrow_id > 0) {
+            $where .= ' AND e.id = %d';
+            $params[] = $escrow_id;
+        }
+
+        $sql = "SELECT rs.id, rs.escrow_id, rs.release_month, rs.amount, rs.status,
+                       rs.released_at, rs.expires_at, u.email AS customer_email
+                FROM {$table_release} rs
+                JOIN {$table_escrow} e ON rs.escrow_id = e.id
+                JOIN {$table_users} u ON e.customer_id = u.id
+                WHERE {$where}
+                ORDER BY rs.release_month DESC
+                LIMIT 500";
+
+        $rows = $wpdb->get_results($wpdb->prepare($sql, $params));
+
+        foreach ($rows as &$row) {
+            $row->customer_email_masked = orabooks_mask_email($row->customer_email);
+        }
+
+        return $rows;
+    }
+
+    /**
+     * Dynamic yearly breakdown from platform config (not hardcoded).
+     */
+    public static function build_yearly_breakdown($config, $total_amount) {
+        if (!$config) {
+            return [];
+        }
+
+        $yearly_pcts = $config->yearly_percentages ?? [];
+        if (!is_array($yearly_pcts)) {
+            $yearly_pcts = json_decode((string) $yearly_pcts, true) ?: [];
+        }
+
+        $base = (float) ($config->base_monthly_amount ?? 0);
+        $breakdown = [];
+
+        foreach ($yearly_pcts as $index => $pct) {
+            $year = $index + 1;
+            $year_total = ($base * 12) * ((float) $pct / 100);
+            $breakdown[] = [
+                'year' => $year,
+                'percentage' => (float) $pct,
+                'amount' => round($year_total, 2),
+            ];
+        }
+
+        return $breakdown;
+    }
+
+    /**
      * ============================================================
      * UPDATE CONFIG (Super Admin only)
      * ============================================================
@@ -1754,10 +1873,14 @@ class OraBooks_Commission {
     // AJAX HANDLERS
     // ============================================================
 
-    private function require_partner_commission_user() {
+    private function require_partner_commission_user($action = 'commission') {
         $user_id = orabooks_get_current_user_id();
         if (!$user_id) {
             orabooks_json_error('Not authenticated', 401);
+        }
+
+        if (!orabooks_check_rate_limit($action . '_' . $user_id, 60, 60)) {
+            orabooks_json_error('Too many requests', 429);
         }
 
         global $wpdb;
@@ -1770,6 +1893,22 @@ class OraBooks_Commission {
             ));
         }
 
+        if ($org_id > 0) {
+            $tenant = orabooks_assert_tenant_access($user_id, $org_id, false);
+            if (is_wp_error($tenant)) {
+                orabooks_json_error($tenant->get_error_message(), 403);
+            }
+
+            $table_orgs = OraBooks_Database::table('organizations');
+            $org_type = $wpdb->get_var($wpdb->prepare(
+                "SELECT organization_type FROM {$table_orgs} WHERE id = %d",
+                $org_id
+            ));
+            if ($org_type !== 'partner') {
+                orabooks_json_error('Commission dashboard is only available for partner organizations.', 403);
+            }
+        }
+
         if ($org_id && !OraBooks_RBAC::require_permission($user_id, $org_id, 'partner_commission_access')) {
             orabooks_json_error('Permission denied', 403);
         }
@@ -1778,6 +1917,25 @@ class OraBooks_Commission {
             'user_id' => $user_id,
             'org_id' => $org_id,
         ];
+    }
+
+    private function resolve_partner_user_id($context) {
+        $user_id = $context['user_id'];
+        $partner_user_id = intval($_REQUEST['partner_user_id'] ?? $user_id);
+
+        if ($partner_user_id !== $user_id) {
+            global $wpdb;
+            $table_users = OraBooks_Database::table('users');
+            $target_org = (int) $wpdb->get_var($wpdb->prepare(
+                "SELECT org_id FROM {$table_users} WHERE id = %d",
+                $partner_user_id
+            ));
+            if ($target_org !== (int) $context['org_id']) {
+                orabooks_json_error('Partner scope mismatch', 403);
+            }
+        }
+
+        return $partner_user_id;
     }
 
     public function ajax_commission_stats() {
