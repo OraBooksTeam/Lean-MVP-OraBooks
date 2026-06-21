@@ -710,6 +710,36 @@ if (!class_exists('WP_REST_Request')) {
     }
 }
 
+if (!class_exists('WP_REST_Response')) {
+    class WP_REST_Response {
+        private $data;
+        private $status;
+        private $headers = [];
+
+        public function __construct($data = null, $status = 200) {
+            $this->data = $data;
+            $this->status = $status;
+        }
+
+        public function get_data() {
+            return $this->data;
+        }
+
+        public function get_status() {
+            return $this->status;
+        }
+
+        public function header($key, $value) {
+            $this->headers[$key] = $value;
+            return $this;
+        }
+
+        public function get_headers() {
+            return $this->headers;
+        }
+    }
+}
+
 if (!function_exists('register_rest_route')) {
     function register_rest_route($namespace, $route, $args = [], $override = false) {
         return true;
