@@ -1296,22 +1296,16 @@ class OraBooks_Customers {
             return $credit_check;
         }
 
-        if (class_exists('OraBooks_Workflow')) {
-            $result = OraBooks_Workflow::transition('invoice', $invoice_id, 'send', [
-                'user_id' => $user_id,
-                'org_id'  => $org_id,
-            ]);
-            if (is_wp_error($result)) {
-                return $result;
-            }
-        } else {
-            $wpdb->update(
-                OraBooks_Database::table('invoices'),
-                ['workflow_status' => 'sent'],
-                ['id' => $invoice_id, 'org_id' => $org_id],
-                ['%s'],
-                ['%d', '%d']
-            );
+        if (!class_exists('OraBooks_Workflow')) {
+            return new WP_Error('workflow_unavailable', 'Workflow engine unavailable');
+        }
+
+        $result = OraBooks_Workflow::transition('invoice', $invoice_id, 'send', [
+            'user_id' => $user_id,
+            'org_id'  => $org_id,
+        ]);
+        if (is_wp_error($result)) {
+            return $result;
         }
 
         orabooks_log_event('invoice_sent', "Invoice {$invoice->invoice_number} sent", 'info', [
@@ -1354,24 +1348,17 @@ class OraBooks_Customers {
 
         $journal_id = self::create_invoice_journal($invoice, $user_id);
 
-        if (class_exists('OraBooks_Workflow')) {
-            $result = OraBooks_Workflow::transition('invoice', $invoice_id, 'post', [
-                'user_id'       => $user_id,
-                'org_id'        => $org_id,
-                'update_status' => false,
-            ]);
-            if (is_wp_error($result)) {
-                return $result;
-            }
+        if (!class_exists('OraBooks_Workflow')) {
+            return new WP_Error('workflow_unavailable', 'Workflow engine unavailable');
         }
 
-        $wpdb->update(
-            OraBooks_Database::table('invoices'),
-            ['workflow_status' => 'posted'],
-            ['id' => $invoice_id, 'org_id' => $org_id],
-            ['%s'],
-            ['%d', '%d']
-        );
+        $result = OraBooks_Workflow::transition('invoice', $invoice_id, 'post', [
+            'user_id' => $user_id,
+            'org_id'  => $org_id,
+        ]);
+        if (is_wp_error($result)) {
+            return $result;
+        }
 
         if (class_exists('OraBooks_Tax') && floatval($invoice->tax_amount) > 0) {
             OraBooks_Tax::snapshot_for_invoice($invoice, $user_id);

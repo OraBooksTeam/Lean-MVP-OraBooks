@@ -1262,15 +1262,29 @@ class OraBooks_Commission {
             ['%d']
         );
         
-        // Update linked earned commissions
-        $wpdb->query($wpdb->prepare(
-            "UPDATE {$table_earned} 
-             SET status = 'paid' 
+        // Update linked earned commissions via workflow
+        $earned_rows = $wpdb->get_results($wpdb->prepare(
+            "SELECT id, org_id FROM {$table_earned}
              WHERE payout_id = %d AND status = 'earned'",
             $payout_id
         ));
 
-        orabooks_log_event('payout_settled', 
+        if (class_exists('OraBooks_Workflow')) {
+            foreach ($earned_rows ?: [] as $earned_row) {
+                OraBooks_Workflow::transition('commission', (int) $earned_row->id, 'pay', [
+                    'org_id' => (int) $earned_row->org_id,
+                ]);
+            }
+        } else {
+            $wpdb->query($wpdb->prepare(
+                "UPDATE {$table_earned}
+                 SET status = 'paid'
+                 WHERE payout_id = %d AND status = 'earned'",
+                $payout_id
+            ));
+        }
+
+        orabooks_log_event('payout_settled',
                 "Payout #{$payout_id} settled: gross={$gross_amount}, fee={$fee_amount}, net=" . round($gross_amount - $fee_amount, 2), 
                 'info', [
                     'payout_id' => $payout_id,
@@ -1404,15 +1418,18 @@ class OraBooks_Commission {
             if (is_wp_error($journal_result)) {
                 continue;
             }
-            
-            $wpdb->update(
-                $table_earned,
-                ['status' => 'expired'],
-                ['id' => $earned->id],
-                ['%s'],
-                ['%d']
-            );
-            
+
+            if (!class_exists('OraBooks_Workflow')) {
+                continue;
+            }
+
+            $transition = OraBooks_Workflow::transition('commission', (int) $earned->id, 'expire', [
+                'org_id' => (int) $earned->org_id,
+            ]);
+            if (is_wp_error($transition)) {
+                continue;
+            }
+
             $expired_count++;
         }
         
