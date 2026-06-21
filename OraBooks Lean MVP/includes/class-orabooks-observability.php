@@ -26,6 +26,42 @@ class OraBooks_Observability {
         'notification_dead'     => 25,
         'export_failed_24h'     => 15,
         'workflow_failures_24h' => 20,
+        'slo_error_budget_min'  => 10,
+    ];
+
+    /** Platform SLO targets (SL-093 / SL-250 SLA governance). */
+    private static $slos = [
+        'notifications_delivery' => [
+            'name'           => 'Notification delivery success',
+            'description'    => 'Delivered notifications vs terminal failures in the rolling window.',
+            'target_percent' => 99.5,
+            'window_days'    => 30,
+        ],
+        'notifications_critical_latency' => [
+            'name'           => 'Critical notification latency',
+            'description'    => 'Critical notifications delivered within 5 seconds (SL-250 SLA).',
+            'target_percent' => 99.0,
+            'window_days'    => 30,
+            'latency_ms'     => 5000,
+        ],
+        'async_queue_success' => [
+            'name'           => 'Async queue job success',
+            'description'    => 'Completed async jobs vs failed/dead-letter jobs.',
+            'target_percent' => 99.0,
+            'window_days'    => 30,
+        ],
+        'workflow_transitions' => [
+            'name'           => 'Workflow transition success',
+            'description'    => 'Successful workflow transitions vs failed preconditions.',
+            'target_percent' => 99.5,
+            'window_days'    => 30,
+        ],
+        'eventbus_processing' => [
+            'name'           => 'Event bus processing success',
+            'description'    => 'Processed outbox messages vs dead-letter backlog.',
+            'target_percent' => 99.0,
+            'window_days'    => 30,
+        ],
     ];
 
     public static function init() {
@@ -251,6 +287,11 @@ class OraBooks_Observability {
         }
         if (($snapshots['workflow']['failures_24h'] ?? 0) > $thresholds['workflow_failures_24h']) {
             $alerts[] = self::build_alert('workflow_failures', 'Workflow transition failure rate elevated', $snapshots['workflow']);
+        }
+
+        $slo_alerts = self::evaluate_error_budgets();
+        foreach ($slo_alerts as $slo_alert) {
+            $alerts[] = $slo_alert;
         }
 
         foreach ($alerts as $alert) {
