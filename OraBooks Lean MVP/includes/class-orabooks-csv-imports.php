@@ -184,15 +184,11 @@ class OraBooks_Csv_Imports {
         }
 
         $file_hash = hash('sha256', $content);
-        $storage = self::store_file($org_id, $filename, $content);
-        if (is_wp_error($storage)) {
-            return $storage;
-        }
 
         $wpdb->insert($table, [
             'org_id'            => $org_id,
             'user_id'           => $user_id,
-            'storage_key'       => $storage['storage_key'],
+            'storage_key'       => '',
             'original_filename' => sanitize_file_name($filename),
             'file_hash'         => $file_hash,
             'resource_type'     => $resource_type,
@@ -205,11 +201,58 @@ class OraBooks_Csv_Imports {
             return new WP_Error('db_error', 'Failed to create import record');
         }
 
+        $attachment_id = 0;
+        $storage_key = '';
+
+        if (class_exists('OraBooks_Attachments')) {
+            $attachment = OraBooks_Attachments::upload_attachment(
+                $org_id,
+                $user_id,
+                'csv_import',
+                $import_id,
+                $filename,
+                $content,
+                'text/csv',
+                0,
+                $idempotency_key . '_file'
+            );
+            if (!is_wp_error($attachment)) {
+                $attachment_id = (int) ($attachment['attachment_id'] ?? 0);
+                $version = OraBooks_Attachments::get_version((int) ($attachment['version_id'] ?? 0), $org_id);
+                if ($version && !empty($version->storage_path)) {
+                    $storage_key = $version->storage_path;
+                }
+            }
+        }
+
+        if ($storage_key === '') {
+            $storage = self::store_file($org_id, $filename, $content);
+            if (is_wp_error($storage)) {
+                self::mark_import_failed($import_id, $storage->get_error_message());
+                return $storage;
+            }
+            $storage_key = $storage['storage_key'];
+        }
+
+        $wpdb->update(
+            $table,
+            [
+                'attachment_id' => $attachment_id ?: null,
+                'storage_key'   => $storage_key,
+            ],
+            ['id' => $import_id],
+            ['%d', '%s'],
+            ['%d']
+        );
+
+        $correlation_id = function_exists('orabooks_get_correlation_id') ? orabooks_get_correlation_id(true) : orabooks_uuid();
         orabooks_log_event('csv_import_uploaded', "CSV import #{$import_id} uploaded ({$resource_type})", 'info', [
-            'import_id'     => $import_id,
-            'resource_type' => $resource_type,
-            'filename'      => sanitize_file_name($filename),
-        ], $user_id, $org_id);
+            'import_id'      => $import_id,
+            'resource_type'  => $resource_type,
+            'filename'       => sanitize_file_name($filename),
+            'attachment_id'  => $attachment_id,
+            'correlation_id' => $correlation_id,
+        ], $user_id, $org_id, $correlation_id);
 
         orabooks_publish_event('csv_parsing_requested', $import_id, [
             'import_id'     => $import_id,
@@ -255,9 +298,15 @@ class OraBooks_Csv_Imports {
         $table = OraBooks_Database::table(self::TABLE_IMPORTS);
         $wpdb->update($table, ['status' => 'parsing'], ['id' => $import_id], ['%s'], ['%d']);
 
-        $content = self::read_stored_file($import->storage_key);
+        $content = self::read_import_file($import);
         if (is_wp_error($content)) {
             self::mark_import_failed($import_id, $content->get_error_message());
+            orabooks_publish_event('csv_import_failed', $import_id, [
+                'import_id' => $import_id,
+                'org_id'    => (int) $import->org_id,
+                'user_id'   => (int) $import->user_id,
+                'reason'    => $content->get_error_message(),
+            ]);
             return $content->get_error_message();
         }
 
@@ -288,6 +337,8 @@ class OraBooks_Csv_Imports {
         $mapping = self::suggest_header_mapping($parsed['headers'], $import->resource_type);
         $rows_table = OraBooks_Database::table(self::TABLE_ROWS);
 
+        $wpdb->update($table, ['status' => 'mapping'], ['id' => $import_id], ['%s'], ['%d']);
+
         foreach ($parsed['rows'] as $index => $row) {
             $raw = [];
             foreach ($parsed['headers'] as $col_index => $header) {
@@ -312,13 +363,15 @@ class OraBooks_Csv_Imports {
         $wpdb->update($table, [
             'status'          => 'pending_confirm',
             'header_mapping'  => wp_json_encode($mapping),
+            'source_headers'  => wp_json_encode($parsed['headers']),
             'total_rows'      => $parsed['row_count'],
-        ], ['id' => $import_id], ['%s', '%s', '%d'], ['%d']);
+        ], ['id' => $import_id], ['%s', '%s', '%s', '%d'], ['%d']);
 
+        $correlation_id = function_exists('orabooks_get_correlation_id') ? orabooks_get_correlation_id(false) : '';
         orabooks_log_event('csv_import_parsed', "CSV import #{$import_id} parsed ({$parsed['row_count']} rows)", 'info', [
             'import_id'  => $import_id,
             'total_rows' => $parsed['row_count'],
-        ], (int) $import->user_id, (int) $import->org_id);
+        ], (int) $import->user_id, (int) $import->org_id, $correlation_id);
 
         return true;
     }
