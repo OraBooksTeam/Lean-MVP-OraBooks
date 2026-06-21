@@ -37,6 +37,10 @@ class OraBooks_Commission {
             add_action('wp_ajax_orabooks_commission_update_config', [self::$instance, 'ajax_update_config']);
             add_action('wp_ajax_orabooks_commission_escrow_schedule', [self::$instance, 'ajax_escrow_schedule']);
             add_action('wp_ajax_nopriv_orabooks_commission_escrow_schedule', [self::$instance, 'ajax_escrow_schedule']);
+            add_action('wp_ajax_orabooks_commission_by_customer', [self::$instance, 'ajax_commission_by_customer']);
+            add_action('wp_ajax_nopriv_orabooks_commission_by_customer', [self::$instance, 'ajax_commission_by_customer']);
+            add_action('wp_ajax_orabooks_commission_release_history', [self::$instance, 'ajax_release_history']);
+            add_action('wp_ajax_nopriv_orabooks_commission_release_history', [self::$instance, 'ajax_release_history']);
             
             // Cron jobs
             add_action('orabooks_monthly_commission_release', [self::$instance, 'process_monthly_release']);
@@ -1498,9 +1502,10 @@ class OraBooks_Commission {
         
         $stats = [];
         
-        // Total earned (accrued)
+        // Total earned (accrued) — all recognized monthly releases
         $stats['total_earned'] = (float) $wpdb->get_var($wpdb->prepare(
-            "SELECT COALESCE(SUM(amount), 0) FROM {$table_earned} WHERE partner_user_id = %d AND status = 'earned'",
+            "SELECT COALESCE(SUM(amount), 0) FROM {$table_earned}
+             WHERE partner_user_id = %d AND status IN ('earned', 'paid', 'expired')",
             $partner_user_id
         ));
         
