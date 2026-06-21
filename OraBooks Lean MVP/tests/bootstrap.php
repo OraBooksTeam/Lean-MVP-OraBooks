@@ -2067,10 +2067,14 @@ if (!class_exists('OraBooks_RBAC', false)) {
 
 // Stub OraBooks_Audit
 if (!class_exists('OraBooks_Audit', false)) {
+    if (!empty($GLOBALS['ORABOOKS_LOAD_REAL_AUDIT'])) {
+        require_once __DIR__ . '/../includes/class-orabooks-audit.php';
+    } else {
     class OraBooks_Audit {
-        public static function log_event($event_type, $description, $severity = 'info', $metadata = null, $user_id = null, $org_id = null) {
+        public static function log_event($event_type, $description, $severity = 'info', $metadata = null, $user_id = null, $org_id = null, $correlation_id = null) {
             return true;
         }
+    }
     }
 }
 
