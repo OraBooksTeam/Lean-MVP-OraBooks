@@ -147,4 +147,67 @@ class OraBooks_Observability_Test extends TestCase
             (bool) array_filter($queries, fn($q) => stripos($q, 'org_id =') !== false)
         );
     }
+
+    #[Test]
+    public function test_slo_dashboard_calculates_error_budget()
+    {
+        global $wpdb;
+
+        $wpdb->test_get_row_callback = function ($query) {
+            if (stripos($query, 'notifications') !== false && stripos($query, 'critical') !== false) {
+                return (object) ['total' => 100, 'good' => 99, 'bad' => 1];
+            }
+            if (stripos($query, 'notifications') !== false) {
+                return (object) ['total' => 1000, 'good' => 996, 'bad' => 4];
+            }
+            if (stripos($query, 'async_jobs') !== false) {
+                return (object) ['total' => 200, 'good' => 198, 'bad' => 2];
+            }
+            if (stripos($query, 'outbox_messages') !== false) {
+                return (object) ['total' => 500, 'good' => 495, 'bad' => 5];
+            }
+            return null;
+        };
+        $wpdb->test_get_var_callback = function ($query) {
+            if (stripos($query, 'state_machine_transitions') !== false) {
+                return 980;
+            }
+            if (stripos($query, 'audit_logs') !== false) {
+                return 5;
+            }
+            return 0;
+        };
+        $wpdb->test_insert_callback = function () {
+            return true;
+        };
+
+        $dashboard = OraBooks_Observability::get_slo_dashboard(30);
+
+        $this->assertArrayHasKey('objectives', $dashboard);
+        $this->assertArrayHasKey('notifications_delivery', $dashboard['objectives']);
+        $delivery = $dashboard['objectives']['notifications_delivery'];
+        $this->assertSame('healthy', $delivery['status']);
+        $this->assertGreaterThan(0, $delivery['error_budget_remaining_percent']);
+        $this->assertTrue($delivery['meets_slo']);
+    }
+
+    #[Test]
+    public function test_evaluate_error_budgets_alerts_on_breach()
+    {
+        $ref = new ReflectionMethod(OraBooks_Observability::class, 'build_slo_status');
+        $definition = [
+            'name' => 'Test SLO',
+            'description' => 'Test',
+            'target_percent' => 99.5,
+            'window_days' => 30,
+        ];
+        $sli = ['total' => 100, 'good' => 90, 'bad' => 10, 'current_percent' => 90.0];
+        $status = $ref->invoke(null, 'test_slo', $definition, $sli, 30);
+
+        $this->assertSame('breached', $status['status']);
+        $this->assertFalse($status['meets_slo']);
+
+        $alerts = OraBooks_Observability::evaluate_error_budgets();
+        $this->assertIsArray($alerts);
+    }
 }

@@ -488,8 +488,8 @@ class OraBooks_Observability {
                 $row = $wpdb->get_row($wpdb->prepare(
                     "SELECT
                         COUNT(*) AS total,
-                        SUM(CASE WHEN status IN ('processed', 'completed') THEN 1 ELSE 0 END) AS good,
-                        SUM(CASE WHEN status = 'dead_letter' THEN 1 ELSE 0 END) AS bad
+                        SUM(CASE WHEN status = 'sent' THEN 1 ELSE 0 END) AS good,
+                        SUM(CASE WHEN status IN ('failed', 'dead_letter') THEN 1 ELSE 0 END) AS bad
                      FROM {$outbox}
                      WHERE created_at >= %s",
                     $since
