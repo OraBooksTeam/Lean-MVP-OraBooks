@@ -1,0 +1,86 @@
+<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word">
+<head>
+<meta charset="utf-8">
+<title>Fiscal Period Workflow Report</title>
+<!--[if gte mso 9]><xml>
+<w:WordDocument><w:View>Print</w:View><w:Zoom>100</w:Zoom></w:WordDocument>
+</xml><![endif]-->
+<style>
+@page { size: A4; margin: 2cm; }
+body { font-family: Calibri, Arial, sans-serif; font-size: 11pt; line-height: 1.35; color: #1a1a1a; }
+h1 { font-size: 16pt; margin: 0 0 6pt 0; color: #0f172a; }
+h2 { font-size: 12pt; margin: 14pt 0 6pt 0; color: #0f172a; border-bottom: 1pt solid #cbd5e1; padding-bottom: 2pt; }
+p { margin: 0 0 6pt 0; }
+ul { margin: 4pt 0 8pt 0; padding-left: 18pt; }
+li { margin-bottom: 3pt; }
+table { border-collapse: collapse; width: 100%; margin: 6pt 0 10pt 0; font-size: 10pt; }
+th, td { border: 1pt solid #94a3b8; padding: 4pt 6pt; text-align: left; vertical-align: top; }
+th { background: #f1f5f9; font-weight: bold; }
+.meta { font-size: 10pt; color: #475569; margin-bottom: 12pt; }
+.small { font-size: 9pt; color: #64748b; }
+code { font-family: Consolas, monospace; font-size: 9pt; }
+</style>
+</head>
+<body>
+
+<h1>OraBooks Lean MVP — Fiscal Period Workflow</h1>
+<p class="meta"><b>Spec:</b> SL-304 (Fiscal Period &amp; Lock Governance) &nbsp;|&nbsp; <b>Date:</b> 20 June 2026 &nbsp;|&nbsp; <b>Scope:</b> Implementation summary (max 2 pages)</p>
+
+<h2>1. Purpose</h2>
+<p>Fiscal periods control when financial transactions may be posted. Each customer organization has date-bounded periods that move through <b>Open</b>, <b>Soft Closed</b>, and <b>Hard Closed</b> states. Closed periods block journal posting for transaction dates within that range. All close/reopen actions are audit-logged and permission-gated.</p>
+
+<h2>2. Period Statuses</h2>
+<table>
+<tr><th>Status</th><th>Posting</th><th>Reopen</th></tr>
+<tr><td><b>Open</b></td><td>Allowed</td><td>—</td></tr>
+<tr><td><b>Soft Closed</b></td><td>Blocked</td><td>Yes — reason required (UI)</td></tr>
+<tr><td><b>Hard Closed</b></td><td>Blocked</td><td>Super Admin override only (REST API + justification)</td></tr>
+</table>
+
+<h2>3. Workflow</h2>
+<p><b>Open → Close:</b> Admin selects period on Fiscal Periods page, chooses soft or hard close, optional audit note. Only open periods can be closed.</p>
+<p><b>Soft Closed → Open:</b> Admin clicks Reopen, enters mandatory reason. Recorded in audit log (<code>period_reopened</code>).</p>
+<p><b>Hard Closed → Open:</b> Standard UI reopen is blocked. Super Admin uses REST <code>POST /fiscal-periods/{id}/override-reopen</code> with mandatory justification (<code>period_override_reopened</code>).</p>
+
+<h2>4. Auto-Provisioning</h2>
+<ul>
+<li><b>On org create:</b> Seeds current month, current year, and next month (all <b>open</b>).</li>
+<li><b>Monthly cron:</b> <code>orabooks_monthly_fiscal_period_rollover</code> ensures periods exist for all active customer orgs.</li>
+<li><b>Manual:</b> Custom periods via REST API with overlap validation.</li>
+</ul>
+
+<h2>5. Posting Enforcement</h2>
+<p>The canonical posting engine (<code>OraBooks_Posting</code>) calls <code>OraBooks_Fiscal::can_post(org_id, transaction_date)</code> before posting. If the matching period is soft- or hard-closed, posting fails with error <code>fiscal_closed</code>. Tax setting overrides and invoice/expense UI also respect fiscal locks.</p>
+
+<h2>6. Access &amp; APIs</h2>
+<table>
+<tr><th>Channel</th><th>Key actions</th><th>Permission</th></tr>
+<tr><td>React UI (<code>/fiscal-periods</code>)</td><td>List, soft/hard close, reopen soft-closed</td><td><code>manage_fiscal_periods</code> (owner, admin)</td></tr>
+<tr><td>WordPress AJAX</td><td><code>orabooks_fiscal_periods_list</code>, <code>_close</code>, <code>_reopen</code></td><td>Same + org isolation</td></tr>
+<tr><td>REST API</td><td>CRUD + close/reopen + override-reopen</td><td>RBAC; override = <code>manage_options</code></td></tr>
+</table>
+
+<h2>7. Data Model</h2>
+<p>Table: <code>orabooks_fiscal_periods</code> — columns include <code>org_id</code>, <code>period_start</code>, <code>period_end</code>, <code>status</code>, <code>closed_by/at</code>, <code>reopened_by/at</code>, <code>reopen_reason</code>. Unique key: <code>(org_id, period_start)</code>.</p>
+
+<h2>8. Key Files &amp; Tests</h2>
+<ul>
+<li><b>Backend:</b> <code>class-orabooks-fiscal.php</code>, schema in <code>class-orabooks-database.php</code>, posting hook in <code>class-orabooks-posting.php</code></li>
+<li><b>Frontend:</b> <code>FiscalPeriodsPage.tsx</code>, route <code>/fiscal-periods</code></li>
+<li><b>Tests:</b> <code>OraBooks_Fiscal_Test.php</code> — close/reopen rules, posting blocks, pagination</li>
+</ul>
+
+<h2>9. Operational Quick Guide</h2>
+<table>
+<tr><th>Task</th><th>Steps</th></tr>
+<tr><td>Month-end close</td><td>Complete postings → Fiscal Periods → Close (soft or hard)</td></tr>
+<tr><td>Correct after soft close</td><td>Reopen with reason → post correction → close again</td></tr>
+<tr><td>Correct after hard close</td><td>Super Admin override-reopen via REST → post → re-close</td></tr>
+</table>
+
+<p class="small"><b>Note:</b> Hard-close override is not exposed in the standard React UI. Both soft and hard close block posting equally; the difference is reopen governance.</p>
+
+<p class="small" style="margin-top:14pt;"><b>End of report</b> — OraBooks Lean MVP, Fiscal Period Workflow (SL-304)</p>
+
+</body>
+</html>
