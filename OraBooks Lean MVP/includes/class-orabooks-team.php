@@ -31,7 +31,7 @@ class OraBooks_Team {
             add_action('wp_ajax_orabooks_cancel_invite', [self::$instance, 'ajax_cancel_invite']);
             add_action('wp_ajax_nopriv_orabooks_cancel_invite', [self::$instance, 'ajax_cancel_invite']);
             add_action('wp_ajax_orabooks_accept_invite', [self::$instance, 'ajax_accept_invite']);
-            add_action('wp_ajax_nopriv_orabooks_accept_invite', [self::$instance, 'ajax_accept_invite_legacy_redirect']);
+            add_action('wp_ajax_nopriv_orabooks_accept_invite', [self::$instance, 'ajax_accept_invite_nopriv']);
             add_action('wp_ajax_orabooks_preview_invite', [self::$instance, 'ajax_preview_invite']);
             add_action('wp_ajax_nopriv_orabooks_preview_invite', [self::$instance, 'ajax_preview_invite']);
             add_action('wp_ajax_orabooks_transfer_ownership', [self::$instance, 'ajax_transfer_ownership']);
@@ -687,6 +687,22 @@ class OraBooks_Team {
 
         $session = orabooks_enrich_login_response($session);
         orabooks_json_success(orabooks_redact_client_auth_response($session), 'Invitation accepted');
+    }
+
+    /**
+     * Unauthenticated invite links from email open the React page (GET).
+     * AJAX POST (React app, including JWT auth without WP cookie) returns JSON.
+     */
+    public function ajax_accept_invite_nopriv() {
+        $method = strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET');
+        $has_post_token = isset($_POST['token']) && sanitize_text_field(wp_unslash($_POST['token'])) !== '';
+
+        if ($method === 'GET' && !$has_post_token) {
+            $this->ajax_accept_invite_legacy_redirect();
+            return;
+        }
+
+        $this->ajax_accept_invite();
     }
 
     /**

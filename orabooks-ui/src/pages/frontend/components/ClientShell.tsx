@@ -55,6 +55,7 @@ type NavItem = {
 
 const customerNav: NavItem[] = [
   { label: 'Dashboard', href: '/dashboard', icon: Home, permission: 'view_reports' },
+  { label: 'Notifications', href: '/notifications', icon: Bell },
   { label: 'Customers', href: '/customers', icon: Users, permission: 'view_invoices' },
   { label: 'Invoices & Sales', href: '/invoices', icon: FileText, permission: 'view_invoices' },
   { label: 'Vendors & Bills', href: '/vendors', icon: Building2, permission: 'view_reports' },
@@ -72,7 +73,6 @@ const customerNav: NavItem[] = [
   { label: 'AI Review', href: '/ai-review', icon: Bot, permission: 'view_ai_review_queue' },
   { label: 'Approvals', href: '/approvals', icon: ShieldCheck, permission: 'approve_journal' },
   { label: 'Approval Settings', href: '/approval-settings', icon: ShieldCheck, permission: 'manage_org_settings' },
-  { label: 'Notifications', href: '/notifications', icon: Bell },
   { label: 'My Exports', href: '/my-exports', icon: Download, permission: 'export_reports' },
   { label: 'Team', href: '/team', icon: UserCog, permission: 'manage_employees' },
   { label: 'Job Monitor', href: '/job-queue', icon: ShieldCheck, permission: 'manage_settings' },
@@ -83,9 +83,9 @@ const customerNav: NavItem[] = [
 
 const partnerNav: NavItem[] = [
   { label: 'Partner Program', href: '/dashboard', icon: Home, permission: 'partner_commission_access' },
+  { label: 'Notifications', href: '/notifications', icon: Bell },
   { label: 'Commissions', href: '/commissions', icon: TrendingUp, permission: 'partner_commission_access' },
   { label: 'Onboarding', href: '/onboarding', icon: Users },
-  { label: 'Notifications', href: '/notifications', icon: Bell },
   { label: 'My Exports', href: '/my-exports', icon: Download, permission: 'export_reports' },
   { label: 'Team', href: '/team', icon: UserCog, permission: 'manage_employees' },
   { label: 'Job Monitor', href: '/job-queue', icon: ShieldCheck, permission: 'manage_settings' },
@@ -223,13 +223,34 @@ export default function ClientShell({
 
   const brandBlock = (
     <div className="flex items-center gap-3">
-      <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-base font-black text-primary">
-        OB
+      <div className="flex min-w-0 flex-1 items-center gap-3">
+        <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-base font-black text-primary">
+          OB
+        </div>
+        <div className="min-w-0">
+          <p className="truncate text-sm font-bold text-white">OraBooks</p>
+          <p className="truncate text-xs text-white/70">{isPartner ? 'Partner Account (Commission)' : 'Accounting Workspace'}</p>
+        </div>
       </div>
-      <div className="min-w-0">
-        <p className="truncate text-sm font-bold text-white">OraBooks</p>
-        <p className="truncate text-xs text-white/70">{isPartner ? 'Partner Account (Commission)' : 'Accounting Workspace'}</p>
-      </div>
+      <WpLink
+        to="/notifications"
+        onClick={closeMobileNav}
+        className={cn(
+          'relative flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border transition',
+          currentRoute === '/notifications'
+            ? 'border-accent/40 bg-accent text-white shadow-lg shadow-accent/30'
+            : 'border-white/20 bg-white/10 text-white hover:border-white/40 hover:bg-white/15'
+        )}
+        title="Notifications"
+        aria-label="Notifications"
+      >
+        <Bell className="h-5 w-5" />
+        {unreadCount > 0 && (
+          <span className="absolute -right-1 -top-1 flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-accent px-1 text-[10px] font-bold text-white ring-2 ring-primary">
+            {unreadCount > 99 ? '99+' : unreadCount}
+          </span>
+        )}
+      </WpLink>
     </div>
   );
 
