@@ -5,7 +5,7 @@ export default function AdminObservability() {
   return (
     <AdminPageShell
       title="Platform Observability"
-      description="Queue depth, subsystem health, and failure signals across the platform."
+      description="SLO compliance, error budgets, queue depth, and subsystem health."
     >
       <ObservabilityPanel />
     </AdminPageShell>
