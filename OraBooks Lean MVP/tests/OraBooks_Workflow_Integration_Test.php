@@ -95,4 +95,48 @@ class OraBooks_Workflow_Integration_Test extends TestCase
 
         $this->assertTrue($result);
     }
+
+    #[Test]
+    public function test_journal_approve_blocks_maker_checker_in_preconditions()
+    {
+        global $wpdb;
+
+        $GLOBALS['orabooks_test_has_permission'] = true;
+        $wpdb->test_get_row_callback = function ($query) {
+            if (stripos($query, 'approval_policies') !== false) {
+                return (object) [
+                    'maker_checker_required' => 1,
+                    'mfa_amount_threshold' => 10000,
+                ];
+            }
+            return null;
+        };
+
+        $record = (object) [
+            'org_id' => 5,
+            'created_by' => 2,
+            'total_amount' => 500,
+        ];
+
+        $result = OraBooks_Workflow_Integration::apply_preconditions(true, 'journal', 'approve', $record, [
+            'user_id' => 2,
+            'org_id' => 5,
+        ]);
+
+        $this->assertInstanceOf(WP_Error::class, $result);
+        $this->assertEquals('maker_checker', $result->get_error_code());
+    }
+
+    #[Test]
+    public function test_expense_lock_precondition_allows_internal_lock()
+    {
+        $result = OraBooks_Workflow_Integration::apply_preconditions(true, 'expense', 'lock', (object) [
+            'org_id' => 5,
+        ], [
+            'user_id' => 0,
+            'org_id' => 5,
+        ]);
+
+        $this->assertTrue($result);
+    }
 }

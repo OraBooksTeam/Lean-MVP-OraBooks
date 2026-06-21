@@ -39,4 +39,20 @@ class OraBooks_Rest_Api_Test extends TestCase
         $this->assertSame('SOFT_CLOSED', $formatted['status']);
         $this->assertSame(3, $formatted['id']);
     }
+
+    #[Test]
+    public function test_rest_state_transition_requires_record_fields()
+    {
+        $request = new WP_REST_Request('POST', '/api/internal/state/transition');
+        $request->set_header('X-OraBooks-Org-Id', '5');
+        $request->set_param('org_id', 5);
+
+        $GLOBALS['orabooks_test_current_user_id'] = 1;
+        $GLOBALS['orabooks_test_has_permission'] = true;
+
+        $result = OraBooks_Rest_Api::rest_state_transition($request);
+
+        $this->assertInstanceOf(WP_Error::class, $result);
+        $this->assertEquals('invalid_request', $result->get_error_code());
+    }
 }

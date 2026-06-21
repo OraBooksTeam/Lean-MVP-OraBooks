@@ -355,4 +355,62 @@ class OraBooks_Vendors_Test extends TestCase
 
         $this->assertTrue($result);
     }
+
+    #[Test]
+    public function test_void_bill_draft_success()
+    {
+        global $wpdb;
+
+        $wpdb->test_get_row_callback = function ($query) {
+            return $this->mockBill(['workflow_status' => 'draft']);
+        };
+        $wpdb->test_query_callback = function () {
+            return true;
+        };
+        $wpdb->test_update_callback = function ($table, $data) {
+            return isset($data['workflow_status']) && $data['workflow_status'] === 'void';
+        };
+        $wpdb->test_insert_callback = function () {
+            return true;
+        };
+        $GLOBALS['orabooks_test_use_insert_id'] = 501;
+
+        $result = OraBooks_Vendors::void_bill(5, 100, 1, 'Duplicate entry');
+
+        $this->assertIsObject($result);
+    }
+
+    #[Test]
+    public function test_void_bill_rejects_posted_status()
+    {
+        global $wpdb;
+
+        $wpdb->test_get_row_callback = function ($query) {
+            return $this->mockBill(['workflow_status' => 'posted']);
+        };
+
+        $result = OraBooks_Vendors::void_bill(5, 100, 1);
+
+        $this->assertInstanceOf(WP_Error::class, $result);
+        $this->assertEquals('invalid_status', $result->get_error_code());
+    }
+
+    #[Test]
+    public function test_void_bill_rejects_partial_payment()
+    {
+        global $wpdb;
+
+        $wpdb->test_get_row_callback = function ($query) {
+            return $this->mockBill([
+                'workflow_status' => 'approved',
+                'payment_status' => 'partial',
+                'paid_amount' => '50.00',
+            ]);
+        };
+
+        $result = OraBooks_Vendors::void_bill(5, 100, 1);
+
+        $this->assertInstanceOf(WP_Error::class, $result);
+        $this->assertEquals('has_payments', $result->get_error_code());
+    }
 }

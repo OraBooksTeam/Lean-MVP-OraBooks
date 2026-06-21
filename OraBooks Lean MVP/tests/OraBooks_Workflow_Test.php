@@ -328,4 +328,80 @@ class OraBooks_Workflow_Test extends TestCase
         $this->assertEquals(2, $formatted['triggered_by']);
         $this->assertEquals(99, $formatted['org_id']);
     }
+
+    #[Test]
+    public function test_transition_uses_for_update_row_lock()
+    {
+        global $wpdb;
+
+        $invoice = (object) [
+            'id' => 20,
+            'org_id' => 3,
+            'workflow_status' => 'draft',
+        ];
+
+        $for_update_seen = false;
+        $wpdb->test_query_callback = function () {
+            return true;
+        };
+        $wpdb->test_get_row_callback = function ($query) use (&$for_update_seen, $invoice) {
+            if (stripos($query, 'FOR UPDATE') !== false) {
+                $for_update_seen = true;
+                return $invoice;
+            }
+            return null;
+        };
+        $wpdb->test_update_callback = function () {
+            return true;
+        };
+        $wpdb->test_insert_callback = function () {
+            return true;
+        };
+        $GLOBALS['orabooks_test_use_insert_id'] = 902;
+
+        $result = OraBooks_Workflow::transition('invoice', 20, 'send', [
+            'user_id' => 1,
+            'org_id'  => 3,
+        ]);
+
+        $this->assertIsArray($result);
+        $this->assertTrue($for_update_seen, 'Expected SELECT ... FOR UPDATE during transition');
+    }
+
+    #[Test]
+    public function test_invoice_cancel_transition_via_engine()
+    {
+        global $wpdb;
+
+        $invoice = (object) [
+            'id' => 21,
+            'org_id' => 3,
+            'workflow_status' => 'sent',
+        ];
+
+        $wpdb->test_query_callback = function () {
+            return true;
+        };
+        $wpdb->test_get_row_callback = function ($query) use ($invoice) {
+            if (stripos($query, 'FOR UPDATE') !== false) {
+                return $invoice;
+            }
+            return null;
+        };
+        $wpdb->test_update_callback = function ($table, $data) {
+            return isset($data['workflow_status']) && $data['workflow_status'] === 'cancelled';
+        };
+        $wpdb->test_insert_callback = function () {
+            return true;
+        };
+        $GLOBALS['orabooks_test_use_insert_id'] = 903;
+
+        $result = OraBooks_Workflow::transition('invoice', 21, 'cancel', [
+            'user_id' => 1,
+            'org_id'  => 3,
+        ]);
+
+        $this->assertIsArray($result);
+        $this->assertEquals('cancelled', $result['to_state']);
+    }
 }

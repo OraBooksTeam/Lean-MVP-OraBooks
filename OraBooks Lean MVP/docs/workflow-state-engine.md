@@ -47,6 +47,12 @@ $events = OraBooks_Workflow::allowed_events('journal', 'draft'); // ['submit', '
 - `orabooks_workflow_transitions` — history for a record
 - `orabooks_workflow_allowed_events` — allowed events from current state
 - `orabooks_workflow_transition` — execute transition (internal/guarded)
+- `orabooks_invoice_cancel` — cancel draft/sent invoice
+- `orabooks_bill_void` — void draft/submitted/approved bill
+
+### REST (SL-304)
+
+- `POST /wp-json/api/internal/state/transition` — guarded workflow transition (record_type, record_id, event, org_id)
 
 ## Migration status (Phase 2 — complete)
 
@@ -72,6 +78,11 @@ All modules now use `OraBooks_Workflow::transition()`. See git history for Phase
 - [x] `state_machine_transitions.org_id` for tenant traceability
 - [x] Audit `state_changed` + `state_transition` event + consumers
 - [x] All 5 record types migrated (journal, invoice, bill, expense, commission)
+- [x] Invoice cancel + bill void end-to-end (backend, AJAX, UI)
+- [x] Expense post → lock workflow transition (matches journal pattern)
+- [x] REST `POST /api/internal/state/transition`
+- [x] Journal MFA + maker-checker in centralized preconditions
+- [x] FOR UPDATE concurrency test
 - [x] Unit tests + observability metrics
 - [x] This document + transition matrices
 
