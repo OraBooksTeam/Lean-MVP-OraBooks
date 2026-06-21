@@ -48,19 +48,20 @@ $events = OraBooks_Workflow::allowed_events('journal', 'draft'); // ['submit', '
 - `orabooks_workflow_allowed_events` — allowed events from current state
 - `orabooks_workflow_transition` — execute transition (internal/guarded)
 
-## Migration backlog (direct status bypass)
+## Migration status (Phase 2 — complete)
 
-| Priority | Module | File | Pattern | Target |
-|----------|--------|------|---------|--------|
-| P1 | Journal | `class-orabooks-posting.php` | update status then `record_transition()` | `transition()` + after hook |
-| P1 | Journal | `class-orabooks-approval.php` | direct `status` update | workflow + hook |
-| P2 | Expense | `class-orabooks-expenses.php` | direct `workflow_status` | `transition('expense', …)` |
-| P3 | Invoice | `class-orabooks-customers.php` | partial workflow + fallbacks | full `transition()` |
-| P3 | Bill | `class-orabooks-vendors.php` | partial + `update_status=>false` | after_transition hook |
-| P4 | Commission | `class-orabooks-commission.php` | direct `status` | `transition('commission', …)` |
-| P5 | Voice | `class-orabooks-voice.php` | expense workflow_status | via expense module |
+All modules now use `OraBooks_Workflow::transition()`. See git history for Phase 2 caller migration.
 
-## Definition of done (SL-301 MVP)
+## Phase 3 — Events & observability (complete)
+
+- `state_transition` SL-302 consumers:
+  - `workflow_read_model` — read model dues bump
+  - `workflow_notifications` — org admin notifications (non-journal)
+  - `job_enqueue_bridge` — webhook async dispatch
+- RBAC/fiscal preconditions: `class-orabooks-workflow-integration.php`
+- Metrics: `workflow.transition_success_24h`, `workflow.transition_failure_24h`
+- Org health AJAX: `orabooks_workflow_health`
+- Platform dashboard: observability snapshot includes `workflow`
 
 - [x] No production path updates workflow fields without `OraBooks_Workflow::transition()`
 - [x] Invalid transition → 409 + `invalid_state_transition` audit
@@ -83,13 +84,7 @@ $events = OraBooks_Workflow::allowed_events('journal', 'draft'); // ['submit', '
 - Org health AJAX: `orabooks_workflow_health`
 - Platform dashboard: observability snapshot includes `workflow`
 
-- Journal: `journal_transition()` helper; post uses `post` then `lock` inside posting TX (`skip_transaction`)
-- Expense: `reject` event added; submit routes to `submit` or `ai_review`
-- Bill/Invoice: `row_updates` for approval/post metadata (no `update_status => false`)
-- Commission: `pay` / `expire` per earned row
-- Voice/CSV: create draft → workflow send/submit
-
-## Dependencies
+## Definition of done (SL-301 MVP)
 
 - SL-009 Audit log
 - SL-302 Event bus (optional `state_transition` publish)
