@@ -1,9 +1,16 @@
 import { useEffect, useState } from 'react';
-import WpLink from '../components/WpLink';
 import Button from '@/components/Button';
 import { api } from '../api';
 import ClientShell from '../components/ClientShell';
-import { Copy, CheckCircle2 } from 'lucide-react';
+import { toWpUrl } from '../lib/wp-routing';
+import { CheckCircle2, Copy, HelpCircle } from 'lucide-react';
+
+const PARTNER_CODE_TOOLTIP =
+  'Your unique partner code. Share this code with customers. They enter it during signup.';
+const COPY_CODE_TOOLTIP = 'Copy code to clipboard. (Audited)';
+const TYPE_ORG_TOOLTIP =
+  'Your partner type and organization name (from registration).';
+const CONTINUE_TOOLTIP = 'Go to your partner dashboard.';
 
 export default function PartnerOnboardingPage() {
   const [info, setInfo] = useState<any>(null);
@@ -11,16 +18,31 @@ export default function PartnerOnboardingPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [copied, setCopied] = useState(false);
+  const [continuing, setContinuing] = useState(false);
 
   useEffect(() => {
-    api.frontendContext().then((res) => {
-      if (!res.error) setContext((res as any).data);
-    });
-    api.partnerOnboarding().then((res) => {
+    void (async () => {
+      const ctx = await api.frontendContext();
+      if (ctx.error) {
+        setError(ctx.error);
+        setLoading(false);
+        return;
+      }
+
+      const session = (ctx as any).data;
+      setContext(session);
+
+      if (!session?.is_partner) {
+        setError('Access denied. Partner accounts only.');
+        setLoading(false);
+        return;
+      }
+
+      const res = await api.partnerOnboarding();
       if (res.error) setError(res.error);
       else setInfo((res as any).data);
       setLoading(false);
-    });
+    })();
   }, []);
 
   const copy = async () => {
@@ -31,12 +53,30 @@ export default function PartnerOnboardingPage() {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const continueToDashboard = async () => {
+    setContinuing(true);
+    setError('');
+    const res = await api.partnerOnboardingComplete();
+    if (res.error) {
+      setError(res.error);
+      setContinuing(false);
+      return;
+    }
+    const redirect = (res as any).data?.redirect_to || '/partner-program';
+    window.location.replace(toWpUrl(redirect));
+  };
+
   const organization = context?.organization || {
     name: info?.org_name || info?.organization_name,
     organization_type: 'partner',
     status: info?.org_status,
     tier: 'partner',
   };
+
+  const typeLabel = info?.partner_type_label || formatPartnerType(info?.partner_type);
+  const typeOrgLine = info?.organization_name
+    ? `Type: ${typeLabel} | Organization: ${info.organization_name}`
+    : `Type: ${typeLabel}`;
 
   return (
     <ClientShell
@@ -53,28 +93,33 @@ export default function PartnerOnboardingPage() {
         <div className="mx-auto max-w-2xl">
           <div className="glass-panel overflow-hidden">
             <div className="p-8">
-              <div className="space-y-4">
+              <div className="space-y-5">
                 <div>
-                  <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">Your Partner Code</label>
+                  <FieldLabel tooltip={PARTNER_CODE_TOOLTIP}>Your Partner Code</FieldLabel>
                   <div className="mt-2 flex gap-2">
                     <input
                       readOnly
                       value={info?.partner_code || ''}
+                      title={PARTNER_CODE_TOOLTIP}
                       className="flex-1 rounded-lg border border-border bg-slate-50 px-3.5 py-2.5 font-mono text-sm text-ink"
                     />
-                    <Button variant="secondary" onClick={copy} className="whitespace-nowrap">
+                    <Button
+                      variant="secondary"
+                      onClick={copy}
+                      title={COPY_CODE_TOOLTIP}
+                      className="whitespace-nowrap"
+                    >
                       {copied ? <CheckCircle2 className="h-4 w-4 text-success" /> : <Copy className="h-4 w-4" />}
                       {copied ? 'Copied' : 'Copy Code'}
                     </Button>
                   </div>
                 </div>
 
-                <div className="rounded-xl border border-border bg-slate-50 p-4 text-sm text-slate-700">
-                  <p><span className="font-semibold text-ink">Type:</span> {info?.partner_type || 'individual'}</p>
-                  {info?.organization_name && (
-                    <p><span className="font-semibold text-ink">Organization:</span> {info.organization_name}</p>
-                  )}
-                  <p><span className="font-semibold text-ink">Code Status:</span> {info?.code_status || info?.status}</p>
+                <div
+                  className="rounded-xl border border-border bg-slate-50 p-4 text-sm text-slate-700"
+                  title={TYPE_ORG_TOOLTIP}
+                >
+                  <p className="font-medium text-ink">{typeOrgLine}</p>
                 </div>
 
                 {info?.status_message && (
@@ -83,14 +128,14 @@ export default function PartnerOnboardingPage() {
                   </div>
                 )}
 
-                <div className="flex items-center justify-between rounded-xl border border-border bg-white p-4">
-                  <span className="text-sm font-medium text-slate-700">Status</span>
-                  <StatusBadge status={info?.code_status || info?.status} />
-                </div>
-
-                <WpLink to="/dashboard">
-                  <Button className="w-full">Continue to Dashboard</Button>
-                </WpLink>
+                <Button
+                  className="w-full"
+                  onClick={continueToDashboard}
+                  disabled={continuing}
+                  title={CONTINUE_TOOLTIP}
+                >
+                  {continuing ? 'Continuing…' : 'Continue to Dashboard'}
+                </Button>
               </div>
             </div>
           </div>
@@ -100,13 +145,18 @@ export default function PartnerOnboardingPage() {
   );
 }
 
-function StatusBadge({ status }: { status?: string }) {
-  const map: Record<string, string> = {
-    pending_review: 'bg-amber-50 text-amber-700 border-amber-200',
-    active: 'bg-success/10 text-success border-success/20',
-    disabled: 'bg-red-50 text-red-700 border-red-200',
-    inactive: 'bg-slate-100 text-slate-600 border-slate-200',
-  };
-  const cls = map[status || ''] || 'bg-slate-100 text-slate-600 border-slate-200';
-  return <span className={`badge border ${cls}`}>{status || 'unknown'}</span>;
+function FieldLabel({ children, tooltip }: { children: React.ReactNode; tooltip: string }) {
+  return (
+    <div className="flex items-center gap-1.5">
+      <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">{children}</label>
+      <span title={tooltip} className="inline-flex text-slate-400">
+        <HelpCircle className="h-3.5 w-3.5" aria-hidden />
+      </span>
+    </div>
+  );
+}
+
+function formatPartnerType(type?: string) {
+  if (!type) return 'Individual';
+  return type.charAt(0).toUpperCase() + type.slice(1).replace(/_/g, ' ');
 }

@@ -344,6 +344,8 @@ export const api = {
     api.post('orabooks_get_partner_info'),
   partnerOnboarding: () =>
     api.get('orabooks_partner_onboarding'),
+  partnerOnboardingComplete: () =>
+    api.post('orabooks_partner_onboarding_complete'),
   requestReactivation: (orgId: number, reason: string) =>
     api.post('orabooks_request_reactivation', { org_id: orgId, reason }),
   partnerCodeCopied: (source = 'dashboard') =>

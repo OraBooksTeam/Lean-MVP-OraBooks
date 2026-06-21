@@ -186,7 +186,7 @@ export function redirectAfterAuth(data: {
   }
 
   if (data?.subdomain) {
-    const wpPath = data.is_partner ? '/partner/onboarding/' : '/dashboard/';
+    const wpPath = data.is_partner ? '/partner-program/' : '/dashboard/';
     redirectToOrgSubdomain(data.subdomain, wpPath);
     return;
   }
