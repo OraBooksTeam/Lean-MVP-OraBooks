@@ -1301,6 +1301,7 @@ class OraBooks_Notifications {
             'sla_breached' => $sla_breached,
             'has_delivery_proof' => !empty($delivery_proof),
             'delivery_proof' => $delivery_proof,
+            'delivery_region' => is_array($delivery_proof) ? ($delivery_proof['region'] ?? null) : null,
             'payload' => $payload,
         ];
     }
@@ -1344,7 +1345,12 @@ class OraBooks_Notifications {
         $user_id = $this->require_notification_user();
         $notification_id = intval($_POST['notification_id'] ?? 0);
 
-        self::mark_read($notification_id, $user_id);
+        $result = self::mark_read($notification_id, $user_id);
+        if (is_wp_error($result)) {
+            $code = $result->get_error_code();
+            $status = $code === 'forbidden' ? 403 : ($code === 'not_found' ? 404 : 400);
+            orabooks_json_error($result->get_error_message(), $status);
+        }
         orabooks_json_success([], 'Marked as read');
     }
 
@@ -1596,27 +1602,39 @@ class OraBooks_Notifications {
     }
 
     public function on_partner_inactivity_reminder_sent($user_id, $data) {
+        $data = (array) $data;
+        if (empty($data['correlation_id']) && function_exists('orabooks_get_correlation_id')) {
+            $data['correlation_id'] = orabooks_get_correlation_id(true);
+        }
         self::send_notification((int) $user_id, 'partner_inactivity_reminder_sent', [
             'title'    => __('Partner Inactivity Warning', 'orabooks'),
             'message'  => __('Your partner account may be deactivated soon due to inactivity.', 'orabooks'),
             'priority' => 'high',
-        ] + (array) $data, null);
+        ] + $data, null);
     }
 
     public function on_partner_code_inactivated($user_id, $data) {
+        $data = (array) $data;
+        if (empty($data['correlation_id']) && function_exists('orabooks_get_correlation_id')) {
+            $data['correlation_id'] = orabooks_get_correlation_id(true);
+        }
         self::send_notification((int) $user_id, 'partner_code_inactivated', [
             'title'    => __('Partner Code Deactivated', 'orabooks'),
             'message'  => __('Your partner code has been deactivated due to inactivity.', 'orabooks'),
             'priority' => 'high',
-        ] + (array) $data, null);
+        ] + $data, null);
     }
 
     public function on_partner_low_activity_reminder_sent($user_id, $data) {
+        $data = (array) $data;
+        if (empty($data['correlation_id']) && function_exists('orabooks_get_correlation_id')) {
+            $data['correlation_id'] = orabooks_get_correlation_id(true);
+        }
         self::send_notification((int) $user_id, 'partner_low_activity_reminder_sent', [
             'title'    => __('Partner Activity Reminder', 'orabooks'),
             'message'  => __('You have no active customers and no new partner-code signups recently. Share your partner code to earn commissions.', 'orabooks'),
             'priority' => 'normal',
-        ] + (array) $data, null);
+        ] + $data, null);
     }
 
     /**
