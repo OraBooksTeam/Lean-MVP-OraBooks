@@ -377,15 +377,34 @@ export default function ClientShell({
                 <p className="truncate text-xs text-ink-secondary">{title}</p>
               </div>
             </div>
-            <button
-              type="button"
-              className="rounded-lg p-2 text-primary hover:bg-primary/10"
-              aria-label="Open navigation menu"
-              aria-expanded={mobileNavOpen}
-              onClick={() => setMobileNavOpen(true)}
-            >
-              <Menu className="h-5 w-5" />
-            </button>
+            <div className="flex items-center gap-1">
+              <WpLink
+                to="/notifications"
+                className={cn(
+                  'relative rounded-lg p-2 transition',
+                  currentRoute === '/notifications'
+                    ? 'bg-accent text-white shadow-sm'
+                    : 'text-primary hover:bg-primary/10'
+                )}
+                aria-label="Notifications"
+              >
+                <Bell className="h-5 w-5" />
+                {unreadCount > 0 && (
+                  <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-accent px-1 text-[9px] font-bold text-white">
+                    {unreadCount > 99 ? '99+' : unreadCount}
+                  </span>
+                )}
+              </WpLink>
+              <button
+                type="button"
+                className="rounded-lg p-2 text-primary hover:bg-primary/10"
+                aria-label="Open navigation menu"
+                aria-expanded={mobileNavOpen}
+                onClick={() => setMobileNavOpen(true)}
+              >
+                <Menu className="h-5 w-5" />
+              </button>
+            </div>
           </div>
         </div>
 

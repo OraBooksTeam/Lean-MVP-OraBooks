@@ -136,4 +136,24 @@ class OraBooks_RBAC_Test extends TestCase
         $this->assertContains('manage_roles', $permissions);
         $this->assertContains('manage_settings', $permissions);
     }
+
+    #[Test]
+    public function test_accept_invite_ajax_returns_json_for_unauthenticated_post()
+    {
+        $GLOBALS['orabooks_test_current_user_id'] = 0;
+        $_POST['token'] = 'sample-invite-token';
+        $_SERVER['REQUEST_METHOD'] = 'POST';
+
+        $team = OraBooks_Team::init();
+
+        try {
+            $team->ajax_accept_invite_nopriv();
+            $this->fail('Expected JSON error for unauthenticated invite acceptance.');
+        } catch (\RuntimeException $exception) {
+            $payload = json_decode($exception->getMessage(), true);
+            $this->assertIsArray($payload);
+            $this->assertTrue($payload['error']);
+            $this->assertStringContainsString('log in', strtolower($payload['message']));
+        }
+    }
 }
