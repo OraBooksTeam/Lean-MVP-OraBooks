@@ -93,7 +93,7 @@ Add-Bullet 'RBAC and fiscal guards scattered across callers'
 
 # ===== 3 ARCHITECTURE =====
 Add-H1 '3. Solution Architecture'
-Add-P 'Flow: UI/AJAX/REST → Module method → OraBooks_Workflow::transition() → Validate → Preconditions (RBAC/MFA/Fiscal) → DB Transaction + FOR UPDATE → Update status → Persist transition log → Commit → Audit + Event Bus → Observability metrics.'
+Add-P 'Flow: UI/AJAX/REST  to  Module method  to  OraBooks_Workflow::transition()  to  Validate  to  Preconditions (RBAC/MFA/Fiscal)  to  DB Transaction + FOR UPDATE  to  Update status  to  Persist transition log  to  Commit  to  Audit + Event Bus  to  Observability metrics.'
 Add-H2 '3.1 Core Design Principles'
 Add-Bullet 'Single write path — no production code updates workflow columns without transition()'
 Add-Bullet 'Atomic transitions — START TRANSACTION, SELECT FOR UPDATE, validate, update, COMMIT/ROLLBACK'
@@ -117,7 +117,7 @@ Add-H1 '5. State Machines — 100% Wired'
 Add-H2 '5.1 Journal (journals.status)'
 Add-P 'States: draft, review_pending, approved, posted, locked, reversed'
 Add-P 'Transitions: submit, approve, reject, post, lock, reverse, edit'
-Add-P 'Flow: draft → submit → review_pending → approve → approved → post → posted → lock → locked. Reject returns to draft. Reverse from posted/locked.'
+Add-P 'Flow: draft  to  submit  to  review_pending  to  approve  to  approved  to  post  to  posted  to  lock  to  locked. Reject returns to draft. Reverse from posted/locked.'
 Add-P 'Files: class-orabooks-posting.php, class-orabooks-approval.php. Post auto-chains lock.'
 
 Add-H2 '5.2 Invoice (invoices.workflow_status)'
