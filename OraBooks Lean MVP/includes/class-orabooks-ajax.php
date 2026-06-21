@@ -19,6 +19,9 @@ class OraBooks_Ajax {
             add_action('wp_ajax_orabooks_list_orgs', [self::$instance, 'ajax_list_orgs']);
             add_action('wp_ajax_orabooks_suspend_org', [self::$instance, 'ajax_suspend_org']);
             add_action('wp_ajax_orabooks_activate_org', [self::$instance, 'ajax_activate_org']);
+            add_action('wp_ajax_orabooks_change_org_region', [self::$instance, 'ajax_change_org_region']);
+            add_action('wp_ajax_orabooks_get_org_by_subdomain', [self::$instance, 'ajax_get_org_by_subdomain']);
+            add_action('wp_ajax_nopriv_orabooks_get_org_by_subdomain', [self::$instance, 'ajax_get_org_by_subdomain']);
             add_action('wp_ajax_orabooks_list_users', [self::$instance, 'ajax_list_users']);
             add_action('wp_ajax_orabooks_dashboard_stats', [self::$instance, 'ajax_dashboard_stats']);
             add_action('wp_ajax_orabooks_platform_settings_get', [self::$instance, 'ajax_platform_settings_get']);
