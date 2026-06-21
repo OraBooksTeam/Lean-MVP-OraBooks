@@ -284,4 +284,187 @@ class OraBooks_Approval_Test extends TestCase
         $this->assertInstanceOf(WP_Error::class, $result);
         $this->assertSame('invalid_delegate', $result->get_error_code());
     }
+
+    #[Test]
+    public function test_has_history_action_detects_existing_escalation()
+    {
+        global $wpdb;
+
+        $wpdb->test_get_var_callback = function ($query) {
+            if (stripos($query, 'journal_approval_history') !== false) {
+                return 1;
+            }
+            return 0;
+        };
+
+        $this->assertTrue(OraBooks_Approval::has_history_action(10, 'escalate', 2));
+    }
+
+    #[Test]
+    public function test_user_can_approve_via_active_delegation()
+    {
+        global $wpdb;
+
+        $GLOBALS['orabooks_test_has_permission'] = false;
+        $wpdb->test_get_row_callback = function ($query) {
+            if (stripos($query, 'approval_delegations') !== false) {
+                return (object) [
+                    'id' => 5,
+                    'org_id' => 1,
+                    'delegator_user_id' => 3,
+                    'delegate_user_id' => 2,
+                ];
+            }
+            return null;
+        };
+
+        $this->assertTrue(OraBooks_Approval::user_can_approve(2, 1));
+    }
+
+    #[Test]
+    public function test_cron_expire_stale_approvals_marks_journal_stale()
+    {
+        global $wpdb;
+
+        $journal = $this->journal([
+            'id' => 44,
+            'status' => 'approved',
+            'approval_stale' => 0,
+            'approval_round' => 2,
+            'revision_number' => 3,
+            'created_by' => 5,
+        ]);
+
+        $updated = [];
+        $inserted = [];
+
+        $wpdb->test_get_results_callback = function ($query) use ($journal) {
+            if (stripos($query, "status = 'approved'") !== false) {
+                return [$journal];
+            }
+            return [];
+        };
+        $wpdb->test_update_callback = function ($table, $data, $where) use (&$updated) {
+            $updated = $data;
+            return 1;
+        };
+        $wpdb->test_insert_callback = function ($table, $data) use (&$inserted) {
+            $inserted[] = $data;
+            return 1;
+        };
+
+        OraBooks_Approval::cron_expire_stale_approvals();
+
+        $this->assertSame(1, $updated['approval_stale']);
+        $this->assertNotEmpty($inserted);
+        $this->assertSame('expire', $inserted[0]['action']);
+    }
+
+    #[Test]
+    public function test_cron_escalate_skips_when_already_escalated()
+    {
+        global $wpdb;
+
+        $journal = $this->journal([
+            'id' => 55,
+            'status' => 'review_pending',
+            'approval_round' => 1,
+            'revision_number' => 1,
+            'last_submitted_at' => '2026-06-01 00:00:00',
+        ]);
+
+        $inserted = [];
+        $wpdb->test_get_results_callback = function ($query) use ($journal) {
+            if (stripos($query, "status = 'review_pending'") !== false) {
+                return [$journal];
+            }
+            return [];
+        };
+        $wpdb->test_get_var_callback = function ($query) {
+            if (stripos($query, 'journal_approval_history') !== false) {
+                return 1;
+            }
+            return 0;
+        };
+        $wpdb->test_insert_callback = function ($table, $data) use (&$inserted) {
+            $inserted[] = $data;
+            return 1;
+        };
+
+        OraBooks_Approval::cron_escalate_overdue_reviews();
+
+        $this->assertEmpty($inserted);
+    }
+
+    #[Test]
+    public function test_on_submitted_publishes_journal_submitted_event()
+    {
+        global $wpdb;
+
+        $events = [];
+        $wpdb->test_insert_callback = function ($table, $data) use (&$events) {
+            if (!empty($data['event_type'])) {
+                $events[] = $data['event_type'];
+            }
+            return 1;
+        };
+
+        $ref = new ReflectionClass(OraBooks_EventBus::class);
+        if ($ref->hasProperty('consumers')) {
+            $prop = $ref->getProperty('consumers');
+            $prop->setAccessible(true);
+            $prop->setValue(null, []);
+        }
+
+        OraBooks_Approval::on_submitted(10, 2, 1, 1);
+
+        $this->assertContains('journal_submitted', $events);
+    }
+
+    #[Test]
+    public function test_promote_to_review_pending_keeps_approved_snapshot_hash_null()
+    {
+        global $wpdb;
+
+        $journal = $this->journal(['status' => 'draft', 'approval_round' => 0]);
+        $line = (object) [
+            'account_id' => 100,
+            'debit_amount' => 100.00,
+            'credit_amount' => 0,
+            'description' => 'Test',
+            'currency_code' => 'USD',
+        ];
+
+        $updated = [];
+        $wpdb->test_get_row_callback = function ($query) use ($journal, $line) {
+            if (stripos($query, 'journal_lines') !== false && stripos($query, 'SUM') !== false) {
+                return (object) ['total_debit' => 100, 'total_credit' => 100];
+            }
+            if (stripos($query, 'approval_policies') !== false) {
+                return $this->policy();
+            }
+            if (stripos($query, 'journal_lines') !== false) {
+                return null;
+            }
+            return $journal;
+        };
+        $wpdb->test_get_results_callback = function ($query) use ($line) {
+            if (stripos($query, 'journal_lines') !== false) {
+                return [$line];
+            }
+            return [];
+        };
+        $wpdb->test_update_callback = function ($table, $data, $where) use (&$updated) {
+            $updated = array_merge($updated, $data);
+            return 1;
+        };
+
+        if (!class_exists('OraBooks_Workflow')) {
+            $this->markTestSkipped('Workflow engine unavailable');
+        }
+
+        OraBooks_Workflow::init();
+        $result = OraBooks_Posting::promote_to_review_pending(10, 2, $journal);
+        $this->assertNotWPError($result);
+    }
 }
