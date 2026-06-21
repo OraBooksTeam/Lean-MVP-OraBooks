@@ -345,6 +345,7 @@ export default function JournalsPage() {
                 </WpLink>
 
                 <div className="overflow-hidden rounded-xl border border-border">
+                  {detailTab === 'lines' ? (
                   <table className="min-w-full text-left text-sm">
                     <thead>
                       <tr className="border-b border-border bg-slate-50/70 text-xs uppercase text-slate-500">
@@ -366,16 +367,52 @@ export default function JournalsPage() {
                       ))}
                     </tbody>
                   </table>
+                  ) : (
+                  <table className="min-w-full text-left text-sm">
+                    <thead>
+                      <tr className="border-b border-border bg-slate-50/70 text-xs uppercase text-slate-500">
+                        <th className="px-4 py-2 font-semibold">Action</th>
+                        <th className="px-4 py-2 font-semibold">Round</th>
+                        <th className="px-4 py-2 font-semibold">Reason</th>
+                        <th className="px-4 py-2 font-semibold">When</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border">
+                      {approvalHistory.length === 0 ? (
+                        <tr><td colSpan={4} className="px-4 py-6 text-center text-slate-500">No approval history yet.</td></tr>
+                      ) : approvalHistory.map((row: any) => (
+                        <tr key={row.id}>
+                          <td className="px-4 py-2 font-medium capitalize text-ink">{row.action}</td>
+                          <td className="px-4 py-2 font-mono text-xs">{row.approval_round}</td>
+                          <td className="px-4 py-2 text-slate-600">{row.reason || '—'}</td>
+                          <td className="px-4 py-2 text-slate-600">{row.created_at || '—'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  )}
                 </div>
 
                 <div className="flex flex-wrap gap-2">
-                  {selectedJournal.status === 'draft' && (
+                  {selectedJournal.status === 'draft' && Number(selectedJournal.approval_round || 0) === 0 && (
                     <Button
                       size="sm"
                       disabled={actionLoading}
+                      title="Submit for approval."
                       onClick={() => runAction(() => api.submitJournal(selectedJournal.id), 'Journal submitted for approval.')}
                     >
                       Submit for Approval
+                    </Button>
+                  )}
+                  {selectedJournal.status === 'draft' && Number(selectedJournal.approval_round || 0) > 0 && (
+                    <Button
+                      size="sm"
+                      disabled={actionLoading}
+                      title="Resubmit after corrections. New approval round starts."
+                      onClick={() => runAction(() => api.resubmitJournal(selectedJournal.id), 'Journal resubmitted for approval.')}
+                    >
+                      <Send className="h-3.5 w-3.5" />
+                      Resubmit for Approval
                     </Button>
                   )}
                   {canApprove && selectedJournal.status === 'review_pending' && selectedJournal.created_by !== currentUserId && (
@@ -383,30 +420,21 @@ export default function JournalsPage() {
                       <Button
                         size="sm"
                         disabled={actionLoading}
-                      title="Approve and lock journal."
-                        onClick={() => runAction(() => api.approveJournal(selectedJournal.id), 'Journal approved.')}
+                        title="Approve journal. Snapshot stored. Journal locked."
+                        className="bg-accent text-white hover:bg-accent/90"
+                        onClick={() => void approveJournal()}
                       >
                         Approve
                       </Button>
-                      <div className="w-full space-y-2">
-                        <Input
-                          value={rejectReason}
-                          onChange={(e) => setRejectReason(e.target.value)}
-                          placeholder="Rejection reason"
-                        />
-                        <Button
-                          size="sm"
-                          variant="secondary"
-                          disabled={actionLoading || !rejectReason.trim()}
-                          title="Reject with reason."
-                          onClick={() => runAction(
-                            () => api.rejectJournal(selectedJournal.id, rejectReason.trim()),
-                            'Journal rejected and returned to draft.'
-                          )}
-                        >
-                          Reject
-                        </Button>
-                      </div>
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        disabled={actionLoading}
+                        title="Reject with reason. Journal returns to draft."
+                        onClick={() => setRejectModalOpen(true)}
+                      >
+                        Reject
+                      </Button>
                     </>
                   )}
                   {canApprove && selectedJournal.status === 'approved' && (
@@ -446,11 +474,62 @@ export default function JournalsPage() {
           </div>
         </div>
       </div>
+
+      <WorkflowModal
+        open={rejectModalOpen}
+        title="Reject Journal"
+        description="Reject with reason. Journal returns to draft."
+        confirmLabel="Reject"
+        confirmVariant="danger"
+        confirmDisabled={!rejectReason.trim()}
+        loading={actionLoading}
+        onClose={() => {
+          setRejectModalOpen(false);
+          setRejectReason('');
+        }}
+        onConfirm={() => {
+          if (!selectedJournal) return;
+          void runAction(
+            () => api.rejectJournal(selectedJournal.id, rejectReason.trim()),
+            'Journal rejected and returned to draft.'
+          ).then(() => {
+            setRejectModalOpen(false);
+            setRejectReason('');
+          });
+        }}
+      >
+        <Input
+          label="Rejection reason"
+          value={rejectReason}
+          onChange={(e) => setRejectReason(e.target.value)}
+          placeholder="Explain why this journal is rejected"
+        />
+      </WorkflowModal>
+
+      <WorkflowModal
+        open={mfaModal.open}
+        title="High-Risk Approval"
+        description="High value approval requires MFA. Enter your 6-digit 2FA code."
+        confirmLabel="Verify & Approve"
+        confirmDisabled={mfaModal.code.trim().length < 6}
+        loading={actionLoading}
+        onClose={() => setMfaModal({ open: false, code: '' })}
+        onConfirm={() => void approveJournal(mfaModal.code.trim())}
+      >
+        <Input
+          label="6-digit code"
+          value={mfaModal.code}
+          onChange={(e) => setMfaModal({ open: true, code: e.target.value.replace(/\D/g, '').slice(0, 6) })}
+          placeholder="000000"
+          inputMode="numeric"
+          autoComplete="one-time-code"
+        />
+      </WorkflowModal>
     </ClientShell>
   );
 }
 
-function StatusBadge({ status }: { status: string }) {
+function StatusBadge({ status, rejected = false }: { status: string; rejected?: boolean }) {
   const map: Record<string, string> = {
     draft: 'border-slate-200 bg-slate-50 text-slate-700',
     review_pending: 'border-amber-200 bg-amber-50 text-amber-700',
@@ -459,7 +538,12 @@ function StatusBadge({ status }: { status: string }) {
     locked: 'border-emerald-300 bg-emerald-100 text-emerald-800',
     reversed: 'border-rose-200 bg-rose-50 text-rose-700',
   };
-  return <span className={`badge border ${map[status] || map.draft}`} title="Current workflow state.">{status.replace(/_/g, ' ')}</span>;
+  return (
+    <span className={`badge border ${map[status] || map.draft}`} title="Current workflow state.">
+      {status.replace(/_/g, ' ')}
+      {status === 'draft' && rejected ? ' (Rejected)' : ''}
+    </span>
+  );
 }
 
 function money(value?: string | number) {
