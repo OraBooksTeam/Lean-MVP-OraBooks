@@ -1068,14 +1068,23 @@ class OraBooks_Expenses {
             return $post;
         }
 
-        $table = OraBooks_Database::table(self::TABLE_EXPENSES);
-        $wpdb->update($table, [
-            'workflow_status' => 'posted',
-            'lock_status'     => 'locked',
-            'posted_by'       => intval($user_id),
-            'posted_at'       => current_time('mysql'),
-            'journal_id'      => intval($journal_id),
-        ], ['id' => intval($expense_id)], ['%s', '%s', '%d', '%s', '%d'], ['%d']);
+        if (!class_exists('OraBooks_Workflow')) {
+            return new WP_Error('workflow_unavailable', 'Workflow engine unavailable');
+        }
+
+        $transition = OraBooks_Workflow::transition('expense', (int) $expense_id, 'post', [
+            'user_id' => (int) $user_id,
+            'org_id'  => (int) $org_id,
+            'row_updates' => [
+                'lock_status' => 'locked',
+                'posted_by'   => (int) $user_id,
+                'posted_at'   => current_time('mysql'),
+                'journal_id'  => (int) $journal_id,
+            ],
+        ]);
+        if (is_wp_error($transition)) {
+            return $transition;
+        }
 
         if (class_exists('OraBooks_Tax') && method_exists('OraBooks_Tax', 'create_snapshot_from_expense')) {
             OraBooks_Tax::create_snapshot_from_expense(self::get_expense($expense_id, $org_id));
@@ -1365,4 +1374,13 @@ class OraBooks_Expenses {
             $org_id,
             $expense_id,
             $user_id,
-            sanitize_text_
+            sanitize_text_field($_POST['jurisdiction'] ?? 'US')
+        );
+
+        if (is_wp_error($result)) {
+            orabooks_json_error($result->get_error_message(), 400);
+        }
+
+        orabooks_json_success(['expense' => $result], 'Tax override cleared');
+    }
+}
