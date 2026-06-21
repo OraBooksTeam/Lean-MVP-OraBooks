@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import AdminPageShell from '@/components/AdminPageShell';
 import { api } from '../api';
 import Button from '@/components/Button';
-import { Building2, ShieldCheck, ShieldOff } from 'lucide-react';
+import { ShieldCheck, ShieldOff } from 'lucide-react';
 
 interface Org {
   id: number;
@@ -12,6 +12,14 @@ interface Org {
   tier: string;
   status: string;
   created_at: string;
+}
+
+function adminLink(page: string) {
+  const cfg = (window as any).orabooks_ajax || {};
+  const base = typeof cfg.admin_url === 'string' && cfg.admin_url.trim() !== ''
+    ? cfg.admin_url.replace(/\/?$/, '')
+    : '/wp-admin/admin.php';
+  return `${base}?page=${page}`;
 }
 
 export default function AdminOrganizations() {
@@ -43,7 +51,7 @@ export default function AdminOrganizations() {
   return (
     <AdminPageShell
       title="Organizations"
-      description="Manage customer and partner organizations across the platform."
+      description="Manage customer and partner organizations across the platform. Partner approvals are handled separately in Partner Management."
       actions={<Button variant="secondary" onClick={load}>Refresh</Button>}
     >
       <div className="flex flex-wrap gap-2">
@@ -96,13 +104,7 @@ export default function AdminOrganizations() {
                 <td className="px-5 py-3"><StatusBadge status={org.status} /></td>
                 <td className="px-5 py-3 text-slate-600">{org.created_at}</td>
                 <td className="px-5 py-3">
-                  <div className="flex gap-2">
-                    {org.status === 'active' ? (
-                      <button onClick={() => suspend(org.id)} className="inline-flex items-center gap-1 text-xs font-medium text-amber-700 hover:text-amber-800"><ShieldOff className="h-3.5 w-3.5" /> Suspend</button>
-                    ) : (
-                      <button onClick={() => activate(org.id)} className="inline-flex items-center gap-1 text-xs font-medium text-emerald-700 hover:text-emerald-800"><ShieldCheck className="h-3.5 w-3.5" /> Activate</button>
-                    )}
-                  </div>
+                  <OrgActions org={org} onSuspend={suspend} onActivate={activate} />
                 </td>
               </tr>
             ))}
@@ -110,6 +112,60 @@ export default function AdminOrganizations() {
         </table>
       </div>
     </AdminPageShell>
+  );
+}
+
+function OrgActions({
+  org,
+  onSuspend,
+  onActivate,
+}: {
+  org: Org;
+  onSuspend: (id: number) => void;
+  onActivate: (id: number) => void;
+}) {
+  const isPartner = org.organization_type === 'partner';
+  const partnersUrl = adminLink('orabooks-partners');
+
+  if (org.status === 'active') {
+    return (
+      <button
+        onClick={() => onSuspend(org.id)}
+        className="inline-flex items-center gap-1 text-xs font-medium text-amber-700 hover:text-amber-800"
+      >
+        <ShieldOff className="h-3.5 w-3.5" />
+        Suspend
+      </button>
+    );
+  }
+
+  if (isPartner && org.status === 'pending_setup') {
+    return (
+      <a
+        href={partnersUrl}
+        className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:text-primary-dark"
+      >
+        Approve in Partner Management
+      </a>
+    );
+  }
+
+  if (isPartner) {
+    return (
+      <span className="text-xs text-slate-500" title="Partner reactivation uses the review workflow in Partner Management.">
+        Use Partner Management
+      </span>
+    );
+  }
+
+  return (
+    <button
+      onClick={() => onActivate(org.id)}
+      className="inline-flex items-center gap-1 text-xs font-medium text-emerald-700 hover:text-emerald-800"
+    >
+      <ShieldCheck className="h-3.5 w-3.5" />
+      Activate
+    </button>
   );
 }
 
