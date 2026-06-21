@@ -1412,10 +1412,6 @@ class OraBooks_Auth {
         
         $user_id = (int) $payload['user_id'];
         $rate_key = '2fa_challenge_' . orabooks_get_client_ip() . '_' . $user_id;
-        if (!orabooks_check_rate_limit($rate_key, 5, 900)) {
-            orabooks_log_event('login_failure', '2FA challenge rate limit exceeded', 'warning', [], $user_id, null);
-            orabooks_json_error('Too many failed verification attempts. Try again after 15 minutes.', 429);
-        }
 
         $wp_user_id = orabooks_get_wp_user_id_for_orabooks_user($user_id);
         if ($wp_user_id <= 0) {
@@ -1457,6 +1453,11 @@ class OraBooks_Auth {
         }
 
         if (!$verified) {
+            if (!orabooks_check_rate_limit($rate_key, 5, 900)) {
+                orabooks_log_event('login_failure', '2FA challenge rate limit exceeded', 'warning', [], $user_id, null);
+                orabooks_json_error('Too many failed verification attempts. Try again after 15 minutes.', 429);
+            }
+
             orabooks_log_event('login_failure', 'Invalid 2FA verification attempt', 'warning', [
                 'method' => $otp !== '' ? 'totp' : 'backup_code',
             ], $user_id, null);

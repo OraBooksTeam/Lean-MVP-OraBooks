@@ -907,7 +907,12 @@ if (!class_exists('OraBooks_Secrets', false)) {
         }
 
         public static function generate_backup_codes() {
-            return ['backup-code-001', 'backup-code-002', 'backup-code-003'];
+            return ['backup-code-001', 'backup-code-002', 'backup-code-003', 'backup-code-004', 'backup-code-005', 'backup-code-006', 'backup-code-007', 'backup-code-008'];
+        }
+
+        public static function normalize_totp_code($code) {
+            $code = preg_replace('/\D+/', '', (string) $code);
+            return strlen($code) === 6 ? $code : '';
         }
 
         public static function verify_totp($secret, $otp) {

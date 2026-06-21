@@ -1391,7 +1391,7 @@ class OraBooks_Auth_Test extends TestCase
         $this->assertArrayHasKey('qr_code_url', $response['data']);
         $this->assertArrayHasKey('backup_codes', $response['data']);
         $this->assertStringContainsString('otpauth://', $response['data']['qr_code_url']);
-        $this->assertCount(3, $response['data']['backup_codes']);
+        $this->assertCount(8, $response['data']['backup_codes']);
     }
 
     #[Test]

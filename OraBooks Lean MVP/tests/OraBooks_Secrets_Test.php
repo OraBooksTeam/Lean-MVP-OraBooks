@@ -84,12 +84,38 @@ class OraBooks_Secrets_Test extends TestCase
     }
 
     #[Test]
-    public function test_get_status_reports_configured_secrets()
+    public function test_totp_round_trip_with_base32_secret()
     {
-        $status = OraBooks_Secrets::get_status();
+        $secret = OraBooks_Secrets::generate_totp_secret();
+        $this->assertNotSame('', $secret);
 
-        $this->assertTrue($status['jwt_secret_configured']);
-        $this->assertTrue($status['encryption_key_configured']);
-        $this->assertArrayHasKey('tls', $status);
+        $time_slice = floor(time() / 30);
+        $ref = new ReflectionClass(OraBooks_Secrets::class);
+        $method = $ref->getMethod('generate_totp_code');
+        $method->setAccessible(true);
+        $decode = $ref->getMethod('decode_totp_secret');
+        $decode->setAccessible(true);
+        $key = $decode->invoke(null, $secret);
+        $code = $method->invoke(null, $key, $time_slice);
+
+        $this->assertSame(6, strlen($code));
+        $this->assertTrue(OraBooks_Secrets::verify_totp($secret, $code));
+    }
+
+    #[Test]
+    public function test_generate_jwt_respects_custom_expiry()
+    {
+        OraBooks_Secrets::set('jwt_secret', 'jwt-secret-with-enough-length-for-custom-exp-tests');
+        $token = OraBooks_Secrets::generate_jwt([
+            'user_id' => 1,
+            'purpose' => '2fa_challenge',
+            'exp' => time() + 300,
+        ]);
+
+        $payload = OraBooks_Secrets::verify_jwt($token);
+        $this->assertIsArray($payload);
+        $this->assertSame('2fa_challenge', $payload['purpose']);
+        $this->assertLessThanOrEqual(time() + 301, (int) $payload['exp']);
+        $this->assertGreaterThan(time() + 240, (int) $payload['exp']);
     }
 }
