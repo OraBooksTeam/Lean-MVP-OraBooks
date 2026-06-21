@@ -1008,4 +1008,122 @@ class OraBooks_Notifications_Test extends TestCase
         $this->assertNotNull($captured, 'Projection integrity notification should be inserted');
         $this->assertEquals('critical', $captured['priority']);
     }
+
+    // ================================================================
+    // SL-250 Notification Center core
+    // ================================================================
+
+    #[Test]
+    public function test_send_notification_uses_request_correlation_id()
+    {
+        global $wpdb;
+
+        $GLOBALS['orabooks_correlation_id'] = 'corr-test-abc123';
+        $this->setUserNotifPrefs(5);
+        $this->setUpCommonMocks();
+        $this->setUpResultsMock();
+
+        $captured = null;
+        $wpdb->test_insert_callback = function ($table, $data) use (&$captured) {
+            if (stripos($table, 'orabooks_notifications') !== false) {
+                $captured = $data;
+            }
+        };
+        $GLOBALS['orabooks_test_use_insert_id'] = 9201;
+
+        OraBooks_Notifications::send_notification(5, 'test_event', [
+            'title'   => 'Test',
+            'message' => 'Hello',
+        ], 10);
+
+        $this->assertNotNull($captured);
+        $this->assertEquals('corr-test-abc123', $captured['correlation_id']);
+        unset($GLOBALS['orabooks_correlation_id']);
+    }
+
+    #[Test]
+    public function test_deduplication_logs_notification_deduplicated_event()
+    {
+        global $wpdb;
+
+        $GLOBALS['orabooks_test_log_events'] = [];
+        $GLOBALS['orabooks_correlation_id'] = 'corr-dedup-xyz';
+
+        $wpdb->test_get_row_callback = function ($query) {
+            if (stripos($query, 'notification_dedup_log') !== false) {
+                return (object) ['suppressed_count' => 1];
+            }
+            if (stripos($query, 'orabooks_users') !== false) {
+                return (object) ['org_id' => 10];
+            }
+            return null;
+        };
+
+        $result = OraBooks_Notifications::send_notification(5, 'test_event', [
+            'title' => 'Dup',
+        ], 10);
+
+        $this->assertFalse($result);
+        $types = array_column($GLOBALS['orabooks_test_log_events'], 'event_type');
+        $this->assertContains('notification_deduplicated', $types);
+        unset($GLOBALS['orabooks_correlation_id']);
+    }
+
+    #[Test]
+    public function test_mark_read_rejects_foreign_notification()
+    {
+        global $wpdb;
+
+        $wpdb->test_get_row_callback = function ($query) {
+            if (stripos($query, 'notifications') !== false && stripos($query, 'WHERE id') !== false) {
+                return (object) ['id' => 99, 'user_id' => 2];
+            }
+            return null;
+        };
+
+        $result = OraBooks_Notifications::mark_read(99, 5);
+        $this->assertInstanceOf(WP_Error::class, $result);
+        $this->assertEquals('forbidden', $result->get_error_code());
+    }
+
+    #[Test]
+    public function test_mark_read_rejects_missing_notification()
+    {
+        global $wpdb;
+
+        $wpdb->test_get_row_callback = function ($query) {
+            if (stripos($query, 'notifications') !== false) {
+                return null;
+            }
+            return null;
+        };
+
+        $result = OraBooks_Notifications::mark_read(404, 5);
+        $this->assertInstanceOf(WP_Error::class, $result);
+        $this->assertEquals('not_found', $result->get_error_code());
+    }
+
+    #[Test]
+    public function test_format_notification_includes_delivery_region()
+    {
+        $row = (object) [
+            'id'               => 1,
+            'event_type'       => 'test',
+            'priority'         => 'normal',
+            'title'            => 'T',
+            'message'          => 'M',
+            'status'           => 'delivered',
+            'delivery_channel' => 'inapp',
+            'correlation_id'   => 'abc',
+            'created_at'       => '2026-01-01 00:00:00',
+            'delivered_at'     => '2026-01-01 00:00:01',
+            'is_read'          => 0,
+            'read_at'          => null,
+            'payload'          => '{}',
+            'delivery_proof'   => json_encode(['region' => 'eu-west']),
+        ];
+
+        $formatted = OraBooks_Notifications::format_notification_for_api($row);
+        $this->assertEquals('eu-west', $formatted['delivery_region']);
+    }
 }
