@@ -22,13 +22,19 @@ class OraBooks_Secrets_Test extends TestCase
     private function reset_secrets_cache(): void
     {
         $ref = new ReflectionClass(OraBooks_Secrets::class);
-        foreach (['secrets_cache', 'access_logged', 'bootstrapped'] as $property) {
+        foreach (['secrets_cache', 'access_logged', 'bootstrapped', 'bootstrap_error', 'file_secrets', 'instance'] as $property) {
             if (!$ref->hasProperty($property)) {
                 continue;
             }
             $prop = $ref->getProperty($property);
             $prop->setAccessible(true);
-            $prop->setValue(null, $property === 'bootstrapped' ? false : []);
+            if ($property === 'bootstrapped') {
+                $prop->setValue(null, false);
+            } elseif ($property === 'instance') {
+                $prop->setValue(null, null);
+            } else {
+                $prop->setValue(null, $property === 'bootstrap_error' ? null : []);
+            }
         }
     }
 
