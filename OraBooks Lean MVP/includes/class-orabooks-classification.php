@@ -54,6 +54,14 @@ class OraBooks_Classification {
             add_action('wp_ajax_nopriv_orabooks_classification_apply', [self::$instance, 'ajax_apply']);
             add_action('wp_ajax_orabooks_classification_override', [self::$instance, 'ajax_override']);
             add_action('wp_ajax_nopriv_orabooks_classification_override', [self::$instance, 'ajax_override']);
+            add_action('wp_ajax_orabooks_classification_status', [self::$instance, 'ajax_status']);
+            add_action('wp_ajax_nopriv_orabooks_classification_status', [self::$instance, 'ajax_status']);
+            add_action('wp_ajax_orabooks_classification_rules_list', [self::$instance, 'ajax_rules_list']);
+            add_action('wp_ajax_nopriv_orabooks_classification_rules_list', [self::$instance, 'ajax_rules_list']);
+            add_action('wp_ajax_orabooks_classification_rules_save', [self::$instance, 'ajax_rules_save']);
+            add_action('wp_ajax_nopriv_orabooks_classification_rules_save', [self::$instance, 'ajax_rules_save']);
+            add_action('wp_ajax_orabooks_classification_rules_delete', [self::$instance, 'ajax_rules_delete']);
+            add_action('wp_ajax_nopriv_orabooks_classification_rules_delete', [self::$instance, 'ajax_rules_delete']);
 
             if (class_exists('OraBooks_AsyncQueue')) {
                 OraBooks_AsyncQueue::register_handler('classify_transaction', [self::class, 'handle_async_job']);
@@ -125,7 +133,7 @@ class OraBooks_Classification {
             last_classified_at TIMESTAMP NULL DEFAULT NULL
         ";
 
-        foreach (['expenses', 'invoices'] as $base_table) {
+        foreach (['expenses', 'invoices', 'journal_lines'] as $base_table) {
             $table = OraBooks_Database::table($base_table);
             $existing = $wpdb->get_results("SHOW COLUMNS FROM {$table}");
             $fields = array_map(function ($col) {
@@ -171,8 +179,16 @@ class OraBooks_Classification {
                 return $idx->Key_name;
             }, $indexes ?: []);
 
-            if (!in_array('idx_org_classification_idempotency', $index_names, true)) {
-                $wpdb->query("ALTER TABLE {$table} ADD INDEX idx_org_classification_idempotency (org_id, classification_idempotency_key)");
+            if ($base_table !== 'journal_lines') {
+                if (in_array('idx_org_classification_idempotency', $index_names, true)
+                    && !in_array('uniq_org_classification_idempotency', $index_names, true)) {
+                    $wpdb->query("ALTER TABLE {$table} DROP INDEX idx_org_classification_idempotency");
+                }
+                if (!in_array('uniq_org_classification_idempotency', $index_names, true)) {
+                    $wpdb->query("ALTER TABLE {$table} ADD UNIQUE INDEX uniq_org_classification_idempotency (org_id, classification_idempotency_key)");
+                }
+            } elseif (!in_array('idx_journal_line_classification_idempotency', $index_names, true)) {
+                $wpdb->query("ALTER TABLE {$table} ADD INDEX idx_journal_line_classification_idempotency (journal_id, classification_idempotency_key)");
             }
         }
     }
