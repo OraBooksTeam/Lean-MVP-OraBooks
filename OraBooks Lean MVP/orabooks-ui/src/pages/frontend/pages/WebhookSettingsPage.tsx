@@ -85,8 +85,7 @@ export default function WebhookSettingsPage() {
           as `webhook_dispatch` background jobs.
         </p>
         <p className="rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-800">
-          Localhost URLs are useful for local tests only; external webhook services cannot reach
-          your local machine or private port.
+          Production webhooks must use HTTPS (SL-008 / SSRF policy). Localhost HTTP URLs are allowed for local testing only.
         </p>
         {error && <p className="text-sm text-danger">{error}</p>}
         {message && <p className="text-sm text-success">{message}</p>}
