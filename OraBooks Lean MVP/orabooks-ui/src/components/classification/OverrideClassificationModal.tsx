@@ -11,9 +11,6 @@ type OverrideClassificationModalProps = {
   onSubmit: (accountCode: string, taxRate?: number) => void;
 };
 
-const fieldClass =
-  'w-full rounded-lg border border-border bg-white px-3.5 py-2.5 text-sm text-ink shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20';
-
 export default function OverrideClassificationModal({
   open,
   accountCode: initialAccount,
