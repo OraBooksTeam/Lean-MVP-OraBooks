@@ -70,6 +70,8 @@ class OraBooks_Classification {
             add_action('wp_ajax_nopriv_orabooks_classification_rules_save', [self::$instance, 'ajax_rules_save']);
             add_action('wp_ajax_orabooks_classification_rules_delete', [self::$instance, 'ajax_rules_delete']);
             add_action('wp_ajax_nopriv_orabooks_classification_rules_delete', [self::$instance, 'ajax_rules_delete']);
+            add_action('wp_ajax_orabooks_classification_live_check', [self::$instance, 'ajax_live_check']);
+            add_action('wp_ajax_nopriv_orabooks_classification_live_check', [self::$instance, 'ajax_live_check']);
 
             if (class_exists('OraBooks_AsyncQueue')) {
                 OraBooks_AsyncQueue::register_handler('classify_transaction', [self::class, 'handle_async_job']);
