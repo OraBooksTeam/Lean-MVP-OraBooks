@@ -40,6 +40,8 @@ class OraBooks_Tax {
             add_action('wp_ajax_nopriv_orabooks_tax_get_snapshot', [self::$instance, 'ajax_get_snapshot']);
             add_action('wp_ajax_orabooks_tax_snapshots_list', [self::$instance, 'ajax_list_snapshots']);
             add_action('wp_ajax_nopriv_orabooks_tax_snapshots_list', [self::$instance, 'ajax_list_snapshots']);
+            add_action('wp_ajax_orabooks_tax_override_reasons', [self::$instance, 'ajax_override_reasons']);
+            add_action('wp_ajax_nopriv_orabooks_tax_override_reasons', [self::$instance, 'ajax_override_reasons']);
         }
         return self::$instance;
     }
@@ -678,7 +680,7 @@ class OraBooks_Tax {
         ];
     }
 
-    private static function get_allowed_override_reasons($org_id, $jurisdiction) {
+    public static function get_allowed_override_reasons($org_id, $jurisdiction) {
         $config = self::get_active_config($org_id, $jurisdiction);
         if ($config && !empty($config->override_reasons)) {
             $reasons = json_decode($config->override_reasons, true);
