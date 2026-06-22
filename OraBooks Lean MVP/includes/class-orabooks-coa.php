@@ -490,12 +490,14 @@ class OraBooks_COA {
             orabooks_json_error('Permission denied', 403);
         }
 
-        $result = self::update_account($account_id, $org_id, [
-            'code'           => $_POST['code'] ?? null,
-            'name'           => $_POST['name'] ?? null,
-            'type'           => $_POST['type'] ?? null,
-            'normal_balance' => $_POST['normal_balance'] ?? null,
-        ], $user_id);
+        $result = self::update_account($account_id, $org_id, array_filter([
+            'code'           => isset($_POST['code']) ? wp_unslash($_POST['code']) : null,
+            'name'           => isset($_POST['name']) ? wp_unslash($_POST['name']) : null,
+            'type'           => isset($_POST['type']) ? wp_unslash($_POST['type']) : null,
+            'normal_balance' => isset($_POST['normal_balance']) ? wp_unslash($_POST['normal_balance']) : null,
+        ], static function ($value) {
+            return $value !== null;
+        }), $user_id);
         if (is_wp_error($result)) {
             orabooks_json_error($result->get_error_message(), 409);
         }

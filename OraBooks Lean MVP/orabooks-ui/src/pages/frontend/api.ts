@@ -732,6 +732,27 @@ export const api = {
     if (cfg.current_user_id) qs.set('current_user_id', String(cfg.current_user_id));
     window.location.href = `${cfg.ajax_url}?${qs.toString()}`;
   },
+  coaCreate: (
+    orgId: number,
+    data: { code: string; name: string; type: string; normal_balance?: string }
+  ) =>
+    api.post('orabooks_coa_create', {
+      org_id: orgId,
+      code: data.code,
+      name: data.name,
+      type: data.type,
+      ...(data.normal_balance ? { normal_balance: data.normal_balance } : {}),
+    }),
+  coaUpdate: (
+    orgId: number,
+    accountId: number,
+    data: { code?: string; name?: string; type?: string; normal_balance?: string }
+  ) =>
+    api.post('orabooks_coa_update', {
+      org_id: orgId,
+      account_id: accountId,
+      ...data,
+    }),
   fiscalPeriodsList: (orgId: number) =>
     api.get('orabooks_fiscal_periods_list', { org_id: orgId }),
   fiscalPeriodClose: (orgId: number, periodId: number, closeType: 'soft' | 'hard', note = '', hardConfirm = false) =>
