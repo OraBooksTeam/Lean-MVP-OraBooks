@@ -42,6 +42,8 @@ class OraBooks_Customers {
             add_action('wp_ajax_nopriv_orabooks_invoice_get', [self::$instance, 'ajax_invoice_get']);
             add_action('wp_ajax_orabooks_invoice_override_tax', [self::$instance, 'ajax_invoice_override_tax']);
             add_action('wp_ajax_nopriv_orabooks_invoice_override_tax', [self::$instance, 'ajax_invoice_override_tax']);
+            add_action('wp_ajax_orabooks_invoice_clear_tax_override', [self::$instance, 'ajax_invoice_clear_tax_override']);
+            add_action('wp_ajax_nopriv_orabooks_invoice_clear_tax_override', [self::$instance, 'ajax_invoice_clear_tax_override']);
             add_action('wp_ajax_orabooks_invoice_send', [self::$instance, 'ajax_invoice_send']);
             add_action('wp_ajax_nopriv_orabooks_invoice_send', [self::$instance, 'ajax_invoice_send']);
             add_action('wp_ajax_orabooks_invoice_post', [self::$instance, 'ajax_invoice_post']);
@@ -1221,9 +1223,17 @@ class OraBooks_Customers {
             'total_amount'    => (float) $invoice->total_amount,
             'tax_amount'      => isset($invoice->tax_amount) ? (float) $invoice->tax_amount : null,
             'tax_rate'        => isset($invoice->tax_rate) ? (float) $invoice->tax_rate : null,
+            'tax_jurisdiction'=> $invoice->tax_jurisdiction ?? null,
+            'tax_type'        => $invoice->tax_type ?? null,
+            'tax_override_reason' => $invoice->tax_override_reason ?? null,
+            'tax_override_by' => !empty($invoice->tax_override_by) ? (int) $invoice->tax_override_by : null,
+            'tax_override_at' => $invoice->tax_override_at ?? null,
             'currency'        => $invoice->currency ?? 'USD',
             'payment_status'  => $invoice->payment_status,
             'workflow_status' => $invoice->workflow_status,
+            'paid_amount'     => isset($invoice->total_paid_amount)
+                ? (float) $invoice->total_paid_amount
+                : (float) ($invoice->paid_amount ?? 0),
         ];
 
         if (class_exists('OraBooks_Classification')) {

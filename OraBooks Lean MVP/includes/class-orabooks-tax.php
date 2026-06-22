@@ -830,6 +830,40 @@ class OraBooks_Tax {
         ]);
     }
 
+    /**
+     * SL-081: reason codes for override modal (read-only; no full tax config required).
+     */
+    public function ajax_override_reasons() {
+        $user_id = orabooks_get_current_user_id();
+        $org_id = intval($_GET['org_id'] ?? $_POST['org_id'] ?? 0);
+
+        if (!$user_id) {
+            orabooks_json_error('Not authenticated', 401);
+        }
+
+        if (!$org_id) {
+            orabooks_json_error('Organization ID required', 400);
+        }
+
+        $isolation = OraBooks_Auth::require_customer_org($user_id, $org_id);
+        if (is_wp_error($isolation)) {
+            orabooks_json_error($isolation->get_error_message(), 403);
+        }
+
+        if (!self::user_can_override_tax($user_id, $org_id)
+            && !OraBooks_RBAC::require_permission($user_id, $org_id, 'manage_org_settings')) {
+            orabooks_json_error('Permission denied', 403);
+        }
+
+        $jurisdiction = sanitize_text_field($_GET['jurisdiction'] ?? $_POST['jurisdiction'] ?? '');
+
+        orabooks_json_success([
+            'configs' => self::list_configs($org_id),
+            'override_reasons' => self::get_override_reasons($org_id, $jurisdiction !== '' ? $jurisdiction : null),
+            'default_reasons' => self::DEFAULT_OVERRIDE_REASONS,
+        ]);
+    }
+
     public function ajax_list_jurisdictions() {
         $user_id = orabooks_get_current_user_id();
         $org_id = intval($_GET['org_id'] ?? $_POST['org_id'] ?? 0);
