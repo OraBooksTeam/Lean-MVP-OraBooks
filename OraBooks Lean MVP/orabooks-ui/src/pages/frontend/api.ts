@@ -715,6 +715,12 @@ export const api = {
       reason_code: reasonCode,
       jurisdiction,
     }),
+  invoiceClearTaxOverride: (orgId: number, invoiceId: number, jurisdiction = 'US') =>
+    api.post('orabooks_invoice_clear_tax_override', {
+      org_id: orgId,
+      invoice_id: invoiceId,
+      jurisdiction,
+    }),
   recordPayment: (data: Record<string, any>) =>
     api.post('orabooks_invoice_record_payment', data),
 
@@ -790,6 +796,11 @@ export const api = {
     }),
   taxListConfigs: (orgId: number) =>
     api.get('orabooks_tax_configs_list', { org_id: orgId }),
+  taxOverrideReasons: (orgId: number, jurisdiction = '') =>
+    api.get('orabooks_tax_override_reasons', {
+      org_id: orgId,
+      ...(jurisdiction ? { jurisdiction } : {}),
+    }),
   taxListJurisdictions: (orgId: number) =>
     api.get('orabooks_tax_jurisdictions_list', { org_id: orgId }),
   taxLockStatus: (orgId: number, transactionDate?: string) =>
