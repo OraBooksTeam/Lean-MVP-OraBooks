@@ -108,18 +108,18 @@ function bootFrontend() {
     return;
   }
 
-  mountThemePortal(root);
   void absorbAuthTokensFromUrl().catch(() => undefined);
 
   try {
     window.orabooksReactMounted = true;
-    root.classList.add('is-mounted');
-    document.body.classList.add('orabooks-app-mounted');
     ReactDOM.createRoot(root).render(
       <FrontendErrorBoundary>
         <FrontendRoutes />
       </FrontendErrorBoundary>
     );
+    mountThemePortal(root);
+    root.classList.add('is-mounted');
+    document.body.classList.add('orabooks-app-mounted');
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Unknown error starting OraBooks.';
     showFrontendBootError(root, msg);
