@@ -668,6 +668,40 @@ class OraBooks_Classification {
         $tax_hints = self::decode_json_field($record->tax_hints);
         $updates = [];
 
+        if ($record_type === 'expense') {
+            if (!empty($record->suggested_account_code)) {
+                $updates['category'] = self::account_code_to_category($record->suggested_account_code);
+            }
+            if (!empty($tax_hints['tax_rate'])) {
+                $updates['tax_rate'] = (float) $tax_hints['tax_rate'];
+                if ($record->total_amount) {
+                    $total = (float) $record->total_amount;
+                    $rate = (float) $tax_hints['tax_rate'];
+                    $tax_amount = round($total * ($rate / 100) / (1 + ($rate / 100)), 2);
+                    $updates['tax_amount'] = $tax_amount;
+                }
+            }
+        }
+
+        if ($record_type === 'journal_line' && !empty($record->suggested_account_code)) {
+            global $wpdb;
+            $account = class_exists('OraBooks_COA')
+                ? OraBooks_COA::get_account_by_code($org_id, $record->suggested_account_code)
+                : null;
+            if ($account) {
+                $wpdb->update(
+                    OraBooks_Database::table('journal_lines'),
+                    [
+                        'account_id'   => (int) $account->id,
+                        'account_code' => $record->suggested_account_code,
+                    ],
+                    ['id' => (int) $record_id],
+                    ['%d', '%s'],
+                    ['%d']
+                );
+            }
+        }
+
         if ($record_type === 'invoice' && !empty($tax_hints['tax_rate'])) {
             global $wpdb;
             $table = OraBooks_Database::table('invoices');
@@ -742,6 +776,23 @@ class OraBooks_Classification {
                 ['%f'],
                 ['%d', '%d']
             );
+        }
+
+        if ($record_type === 'journal_line' && $account) {
+            $wpdb->update(
+                OraBooks_Database::table('journal_lines'),
+                [
+                    'account_id'   => (int) $account->id,
+                    'account_code' => $account_code,
+                ],
+                ['id' => (int) $record_id],
+                ['%d', '%s'],
+                ['%d']
+            );
+        }
+
+        if (class_exists('OraBooks_Observability') && method_exists('OraBooks_Observability', 'record_metric')) {
+            OraBooks_Observability::record_metric('classification', 'override_count', 1, ['org_id' => (int) $org_id]);
         }
 
         orabooks_log_event('classification_override', sprintf('User overrode classification on %s #%d', $record_type, $record_id), 'info', [
