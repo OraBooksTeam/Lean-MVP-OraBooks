@@ -7,7 +7,7 @@ import Input from '@/components/Input';
 import { api } from '../api';
 import ClientShell from '../components/ClientShell';
 import ResourceAttachmentsPanel from '../components/ResourceAttachmentsPanel';
-import { FileText, Info, Paperclip, Percent, Plus, RefreshCw, Sparkles, Wallet } from 'lucide-react';
+import { FileText, Info, Paperclip, Percent, Plus, RefreshCw, Wallet } from 'lucide-react';
 import ClassificationPanel from '@/components/classification/ClassificationPanel';
 import OverrideClassificationModal from '@/components/classification/OverrideClassificationModal';
 import { useClassificationPolling } from '@/components/classification/useClassificationPolling';
