@@ -149,6 +149,10 @@ class OraBooks_Organization {
         if ($organization_type === 'customer' && class_exists('OraBooks_Fiscal') && method_exists('OraBooks_Fiscal', 'ensure_periods_for_org')) {
             OraBooks_Fiscal::ensure_periods_for_org($org_id);
         }
+
+        if ($organization_type === 'customer' && class_exists('OraBooks_Classification')) {
+            OraBooks_Classification::seed_default_rules($org_id);
+        }
         
         // Audit log
         $event_type = $organization_type === 'partner' ? 'partner_org_created' : 'org_created';

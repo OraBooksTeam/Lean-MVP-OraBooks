@@ -58,6 +58,7 @@ class OraBooks_RBAC {
             'manage_settings'             => ['owner', 'admin'],
             'manage_billing'              => ['owner'],
             'manage_inventory'            => ['owner', 'admin', 'staff'],
+            'manage_classification_rules' => ['owner', 'admin'],
             'create_invoice'              => ['owner', 'admin', 'staff'],
             'view_invoices'               => ['owner', 'admin', 'approver', 'staff', 'viewer'],
             'manage_partner_settings'     => ['owner', 'admin'],

@@ -154,6 +154,13 @@ class OraBooks_Posting {
             ['id' => $journal_id],
             ['%f'], ['%d']
         );
+
+        if (class_exists('OraBooks_Classification')) {
+            $lines = self::get_journal_lines($journal_id);
+            foreach ($lines ?: [] as $line) {
+                OraBooks_Classification::maybe_request('journal_line', (int) $line->id, (int) $journal->org_id);
+            }
+        }
         
         return true;
     }

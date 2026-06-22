@@ -2535,7 +2535,7 @@ class OraBooks_Customers {
             orabooks_json_error($result->get_error_message(), 400);
         }
 
-        orabooks_json_success($result, 'Invoice created');
+        orabooks_json_success(['invoice' => self::format_invoice($result)], 'Invoice created');
     }
 
     /**
@@ -2560,7 +2560,7 @@ class OraBooks_Customers {
 
         $this->require_customer_access($user_id, (int) $invoice->org_id, 'view_invoices');
 
-        orabooks_json_success($invoice);
+        orabooks_json_success(['invoice' => self::format_invoice($invoice)]);
     }
 
     /**
