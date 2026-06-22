@@ -253,6 +253,14 @@ class OraBooks_Rest_Api {
         return rest_ensure_response($spec);
     }
 
+    public static function resolve_route_id(WP_REST_Request $request) {
+        $id = $request->get_param('id');
+        if ($id === null && isset($request['id'])) {
+            $id = $request['id'];
+        }
+        return (int) $id;
+    }
+
     public static function resolve_org_id(WP_REST_Request $request) {
         $org_id = (int) ($request->get_header('X-OraBooks-Org-Id') ?: $request->get_param('org_id'));
         return $org_id > 0 ? $org_id : 0;
@@ -364,7 +372,7 @@ class OraBooks_Rest_Api {
             return $context;
         }
 
-        $journal_id = (int) $request['id'];
+        $journal_id = self::resolve_route_id($request);
         $journal = OraBooks_Posting::get_journal($journal_id, $context['org_id']);
         if (!$journal) {
             return new WP_Error('not_found', 'Journal not found.', ['status' => 404]);
@@ -440,12 +448,12 @@ class OraBooks_Rest_Api {
             return $context;
         }
 
-        $journal = OraBooks_Posting::get_journal((int) $request['id'], $context['org_id']);
+        $journal = OraBooks_Posting::get_journal(self::resolve_route_id($request), $context['org_id']);
         if (!$journal) {
             return new WP_Error('not_found', 'Journal not found.', ['status' => 404]);
         }
 
-        $result = OraBooks_Posting::submit_journal((int) $request['id'], $context['user_id']);
+        $result = OraBooks_Posting::submit_journal(self::resolve_route_id($request), $context['user_id']);
         if (is_wp_error($result)) {
             $result->add_data(['status' => 409]);
             return $result;
