@@ -1017,6 +1017,9 @@ class OraBooks_Ajax {
                 'submit'  => OraBooks_RBAC::require_permission($context['user_id'], $org_id, 'manage_expenses'),
                 'approve' => OraBooks_RBAC::require_permission($context['user_id'], $org_id, 'approve_expense'),
                 'post'    => OraBooks_RBAC::require_permission($context['user_id'], $org_id, 'approve_expense'),
+                'override_tax' => class_exists('OraBooks_Tax')
+                    ? OraBooks_Tax::user_can_override_tax($context['user_id'], $org_id)
+                    : OraBooks_RBAC::require_permission($context['user_id'], $org_id, 'override_tax'),
             ],
             'limits' => [
                 'max_file_size' => OraBooks_Expenses::MAX_RECEIPT_SIZE,

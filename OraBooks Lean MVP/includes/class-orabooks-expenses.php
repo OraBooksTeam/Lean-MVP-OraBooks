@@ -251,6 +251,8 @@ class OraBooks_Expenses {
             'subtotal'         => $row->subtotal !== null ? (float) $row->subtotal : null,
             'tax_amount'       => $row->tax_amount !== null ? (float) $row->tax_amount : null,
             'tax_rate'         => $row->tax_rate !== null ? (float) $row->tax_rate : null,
+            'tax_jurisdiction' => $row->tax_jurisdiction ?? null,
+            'tax_type'         => $row->tax_type ?? null,
             'total_amount'     => $row->total_amount !== null ? (float) $row->total_amount : null,
             'currency'         => $row->currency ?: 'USD',
             'payment_method'   => $row->payment_method,
@@ -1292,10 +1294,10 @@ class OraBooks_Expenses {
     }
 
     private function can_override_expense_tax($user_id, $org_id) {
-        return current_user_can('manage_options')
-            || OraBooks_RBAC::require_permission($user_id, $org_id, 'manage_org_settings')
-            || OraBooks_RBAC::require_permission($user_id, $org_id, 'approve_journal')
-            || OraBooks_RBAC::require_permission($user_id, $org_id, 'approve_expense');
+        return class_exists('OraBooks_Tax')
+            ? OraBooks_Tax::user_can_override_tax($user_id, $org_id)
+            : (current_user_can('manage_options')
+                || OraBooks_RBAC::require_permission($user_id, $org_id, 'override_tax'));
     }
 
     public function ajax_override_tax() {
