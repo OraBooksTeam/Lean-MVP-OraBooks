@@ -330,14 +330,7 @@ export default function FiscalPeriodsPage() {
                           <Pencil className="h-3.5 w-3.5" />
                           Edit
                         </Button>
-                      ) : (
-                        <span
-                          className="inline-flex items-center text-xs text-slate-400"
-                          title="Closed periods cannot be edited. Reopen first if soft-closed."
-                        >
-                          —
-                        </span>
-                      )}
+                      ) : null}
                       {period.status === 'open' || period.can_close ? (
                         <Button
                           size="sm"
@@ -480,7 +473,81 @@ export default function FiscalPeriodsPage() {
           </div>
         </Modal>
       ) : null}
+
+      {addModalOpen ? (
+        <Modal title="Add custom fiscal period" onClose={() => { setAddModalOpen(false); resetPeriodForm(); }}>
+          <p className="text-sm text-slate-600">
+            Create a custom fiscal period. Standard monthly and yearly periods are created automatically.
+          </p>
+          <PeriodDateFields
+            periodStart={periodStart}
+            periodEnd={periodEnd}
+            onStartChange={setPeriodStart}
+            onEndChange={setPeriodEnd}
+          />
+          <div className="mt-5 flex justify-end gap-2">
+            <Button variant="secondary" onClick={() => { setAddModalOpen(false); resetPeriodForm(); }}>Cancel</Button>
+            <Button onClick={handleCreatePeriod} disabled={actionId === -1 || !periodStart || !periodEnd}>
+              Create period
+            </Button>
+          </div>
+        </Modal>
+      ) : null}
+
+      {editModalId ? (
+        <Modal title="Edit fiscal period" onClose={() => { setEditModalId(null); resetPeriodForm(); }}>
+          <p className="text-sm text-slate-600">
+            Update start and end dates for this open period. Closed periods cannot be edited.
+          </p>
+          {editModalPeriod ? (
+            <p className="mt-2 text-xs text-slate-500">
+              Current: {editModalPeriod.period_start} to {editModalPeriod.period_end}
+            </p>
+          ) : null}
+          <PeriodDateFields
+            periodStart={periodStart}
+            periodEnd={periodEnd}
+            onStartChange={setPeriodStart}
+            onEndChange={setPeriodEnd}
+          />
+          <div className="mt-5 flex justify-end gap-2">
+            <Button variant="secondary" onClick={() => { setEditModalId(null); resetPeriodForm(); }}>Cancel</Button>
+            <Button onClick={handleUpdatePeriod} disabled={actionId === editModalId || !periodStart || !periodEnd}>
+              Save changes
+            </Button>
+          </div>
+        </Modal>
+      ) : null}
     </ClientShell>
+  );
+}
+
+function PeriodDateFields({
+  periodStart,
+  periodEnd,
+  onStartChange,
+  onEndChange,
+}: {
+  periodStart: string;
+  periodEnd: string;
+  onStartChange: (value: string) => void;
+  onEndChange: (value: string) => void;
+}) {
+  return (
+    <div className="mt-4 grid gap-4 sm:grid-cols-2">
+      <div>
+        <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">
+          Start date
+        </label>
+        <Input type="date" value={periodStart} onChange={(e) => onStartChange(e.target.value)} />
+      </div>
+      <div>
+        <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">
+          End date
+        </label>
+        <Input type="date" value={periodEnd} onChange={(e) => onEndChange(e.target.value)} />
+      </div>
+    </div>
   );
 }
 

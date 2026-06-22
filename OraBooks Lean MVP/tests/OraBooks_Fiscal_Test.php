@@ -237,4 +237,130 @@ class OraBooks_Fiscal_Test extends TestCase
         $result = OraBooks_Fiscal::reopen_period(10, 2, 1, 'Month-end correction');
         $this->assertTrue($result);
     }
+
+    #[Test]
+    public function test_create_period_rejects_overlap()
+    {
+        global $wpdb;
+
+        $wpdb->test_get_var_callback = function ($query) {
+            if (stripos($query, 'fiscal_periods') !== false && stripos($query, 'SELECT id') !== false) {
+                return 5;
+            }
+            return null;
+        };
+
+        $result = OraBooks_Fiscal::create_period(2, '2026-07-01', '2026-09-30');
+        $this->assertInstanceOf(WP_Error::class, $result);
+        $this->assertSame('duplicate_period', $result->get_error_code());
+    }
+
+    #[Test]
+    public function test_update_period_succeeds_on_open_period()
+    {
+        global $wpdb;
+
+        $wpdb->test_get_row_callback = function () {
+            return (object) [
+                'id' => 10,
+                'org_id' => 2,
+                'period_start' => '2026-07-01',
+                'period_end' => '2026-09-30',
+                'status' => 'open',
+            ];
+        };
+        $wpdb->test_get_var_callback = function ($query) {
+            if (stripos($query, 'fiscal_periods') !== false && stripos($query, 'SELECT id') !== false) {
+                return 0;
+            }
+            if (stripos($query, 'journals') !== false) {
+                return 0;
+            }
+            return null;
+        };
+        $wpdb->test_update_callback = function () {
+            return 1;
+        };
+
+        $result = OraBooks_Fiscal::update_period(10, 2, [
+            'period_start' => '2026-07-05',
+            'period_end' => '2026-09-25',
+        ], 1);
+        $this->assertTrue($result);
+    }
+
+    #[Test]
+    public function test_update_period_blocks_soft_closed()
+    {
+        global $wpdb;
+
+        $wpdb->test_get_row_callback = function () {
+            return (object) [
+                'id' => 10,
+                'org_id' => 2,
+                'period_start' => '2026-06-01',
+                'period_end' => '2026-06-30',
+                'status' => 'soft_closed',
+            ];
+        };
+
+        $result = OraBooks_Fiscal::update_period(10, 2, [
+            'period_start' => '2026-06-01',
+            'period_end' => '2026-06-30',
+        ], 1);
+        $this->assertInstanceOf(WP_Error::class, $result);
+        $this->assertSame('invalid_status', $result->get_error_code());
+    }
+
+    #[Test]
+    public function test_update_period_blocks_hard_closed()
+    {
+        global $wpdb;
+
+        $wpdb->test_get_row_callback = function () {
+            return (object) [
+                'id' => 10,
+                'org_id' => 2,
+                'period_start' => '2026-05-01',
+                'period_end' => '2026-05-31',
+                'status' => 'hard_closed',
+            ];
+        };
+
+        $result = OraBooks_Fiscal::update_period(10, 2, [
+            'period_start' => '2026-05-01',
+            'period_end' => '2026-05-31',
+        ], 1);
+        $this->assertInstanceOf(WP_Error::class, $result);
+        $this->assertSame('invalid_status', $result->get_error_code());
+    }
+
+    #[Test]
+    public function test_update_period_rejects_overlap()
+    {
+        global $wpdb;
+
+        $wpdb->test_get_row_callback = function () {
+            return (object) [
+                'id' => 10,
+                'org_id' => 2,
+                'period_start' => '2026-07-01',
+                'period_end' => '2026-09-30',
+                'status' => 'open',
+            ];
+        };
+        $wpdb->test_get_var_callback = function ($query) {
+            if (stripos($query, 'fiscal_periods') !== false && stripos($query, 'SELECT id') !== false) {
+                return 11;
+            }
+            return null;
+        };
+
+        $result = OraBooks_Fiscal::update_period(10, 2, [
+            'period_start' => '2026-08-01',
+            'period_end' => '2026-10-31',
+        ], 1);
+        $this->assertInstanceOf(WP_Error::class, $result);
+        $this->assertSame('duplicate_period', $result->get_error_code());
+    }
 }
