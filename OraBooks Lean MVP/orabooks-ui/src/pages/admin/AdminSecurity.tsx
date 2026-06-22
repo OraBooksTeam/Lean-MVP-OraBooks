@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import Button from '@/components/Button';
 import AdminPageShell from '@/components/AdminPageShell';
+import SecretsTlsPanel from '@/components/admin/SecretsTlsPanel';
+import type { DeployCheck } from '@/lib/security/sl008';
 import { api } from '../api';
 import { RefreshCw, Shield, ShieldAlert, ShieldCheck } from 'lucide-react';
 
