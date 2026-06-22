@@ -3,7 +3,7 @@ import Button from '@/components/Button';
 import Input from '@/components/Input';
 import { api } from '../api';
 import ClientShell from '../components/ClientShell';
-import { Calculator, Info, Lock, Percent, Plus, RefreshCw, Save } from 'lucide-react';
+import { Calculator, Info, Lock, Percent, Plus, RefreshCw, Save, Sparkles, Trash2 } from 'lucide-react';
 
 type TaxConfig = {
   id: number;
@@ -90,6 +90,21 @@ export default function TaxSettingsPage() {
     rule_id?: string;
   } | null>(null);
   const [calcLoading, setCalcLoading] = useState(false);
+  const [classificationRules, setClassificationRules] = useState<any[]>([]);
+  const [rulePrecedesAi, setRulePrecedesAi] = useState(true);
+  const [ruleForm, setRuleForm] = useState({
+    id: 0,
+    rule_type: 'keyword',
+    match_value: '',
+    account_code: '',
+    tax_jurisdiction: 'US',
+    priority: '10',
+    is_active: true,
+  });
+  const [showRuleForm, setShowRuleForm] = useState(false);
+  const canManageRules =
+    (context?.permissions || []).includes('manage_classification_rules') ||
+    (context?.permissions || []).includes('manage_org_settings');
 
   const orgId = context?.organization?.id;
   const taxLocked = Boolean(lockStatus?.tax_locked);
@@ -143,6 +158,16 @@ export default function TaxSettingsPage() {
     }
     if (!snapshotsRes.error) {
       setSnapshots((snapshotsRes as any).data?.snapshots || []);
+    }
+
+    const perms: string[] = nextContext?.permissions || [];
+    if (perms.includes('manage_classification_rules') || perms.includes('manage_org_settings')) {
+      const rulesRes = await api.classificationRulesList();
+      if (!rulesRes.error) {
+        const rulesData = (rulesRes as any).data || {};
+        setClassificationRules(rulesData.rules || []);
+        setRulePrecedesAi(rulesData.rule_precedes_ai !== false);
+      }
     }
 
     setLoading(false);
@@ -251,6 +276,48 @@ export default function TaxSettingsPage() {
       });
     }
     setCalcLoading(false);
+  };
+
+  const saveRulePrecedence = async (enabled: boolean) => {
+    setRulePrecedesAi(enabled);
+    const res = await api.classificationRulesSave({ rule_precedes_ai: enabled ? 1 : 0 });
+    if (res.error) setError(res.error);
+    else setSuccess('Classification rule precedence updated.');
+  };
+
+  const saveClassificationRule = async () => {
+    setSaving(true);
+    setError('');
+    const res = await api.classificationRulesSave({
+      id: ruleForm.id || undefined,
+      rule_type: ruleForm.rule_type,
+      match_value: ruleForm.match_value,
+      account_code: ruleForm.account_code,
+      tax_jurisdiction: ruleForm.tax_jurisdiction,
+      priority: parseInt(ruleForm.priority, 10) || 10,
+      is_active: ruleForm.is_active ? 1 : 0,
+    });
+    if (res.error) {
+      setError(res.error);
+    } else {
+      setSuccess('Classification rule saved.');
+      setShowRuleForm(false);
+      setClassificationRules((res as any).data?.rules || []);
+      setRulePrecedesAi((res as any).data?.rule_precedes_ai !== false);
+    }
+    setSaving(false);
+  };
+
+  const deleteClassificationRule = async (ruleId: number) => {
+    if (!window.confirm('Delete this classification rule?')) return;
+    setSaving(true);
+    const res = await api.classificationRulesDelete(ruleId);
+    if (res.error) setError(res.error);
+    else {
+      setSuccess('Rule deleted.');
+      setClassificationRules((res as any).data?.rules || []);
+    }
+    setSaving(false);
   };
 
   return (
