@@ -61,6 +61,7 @@ class OraBooks_RBAC {
             'manage_classification_rules' => ['owner', 'admin'],
             'create_invoice'              => ['owner', 'admin', 'staff'],
             'view_invoices'               => ['owner', 'admin', 'approver', 'staff', 'viewer'],
+            'override_tax'                => ['owner', 'admin', 'approver'],
             'manage_partner_settings'     => ['owner', 'admin'],
         ];
     }

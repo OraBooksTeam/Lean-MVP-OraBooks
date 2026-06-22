@@ -690,6 +690,46 @@ class OraBooks_Tax {
         return self::DEFAULT_OVERRIDE_REASONS;
     }
 
+    /**
+     * SL-081: whether the user may manually override tax on draft transactions.
+     */
+    public static function user_can_override_tax($user_id, $org_id) {
+        $user_id = (int) $user_id;
+        $org_id = (int) $org_id;
+
+        if ($user_id <= 0 || $org_id <= 0) {
+            return false;
+        }
+
+        if (current_user_can('manage_options')) {
+            return true;
+        }
+
+        return class_exists('OraBooks_RBAC')
+            && OraBooks_RBAC::require_permission($user_id, $org_id, 'override_tax');
+    }
+
+    public static function get_override_reasons($org_id, $jurisdiction = null) {
+        $org_id = (int) $org_id;
+        if ($org_id <= 0) {
+            return self::DEFAULT_OVERRIDE_REASONS;
+        }
+
+        if ($jurisdiction !== null && $jurisdiction !== '') {
+            return self::get_allowed_override_reasons($org_id, $jurisdiction);
+        }
+
+        $configs = self::list_configs($org_id);
+        $reasons = [];
+        foreach ($configs as $config) {
+            foreach ($config['override_reasons'] ?? [] as $reason) {
+                $reasons[$reason] = true;
+            }
+        }
+
+        return $reasons ? array_keys($reasons) : self::DEFAULT_OVERRIDE_REASONS;
+    }
+
     public static function validate_override($org_id, $jurisdiction, $tax_rate, $reason_code) {
         $org_id = intval($org_id);
         $jurisdiction = strtoupper(sanitize_text_field($jurisdiction ?: 'US'));

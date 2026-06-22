@@ -34,6 +34,7 @@ class OBN_Access_Control {
         'manage_billing',
         'manage_expenses',
         'approve_expense',
+        'override_tax',
         'manage_inventory',
         'export_reports',
         'sign_report',
