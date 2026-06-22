@@ -1240,4 +1240,75 @@ class OraBooks_Classification {
         $decoded = json_decode((string) $value, true);
         return is_array($decoded) ? $decoded : [];
     }
+
+    private static function mark_failed($record_type, $record_id, $org_id, $message) {
+        global $wpdb;
+
+        if (!isset(self::$record_types[$record_type])) {
+            return;
+        }
+
+        $map = self::$record_types[$record_type];
+        $table = OraBooks_Database::table($map['table']);
+        $payload = [
+            'classification_status'  => 'failed',
+            'classification_reason' => self::encode_reason([
+                'summary' => (string) $message,
+                'source'  => 'system',
+            ]),
+            'last_classified_at'     => current_time('mysql', true),
+        ];
+
+        if ($map['org_column']) {
+            $wpdb->update(
+                $table,
+                $payload,
+                ['id' => (int) $record_id, $map['org_column'] => (int) $org_id],
+                ['%s', '%s', '%s'],
+                ['%d', '%d']
+            );
+        } else {
+            $wpdb->update($table, $payload, ['id' => (int) $record_id], ['%s', '%s', '%s'], ['%d']);
+        }
+
+        orabooks_log_event('classification_failed', (string) $message, 'warning', [
+            'record_type' => $record_type,
+            'record_id'   => (int) $record_id,
+        ], 0, (int) $org_id);
+    }
+
+    private static function encode_reason($suggestion) {
+        if (is_string($suggestion)) {
+            return $suggestion;
+        }
+
+        $summary = $suggestion['reason'] ?? ($suggestion['summary'] ?? '');
+        $payload = [
+            'summary'    => (string) $summary,
+            'source'     => (string) ($suggestion['source'] ?? 'ai'),
+            'account_code' => (string) ($suggestion['account_code'] ?? ''),
+            'confidence' => isset($suggestion['confidence']) ? (float) $suggestion['confidence'] : null,
+        ];
+
+        return wp_json_encode($payload);
+    }
+
+    private static function decode_reason($value) {
+        $detail = self::decode_reason_detail($value);
+        return $detail['summary'] ?? (is_string($value) ? $value : '');
+    }
+
+    private static function decode_reason_detail($value) {
+        if ($value === null || $value === '') {
+            return [];
+        }
+        if (is_array($value)) {
+            return $value;
+        }
+        $decoded = json_decode((string) $value, true);
+        if (is_array($decoded)) {
+            return $decoded;
+        }
+        return ['summary' => (string) $value];
+    }
 }
