@@ -763,9 +763,11 @@ class OraBooks_Classification {
                 'suggested_account_code' => $account_code,
                 'suggested_account_id'   => $account ? (int) $account->id : null,
             ],
-            ['id' => (int) $record_id, 'org_id' => (int) $org_id],
+            $map['org_column']
+                ? ['id' => (int) $record_id, $map['org_column'] => (int) $org_id]
+                : ['id' => (int) $record_id],
             ['%s', '%s', '%d'],
-            ['%d', '%d']
+            $map['org_column'] ? ['%d', '%d'] : ['%d']
         );
 
         if ($tax_rate !== null && $record_type === 'expense') {
