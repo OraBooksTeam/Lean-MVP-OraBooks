@@ -247,7 +247,7 @@ export default function AdminSettings() {
             <div>
               <h2 className="text-sm font-bold text-ink">Post-deploy verification</h2>
               <p className="text-xs text-slate-500">
-                Confirms shared table prefix, SL-021 schema, crons, and async handlers after upload.
+                Confirms SL-008 secrets/TLS, shared table prefix, SL-021 schema, crons, and async handlers after upload.
               </p>
             </div>
           </div>
