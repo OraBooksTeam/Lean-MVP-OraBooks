@@ -18,7 +18,7 @@ class OraBooks_Secrets {
     private static $bootstrapped = false;
     /** @var WP_Error|null */
     private static $bootstrap_error = null;
-  private static $file_secrets = null;
+    private static $file_secrets = null;
 
     /** Grace period after JWT secret rotation (seconds). */
     const JWT_ROTATION_GRACE_SECONDS = 86400;
