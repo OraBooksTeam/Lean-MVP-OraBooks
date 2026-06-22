@@ -24,6 +24,10 @@ class OraBooks_Fiscal {
             add_action('wp_ajax_nopriv_orabooks_fiscal_period_reopen', [self::$instance, 'ajax_reopen_period']);
             add_action('wp_ajax_orabooks_fiscal_period_override_reopen', [self::$instance, 'ajax_override_reopen_period']);
             add_action('wp_ajax_nopriv_orabooks_fiscal_period_override_reopen', [self::$instance, 'ajax_override_reopen_period']);
+            add_action('wp_ajax_orabooks_fiscal_period_create', [self::$instance, 'ajax_create_period']);
+            add_action('wp_ajax_nopriv_orabooks_fiscal_period_create', [self::$instance, 'ajax_create_period']);
+            add_action('wp_ajax_orabooks_fiscal_period_update', [self::$instance, 'ajax_update_period']);
+            add_action('wp_ajax_nopriv_orabooks_fiscal_period_update', [self::$instance, 'ajax_update_period']);
             add_action('orabooks_monthly_fiscal_period_rollover', [__CLASS__, 'cron_ensure_periods']);
         }
         return self::$instance;
@@ -96,6 +100,7 @@ class OraBooks_Fiscal {
             'reopened_at'   => $row->reopened_at ?? null,
             'reopen_reason' => $row->reopen_reason ?? null,
             'can_close'     => $db_status === 'open',
+            'can_edit'      => $db_status === 'open',
             'can_reopen'    => $db_status === 'soft_closed',
             'can_override_reopen' => $db_status === 'hard_closed',
         ];
