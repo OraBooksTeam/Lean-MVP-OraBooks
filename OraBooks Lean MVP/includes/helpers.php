@@ -2393,13 +2393,21 @@ function orabooks_assert_tenant_access($user_id, $org_id, $require_active = fals
 
         $payload = orabooks_get_verified_jwt_payload();
         if ($payload && !empty($payload['org_id']) && (int) $payload['org_id'] !== $org_id) {
-            if (function_exists('orabooks_log_event')) {
-                orabooks_log_event('tenant_isolation_blocked', 'JWT org_id mismatch blocked', 'warning', [
-                    'jwt_org_id' => (int) $payload['org_id'],
-                    'requested_org_id' => $org_id,
-                ], $user_id, $org_id);
+            $allow_localhost_org_switch = false;
+            if (class_exists('OraBooks_Auth')) {
+                $subdomain = OraBooks_Auth::detect_subdomain_from_host();
+                $allow_localhost_org_switch = ($subdomain === '' && orabooks_user_belongs_to_org($user_id, $org_id));
             }
-            return new WP_Error('tenant_isolation', __('Organization context mismatch.', 'orabooks'));
+
+            if (!$allow_localhost_org_switch) {
+                if (function_exists('orabooks_log_event')) {
+                    orabooks_log_event('tenant_isolation_blocked', 'JWT org_id mismatch blocked', 'warning', [
+                        'jwt_org_id' => (int) $payload['org_id'],
+                        'requested_org_id' => $org_id,
+                    ], $user_id, $org_id);
+                }
+                return new WP_Error('tenant_isolation', __('Organization context mismatch.', 'orabooks'));
+            }
         }
 
         if (class_exists('OraBooks_Auth') && class_exists('OraBooks_Organization')) {

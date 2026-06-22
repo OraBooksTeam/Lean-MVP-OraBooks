@@ -685,12 +685,7 @@ class OraBooks_Ajax {
         }
 
         global $wpdb;
-        $table_user_org = OraBooks_Database::table('user_org');
-        $membership = $wpdb->get_var($wpdb->prepare(
-            "SELECT user_id FROM {$table_user_org} WHERE user_id = %d AND org_id = %d",
-            $context['user_id'],
-            $org_id
-        ));
+        $membership = orabooks_user_belongs_to_org((int) $context['user_id'], $org_id);
 
         if (!$membership && !current_user_can('manage_options')) {
             orabooks_json_error('You are not a member of this organization', 403);

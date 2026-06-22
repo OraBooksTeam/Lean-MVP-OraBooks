@@ -71,7 +71,8 @@ export default function TeamPage() {
     const res = await api.updateTeamRole(orgId, userId, role);
     if (res.error) setError(res.error);
     else {
-      setSuccess('Role updated.');
+      const requiresRelogin = Boolean((res as any).data?.requires_relogin);
+      setSuccess(requiresRelogin ? 'Role updated. The user should sign in again to refresh access.' : 'Role updated.');
       await load();
     }
     setActionUserId(null);
