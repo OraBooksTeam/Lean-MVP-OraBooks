@@ -267,6 +267,10 @@ class OraBooks_Classification {
         update_option('orabooks_rule_precedes_over_ai', $enabled ? 1 : 0, false);
     }
 
+    /**
+     * Queue classification for a draft transaction.
+     */
+    public static function request($record_type, $record_id, $org_id, $context = []) {
         global $wpdb;
 
         $record_type = sanitize_text_field($record_type);
