@@ -433,6 +433,7 @@ export default function JournalsPage() {
                         variant="secondary"
                         disabled={actionLoading}
                         title="Reject with reason. Journal returns to draft."
+                        onClick={() => setRejectModalOpen(true)}
                       >
                         Reject
                       </Button>
@@ -442,7 +443,7 @@ export default function JournalsPage() {
                     <Button
                       size="sm"
                       disabled={actionLoading}
-                      title="Post atomically. Ledger updated."
+                      title="Posting updates ledger. Cannot be undone."
                       onClick={() => runAction(() => api.postJournal(selectedJournal.id), 'Journal posted to ledger.')}
                     >
                       Post to Ledger
@@ -459,7 +460,7 @@ export default function JournalsPage() {
                         size="sm"
                         variant="secondary"
                         disabled={actionLoading || !reverseReason.trim() || !orgId}
-                        title="Requires reason. Creates reversal."
+                        title="Requires a reason. Creates a reversing entry."
                         onClick={() => runAction(
                           () => api.reverseJournal(orgId!, selectedJournal.id, reverseReason.trim()),
                           'Reversal journal created as draft.'
