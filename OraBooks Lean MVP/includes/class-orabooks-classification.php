@@ -366,17 +366,62 @@ class OraBooks_Classification {
     }
 
     public static function handle_async_job($job, $payload) {
-        $result = self::run(
-            sanitize_text_field($payload['record_type'] ?? ''),
-            (int) ($payload['record_id'] ?? 0),
-            (int) ($payload['org_id'] ?? 0)
-        );
+        $record_type = sanitize_text_field($payload['record_type'] ?? '');
+        $record_id = (int) ($payload['record_id'] ?? 0);
+        $org_id = (int) ($payload['org_id'] ?? 0);
+
+        $result = self::run($record_type, $record_id, $org_id);
 
         if (is_wp_error($result)) {
+            self::mark_failed($record_type, $record_id, $org_id, $result->get_error_message());
             return $result->get_error_message();
         }
 
         return true;
+    }
+
+    /**
+     * On-demand classification without persisting (REST dry-run).
+     */
+    public static function dry_run($record_type, $record_id, $org_id) {
+        $record_type = sanitize_text_field($record_type);
+        $record_id = (int) $record_id;
+        $org_id = (int) $org_id;
+
+        if (!isset(self::$record_types[$record_type])) {
+            return new WP_Error('invalid_type', __('Unknown record type', 'orabooks'));
+        }
+
+        $record = self::get_record($record_type, $record_id, $org_id);
+        if (!$record) {
+            return new WP_Error('not_found', __('Record not found', 'orabooks'));
+        }
+
+        $map = self::$record_types[$record_type];
+        $text = self::extract_text($record, $map['text_columns']);
+        $amount = (float) ($record->{$map['amount_column']} ?? 0);
+        if ($record_type === 'journal_line') {
+            $amount = max((float) ($record->debit_amount ?? 0), (float) ($record->credit_amount ?? 0));
+        }
+
+        self::seed_default_rules($org_id);
+        $rule_result = self::match_rules($org_id, $record, $text);
+        $use_rules = (bool) get_option('orabooks_rule_precedence_over_ai', 1);
+        $suggestion = ($use_rules && $rule_result)
+            ? $rule_result
+            : OraBooks_Ai_Providers::classify_record($record_type, $record, $text, $amount, $org_id);
+
+        $tax_hints = self::build_tax_hints($org_id, $amount, $suggestion['tax_jurisdiction'] ?? 'US');
+
+        return [
+            'suggested_account_code' => $suggestion['account_code'],
+            'account_confidence'     => $suggestion['confidence'],
+            'tax_hints'              => $tax_hints,
+            'reason'                 => self::encode_reason($suggestion),
+            'source'                 => $suggestion['source'] ?? 'ai',
+            'model_version'          => $suggestion['model_version'] ?? OraBooks_Ai_Providers::model_version('classification'),
+            'low_confidence'         => (float) $suggestion['confidence'] < self::CONFIDENCE_THRESHOLD,
+        ];
     }
 
     /**
@@ -385,6 +430,7 @@ class OraBooks_Classification {
     public static function run($record_type, $record_id, $org_id) {
         global $wpdb;
 
+        $started = microtime(true);
         $record_type = sanitize_text_field($record_type);
         $record_id = (int) $record_id;
         $org_id = (int) $org_id;
@@ -402,6 +448,9 @@ class OraBooks_Classification {
         $table = OraBooks_Database::table($map['table']);
         $text = self::extract_text($record, $map['text_columns']);
         $amount = (float) ($record->{$map['amount_column']} ?? 0);
+        if ($record_type === 'journal_line') {
+            $amount = max((float) ($record->debit_amount ?? 0), (float) ($record->credit_amount ?? 0));
+        }
 
         $rule_result = self::match_rules($org_id, $record, $text);
         $use_rules = (bool) get_option('orabooks_rule_precedence_over_ai', 1);
@@ -421,6 +470,12 @@ class OraBooks_Classification {
         $account = null;
         if (class_exists('OraBooks_COA')) {
             $account = OraBooks_COA::get_account_by_code($org_id, $suggestion['account_code']);
+            if (!$account) {
+                return new WP_Error('invalid_account', sprintf(
+                    __('Suggested account %s is not in the chart of accounts.', 'orabooks'),
+                    $suggestion['account_code']
+                ));
+            }
         }
 
         $risk_score = [
@@ -428,24 +483,52 @@ class OraBooks_Classification {
             'score' => max(0, 100 - (float) $suggestion['confidence']),
         ];
 
-        $wpdb->update(
-            $table,
-            [
-                'classification_status'          => 'processed',
-                'suggested_account_code'         => $suggestion['account_code'],
-                'suggested_account_id'           => $account ? (int) $account->id : null,
-                'account_confidence'             => $suggestion['confidence'],
-                'tax_hints'                      => wp_json_encode($tax_hints),
-                'classification_risk_score'      => wp_json_encode($risk_score),
-                'classification_model_version'   => $suggestion['model_version'] ?? OraBooks_Ai_Providers::model_version('classification'),
-                'tax_engine_version'             => self::TAX_ENGINE_VERSION,
-                'classification_reason'            => $suggestion['reason'],
-                'last_classified_at'             => current_time('mysql', true),
-            ],
-            ['id' => $record_id, 'org_id' => $org_id],
-            ['%s', '%s', '%d', '%f', '%s', '%s', '%s', '%s', '%s', '%s'],
-            ['%d', '%d']
-        );
+        $reason_payload = self::encode_reason($suggestion);
+        $update_data = [
+            'classification_status'          => 'processed',
+            'suggested_account_code'         => $suggestion['account_code'],
+            'suggested_account_id'           => $account ? (int) $account->id : null,
+            'account_confidence'             => $suggestion['confidence'],
+            'tax_hints'                      => wp_json_encode($tax_hints),
+            'classification_risk_score'      => wp_json_encode($risk_score),
+            'classification_model_version'   => $suggestion['model_version'] ?? OraBooks_Ai_Providers::model_version('classification'),
+            'tax_engine_version'             => self::TAX_ENGINE_VERSION,
+            'classification_reason'         => $reason_payload,
+            'last_classified_at'             => current_time('mysql', true),
+        ];
+
+        if ($map['org_column']) {
+            $wpdb->update(
+                $table,
+                $update_data,
+                ['id' => $record_id, $map['org_column'] => $org_id],
+                ['%s', '%s', '%d', '%f', '%s', '%s', '%s', '%s', '%s', '%s'],
+                ['%d', '%d']
+            );
+        } else {
+            $wpdb->update(
+                $table,
+                $update_data,
+                ['id' => $record_id],
+                ['%s', '%s', '%d', '%f', '%s', '%s', '%s', '%s', '%s', '%s'],
+                ['%d']
+            );
+        }
+
+        if (class_exists('OraBooks_Observability') && method_exists('OraBooks_Observability', 'record_metric')) {
+            OraBooks_Observability::record_metric(
+                'classification',
+                'latency_ms',
+                round((microtime(true) - $started) * 1000, 2),
+                ['record_type' => $record_type, 'org_id' => $org_id]
+            );
+            OraBooks_Observability::record_metric(
+                'classification',
+                'confidence_score',
+                (float) $suggestion['confidence'],
+                ['record_type' => $record_type, 'org_id' => $org_id]
+            );
+        }
 
         orabooks_log_event('classification_suggested', sprintf(
             'Classification suggested for %s #%d',
