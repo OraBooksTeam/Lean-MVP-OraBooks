@@ -35,13 +35,26 @@ function scanBadge(status: string) {
 
 export default function AdminSecurity() {
   const [data, setData] = useState<any>(null);
+  const [sl008Checks, setSl008Checks] = useState<DeployCheck[]>([]);
   const [loading, setLoading] = useState(true);
+  const [sl008Loading, setSl008Loading] = useState(true);
   const [error, setError] = useState('');
   const [verifying, setVerifying] = useState(false);
+
+  const loadSl008Checks = () => {
+    setSl008Loading(true);
+    api.deployChecks().then((res: any) => {
+      if (!res.error) {
+        setSl008Checks((res.data?.checks || []) as DeployCheck[]);
+      }
+      setSl008Loading(false);
+    });
+  };
 
   const load = () => {
     setLoading(true);
     setError('');
+    loadSl008Checks();
     api.securityDashboard(24).then((res: any) => {
       if (res.error) setError(res.message || res.error);
       else setData(res.data);
@@ -95,6 +108,12 @@ export default function AdminSecurity() {
         <div className="h-48 animate-pulse rounded-2xl border border-border bg-white" />
       ) : (
         <div className="space-y-6">
+          <SecretsTlsPanel
+            checks={sl008Checks}
+            secretsRotation={secretsRotation}
+            loading={sl008Loading}
+          />
+
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
             <div className="stat-card">
               <p className="text-xs font-bold uppercase tracking-wide text-slate-500">OWASP verified</p>
@@ -276,23 +295,6 @@ export default function AdminSecurity() {
                   )}
                 </tbody>
               </table>
-              {secretsRotation && (
-                <div className="border-t border-border px-5 py-3 text-xs text-slate-600">
-                  Secret rotation:{' '}
-                  {secretsRotation.due ? (
-                    <span className="font-semibold text-amber-700">
-                      overdue ({secretsRotation.days_since} days)
-                    </span>
-                  ) : (
-                    <span className="text-green-700">
-                      OK ({secretsRotation.days_until} days until due)
-                    </span>
-                  )}
-                  <span className="mt-1 block text-slate-500">
-                    Runbook: docs/SL-008-secret-rotation-runbook.md (JWT 30d, encryption 90d, TLS &amp; DB SSL)
-                  </span>
-                </div>
-              )}
             </div>
 
             <div className="glass-panel overflow-hidden">
