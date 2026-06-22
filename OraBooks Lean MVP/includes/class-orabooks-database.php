@@ -1208,11 +1208,47 @@ class OraBooks_Database {
             );
         }
 
-        $trigger_name = $table_prefix . 'orabooks_journals_balance_guard_bu';
+        $trigger_name = 'orabooks_journals_balance_guard_bu';
         $exists = $wpdb->get_var($wpdb->prepare(
             "SELECT TRIGGER_NAME
              FROM information_schema.TRIGGERS
              WHERE TRIGGER_SCHEMA = DATABASE() AND TRIGGER_NAME = %s",
+            $trigger_name
+        ));
+
+        if (!$exists) {
+            $wpdb->query(
+                "CREATE TRIGGER {$trigger_name}
+                 BEFORE UPDATE ON {$table_journals}
+                 FOR EACH ROW
+                 BEGIN
+                    DECLARE v_debit DECIMAL(20,2) DEFAULT 0.00;
+                    DECLARE v_credit DECIMAL(20,2) DEFAULT 0.00;
+                    IF NEW.status IN ('review_pending','approved','posted','locked') THEN
+                        SELECT COALESCE(SUM(debit_amount), 0), COALESCE(SUM(credit_amount), 0)
+                          INTO v_debit, v_credit
+                          FROM {$table_jlines}
+                         WHERE journal_id = NEW.id;
+                        IF ABS(v_debit - v_credit) > 0.01 THEN
+                            SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Journal unbalanced. Cannot change controlled status.';
+                        END IF;
+                    END IF;
+                 END"
+            );
+        }
+
+        self::ensure_journal_line_balance_triggers($table_journals, $table_jlines);
+    }
+
+    /**
+     * SL-001: block line mutations that would leave a controlled journal unbalanced.
+     */
+    private static function ensure_journal_line_balance_triggers($table_journals, $table_jlines) {
+        global $wpdb;
+
+        $trigger_name = 'orabooks_journal_lines_balance_guard_aiu';
+        $exists = $wpdb->get_var($wpdb->prepare(
+            "SELECT TRIGGER_NAME FROM information_schema.TRIGGERS WHERE TRIGGER_SCHEMA = DATABASE() AND TRIGGER_NAME = %s",
             $trigger_name
         ));
 
@@ -1222,22 +1258,88 @@ class OraBooks_Database {
 
         $wpdb->query(
             "CREATE TRIGGER {$trigger_name}
-             BEFORE UPDATE ON {$table_journals}
+             AFTER INSERT ON {$table_jlines}
              FOR EACH ROW
              BEGIN
+                DECLARE v_status VARCHAR(32);
                 DECLARE v_debit DECIMAL(20,2) DEFAULT 0.00;
                 DECLARE v_credit DECIMAL(20,2) DEFAULT 0.00;
-                IF NEW.status IN ('review_pending','approved','posted','locked') THEN
+                SELECT status INTO v_status FROM {$table_journals} WHERE id = NEW.journal_id;
+                IF v_status IN ('review_pending','approved','posted','locked') THEN
                     SELECT COALESCE(SUM(debit_amount), 0), COALESCE(SUM(credit_amount), 0)
                       INTO v_debit, v_credit
                       FROM {$table_jlines}
-                     WHERE journal_id = NEW.id;
+                     WHERE journal_id = NEW.journal_id;
                     IF ABS(v_debit - v_credit) > 0.01 THEN
-                        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Journal unbalanced. Cannot change controlled status.';
+                        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Journal unbalanced after line change.';
                     END IF;
                 END IF;
              END"
         );
+
+        $update_trigger = 'orabooks_journal_lines_balance_guard_au';
+        $update_exists = $wpdb->get_var($wpdb->prepare(
+            "SELECT TRIGGER_NAME FROM information_schema.TRIGGERS WHERE TRIGGER_SCHEMA = DATABASE() AND TRIGGER_NAME = %s",
+            $update_trigger
+        ));
+        if ($update_exists) {
+            return;
+        }
+
+        $wpdb->query(
+            "CREATE TRIGGER {$update_trigger}
+             AFTER UPDATE ON {$table_jlines}
+             FOR EACH ROW
+             BEGIN
+                DECLARE v_status VARCHAR(32);
+                DECLARE v_debit DECIMAL(20,2) DEFAULT 0.00;
+                DECLARE v_credit DECIMAL(20,2) DEFAULT 0.00;
+                SELECT status INTO v_status FROM {$table_journals} WHERE id = NEW.journal_id;
+                IF v_status IN ('review_pending','approved','posted','locked') THEN
+                    SELECT COALESCE(SUM(debit_amount), 0), COALESCE(SUM(credit_amount), 0)
+                      INTO v_debit, v_credit
+                      FROM {$table_jlines}
+                     WHERE journal_id = NEW.journal_id;
+                    IF ABS(v_debit - v_credit) > 0.01 THEN
+                        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Journal unbalanced after line change.';
+                    END IF;
+                END IF;
+             END"
+        );
+    }
+
+    /**
+     * SL-001: ledger entries are immutable after posting.
+     */
+    private static function ensure_ledger_immutability_triggers($table_ledger) {
+        global $wpdb;
+
+        $update_trigger = 'orabooks_prevent_ledger_update';
+        $delete_trigger = 'orabooks_prevent_ledger_delete';
+
+        $exists = $wpdb->get_var($wpdb->prepare(
+            "SELECT TRIGGER_NAME FROM information_schema.TRIGGERS WHERE TRIGGER_SCHEMA = DATABASE() AND TRIGGER_NAME = %s",
+            $update_trigger
+        ));
+        if (!$exists) {
+            $wpdb->query(
+                "CREATE TRIGGER {$update_trigger} BEFORE UPDATE ON {$table_ledger}
+                 FOR EACH ROW
+                 SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Ledger entries are immutable after posting.'"
+            );
+        }
+
+        $exists = $wpdb->get_var($wpdb->prepare(
+            "SELECT TRIGGER_NAME FROM information_schema.TRIGGERS WHERE TRIGGER_SCHEMA = DATABASE() AND TRIGGER_NAME = %s",
+            $delete_trigger
+        ));
+        if (!$exists) {
+            $wpdb->query(
+                "CREATE TRIGGER {$delete_trigger} BEFORE DELETE ON {$table_ledger}
+                 FOR EACH ROW
+                 SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Ledger entries cannot be deleted. Use reversal.'"
+            );
+        }
     }
     
     /**
