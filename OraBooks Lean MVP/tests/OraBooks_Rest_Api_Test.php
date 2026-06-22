@@ -15,6 +15,7 @@ class OraBooks_Rest_Api_Test extends TestCase
 
         $this->assertSame('3.0.3', $spec['openapi'] ?? null);
         $this->assertArrayHasKey('/fiscal-periods', $spec['paths'] ?? []);
+        $this->assertArrayHasKey('/journals', $spec['paths'] ?? []);
         $this->assertArrayHasKey('/auth/2fa/setup', $spec['paths'] ?? []);
         $this->assertArrayHasKey('/org/security/2fa-policy', $spec['paths'] ?? []);
         $this->assertArrayHasKey('/expenses/upload-receipt', $spec['paths'] ?? []);
@@ -57,5 +58,27 @@ class OraBooks_Rest_Api_Test extends TestCase
 
         $this->assertInstanceOf(WP_Error::class, $result);
         $this->assertEquals('invalid_request', $result->get_error_code());
+    }
+
+    #[Test]
+    public function test_rest_get_journal_requires_existing_journal()
+    {
+        global $wpdb;
+
+        $request = new WP_REST_Request('GET', '/api/journals/999');
+        $request->set_header('X-OraBooks-Org-Id', '5');
+        $request->set_param('org_id', 5);
+        $request->set_param('id', 999);
+
+        $GLOBALS['orabooks_test_current_user_id'] = 1;
+        $GLOBALS['orabooks_test_has_permission'] = true;
+        $wpdb->test_get_row_callback = function () {
+            return null;
+        };
+
+        $result = OraBooks_Rest_Api::rest_get_journal($request);
+
+        $this->assertInstanceOf(WP_Error::class, $result);
+        $this->assertSame('not_found', $result->get_error_code());
     }
 }

@@ -347,4 +347,48 @@ class OraBooks_Posting_Test extends TestCase
         $types = array_column($result['issues'], 'type');
         $this->assertContains('snapshot_replay_mismatch', $types);
     }
+
+    #[Test]
+    public function test_create_journal_returns_existing_for_duplicate_idempotency_key()
+    {
+        global $wpdb;
+
+        $wpdb->test_get_var_callback = function ($query) {
+            if (stripos($query, 'idempotency_key') !== false) {
+                return 42;
+            }
+            return null;
+        };
+
+        $result = OraBooks_Posting::create_journal([
+            'org_id' => 2,
+            'idempotency_key' => 'client-key-001',
+        ], 1);
+
+        $this->assertSame(42, $result);
+    }
+
+    #[Test]
+    public function test_post_journal_atomic_is_idempotent_when_already_locked()
+    {
+        global $wpdb;
+
+        $wpdb->test_get_row_callback = function () {
+            return (object) [
+                'id' => 10,
+                'org_id' => 2,
+                'status' => 'locked',
+                'journal_number' => 'JE-2026-000001',
+                'journal_hash' => str_repeat('a', 64),
+                'approval_stale' => 0,
+            ];
+        };
+
+        $method = new ReflectionMethod(OraBooks_Posting::class, 'post_journal_atomic');
+        $method->setAccessible(true);
+        $result = $method->invoke(null, 10, 1);
+
+        $this->assertTrue($result['already_posted']);
+        $this->assertSame('JE-2026-000001', $result['journal_number']);
+    }
 }
