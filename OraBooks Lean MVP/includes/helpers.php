@@ -2589,6 +2589,85 @@ function orabooks_set_correlation_id($correlation_id) {
 }
 
 /**
+ * List active org memberships for a user, newest first.
+ *
+ * @return object[]
+ */
+function orabooks_list_user_org_memberships($user_id) {
+    global $wpdb;
+
+    $user_id = (int) $user_id;
+    if ($user_id <= 0) {
+        return [];
+    }
+
+    $table_user_org = OraBooks_Database::table('user_org');
+    $table_orgs = OraBooks_Database::table('organizations');
+
+    return $wpdb->get_results($wpdb->prepare(
+        "SELECT uo.org_id, uo.role, uo.joined_at, o.owner_id, o.status
+         FROM {$table_user_org} uo
+         INNER JOIN {$table_orgs} o ON o.id = uo.org_id
+         WHERE uo.user_id = %d
+         ORDER BY uo.joined_at DESC",
+        $user_id
+    )) ?: [];
+}
+
+/**
+ * Resolve the best primary org for localhost / single-site requests.
+ *
+ * Prefers verified JWT org context, then a team/employer org over a solo
+ * personal org the user owns, then users.org_id.
+ */
+function orabooks_resolve_primary_org_id($user_id, $stored_org_id = 0) {
+    $user_id = (int) $user_id;
+    $stored_org_id = (int) $stored_org_id;
+
+    if ($user_id <= 0) {
+        return 0;
+    }
+
+    $payload = orabooks_get_verified_jwt_payload();
+    if ($payload && !empty($payload['org_id'])) {
+        $jwt_org_id = (int) $payload['org_id'];
+        if (orabooks_user_belongs_to_org($user_id, $jwt_org_id)) {
+            return $jwt_org_id;
+        }
+    }
+
+    $memberships = orabooks_list_user_org_memberships($user_id);
+    $active_memberships = array_values(array_filter(
+        $memberships,
+        static function ($membership) {
+            return ($membership->status ?? '') === 'active';
+        }
+    ));
+
+    foreach ($active_memberships as $membership) {
+        $org_id = (int) $membership->org_id;
+        $is_solo_personal = ((int) $membership->owner_id === $user_id)
+            && strtolower((string) $membership->role) === 'owner';
+
+        if (!$is_solo_personal || count($active_memberships) === 1) {
+            if (!$is_solo_personal) {
+                return $org_id;
+            }
+        }
+    }
+
+    if (!empty($active_memberships)) {
+        return (int) $active_memberships[0]->org_id;
+    }
+
+    if ($stored_org_id > 0 && orabooks_user_belongs_to_org($user_id, $stored_org_id)) {
+        return $stored_org_id;
+    }
+
+    return 0;
+}
+
+/**
  * Resolve the active organization ID for the current request (SL-004).
  *
  * Prefers the org mapped to the request subdomain, then falls back to the
@@ -2641,20 +2720,25 @@ function orabooks_get_current_org_id($user_id = 0) {
 
     global $wpdb;
     $table_users = OraBooks_Database::table('users');
-    $org_id = (int) $wpdb->get_var($wpdb->prepare(
+    $stored_org_id = (int) $wpdb->get_var($wpdb->prepare(
         "SELECT org_id FROM {$table_users} WHERE id = %d",
         $user_id
     ));
 
-    if (!$org_id) {
+    $resolved = orabooks_resolve_primary_org_id($user_id, $stored_org_id);
+    if ($resolved > 0) {
+        return $resolved;
+    }
+
+    if (!$stored_org_id) {
         $table_user_org = OraBooks_Database::table('user_org');
-        $org_id = (int) $wpdb->get_var($wpdb->prepare(
+        $stored_org_id = (int) $wpdb->get_var($wpdb->prepare(
             "SELECT org_id FROM {$table_user_org} WHERE user_id = %d ORDER BY joined_at ASC LIMIT 1",
             $user_id
         ));
     }
 
-    return $org_id;
+    return $stored_org_id;
 }
 
 /**
