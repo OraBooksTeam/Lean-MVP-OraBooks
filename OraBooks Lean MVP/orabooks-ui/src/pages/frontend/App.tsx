@@ -40,7 +40,7 @@ import NotificationAdminPage from './pages/NotificationAdminPage';
 import CommissionAdminPage from './pages/CommissionAdminPage';
 import ClassificationLiveTestPage from './pages/ClassificationLiveTestPage';
 import AuditLogPage from './pages/AuditLogPage';
-import { normalizeAppRoute, toWpUrl } from './lib/wp-routing';
+import { getCurrentAppRoute, normalizeAppRoute, toWpUrl } from './lib/wp-routing';
 
 type RouteConfig = {
   element: ReactNode;
@@ -107,8 +107,14 @@ export function redirectToDefaultAppPage() {
   window.location.replace(toWpUrl('/dashboard'));
 }
 
+function getBootRoute(): string {
+  const fromDataset = document.getElementById('orabooks-app-root')?.dataset.initialRoute?.trim();
+  if (fromDataset) {
+    return fromDataset;
+  }
+  return getCurrentAppRoute();
+}
+
 export default function FrontendRoutes() {
-  const route =
-    document.getElementById('orabooks-app-root')?.dataset.initialRoute || '/dashboard';
-  return renderFrontendPage(route);
+  return renderFrontendPage(getBootRoute());
 }
