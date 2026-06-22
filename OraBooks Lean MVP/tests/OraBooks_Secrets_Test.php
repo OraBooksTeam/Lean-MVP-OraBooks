@@ -124,4 +124,54 @@ class OraBooks_Secrets_Test extends TestCase
         $this->assertLessThanOrEqual(time() + 301, (int) $payload['exp']);
         $this->assertGreaterThan(time() + 240, (int) $payload['exp']);
     }
+
+    #[Test]
+    public function test_get_hmac_signing_key_matches_jwt_secret()
+    {
+        $this->assertSame(OraBooks_Secrets::get_jwt_secret(), OraBooks_Secrets::get_hmac_signing_key());
+    }
+
+    #[Test]
+    public function test_check_database_tls_skips_non_production()
+    {
+        $result = OraBooks_Secrets::check_database_tls();
+
+        $this->assertTrue($result['ok']);
+        $this->assertTrue($result['skipped']);
+    }
+
+    #[Test]
+    public function test_bootstrap_fails_in_production_when_secrets_invalid()
+    {
+        add_filter('orabooks_is_production', static function () {
+            return true;
+        });
+        add_filter('orabooks_database_tls_verified', static function () {
+            return true;
+        });
+
+        $this->reset_secrets_cache();
+        OraBooks_Secrets::set('jwt_secret', 'short');
+        OraBooks_Secrets::set('encryption_key', 'initial-encryption-key-32chars-min');
+
+        $result = OraBooks_Secrets::bootstrap();
+
+        $this->assertInstanceOf(WP_Error::class, $result);
+        $this->assertSame('secrets_invalid', $result->get_error_code());
+
+        $this->reset_secrets_cache();
+        OraBooks_Secrets::init();
+
+        $this->assertFalse(OraBooks_Secrets::is_ready());
+        $this->assertInstanceOf(WP_Error::class, OraBooks_Secrets::get_bootstrap_error());
+
+        remove_all_filters('orabooks_is_production');
+        remove_all_filters('orabooks_database_tls_verified');
+    }
+
+    #[Test]
+    public function test_default_jwt_expiry_is_fifteen_minutes()
+    {
+        $this->assertSame(900, OraBooks_Secrets::get_default_jwt_expiry());
+    }
 }

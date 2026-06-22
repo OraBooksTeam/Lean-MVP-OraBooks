@@ -40,12 +40,19 @@ class OraBooks_Deploy_Checks_Test extends TestCase
         $GLOBALS['orabooks_test_secrets_status'] = [
             'production_mode' => false,
             'requires_tls' => false,
+            'bootstrap_ready' => true,
             'jwt_secret_configured' => true,
             'encryption_key_configured' => true,
             'jwt_secret_length' => 64,
             'last_rotated' => '',
             'tls' => ['ok' => true, 'skipped' => true],
+            'database_tls' => ['ok' => true, 'skipped' => true],
             'https_active' => true,
+        ];
+        $GLOBALS['orabooks_test_database_tls'] = [
+            'ok' => true,
+            'skipped' => true,
+            'reason' => 'test_stub',
         ];
 
         OraBooks_AsyncQueue::register_default_handlers();
