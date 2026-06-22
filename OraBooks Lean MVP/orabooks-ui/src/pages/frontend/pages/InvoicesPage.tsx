@@ -11,6 +11,7 @@ import { FileText, Info, Paperclip, Percent, Plus, RefreshCw, Wallet } from 'luc
 import ClassificationPanel from '@/components/classification/ClassificationPanel';
 import OverrideClassificationModal from '@/components/classification/OverrideClassificationModal';
 import { useClassificationPolling } from '@/components/classification/useClassificationPolling';
+import TaxOverrideModal, { type TaxConfig } from '@/components/tax/TaxOverrideModal';
 
 type Invoice = {
   id: number;
@@ -30,15 +31,6 @@ type Invoice = {
 };
 
 type Customer = { id: number; display_name?: string | null; email?: string };
-type TaxConfig = { jurisdiction: string; override_reasons?: string[] };
-
-const DEFAULT_REASONS = [
-  'WRONG_AI_CLASSIFICATION',
-  'LOCAL_TAX_RULE',
-  'MANUAL_JURISDICTION_ADJUSTMENT',
-  'CUSTOMER_EXEMPTION',
-  'REGIONAL_COMPLIANCE_OVERRIDE',
-];
 
 export default function InvoicesPage() {
   const [context, setContext] = useState<any>(null);
@@ -91,8 +83,7 @@ export default function InvoicesPage() {
   const permissions: string[] = context?.permissions || [];
   const canCreateInvoice = permissions.includes('create_invoice');
   const canRecordPayment = permissions.includes('create_invoice');
-  const canOverrideTax =
-    permissions.includes('manage_org_settings') || permissions.includes('approve_journal');
+  const canOverrideTax = permissions.includes('override_tax');
 
   const load = async () => {
     setLoading(true);
@@ -122,7 +113,9 @@ export default function InvoicesPage() {
         limit: 100,
         customer_id: customerFilter > 0 ? customerFilter : undefined,
       }),
-      api.taxListConfigs(nextOrgId),
+      canOverrideTax
+        ? api.taxOverrideReasons(nextOrgId)
+        : api.taxListConfigs(nextOrgId),
       api.customersList(nextOrgId, { limit: 100 }),
     ]);
 
@@ -176,7 +169,7 @@ export default function InvoicesPage() {
 
   const reasonOptions = useMemo(() => {
     const config = taxConfigs.find((c) => c.jurisdiction === overrideJurisdiction);
-    return config?.override_reasons?.length ? config.override_reasons : DEFAULT_REASONS;
+    return config?.override_reasons?.length ? config.override_reasons : [];
   }, [taxConfigs, overrideJurisdiction]);
 
   const canOverride = (invoice: Invoice) =>
