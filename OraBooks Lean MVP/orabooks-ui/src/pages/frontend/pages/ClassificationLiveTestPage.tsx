@@ -73,8 +73,9 @@ export default function ClassificationLiveTestPage() {
         <div className="flex items-start gap-3 rounded-xl border border-violet-200 bg-violet-50/80 p-4 text-sm text-violet-950">
           <Sparkles className="mt-0.5 h-4 w-4 shrink-0" />
           <p>
-            এই page live server-এ SL-022 test করার জন্য। Localhost লাগবে না — plugin folder-এ file save + UI build হলেই
-            এখানে direct check করতে পারবেন।
+            Production smoke test for SL-022 smart classification. Runs against the deployed plugin — no local
+            environment required. Save PHP changes directly to the plugin folder; run <code className="text-xs">build-live.cmd</code>{' '}
+            after UI edits, then hard-refresh this page.
           </p>
         </div>
 

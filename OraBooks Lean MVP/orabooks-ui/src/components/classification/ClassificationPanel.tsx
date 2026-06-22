@@ -1,4 +1,4 @@
-import { RefreshCw, Sparkles } from 'lucide-react';
+import { AlertTriangle, RefreshCw, Sparkles } from 'lucide-react';
 import WpLink from '@/pages/frontend/components/WpLink';
 import Button from '@/components/Button';
 import ConfidenceBadge from './ConfidenceBadge';
@@ -61,12 +61,7 @@ export default function ClassificationPanel({
           <TaxHintTooltip taxHints={classification.tax_hints} />
         </p>
         {classification.reason && (
-          <p className="md:col-span-2 text-xs text-slate-500">
-            <span aria-hidden className="mr-1">
-              🤖
-            </span>
-            {classification.reason}
-          </p>
+          <p className="md:col-span-2 text-xs text-slate-500">{classification.reason}</p>
         )}
       </div>
       {canManage && classification.status === 'processed' && (
@@ -90,11 +85,14 @@ export default function ClassificationPanel({
         </div>
       )}
       {classification.low_confidence && (
-        <p className="mt-2 text-xs font-medium text-amber-700">
-          ⚠️ Low confidence. Please verify before submitting.{' '}
-          <WpLink to="/ai-review" className="underline">
-            Open AI Review
-          </WpLink>
+        <p className="mt-2 flex items-start gap-1.5 text-xs font-medium text-amber-700">
+          <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+          <span>
+            Low confidence — verify before submitting.{' '}
+            <WpLink to="/ai-review" className="underline">
+              AI Review
+            </WpLink>
+          </span>
         </p>
       )}
       {classification.status === 'failed' && (
