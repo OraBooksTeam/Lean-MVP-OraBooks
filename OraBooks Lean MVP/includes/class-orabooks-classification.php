@@ -1330,4 +1330,213 @@ class OraBooks_Classification {
         }
         return ['summary' => (string) $value];
     }
+
+    /**
+     * Live (production) readiness checks for SL-022 — callable from UI without PHPUnit.
+     *
+     * @return array{ok:bool,checks:array<int,array<string,mixed>>,environment:array<string,mixed>,manual_steps:array<int,array<string,string>>}
+     */
+    public static function run_live_checks($org_id = 0) {
+        global $wpdb;
+
+        $org_id = (int) $org_id;
+        $checks = [];
+        $ok = true;
+
+        $add = function ($id, $label, $passed, $detail = '', $action = '') use (&$checks, &$ok) {
+            $passed = (bool) $passed;
+            if (!$passed) {
+                $ok = false;
+            }
+            $row = [
+                'id'     => (string) $id,
+                'label'  => (string) $label,
+                'ok'     => $passed,
+                'detail' => (string) $detail,
+            ];
+            if ($action !== '') {
+                $row['action_url'] = (string) $action;
+            }
+            $checks[] = $row;
+        };
+
+        $rules_table = OraBooks_Database::table('classification_rules');
+        $add(
+            'table_classification_rules',
+            'Classification rules table',
+            $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $rules_table)) === $rules_table,
+            $rules_table
+        );
+
+        foreach (['expenses', 'invoices'] as $base) {
+            $table = OraBooks_Database::table($base);
+            $columns = $wpdb->get_col("SHOW COLUMNS FROM {$table}", 0);
+            $has_cols = is_array($columns)
+                && in_array('classification_status', $columns, true)
+                && in_array('classification_idempotency_key', $columns, true);
+            $add(
+                $base . '_classification_columns',
+                ucfirst($base) . ' classification columns',
+                $has_cols,
+                is_array($columns) ? implode(', ', array_intersect($columns, ['classification_status', 'suggested_account_code'])) : 'n/a'
+            );
+        }
+
+        $journal_lines = OraBooks_Database::table('journal_lines');
+        if ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $journal_lines)) === $journal_lines) {
+            $jl_cols = $wpdb->get_col("SHOW COLUMNS FROM {$journal_lines}", 0);
+            $add(
+                'journal_lines_classification_columns',
+                'Journal line classification columns',
+                is_array($jl_cols) && in_array('classification_status', $jl_cols, true),
+                is_array($jl_cols) ? implode(', ', array_intersect($jl_cols, ['classification_status', 'suggested_account_code'])) : 'n/a'
+            );
+        }
+
+        $handler = class_exists('OraBooks_AsyncQueue')
+            ? OraBooks_AsyncQueue::get_handler('classify_transaction')
+            : null;
+        $add('async_classify_handler', 'Async handler: classify_transaction', is_callable($handler));
+
+        $provider = class_exists('OraBooks_Ai_Providers')
+            ? OraBooks_Ai_Providers::provider_name('classification')
+            : 'missing';
+        $add(
+            'ai_classification_provider',
+            'AI classification provider (SL-008)',
+            true,
+            $provider === OraBooks_Ai_Providers::STUB_PROVIDER
+                ? 'Using MVP stub — configure OpenAI/Azure for live AI'
+                : 'Active provider: ' . $provider
+        );
+
+        $manifest = class_exists('OraBooks_Assets') ? OraBooks_Assets::get_react_manifest() : [];
+        $generated = $manifest['generated_at'] ?? '';
+        $add(
+            'react_ui_bundle',
+            'React UI bundle deployed',
+            !empty($manifest['files']),
+            $generated ? 'Built at ' . $generated : 'deploy-manifest.json missing — run orabooks-ui/build-live.ps1'
+        );
+
+        if ($org_id > 0) {
+            $rule_count = (int) $wpdb->get_var($wpdb->prepare(
+                "SELECT COUNT(*) FROM {$rules_table} WHERE org_id = %d AND is_active = 1",
+                $org_id
+            ));
+            $add(
+                'org_classification_rules',
+                'Active classification rules for org',
+                $rule_count > 0,
+                (string) $rule_count . ' rule(s)',
+                '/tax-settings'
+            );
+
+            if (class_exists('OraBooks_COA')) {
+                $accounts = OraBooks_COA::list_accounts($org_id, ['limit' => 1]);
+                $add(
+                    'org_coa_loaded',
+                    'Chart of accounts loaded (SL-017)',
+                    !empty($accounts),
+                    empty($accounts) ? 'Import or seed COA first' : 'COA available',
+                    '/chart-of-accounts'
+                );
+            }
+
+            if (class_exists('OraBooks_Tax')) {
+                $tax_configs = OraBooks_Tax::list_configs($org_id);
+                $add(
+                    'org_tax_config',
+                    'Tax configuration (SL-305)',
+                    !empty($tax_configs),
+                    empty($tax_configs) ? 'Add tax jurisdiction in Tax Settings' : count($tax_configs) . ' jurisdiction(s)',
+                    '/tax-settings'
+                );
+            }
+
+            $expenses_table = OraBooks_Database::table('expenses');
+            $sample = $wpdb->get_row($wpdb->prepare(
+                "SELECT id, classification_status, suggested_account_code, account_confidence
+                 FROM {$expenses_table}
+                 WHERE org_id = %d
+                 ORDER BY id DESC LIMIT 1",
+                $org_id
+            ));
+            $add(
+                'sample_expense_classification',
+                'Latest expense has classification data',
+                $sample && !empty($sample->classification_status),
+                $sample
+                    ? sprintf('#%d status=%s account=%s', (int) $sample->id, $sample->classification_status, $sample->suggested_account_code ?: '—')
+                    : 'Upload a receipt on Expenses page to create one',
+                '/expenses'
+            );
+        }
+
+        $manual_steps = [
+            [
+                'step' => '1',
+                'title' => 'System check',
+                'detail' => 'Click "Run live check" on this page — all rows should be green (AI stub is OK for MVP).',
+            ],
+            [
+                'step' => '2',
+                'title' => 'Expense classification',
+                'detail' => 'Go to Expenses → upload receipt → wait for AI Classification panel (pending → processed).',
+                'url' => '/expenses',
+            ],
+            [
+                'step' => '3',
+                'title' => 'Apply / Override',
+                'detail' => 'On a processed expense, test Apply AI suggestions and Override modal.',
+                'url' => '/expenses',
+            ],
+            [
+                'step' => '4',
+                'title' => 'Invoice classification',
+                'detail' => 'Create draft invoice → View detail → classification panel should appear.',
+                'url' => '/invoices',
+            ],
+            [
+                'step' => '5',
+                'title' => 'Classification rules',
+                'detail' => 'Tax Settings → Classification rules → toggle "Rules dominate AI", add a keyword rule.',
+                'url' => '/tax-settings',
+            ],
+            [
+                'step' => '6',
+                'title' => 'Observability',
+                'detail' => 'Open Observability — classification metrics should appear after classifying.',
+                'url' => '/observability',
+            ],
+        ];
+
+        return [
+            'ok'           => $ok,
+            'checks'       => $checks,
+            'environment'  => [
+                'org_id'              => $org_id > 0 ? $org_id : null,
+                'rule_precedence_ai'  => self::rule_precedence_over_ai_enabled(),
+                'confidence_threshold'=> self::CONFIDENCE_THRESHOLD,
+                'react_bundle_at'     => $generated ?: null,
+                'plugin_version'      => defined('ORABOOKS_VERSION') ? ORABOOKS_VERSION : null,
+            ],
+            'manual_steps' => $manual_steps,
+        ];
+    }
+
+    public function ajax_live_check() {
+        $user_id = orabooks_get_current_user_id();
+        $org_id = orabooks_get_current_org_id($user_id);
+
+        if (!$user_id || !$org_id) {
+            orabooks_json_error('Authentication required', 401);
+        }
+
+        if (!self::can_view($user_id, $org_id) && !self::can_manage_rules($user_id, $org_id)) {
+            orabooks_json_error('Permission denied', 403);
+        }
+
+        orabooks_json_success(self::run_live_checks($org_id));
+    }
 }
