@@ -641,6 +641,21 @@ if (!function_exists('add_filter')) {
     }
 }
 
+if (!function_exists('remove_filter')) {
+    function remove_filter($tag, $callback, $priority = 10) {
+        if (empty($GLOBALS['orabooks_test_filters'][$tag])) {
+            return false;
+        }
+        $GLOBALS['orabooks_test_filters'][$tag] = array_values(array_filter(
+            $GLOBALS['orabooks_test_filters'][$tag],
+            static function ($registered) use ($callback) {
+                return $registered !== $callback;
+            }
+        ));
+        return true;
+    }
+}
+
 if (!function_exists('apply_filters')) {
     function apply_filters($tag, $value, ...$args) {
         if (empty($GLOBALS['orabooks_test_filters'][$tag])) {
