@@ -86,6 +86,11 @@ class OraBooks_DeployChecks {
             } elseif (!empty($tls['expiring_soon'])) {
                 $secrets_detail = 'TLS certificate expiring in ' . ($tls['days_remaining'] ?? '?') . ' days';
             }
+
+            if (empty($status['bootstrap_ready'])) {
+                $secrets_ok = false;
+                $secrets_detail = $secrets_detail ?: 'Secrets bootstrap failed — see admin notice';
+            }
         } else {
             $legacy_jwt = get_option('orabooks_jwt_secret');
             $secrets_ok = !empty($legacy_jwt);
