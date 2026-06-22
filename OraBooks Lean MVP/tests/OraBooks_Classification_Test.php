@@ -227,9 +227,13 @@ class OraBooks_Classification_Test extends TestCase
     #[Test]
     public function test_journal_line_record_type_is_registered()
     {
-        $types = OraBooks_Classification::$record_types;
-        $this->assertArrayHasKey('journal_line', $types);
-        $this->assertEquals('journal_lines', $types['journal_line']['table']);
+        $invalid = OraBooks_Classification::dry_run('not_a_type', 1, 1);
+        $this->assertInstanceOf(WP_Error::class, $invalid);
+        $this->assertEquals('invalid_type', $invalid->get_error_code());
+
+        $missing = OraBooks_Classification::dry_run('journal_line', 1, 1);
+        $this->assertInstanceOf(WP_Error::class, $missing);
+        $this->assertEquals('not_found', $missing->get_error_code());
     }
 
     #[Test]
