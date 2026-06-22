@@ -39,6 +39,7 @@ import ObservabilityPage from './pages/ObservabilityPage';
 import NotificationAdminPage from './pages/NotificationAdminPage';
 import CommissionAdminPage from './pages/CommissionAdminPage';
 import ClassificationLiveTestPage from './pages/ClassificationLiveTestPage';
+import AuditLogPage from './pages/AuditLogPage';
 import { normalizeAppRoute, toWpUrl } from './lib/wp-routing';
 
 type RouteConfig = {

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import Button from '@/components/Button';
 import ClientShell from '../components/ClientShell';
+import { validateHttpsWebhookLines } from '@/lib/security/sl008';
 import { api } from '../api';
 
 export default function WebhookSettingsPage() {
@@ -48,6 +49,11 @@ export default function WebhookSettingsPage() {
   const save = async () => {
     setError('');
     setMessage('');
+    const validation = validateHttpsWebhookLines(urls);
+    if (!validation.valid) {
+      setError(validation.errors.join(' '));
+      return;
+    }
     const res = await api.webhookSettingsSave(
       urls,
       context?.organization?.id ? { org_id: context.organization.id } : undefined
