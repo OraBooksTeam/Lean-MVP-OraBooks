@@ -75,13 +75,17 @@ export default function VerifyEmailPage() {
         <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-primary">
           <MailCheck className="h-6 w-6 text-white" />
         </div>
-        <h2 className="text-2xl font-bold text-ink">Verify Email</h2>
+        <h2 className="text-2xl font-bold text-ink">{justRegistered && !token ? 'Check Your Email' : 'Verify Email'}</h2>
         {loading ? (
           <p className="mt-4 text-sm text-slate-600">Verifying your email address…</p>
         ) : error ? (
           <p className="mt-4 text-sm text-danger">{error}</p>
-        ) : (
+        ) : success ? (
           <p className="mt-4 text-sm text-emerald-700">{success}</p>
+        ) : (
+          <p className="mt-4 text-sm text-slate-600">
+            Open the verification link from your email, or request a new one below.
+          </p>
         )}
 
         <form onSubmit={resend} className="mt-8 space-y-3 text-left">
