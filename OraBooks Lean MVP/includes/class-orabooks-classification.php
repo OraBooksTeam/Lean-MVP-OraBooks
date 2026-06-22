@@ -572,9 +572,87 @@ class OraBooks_Classification {
             'classification_risk_score'    => wp_json_encode($risk_score),
             'classification_model_version' => $suggestion['model_version'] ?? OraBooks_Ai_Providers::model_version('classification'),
             'tax_engine_version'           => self::TAX_ENGINE_VERSION,
-            'classification_reason'        => $suggestion['reason'],
+            'classification_reason'        => $reason_payload,
             'last_classified_at'           => current_time('mysql', true),
         ]));
+    }
+
+    public static function get_status($record_type, $record_id, $org_id) {
+        $record = self::get_record($record_type, $record_id, $org_id);
+        if (!$record) {
+            return new WP_Error('not_found', __('Record not found', 'orabooks'));
+        }
+
+        return self::format_classification($record);
+    }
+
+    public static function list_rules($org_id) {
+        global $wpdb;
+
+        $table = OraBooks_Database::table('classification_rules');
+        return $wpdb->get_results($wpdb->prepare(
+            "SELECT * FROM {$table} WHERE org_id = %d ORDER BY priority DESC, id ASC",
+            (int) $org_id
+        )) ?: [];
+    }
+
+    public static function save_rule($org_id, $data, $user_id) {
+        global $wpdb;
+
+        $org_id = (int) $org_id;
+        $table = OraBooks_Database::table('classification_rules');
+        $rule_id = (int) ($data['id'] ?? 0);
+
+        $payload = [
+            'org_id'           => $org_id,
+            'rule_type'        => sanitize_text_field($data['rule_type'] ?? 'keyword'),
+            'match_value'      => sanitize_text_field($data['match_value'] ?? ''),
+            'account_code'     => sanitize_text_field($data['account_code'] ?? ''),
+            'tax_jurisdiction' => !empty($data['tax_jurisdiction']) ? sanitize_text_field($data['tax_jurisdiction']) : null,
+            'priority'         => (int) ($data['priority'] ?? 10),
+            'is_active'        => !empty($data['is_active']) ? 1 : 0,
+        ];
+
+        if ($payload['match_value'] === '' || $payload['account_code'] === '') {
+            return new WP_Error('validation', __('Match value and account code are required.', 'orabooks'));
+        }
+
+        if (!in_array($payload['rule_type'], ['vendor', 'keyword', 'category'], true)) {
+            return new WP_Error('validation', __('Invalid rule type.', 'orabooks'));
+        }
+
+        if ($rule_id > 0) {
+            $wpdb->update($table, $payload, ['id' => $rule_id, 'org_id' => $org_id]);
+            orabooks_log_event('classification_rule_updated', 'Classification rule updated', 'info', [
+                'rule_id' => $rule_id,
+            ], (int) $user_id, $org_id);
+            return $rule_id;
+        }
+
+        $wpdb->insert($table, $payload);
+        $rule_id = (int) $wpdb->insert_id;
+        orabooks_log_event('classification_rule_created', 'Classification rule created', 'info', [
+            'rule_id' => $rule_id,
+        ], (int) $user_id, $org_id);
+
+        return $rule_id;
+    }
+
+    public static function delete_rule($org_id, $rule_id, $user_id) {
+        global $wpdb;
+
+        $table = OraBooks_Database::table('classification_rules');
+        $deleted = $wpdb->delete($table, ['id' => (int) $rule_id, 'org_id' => (int) $org_id], ['%d', '%d']);
+
+        if (!$deleted) {
+            return new WP_Error('not_found', __('Rule not found.', 'orabooks'));
+        }
+
+        orabooks_log_event('classification_rule_deleted', 'Classification rule deleted', 'info', [
+            'rule_id' => (int) $rule_id,
+        ], (int) $user_id, (int) $org_id);
+
+        return true;
     }
 
     public static function apply_suggestions($record_type, $record_id, $org_id, $user_id) {
@@ -589,21 +667,6 @@ class OraBooks_Classification {
 
         $tax_hints = self::decode_json_field($record->tax_hints);
         $updates = [];
-
-        if ($record_type === 'expense') {
-            if (!empty($record->suggested_account_code)) {
-                $updates['category'] = self::account_code_to_category($record->suggested_account_code);
-            }
-            if (!empty($tax_hints['tax_rate'])) {
-                $updates['tax_rate'] = (float) $tax_hints['tax_rate'];
-                if ($record->total_amount) {
-                    $total = (float) $record->total_amount;
-                    $rate = (float) $tax_hints['tax_rate'];
-                    $tax_amount = round($total * ($rate / 100) / (1 + ($rate / 100)), 2);
-                    $updates['tax_amount'] = $tax_amount;
-                }
-            }
-        }
 
         if ($record_type === 'invoice' && !empty($tax_hints['tax_rate'])) {
             global $wpdb;
