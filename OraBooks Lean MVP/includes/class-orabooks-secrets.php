@@ -32,7 +32,9 @@ class OraBooks_Secrets {
             self::$instance = new self();
             $boot = self::bootstrap();
             if (is_wp_error($boot)) {
-                self::$bootstrap_error = $boot;
+                if (!(self::$bootstrap_error instanceof WP_Error)) {
+                    self::$bootstrap_error = $boot;
+                }
                 self::register_failure_handlers();
             } else {
                 add_action('template_redirect', [self::class, 'maybe_enforce_https'], 1);
@@ -89,7 +91,7 @@ class OraBooks_Secrets {
      */
     public static function bootstrap() {
         if (self::$bootstrapped) {
-            return true;
+            return self::$bootstrap_error instanceof WP_Error ? self::$bootstrap_error : true;
         }
 
         self::$bootstrapped = true;
@@ -118,11 +120,12 @@ class OraBooks_Secrets {
                 ]);
             }
             if (!empty($issues)) {
-                return new WP_Error(
+                self::$bootstrap_error = new WP_Error(
                     'secrets_invalid',
                     'Required secrets or TLS configuration failed validation for production.',
                     ['issues' => $issues]
                 );
+                return self::$bootstrap_error;
             }
         }
 
