@@ -33,6 +33,14 @@ class OraBooks_Classification {
             'amount_column' => 'total_amount',
             'text_columns'  => ['description'],
         ],
+        'journal_line' => [
+            'table'         => 'journal_lines',
+            'org_column'    => null,
+            'parent_table'  => 'journals',
+            'parent_fk'    => 'journal_id',
+            'amount_column' => 'debit_amount',
+            'text_columns'  => ['description', 'account_code'],
+        ],
     ];
 
     private static $default_rules = [
@@ -220,6 +228,33 @@ class OraBooks_Classification {
     }
 
     /**
+     * Debounced classification request (SL-022 cooldown).
+     */
+    public static function maybe_request($record_type, $record_id, $org_id, $context = []) {
+        $record_type = sanitize_text_field($record_type);
+        $record_id = (int) $record_id;
+        $org_id = (int) $org_id;
+
+        if ($record_id <= 0 || $org_id <= 0) {
+            return new WP_Error('invalid_request', __('Invalid classification request.', 'orabooks'));
+        }
+
+        $debounce_key = 'orabooks_cls_debounce_' . md5($record_type . '|' . $record_id . '|' . $org_id);
+        if (get_transient($debounce_key)) {
+            return [
+                'record_type' => $record_type,
+                'record_id'   => $record_id,
+                'status'      => 'pending',
+                'debounced'   => true,
+            ];
+        }
+
+        set_transient($debounce_key, 1, 1);
+
+        return self::request($record_type, $record_id, $org_id, $context);
+    }
+
+    /**
      * Queue classification for a draft transaction.
      */
     public static function request($record_type, $record_id, $org_id, $context = []) {
@@ -248,25 +283,45 @@ class OraBooks_Classification {
         $map = self::$record_types[$record_type];
         $table = OraBooks_Database::table($map['table']);
 
+        if (!empty($record->classification_idempotency_key)
+            && (string) $record->classification_idempotency_key === (string) $idempotency_key
+            && in_array($record->classification_status ?? '', ['pending', 'processed'], true)) {
+            return [
+                'record_type'     => $record_type,
+                'record_id'       => $record_id,
+                'status'          => $record->classification_status,
+                'idempotency_key' => $idempotency_key,
+                'classification' => self::format_classification($record),
+            ];
+        }
+
         $duplicate = $wpdb->get_var($wpdb->prepare(
             "SELECT id FROM {$table}
-             WHERE org_id = %d AND classification_idempotency_key = %s
+             WHERE classification_idempotency_key = %s
                AND id != %d AND classification_status IN ('pending','processed')",
-            $org_id,
             $idempotency_key,
             $record_id
         ));
+
+        if ($map['org_column']) {
+            $duplicate = $wpdb->get_var($wpdb->prepare(
+                "SELECT id FROM {$table}
+                 WHERE org_id = %d AND classification_idempotency_key = %s
+                   AND id != %d AND classification_status IN ('pending','processed')",
+                $org_id,
+                $idempotency_key,
+                $record_id
+            ));
+        }
 
         if ($duplicate) {
             return new WP_Error('duplicate', __('Classification already requested for this content hash', 'orabooks'), ['status' => 409]);
         }
 
-        $wpdb->update(
-            $table,
-            [
-                'classification_status'          => 'pending',
-                'classification_idempotency_key' => $idempotency_key,
-            ],
+        $pending_update = [
+            'classification_status'          => 'pending',
+            'classification_idempotency_key' => $idempotency_key,
+        ];
             ['id' => $record_id, 'org_id' => $org_id],
             ['%s', '%s'],
             ['%d', '%d']
