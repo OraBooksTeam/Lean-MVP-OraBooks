@@ -295,20 +295,21 @@ class OraBooks_Classification {
             ];
         }
 
-        $duplicate = $wpdb->get_var($wpdb->prepare(
-            "SELECT id FROM {$table}
-             WHERE classification_idempotency_key = %s
-               AND id != %d AND classification_status IN ('pending','processed')",
-            $idempotency_key,
-            $record_id
-        ));
-
+        $duplicate = null;
         if ($map['org_column']) {
             $duplicate = $wpdb->get_var($wpdb->prepare(
                 "SELECT id FROM {$table}
                  WHERE org_id = %d AND classification_idempotency_key = %s
                    AND id != %d AND classification_status IN ('pending','processed')",
                 $org_id,
+                $idempotency_key,
+                $record_id
+            ));
+        } else {
+            $duplicate = $wpdb->get_var($wpdb->prepare(
+                "SELECT id FROM {$table}
+                 WHERE classification_idempotency_key = %s
+                   AND id != %d AND classification_status IN ('pending','processed')",
                 $idempotency_key,
                 $record_id
             ));
@@ -322,10 +323,24 @@ class OraBooks_Classification {
             'classification_status'          => 'pending',
             'classification_idempotency_key' => $idempotency_key,
         ];
-            ['id' => $record_id, 'org_id' => $org_id],
-            ['%s', '%s'],
-            ['%d', '%d']
-        );
+
+        if ($map['org_column']) {
+            $wpdb->update(
+                $table,
+                $pending_update,
+                ['id' => $record_id, $map['org_column'] => $org_id],
+                ['%s', '%s'],
+                ['%d', '%d']
+            );
+        } else {
+            $wpdb->update(
+                $table,
+                $pending_update,
+                ['id' => $record_id],
+                ['%s', '%s'],
+                ['%d']
+            );
+        }
 
         $payload = [
             'record_type'     => $record_type,
