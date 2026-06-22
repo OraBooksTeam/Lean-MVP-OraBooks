@@ -22,19 +22,10 @@ import ClassificationPanel from '@/components/classification/ClassificationPanel
 import ConfidenceBadge from '@/components/classification/ConfidenceBadge';
 import OverrideClassificationModal from '@/components/classification/OverrideClassificationModal';
 import { useClassificationPolling } from '@/components/classification/useClassificationPolling';
+import TaxOverrideModal, { type TaxConfig } from '@/components/tax/TaxOverrideModal';
 
 const fieldClass =
   'w-full rounded-lg border border-border bg-white px-3.5 py-2.5 text-sm text-ink shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20';
-
-type TaxConfig = { jurisdiction: string; override_reasons?: string[] };
-
-const DEFAULT_REASONS = [
-  'WRONG_AI_CLASSIFICATION',
-  'LOCAL_TAX_RULE',
-  'MANUAL_JURISDICTION_ADJUSTMENT',
-  'CUSTOMER_EXEMPTION',
-  'REGIONAL_COMPLIANCE_OVERRIDE',
-];
 
 export default function ExpensesPage() {
   const [data, setData] = useState<any>(null);
@@ -135,25 +126,17 @@ export default function ExpensesPage() {
 
   useEffect(() => {
     if (!orgId) return;
-    void api.taxListConfigs(orgId).then((res) => {
+    void api.taxOverrideReasons(orgId).then((res) => {
       const configs = (res as any).data?.configs || [];
       setTaxConfigs(configs);
     });
   }, [orgId]);
 
-  const reasonOptions = useMemo(() => {
-    const cfg = taxConfigs.find((c) => c.jurisdiction === overrideJurisdiction);
-    const reasons = cfg?.override_reasons?.length ? cfg.override_reasons : DEFAULT_REASONS;
-    return reasons;
-  }, [taxConfigs, overrideJurisdiction]);
-
-  const formatReason = (code: string) => code.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
-
   const openOverride = async (expense: any) => {
     setOverrideExpense(expense);
     setOverrideRate(String(Number(expense.tax_rate || 0)));
     setOverrideReason('');
-    setOverrideJurisdiction(taxConfigs[0]?.jurisdiction || 'US');
+    setOverrideJurisdiction(expense.tax_jurisdiction || taxConfigs[0]?.jurisdiction || 'US');
     setError('');
 
     if (orgId) {

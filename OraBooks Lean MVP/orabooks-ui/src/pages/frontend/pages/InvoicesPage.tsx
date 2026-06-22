@@ -802,7 +802,3 @@ function Badge({ value }: { value: string }) {
 function money(value?: string | number, currency = 'USD') {
   return new Intl.NumberFormat(undefined, { style: 'currency', currency }).format(Number(value || 0));
 }
-
-function formatReason(code: string) {
-  return code.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
-}
