@@ -71,8 +71,27 @@ class OraBooks_Rest_Api_Test extends TestCase
         $request->set_param('id', 999);
 
         $GLOBALS['orabooks_test_current_user_id'] = 1;
-        $GLOBALS['orabooks_test_has_permission'] = true;
-        $wpdb->test_get_row_callback = function () {
+        $wpdb->test_get_var_callback = function ($query) {
+            if (stripos($query, 'user_org') !== false || stripos($query, 'owner_id') !== false) {
+                return 1;
+            }
+            return null;
+        };
+        $wpdb->test_get_row_callback = function ($query) {
+            if (stripos($query, 'organizations') !== false) {
+                return (object) [
+                    'id' => 5,
+                    'status' => 'active',
+                    'organization_type' => 'customer',
+                    'name' => 'Test Org',
+                    'tier' => 'premium',
+                    'subdomain' => 'testorg',
+                    'owner_id' => 1,
+                ];
+            }
+            if (stripos($query, 'journals') !== false) {
+                return null;
+            }
             return null;
         };
 
