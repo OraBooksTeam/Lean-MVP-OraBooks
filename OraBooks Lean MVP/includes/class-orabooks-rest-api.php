@@ -152,6 +152,30 @@ class OraBooks_Rest_Api {
             'permission_callback' => [__CLASS__, 'can_execute_state_transition'],
         ]);
 
+        register_rest_route(self::NAMESPACE, '/classification/run', [
+            'methods'             => WP_REST_Server::CREATABLE,
+            'callback'            => [__CLASS__, 'rest_classification_run'],
+            'permission_callback' => [__CLASS__, 'can_view_classification'],
+        ]);
+
+        register_rest_route(self::NAMESPACE, '/classification/apply', [
+            'methods'             => WP_REST_Server::CREATABLE,
+            'callback'            => [__CLASS__, 'rest_classification_apply'],
+            'permission_callback' => [__CLASS__, 'can_manage_classification'],
+        ]);
+
+        register_rest_route(self::NAMESPACE, '/classification/override', [
+            'methods'             => WP_REST_Server::CREATABLE,
+            'callback'            => [__CLASS__, 'rest_classification_override'],
+            'permission_callback' => [__CLASS__, 'can_manage_classification'],
+        ]);
+
+        register_rest_route(self::NAMESPACE, '/classification/dry-run', [
+            'methods'             => WP_REST_Server::CREATABLE,
+            'callback'            => [__CLASS__, 'rest_classification_dry_run'],
+            'permission_callback' => [__CLASS__, 'can_view_classification'],
+        ]);
+
         register_rest_route(self::NAMESPACE, '/auth/2fa/setup', [
             'methods'             => WP_REST_Server::CREATABLE,
             'callback'            => [__CLASS__, 'rest_2fa_setup'],
