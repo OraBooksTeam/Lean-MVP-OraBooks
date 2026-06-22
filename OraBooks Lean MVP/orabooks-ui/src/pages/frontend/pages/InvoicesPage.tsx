@@ -100,6 +100,7 @@ export default function InvoicesPage() {
     const nextContext = (ctx as any).data;
     setContext(nextContext);
     const nextOrgId = nextContext?.organization?.id;
+    const nextCanOverrideTax = (nextContext?.permissions || []).includes('override_tax');
     if (!nextOrgId) {
       setError('Organization is not set up yet.');
       setLoading(false);
@@ -113,7 +114,7 @@ export default function InvoicesPage() {
         limit: 100,
         customer_id: customerFilter > 0 ? customerFilter : undefined,
       }),
-      canOverrideTax
+      nextCanOverrideTax
         ? api.taxOverrideReasons(nextOrgId)
         : api.taxListConfigs(nextOrgId),
       api.customersList(nextOrgId, { limit: 100 }),
@@ -166,11 +167,6 @@ export default function InvoicesPage() {
       void loadInvoiceDetail(match.id);
     }
   }, [invoices]);
-
-  const reasonOptions = useMemo(() => {
-    const config = taxConfigs.find((c) => c.jurisdiction === overrideJurisdiction);
-    return config?.override_reasons?.length ? config.override_reasons : [];
-  }, [taxConfigs, overrideJurisdiction]);
 
   const canOverride = (invoice: Invoice) =>
     canOverrideTax && ['draft', 'sent'].includes(invoice.workflow_status || '');
@@ -387,6 +383,20 @@ export default function InvoicesPage() {
     setSaving(false);
   };
 
+  const handleClearOverride = async () => {
+    if (!orgId || !overrideInvoice) return;
+    setSaving(true);
+    setError('');
+    const res = await api.invoiceClearTaxOverride(orgId, overrideInvoice.id, overrideJurisdiction);
+    if (res.error) setError(res.error);
+    else {
+      setSuccess('Tax override cleared.');
+      setOverrideInvoice(null);
+      await load();
+    }
+    setSaving(false);
+  };
+
   return (
     <ClientShell
       title="Invoices"
@@ -544,7 +554,7 @@ export default function InvoicesPage() {
                   <td className="px-5 py-3"><Badge value={invoice.workflow_status || 'draft'} /></td>
                   <td className="px-5 py-3"><Badge value={invoice.payment_status || 'unpaid'} /></td>
                   <td className="px-5 py-3 text-slate-600">
-                    <span className="inline-flex items-center gap-1">
+                    <span className="inline-flex items-center gap-1" title={invoice.tax_override_reason ? `Tax manually changed. Reason: ${invoice.tax_override_reason}` : undefined}>
                       <Percent className="h-3.5 w-3.5" />
                       {Number(invoice.tax_rate || 0).toFixed(2)}%
                     </span>
@@ -578,8 +588,13 @@ export default function InvoicesPage() {
                         </Button>
                       )}
                       {canOverride(invoice) && (
-                        <Button size="sm" variant="secondary" onClick={() => void openOverride(invoice)}>
-                          Tax
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          title="Manually change tax rate."
+                          onClick={() => void openOverride(invoice)}
+                        >
+                          Override tax
                         </Button>
                       )}
                       <WpLink to={`/attachments?resource_type=invoice&resource_id=${invoice.id}`}>
@@ -712,44 +727,27 @@ export default function InvoicesPage() {
           </Modal>
         )}
 
-        {overrideInvoice && (
-          <Modal title="Override tax" onClose={() => setOverrideInvoice(null)}>
-            <p className="mb-4 text-sm text-slate-600">{overrideInvoice.invoice_number || `Invoice #${overrideInvoice.id}`}</p>
-            {taxLocked && (
-              <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
-                Tax is locked for this fiscal period.
-              </div>
-            )}
-            {error && <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div>}
-            <div className="grid gap-4">
-              <Field label="Jurisdiction">
-                <select value={overrideJurisdiction} onChange={(e) => setOverrideJurisdiction(e.target.value)} disabled={taxLocked} className="w-full rounded-lg border border-border px-3 py-2.5 text-sm">
-                  {(taxConfigs.length ? taxConfigs : [{ jurisdiction: 'US' }]).map((c) => (
-                    <option key={c.jurisdiction} value={c.jurisdiction}>{c.jurisdiction}</option>
-                  ))}
-                </select>
-              </Field>
-              <Field label="New tax rate (%)">
-                <Input type="number" min="0" max="100" step="0.01" value={overrideRate} onChange={(e) => setOverrideRate(e.target.value)} disabled={taxLocked} />
-              </Field>
-              <Field label="Reason code">
-                <select value={overrideReason} onChange={(e) => setOverrideReason(e.target.value)} disabled={taxLocked} className="w-full rounded-lg border border-border px-3 py-2.5 text-sm">
-                  <option value="">Select a reason…</option>
-                  {reasonOptions.map((r) => <option key={r} value={r}>{formatReason(r)}</option>)}
-                </select>
-              </Field>
-              {overridePreview && (
-                <div className="rounded-lg border border-border bg-slate-50 p-3 text-sm">
-                  <div>New total: {money(overridePreview.newTotal, overrideInvoice.currency)}</div>
-                </div>
-              )}
-            </div>
-            <div className="mt-6 flex justify-end gap-2">
-              <Button variant="secondary" onClick={() => setOverrideInvoice(null)}>Cancel</Button>
-              <Button onClick={handleApplyOverride} disabled={saving || taxLocked || !overrideReason}>Apply override</Button>
-            </div>
-          </Modal>
-        )}
+        <TaxOverrideModal
+          open={Boolean(overrideInvoice)}
+          title="Override tax"
+          subtitle={overrideInvoice?.invoice_number || (overrideInvoice ? `Invoice #${overrideInvoice.id}` : '')}
+          taxRate={overrideRate}
+          reasonCode={overrideReason}
+          jurisdiction={overrideJurisdiction}
+          taxConfigs={taxConfigs}
+          taxLocked={taxLocked}
+          saving={saving}
+          error={overrideInvoice ? error : undefined}
+          hasExistingOverride={Boolean(overrideInvoice?.tax_override_reason)}
+          currency={overrideInvoice?.currency}
+          preview={overridePreview ? { newTax: overridePreview.newTax, newTotal: overridePreview.newTotal } : null}
+          onClose={() => setOverrideInvoice(null)}
+          onTaxRateChange={setOverrideRate}
+          onReasonChange={setOverrideReason}
+          onJurisdictionChange={setOverrideJurisdiction}
+          onApply={() => void handleApplyOverride()}
+          onClear={() => void handleClearOverride()}
+        />
 
         {cancelInvoice && (
           <Modal title="Cancel invoice" onClose={() => setCancelInvoice(null)}>
