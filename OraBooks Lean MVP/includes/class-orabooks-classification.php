@@ -254,10 +254,19 @@ class OraBooks_Classification {
         return self::request($record_type, $record_id, $org_id, $context);
     }
 
-    /**
-     * Queue classification for a draft transaction.
-     */
-    public static function request($record_type, $record_id, $org_id, $context = []) {
+    public static function rule_precedence_over_ai_enabled() {
+        if (get_option('orabooks_rule_precedence_over_ai', null) !== null) {
+            return (bool) get_option('orabooks_rule_precedence_over_ai', 1);
+        }
+
+        return (bool) get_option('orabooks_rule_precedes_over_ai', 1);
+    }
+
+    public static function set_rule_precedence_over_ai($enabled) {
+        update_option('orabooks_rule_precedence_over_ai', $enabled ? 1 : 0, false);
+        update_option('orabooks_rule_precedes_over_ai', $enabled ? 1 : 0, false);
+    }
+
         global $wpdb;
 
         $record_type = sanitize_text_field($record_type);
@@ -406,7 +415,7 @@ class OraBooks_Classification {
 
         self::seed_default_rules($org_id);
         $rule_result = self::match_rules($org_id, $record, $text);
-        $use_rules = (bool) get_option('orabooks_rule_precedence_over_ai', 1);
+        $use_rules = self::rule_precedence_over_ai_enabled();
         $suggestion = ($use_rules && $rule_result)
             ? $rule_result
             : OraBooks_Ai_Providers::classify_record($record_type, $record, $text, $amount, $org_id);
@@ -453,7 +462,7 @@ class OraBooks_Classification {
         }
 
         $rule_result = self::match_rules($org_id, $record, $text);
-        $use_rules = (bool) get_option('orabooks_rule_precedence_over_ai', 1);
+        $use_rules = self::rule_precedence_over_ai_enabled();
 
         if ($use_rules && $rule_result) {
             $suggestion = $rule_result;
@@ -949,7 +958,7 @@ class OraBooks_Classification {
         $rules = self::list_rules($org_id);
         orabooks_json_success([
             'rules' => array_map([self::class, 'format_rule'], $rules),
-            'rule_precedes_ai' => (bool) get_option('orabooks_rule_precedes_over_ai', 1),
+            'rule_precedes_ai' => self::rule_precedence_over_ai_enabled(),
         ]);
     }
 
@@ -966,7 +975,7 @@ class OraBooks_Classification {
         }
 
         if (isset($_POST['rule_precedes_ai'])) {
-            update_option('orabooks_rule_precedes_over_ai', !empty($_POST['rule_precedes_ai']) ? 1 : 0, false);
+            self::set_rule_precedence_over_ai(!empty($_POST['rule_precedes_ai']));
         }
 
         $data = [
@@ -988,7 +997,7 @@ class OraBooks_Classification {
 
         orabooks_json_success([
             'rules' => array_map([self::class, 'format_rule'], self::list_rules($org_id)),
-            'rule_precedes_ai' => (bool) get_option('orabooks_rule_precedes_over_ai', 1),
+            'rule_precedes_ai' => self::rule_precedence_over_ai_enabled(),
         ], 'Classification rules saved');
     }
 
