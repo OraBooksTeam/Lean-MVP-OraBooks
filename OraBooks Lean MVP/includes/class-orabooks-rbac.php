@@ -148,6 +148,7 @@ class OraBooks_RBAC {
         'manage_fiscal_periods',
             'create_invoice',
             'view_invoices',
+            'override_tax',
             'manage_billing',
         ];
         

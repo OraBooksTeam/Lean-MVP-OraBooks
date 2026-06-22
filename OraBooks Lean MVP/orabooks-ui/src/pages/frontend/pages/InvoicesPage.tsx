@@ -337,7 +337,7 @@ export default function InvoicesPage() {
     setOverrideInvoice(invoice);
     setOverrideRate(String(Number(invoice.tax_rate || 0)));
     setOverrideReason('');
-    setOverrideJurisdiction(taxConfigs[0]?.jurisdiction || 'US');
+    setOverrideJurisdiction(invoice.tax_jurisdiction || taxConfigs[0]?.jurisdiction || 'US');
     setError('');
 
     if (orgId) {
