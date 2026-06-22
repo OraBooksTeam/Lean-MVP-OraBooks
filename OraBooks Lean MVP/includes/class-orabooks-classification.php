@@ -822,7 +822,8 @@ class OraBooks_Classification {
             'risk_score'             => $risk,
             'model_version'          => $row->classification_model_version ?? null,
             'tax_engine_version'     => $row->tax_engine_version ?? null,
-            'reason'                 => $row->classification_reason ?? null,
+            'reason'                 => self::decode_reason($row->classification_reason ?? null),
+            'reason_detail'          => self::decode_reason_detail($row->classification_reason ?? null),
             'last_classified_at'     => $row->last_classified_at ?? null,
             'low_confidence'         => isset($row->account_confidence) && (float) $row->account_confidence < self::CONFIDENCE_THRESHOLD,
         ];
@@ -906,6 +907,110 @@ class OraBooks_Classification {
         orabooks_json_success(['classification' => self::format_classification($result)]);
     }
 
+    public function ajax_status() {
+        $user_id = orabooks_get_current_user_id();
+        $org_id = orabooks_get_current_org_id($user_id);
+
+        if (!$user_id || !$org_id) {
+            orabooks_json_error('Authentication required', 401);
+        }
+
+        if (!self::can_view($user_id, $org_id)) {
+            orabooks_json_error('Permission denied', 403);
+        }
+
+        $record_type = sanitize_text_field($_REQUEST['record_type'] ?? '');
+        $record_id = (int) ($_REQUEST['record_id'] ?? 0);
+        $result = self::get_status($record_type, $record_id, $org_id);
+
+        if (is_wp_error($result)) {
+            orabooks_json_error($result->get_error_message(), 400);
+        }
+
+        orabooks_json_success(['classification' => $result]);
+    }
+
+    public function ajax_rules_list() {
+        $user_id = orabooks_get_current_user_id();
+        $org_id = orabooks_get_current_org_id($user_id);
+
+        if (!$user_id || !$org_id) {
+            orabooks_json_error('Authentication required', 401);
+        }
+
+        if (!self::can_manage_rules($user_id, $org_id)) {
+            orabooks_json_error('Permission denied', 403);
+        }
+
+        $rules = self::list_rules($org_id);
+        orabooks_json_success([
+            'rules' => array_map([self::class, 'format_rule'], $rules),
+            'rule_precedes_ai' => (bool) get_option('orabooks_rule_precedes_over_ai', 1),
+        ]);
+    }
+
+    public function ajax_rules_save() {
+        $user_id = orabooks_get_current_user_id();
+        $org_id = orabooks_get_current_org_id($user_id);
+
+        if (!$user_id || !$org_id) {
+            orabooks_json_error('Authentication required', 401);
+        }
+
+        if (!self::can_manage_rules($user_id, $org_id)) {
+            orabooks_json_error('Permission denied', 403);
+        }
+
+        if (isset($_POST['rule_precedes_ai'])) {
+            update_option('orabooks_rule_precedes_over_ai', !empty($_POST['rule_precedes_ai']) ? 1 : 0, false);
+        }
+
+        $data = [
+            'id'               => (int) ($_POST['id'] ?? 0),
+            'rule_type'        => sanitize_text_field($_POST['rule_type'] ?? 'keyword'),
+            'match_value'      => sanitize_text_field($_POST['match_value'] ?? ''),
+            'account_code'     => sanitize_text_field($_POST['account_code'] ?? ''),
+            'tax_jurisdiction' => sanitize_text_field($_POST['tax_jurisdiction'] ?? ''),
+            'priority'         => (int) ($_POST['priority'] ?? 10),
+            'is_active'        => !empty($_POST['is_active']),
+        ];
+
+        if ($data['match_value'] !== '' || $data['account_code'] !== '') {
+            $result = self::save_rule($org_id, $data, $user_id);
+            if (is_wp_error($result)) {
+                orabooks_json_error($result->get_error_message(), 400);
+            }
+        }
+
+        orabooks_json_success([
+            'rules' => array_map([self::class, 'format_rule'], self::list_rules($org_id)),
+            'rule_precedes_ai' => (bool) get_option('orabooks_rule_precedes_over_ai', 1),
+        ], 'Classification rules saved');
+    }
+
+    public function ajax_rules_delete() {
+        $user_id = orabooks_get_current_user_id();
+        $org_id = orabooks_get_current_org_id($user_id);
+        $rule_id = (int) ($_POST['rule_id'] ?? 0);
+
+        if (!$user_id || !$org_id) {
+            orabooks_json_error('Authentication required', 401);
+        }
+
+        if (!self::can_manage_rules($user_id, $org_id)) {
+            orabooks_json_error('Permission denied', 403);
+        }
+
+        $result = self::delete_rule($org_id, $rule_id, $user_id);
+        if (is_wp_error($result)) {
+            orabooks_json_error($result->get_error_message(), 400);
+        }
+
+        orabooks_json_success([
+            'rules' => array_map([self::class, 'format_rule'], self::list_rules($org_id)),
+        ], 'Rule deleted');
+    }
+
     private static function can_view($user_id, $org_id) {
         return OraBooks_RBAC::require_permission($user_id, $org_id, 'view_classification')
             || OraBooks_RBAC::require_permission($user_id, $org_id, 'view_expenses')
@@ -918,12 +1023,41 @@ class OraBooks_Classification {
             || OraBooks_RBAC::require_permission($user_id, $org_id, 'create_invoice');
     }
 
+    private static function can_manage_rules($user_id, $org_id) {
+        return OraBooks_RBAC::require_permission($user_id, $org_id, 'manage_classification_rules')
+            || OraBooks_RBAC::require_permission($user_id, $org_id, 'manage_org_settings');
+    }
+
+    public static function format_rule($rule) {
+        return [
+            'id'               => (int) $rule->id,
+            'rule_type'        => $rule->rule_type,
+            'match_value'      => $rule->match_value,
+            'account_code'     => $rule->account_code,
+            'tax_jurisdiction' => $rule->tax_jurisdiction,
+            'priority'         => (int) $rule->priority,
+            'is_active'        => (bool) $rule->is_active,
+        ];
+    }
+
     private static function get_record($record_type, $record_id, $org_id) {
         global $wpdb;
 
         $map = self::$record_types[$record_type] ?? null;
         if (!$map) {
             return null;
+        }
+
+        if ($record_type === 'journal_line') {
+            $lines = OraBooks_Database::table('journal_lines');
+            $journals = OraBooks_Database::table('journals');
+            return $wpdb->get_row($wpdb->prepare(
+                "SELECT jl.* FROM {$lines} jl
+                 INNER JOIN {$journals} j ON j.id = jl.journal_id
+                 WHERE jl.id = %d AND j.org_id = %d",
+                (int) $record_id,
+                (int) $org_id
+            ));
         }
 
         $table = OraBooks_Database::table($map['table']);
