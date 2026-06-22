@@ -18,23 +18,16 @@ class OraBooks_Posting {
         if (self::$instance === null) {
             self::$instance = new self();
             add_action('wp_ajax_orabooks_create_journal', [self::$instance, 'ajax_create_journal']);
-            add_action('wp_ajax_nopriv_orabooks_create_journal', [self::$instance, 'ajax_create_journal']);
             add_action('wp_ajax_orabooks_submit_journal', [self::$instance, 'ajax_submit_journal']);
-            add_action('wp_ajax_nopriv_orabooks_submit_journal', [self::$instance, 'ajax_submit_journal']);
             add_action('wp_ajax_orabooks_approve_journal', [self::$instance, 'ajax_approve_journal']);
-            add_action('wp_ajax_nopriv_orabooks_approve_journal', [self::$instance, 'ajax_approve_journal']);
             add_action('wp_ajax_orabooks_reject_journal', [self::$instance, 'ajax_reject_journal']);
-            add_action('wp_ajax_nopriv_orabooks_reject_journal', [self::$instance, 'ajax_reject_journal']);
             add_action('wp_ajax_orabooks_post_journal', [self::$instance, 'ajax_post_journal']);
-            add_action('wp_ajax_nopriv_orabooks_post_journal', [self::$instance, 'ajax_post_journal']);
             add_action('wp_ajax_orabooks_get_journals', [self::$instance, 'ajax_get_journals']);
-            add_action('wp_ajax_nopriv_orabooks_get_journals', [self::$instance, 'ajax_get_journals']);
             add_action('wp_ajax_orabooks_get_journal', [self::$instance, 'ajax_get_journal']);
-            add_action('wp_ajax_nopriv_orabooks_get_journal', [self::$instance, 'ajax_get_journal']);
             add_action('wp_ajax_orabooks_reverse_journal', [self::$instance, 'ajax_reverse_journal']);
-            add_action('wp_ajax_nopriv_orabooks_reverse_journal', [self::$instance, 'ajax_reverse_journal']);
             add_action('orabooks_daily_ledger_integrity_check', [__CLASS__, 'cron_validate_all_orgs']);
             add_action('orabooks_monthly_balance_snapshot', [__CLASS__, 'cron_capture_balance_snapshots']);
+            add_action('orabooks_posting_retry_process', [__CLASS__, 'cron_process_posting_retries']);
         }
         return self::$instance;
     }
@@ -78,9 +71,18 @@ class OraBooks_Posting {
         $table = OraBooks_Database::table('journals');
         $org_id = $data['org_id'];
         
-        $idempotency_key = $data['idempotency_key'] ?? orabooks_uuid();
+        $idempotency_key = sanitize_text_field($data['idempotency_key'] ?? orabooks_uuid());
+
+        $existing_id = $wpdb->get_var($wpdb->prepare(
+            "SELECT id FROM {$table} WHERE org_id = %d AND idempotency_key = %s",
+            (int) $org_id,
+            $idempotency_key
+        ));
+        if ($existing_id) {
+            return (int) $existing_id;
+        }
         
-        $wpdb->insert($table, [
+        $inserted = $wpdb->insert($table, [
             'org_id' => $org_id,
             'status' => 'draft',
             'transaction_date' => $data['transaction_date'] ?? current_time('Y-m-d'),
@@ -94,8 +96,20 @@ class OraBooks_Posting {
             'metadata' => isset($data['metadata']) ? json_encode($data['metadata']) : null,
             'total_amount' => 0
         ], ['%d', '%s', '%s', '%s', '%d', '%s', '%d', '%s', '%d', '%s', '%s', '%f']);
+
+        if (!$inserted) {
+            $existing_id = $wpdb->get_var($wpdb->prepare(
+                "SELECT id FROM {$table} WHERE org_id = %d AND idempotency_key = %s",
+                (int) $org_id,
+                $idempotency_key
+            ));
+            if ($existing_id) {
+                return (int) $existing_id;
+            }
+            return new WP_Error('db_error', 'Failed to create journal.');
+        }
         
-        return $wpdb->insert_id;
+        return (int) $wpdb->insert_id;
     }
     
     /**
@@ -429,6 +443,14 @@ class OraBooks_Posting {
         ));
         
         if (!$journal || $journal->status !== 'approved') {
+            if ($journal && in_array($journal->status, ['posted', 'locked'], true)) {
+                return [
+                    'journal_number' => $journal->journal_number,
+                    'journal_hash' => $journal->journal_hash,
+                    'status' => $journal->status,
+                    'already_posted' => true,
+                ];
+            }
             return new WP_Error('invalid_status', 'Journal must be approved before posting');
         }
         
