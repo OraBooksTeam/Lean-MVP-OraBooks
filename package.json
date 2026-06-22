@@ -1,0 +1,21 @@
+{
+  "name": "lean-mvp-orabooks",
+  "version": "1.0.0",
+  "description": "Accounting SaaS, a brand of TaxOra LLC (USA)",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/OraBooksTeam/Lean-MVP-OraBooks.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/OraBooksTeam/Lean-MVP-OraBooks/issues"
+  },
+  "homepage": "https://github.com/OraBooksTeam/Lean-MVP-OraBooks#readme"
+}
