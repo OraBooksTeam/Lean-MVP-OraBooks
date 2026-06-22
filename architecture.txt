@@ -1,0 +1,245 @@
+1. Complete Architecture Flowcharts
+1.1 Overview Flowchart (Steps 0–10 + Partner Commission)
+┌────────────────────────────────────────────────────────────────────────────────────
+│ STEP 0: PLATFORM SUBSCRIPTION BILLING & REVENUE RECOGNITION (OraBooks own revenue)   │
+│ Internal Tenant (SL-021, SL-001, SL-250)                                               │
+└────────────────────────────────────────────────────────────────────────────────────
+│
+▼
+┌────────────────────────────────────────────────────────────────────────────────────
+│ USERS & EXTERNAL SYSTEMS (SL-013)                                                      │
+│GOVERNANCE: Partner orgs have NO access to accounting APIs; super admin cross-tenant
+│ reads audited, PII masked; founder only requests reversal journals.                   │
+└────────────────────────────────────────────────────────────────────────────────────
+│
+▼
+┌────────────────────────────────────────────────────────────────────────────────────
+│ STEP 1: TRANSACTION CAPTURE (SL-028, SL-052, SL-113, SL-203, SL-081)                  │
+│ - OCR, Voice, CSV, Manual Entry, Bank Feeds (unmatched suggestions)                   │
+│ - Manual Tax Override (SL-081):on invoice/expense draft, reason code required,audit 
+│   log, "Overridden" badge.                                                             │
+└────────────────────────────────────────────────────────────────────────────────────
+│
+▼
+┌────────────────────────────────────────────────────────────────────────────────────
+│ STEP 2: AI + RULE CLASSIFICATION & TAX HINTS (SL-022, SL-305)                          │
+│ - Rule engine first; confidence <70% or risk≥medium → AI Review Queue (SL-076).       │
+└────────────────────────────────────────────────────────────────────────────────────
+│
+▼
+┌────────────────────────────────────────────────────────────────────────────────────
+│ STEP 3: JOURNAL PREPARATION (SL-001) – Draft journal, double-entry enforced           │
+└────────────────────────────────────────────────────────────────────────────────────
+│
+▼
+┌────────────────────────────────────────────────────────────────────────────────────
+│ STEP 4: SUBMIT FOR APPROVAL (SL-002)–Human approval mandatory, snapshot hash stored 
+└────────────────────────────────────────────────────────────────────────────────────
+│
+▼
+┌────────────────────────────────────────────────────────────────────────────────────
+│ STEP 5: PENDING APPROVAL QUEUE + AI REVIEW QUEUE (SL-076)                             │
+│ - Low-confidence items → SL-076; AI feedback lifecycle: submitted → stored → under_review
+│ → queued_for_training → closed (or rejected → closed).                                │
+└────────────────────────────────────────────────────────────────────────────────────
+│
+▼
+┌────────────────────────────────────────────────────────────────────────────────────
+│ STEP 6: APPROVER REVIEWS – May edit journal (invalidates approval) or reject.        │
+│ Rejection requires reason; status returns to 'draft' (no separate 'rejected' state).  
+└────────────────────────────────────────────────────────────────────────────────────
+│
+▼
+┌────────────────────────────────────────────────────────────────────────────────────
+│ STEP 7: APPROVE (ONE CLICK) – Human approval finalised                                 │
+│ OTP if amount> MFA threshold (SL-013.Stores AI snapshot(model_version, prompt_hash,
+│ confidence). Journal locked for editing.                                              │
+└────────────────────────────────────────────────────────────────────────────────────
+│
+▼
+┌────────────────────────────────────────────────────────────────────────────────────
+│ STEP 8: CENTRAL POSTING ENGINE (SL-001) – ONLY ledger writer                          │
+│ Checks: fiscal period open (SL-304), double-entry balanced, approval stale false.    │
+│ Updates: account_balances via SECURITY DEFINER function, ledger_entries, journal     │
+│ status='posted'/'locked'. For multi-currency: converts amount using exchange_rates.  │
+│ Publishes outbox event: journal_posted.                                               │
+│ REVERSAL JOURNAL PATH: If hard_closed period and user attempts correction,        
+│ system auto-creates reversal journal (opposite signs) and posts to NEW open period.  │
+│ Never mutate closed period directly. Founder only requests reversal.                 │
+└────────────────────────────────────────────────────────────────────────────────────
+│
+▼
+┌────────────────────────────────────────────────────────────────────────────────────
+│ STEP 9: ASYNC SUBLEDGER & READ MODEL UPDATE (SL-302, SL-303)                          │
+│ - Inventory (SL-034), AR/AP (SL-021, SL-027), Reconciliation (SL-031)                │
+│ - Read models: report_ledger_summary, ar_aging, ap_aging, customer_active_status     │
+│ - Notifications (SL-250): delivery status badges, manual retry, dead letter queue.   │
+│ - Exports (SL-114): async PDF/CSV, watermark, expiry 7 days.                          │
+│ - FX revaluation job (monthly): unrealized gain/loss journals.                        │
+│ - Revenue recognition job (monthly): deferred revenue → subscription revenue.         │
+└───────────────────────────────────────────────────────────────────────────────────
+▼
+┌────────────────────────────────────────────────────────────────────────────────────
+│ STEP 10: REPORTING & INSIGHTS (SL-074, SL-075)                                        │
+│ Financial statements (P&L, Balance Sheet, Cash Flow) from read models;               │
+│ hard closed periods return frozen snapshots.                                          │
+│ Operational reports(AR Aging, AP Aging, Inventory Status,Bank Reconciliation, etc.)
+│ Multi-currency reports with user-selectable reporting currency. Exports via SL-114.  │
+└────────────────────────────────────────────────────────────────────────────────────
+┌────────────────────────────────────────────────────────────────────────────────────
+│ PARALLEL FLOW: PARTNER CODE & COMMISSION (SL-013, SL-139, SL-068)                     │
+│ - Partner signs up (SL-013) → auto org + partner code (status='pending_review')       │
+│ - Partner shares code → customer enters during signup → attribution pending          │
+│ - Email verified → attribution verified (SL-013) → event to SL-068                    │
+│ - SL-068: creates escrow schedule (6 years), monthly release, payout batches         │
+│ - Commission payout: Dr Commission Payable (gross), Cr Bank (net), Cr Fee Payable    │
+│ - Expiry after 6 years: reverse expense or income                                     │
+│ - Partner inactivity (SL-013+SL-139): dormant→inactive→reactivation workflow         │
+└────────────────────────────────────────────────────────────────────────────────────
+
+
+1.2 Detailed Data Flow Chart (UI to Reports)
+┌────────────────────────────────────────────────────────────┐
+│ User Interface (UI)                                         
+│ (React PWA – offline, i18n, RTL)                           
+└────────────────────────────────────────────────────────────┘
+┌────────────────┬───────────────┬─────────────────── ┬──────────────────┐
+│                │               │                    │                  │
+▼                ▼               ▼                    ▼                   ▼
+┌──────────┐   ┌──────────┐   ┌──────────┐        ┌──────────┐        ┌──────────┐
+│ SL-028   │   │ SL-052   │   │ SL-113   │        │ Manual   │        │ SL-031   │
+│ OCR      │   │ Voice    │   │ CSV      │        │ Entry    │        │ Bank     │
+│ Expense  │   │ Input    │   │ Import   │        │ (UI)     │        │ Feeds    │
+└────┬─────┘   └────┬─────┘   └────┬─────┘        └────┬─────┘        └────┬─────┘
+     │              │              │                    │                  │
+     │ (low conf)   │ (risk level) │ (low conf)        │                 │(matching)
+     ▼              ▼              ▼                    │                  │
+┌────────────────────────────────────────────────┐      │                  │
+│ SL-076 – AI Review Queue                       │      │                  │
+│ (confidence <70% or risk medium/high)          │      │                  │
+└────────────────────┬───────────────────────────┘      │                  │
+     │ (escalated – shown in UI)                        │                  │
+     │                                                  │                  │
+     ▼                                                  ▼                  ▼
+┌────────────────────────────────────────────────────────────────────────────┐
+│ SL-002 – AI Entry Approval Gate                                            │
+│ (confidence ≥70% + risk low → submitted; human approval, MFA)              │
+└────────────────────────────────────────────────────────────────────────────┘
+     ▼
+┌────────────────────────────────────────────────────────────────────────────┐
+│ SL-001 – Canonical Posting Engine                                          │
+│ (double entry validation, ledger update, balances, outbox events)          │
+└───────┬────────────────────────────────────────────────────────────────────┘
+     │
+     │ (events: journal.posted, invoice.posted, bill.posted, etc.)
+     ▼
+┌───────────────────┬───────────────────┬───────────────────┬─────────────────┐
+│                   │                   │                   │                 │
+▼                   ▼                   ▼                   ▼                 ▼
+┌─────────┐       ┌─────────┐       ┌─────────┐       ┌─────────┐       ┌─────────┐
+│ SL-021  │       │ SL-027  │       │ SL-034  │       │ SL-031  │       │ SL-068  │
+│ AR,     │       │ AP,     │       │ Inventory│      │ Reconc. │       │ Commission│
+│ Invoices│       │ Bills   │       │ (Cost)  │       │ (Match) │       │ Escrow  │
+└────┬────┘       └────┬────┘       └────┬────┘       └────┬────┘       └────┬────┘
+     │                 │                 │                 │                 │
+     └─────────────────┴─────────────────┴─────────────────┴─────────────────┘
+                                   │
+                                   ▼
+                    ┌─────────────────────────────────────────────┐
+                    │ SL-074 / SL-075 – Reports (P&L, BS,         │
+                    │ Aging, Inventory, Bank Summary)             │
+                    └─────────────────────────────────────────────┘
+                                   │
+                                   ▼
+                    ┌─────────────────────────────────────────────┐
+                    │ SL-114 – PDF / CSV Exports                  │
+                    │ (async, S3, watermark)                      │
+                    └─────────────────────────────────────────────┘
+
+
+
+
+
+
+
+1.3 System Context Diagram
+┌─────────────────────────────────────────────────────────────────────────┐
+│ EXTERNAL ACTORS                                                         │
+├─────────────────┬─────────────────┬─────────────────┬───────────────────┤
+│ Customers       │ Partners        │ Approvers       │ Super Admins      │
+│ (founders,staff)│ (partner users) │ (owners,approvers)│ platform_owner  │
+│                 │                 │                 │ platform_admin    │
+│                 │                 │                 │ platform_developer│
+│                 │                 │                 │ platform_viewer   │
+│                 │                 │                 │ platform_auditor  │
+└────────┬────────┴────────┬────────┴────────┬────────┴─────────┬─────────┘
+         └─────────────────┴─────────────────┴──────────────────┘
+                                   │
+                                   ▼
+                    ┌──────────────────────────────┐
+                    │ OraBooks Lean MVP            │
+                    │ (Backend + PWA + API+APP)    │
+                    │                              │
+                    └──────────────┬───────────────┘
+                                   │
+                                   ▼
+                    ┌───────────────────────────────┐
+                    │ External Systems              │
+                    ├───────────────────────────────┤
+                    │ 1. OCR (Google Vision / Azure)│
+                    │ 2. Bank Feeds (Plaid/Yodlee)  │
+                    │ 3. AI APIs (OpenAI / Azure)   │
+                    │ 4. Webhook (n8n, Stripe)      │
+                    │ 5. Email (AWS SES / SendGrid) │
+                    │ 6. S3 Storage (Attachments)   │
+                    │ 7. Payment Gateway (Stripe)   │
+                    └───────────────────────────────┘
+
+
+1.4 Container / Module Diagram (Modular Monolith)
+┌────────────────────────────────────────────────────────────────────────────────────
+│ OraBooks Backend (Modular Monolith)                                                    │
+├────────────────────────────────────────────────────────────────────────────────────
+│ ┌──────────────────────────┐ ┌──────────────────────────┐ ┌────────────────────────│
+│ │ Auth & Org Module        │ │ Transaction Capture      │ │ AI & Classification       │ │
+│ │ (SL-013, SL-004, SL-014, │ │ (SL-028, SL-052, SL-113, │ │(SL-022, SL-081, SL-076) │
+│ │ SL-003, SL-139)          │ │ SL-203, SL-081)          │ │ - Rule engine, AI sugg    │ │
+│ └──────────────────────────┘ └──────────────────────────┘ └────────────────────────│
+│ ┌──────────────────────────┐ ┌──────────────────────────┐ ┌────────────────────────│
+│ │ Approval Workflow        │ │ Central Posting Engine   │ │Inventory Module (SL-034)  │
+│ (SL-002, SL-076)           │ (SL-001)                   │ -Weighted average costing│
+│ └──────────────────────────┘ └──────────────────────────┘ └────────────────────────│
+│ ┌──────────────────────────┐ ┌──────────────────────────┐ ┌────────────────────────│
+│  AR/AP Module              │ │ Bank Reconciliation      │ │ Commission Module          │
+│  (SL-021, SL-027)          │ │ (SL-031)                 │ │ (SL-068, SL-139)           │
+│ └──────────────────────────┘ └──────────────────────────┘ └────────────────────────│
+│ ┌──────────────────────────┐ ┌──────────────────────────┐ ┌────────────────────────│
+│  Notification & Export     │ │ Security & Audit         │ │Platform Internal Tenant   │
+│ (SL-250, SL-114)           │ │ (SL-008, SL-009, SL-099) │ │(SL-004 ext, SL-017 ext)   
+│ └──────────────────────────┘ └──────────────────────────┘ └────────────────────────│
+│ ┌──────────────────────────────────────────────────────────────────────────────────│
+│  Shared Infrastructure (SL-302, SL-303, SL-304, SL-301) – Backend only             
+│ Frontend PWA (SL-093) is separate, not part of backend build order.              
+│
+└────────────────────────────────────────────────────────────────────────────────────
+
+
+
+
+
+
+
+
+
+
+
+2. Third Party API Integration Table
+Category	API / Provider	Function	Security	Fallback	Rate Limit	Circuit Breaker	Timeout	Retry Policy
+Bank Feeds	Plaid / Yodlee / Salt Edge	OAuth → transaction sync	Encrypted token, webhook signature	CSV upload, manual entry	100 req/min	5 failures → 60s open	30s	5 retries: 5m,15m,30m,1h,2h
+OCR	Google Vision / Azure	Extract receipt data	API key + rate limit	Rule based, manual	1000 images/day (free)	3 failures → 60s open	15s	3 retries: 2s,5s,15s
+AI Classification	OpenAI GPT 4o / Azure	Account mapping, tax hints	API key + PII masking	Rule engine only	20 tokens/sec	3 failures → 60s open	20s	3 retries: 2s,5s,10s
+Voice to Text	OpenAI Whisper / Google STT	Audio transcription, NLU	API key, encrypted payload	Rule based, manual	50 req/day (free)	3 failures → 60s open	60s	3 retries: 3s,10s,30s
+Webhook	Stripe, n8n, custom	Payment events, external sync	HMAC SHA256 + idempotency key	Dead letter queue, manual retry	1000/hour	10 failures → 120s open	10s	3 retries: 1m,5m,15m
+Email	AWS SES / SendGrid	Notifications, verification	SMTP credentials, TLS	Backup provider, log file	200/24h (sandbox)	5 failures → 30s open	10s	3 retries: 1m,5m,15m
+File Storage	S3 (MinIO)	Attachments, exports, snapshots	Pre signed URL, SSE S3/KMS	Local cache, filesystem	5000 req/s	N/A	30s	2 retries: 5s,30s
+
