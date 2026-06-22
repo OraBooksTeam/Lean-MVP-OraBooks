@@ -341,6 +341,9 @@ class OraBooks_Tax_Test extends TestCase
         $this->assertIsArray($result);
         $this->assertEquals(88, $result['snapshot_id']);
         $this->assertTrue($result['existing']);
+    }
+
+    #[Test]
     public function test_list_snapshots_returns_formatted_rows()
     {
         global $wpdb;
