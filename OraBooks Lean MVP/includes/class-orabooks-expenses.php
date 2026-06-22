@@ -872,6 +872,9 @@ class OraBooks_Expenses {
         unset($update['workflow_status']);
         if (!empty($update)) {
             $wpdb->update($table, $update, ['id' => intval($expense_id), 'org_id' => intval($org_id)]);
+            if ($expense->workflow_status === 'draft' && class_exists('OraBooks_Classification')) {
+                OraBooks_Classification::maybe_request('expense', (int) $expense_id, (int) $org_id);
+            }
         }
 
         if (!class_exists('OraBooks_Workflow')) {
