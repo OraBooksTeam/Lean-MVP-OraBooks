@@ -519,6 +519,7 @@ class OraBooks_Secrets {
         }
 
         self::set($key, $new_value);
+        self::clear_secrets_cache($key);
         unset(self::$secrets_cache[$key . '_previous']);
 
         if ($key === 'jwt_secret') {
@@ -782,15 +783,18 @@ class OraBooks_Secrets {
         $jwt = self::get_jwt_secret();
         $encryption = self::get_encryption_key();
         $tls = self::check_tls_certificate();
+        $db_tls = self::check_database_tls();
 
         return [
             'production_mode' => self::is_production(),
             'requires_tls' => self::requires_tls(),
+            'bootstrap_ready' => self::is_ready(),
             'jwt_secret_configured' => strlen((string) $jwt) >= self::MIN_JWT_SECRET_LENGTH,
             'encryption_key_configured' => strlen((string) $encryption) >= self::MIN_ENCRYPTION_KEY_LENGTH,
             'jwt_secret_length' => strlen((string) $jwt),
             'last_rotated' => get_option('orabooks_secrets_last_rotated', ''),
             'tls' => $tls,
+            'database_tls' => $db_tls,
             'https_active' => function_exists('is_ssl') ? is_ssl() : false,
         ];
     }
@@ -821,7 +825,7 @@ class OraBooks_Secrets {
         $header = self::base64url_encode(json_encode(['alg' => 'HS256', 'typ' => 'JWT']));
         $payload['iat'] = time();
         $jwt_expiry = self::with_shared_options(function () {
-            return (int) get_option('orabooks_jwt_expiry', 3600);
+            return (int) get_option('orabooks_jwt_expiry', self::get_default_jwt_expiry());
         });
         if (empty($payload['exp']) || (int) $payload['exp'] <= time()) {
             $payload['exp'] = time() + max(300, $jwt_expiry);
@@ -1215,4 +1219,14 @@ class OraBooks_Secrets {
     private static function encode_asn1_integer($data) {
         if ($data === '') {
             $data = "\x00";
-        } el
+        } elseif ($data[0] === "\x00" || (ord($data[0]) & 0x80)) {
+            $data = "\x00" . $data;
+        }
+
+        return "\x02" . self::encode_asn1_length(strlen($data)) . $data;
+    }
+
+    private static function encode_asn1_sequence($data) {
+        return "\x30" . self::encode_asn1_length(strlen($data)) . $data;
+    }
+}
