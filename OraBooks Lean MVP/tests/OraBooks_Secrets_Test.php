@@ -134,21 +134,30 @@ class OraBooks_Secrets_Test extends TestCase
     #[Test]
     public function test_check_database_tls_skips_non_production()
     {
+        $off = static function () {
+            return false;
+        };
+        add_filter('orabooks_is_production', $off);
+
         $result = OraBooks_Secrets::check_database_tls();
 
         $this->assertTrue($result['ok']);
         $this->assertTrue($result['skipped']);
+
+        remove_filter('orabooks_is_production', $off);
     }
 
     #[Test]
     public function test_bootstrap_fails_in_production_when_secrets_invalid()
     {
-        add_filter('orabooks_is_production', static function () {
+        $prod = static function () {
             return true;
-        });
-        add_filter('orabooks_database_tls_verified', static function () {
+        };
+        $db_tls = static function () {
             return true;
-        });
+        };
+        add_filter('orabooks_is_production', $prod);
+        add_filter('orabooks_database_tls_verified', $db_tls);
 
         $this->reset_secrets_cache();
         OraBooks_Secrets::set('jwt_secret', 'short');
@@ -165,8 +174,8 @@ class OraBooks_Secrets_Test extends TestCase
         $this->assertFalse(OraBooks_Secrets::is_ready());
         $this->assertInstanceOf(WP_Error::class, OraBooks_Secrets::get_bootstrap_error());
 
-        remove_all_filters('orabooks_is_production');
-        remove_all_filters('orabooks_database_tls_verified');
+        remove_filter('orabooks_is_production', $prod);
+        remove_filter('orabooks_database_tls_verified', $db_tls);
     }
 
     #[Test]
