@@ -286,6 +286,9 @@ export default function AdminSecurity() {
                       OK ({secretsRotation.days_until} days until due)
                     </span>
                   )}
+                  <span className="mt-1 block text-slate-500">
+                    Runbook: docs/SL-008-secret-rotation-runbook.md (JWT 30d, encryption 90d, TLS &amp; DB SSL)
+                  </span>
                 </div>
               )}
             </div>
