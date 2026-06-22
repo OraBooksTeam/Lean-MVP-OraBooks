@@ -217,6 +217,8 @@ class OraBooks_DeployChecks {
         );
 
         if (class_exists('OraBooks_Classification')) {
+            global $wpdb;
+
             $classify_handler = class_exists('OraBooks_AsyncQueue')
                 ? OraBooks_AsyncQueue::get_handler('classify_transaction')
                 : null;
