@@ -13,6 +13,7 @@
   "tags": [
     { "name": "Meta", "description": "API discovery" },
     { "name": "Fiscal", "description": "SL-304 fiscal period governance" },
+    { "name": "Journals", "description": "SL-001 canonical posting and journal workflow" },
     { "name": "Expenses", "description": "SL-028 receipt OCR and expense workflow" },
     { "name": "PWA", "description": "Progressive Web App metadata" },
     { "name": "Auth", "description": "SL-013 two-factor authentication" }
