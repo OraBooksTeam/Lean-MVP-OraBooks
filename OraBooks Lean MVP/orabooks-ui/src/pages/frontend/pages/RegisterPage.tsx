@@ -82,7 +82,12 @@ export default function RegisterPage() {
       });
       if (res.error) setError(typeof res.error === 'string' ? res.error : 'Registration failed');
       else {
-        window.location.replace(getNetworkAuthUrl('verify-email'));
+        try {
+          window.sessionStorage.setItem('orabooks_pending_verification_email', email);
+        } catch {
+          // sessionStorage may be unavailable in strict contexts
+        }
+        window.location.replace(getNetworkAuthUrl('verify-email', { registered: '1' }));
       }
     } finally {
       setLoading(false);
