@@ -1093,6 +1093,7 @@ if (!class_exists('OraBooks_Secrets', false)) {
             return [
                 'production_mode' => false,
                 'requires_tls' => false,
+                'bootstrap_ready' => self::is_ready(),
                 'jwt_secret_configured' => true,
                 'encryption_key_configured' => true,
                 'jwt_secret_length' => strlen(self::get_jwt_secret()),
@@ -1104,6 +1105,26 @@ if (!class_exists('OraBooks_Secrets', false)) {
 
         public static function requires_tls() {
             return (bool) ($GLOBALS['orabooks_test_requires_tls'] ?? false);
+        }
+
+        public static function is_ready() {
+            return (bool) ($GLOBALS['orabooks_test_secrets_ready'] ?? true);
+        }
+
+        public static function get_hmac_signing_key() {
+            return (string) self::get_jwt_secret();
+        }
+
+        public static function get_default_jwt_expiry() {
+            return 900;
+        }
+
+        public static function check_database_tls() {
+            return $GLOBALS['orabooks_test_database_tls'] ?? [
+                'ok' => true,
+                'skipped' => true,
+                'reason' => 'test_stub',
+            ];
         }
 
         public static function check_tls_certificate($host = null, $port = 443) {
