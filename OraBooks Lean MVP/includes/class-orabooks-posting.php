@@ -1479,15 +1479,17 @@ class OraBooks_Posting {
             );
 
             $journal = $wpdb->get_row($wpdb->prepare(
-                "SELECT posted_by FROM {$table_journals} WHERE id = %d",
+                "SELECT posted_by, approved_by, created_by FROM {$table_journals} WHERE id = %d",
                 (int) $row->journal_id
             ));
-            $user_id = $journal && !empty($journal->posted_by)
-                ? (int) $journal->posted_by
-                : (int) ($wpdb->get_var($wpdb->prepare(
-                    "SELECT created_by FROM {$table_journals} WHERE id = %d",
-                    (int) $row->journal_id
-                )) ?: 0);
+            $user_id = 0;
+            if ($journal) {
+                if (!empty($journal->approved_by)) {
+                    $user_id = (int) $journal->approved_by;
+                } elseif (!empty($journal->created_by)) {
+                    $user_id = (int) $journal->created_by;
+                }
+            }
 
             if ($user_id <= 0) {
                 $wpdb->update(

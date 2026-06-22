@@ -422,7 +422,7 @@ export default function JournalsPage() {
                       <Button
                         size="sm"
                         disabled={actionLoading}
-                        title="Approve journal. Snapshot stored. Journal locked."
+                        title="Approving locks the journal. Posting is atomic."
                         className="bg-accent text-white hover:bg-accent/90"
                         onClick={() => void approveJournal()}
                       >
@@ -433,7 +433,6 @@ export default function JournalsPage() {
                         variant="secondary"
                         disabled={actionLoading}
                         title="Reject with reason. Journal returns to draft."
-                        onClick={() => setRejectModalOpen(true)}
                       >
                         Reject
                       </Button>
