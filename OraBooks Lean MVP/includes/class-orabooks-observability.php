@@ -635,6 +635,63 @@ class OraBooks_Observability {
     }
 
     /**
+     * SL-022 classification health (processed vs failed/overridden).
+     */
+    public static function get_classification_health($org_id = 0) {
+        global $wpdb;
+
+        $org_id = (int) $org_id;
+        $since = gmdate('Y-m-d H:i:s', time() - 86400);
+        $audit_table = OraBooks_Database::table('audit_logs');
+
+        $events = [
+            'classification_suggested',
+            'classification_failed',
+            'classification_override',
+        ];
+
+        $placeholders = implode(',', array_fill(0, count($events), '%s'));
+        $params = array_merge([$since], $events);
+        $sql = "SELECT event_type, COUNT(*) AS total FROM {$audit_table}
+                WHERE created_at >= %s AND event_type IN ({$placeholders})";
+
+        if ($org_id > 0) {
+            $sql .= ' AND org_id = %d';
+            $params[] = $org_id;
+        }
+
+        $sql .= ' GROUP BY event_type';
+        $rows = $wpdb->get_results($wpdb->prepare($sql, ...$params));
+
+        $counts = [
+            'processed'  => 0,
+            'failed'     => 0,
+            'overridden'  => 0,
+        ];
+
+        foreach ($rows ?: [] as $row) {
+            if ($row->event_type === 'classification_suggested') {
+                $counts['processed'] = (int) $row->total;
+            } elseif ($row->event_type === 'classification_failed') {
+                $counts['failed'] = (int) $row->total;
+            } elseif ($row->event_type === 'classification_override') {
+                $counts['overridden'] = (int) $row->total;
+            }
+        }
+
+        $total = array_sum($counts);
+
+        return [
+            'org_id'          => $org_id > 0 ? $org_id : null,
+            'processed_24h'   => $counts['processed'],
+            'failed_24h'      => $counts['failed'],
+            'overridden_24h'  => $counts['overridden'],
+            'override_rate'   => $total > 0 ? round($counts['overridden'] / $total, 4) : 0.0,
+            'window_hours'    => 24,
+        ];
+    }
+
+    /**
      * Query raw metric series.
      */
     public static function get_metric_series($service, $metric_name, $hours = 24, $limit = 500) {

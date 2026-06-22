@@ -1009,6 +1009,121 @@ class OraBooks_Rest_Api {
         return rest_ensure_response($result);
     }
 
+    public static function can_view_classification($request) {
+        return !is_wp_error(self::require_org_access($request, 'view_classification'));
+    }
+
+    public static function can_manage_classification($request) {
+        return !is_wp_error(self::require_org_access($request, 'override_classification'));
+    }
+
+    public static function rest_classification_run(WP_REST_Request $request) {
+        if (!class_exists('OraBooks_Classification')) {
+            return new WP_Error('unavailable', 'Classification module unavailable.', ['status' => 503]);
+        }
+
+        $context = self::require_org_access($request, 'view_classification');
+        if (is_wp_error($context)) {
+            return $context;
+        }
+
+        $record_type = sanitize_text_field($request->get_param('record_type') ?? $request->get_param('recordType') ?? '');
+        $record_id = (int) ($request->get_param('record_id') ?? $request->get_param('recordId') ?? 0);
+        $async = rest_sanitize_boolean($request->get_param('async') ?? true);
+
+        $result = $async
+            ? OraBooks_Classification::request($record_type, $record_id, $context['org_id'])
+            : OraBooks_Classification::run($record_type, $record_id, $context['org_id']);
+
+        if (is_wp_error($result)) {
+            $result->add_data(['status' => (int) ($result->get_error_data()['status'] ?? 400)]);
+            return $result;
+        }
+
+        return rest_ensure_response([
+            'classification' => is_array($result) && isset($result['classification'])
+                ? $result['classification']
+                : (is_array($result) ? $result : OraBooks_Classification::format_classification($result)),
+        ]);
+    }
+
+    public static function rest_classification_dry_run(WP_REST_Request $request) {
+        if (!class_exists('OraBooks_Classification')) {
+            return new WP_Error('unavailable', 'Classification module unavailable.', ['status' => 503]);
+        }
+
+        $context = self::require_org_access($request, 'view_classification');
+        if (is_wp_error($context)) {
+            return $context;
+        }
+
+        $record_type = sanitize_text_field($request->get_param('record_type') ?? $request->get_param('recordType') ?? '');
+        $record_id = (int) ($request->get_param('record_id') ?? $request->get_param('recordId') ?? 0);
+        $result = OraBooks_Classification::dry_run($record_type, $record_id, $context['org_id']);
+
+        if (is_wp_error($result)) {
+            $result->add_data(['status' => (int) ($result->get_error_data()['status'] ?? 400)]);
+            return $result;
+        }
+
+        return rest_ensure_response(['classification' => $result]);
+    }
+
+    public static function rest_classification_apply(WP_REST_Request $request) {
+        if (!class_exists('OraBooks_Classification')) {
+            return new WP_Error('unavailable', 'Classification module unavailable.', ['status' => 503]);
+        }
+
+        $context = self::require_org_access($request, 'override_classification');
+        if (is_wp_error($context)) {
+            return $context;
+        }
+
+        $record_type = sanitize_text_field($request->get_param('record_type') ?? $request->get_param('recordType') ?? '');
+        $record_id = (int) ($request->get_param('record_id') ?? $request->get_param('recordId') ?? 0);
+        $result = OraBooks_Classification::apply_suggestions($record_type, $record_id, $context['org_id'], $context['user_id']);
+
+        if (is_wp_error($result)) {
+            $result->add_data(['status' => (int) ($result->get_error_data()['status'] ?? 400)]);
+            return $result;
+        }
+
+        return rest_ensure_response(['classification' => OraBooks_Classification::format_classification($result)]);
+    }
+
+    public static function rest_classification_override(WP_REST_Request $request) {
+        if (!class_exists('OraBooks_Classification')) {
+            return new WP_Error('unavailable', 'Classification module unavailable.', ['status' => 503]);
+        }
+
+        $context = self::require_org_access($request, 'override_classification');
+        if (is_wp_error($context)) {
+            return $context;
+        }
+
+        $record_type = sanitize_text_field($request->get_param('record_type') ?? $request->get_param('recordType') ?? '');
+        $record_id = (int) ($request->get_param('record_id') ?? $request->get_param('recordId') ?? 0);
+        $account_code = sanitize_text_field($request->get_param('account_code') ?? $request->get_param('accountCode') ?? '');
+        $tax_rate = $request->get_param('tax_rate');
+        $tax_rate = $tax_rate === null ? null : (float) $tax_rate;
+
+        $result = OraBooks_Classification::override(
+            $record_type,
+            $record_id,
+            $context['org_id'],
+            $context['user_id'],
+            $account_code,
+            $tax_rate
+        );
+
+        if (is_wp_error($result)) {
+            $result->add_data(['status' => (int) ($result->get_error_data()['status'] ?? 400)]);
+            return $result;
+        }
+
+        return rest_ensure_response(['classification' => OraBooks_Classification::format_classification($result)]);
+    }
+
     public static function rest_get_org_2fa_policy(WP_REST_Request $request) {
         $context = self::require_org_access($request, 'manage_org_settings');
         if (is_wp_error($context)) {
