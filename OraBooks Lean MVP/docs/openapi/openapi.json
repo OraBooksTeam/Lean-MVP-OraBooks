@@ -183,6 +183,89 @@
         }
       }
     },
+    "/journals": {
+      "get": {
+        "tags": ["Journals"],
+        "summary": "List journals",
+        "parameters": [
+          { "in": "query", "name": "org_id", "required": true, "schema": { "type": "integer" } },
+          { "in": "query", "name": "status", "schema": { "type": "string" } },
+          { "in": "query", "name": "from_date", "schema": { "type": "string", "format": "date" } },
+          { "in": "query", "name": "to_date", "schema": { "type": "string", "format": "date" } },
+          { "in": "query", "name": "account_code", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Journal list" },
+          "403": { "description": "Forbidden" }
+        }
+      },
+      "post": {
+        "tags": ["Journals"],
+        "summary": "Create draft journal",
+        "parameters": [
+          { "in": "query", "name": "org_id", "required": true, "schema": { "type": "integer" } },
+          { "in": "header", "name": "Idempotency-Key", "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "transaction_date": { "type": "string", "format": "date" },
+                  "source_type": { "type": "string" },
+                  "lines": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "account_code": { "type": "string" },
+                        "debit_amount": { "type": "number" },
+                        "credit_amount": { "type": "number" },
+                        "description": { "type": "string" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Draft journal created" },
+          "422": { "description": "Validation error" }
+        }
+      }
+    },
+    "/journals/{id}": {
+      "get": {
+        "tags": ["Journals"],
+        "summary": "Get journal detail",
+        "parameters": [
+          { "in": "path", "name": "id", "required": true, "schema": { "type": "integer" } },
+          { "in": "query", "name": "org_id", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": {
+          "200": { "description": "Journal with lines and approval history" },
+          "404": { "description": "Not found" }
+        }
+      }
+    },
+    "/journals/{id}/post": {
+      "post": {
+        "tags": ["Journals"],
+        "summary": "Post approved journal to ledger",
+        "parameters": [
+          { "in": "path", "name": "id", "required": true, "schema": { "type": "integer" } },
+          { "in": "query", "name": "org_id", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": {
+          "200": { "description": "Posted and locked" },
+          "409": { "description": "Invalid status or fiscal closed" }
+        }
+      }
+    },
     "/expenses": {
       "get": {
         "tags": ["Expenses"],
