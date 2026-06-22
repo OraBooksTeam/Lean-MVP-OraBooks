@@ -1,20 +1,30 @@
 # Build OraBooks React UI into ../assets/react for LIVE WordPress plugin.
-# Run from any folder: double-click or `powershell -File build-live.ps1`
+# Double-click build-live.cmd or run: powershell -File build-live.ps1
 $ErrorActionPreference = 'Stop'
 
 $uiRoot = $PSScriptRoot
-Write-Host "Building OraBooks UI for LIVE deploy..." -ForegroundColor Cyan
-Write-Host "Output: $uiRoot\..\assets\react\" -ForegroundColor Gray
+$shareRoot = Split-Path $uiRoot -Parent
+Write-Host 'Building OraBooks UI for LIVE deploy...' -ForegroundColor Cyan
+Write-Host "Output: $shareRoot\assets\react\" -ForegroundColor Gray
 
-Push-Location $uiRoot
+function Enter-BuildDirectory {
+    $drive = 'O'
+    $mapped = net use $drive`: 2>&1 | Out-String
+    if ($LASTEXITCODE -ne 0) {
+        net use $drive`: $uiRoot /persistent:no | Out-Null
+    }
+    Set-Location "$drive`:"
+}
+
+Enter-BuildDirectory
 try {
     npm run build
     if ($LASTEXITCODE -ne 0) {
         throw "npm run build failed with exit code $LASTEXITCODE"
     }
-    Write-Host ""
-    Write-Host "SUCCESS — Live plugin assets updated." -ForegroundColor Green
-    Write-Host "Refresh your live site (hard refresh Ctrl+F5) and open /classification-test" -ForegroundColor Yellow
+    Write-Host ''
+    Write-Host 'SUCCESS - Live plugin assets updated.' -ForegroundColor Green
+    Write-Host 'Hard refresh live site (Ctrl+F5) then open /classification-test' -ForegroundColor Yellow
 } finally {
-    Pop-Location
+    net use O: /delete /y 2>$null | Out-Null
 }
