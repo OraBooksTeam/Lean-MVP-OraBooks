@@ -47,7 +47,6 @@ export default function OverrideClassificationModal({
               value={taxRate}
               onChange={(e) => setTaxRate(e.target.value)}
               placeholder="Optional"
-              className={fieldClass}
             />
           </label>
         </div>

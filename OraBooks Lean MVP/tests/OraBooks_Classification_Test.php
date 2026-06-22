@@ -145,4 +145,140 @@ class OraBooks_Classification_Test extends TestCase
         $this->assertEquals('overridden', $updates[0]['classification_status']);
         $this->assertEquals('5300', $updates[0]['suggested_account_code']);
     }
+
+    #[Test]
+    public function test_request_short_circuits_same_idempotency_key()
+    {
+        global $wpdb;
+
+        $expense = (object) [
+            'id' => 5,
+            'org_id' => 1,
+            'vendor' => 'Acme',
+            'classification_status' => 'processed',
+            'classification_idempotency_key' => 'hash-abc',
+        ];
+
+        $wpdb->test_get_row_callback = function () use ($expense) {
+            return $expense;
+        };
+
+        $result = OraBooks_Classification::request('expense', 5, 1, ['idempotency_key' => 'hash-abc']);
+
+        $this->assertIsArray($result);
+        $this->assertEquals('processed', $result['status']);
+        $this->assertEquals('hash-abc', $result['idempotency_key']);
+    }
+
+    #[Test]
+    public function test_request_returns_duplicate_error_for_conflicting_key()
+    {
+        global $wpdb;
+
+        $expense = (object) [
+            'id' => 8,
+            'org_id' => 1,
+            'vendor' => 'Acme',
+            'classification_status' => 'pending',
+            'classification_idempotency_key' => 'old-key',
+        ];
+
+        $wpdb->test_get_row_callback = function () use ($expense) {
+            return $expense;
+        };
+
+        $wpdb->test_get_var_callback = function ($query) {
+            if (stripos($query, 'classification_idempotency_key') !== false) {
+                return 99;
+            }
+            return null;
+        };
+
+        $result = OraBooks_Classification::request('expense', 8, 1, ['idempotency_key' => 'new-key']);
+
+        $this->assertInstanceOf(WP_Error::class, $result);
+        $this->assertEquals('duplicate', $result->get_error_code());
+        $this->assertEquals(409, $result->get_error_data()['status'] ?? null);
+    }
+
+    #[Test]
+    public function test_handle_async_job_returns_error_message_on_failure()
+    {
+        $result = OraBooks_Classification::handle_async_job(null, [
+            'record_type' => 'invalid_type',
+            'record_id' => 1,
+            'org_id' => 1,
+        ]);
+
+        $this->assertIsString($result);
+        $this->assertNotSame(true, $result);
+    }
+
+    #[Test]
+    public function test_rule_precedence_helpers_sync_both_option_keys()
+    {
+        OraBooks_Classification::set_rule_precedence_over_ai(true);
+        $this->assertTrue(OraBooks_Classification::rule_precedence_over_ai_enabled());
+
+        OraBooks_Classification::set_rule_precedence_over_ai(false);
+        $this->assertFalse(OraBooks_Classification::rule_precedence_over_ai_enabled());
+    }
+
+    #[Test]
+    public function test_schema_includes_journal_line_columns()
+    {
+        $sql = implode("\n", OraBooks_Classification::get_create_table_sql());
+        $this->assertStringContainsString('journal_lines', $sql);
+        $this->assertStringContainsString('classification_status', $sql);
+    }
+
+    #[Test]
+    public function test_format_classification_decodes_json_reason()
+    {
+        $result = OraBooks_Classification::format_classification((object) [
+            'classification_status' => 'failed',
+            'classification_reason' => wp_json_encode(['summary' => 'Provider timeout', 'source' => 'system']),
+        ]);
+
+        $this->assertEquals('failed', $result['status']);
+        $this->assertStringContainsString('timeout', strtolower($result['reason']));
+    }
+
+    #[Test]
+    public function test_dry_run_returns_suggestion_without_db_update()
+    {
+        global $wpdb;
+
+        $expense = (object) [
+            'id' => 30,
+            'org_id' => 2,
+            'vendor' => 'Staples',
+            'category' => 'Office',
+            'description' => 'Pens',
+            'total_amount' => 45.00,
+        ];
+
+        $wpdb->test_get_row_callback = function () use ($expense) {
+            return $expense;
+        };
+
+        $wpdb->test_get_results_callback = function ($query) {
+            if (stripos($query, 'classification_rules') !== false) {
+                return [];
+            }
+            return [];
+        };
+
+        $update_called = false;
+        $wpdb->test_update_callback = function () use (&$update_called) {
+            $update_called = true;
+            return 1;
+        };
+
+        $result = OraBooks_Classification::dry_run('expense', 30, 2);
+
+        $this->assertIsArray($result);
+        $this->assertArrayHasKey('suggested_account_code', $result);
+        $this->assertFalse($update_called);
+    }
 }
