@@ -1199,10 +1199,49 @@ class OraBooks_Customers {
         ]);
 
         if (class_exists('OraBooks_Classification')) {
-            OraBooks_Classification::request('invoice', (int) $invoice_id, (int) $org_id);
+            OraBooks_Classification::maybe_request('invoice', (int) $invoice_id, (int) $org_id);
         }
 
         return self::get_invoice($invoice_id);
+    }
+
+    public static function format_invoice($invoice) {
+        if (!$invoice) {
+            return null;
+        }
+
+        $formatted = [
+            'id'              => (int) $invoice->id,
+            'org_id'          => (int) $invoice->org_id,
+            'customer_id'     => (int) $invoice->customer_id,
+            'invoice_number'  => $invoice->invoice_number,
+            'invoice_date'    => $invoice->invoice_date,
+            'due_date'        => $invoice->due_date,
+            'description'     => $invoice->description ?? '',
+            'total_amount'    => (float) $invoice->total_amount,
+            'tax_amount'      => isset($invoice->tax_amount) ? (float) $invoice->tax_amount : null,
+            'tax_rate'        => isset($invoice->tax_rate) ? (float) $invoice->tax_rate : null,
+            'currency'        => $invoice->currency ?? 'USD',
+            'payment_status'  => $invoice->payment_status,
+            'workflow_status' => $invoice->workflow_status,
+        ];
+
+        if (class_exists('OraBooks_Classification')) {
+            $formatted['classification'] = OraBooks_Classification::format_classification($invoice);
+        }
+
+        if (!empty($invoice->payments)) {
+            $formatted['payments'] = array_map(static function ($payment) {
+                return [
+                    'id'             => (int) $payment->id,
+                    'amount'         => (float) $payment->amount,
+                    'payment_date'   => $payment->payment_date,
+                    'payment_method' => $payment->payment_method,
+                ];
+            }, $invoice->payments);
+        }
+
+        return $formatted;
     }
 
     public static function override_invoice_tax($org_id, $invoice_id, $new_tax_rate, $reason_code, $user_id, $jurisdiction = 'US') {

@@ -471,10 +471,12 @@ class OraBooks_Classification {
         if (class_exists('OraBooks_COA')) {
             $account = OraBooks_COA::get_account_by_code($org_id, $suggestion['account_code']);
             if (!$account) {
-                return new WP_Error('invalid_account', sprintf(
-                    __('Suggested account %s is not in the chart of accounts.', 'orabooks'),
-                    $suggestion['account_code']
-                ));
+                orabooks_log_event('classification_invalid_account', 'Suggested account missing from COA', 'warning', [
+                    'record_type'  => $record_type,
+                    'record_id'    => $record_id,
+                    'account_code' => $suggestion['account_code'],
+                ], 0, $org_id);
+                $suggestion['confidence'] = min((float) $suggestion['confidence'], 55.0);
             }
         }
 
