@@ -530,6 +530,158 @@ export default function TaxSettingsPage() {
           </div>
         )}
 
+        {canManageRules && (
+          <div className="glass-panel overflow-hidden">
+            <div className="border-b border-border px-5 py-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <h2 className="flex items-center gap-2 font-bold text-ink">
+                    <Sparkles className="h-4 w-4 text-primary" />
+                    Classification rules (SL-022)
+                  </h2>
+                  <p className="text-sm text-slate-600">Vendor, keyword, and category rules override AI when enabled.</p>
+                </div>
+                <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
+                  <input
+                    type="checkbox"
+                    checked={rulePrecedesAi}
+                    onChange={(e) => void saveRulePrecedence(e.target.checked)}
+                  />
+                  Rules dominate AI
+                </label>
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-2 border-b border-border px-5 py-3">
+              <Button
+                size="sm"
+                onClick={() => {
+                  setRuleForm({
+                    id: 0,
+                    rule_type: 'keyword',
+                    match_value: '',
+                    account_code: '',
+                    tax_jurisdiction: 'US',
+                    priority: '10',
+                    is_active: true,
+                  });
+                  setShowRuleForm(true);
+                }}
+              >
+                <Plus className="h-4 w-4" />
+                Add rule
+              </Button>
+            </div>
+            {showRuleForm && (
+              <div className="grid gap-3 border-b border-border px-5 py-4 md:grid-cols-3">
+                <label className="text-sm">
+                  <span className="mb-1 block font-semibold text-slate-600">Type</span>
+                  <select
+                    className="w-full rounded-lg border border-border px-3 py-2 text-sm"
+                    value={ruleForm.rule_type}
+                    onChange={(e) => setRuleForm((p) => ({ ...p, rule_type: e.target.value }))}
+                  >
+                    <option value="vendor">Vendor</option>
+                    <option value="keyword">Keyword</option>
+                    <option value="category">Category</option>
+                  </select>
+                </label>
+                <label className="text-sm">
+                  <span className="mb-1 block font-semibold text-slate-600">Match value</span>
+                  <Input value={ruleForm.match_value} onChange={(e) => setRuleForm((p) => ({ ...p, match_value: e.target.value }))} />
+                </label>
+                <label className="text-sm">
+                  <span className="mb-1 block font-semibold text-slate-600">Account code</span>
+                  <Input value={ruleForm.account_code} onChange={(e) => setRuleForm((p) => ({ ...p, account_code: e.target.value }))} />
+                </label>
+                <label className="text-sm">
+                  <span className="mb-1 block font-semibold text-slate-600">Tax jurisdiction</span>
+                  <Input value={ruleForm.tax_jurisdiction} onChange={(e) => setRuleForm((p) => ({ ...p, tax_jurisdiction: e.target.value }))} />
+                </label>
+                <label className="text-sm">
+                  <span className="mb-1 block font-semibold text-slate-600">Priority</span>
+                  <Input type="number" value={ruleForm.priority} onChange={(e) => setRuleForm((p) => ({ ...p, priority: e.target.value }))} />
+                </label>
+                <label className="flex items-end gap-2 pb-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={ruleForm.is_active}
+                    onChange={(e) => setRuleForm((p) => ({ ...p, is_active: e.target.checked }))}
+                  />
+                  Active
+                </label>
+                <div className="flex gap-2 md:col-span-3">
+                  <Button onClick={() => void saveClassificationRule()} disabled={saving}>
+                    {saving ? 'Saving…' : 'Save rule'}
+                  </Button>
+                  <Button variant="secondary" onClick={() => setShowRuleForm(false)}>
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            )}
+            <table className="min-w-full text-left text-sm">
+              <thead>
+                <tr className="border-b border-border bg-slate-50/70 text-xs uppercase text-slate-500">
+                  <th className="px-5 py-3 font-semibold">Type</th>
+                  <th className="px-5 py-3 font-semibold">Match</th>
+                  <th className="px-5 py-3 font-semibold">Account</th>
+                  <th className="px-5 py-3 font-semibold">Priority</th>
+                  <th className="px-5 py-3 font-semibold">Status</th>
+                  <th className="px-5 py-3 font-semibold" />
+                </tr>
+              </thead>
+              <tbody>
+                {classificationRules.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="px-5 py-8 text-center text-slate-500">
+                      No classification rules yet. Default rules are seeded on org create.
+                    </td>
+                  </tr>
+                ) : (
+                  classificationRules.map((rule) => (
+                    <tr key={rule.id} className="border-b border-border/70">
+                      <td className="px-5 py-3 capitalize text-ink">{rule.rule_type}</td>
+                      <td className="px-5 py-3 text-slate-600">{rule.match_value}</td>
+                      <td className="px-5 py-3 font-mono text-slate-700">{rule.account_code}</td>
+                      <td className="px-5 py-3 text-slate-600">{rule.priority}</td>
+                      <td className="px-5 py-3">
+                        <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${rule.is_active ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-600'}`}>
+                          {rule.is_active ? 'Active' : 'Inactive'}
+                        </span>
+                      </td>
+                      <td className="px-5 py-3 text-right">
+                        <div className="flex justify-end gap-1">
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            onClick={() => {
+                              setRuleForm({
+                                id: rule.id,
+                                rule_type: rule.rule_type,
+                                match_value: rule.match_value,
+                                account_code: rule.account_code,
+                                tax_jurisdiction: rule.tax_jurisdiction || 'US',
+                                priority: String(rule.priority),
+                                is_active: Boolean(rule.is_active),
+                              });
+                              setShowRuleForm(true);
+                            }}
+                          >
+                            Edit
+                          </Button>
+                          <Button variant="secondary" size="sm" onClick={() => void deleteClassificationRule(rule.id)}>
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
+
         <div className="glass-panel overflow-hidden">
           <div className="border-b border-border px-5 py-4">
             <h2 className="font-bold text-ink">Recent tax snapshots</h2>
