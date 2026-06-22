@@ -232,6 +232,8 @@ function orabooks_init() {
     orabooks_mirror_jwt_ajax_nopriv_handlers();
 }
 
+add_action('init', 'orabooks_mirror_jwt_ajax_nopriv_handlers', 999);
+
 /**
  * Create a WordPress page with shortcode content if it doesn't already exist
  */

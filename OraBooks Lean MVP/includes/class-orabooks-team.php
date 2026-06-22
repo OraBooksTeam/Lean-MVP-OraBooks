@@ -415,6 +415,17 @@ class OraBooks_Team {
                 'new_role' => $new_role
             ], $changed_by, $org_id);
         }
+
+        $table_users = OraBooks_Database::table('users');
+        $wpdb->update(
+            $table_users,
+            ['org_id' => (int) $org_id],
+            ['id' => (int) $target_user_id],
+            ['%d'],
+            ['%d']
+        );
+
+        do_action('orabooks_user_role_updated', (int) $org_id, (int) $target_user_id, $new_role, $current_role, (int) $changed_by);
         
         return true;
     }
@@ -533,8 +544,6 @@ class OraBooks_Team {
     }
 
     private function require_org_member_access($user_id, $org_id) {
-        global $wpdb;
-
         if (!$user_id) {
             orabooks_json_error('Not authenticated', 401);
         }
@@ -553,14 +562,7 @@ class OraBooks_Team {
             orabooks_json_error('Your organization is not active. Please contact support.', 403);
         }
 
-        $table_user_org = OraBooks_Database::table('user_org');
-        $membership = $wpdb->get_var($wpdb->prepare(
-            "SELECT user_id FROM {$table_user_org} WHERE user_id = %d AND org_id = %d",
-            intval($user_id),
-            $org_id
-        ));
-
-        if (!$membership && !current_user_can('manage_options')) {
+        if (!orabooks_user_belongs_to_org((int) $user_id, $org_id) && !current_user_can('manage_options')) {
             orabooks_json_error('You are not a member of this organization', 403);
         }
     }
@@ -612,7 +614,14 @@ class OraBooks_Team {
         if (is_wp_error($result)) {
             orabooks_json_error($result->get_error_message(), 400);
         }
-        orabooks_json_success([], 'Role updated');
+
+        $updated_role = orabooks_get_user_role($target_user_id, $org_id);
+        orabooks_json_success([
+            'user_id' => $target_user_id,
+            'org_id' => $org_id,
+            'role' => $updated_role,
+            'requires_relogin' => true,
+        ], 'Role updated');
     }
     
     public function ajax_remove_user() {
