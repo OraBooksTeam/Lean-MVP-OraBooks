@@ -2453,20 +2453,25 @@ function orabooks_resolve_request_org_id($user_id, $requested_org_id = 0) {
 }
 
 /**
- * Mirror logged-in OraBooks AJAX handlers for JWT clients on tenant subdomains.
+ * Mirror logged-in AJAX handlers for JWT clients without a WP session.
  *
  * WordPress only routes admin-ajax.php to wp_ajax_* when a WP session exists.
  * OraBooks frontend auth uses JWT, so matching wp_ajax_nopriv_* hooks are required.
+ *
+ * @param string $action_prefix Handler prefix after wp_ajax_, e.g. orabooks_ or obn_.
  */
-function orabooks_mirror_jwt_ajax_nopriv_handlers() {
+function orabooks_mirror_ajax_nopriv_handlers($action_prefix) {
     global $wp_filter;
 
-    if (!is_iterable($wp_filter)) {
+    $action_prefix = (string) $action_prefix;
+    if ($action_prefix === '' || !is_iterable($wp_filter)) {
         return;
     }
 
+    $needle = 'wp_ajax_' . $action_prefix;
+
     foreach ($wp_filter as $tag => $hook) {
-        if (!is_string($tag) || strpos($tag, 'wp_ajax_orabooks_') !== 0) {
+        if (!is_string($tag) || strpos($tag, $needle) !== 0) {
             continue;
         }
 
@@ -2490,6 +2495,14 @@ function orabooks_mirror_jwt_ajax_nopriv_handlers() {
             }
         }
     }
+}
+
+/**
+ * Mirror OraBooks and legacy accounting AJAX handlers for JWT clients.
+ */
+function orabooks_mirror_jwt_ajax_nopriv_handlers() {
+    orabooks_mirror_ajax_nopriv_handlers('orabooks_');
+    orabooks_mirror_ajax_nopriv_handlers('obn_');
 }
 
 /**
