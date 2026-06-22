@@ -225,11 +225,11 @@ class OraBooks_Classification_Test extends TestCase
     }
 
     #[Test]
-    public function test_schema_includes_journal_line_columns()
+    public function test_journal_line_record_type_is_registered()
     {
-        $sql = implode("\n", OraBooks_Classification::get_create_table_sql());
-        $this->assertStringContainsString('journal_lines', $sql);
-        $this->assertStringContainsString('classification_status', $sql);
+        $types = OraBooks_Classification::$record_types;
+        $this->assertArrayHasKey('journal_line', $types);
+        $this->assertEquals('journal_lines', $types['journal_line']['table']);
     }
 
     #[Test]
