@@ -8,6 +8,16 @@ use PHPUnit\Framework\TestCase;
 
 class OraBooks_Rest_Api_Test extends TestCase
 {
+    protected function setUp(): void
+    {
+        parent::setUp();
+        if (class_exists('OBN_Access_Control')) {
+            OBN_Access_Control::init();
+        } elseif (class_exists('OraBooks_RBAC')) {
+            OraBooks_RBAC::init();
+        }
+    }
+
     #[Test]
     public function test_openapi_spec_loads_with_core_paths()
     {
