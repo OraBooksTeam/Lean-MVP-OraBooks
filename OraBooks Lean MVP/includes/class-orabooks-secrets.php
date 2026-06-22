@@ -16,21 +16,72 @@ class OraBooks_Secrets {
     private static $secrets_cache = [];
     private static $access_logged = [];
     private static $bootstrapped = false;
+    /** @var WP_Error|null */
+    private static $bootstrap_error = null;
+  private static $file_secrets = null;
 
     /** Grace period after JWT secret rotation (seconds). */
     const JWT_ROTATION_GRACE_SECONDS = 86400;
     const MIN_JWT_SECRET_LENGTH = 32;
     const MIN_ENCRYPTION_KEY_LENGTH = 32;
     const TLS_EXPIRY_WARN_DAYS = 30;
+    const DEFAULT_JWT_EXPIRY_SECONDS = 900;
     
     public static function init() {
         if (self::$instance === null) {
             self::$instance = new self();
-            self::bootstrap();
-            add_action('template_redirect', [self::class, 'maybe_enforce_https'], 1);
-            add_action('admin_init', [self::class, 'maybe_enforce_https'], 1);
+            $boot = self::bootstrap();
+            if (is_wp_error($boot)) {
+                self::$bootstrap_error = $boot;
+                self::register_failure_handlers();
+            } else {
+                add_action('template_redirect', [self::class, 'maybe_enforce_https'], 1);
+                add_action('admin_init', [self::class, 'maybe_enforce_https'], 1);
+            }
         }
         return self::$instance;
+    }
+
+    /**
+     * Whether SL-008 bootstrap completed without blocking errors.
+     */
+    public static function is_ready() {
+        return self::$bootstrap_error === null;
+    }
+
+    /**
+     * @return WP_Error|null
+     */
+    public static function get_bootstrap_error() {
+        return self::$bootstrap_error;
+    }
+
+    /**
+     * Default JWT access-token lifetime (SL-013: 15 minutes).
+     */
+    public static function get_default_jwt_expiry() {
+        return (int) apply_filters('orabooks_default_jwt_expiry', self::DEFAULT_JWT_EXPIRY_SECONDS);
+    }
+
+    /**
+     * Shared HMAC signing material for internal integrity proofs (SL-008 §5.6).
+     */
+    public static function get_hmac_signing_key() {
+        return (string) self::get_jwt_secret();
+    }
+
+    /**
+     * Clear cached secrets after rotation or external secret-manager reload.
+     */
+    public static function clear_secrets_cache($key = null) {
+        if ($key === null) {
+            self::$secrets_cache = [];
+            self::$access_logged = [];
+            self::$file_secrets = null;
+            return;
+        }
+
+        unset(self::$secrets_cache[$key], self::$access_logged[$key]);
     }
 
     /**
@@ -55,13 +106,23 @@ class OraBooks_Secrets {
             if (strlen((string) $encryption) < self::MIN_ENCRYPTION_KEY_LENGTH) {
                 $issues[] = 'encryption_key too short';
             }
+
+            $db_tls = self::check_database_tls();
+            if (empty($db_tls['ok']) && empty($db_tls['skipped'])) {
+                $issues[] = 'database connection is not using TLS';
+            }
+
             if (!empty($issues) && function_exists('orabooks_log_event')) {
                 orabooks_log_event('secrets_bootstrap_failed', 'Required secrets failed validation', 'critical', [
                     'issues' => $issues,
                 ]);
             }
             if (!empty($issues)) {
-                return new WP_Error('secrets_invalid', 'Required secrets are missing or too short for production.');
+                return new WP_Error(
+                    'secrets_invalid',
+                    'Required secrets or TLS configuration failed validation for production.',
+                    ['issues' => $issues]
+                );
             }
         }
 
