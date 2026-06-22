@@ -216,6 +216,31 @@ class OraBooks_DeployChecks {
             is_callable($partner_handler)
         );
 
+        if (class_exists('OraBooks_Classification')) {
+            $classify_handler = class_exists('OraBooks_AsyncQueue')
+                ? OraBooks_AsyncQueue::get_handler('classify_transaction')
+                : null;
+            $add_check(
+                'async_classify_transaction_handler',
+                'Async handler: classify_transaction (SL-022)',
+                is_callable($classify_handler)
+            );
+
+            $rules_table = OraBooks_Database::table('classification_rules');
+            $rules_exists = $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $rules_table)) === $rules_table;
+            $add_check('table_classification_rules', 'Table exists: classification_rules', $rules_exists, $rules_table);
+
+            $expenses_table = OraBooks_Database::table('expenses');
+            $exp_cols = $wpdb->get_col("SHOW COLUMNS FROM {$expenses_table}", 0);
+            $exp_ok = is_array($exp_cols) && in_array('classification_status', $exp_cols, true);
+            $add_check(
+                'expenses_classification_schema',
+                'Expenses SL-022 columns present',
+                $exp_ok,
+                is_array($exp_cols) ? implode(', ', array_intersect($exp_cols, ['classification_status', 'suggested_account_code'])) : 'n/a'
+            );
+        }
+
         return [
             'ok' => $ok,
             'checks' => $checks,

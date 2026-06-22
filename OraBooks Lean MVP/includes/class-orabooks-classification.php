@@ -1433,12 +1433,12 @@ class OraBooks_Classification {
             );
 
             if (class_exists('OraBooks_COA')) {
-                $accounts = OraBooks_COA::list_accounts($org_id, ['limit' => 1]);
+                $accounts = OraBooks_COA::get_accounts($org_id);
                 $add(
                     'org_coa_loaded',
                     'Chart of accounts loaded (SL-017)',
                     !empty($accounts),
-                    empty($accounts) ? 'Import or seed COA first' : 'COA available',
+                    empty($accounts) ? 'Import or seed COA first' : count($accounts) . ' account(s)',
                     '/chart-of-accounts'
                 );
             }
