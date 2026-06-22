@@ -248,6 +248,13 @@ class OraBooks_Observability {
         self::record_health_check('workflow', $workflow_status, $workflow_health);
         $snapshots['workflow'] = array_merge($workflow_health, ['status' => $workflow_status]);
 
+        $classification_health = self::get_classification_health();
+        self::record_metric('classification', 'processed_24h', (float) ($classification_health['processed_24h'] ?? 0));
+        self::record_metric('classification', 'override_rate_24h', (float) ($classification_health['override_rate'] ?? 0));
+        $classification_status = ($classification_health['failed_24h'] ?? 0) >= 5 ? 'degraded' : 'healthy';
+        self::record_health_check('classification', $classification_status, $classification_health);
+        $snapshots['classification'] = array_merge($classification_health, ['status' => $classification_status]);
+
         orabooks_log_event('observability_metrics_collected', 'Platform metrics collected', 'info', [
             'services' => array_keys($snapshots),
         ]);
@@ -341,6 +348,7 @@ class OraBooks_Observability {
             'aggregates_24h'  => $recent_metrics,
             'thresholds'      => apply_filters('orabooks_observability_thresholds', self::$thresholds),
             'workflow_by_org' => self::get_workflow_health(),
+            'classification_by_org' => self::get_classification_health(),
             'slos'            => self::get_slo_dashboard(),
         ];
     }
