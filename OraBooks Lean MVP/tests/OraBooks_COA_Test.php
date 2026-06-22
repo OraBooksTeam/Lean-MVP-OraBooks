@@ -139,4 +139,114 @@ class OraBooks_COA_Test extends TestCase
             OraBooks_COA::ACCOUNT_TYPES
         );
     }
+
+    #[Test]
+    public function test_create_account_rejects_duplicate_code()
+    {
+        global $wpdb;
+
+        $GLOBALS['orabooks_test_org_callback'] = function () {
+            return (object) ['organization_type' => 'customer'];
+        };
+
+        $wpdb->test_get_var_callback = function ($query) {
+            if (stripos($query, 'SELECT id FROM') !== false && stripos($query, 'code') !== false) {
+                return 12;
+            }
+            return null;
+        };
+
+        $result = OraBooks_COA::create_account(2, [
+            'code' => '6100',
+            'name' => 'Marketing',
+            'type' => 'expense',
+            'normal_balance' => 'debit',
+        ]);
+
+        $this->assertInstanceOf(WP_Error::class, $result);
+        $this->assertSame('duplicate_code', $result->get_error_code());
+
+        unset($GLOBALS['orabooks_test_org_callback']);
+    }
+
+    #[Test]
+    public function test_update_account_blocks_type_change_when_used_in_journals()
+    {
+        global $wpdb;
+
+        $GLOBALS['orabooks_test_org_callback'] = function () {
+            return (object) ['organization_type' => 'customer', 'status' => 'active'];
+        };
+
+        $wpdb->test_get_row_callback = function () {
+            return (object) [
+                'id' => 5,
+                'org_id' => 2,
+                'code' => '6100',
+                'name' => 'Marketing',
+                'type' => 'expense',
+                'normal_balance' => 'debit',
+                'system_generated' => 0,
+                'is_active' => 1,
+            ];
+        };
+        $wpdb->test_get_var_callback = function ($query) {
+            if (stripos($query, 'journal_lines') !== false) {
+                return 1;
+            }
+            return null;
+        };
+
+        $result = OraBooks_COA::update_account(5, 2, [
+            'type' => 'asset',
+        ], 1);
+
+        $this->assertInstanceOf(WP_Error::class, $result);
+        $this->assertSame('account_in_use', $result->get_error_code());
+
+        unset($GLOBALS['orabooks_test_org_callback']);
+    }
+
+    #[Test]
+    public function test_update_account_allows_name_change_for_system_account()
+    {
+        global $wpdb;
+
+        $GLOBALS['orabooks_test_org_callback'] = function () {
+            return (object) ['organization_type' => 'customer', 'status' => 'active'];
+        };
+
+        $wpdb->test_get_row_callback = function () {
+            return (object) [
+                'id' => 5,
+                'org_id' => 2,
+                'code' => '1000',
+                'name' => 'Cash',
+                'type' => 'asset',
+                'normal_balance' => 'debit',
+                'system_generated' => 1,
+                'is_active' => 1,
+            ];
+        };
+        $wpdb->test_get_var_callback = function ($query) {
+            if (stripos($query, 'journal_lines') !== false) {
+                return 0;
+            }
+            if (stripos($query, 'fiscal_periods') !== false) {
+                return 0;
+            }
+            return null;
+        };
+        $wpdb->test_update_callback = function () {
+            return 1;
+        };
+
+        $result = OraBooks_COA::update_account(5, 2, [
+            'name' => 'Operating Cash',
+        ], 1);
+
+        $this->assertTrue($result);
+
+        unset($GLOBALS['orabooks_test_org_callback']);
+    }
 }
