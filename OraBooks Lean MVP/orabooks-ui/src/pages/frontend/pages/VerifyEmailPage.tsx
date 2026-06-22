@@ -6,19 +6,29 @@ import { api } from '../api';
 import { getNetworkAuthUrl, getAcceptInviteUrl } from '../lib/auth-routing';
 
 export default function VerifyEmailPage() {
-  const token = useMemo(() => new URLSearchParams(window.location.search).get('token') || '', []);
+  const params = useMemo(() => new URLSearchParams(window.location.search), []);
+  const token = useMemo(() => params.get('token') || '', [params]);
+  const justRegistered = useMemo(() => params.get('registered') === '1', [params]);
   const [loading, setLoading] = useState(!!token);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState(() => {
+    try {
+      return window.sessionStorage.getItem('orabooks_pending_verification_email') || '';
+    } catch {
+      return '';
+    }
+  });
   const [resendMsg, setResendMsg] = useState('');
   const [resendError, setResendError] = useState('');
   const [resendLoading, setResendLoading] = useState(false);
 
   useEffect(() => {
     if (!token) {
-      setError('Invalid verification link.');
       setLoading(false);
+      if (justRegistered) {
+        setSuccess('Verification link sent to your email. Check your inbox and spam folder, then click the link to activate your account.');
+      }
       return;
     }
     const pendingInvite = window.sessionStorage.getItem('orabooks_pending_invite_token') || '';
@@ -30,10 +40,15 @@ export default function VerifyEmailPage() {
             ? 'Email verified. Log in to finish joining your team.'
             : 'Email verified successfully. You can now log in.'
         );
+        try {
+          window.sessionStorage.removeItem('orabooks_pending_verification_email');
+        } catch {
+          // ignore
+        }
       }
       setLoading(false);
     });
-  }, [token]);
+  }, [token, justRegistered]);
 
   const pendingInviteToken = window.sessionStorage.getItem('orabooks_pending_invite_token') || '';
   const loginUrl = pendingInviteToken
