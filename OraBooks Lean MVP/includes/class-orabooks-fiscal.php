@@ -227,17 +227,7 @@ class OraBooks_Fiscal {
             return new WP_Error('invalid_period', 'period_start must be before period_end.');
         }
 
-        $table = OraBooks_Database::table('fiscal_periods');
-        $overlap = $wpdb->get_var($wpdb->prepare(
-            "SELECT id FROM {$table}
-             WHERE org_id = %d AND period_start <= %s AND period_end >= %s
-             LIMIT 1",
-            $org_id,
-            $period_end,
-            $period_start
-        ));
-
-        if ($overlap) {
+        if (self::find_overlapping_period($org_id, $period_start, $period_end)) {
             return new WP_Error('duplicate_period', 'Overlapping fiscal period already exists.');
         }
 
@@ -253,6 +243,65 @@ class OraBooks_Fiscal {
         }
 
         return (int) $wpdb->insert_id;
+    }
+
+    public static function update_period($period_id, $org_id, $data, $user_id) {
+        global $wpdb;
+
+        $period = self::get_period($period_id, $org_id);
+        if (!$period) {
+            return new WP_Error('not_found', 'Fiscal period not found.');
+        }
+
+        if ($period->status !== 'open') {
+            return new WP_Error('invalid_status', 'Only open periods can be edited.');
+        }
+
+        $period_start = sanitize_text_field($data['period_start'] ?? '');
+        $period_end = sanitize_text_field($data['period_end'] ?? '');
+        if ($period_start === '' || $period_end === '') {
+            return new WP_Error('invalid_period', 'period_start and period_end are required.');
+        }
+        if ($period_start > $period_end) {
+            return new WP_Error('invalid_period', 'period_start must be before period_end.');
+        }
+
+        if (self::find_overlapping_period($org_id, $period_start, $period_end, (int) $period_id)) {
+            return new WP_Error('duplicate_period', 'Overlapping fiscal period already exists.');
+        }
+
+        if (self::count_posted_journals($org_id, $period_start, $period_end) > 0) {
+            return new WP_Error(
+                'posted_journals',
+                'Cannot edit period dates when posted journals exist in the date range.'
+            );
+        }
+
+        $table = OraBooks_Database::table('fiscal_periods');
+        $updated = $wpdb->update(
+            $table,
+            [
+                'period_start' => $period_start,
+                'period_end'   => $period_end,
+            ],
+            ['id' => $period_id, 'org_id' => $org_id],
+            ['%s', '%s'],
+            ['%d', '%d']
+        );
+
+        if ($updated === false) {
+            return new WP_Error('update_failed', 'Failed to update fiscal period.');
+        }
+
+        orabooks_log_event('period_updated', "Fiscal period {$period_start} updated", 'info', [
+            'period_id'      => $period_id,
+            'previous_start' => $period->period_start,
+            'previous_end'   => $period->period_end,
+            'period_start'   => $period_start,
+            'period_end'     => $period_end,
+        ], $user_id, $org_id);
+
+        return true;
     }
 
     public static function override_reopen_period($period_id, $org_id, $user_id, $justification) {
@@ -490,6 +539,48 @@ class OraBooks_Fiscal {
         self::insert_period_if_missing($org_id, $start, $end);
     }
 
+    private static function find_overlapping_period($org_id, $period_start, $period_end, $exclude_period_id = 0) {
+        global $wpdb;
+
+        $table = OraBooks_Database::table('fiscal_periods');
+        if ($exclude_period_id > 0) {
+            return (int) $wpdb->get_var($wpdb->prepare(
+                "SELECT id FROM {$table}
+                 WHERE org_id = %d AND id != %d AND period_start <= %s AND period_end >= %s
+                 LIMIT 1",
+                $org_id,
+                $exclude_period_id,
+                $period_end,
+                $period_start
+            ));
+        }
+
+        return (int) $wpdb->get_var($wpdb->prepare(
+            "SELECT id FROM {$table}
+             WHERE org_id = %d AND period_start <= %s AND period_end >= %s
+             LIMIT 1",
+            $org_id,
+            $period_end,
+            $period_start
+        ));
+    }
+
+    public static function count_posted_journals($org_id, $period_start, $period_end) {
+        global $wpdb;
+
+        $table = OraBooks_Database::table('journals');
+        return (int) $wpdb->get_var($wpdb->prepare(
+            "SELECT COUNT(*) FROM {$table}
+             WHERE org_id = %d
+               AND status = 'posted'
+               AND transaction_date >= %s
+               AND transaction_date <= %s",
+            $org_id,
+            $period_start,
+            $period_end
+        ));
+    }
+
     private static function insert_period_if_missing($org_id, $period_start, $period_end) {
         global $wpdb;
 
@@ -595,5 +686,63 @@ class OraBooks_Fiscal {
         }
 
         orabooks_json_success(['period_id' => $period_id, 'status' => 'open']);
+    }
+
+    public function ajax_create_period() {
+        $user_id = orabooks_get_current_user_id();
+        $org_id = intval($_POST['org_id'] ?? 0);
+        $period_start = sanitize_text_field($_POST['period_start'] ?? '');
+        $period_end = sanitize_text_field($_POST['period_end'] ?? '');
+
+        $isolation = OraBooks_Auth::require_customer_org($user_id, $org_id);
+        if (is_wp_error($isolation)) {
+            orabooks_json_error($isolation->get_error_message(), 403);
+        }
+
+        if (!OraBooks_RBAC::require_permission($user_id, $org_id, 'manage_fiscal_periods')) {
+            orabooks_json_error('Permission denied', 403);
+        }
+
+        $period_id = self::create_period($org_id, $period_start, $period_end);
+        if (is_wp_error($period_id)) {
+            orabooks_json_error($period_id->get_error_message(), 409);
+        }
+
+        $period = self::get_period($period_id, $org_id);
+        orabooks_json_success([
+            'period_id' => $period_id,
+            'period'    => self::format_period_for_api($period),
+        ]);
+    }
+
+    public function ajax_update_period() {
+        $user_id = orabooks_get_current_user_id();
+        $org_id = intval($_POST['org_id'] ?? 0);
+        $period_id = intval($_POST['period_id'] ?? 0);
+        $period_start = sanitize_text_field($_POST['period_start'] ?? '');
+        $period_end = sanitize_text_field($_POST['period_end'] ?? '');
+
+        $isolation = OraBooks_Auth::require_customer_org($user_id, $org_id);
+        if (is_wp_error($isolation)) {
+            orabooks_json_error($isolation->get_error_message(), 403);
+        }
+
+        if (!OraBooks_RBAC::require_permission($user_id, $org_id, 'manage_fiscal_periods')) {
+            orabooks_json_error('Permission denied', 403);
+        }
+
+        $result = self::update_period($period_id, $org_id, [
+            'period_start' => $period_start,
+            'period_end'   => $period_end,
+        ], $user_id);
+        if (is_wp_error($result)) {
+            orabooks_json_error($result->get_error_message(), 409);
+        }
+
+        $period = self::get_period($period_id, $org_id);
+        orabooks_json_success([
+            'period_id' => $period_id,
+            'period'    => self::format_period_for_api($period),
+        ]);
     }
 }
