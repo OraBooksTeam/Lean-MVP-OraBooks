@@ -63,8 +63,9 @@ class OraBooks_COA {
         if (self::$instance === null) {
             self::$instance = new self();
             add_action('wp_ajax_orabooks_get_coa', [self::$instance, 'ajax_get_coa']);
-            add_action('wp_ajax_nopriv_orabooks_get_coa', [self::$instance, 'ajax_get_coa']);
             add_action('wp_ajax_orabooks_export_coa', [self::$instance, 'ajax_export_coa']);
+            add_action('wp_ajax_orabooks_coa_create', [self::$instance, 'ajax_create_account']);
+            add_action('wp_ajax_orabooks_coa_update', [self::$instance, 'ajax_update_account']);
         }
         return self::$instance;
     }

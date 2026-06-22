@@ -27,6 +27,7 @@ class OBN_Access_Control {
         'approve_journal',
         'reverse_journal',
         'view_coa',
+        'manage_coa',
         'manage_fiscal_periods',
         'create_invoice',
         'view_invoices',
