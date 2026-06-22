@@ -7,7 +7,10 @@ import Input from '@/components/Input';
 import { api } from '../api';
 import ClientShell from '../components/ClientShell';
 import ResourceAttachmentsPanel from '../components/ResourceAttachmentsPanel';
-import { FileText, Info, Paperclip, Percent, Plus, RefreshCw, Wallet } from 'lucide-react';
+import { FileText, Info, Paperclip, Percent, Plus, RefreshCw, Sparkles, Wallet } from 'lucide-react';
+import ClassificationPanel from '@/components/classification/ClassificationPanel';
+import OverrideClassificationModal from '@/components/classification/OverrideClassificationModal';
+import { useClassificationPolling } from '@/components/classification/useClassificationPolling';
 
 type Invoice = {
   id: number;
@@ -23,6 +26,7 @@ type Invoice = {
   tax_rate?: string | number;
   tax_override_reason?: string | null;
   currency?: string;
+  classification?: any;
 };
 
 type Customer = { id: number; display_name?: string | null; email?: string };
@@ -79,6 +83,9 @@ export default function InvoicesPage() {
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const [cancelInvoice, setCancelInvoice] = useState<Invoice | null>(null);
   const [cancelReason, setCancelReason] = useState('');
+  const [classifying, setClassifying] = useState(false);
+  const [showClassOverride, setShowClassOverride] = useState(false);
+  const classificationThreshold = 70;
 
   const orgId = context?.organization?.id;
   const permissions: string[] = context?.permissions || [];
@@ -136,6 +143,25 @@ export default function InvoicesPage() {
 
   useEffect(() => { void load(); }, []);
 
+  const loadInvoiceDetail = async (invoiceId: number) => {
+    const res = await api.invoiceGet(invoiceId);
+    if (res.error) {
+      setError(res.error);
+      return;
+    }
+    const invoice = (res as any).data?.invoice;
+    if (invoice) setSelectedInvoice(invoice);
+  };
+
+  useClassificationPolling({
+    recordType: 'invoice',
+    recordId: selectedInvoice?.id ?? 0,
+    enabled: selectedInvoice?.classification?.status === 'pending',
+    onUpdate: (classification) => {
+      setSelectedInvoice((prev) => (prev ? { ...prev, classification } : prev));
+    },
+  });
+
   useEffect(() => {
     const invoiceId = Number(getSearchParam('invoice_id') || 0);
     if (invoiceId <= 0 || invoices.length === 0) {
@@ -144,7 +170,7 @@ export default function InvoicesPage() {
 
     const match = invoices.find((invoice) => invoice.id === invoiceId);
     if (match) {
-      setSelectedInvoice(match);
+      void loadInvoiceDetail(match.id);
     }
   }, [invoices]);
 
@@ -426,6 +452,61 @@ export default function InvoicesPage() {
                 title="Invoice files"
               />
             </div>
+            {selectedInvoice.classification && (
+              <ClassificationPanel
+                classification={selectedInvoice.classification}
+                threshold={classificationThreshold}
+                canManage={canCreateInvoice}
+                loading={classifying}
+                recordType="invoice"
+                onApply={async () => {
+                  if (!selectedInvoice?.id) return;
+                  setClassifying(true);
+                  const res = await api.classificationApply('invoice', selectedInvoice.id);
+                  if (res.error) setError(res.error);
+                  else {
+                    setSuccess('AI suggestions applied.');
+                    await loadInvoiceDetail(selectedInvoice.id);
+                  }
+                  setClassifying(false);
+                }}
+                onOverride={() => setShowClassOverride(true)}
+                onRerun={async () => {
+                  if (!selectedInvoice?.id) return;
+                  setClassifying(true);
+                  const res = await api.classificationRun('invoice', selectedInvoice.id, false);
+                  if (res.error) setError(res.error);
+                  else {
+                    setSuccess('Classification refreshed.');
+                    await loadInvoiceDetail(selectedInvoice.id);
+                  }
+                  setClassifying(false);
+                }}
+              />
+            )}
+            <OverrideClassificationModal
+              open={showClassOverride}
+              accountCode={selectedInvoice.classification?.suggested_account_code || ''}
+              taxRate={
+                selectedInvoice.classification?.tax_hints?.tax_rate != null
+                  ? String(selectedInvoice.classification.tax_hints.tax_rate)
+                  : ''
+              }
+              saving={classifying}
+              onClose={() => setShowClassOverride(false)}
+              onSubmit={async (accountCode, taxRate) => {
+                if (!selectedInvoice?.id) return;
+                setClassifying(true);
+                const res = await api.classificationOverride('invoice', selectedInvoice.id, accountCode, taxRate);
+                if (res.error) setError(res.error);
+                else {
+                  setSuccess('Classification overridden.');
+                  setShowClassOverride(false);
+                  await loadInvoiceDetail(selectedInvoice.id);
+                }
+                setClassifying(false);
+              }}
+            />
           </div>
         )}
 
@@ -479,7 +560,7 @@ export default function InvoicesPage() {
                   <td className="px-5 py-3 text-right font-bold text-ink">{money(invoice.total_amount, invoice.currency)}</td>
                   <td className="px-5 py-3">
                     <div className="flex flex-wrap gap-1">
-                      <Button size="sm" variant="secondary" onClick={() => setSelectedInvoice(invoice)}>
+                      <Button size="sm" variant="secondary" onClick={() => void loadInvoiceDetail(invoice.id)}>
                         View
                       </Button>
                       {canSend(invoice) && (
