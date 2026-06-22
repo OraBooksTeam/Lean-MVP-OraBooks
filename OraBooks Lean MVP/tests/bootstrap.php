@@ -1832,6 +1832,42 @@ if (!function_exists('orabooks_resolve_request_org_id')) {
     }
 }
 
+if (!function_exists('orabooks_get_pending_invite_for_email')) {
+    function orabooks_get_pending_invite_for_email($email) {
+        if (isset($GLOBALS['orabooks_test_pending_invite_for_email_callback'])) {
+            return ($GLOBALS['orabooks_test_pending_invite_for_email_callback'])($email);
+        }
+
+        return null;
+    }
+}
+
+if (!function_exists('orabooks_user_has_any_pending_invite')) {
+    function orabooks_user_has_any_pending_invite($user_id) {
+        if (isset($GLOBALS['orabooks_test_user_has_pending_invite_callback'])) {
+            return (bool) ($GLOBALS['orabooks_test_user_has_pending_invite_callback'])($user_id);
+        }
+
+        return false;
+    }
+}
+
+if (!function_exists('orabooks_resolve_auth_org_id')) {
+    function orabooks_resolve_auth_org_id($user_id, $stored_org_id = 0) {
+        $user_id = (int) $user_id;
+        $stored_org_id = (int) $stored_org_id;
+
+        if ($user_id > 0 && function_exists('orabooks_get_current_org_id')) {
+            $resolved = (int) orabooks_get_current_org_id($user_id);
+            if ($resolved > 0) {
+                return $resolved;
+            }
+        }
+
+        return max(0, $stored_org_id);
+    }
+}
+
 if (!function_exists('orabooks_get_user_role')) {
     function orabooks_get_user_role($user_id, $org_id) {
         if (isset($GLOBALS['orabooks_test_get_user_role_callback'])) {

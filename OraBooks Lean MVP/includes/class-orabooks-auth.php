@@ -1416,7 +1416,12 @@ class OraBooks_Auth {
             orabooks_json_error($result->get_error_message(), (int) ($result->get_error_data()['status'] ?? 401));
         }
 
-        orabooks_json_success(orabooks_redact_client_auth_response($result));
+        $result = orabooks_enrich_login_response($result);
+
+        orabooks_json_success(
+            orabooks_redact_client_auth_response($result),
+            !empty($result['invite_onboarded']) ? ($result['message'] ?? 'Login successful') : 'Login successful'
+        );
     }
     
     public function ajax_refresh_token() {
@@ -1686,14 +1691,6 @@ class OraBooks_Auth {
                 ];
             }
 
-            if ($existing->is_partner && !$existing->org_id) {
-                return self::handle_partner_first_login($existing);
-            }
-
-            if (!$existing->is_partner && !$existing->org_id) {
-                return self::issue_tier_selection_login($existing);
-            }
-
             return self::complete_authenticated_login($existing, $expected_subdomain);
         } else {
             // User doesn't exist — create account via Google
@@ -1794,11 +1791,7 @@ class OraBooks_Auth {
                 'user_type' => $user_type
             ], $user_id, null);
 
-            if ($is_partner) {
-                return self::handle_partner_first_login($created_user);
-            }
-
-            return self::issue_tier_selection_login($created_user);
+            return self::complete_authenticated_login($created_user, self::detect_subdomain_from_host());
         }
 
         return new WP_Error('oidc_login_failed', 'Google login could not be completed.');
