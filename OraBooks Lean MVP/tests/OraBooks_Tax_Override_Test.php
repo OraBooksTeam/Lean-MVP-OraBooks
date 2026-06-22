@@ -98,34 +98,18 @@ class OraBooks_Tax_Override_Test extends TestCase
     {
         global $wpdb;
 
-        $captured = [];
-        $wpdb->test_get_row_callback = function () {
-            return (object) [
-                'id' => 10,
-                'org_id' => 2,
-                'workflow_status' => 'draft',
-                'invoice_date' => '2026-06-01',
-                'invoice_number' => 'INV-202606-0001',
-                'total_amount' => 105,
-                'tax_amount' => 5,
-                'tax_rate' => 5,
-                'tax_override_reason' => 'LOCAL_TAX_RULE',
-                'tax_jurisdiction' => 'US',
-                'tax_type' => 'Sales Tax',
-                'currency' => 'USD',
-                'customer_id' => 1,
-                'due_date' => '2026-07-01',
-                'payment_status' => 'unpaid',
-            ];
-        };
-        $wpdb->test_get_results_callback = function () {
-            return [];
-        };
-        $wpdb->test_update_callback = function ($table, $data) use (&$captured) {
-            $captured = $data;
-            return 1;
-        };
-        $wpdb->test_get_row_callback = function ($query) use (&$captured) {
+        $wpdb->test_get_row_callback = function ($query) {
+            if (stripos($query, 'fiscal_periods') !== false) {
+                return (object) ['status' => 'open'];
+            }
+            if (stripos($query, 'tax_configs') !== false) {
+                return (object) [
+                    'id' => 1,
+                    'default_tax_rate' => '8.0000',
+                    'tax_type' => 'Sales Tax',
+                    'override_reasons' => null,
+                ];
+            }
             if (stripos($query, 'payments') !== false) {
                 return [];
             }
@@ -136,9 +120,9 @@ class OraBooks_Tax_Override_Test extends TestCase
                     'workflow_status' => 'draft',
                     'invoice_date' => '2026-06-01',
                     'invoice_number' => 'INV-202606-0001',
-                    'total_amount' => 100,
-                    'tax_amount' => 0,
-                    'tax_rate' => 0,
+                    'total_amount' => 108,
+                    'tax_amount' => 8,
+                    'tax_rate' => 8,
                     'tax_override_reason' => null,
                     'tax_jurisdiction' => 'US',
                     'tax_type' => 'Sales Tax',
@@ -166,6 +150,12 @@ class OraBooks_Tax_Override_Test extends TestCase
                 'due_date' => '2026-07-01',
                 'payment_status' => 'unpaid',
             ];
+        };
+        $wpdb->test_get_results_callback = function () {
+            return [];
+        };
+        $wpdb->test_update_callback = function () {
+            return 1;
         };
 
         $result = OraBooks_Customers::clear_invoice_tax_override(2, 10, 1, 'US');
