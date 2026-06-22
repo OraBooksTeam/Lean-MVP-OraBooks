@@ -503,6 +503,7 @@ class OraBooks_Database {
             INDEX idx_org_account_date (org_id, account_id, posted_at)
         ) {$charset_collate};";
         dbDelta($sql);
+        self::ensure_ledger_immutability_triggers($table_ledger);
         
         // ============================================================
         // SL-001: posting_batches table
@@ -559,6 +560,9 @@ class OraBooks_Database {
         }
         if (!wp_next_scheduled('orabooks_daily_ledger_integrity_check')) {
             wp_schedule_event(time(), 'daily', 'orabooks_daily_ledger_integrity_check');
+        }
+        if (!wp_next_scheduled('orabooks_posting_retry_process')) {
+            wp_schedule_event(time(), 'every_5_minutes', 'orabooks_posting_retry_process');
         }
 
         // ============================================================
