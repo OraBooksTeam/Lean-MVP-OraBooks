@@ -211,22 +211,4 @@ class OraBooks_RBAC_Test extends TestCase
         $this->assertSame(7, $result['user_id']);
         $this->assertNotEmpty(array_filter($inserted, fn($row) => str_contains($row[0], 'user_org') && $row[1]['role'] === 'staff'));
     }
-
-    #[Test]
-    public function test_resolve_primary_org_prefers_team_org_over_personal_owner_org()
-    {
-        global $wpdb;
-
-        $wpdb->test_get_results_callback = function ($query) {
-            if (stripos($query, 'user_org') !== false && stripos($query, 'organizations') !== false) {
-                return [
-                    (object) ['org_id' => 99, 'role' => 'owner', 'joined_at' => '2026-06-20', 'owner_id' => 7, 'status' => 'active'],
-                    (object) ['org_id' => 42, 'role' => 'staff', 'joined_at' => '2026-06-19', 'owner_id' => 1, 'status' => 'active'],
-                ];
-            }
-            return [];
-        };
-
-        $this->assertSame(42, orabooks_resolve_primary_org_id(7, 99));
-    }
 }

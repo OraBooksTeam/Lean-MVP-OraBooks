@@ -231,6 +231,7 @@ class OraBooks_Fiscal {
             return new WP_Error('duplicate_period', 'Overlapping fiscal period already exists.');
         }
 
+        $table = OraBooks_Database::table('fiscal_periods');
         $inserted = $wpdb->insert($table, [
             'org_id'       => (int) $org_id,
             'period_start' => $period_start,

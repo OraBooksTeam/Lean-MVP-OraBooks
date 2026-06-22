@@ -3,7 +3,7 @@ import Button from '@/components/Button';
 import Input from '@/components/Input';
 import { api } from '../api';
 import ClientShell from '../components/ClientShell';
-import { CalendarRange, Lock, RefreshCw, Unlock } from 'lucide-react';
+import { CalendarRange, Lock, Pencil, Plus, RefreshCw, Unlock } from 'lucide-react';
 
 type FiscalPeriod = {
   id: number;
@@ -18,6 +18,7 @@ type FiscalPeriod = {
   reopen_reason?: string | null;
   pending_total?: number;
   can_close?: boolean;
+  can_edit?: boolean;
   can_reopen?: boolean;
   can_override_reopen?: boolean;
 };
@@ -40,10 +41,17 @@ export default function FiscalPeriodsPage() {
   const [reopenReason, setReopenReason] = useState('');
   const [overrideModalId, setOverrideModalId] = useState<number | null>(null);
   const [overrideReason, setOverrideReason] = useState('');
+  const [addModalOpen, setAddModalOpen] = useState(false);
+  const [editModalId, setEditModalId] = useState<number | null>(null);
+  const [periodStart, setPeriodStart] = useState('');
+  const [periodEnd, setPeriodEnd] = useState('');
+  const [selectedPeriodId, setSelectedPeriodId] = useState<number | null>(null);
 
   const orgId = context?.organization?.id;
   const isPlatformAdmin = Boolean(ORABOOKS_AJAX.is_admin);
   const closeModalPeriod = periods.find((period) => period.id === closeModalId);
+  const editModalPeriod = periods.find((period) => period.id === editModalId);
+  const canManagePeriods = !loading && !error && Boolean(orgId);
 
   const load = async () => {
     setLoading(true);
@@ -67,7 +75,15 @@ export default function FiscalPeriodsPage() {
 
     const res = await api.fiscalPeriodsList(nextOrgId);
     if (res.error) setError(res.error || 'Unable to load fiscal periods.');
-    else setPeriods((res as any).data || []);
+    else {
+      const nextPeriods = (res as any).data || [];
+      setPeriods(nextPeriods);
+      if (selectedPeriodId && nextPeriods.some((period: FiscalPeriod) => period.id === selectedPeriodId)) {
+        // keep selection
+      } else if (selectedPeriodId) {
+        setSelectedPeriodId(null);
+      }
+    }
     setLoading(false);
   };
 

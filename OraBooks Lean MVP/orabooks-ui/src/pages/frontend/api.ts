@@ -754,6 +754,19 @@ export const api = {
       period_id: periodId,
       justification,
     }),
+  fiscalPeriodCreate: (orgId: number, data: { period_start: string; period_end: string }) =>
+    api.post('orabooks_fiscal_period_create', {
+      org_id: orgId,
+      period_start: data.period_start,
+      period_end: data.period_end,
+    }),
+  fiscalPeriodUpdate: (orgId: number, periodId: number, data: { period_start: string; period_end: string }) =>
+    api.post('orabooks_fiscal_period_update', {
+      org_id: orgId,
+      period_id: periodId,
+      period_start: data.period_start,
+      period_end: data.period_end,
+    }),
   taxListConfigs: (orgId: number) =>
     api.get('orabooks_tax_configs_list', { org_id: orgId }),
   taxListJurisdictions: (orgId: number) =>
