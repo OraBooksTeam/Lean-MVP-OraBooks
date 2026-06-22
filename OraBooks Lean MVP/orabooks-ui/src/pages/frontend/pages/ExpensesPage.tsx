@@ -17,7 +17,11 @@ import {
   isStandalonePwa,
   onOnline,
 } from '@/lib/pwa/register-pwa';
-import { Camera, CheckCircle2, CloudOff, Paperclip, Percent, Receipt, RefreshCw, Sparkles, Upload, XCircle } from 'lucide-react';
+import { Camera, CheckCircle2, CloudOff, Paperclip, Percent, Receipt, Upload, XCircle } from 'lucide-react';
+import ClassificationPanel from '@/components/classification/ClassificationPanel';
+import ConfidenceBadge from '@/components/classification/ConfidenceBadge';
+import OverrideClassificationModal from '@/components/classification/OverrideClassificationModal';
+import { useClassificationPolling } from '@/components/classification/useClassificationPolling';
 
 const fieldClass =
   'w-full rounded-lg border border-border bg-white px-3.5 py-2.5 text-sm text-ink shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20';
@@ -44,6 +48,7 @@ export default function ExpensesPage() {
   const [confirming, setConfirming] = useState(false);
   const [actionId, setActionId] = useState<number | null>(null);
   const [classifying, setClassifying] = useState(false);
+  const [showClassOverride, setShowClassOverride] = useState(false);
   const [taxConfigs, setTaxConfigs] = useState<TaxConfig[]>([]);
   const [overrideExpense, setOverrideExpense] = useState<any>(null);
   const [overrideRate, setOverrideRate] = useState('');
@@ -225,9 +230,29 @@ export default function ExpensesPage() {
         tax_amount: expense?.tax_amount != null ? String(expense.tax_amount) : '',
         category: expense?.category || '',
         description: expense?.description || '',
+        account_code:
+          expense?.account_code ||
+          (expense?.classification?.status === 'processed'
+            ? expense?.classification?.suggested_account_code || ''
+            : ''),
       });
     }
   };
+
+  useClassificationPolling({
+    recordType: 'expense',
+    recordId: selectedExpense?.id ?? 0,
+    enabled: selectedExpense?.classification?.status === 'pending',
+    onUpdate: (classification) => {
+      setSelectedExpense((prev: any) => (prev ? { ...prev, classification } : prev));
+      if (classification?.status === 'processed' && classification?.suggested_account_code) {
+        setEditFields((prev) => ({
+          ...prev,
+          account_code: prev.account_code || classification.suggested_account_code,
+        }));
+      }
+    },
+  });
 
   const handleUpload = async (fileOverride?: File | null) => {
     const file = fileOverride ?? selectedFile;
@@ -462,7 +487,7 @@ export default function ExpensesPage() {
 
             {selectedExpense.workflow_status === 'draft' && selectedExpense.ocr_confidence != null ? (
               <div className="mt-4 grid gap-4 md:grid-cols-2">
-                {(['vendor', 'invoice_number', 'transaction_date', 'total_amount', 'tax_amount', 'category'] as const).map(
+                {(['vendor', 'invoice_number', 'transaction_date', 'total_amount', 'tax_amount', 'category', 'account_code'] as const).map(
                   (field) => (
                     <label key={field} className="block text-sm">
                       <span className="mb-1 block font-semibold capitalize text-slate-700">
@@ -508,6 +533,7 @@ export default function ExpensesPage() {
                 threshold={threshold}
                 canManage={!!caps.submit}
                 loading={classifying}
+                recordType="expense"
                 onApply={async () => {
                   if (!selectedExpense?.id) return;
                   setClassifying(true);
@@ -519,6 +545,7 @@ export default function ExpensesPage() {
                   }
                   setClassifying(false);
                 }}
+                onOverride={() => setShowClassOverride(true)}
                 onRerun={async () => {
                   if (!selectedExpense?.id) return;
                   setClassifying(true);
@@ -532,6 +559,30 @@ export default function ExpensesPage() {
                 }}
               />
             )}
+
+            <OverrideClassificationModal
+              open={showClassOverride}
+              accountCode={selectedExpense.classification?.suggested_account_code || editFields.account_code || ''}
+              taxRate={
+                selectedExpense.classification?.tax_hints?.tax_rate != null
+                  ? String(selectedExpense.classification.tax_hints.tax_rate)
+                  : ''
+              }
+              saving={classifying}
+              onClose={() => setShowClassOverride(false)}
+              onSubmit={async (accountCode, taxRate) => {
+                if (!selectedExpense?.id) return;
+                setClassifying(true);
+                const res = await api.classificationOverride('expense', selectedExpense.id, accountCode, taxRate);
+                if (res.error) setError(res.error);
+                else {
+                  setSuccess('Classification overridden.');
+                  setShowClassOverride(false);
+                  await loadExpense(selectedExpense.id);
+                }
+                setClassifying(false);
+              }}
+            />
 
             {orgId && selectedExpense?.id && (
               <div className="mt-4">

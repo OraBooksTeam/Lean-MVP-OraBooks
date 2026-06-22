@@ -908,6 +908,13 @@ export const api = {
       account_code: accountCode,
       ...(taxRate != null ? { tax_rate: taxRate } : {}),
     }),
+  classificationStatus: (recordType: string, recordId: number) =>
+    api.get('orabooks_classification_status', { record_type: recordType, record_id: recordId }),
+  classificationRulesList: () => api.get('orabooks_classification_rules_list'),
+  classificationRulesSave: (payload: Record<string, unknown>) =>
+    api.post('orabooks_classification_rules_save', payload),
+  classificationRulesDelete: (ruleId: number) =>
+    api.post('orabooks_classification_rules_delete', { rule_id: ruleId }),
   voiceDashboard: () =>
     api.get('orabooks_voice_dashboard'),
   uploadVoice: (orgId: number, file: File, idempotencyKey = '') => {
