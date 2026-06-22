@@ -97,6 +97,55 @@ class OraBooks_Rest_Api {
             'permission_callback' => [__CLASS__, 'can_manage_expenses'],
         ]);
 
+        register_rest_route(self::NAMESPACE, '/journals', [
+            [
+                'methods'             => WP_REST_Server::READABLE,
+                'callback'            => [__CLASS__, 'rest_list_journals'],
+                'permission_callback' => [__CLASS__, 'can_view_journals'],
+            ],
+            [
+                'methods'             => WP_REST_Server::CREATABLE,
+                'callback'            => [__CLASS__, 'rest_create_journal'],
+                'permission_callback' => [__CLASS__, 'can_submit_journal'],
+            ],
+        ]);
+
+        register_rest_route(self::NAMESPACE, '/journals/(?P<id>\d+)', [
+            'methods'             => WP_REST_Server::READABLE,
+            'callback'            => [__CLASS__, 'rest_get_journal'],
+            'permission_callback' => [__CLASS__, 'can_view_journals'],
+        ]);
+
+        register_rest_route(self::NAMESPACE, '/journals/(?P<id>\d+)/submit', [
+            'methods'             => WP_REST_Server::CREATABLE,
+            'callback'            => [__CLASS__, 'rest_submit_journal'],
+            'permission_callback' => [__CLASS__, 'can_submit_journal'],
+        ]);
+
+        register_rest_route(self::NAMESPACE, '/journals/(?P<id>\d+)/approve', [
+            'methods'             => WP_REST_Server::CREATABLE,
+            'callback'            => [__CLASS__, 'rest_approve_journal'],
+            'permission_callback' => [__CLASS__, 'can_approve_journal'],
+        ]);
+
+        register_rest_route(self::NAMESPACE, '/journals/(?P<id>\d+)/reject', [
+            'methods'             => WP_REST_Server::CREATABLE,
+            'callback'            => [__CLASS__, 'rest_reject_journal'],
+            'permission_callback' => [__CLASS__, 'can_approve_journal'],
+        ]);
+
+        register_rest_route(self::NAMESPACE, '/journals/(?P<id>\d+)/post', [
+            'methods'             => WP_REST_Server::CREATABLE,
+            'callback'            => [__CLASS__, 'rest_post_journal'],
+            'permission_callback' => [__CLASS__, 'can_approve_journal'],
+        ]);
+
+        register_rest_route(self::NAMESPACE, '/journals/(?P<id>\d+)/reverse', [
+            'methods'             => WP_REST_Server::CREATABLE,
+            'callback'            => [__CLASS__, 'rest_reverse_journal'],
+            'permission_callback' => [__CLASS__, 'can_reverse_journal'],
+        ]);
+
         register_rest_route(self::NAMESPACE, '/internal/state/transition', [
             'methods'             => WP_REST_Server::CREATABLE,
             'callback'            => [__CLASS__, 'rest_state_transition'],

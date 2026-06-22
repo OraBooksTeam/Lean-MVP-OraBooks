@@ -1438,11 +1438,95 @@ class OraBooks_Posting {
         }
 
         $table = OraBooks_Database::table('posting_retry_queue');
+        $existing = $wpdb->get_var($wpdb->prepare(
+            "SELECT id FROM {$table} WHERE journal_id = %d AND status IN ('pending','processing') LIMIT 1",
+            (int) $journal_id
+        ));
+        if ($existing) {
+            return;
+        }
+
         $wpdb->insert($table, [
             'journal_id' => $journal_id,
             'error_message' => $error_message,
             'status' => $is_transient ? 'pending' : 'manual_review',
         ], ['%d', '%s', '%s']);
+    }
+
+    /**
+     * Background worker: retry transient posting failures up to 3 times, then manual_review.
+     */
+    public static function cron_process_posting_retries() {
+        global $wpdb;
+
+        $table = OraBooks_Database::table('posting_retry_queue');
+        $table_journals = OraBooks_Database::table('journals');
+        $rows = $wpdb->get_results(
+            "SELECT id, journal_id, retry_count
+             FROM {$table}
+             WHERE status = 'pending' AND retry_count < 3
+             ORDER BY created_at ASC
+             LIMIT 20"
+        );
+
+        foreach ($rows ?: [] as $row) {
+            $wpdb->update(
+                $table,
+                ['status' => 'processing'],
+                ['id' => (int) $row->id],
+                ['%s'],
+                ['%d']
+            );
+
+            $journal = $wpdb->get_row($wpdb->prepare(
+                "SELECT posted_by FROM {$table_journals} WHERE id = %d",
+                (int) $row->journal_id
+            ));
+            $user_id = $journal && !empty($journal->posted_by)
+                ? (int) $journal->posted_by
+                : (int) ($wpdb->get_var($wpdb->prepare(
+                    "SELECT created_by FROM {$table_journals} WHERE id = %d",
+                    (int) $row->journal_id
+                )) ?: 0);
+
+            if ($user_id <= 0) {
+                $wpdb->update(
+                    $table,
+                    ['status' => 'manual_review', 'error_message' => 'Missing user context for retry.'],
+                    ['id' => (int) $row->id],
+                    ['%s', '%s'],
+                    ['%d']
+                );
+                continue;
+            }
+
+            $result = self::post_journal((int) $row->journal_id, $user_id);
+            if (is_wp_error($result)) {
+                $next_retry = (int) $row->retry_count + 1;
+                $wpdb->update(
+                    $table,
+                    [
+                        'retry_count' => $next_retry,
+                        'error_message' => $result->get_error_message(),
+                        'status' => $next_retry >= 3 ? 'manual_review' : 'pending',
+                    ],
+                    ['id' => (int) $row->id],
+                    ['%d', '%s', '%s'],
+                    ['%d']
+                );
+
+                if ($next_retry >= 3) {
+                    orabooks_log_event('posting_retry_manual_review', 'Posting moved to manual review', 'warning', [
+                        'journal_id' => (int) $row->journal_id,
+                        'retry_count' => $next_retry,
+                        'error' => $result->get_error_message(),
+                    ], $user_id, null);
+                }
+                continue;
+            }
+
+            $wpdb->delete($table, ['id' => (int) $row->id], ['%d']);
+        }
     }
 
     private static function maybe_emit_fraud_hooks($journal, $lines) {
