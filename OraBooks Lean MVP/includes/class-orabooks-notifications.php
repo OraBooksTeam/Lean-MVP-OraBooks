@@ -528,7 +528,7 @@ class OraBooks_Notifications {
             'provider'        => $provider,
             'region'          => $region,
             'timestamp'       => current_time('mysql', true),
-            'signature'       => hash_hmac('sha256', "{$notification_id}:{$channel}:{$provider}", defined('ORABOOKS_JWT_SECRET') ? ORABOOKS_JWT_SECRET : 'orabooks-default'),
+            'signature'       => hash_hmac('sha256', "{$notification_id}:{$channel}:{$provider}", orabooks_get_hmac_signing_key()),
         ];
 
         $success = true; // MVP: assume success

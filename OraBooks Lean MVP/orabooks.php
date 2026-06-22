@@ -90,6 +90,9 @@ function orabooks_init() {
     // Initialize core classes
     OraBooks_Database::init();
     OraBooks_Secrets::init();
+    if (!OraBooks_Secrets::is_ready()) {
+        return;
+    }
     OraBooks_Organization::init();
     OraBooks_Auth::init();
     OraBooks_TwoFactor::init();

@@ -1448,9 +1448,27 @@ function orabooks_is_user_logged_in() {
  * Cookie lifetime for the OraBooks auth token mirror.
  */
 function orabooks_get_auth_token_cookie_ttl() {
-    $jwt_expiry = (int) get_option('orabooks_jwt_expiry', 3600);
+    $jwt_expiry = class_exists('OraBooks_Secrets')
+        ? OraBooks_Secrets::get_default_jwt_expiry()
+        : 900;
+    $jwt_expiry = (int) get_option('orabooks_jwt_expiry', $jwt_expiry);
 
     return max(300, $jwt_expiry);
+}
+
+/**
+ * HMAC signing key for internal integrity proofs (SL-008).
+ */
+function orabooks_get_hmac_signing_key() {
+    if (class_exists('OraBooks_Secrets')) {
+        return OraBooks_Secrets::get_hmac_signing_key();
+    }
+
+    if (defined('ORABOOKS_JWT_SECRET') && ORABOOKS_JWT_SECRET) {
+        return (string) ORABOOKS_JWT_SECRET;
+    }
+
+    return '';
 }
 
 /**
