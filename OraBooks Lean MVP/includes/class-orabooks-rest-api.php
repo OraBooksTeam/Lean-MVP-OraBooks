@@ -315,6 +315,227 @@ class OraBooks_Rest_Api {
         return !is_wp_error(self::require_org_access($request, 'manage_expenses'));
     }
 
+    public static function can_view_journals($request) {
+        return !is_wp_error(self::require_org_access($request, 'view_reports'));
+    }
+
+    public static function can_submit_journal($request) {
+        return !is_wp_error(self::require_org_access($request, 'submit_transaction'));
+    }
+
+    public static function can_approve_journal($request) {
+        $context = self::require_org_access($request, 'approve_journal');
+        if (is_wp_error($context)) {
+            return false;
+        }
+        if (class_exists('OraBooks_Approval') && !OraBooks_Approval::user_can_approve($context['user_id'], $context['org_id'])) {
+            return false;
+        }
+        return true;
+    }
+
+    public static function can_reverse_journal($request) {
+        return !is_wp_error(self::require_org_access($request, 'reverse_journal'));
+    }
+
+    public static function rest_list_journals(WP_REST_Request $request) {
+        $context = self::require_org_access($request, 'view_reports');
+        if (is_wp_error($context)) {
+            return $context;
+        }
+
+        $journals = OraBooks_Posting::get_journals($context['org_id'], [
+            'status'       => sanitize_text_field($request->get_param('status') ?? ''),
+            'from_date'    => sanitize_text_field($request->get_param('from_date') ?? $request->get_param('fromDate') ?? ''),
+            'to_date'      => sanitize_text_field($request->get_param('to_date') ?? $request->get_param('toDate') ?? ''),
+            'account_code' => sanitize_text_field($request->get_param('account_code') ?? $request->get_param('accountCode') ?? ''),
+            'limit'        => min(100, max(1, (int) ($request->get_param('limit') ?: 50))),
+            'offset'       => max(0, (int) ($request->get_param('offset') ?: 0)),
+        ]);
+
+        return rest_ensure_response([
+            'items' => array_map([OraBooks_Posting::class, 'format_journal'], $journals ?: []),
+        ]);
+    }
+
+    public static function rest_get_journal(WP_REST_Request $request) {
+        $context = self::require_org_access($request, 'view_reports');
+        if (is_wp_error($context)) {
+            return $context;
+        }
+
+        $journal_id = (int) $request['id'];
+        $journal = OraBooks_Posting::get_journal($journal_id, $context['org_id']);
+        if (!$journal) {
+            return new WP_Error('not_found', 'Journal not found.', ['status' => 404]);
+        }
+
+        return rest_ensure_response([
+            'journal' => OraBooks_Posting::format_journal($journal),
+            'lines' => array_map(
+                [OraBooks_Posting::class, 'format_journal_line'],
+                OraBooks_Posting::get_journal_lines($journal_id) ?: []
+            ),
+            'approval_history' => array_map(
+                [OraBooks_Posting::class, 'format_approval_history_row'],
+                OraBooks_Posting::get_approval_history($journal_id) ?: []
+            ),
+        ]);
+    }
+
+    public static function rest_create_journal(WP_REST_Request $request) {
+        $context = self::require_org_access($request, 'submit_transaction');
+        if (is_wp_error($context)) {
+            return $context;
+        }
+
+        $lines = $request->get_param('lines');
+        if (is_string($lines)) {
+            $lines = json_decode($lines, true);
+        }
+
+        $journal_id = OraBooks_Posting::create_journal([
+            'org_id'           => $context['org_id'],
+            'transaction_date' => sanitize_text_field($request->get_param('transaction_date') ?? $request->get_param('transactionDate') ?? gmdate('Y-m-d')),
+            'source_type'      => sanitize_text_field($request->get_param('source_type') ?? $request->get_param('sourceType') ?? 'manual'),
+            'source_id'        => $request->get_param('source_id') ?? $request->get_param('sourceId'),
+            'idempotency_key'  => sanitize_text_field($request->get_header('Idempotency-Key') ?: $request->get_param('idempotency_key') ?: ''),
+        ], $context['user_id']);
+
+        if (is_wp_error($journal_id)) {
+            $journal_id->add_data(['status' => 422]);
+            return $journal_id;
+        }
+
+        if (is_array($lines) && !empty($lines)) {
+            $normalized = [];
+            foreach ($lines as $line) {
+                if (!is_array($line)) {
+                    continue;
+                }
+                $normalized[] = [
+                    'account_code' => sanitize_text_field($line['account_code'] ?? $line['accountCode'] ?? ''),
+                    'debit'        => (float) ($line['debit_amount'] ?? $line['debit'] ?? 0),
+                    'credit'       => (float) ($line['credit_amount'] ?? $line['credit'] ?? 0),
+                    'description'  => sanitize_text_field($line['description'] ?? ''),
+                ];
+            }
+            $line_result = OraBooks_Posting::add_lines((int) $journal_id, $normalized);
+            if (is_wp_error($line_result)) {
+                $line_result->add_data(['status' => 422]);
+                return $line_result;
+            }
+        }
+
+        $journal = OraBooks_Posting::get_journal((int) $journal_id, $context['org_id']);
+        return rest_ensure_response([
+            'journal_id' => (int) $journal_id,
+            'journal'    => OraBooks_Posting::format_journal($journal),
+        ]);
+    }
+
+    public static function rest_submit_journal(WP_REST_Request $request) {
+        $context = self::require_org_access($request, 'submit_transaction');
+        if (is_wp_error($context)) {
+            return $context;
+        }
+
+        $journal = OraBooks_Posting::get_journal((int) $request['id'], $context['org_id']);
+        if (!$journal) {
+            return new WP_Error('not_found', 'Journal not found.', ['status' => 404]);
+        }
+
+        $result = OraBooks_Posting::submit_journal((int) $request['id'], $context['user_id']);
+        if (is_wp_error($result)) {
+            $result->add_data(['status' => 409]);
+            return $result;
+        }
+
+        return rest_ensure_response(is_array($result) ? $result : ['success' => true]);
+    }
+
+    public static function rest_approve_journal(WP_REST_Request $request) {
+        $context = self::require_org_access($request, 'approve_journal');
+        if (is_wp_error($context)) {
+            return $context;
+        }
+
+        $journal = OraBooks_Posting::get_journal((int) $request['id'], $context['org_id']);
+        if (!$journal) {
+            return new WP_Error('not_found', 'Journal not found.', ['status' => 404]);
+        }
+
+        $args = [];
+        if ($request->get_param('mfa_otp') || $request->get_param('mfaOtp')) {
+            $args['mfa_otp'] = sanitize_text_field($request->get_param('mfa_otp') ?: $request->get_param('mfaOtp'));
+        }
+
+        $result = OraBooks_Posting::approve_journal((int) $request['id'], $context['user_id'], $args);
+        if (is_wp_error($result)) {
+            $result->add_data(['status' => 409]);
+            return $result;
+        }
+
+        return rest_ensure_response(['success' => true]);
+    }
+
+    public static function rest_reject_journal(WP_REST_Request $request) {
+        $context = self::require_org_access($request, 'approve_journal');
+        if (is_wp_error($context)) {
+            return $context;
+        }
+
+        $journal = OraBooks_Posting::get_journal((int) $request['id'], $context['org_id']);
+        if (!$journal) {
+            return new WP_Error('not_found', 'Journal not found.', ['status' => 404]);
+        }
+
+        $reason = sanitize_textarea_field($request->get_param('reason') ?? '');
+        $result = OraBooks_Posting::reject_journal((int) $request['id'], $context['user_id'], $reason);
+        if (is_wp_error($result)) {
+            $result->add_data(['status' => 409]);
+            return $result;
+        }
+
+        return rest_ensure_response(['success' => true]);
+    }
+
+    public static function rest_post_journal(WP_REST_Request $request) {
+        $context = self::require_org_access($request, 'approve_journal');
+        if (is_wp_error($context)) {
+            return $context;
+        }
+
+        $journal = OraBooks_Posting::get_journal((int) $request['id'], $context['org_id']);
+        if (!$journal) {
+            return new WP_Error('not_found', 'Journal not found.', ['status' => 404]);
+        }
+
+        $result = OraBooks_Posting::post_journal((int) $request['id'], $context['user_id']);
+        if (is_wp_error($result)) {
+            $result->add_data(['status' => 409]);
+            return $result;
+        }
+
+        return rest_ensure_response($result);
+    }
+
+    public static function rest_reverse_journal(WP_REST_Request $request) {
+        $context = self::require_org_access($request, 'reverse_journal');
+        if (is_wp_error($context)) {
+            return $context;
+        }
+
+        $reason = sanitize_textarea_field($request->get_param('reason') ?? '');
+        $result = OraBooks_Posting::reverse_journal((int) $request['id'], $context['org_id'], $context['user_id'], $reason);
+        if (is_wp_error($result)) {
+            $result->add_data(['status' => 409]);
+            return $result;
+        }
+
+        return rest_ensure_response($result);
+    }
+
     public static function rest_list_fiscal_periods(WP_REST_Request $request) {
         $context = self::require_org_access($request, 'manage_fiscal_periods');
         if (is_wp_error($context)) {
