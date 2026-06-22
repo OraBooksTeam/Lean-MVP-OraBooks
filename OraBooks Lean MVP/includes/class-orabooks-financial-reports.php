@@ -983,7 +983,7 @@ class OraBooks_Financial_Reports {
         return hash_hmac(
             'sha256',
             ($snapshot_data ?? '') . '|' . $snapshot_hash . '|' . (int) $user_id . '|' . $signed_at,
-            defined('ORABOOKS_JWT_SECRET') ? ORABOOKS_JWT_SECRET : 'orabooks-report-signature'
+            orabooks_get_hmac_signing_key()
         );
     }
 

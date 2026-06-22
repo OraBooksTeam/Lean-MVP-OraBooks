@@ -977,7 +977,7 @@ class OraBooks_Notifications {
             $bundle['notifications'][] = $item;
             $bundle['signatures'][] = [
                 'notification_id' => (int)$n->id,
-                'hmac'            => hash_hmac('sha256', json_encode($item), defined('ORABOOKS_JWT_SECRET') ? ORABOOKS_JWT_SECRET : 'orabooks-default'),
+                'hmac'            => hash_hmac('sha256', json_encode($item), orabooks_get_hmac_signing_key()),
             ];
         }
 
