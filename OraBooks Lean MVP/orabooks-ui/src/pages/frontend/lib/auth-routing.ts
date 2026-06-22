@@ -95,33 +95,35 @@ function appendCrossOriginAuthParams(url: string) {
     return url;
   }
 
+  let target: URL;
   try {
-    const target = new URL(url, window.location.href);
+    target = upgradeToHttpsIfRequired(new URL(url, window.location.href));
     if (target.searchParams.get(LOGOUT_QUERY_FLAG) === '1'
       || target.searchParams.get(AUTH_RESET_QUERY_FLAG) === '1'
       || target.searchParams.get(SESSION_EXPIRED_QUERY_FLAG) === '1') {
-      return url;
+      return `${target.origin}${target.pathname}${target.search}`;
     }
   } catch {
-    // Fall through to token handling below.
+    return url;
   }
 
-  const target = upgradeToHttpsIfRequired(new URL(url, window.location.href));
+  const normalized = `${target.origin}${target.pathname}${target.search}`;
+
   if (target.origin === window.location.origin) {
-    return url;
+    return normalized;
   }
 
   if (target.searchParams.has('ob_t')) {
-    return url;
+    return normalized;
   }
 
   if (shouldEnforceTls() && !isSecureOrigin(target)) {
-    return url;
+    return normalized;
   }
 
   const token = window.localStorage.getItem(AUTH_TOKEN_STORAGE_KEY);
   if (!token) {
-    return url;
+    return normalized;
   }
 
   target.searchParams.set('ob_t', token);
@@ -132,8 +134,9 @@ function appendCrossOriginAuthParams(url: string) {
 export function redirectToOrgSubdomain(subdomain: string, wpPath = '/dashboard/') {
   const suffix = getTenantDomainSuffix();
   const path = normalizeWpAppPath(wpPath);
+  const raw = `${window.location.protocol}//${subdomain}${suffix}${path}`;
   const destination = appendCrossOriginAuthParams(
-    `${window.location.protocol}//${subdomain}${suffix}${path}`
+    upgradeToHttpsIfRequired(new URL(raw, window.location.href)).toString()
   );
   window.location.replace(destination);
 }
