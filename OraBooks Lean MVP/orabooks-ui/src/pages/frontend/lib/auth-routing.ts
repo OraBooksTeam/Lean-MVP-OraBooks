@@ -1,3 +1,4 @@
+import { isSecureOrigin, shouldEnforceTls, upgradeToHttpsIfRequired } from '@/lib/security/sl008';
 import { getTenantDomainSuffix } from '@/lib/utils';
 import { AUTH_TOKEN_STORAGE_KEY, clearPersistedAuthTokens } from '../api';
 import { normalizeAppRoute, toWpUrl } from './wp-routing';
@@ -105,12 +106,16 @@ function appendCrossOriginAuthParams(url: string) {
     // Fall through to token handling below.
   }
 
-  const target = new URL(url, window.location.href);
+  const target = upgradeToHttpsIfRequired(new URL(url, window.location.href));
   if (target.origin === window.location.origin) {
     return url;
   }
 
   if (target.searchParams.has('ob_t')) {
+    return url;
+  }
+
+  if (shouldEnforceTls() && !isSecureOrigin(target)) {
     return url;
   }
 
@@ -177,7 +182,7 @@ export function redirectAfterAuth(data: {
 
   const redirectTo = String(data?.redirect_to || '').trim();
   if (redirectTo.startsWith('http')) {
-    const target = new URL(redirectTo);
+    const target = upgradeToHttpsIfRequired(new URL(redirectTo));
     target.hash = '';
     window.location.replace(appendCrossOriginAuthParams(target.toString()));
     return;
