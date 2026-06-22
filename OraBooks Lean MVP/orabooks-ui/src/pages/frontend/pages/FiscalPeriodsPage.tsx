@@ -163,6 +163,85 @@ export default function FiscalPeriodsPage() {
     setActionId(null);
   };
 
+  const resetPeriodForm = () => {
+    setPeriodStart('');
+    setPeriodEnd('');
+  };
+
+  const openAddModal = () => {
+    resetPeriodForm();
+    setAddModalOpen(true);
+    setError('');
+    setSuccess('');
+  };
+
+  const openEditModal = (period: FiscalPeriod) => {
+    setEditModalId(period.id);
+    setPeriodStart(period.period_start);
+    setPeriodEnd(period.period_end);
+    setError('');
+    setSuccess('');
+  };
+
+  const handleCreatePeriod = async () => {
+    if (!orgId || !periodStart || !periodEnd) {
+      setError('Start and end dates are required.');
+      return;
+    }
+    if (periodStart > periodEnd) {
+      setError('Start date must be on or before end date.');
+      return;
+    }
+
+    setActionId(-1);
+    setError('');
+    setSuccess('');
+    const res = await api.fiscalPeriodCreate(orgId, {
+      period_start: periodStart,
+      period_end: periodEnd,
+    });
+    if (res.error) {
+      setError(res.error);
+    } else {
+      const periodId = (res as any).data?.period_id ?? (res as any).data?.period?.id ?? null;
+      setSuccess('Custom fiscal period created.');
+      setAddModalOpen(false);
+      resetPeriodForm();
+      if (periodId) setSelectedPeriodId(periodId);
+      await load();
+    }
+    setActionId(null);
+  };
+
+  const handleUpdatePeriod = async () => {
+    if (!orgId || !editModalId || !periodStart || !periodEnd) {
+      setError('Start and end dates are required.');
+      return;
+    }
+    if (periodStart > periodEnd) {
+      setError('Start date must be on or before end date.');
+      return;
+    }
+
+    setActionId(editModalId);
+    setError('');
+    setSuccess('');
+    const res = await api.fiscalPeriodUpdate(orgId, editModalId, {
+      period_start: periodStart,
+      period_end: periodEnd,
+    });
+    if (res.error) {
+      setError(res.error);
+    } else {
+      setSuccess('Fiscal period updated.');
+      setEditModalId(null);
+      resetPeriodForm();
+      setSelectedPeriodId(editModalId);
+      await load();
+    }
+    setActionId(null);
+  };
+
   return (
     <ClientShell
       title="Fiscal Periods"
@@ -179,7 +258,13 @@ export default function FiscalPeriodsPage() {
           </p>
         </div>
 
-        <div className="flex justify-end">
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          {canManagePeriods ? (
+            <Button onClick={openAddModal} size="sm" title="Create a custom fiscal period with custom start and end dates.">
+              <Plus className="h-4 w-4" />
+              Add custom period
+            </Button>
+          ) : null}
           <Button onClick={load} variant="secondary" size="sm">
             <RefreshCw className="h-4 w-4" />
             Refresh
@@ -213,7 +298,10 @@ export default function FiscalPeriodsPage() {
                   </td>
                 </tr>
               ) : periods.map((period) => (
-                <tr key={period.id} className="hover:bg-slate-50/70">
+                <tr
+                  key={period.id}
+                  className={`hover:bg-slate-50/70 ${selectedPeriodId === period.id ? 'bg-primary/5' : ''}`}
+                >
                   <td className="px-5 py-3 font-semibold text-ink">
                     <div>{formatPeriodLabel(period)}</div>
                     {(period.pending_total ?? 0) > 0 && period.status === 'open' && (
@@ -230,47 +318,68 @@ export default function FiscalPeriodsPage() {
                   <td className="px-5 py-3 text-slate-600">{period.closed_by ? `#${period.closed_by}` : '—'}</td>
                   <td className="px-5 py-3 text-slate-600">{period.closed_at || '—'}</td>
                   <td className="px-5 py-3">
-                    {period.status === 'open' || period.can_close ? (
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        disabled={actionId === period.id}
-                        onClick={() => {
-                          setCloseWarnings([]);
-                          setCloseModalId(period.id);
-                        }}
-                        title="Soft or hard close. Transactions will be blocked."
-                      >
-                        <Lock className="h-3.5 w-3.5" />
-                        Close Period
-                      </Button>
-                    ) : period.status === 'soft_closed' || period.can_reopen ? (
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        disabled={actionId === period.id}
-                        onClick={() => setReopenModalId(period.id)}
-                        title="Reopen period. Reason required."
-                      >
-                        <Unlock className="h-3.5 w-3.5" />
-                        Reopen
-                      </Button>
-                    ) : isPlatformAdmin && (period.can_override_reopen || period.status === 'hard_closed') ? (
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        disabled={actionId === period.id}
-                        onClick={() => setOverrideModalId(period.id)}
-                        title="Platform admin override reopen with audit trail."
-                      >
-                        <Unlock className="h-3.5 w-3.5" />
-                        Admin Reopen
-                      </Button>
-                    ) : (
-                      <span className="text-xs text-slate-400" title="Hard-closed periods cannot be reopened without admin override.">
-                        Locked
-                      </span>
-                    )}
+                    <div className="flex flex-wrap gap-2">
+                      {period.status === 'open' || period.can_edit ? (
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          disabled={actionId === period.id}
+                          onClick={() => openEditModal(period)}
+                          title="Edit start and end dates for this open period."
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                          Edit
+                        </Button>
+                      ) : (
+                        <span
+                          className="inline-flex items-center text-xs text-slate-400"
+                          title="Closed periods cannot be edited. Reopen first if soft-closed."
+                        >
+                          —
+                        </span>
+                      )}
+                      {period.status === 'open' || period.can_close ? (
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          disabled={actionId === period.id}
+                          onClick={() => {
+                            setCloseWarnings([]);
+                            setCloseModalId(period.id);
+                          }}
+                          title="Soft or hard close. Transactions will be blocked."
+                        >
+                          <Lock className="h-3.5 w-3.5" />
+                          Close Period
+                        </Button>
+                      ) : period.status === 'soft_closed' || period.can_reopen ? (
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          disabled={actionId === period.id}
+                          onClick={() => setReopenModalId(period.id)}
+                          title="Reopen period. Reason required."
+                        >
+                          <Unlock className="h-3.5 w-3.5" />
+                          Reopen
+                        </Button>
+                      ) : isPlatformAdmin && (period.can_override_reopen || period.status === 'hard_closed') ? (
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          disabled={actionId === period.id}
+                          onClick={() => setOverrideModalId(period.id)}
+                          title="Platform admin override reopen with audit trail."
+                        >
+                          <Unlock className="h-3.5 w-3.5" />
+                          Admin Reopen
+                        </Button>
+                      ) : (
+                        <span className="text-xs text-slate-400" title="Hard-closed periods cannot be reopened without admin override.">
+                          Locked
+                        </span>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
