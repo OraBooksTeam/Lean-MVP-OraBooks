@@ -197,6 +197,11 @@ class OraBooks_AR {
                     $wpdb->query($sql);
                 }
             }
+
+            $invoice_col = $wpdb->get_row("SHOW COLUMNS FROM {$payments} LIKE 'invoice_id'");
+            if ($invoice_col && strtoupper((string) $invoice_col->Null) === 'NO') {
+                $wpdb->query("ALTER TABLE {$payments} MODIFY invoice_id BIGINT UNSIGNED NULL");
+            }
         }
     }
 

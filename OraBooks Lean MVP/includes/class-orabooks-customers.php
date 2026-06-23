@@ -1903,34 +1903,47 @@ class OraBooks_Customers {
         $payment_date = $data['payment_date'] ?? current_time('Y-m-d');
 
         // Record the payment
+        $previous_paid = (float) ($invoice->paid_amount ?? 0);
         $wpdb->insert(
             $table_payments,
             [
-                'org_id'       => $org_id,
-                'invoice_id'   => $invoice_id,
-                'payment_date' => $payment_date,
-                'amount'       => $payment_amount,
+                'org_id'         => $org_id,
+                'customer_id'    => (int) $invoice->customer_id,
+                'invoice_id'     => $invoice_id,
+                'payment_date'   => $payment_date,
+                'amount'         => $payment_amount,
                 'payment_method' => $data['payment_method'] ?? 'bank_transfer',
-                'reference'    => $data['reference'] ?? '',
-                'notes'        => $data['notes'] ?? '',
-                'idempotency_key' => $data['idempotency_key'] ?? orabooks_uuid(),
+                'type'           => 'payment',
+                'reference'      => $data['reference'] ?? '',
+                'notes'          => $data['notes'] ?? '',
+                'idempotency_key'=> $data['idempotency_key'] ?? orabooks_uuid(),
             ],
-            ['%d', '%d', '%s', '%f', '%s', '%s', '%s', '%s']
+            ['%d', '%d', '%d', '%s', '%f', '%s', '%s', '%s', '%s', '%s']
         );
 
         $payment_id = $wpdb->insert_id;
 
-        // Calculate new total paid
-        $total_paid = (float) $wpdb->get_var($wpdb->prepare(
-            "SELECT COALESCE(SUM(amount), 0) FROM {$table_payments} WHERE invoice_id = %d AND (type IS NULL OR type = 'payment')",
-            $invoice_id
-        ));
+        $applied_to_invoice = min(
+            $payment_amount,
+            max(0, round((float) $invoice->total_amount - $previous_paid, 2))
+        );
+        if ($applied_to_invoice > 0 && class_exists('OraBooks_AR')) {
+            OraBooks_AR::insert_allocation_public(
+                (int) $org_id,
+                (int) $invoice->customer_id,
+                (int) $payment_id,
+                (int) $invoice_id,
+                $applied_to_invoice,
+                sanitize_text_field($data['allocation_method'] ?? 'manual')
+            );
+        }
 
-        $overpayment = max(0, round($total_paid - (float) $invoice->total_amount, 2));
+        $overpayment = max(0, round($previous_paid + $payment_amount - (float) $invoice->total_amount, 2));
         if ($overpayment > 0 && class_exists('OraBooks_AR')) {
             OraBooks_AR::adjust_customer_credit_balance((int) $invoice->customer_id, (int) $org_id, $overpayment);
-            $total_paid = (float) $invoice->total_amount;
         }
+
+        $total_paid = min(round($previous_paid + $payment_amount, 2), (float) $invoice->total_amount);
 
         // Determine new payment status
         if ($total_paid >= $invoice->total_amount) {
@@ -1983,7 +1996,7 @@ class OraBooks_Customers {
         self::create_payment_journal_for_ar(
             $org_id,
             $payment_id,
-            min($payment_amount, max(0, (float) $invoice->total_amount - ((float) ($invoice->paid_amount ?? 0)))),
+            $applied_to_invoice,
             $payment_date,
             $invoice->invoice_number,
             orabooks_get_current_user_id()
