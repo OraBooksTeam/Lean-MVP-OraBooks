@@ -370,11 +370,35 @@ export default function ExpensesPage() {
     const res = await api.expenseApprove(orgId, expenseId);
     if (res.error) setError(res.error);
     else {
-      setSuccess('Expense approved and posted.');
+      setSuccess(autoPostOnApprove ? 'Expense approved and posted.' : 'Expense approved.');
       await load();
       if (selectedExpense?.id === expenseId) void loadExpense(expenseId);
     }
     setActionId(null);
+  };
+
+  const handleToggleAutoPost = async (enabled: boolean) => {
+    if (!orgId || savingSettings) return;
+    setSavingSettings(true);
+    setError('');
+    const res = await api.expenseSettingsSave(orgId, enabled);
+    if (res.error) {
+      setError(res.error);
+    } else {
+      setSuccess('Expense settings saved.');
+      setData((prev: any) =>
+        prev
+          ? {
+              ...prev,
+              expense_settings: (res as any).data?.settings || {
+                ...expenseSettings,
+                auto_post_on_approve: enabled ? 1 : 0,
+              },
+            }
+          : prev
+      );
+    }
+    setSavingSettings(false);
   };
 
   const handleReject = async (expenseId: number) => {
@@ -411,6 +435,25 @@ export default function ExpensesPage() {
           <Metric label="Awaiting Approval" value={(stats.submitted ?? 0) + (stats.ai_review ?? 0)} tone="warning" />
           <Metric label="Posted" value={stats.posted ?? 0} tone="success" />
         </div>
+
+        {canManageSettings && (
+          <div className="glass-panel p-5">
+            <h2 className="font-bold text-ink">Expense workflow</h2>
+            <p className="mt-1 text-sm text-slate-600">
+              When enabled, approving an expense also posts it to the ledger.
+            </p>
+            <label className="mt-4 flex items-center gap-2 text-sm font-medium text-ink">
+              <input
+                type="checkbox"
+                checked={Boolean(autoPostOnApprove)}
+                disabled={savingSettings}
+                onChange={(e) => void handleToggleAutoPost(e.target.checked)}
+                className="h-4 w-4 rounded border-border text-primary focus:ring-primary/30"
+              />
+              Auto-post on approve
+            </label>
+          </div>
+        )}
 
         {caps.upload && (
           <div className="glass-panel p-5">
@@ -782,7 +825,7 @@ export default function ExpensesPage() {
                 ['submitted', 'ai_review'].includes(selectedExpense.workflow_status) && (
                   <>
                     <Button disabled={actionId === selectedExpense.id} onClick={() => void handleApprove(selectedExpense.id)}>
-                      Approve
+                      {approveLabel}
                     </Button>
                     <Button
                       variant="secondary"
@@ -823,6 +866,7 @@ export default function ExpensesPage() {
             onApprove={caps.approve ? (id) => void handleApprove(id) : undefined}
             onReject={caps.approve ? (id) => void handleReject(id) : undefined}
             actionId={actionId}
+            approveLabel={approveLabel}
           />
         )}
 
@@ -834,6 +878,7 @@ export default function ExpensesPage() {
           onOverride={(expense) => void openOverride(expense)}
           canOverride={!!caps.override_tax}
           actionId={actionId}
+          approveLabel={approveLabel}
         />
 
         <TaxOverrideModal
