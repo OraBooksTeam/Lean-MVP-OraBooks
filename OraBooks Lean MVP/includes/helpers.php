@@ -194,7 +194,7 @@ function orabooks_is_registered_frontend_page($post = null) {
  return false;
  }
 
- $content = (string) $post->post_content();
+ $content = (string) $post->post_content;
  if ($content !== '' && strpos($content, '[orabooks_') !== false) {
  return true;
  }
@@ -1168,7 +1168,7 @@ function orabooks_maybe_redirect_to_org_subdomain() {
  }
 
  $user_id = orabooks_get_current_user_id();
- if ($user_id > 0 && orabooks_is_network_auth_host && orabooks_orabooks_user_can_manage_platform($user_id)) {
+ if ($user_id > 0 && orabooks_is_network_auth_host() && orabooks_orabooks_user_can_manage_platform($user_id)) {
  return;
  }
 
@@ -1190,7 +1190,7 @@ function orabooks_maybe_redirect_to_org_subdomain() {
  $shared_auth_slugs = ['login', 'register', 'reset-password', 'verify-email', 'tier-selection', 'accept-invite'];
  if (in_array($post->post_name, $shared_auth_slugs, true)) {
  if ($post->post_name === 'login') {
- if (orabooks_is_network_auth_host && orabooks_orabooks_user_can_manage_platform($user_id)) {
+ if (orabooks_is_network_auth_host() && orabooks_orabooks_user_can_manage_platform($user_id)) {
  wp_redirect(orabooks_get_platform_admin_url);
  exit;
  }
