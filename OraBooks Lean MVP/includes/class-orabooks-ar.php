@@ -814,6 +814,10 @@ class OraBooks_AR {
         return $remaining;
     }
 
+    public static function insert_allocation_public($org_id, $customer_id, $payment_id, $invoice_id, $amount, $method = 'manual') {
+        self::insert_allocation((int) $org_id, (int) $customer_id, (int) $payment_id, (int) $invoice_id, (float) $amount, $method);
+    }
+
     private static function insert_allocation($org_id, $customer_id, $payment_id, $invoice_id, $amount, $method) {
         global $wpdb;
         $wpdb->insert(
