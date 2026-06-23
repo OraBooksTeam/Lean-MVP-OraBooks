@@ -244,7 +244,7 @@ function orabooks_render_merged_accounting_workspace($view = '') {
         return OraBooks_Views::require_login_message();
     }
 
-    return OraBooks_Views::render('frontend/react-app', ['initial_route' => '/dashboard']);
+    return orabooks_render_react_app_page('/dashboard');
 }
 
 /**
