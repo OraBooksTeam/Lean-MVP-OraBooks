@@ -37,6 +37,12 @@ class OraBooks_AR_Test extends TestCase
     public function validate_customer_credit_blocks_credit_hold(): void
     {
         global $wpdb;
+        $wpdb->test_get_col_callback = static function ($query) {
+            if (strpos($query, 'SHOW COLUMNS') !== false) {
+                return ['id', 'credit_hold', 'credit_limit'];
+            }
+            return [];
+        };
         $wpdb->test_get_row_callback = static function ($query) {
             if (strpos($query, 'FROM ' . OraBooks_Database::table('customers')) !== false) {
                 return (object) [
@@ -45,6 +51,8 @@ class OraBooks_AR_Test extends TestCase
                     'credit_hold' => 1,
                     'credit_limit' => 0,
                     'credit_balance' => 0,
+                    'contact_email' => 'hold@example.com',
+                    'display_name' => 'Hold Customer',
                 ];
             }
             return null;
