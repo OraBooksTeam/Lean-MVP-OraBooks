@@ -668,7 +668,7 @@ class OraBooks_Secrets {
  */
  private static function get_jwt_verification_secrets() {
  $secrets = [self::get_jwt_secret];
- $grace_until = (int) self::with_shared_options(function {
+ $grace_until = (int) self::with_shared_options(function() {
  return (int) get_option('orabooks_jwt_secret_grace_until', 0);
  });
 
@@ -827,7 +827,7 @@ class OraBooks_Secrets {
  $secret = self::get_jwt_secret();
  $header = self::base64url_encode(json_encode(['alg' => 'HS256', 'typ' => 'JWT']));
  $payload['iat'] = time();
- $jwt_expiry = self::with_shared_options(function {
+ $jwt_expiry = self::with_shared_options(function() {
  return (int) get_option('orabooks_jwt_expiry', self::get_default_jwt_expiry);
  });
  if (empty($payload['exp']) || (int) $payload['exp'] <= time()) {
