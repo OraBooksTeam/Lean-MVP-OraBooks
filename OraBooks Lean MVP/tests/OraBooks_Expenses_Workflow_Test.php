@@ -82,15 +82,22 @@ class OraBooks_Expenses_Workflow_Test extends TestCase
         global $wpdb;
 
         $side_effects = ['ai_review_inserts' => []];
+        $insert_seq = 900;
 
         $wpdb->test_query_callback = function () {
             return true;
         };
         $wpdb->test_get_var_callback = function ($query) {
-            if (stripos($query, 'idempotency_key') !== false) {
+            if (stripos($query, 'idempotency_key') !== false && stripos($query, 'classification') === false) {
                 return null;
             }
+            if (stripos($query, 'classification_rules') !== false && stripos($query, 'COUNT') !== false) {
+                return 1;
+            }
             if (stripos($query, 'ai_review_queue') !== false) {
+                return null;
+            }
+            if (stripos($query, 'classification_idempotency_key') !== false) {
                 return null;
             }
             return null;
@@ -101,19 +108,19 @@ class OraBooks_Expenses_Workflow_Test extends TestCase
             }
             return null;
         };
-        $wpdb->test_update_callback = function ($table, $data, $where) use (&$expense, &$side_effects) {
+        $wpdb->test_update_callback = function ($table, $data, $where) use (&$expense) {
             foreach ($data as $key => $value) {
                 $expense->$key = $value;
             }
             return 1;
         };
-        $wpdb->test_insert_callback = function ($table, $data) use (&$side_effects) {
-            if (stripos($table, 'ai_review_queue') !== false) {
+        $wpdb->test_insert_callback = function ($table, $data) use (&$side_effects, &$insert_seq) {
+            if (($data['resource_type'] ?? '') === 'expense' && array_key_exists('confidence_score', $data)) {
                 $side_effects['ai_review_inserts'][] = $data;
             }
-            return true;
+            global $wpdb;
+            $wpdb->insert_id = ++$insert_seq;
         };
-        $GLOBALS['orabooks_test_use_insert_id'] = 901;
 
         return $side_effects;
     }
@@ -183,6 +190,10 @@ class OraBooks_Expenses_Workflow_Test extends TestCase
         $this->assertCount(1, $side_effects['ai_review_inserts']);
         $this->assertSame('expense', $side_effects['ai_review_inserts'][0]['resource_type']);
         $this->assertSame(55, $side_effects['ai_review_inserts'][0]['resource_id']);
+        $this->assertSame(62.0, (float) $side_effects['ai_review_inserts'][0]['confidence_score']);
+
+        $logged = end($GLOBALS['orabooks_test_log_events']);
+        $this->assertSame('expense_escalated_to_ai_review', $logged['event_type'] ?? null);
     }
 
     #[Test]
