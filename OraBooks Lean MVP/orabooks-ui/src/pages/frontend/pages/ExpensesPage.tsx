@@ -1,8 +1,7 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import WpLink from '../components/WpLink';
 
 import Button from '@/components/Button';
-import Input from '@/components/Input';
 import { api } from '../api';
 import ClientShell from '../components/ClientShell';
 import ResourceAttachmentsPanel from '../components/ResourceAttachmentsPanel';
@@ -17,12 +16,17 @@ import {
   isStandalonePwa,
   onOnline,
 } from '@/lib/pwa/register-pwa';
-import { Camera, CheckCircle2, CloudOff, Paperclip, Percent, Receipt, Upload, XCircle } from 'lucide-react';
+import { Camera, CheckCircle2, CloudOff, Paperclip, Percent, Receipt, RefreshCw, Upload, XCircle } from 'lucide-react';
 import ClassificationPanel from '@/components/classification/ClassificationPanel';
 import ConfidenceBadge from '@/components/classification/ConfidenceBadge';
 import OverrideClassificationModal from '@/components/classification/OverrideClassificationModal';
 import { useClassificationPolling } from '@/components/classification/useClassificationPolling';
 import TaxOverrideModal, { type TaxConfig } from '@/components/tax/TaxOverrideModal';
+import ExpenseLineItemsPanel from '@/components/expenses/ExpenseLineItemsPanel';
+import ExpenseOcrField from '@/components/expenses/ExpenseOcrField';
+import OcrProcessingBanner from '@/components/expenses/OcrProcessingBanner';
+import PaymentStatusBadge from '@/components/expenses/PaymentStatusBadge';
+import { useExpenseOcrPolling } from '@/components/expenses/useExpenseOcrPolling';
 
 const fieldClass =
   'w-full rounded-lg border border-border bg-white px-3.5 py-2.5 text-sm text-ink shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20';

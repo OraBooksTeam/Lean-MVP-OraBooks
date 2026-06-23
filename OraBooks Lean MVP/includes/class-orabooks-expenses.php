@@ -974,8 +974,13 @@ class OraBooks_Expenses {
             return new WP_Error('validation', 'Total amount and transaction date are required');
         }
 
-        $confidence = (float) ($expense->ocr_confidence ?? 0);
-        $risk = $expense->ocr_risk_level ?: 'medium';
+        if ($expense->ocr_confidence === null && $ocr_failed) {
+            $confidence = 0.0;
+            $risk = 'high';
+        } else {
+            $confidence = (float) ($expense->ocr_confidence ?? 0);
+            $risk = $expense->ocr_risk_level ?: 'medium';
+        }
 
         $route = self::resolve_submit_route($confidence, $risk);
         $workflow_event = $route['workflow_event'];
