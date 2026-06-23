@@ -271,6 +271,12 @@ export default function InvoicesPage() {
     setSaving(false);
   };
 
+  const canCancel = (invoice: Invoice) =>
+    canCreateInvoice
+    && ['draft', 'sent', 'submitted', 'approved'].includes(invoice.workflow_status || '')
+    && !['paid', 'partial'].includes(invoice.payment_status || '')
+    && Number(invoice.paid_amount || 0) <= 0;
+
   const handleCancelInvoice = async () => {
     if (!orgId || !cancelInvoice) return;
     setActionInvoiceId(cancelInvoice.id);
@@ -477,7 +483,7 @@ export default function InvoicesPage() {
         <div className="flex items-start gap-3 rounded-xl border border-sky-200 bg-sky-50/80 p-4 text-sm text-sky-900">
           <Info className="mt-0.5 h-4 w-4 shrink-0" />
           <p>
-            Create draft invoices with automatic tax calculation, send to customers, post to AR, and record payments.
+            Create draft invoices, submit for approval, post to AR (auto-post configurable), record FIFO payments, and issue credit notes per SL-021.
           </p>
         </div>
 
@@ -511,11 +517,28 @@ export default function InvoicesPage() {
                 <p className="text-sm text-slate-600">
                   Due {selectedInvoice.due_date || '—'} · {money(selectedInvoice.total_amount, selectedInvoice.currency)}
                 </p>
+                <div className="mt-2 flex flex-wrap gap-2 text-xs">
+                  <Badge value={selectedInvoice.workflow_status || 'draft'} />
+                  <Badge value={selectedInvoice.payment_status || 'unpaid'} />
+                  {selectedInvoice.lock_status === 'locked' && <Badge value="locked" />}
+                  {selectedInvoice.dunning_stage && selectedInvoice.dunning_stage !== 'none' && (
+                    <Badge value={selectedInvoice.dunning_stage} />
+                  )}
+                </div>
               </div>
               <Button variant="secondary" size="sm" onClick={() => setSelectedInvoice(null)}>
                 Close
               </Button>
             </div>
+            {selectedInvoice.rendered_copy && (
+              <div className="mt-4 rounded-lg border border-border bg-slate-50 p-4 text-sm">
+                <p className="font-semibold text-ink">Posted snapshot</p>
+                <p className="text-slate-600">
+                  {String((selectedInvoice.rendered_copy as any).invoice_number || selectedInvoice.invoice_number)} ·
+                  {' '}{money((selectedInvoice.rendered_copy as any).total_amount, selectedInvoice.currency)}
+                </p>
+              </div>
+            )}
             <div className="mt-4">
               <ResourceAttachmentsPanel
                 orgId={orgId}
@@ -635,6 +658,16 @@ export default function InvoicesPage() {
                       <Button size="sm" variant="secondary" onClick={() => void loadInvoiceDetail(invoice.id)}>
                         View
                       </Button>
+                      {canSubmit(invoice) && (
+                        <Button size="sm" variant="secondary" disabled={actionInvoiceId === invoice.id} onClick={() => void runInvoiceAction('submit', invoice.id)}>
+                          Submit
+                        </Button>
+                      )}
+                      {canApprove(invoice) && (
+                        <Button size="sm" disabled={actionInvoiceId === invoice.id} onClick={() => void runInvoiceAction('approve', invoice.id)}>
+                          {Number(arConfig?.auto_post_on_approve ?? 1) ? 'Approve & Post' : 'Approve'}
+                        </Button>
+                      )}
                       {canSend(invoice) && (
                         <Button size="sm" variant="secondary" disabled={actionInvoiceId === invoice.id} onClick={() => void runInvoiceAction('send', invoice.id)}>
                           Send
@@ -654,6 +687,11 @@ export default function InvoicesPage() {
                       {canCancel(invoice) && (
                         <Button size="sm" variant="secondary" disabled={actionInvoiceId === invoice.id} onClick={() => { setCancelInvoice(invoice); setCancelReason(''); setError(''); }}>
                           Cancel
+                        </Button>
+                      )}
+                      {canCreditNote(invoice) && (
+                        <Button size="sm" variant="secondary" onClick={() => void openCreditNote(invoice)}>
+                          Credit note
                         </Button>
                       )}
                       {canOverride(invoice) && (
