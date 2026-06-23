@@ -977,11 +977,17 @@ class OraBooks_AR {
         ));
     }
 
-    public static function list_credit_notes($org_id, $customer_id = 0) {
+    public static function list_credit_notes($org_id, $customer_id = 0, $invoice_id = 0) {
         global $wpdb;
         self::ensure_schema();
         $table = OraBooks_Database::table('credit_notes');
-        if ($customer_id > 0) {
+        if ($invoice_id > 0) {
+            $rows = $wpdb->get_results($wpdb->prepare(
+                "SELECT * FROM {$table} WHERE org_id = %d AND invoice_id = %d ORDER BY created_at DESC LIMIT 50",
+                (int) $org_id,
+                (int) $invoice_id
+            ));
+        } elseif ($customer_id > 0) {
             $rows = $wpdb->get_results($wpdb->prepare(
                 "SELECT * FROM {$table} WHERE org_id = %d AND customer_id = %d ORDER BY created_at DESC LIMIT 50",
                 (int) $org_id,
@@ -996,24 +1002,49 @@ class OraBooks_AR {
         return array_map([self::class, 'format_credit_note'], $rows ?: []);
     }
 
-    public static function format_credit_note($row) {
+    public static function list_payments($org_id, $args = []) {
+        global $wpdb;
+        self::ensure_schema();
+
+        $table = OraBooks_Database::table('payments');
+        $where = ['org_id = %d'];
+        $params = [(int) $org_id];
+
+        if (!empty($args['customer_id'])) {
+            $where[] = 'customer_id = %d';
+            $params[] = (int) $args['customer_id'];
+        }
+        if (!empty($args['invoice_id'])) {
+            $where[] = 'invoice_id = %d';
+            $params[] = (int) $args['invoice_id'];
+        }
+
+        $sql = "SELECT * FROM {$table} WHERE " . implode(' AND ', $where) . " ORDER BY payment_date DESC, id DESC LIMIT 100";
+        $rows = $wpdb->get_results($wpdb->prepare($sql, $params));
+
+        return array_map([self::class, 'format_payment'], $rows ?: []);
+    }
+
+    public static function format_payment($row) {
         if (!$row) {
             return null;
         }
+
+        $type = $row->type ?? 'payment';
         return [
             'id' => (int) $row->id,
             'org_id' => (int) $row->org_id,
-            'customer_id' => (int) $row->customer_id,
+            'customer_id' => !empty($row->customer_id) ? (int) $row->customer_id : null,
             'invoice_id' => !empty($row->invoice_id) ? (int) $row->invoice_id : null,
-            'credit_note_number' => $row->credit_note_number,
-            'credit_date' => $row->credit_date,
+            'payment_date' => $row->payment_date,
             'amount' => (float) $row->amount,
-            'reason' => $row->reason,
-            'is_write_off' => (int) ($row->is_write_off ?? 0),
-            'requires_second_approval' => (int) ($row->requires_second_approval ?? 0),
-            'workflow_status' => $row->workflow_status,
-            'journal_id' => !empty($row->journal_id) ? (int) $row->journal_id : null,
-            'created_at' => $row->created_at,
+            'payment_method' => $row->payment_method,
+            'type' => $type,
+            'reference' => $row->reference ?? '',
+            'notes' => $row->notes ?? '',
+            'reverses_payment_id' => !empty($row->reverses_payment_id) ? (int) $row->reverses_payment_id : null,
+            'can_reverse' => $type === 'payment' && (float) $row->amount > 0,
+            'created_at' => $row->created_at ?? null,
         ];
     }
 
