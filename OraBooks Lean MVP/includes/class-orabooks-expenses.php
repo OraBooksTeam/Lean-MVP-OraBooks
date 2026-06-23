@@ -362,6 +362,10 @@ class OraBooks_Expenses {
             'tax_override_at'     => $row->tax_override_at ?? null,
         ];
 
+        if ($row->ocr_confidence === null || $row->workflow_status === 'draft') {
+            $formatted['ocr_queue'] = self::get_ocr_queue_state((int) $row->id);
+        }
+
         if (class_exists('OraBooks_Classification')) {
             $formatted['classification'] = OraBooks_Classification::format_classification($row);
         }
