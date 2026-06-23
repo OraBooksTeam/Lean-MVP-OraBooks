@@ -31,7 +31,19 @@ type Invoice = {
   currency?: string;
   classification?: any;
   rendered_copy?: Record<string, unknown> | null;
-  payments?: { id: number; amount: number; payment_date: string; payment_method: string }[];
+  payments?: PaymentRow[];
+};
+
+type PaymentRow = {
+  id: number;
+  amount: number;
+  payment_date: string;
+  payment_method: string;
+  type?: string;
+  reference?: string;
+  notes?: string;
+  can_reverse?: boolean;
+  reverses_payment_id?: number | null;
 };
 
 type CreditNote = {
@@ -41,6 +53,9 @@ type CreditNote = {
   workflow_status: string;
   reason: string;
   invoice_id?: number | null;
+  is_write_off?: number;
+  requires_second_approval?: number;
+  approved_by?: number | null;
 };
 
 type Customer = { id: number; display_name?: string | null; email?: string };
@@ -95,12 +110,18 @@ export default function InvoicesPage() {
   const [creditNoteInvoice, setCreditNoteInvoice] = useState<Invoice | null>(null);
   const [creditNoteForm, setCreditNoteForm] = useState({ amount: '', reason: '', is_write_off: false });
   const [creditNotes, setCreditNotes] = useState<CreditNote[]>([]);
+  const [actionCreditNoteId, setActionCreditNoteId] = useState<number | null>(null);
+  const [reversePayment, setReversePayment] = useState<PaymentRow | null>(null);
+  const [reverseReason, setReverseReason] = useState('');
+  const [voidCreditNote, setVoidCreditNote] = useState<CreditNote | null>(null);
+  const [voidReason, setVoidReason] = useState('');
 
   const orgId = context?.organization?.id;
   const permissions: string[] = context?.permissions || [];
   const canCreateInvoice = permissions.includes('create_invoice');
   const canRecordPayment = permissions.includes('create_invoice');
   const canOverrideTax = permissions.includes('override_tax');
+  const canApproveJournal = permissions.includes('approve_journal');
 
   const load = async () => {
     setLoading(true);
@@ -166,7 +187,13 @@ export default function InvoicesPage() {
       return;
     }
     const invoice = (res as any).data?.invoice;
-    if (invoice) setSelectedInvoice(invoice);
+    if (invoice) {
+      setSelectedInvoice(invoice);
+      if (orgId) {
+        const cnRes = await api.creditNotesList(orgId, { invoice_id: invoiceId });
+        if (!cnRes.error) setCreditNotes((cnRes as any).data?.credit_notes || []);
+      }
+    }
   };
 
   useClassificationPolling({
@@ -246,8 +273,38 @@ export default function InvoicesPage() {
     setCreditNoteInvoice(invoice);
     setCreditNoteForm({ amount: String(remainingBalance(invoice) || invoice.total_amount || ''), reason: '', is_write_off: false });
     setError('');
-    const res = await api.creditNotesList(orgId, invoice.customer_id || 0);
+    const res = await api.creditNotesList(orgId, { invoice_id: invoice.id });
     if (!res.error) setCreditNotes((res as any).data?.credit_notes || []);
+  };
+
+  const runCreditNoteAction = async (action: 'submit' | 'approve' | 'post' | 'void', note: CreditNote) => {
+    if (!orgId) return;
+    setActionCreditNoteId(note.id);
+    setError('');
+    let res;
+    if (action === 'submit') res = await api.creditNoteSubmit(orgId, note.id);
+    else if (action === 'approve') res = await api.creditNoteApprove(orgId, note.id);
+    else if (action === 'post') res = await api.creditNotePost(orgId, note.id);
+    else res = await api.creditNoteVoid(orgId, note.id, voidReason.trim());
+
+    if (res.error) {
+      setError(res.error);
+    } else {
+      const labels = {
+        submit: 'Credit note submitted.',
+        approve: 'Credit note approved.',
+        post: 'Credit note posted to AR.',
+        void: 'Credit note voided.',
+      };
+      setSuccess(labels[action]);
+      if (action === 'void') {
+        setVoidCreditNote(null);
+        setVoidReason('');
+      }
+      if (selectedInvoice) await loadInvoiceDetail(selectedInvoice.id);
+      await load();
+    }
+    setActionCreditNoteId(null);
   };
 
   const handleCreateCreditNote = async () => {
@@ -264,8 +321,27 @@ export default function InvoicesPage() {
     });
     if (res.error) setError(res.error);
     else {
-      setSuccess('Credit note created.');
+      setSuccess('Credit note created in draft. Submit it for approval when ready.');
       setCreditNoteInvoice(null);
+      if (selectedInvoice?.id === creditNoteInvoice.id) {
+        await loadInvoiceDetail(creditNoteInvoice.id);
+      }
+      await load();
+    }
+    setSaving(false);
+  };
+
+  const handleReversePayment = async () => {
+    if (!orgId || !reversePayment) return;
+    setSaving(true);
+    setError('');
+    const res = await api.paymentReverse(orgId, reversePayment.id, reverseReason.trim());
+    if (res.error) setError(res.error);
+    else {
+      setSuccess('Payment reversed.');
+      setReversePayment(null);
+      setReverseReason('');
+      if (selectedInvoice) await loadInvoiceDetail(selectedInvoice.id);
       await load();
     }
     setSaving(false);
