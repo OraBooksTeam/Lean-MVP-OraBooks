@@ -14,7 +14,7 @@ class OraBooks_Auth {
 
  private static $instance = null;
 
- public static function init {
+ public static function init() {
  if (self::$instance === null) {
  self::$instance = new self;
  add_action('wp_ajax_nopriv_orabooks_register', [self::$instance, 'ajax_register']);
@@ -55,7 +55,7 @@ class OraBooks_Auth {
  add_filter('rest_pre_dispatch', [self::$instance, 'enforce_partner_accounting_isolation_rest'], 10, 3);
  //: Admin partner approval endpoints registered in OraBooks_Partner
 
- if (function_exists('is_multisite') && is_multisite) {
+ if (function_exists('is_multisite') && is_multisite()) {
  add_action('wpmu_activate_user', [self::$instance, 'handle_multisite_user_activation'], 10, 3);
  add_action('wpmu_activate_blog', [self::$instance, 'handle_multisite_blog_activation'], 10, 5);
  }
@@ -102,12 +102,12 @@ class OraBooks_Auth {
  }
 
  // Rate limit: 5 registrations per hour per IP
- $ip = orabooks_get_client_ip;
+ $ip = orabooks_get_client_ip();
  if (!orabooks_check_rate_limit('register_'. $ip, 5, 3600)) {
  return new WP_Error('rate_limit', 'Too many registration attempts. Please try again later.');
  }
 
- if (!orabooks_users_can_register) {
+ if (!orabooks_users_can_register()) {
  return new WP_Error('registration_disabled', 'User registration is disabled on this site.');
  }
 
@@ -138,8 +138,8 @@ class OraBooks_Auth {
 
  $password_hash = OraBooks_Secrets::hash_password($password);
  $verification_token = orabooks_random_string(32);
- $verification_expires = date('Y-m-d H:i:s', time + 86400); // 24 hours
- $pending_wp_signup = orabooks_multisite_uses_signup_activation;
+ $verification_expires = date('Y-m-d H:i:s', time() + 86400); // 24 hours
+ $pending_wp_signup = orabooks_multisite_uses_signup_activation();
  $wp_user_id = null;
 
  // Create user
@@ -209,12 +209,12 @@ class OraBooks_Auth {
  if ($pending_wp_signup) {
  $email_result = self::send_verification_email($email, $verification_token);
  if (is_wp_error($email_result)) {
- $email_warning = $email_result->get_error_message;
+ $email_warning = $email_result->get_error_message();
  }
  } else {
  $email_result = self::send_registration_emails($wp_user_id, $email, $verification_token);
  if (is_wp_error($email_result)) {
- $email_warning = $email_result->get_error_message;
+ $email_warning = $email_result->get_error_message();
  }
  }
 
@@ -237,7 +237,7 @@ class OraBooks_Auth {
  'user_id' => $user_id,
  'terms_version' => $terms_version ?: '1.0',
  'ip_address' => $ip,
- 'user_agent' => orabooks_get_user_agent
+ 'user_agent' => orabooks_get_user_agent()
  ],
  ['%d', '%s', '%s', '%s']
  );
@@ -247,7 +247,7 @@ class OraBooks_Auth {
  if ($user_type === 'customer' && !empty($partner_code)) {
  $attribution_result = self::process_attribution($user_id, $partner_code, $email);
  if (is_wp_error($attribution_result)) {
- orabooks_log_event('partner_attribution_failed', $attribution_result->get_error_message, 'warning', [
+ orabooks_log_event('partner_attribution_failed', $attribution_result->get_error_message(), 'warning', [
  'partner_code' => $partner_code
  ], $user_id, null);
  }
@@ -316,8 +316,8 @@ class OraBooks_Auth {
  ]);
  }
 
- if (function_exists('is_multisite') && is_multisite && function_exists('add_user_to_blog')) {
- $blog_id = get_current_blog_id;
+ if (function_exists('is_multisite') && is_multisite() && function_exists('add_user_to_blog')) {
+ $blog_id = get_current_blog_id();
  if (!is_user_member_of_blog($wp_user_id, $blog_id)) {
  add_user_to_blog($blog_id, $wp_user_id, 'subscriber');
  }
@@ -406,7 +406,7 @@ class OraBooks_Auth {
  return strtolower(trim(substr(strrchr($email, '@'), 1)));
  }
 
- private static function site_name {
+ private static function site_name() {
  if (function_exists('get_bloginfo')) {
  $name = get_bloginfo('name');
  if (!empty($name)) {
@@ -435,10 +435,10 @@ class OraBooks_Auth {
 
  private static function send_verification_email($email, $token) {
  $verify_url = self::verification_url($token);
- $subject = sprintf(__('[%s] Verify your email address', 'orabooks'), self::site_name);
+ $subject = sprintf(__('[%s] Verify your email address', 'orabooks'), self::site_name());
  $message = sprintf(
  __("Welcome to %1\$s.\n\nPlease verify your email address to activate your OraBooks account:\n%2\$s\n\nThis link expires in 24 hours. If you did not create an account, you can ignore this email.", 'orabooks'),
- self::site_name,
+ self::site_name(),
  $verify_url
  );
 
@@ -458,7 +458,7 @@ class OraBooks_Auth {
 
  private static function send_password_reset_email($email, $token) {
  $reset_url = self::reset_password_url($token);
- $subject = sprintf('[%s] Reset your password', self::site_name);
+ $subject = sprintf('[%s] Reset your password', self::site_name());
  $message = "We received a request to reset your OraBooks password.\n\n";
  $message.= "Use this secure link to choose a new password:\n";
  $message.= $reset_url. "\n\n";
@@ -473,7 +473,7 @@ class OraBooks_Auth {
  }
 
  $from_email = function_exists('get_option') ? get_option('admin_email'): '';
- if (function_exists('is_multisite') && is_multisite && function_exists('get_site_option')) {
+ if (function_exists('is_multisite') && is_multisite() && function_exists('get_site_option')) {
  $network_email = get_site_option('admin_email');
  if (!empty($network_email) && is_email($network_email)) {
  $from_email = $network_email;
@@ -483,13 +483,13 @@ class OraBooks_Auth {
  $from_email = 'wordpress@'. (isset($_SERVER['HTTP_HOST']) ? preg_replace('/:\d+$/', '', $_SERVER['HTTP_HOST']): 'localhost');
  }
 
- $from_name = self::site_name;
+ $from_name = self::site_name();
  $headers = [
  'Content-Type: text/plain; charset=UTF-8',
  sprintf('From: %s <%s>', $from_name, $from_email),
  ];
 
- $content_type_filter = static function {
+ $content_type_filter = static function() {
  return 'text/plain';
  };
  add_filter('wp_mail_content_type', $content_type_filter);
@@ -521,7 +521,7 @@ class OraBooks_Auth {
  global $wpdb;
 
  $table_users = OraBooks_Database::table('users');
- $ip = orabooks_get_client_ip;
+ $ip = orabooks_get_client_ip();
 
  // Rate limit: 5 failures per 15 min per IP+email
  $rate_key = 'login_'. $ip. '_'. $email;
@@ -553,7 +553,7 @@ class OraBooks_Auth {
  'user_id' => $user->id,
  'purpose' => '2fa_challenge',
  'expected_subdomain' => $expected_subdomain,
- 'exp' => time + 300 // 5 min
+ 'exp' => time() + 300 // 5 min
  ]);
  return [
  'requires_2fa' => true,
@@ -584,7 +584,7 @@ class OraBooks_Auth {
  'user_id' => $user->id,
  'email' => $user->email,
  'purpose' => 'tier_selection',
- 'exp' => time + 1800,
+ 'exp' => time() + 1800,
  ]);
 
  return [
@@ -837,7 +837,7 @@ class OraBooks_Auth {
  $user_id
  ));
 
- $code = orabooks_generate_partner_code;
+ $code = orabooks_generate_partner_code();
  for ($i = 0; $i < 10; $i++) {
  $exists = $wpdb->get_var($wpdb->prepare(
  "SELECT id FROM {$table_codes} WHERE partner_code = %s",
@@ -846,7 +846,7 @@ class OraBooks_Auth {
  if (!$exists) {
  break;
  }
- $code = orabooks_generate_partner_code;
+ $code = orabooks_generate_partner_code();
  }
 
  $wpdb->insert(
@@ -990,11 +990,11 @@ class OraBooks_Auth {
  private static function store_refresh_token($user_id, $org_id, $token, array $extra_metadata = []) {
  global $wpdb;
  $table = OraBooks_Database::table('refresh_tokens');
- $expires = date('Y-m-d H:i:s', time + orabooks_get_refresh_token_cookie_ttl);
+ $expires = date('Y-m-d H:i:s', time() + orabooks_get_refresh_token_cookie_ttl());
 
  $device_metadata = array_merge([
- 'ip' => orabooks_get_client_ip,
- 'user_agent' => orabooks_get_user_agent,
+ 'ip' => orabooks_get_client_ip(),
+ 'user_agent' => orabooks_get_user_agent(),
  ], $extra_metadata);
 
  $wpdb->insert(
@@ -1105,7 +1105,7 @@ class OraBooks_Auth {
  global $wpdb;
 
  $table_users = OraBooks_Database::table('users');
- $ip = orabooks_get_client_ip;
+ $ip = orabooks_get_client_ip();
 
  // Rate limit: 3 per hour per email
  if (!orabooks_check_rate_limit('forgot_'. $email, 3, 3600)) {
@@ -1122,7 +1122,7 @@ class OraBooks_Auth {
  }
 
  $reset_token = orabooks_random_string(32);
- $expires = date('Y-m-d H:i:s', time + 3600); // 1 hour
+ $expires = date('Y-m-d H:i:s', time() + 3600); // 1 hour
 
  $wpdb->update(
  $table_users,
@@ -1138,7 +1138,7 @@ class OraBooks_Auth {
  $email_result = self::send_password_reset_email($email, $reset_token);
  if (is_wp_error($email_result)) {
  orabooks_log_event('password_reset_email_failed', "Password reset email failed for $email", 'error', [
- 'error' => $email_result->get_error_message
+ 'error' => $email_result->get_error_message()
  ], $user->id, null);
  return $email_result;
  }
@@ -1194,31 +1194,31 @@ class OraBooks_Auth {
 
  // ============= AJAX HANDLERS =============
 
- public function ajax_register {
+ public function ajax_register() {
  try {
  $result = self::register($_POST);
  } catch (Throwable $e) {
- orabooks_log_event('registration_exception', $e->getMessage, 'error');
+ orabooks_log_event('registration_exception', $e->getMessage(), 'error');
  orabooks_json_error('Registration failed due to a server error. Please try again.', 500);
  }
 
  if (is_wp_error($result)) {
  orabooks_json_error(
- $result->get_error_message,
- orabooks_auth_error_status_code($result->get_error_code)
+ $result->get_error_message(),
+ orabooks_auth_error_status_code($result->get_error_code())
  );
  }
 
  orabooks_json_success($result, $result['message'] ?? 'Registration successful. Verification email sent.');
  }
 
- public function ajax_login {
+ public function ajax_login() {
  $email = sanitize_email($_POST['email'] ?? '');
  $password = $_POST['password'] ?? '';
 
  // Auto-detect subdomain from HTTP host (e.g., "mycompany.orabooks.app")
  // Fall back to explicit POST param if provided by the frontend
- $subdomain = self::detect_subdomain_from_host;
+ $subdomain = self::detect_subdomain_from_host();
  if (empty($subdomain)) {
  $subdomain = strtolower(trim($_POST['subdomain'] ?? ''));
  }
@@ -1227,8 +1227,8 @@ class OraBooks_Auth {
 
  if (is_wp_error($result)) {
  orabooks_json_error(
- $result->get_error_message,
- orabooks_auth_error_status_code($result->get_error_code)
+ $result->get_error_message(),
+ orabooks_auth_error_status_code($result->get_error_code())
  );
  }
 
@@ -1246,13 +1246,13 @@ class OraBooks_Auth {
  if (empty($result['needs_tier_selection']) && empty($result['needs_accept_invite'])) {
  orabooks_persist_login_session($result, $password);
  } else {
- orabooks_clear_logout_landing_cookie;
+ orabooks_clear_logout_landing_cookie();
  }
 
  orabooks_json_success(orabooks_redact_client_auth_response($result), 'Login successful');
  }
 
- public function ajax_verify_email {
+ public function ajax_verify_email() {
  $token = $_GET['token'] ?? '';
 
  if (empty($token)) {
@@ -1262,14 +1262,14 @@ class OraBooks_Auth {
  $result = self::verify_email($token);
 
  if (is_wp_error($result)) {
- wp_die($result->get_error_message);
+ wp_die($result->get_error_message());
  }
 
  wp_redirect(add_query_arg('verified', '1', orabooks_get_network_login_url('login')));
  exit;
  }
 
- public function ajax_verify_email_token {
+ public function ajax_verify_email_token() {
  $token = sanitize_text_field($_POST['token'] ?? $_GET['token'] ?? '');
 
  if (empty($token)) {
@@ -1279,13 +1279,13 @@ class OraBooks_Auth {
  $result = self::verify_email($token);
 
  if (is_wp_error($result)) {
- orabooks_json_error($result->get_error_message, 400);
+ orabooks_json_error($result->get_error_message(), 400);
  }
 
  orabooks_json_success([], __('Email verified successfully. You can now log in.', 'orabooks'));
  }
 
- public function ajax_resend_verification {
+ public function ajax_resend_verification() {
  $email = sanitize_email($_POST['email'] ?? '');
 
  if (!orabooks_check_rate_limit('resend_'. $email, 3, 3600)) {
@@ -1301,7 +1301,7 @@ class OraBooks_Auth {
 
  if ($user) {
  $new_token = orabooks_random_string(32);
- $expires = date('Y-m-d H:i:s', time + 86400);
+ $expires = date('Y-m-d H:i:s', time() + 86400);
 
  $wpdb->update(
  $table_users,
@@ -1313,7 +1313,7 @@ class OraBooks_Auth {
 
  $email_result = self::send_verification_email($email, $new_token);
  if (is_wp_error($email_result)) {
- orabooks_json_error($email_result->get_error_message, 500);
+ orabooks_json_error($email_result->get_error_message(), 500);
  }
 
  orabooks_log_event('verification_resent', "Verification email resent to $email", 'info', [], $user->id, null);
@@ -1322,34 +1322,34 @@ class OraBooks_Auth {
  orabooks_json_success([], 'Verification email resent');
  }
 
- public function ajax_forgot_password {
+ public function ajax_forgot_password() {
  $email = sanitize_email($_POST['email'] ?? '');
  $result = self::forgot_password($email);
  if (is_wp_error($result)) {
- $status_code = ($result->get_error_code === 'rate_limit') ? 429: 500;
- orabooks_json_error($result->get_error_message, $status_code);
+ $status_code = ($result->get_error_code() === 'rate_limit') ? 429: 500;
+ orabooks_json_error($result->get_error_message(), $status_code);
  }
  orabooks_json_success([], 'If the email exists, a reset link has been sent.');
  }
 
- public function ajax_reset_password {
+ public function ajax_reset_password() {
  $token = $_POST['token'] ?? '';
  $password = $_POST['password'] ?? '';
 
  $result = self::reset_password($token, $password);
 
  if (is_wp_error($result)) {
- orabooks_json_error($result->get_error_message, 400);
+ orabooks_json_error($result->get_error_message(), 400);
  }
 
  orabooks_json_success([], 'Password reset successfully');
  }
 
- public function ajax_check_subdomain {
+ public function ajax_check_subdomain() {
  $subdomain = strtolower(trim($_POST['subdomain'] ?? ''));
 
  // Rate limit: 10 per minute
- $ip = orabooks_get_client_ip;
+ $ip = orabooks_get_client_ip();
  if (!orabooks_check_rate_limit('subdomain_check_'. $ip, 10, 60)) {
  orabooks_json_error('Too many availability checks. Please wait.', 429);
  }
@@ -1375,37 +1375,37 @@ class OraBooks_Auth {
  ]);
  }
 
- public function ajax_setup_2fa {
- if (!orabooks_is_user_logged_in) {
+ public function ajax_setup_2fa() {
+ if (!orabooks_is_user_logged_in()) {
  orabooks_json_error('Not authenticated', 401);
  }
 
- $result = OraBooks_TwoFactor::setup(orabooks_get_current_user_id);
+ $result = OraBooks_TwoFactor::setup(orabooks_get_current_user_id());
  if (is_wp_error($result)) {
- orabooks_json_error($result->get_error_message, (int) ($result->get_error_data['status'] ?? 400));
+ orabooks_json_error($result->get_error_message(), (int) ($result->get_error_data('status') ?? 400));
  }
 
  orabooks_json_success($result);
  }
 
- public function ajax_verify_2fa_setup {
- if (!orabooks_is_user_logged_in) {
+ public function ajax_verify_2fa_setup() {
+ if (!orabooks_is_user_logged_in()) {
  orabooks_json_error('Not authenticated', 401);
  }
 
  $result = OraBooks_TwoFactor::verify_setup(
- orabooks_get_current_user_id,
+ orabooks_get_current_user_id(),
  sanitize_text_field($_POST['otp_code'] ?? '')
  );
 
  if (is_wp_error($result)) {
- orabooks_json_error($result->get_error_message, (int) ($result->get_error_data['status'] ?? 400));
+ orabooks_json_error($result->get_error_message(), (int) ($result->get_error_data('status') ?? 400));
  }
 
  orabooks_json_success($result, '2FA enabled successfully');
  }
 
- public function ajax_2fa_challenge {
+ public function ajax_2fa_challenge() {
  $result = OraBooks_TwoFactor::challenge(
  sanitize_text_field($_POST['temp_token'] ?? ''),
  sanitize_text_field($_POST['otp_code'] ?? ''),
@@ -1413,7 +1413,7 @@ class OraBooks_Auth {
  );
 
  if (is_wp_error($result)) {
- orabooks_json_error($result->get_error_message, (int) ($result->get_error_data['status'] ?? 401));
+ orabooks_json_error($result->get_error_message(), (int) ($result->get_error_data('status') ?? 401));
  }
 
  $result = orabooks_enrich_login_response($result);
@@ -1424,15 +1424,15 @@ class OraBooks_Auth {
  );
  }
 
- public function ajax_refresh_token {
- $refresh = orabooks_get_refresh_token_from_request;
+ public function ajax_refresh_token() {
+ $refresh = orabooks_get_refresh_token_from_request();
  if ($refresh === '') {
  orabooks_json_error('Refresh token required', 401);
  }
 
  $result = self::refresh_token($refresh);
  if (is_wp_error($result)) {
- orabooks_json_error($result->get_error_message, 401);
+ orabooks_json_error($result->get_error_message(), 401);
  }
 
  $result = orabooks_enrich_login_response($result);
@@ -1442,9 +1442,9 @@ class OraBooks_Auth {
  }
 
  /**
- * One-time token exchange after cross-subdomain redirect (ob_t / ob_rt URL params).
+ * One-time() token exchange after cross-subdomain redirect (ob_t / ob_rt URL params).
  */
- public function ajax_establish_session {
+ public function ajax_establish_session() {
  $token = sanitize_text_field($_POST['orabooks_token'] ?? '');
  $refresh = sanitize_text_field($_POST['refresh_token'] ?? '');
 
@@ -1476,19 +1476,19 @@ class OraBooks_Auth {
  ], 'Session established');
  }
 
- public function ajax_logout {
- $redirect_to = orabooks_get_logout_redirect_url;
+ public function ajax_logout() {
+ $redirect_to = orabooks_get_logout_redirect_url();
 
- if (!orabooks_is_user_logged_in) {
+ if (!orabooks_is_user_logged_in()) {
  orabooks_destroy_auth_session(0, false);
  orabooks_json_success([
  'redirect_to' => $redirect_to,
  ], 'Logged out');
  }
 
- $user_id = function_exists('orabooks_resolve_authenticated_user_id')
- ? orabooks_resolve_authenticated_user_id
-: orabooks_get_current_user_id;
+ $user_id = function_exists('orabooks_resolve_authenticated_user_id()')
+ ? orabooks_resolve_authenticated_user_id()
+: orabooks_get_current_user_id();
  orabooks_destroy_auth_session($user_id, true);
 
  orabooks_json_success([
@@ -1619,7 +1619,7 @@ class OraBooks_Auth {
  ]);
 
  if (is_wp_error($token_response)) {
- orabooks_log_event('oidc_token_error', 'OIDC token exchange failed: '. $token_response->get_error_message, 'error', []);
+ orabooks_log_event('oidc_token_error', 'OIDC token exchange failed: '. $token_response->get_error_message(), 'error', []);
  return new WP_Error('token_exchange_failed', 'Failed to authenticate with Google. Please try again.');
  }
 
@@ -1649,7 +1649,7 @@ class OraBooks_Auth {
  if ($existing) {
  // User exists ΓÇö log them in
  $user_id = $existing->id;
- $expected_subdomain = self::detect_subdomain_from_host;
+ $expected_subdomain = self::detect_subdomain_from_host();
 
  if ($existing->auth_provider === 'local' && !empty($existing->password_hash)) {
  return new WP_Error('oidc_email_conflict', 'This email is already registered with a password. Please log in with password.');
@@ -1682,7 +1682,7 @@ class OraBooks_Auth {
  'user_id' => $existing->id,
  'purpose' => '2fa_challenge',
  'expected_subdomain' => $expected_subdomain,
- 'exp' => time + 300 // 5 min
+ 'exp' => time() + 300 // 5 min
  ]);
  return [
  'requires_2fa' => true,
@@ -1769,8 +1769,8 @@ class OraBooks_Auth {
  [
  'user_id' => $user_id,
  'terms_version' => $terms_version,
- 'ip_address' => orabooks_get_client_ip,
- 'user_agent' => orabooks_get_user_agent
+ 'ip_address' => orabooks_get_client_ip(),
+ 'user_agent' => orabooks_get_user_agent()
  ],
  ['%d', '%s', '%s', '%s']
  );
@@ -1779,7 +1779,7 @@ class OraBooks_Auth {
  if (!empty($partner_code)) {
  $attribution_result = self::process_attribution($user_id, $partner_code, $google_email);
  if (is_wp_error($attribution_result)) {
- orabooks_log_event('partner_attribution_skipped', $attribution_result->get_error_message, 'warning', [
+ orabooks_log_event('partner_attribution_skipped', $attribution_result->get_error_message(), 'warning', [
  'partner_code' => $partner_code,
  ], $user_id, null);
  }
@@ -1791,7 +1791,7 @@ class OraBooks_Auth {
  'user_type' => $user_type
  ], $user_id, null);
 
- return self::complete_authenticated_login($created_user, self::detect_subdomain_from_host);
+ return self::complete_authenticated_login($created_user, self::detect_subdomain_from_host());
  }
 
  return new WP_Error('oidc_login_failed', 'Google login could not be completed.');
@@ -1800,7 +1800,7 @@ class OraBooks_Auth {
  /**
  * AJAX: Initiate Google OAuth ΓÇö returns the Google auth URL
  */
- public function ajax_oidc_initiate {
+ public function ajax_oidc_initiate() {
  $state_data = [];
  if (!empty($_POST['state_data'])) {
  $decoded = json_decode(base64_decode(strtr($_POST['state_data'], '-_', '+/')), true);
@@ -1813,8 +1813,8 @@ class OraBooks_Auth {
 
  if (is_wp_error($url)) {
  orabooks_json_error(
- $url->get_error_message,
- orabooks_auth_error_status_code($url->get_error_code)
+ $url->get_error_message(),
+ orabooks_auth_error_status_code($url->get_error_code())
  );
  }
 
@@ -1824,7 +1824,7 @@ class OraBooks_Auth {
  /**
  * AJAX: Handle Google OAuth callback (exchange code for token, login)
  */
- public function ajax_oidc_callback {
+ public function ajax_oidc_callback() {
  $code = $_POST['code'] ?? '';
  $state = $_POST['state'] ?? '';
 
@@ -1836,8 +1836,8 @@ class OraBooks_Auth {
 
  if (is_wp_error($result)) {
  orabooks_json_error(
- $result->get_error_message,
- orabooks_auth_error_status_code($result->get_error_code)
+ $result->get_error_message(),
+ orabooks_auth_error_status_code($result->get_error_code())
  );
  }
 
@@ -1850,7 +1850,7 @@ class OraBooks_Auth {
  if (empty($result['needs_tier_selection']) && empty($result['needs_accept_invite'])) {
  orabooks_persist_login_session($result);
  } else {
- orabooks_clear_logout_landing_cookie;
+ orabooks_clear_logout_landing_cookie();
  }
 
  orabooks_json_success(orabooks_redact_client_auth_response($result), 'Google login successful');
@@ -1859,14 +1859,14 @@ class OraBooks_Auth {
  /**
  * 501 placeholder for reserved MVP endpoints
  */
- public function ajax_not_implemented {
+ public function ajax_not_implemented() {
  wp_send_json(['error' => true, 'message' => 'This endpoint is not yet implemented (MVP placeholder).'], 501);
  }
 
  /**
  * /: block partner subdomains from accounting frontend pages at ingress.
  */
- public function enforce_partner_accounting_isolation {
+ public function enforce_partner_accounting_isolation() {
  if (!function_exists('is_singular') || !is_singular('page')) {
  return;
  }
@@ -1881,19 +1881,19 @@ class OraBooks_Auth {
  return;
  }
 
- $post = get_queried_object;
+ $post = get_queried_object();
  if (!$post || empty($post->post_name)) {
  return;
  }
 
- if (!in_array($post->post_name, orabooks_get_accounting_page_slugs, true)) {
+ if (!in_array($post->post_name, orabooks_get_accounting_page_slugs(), true)) {
  return;
  }
 
  orabooks_log_event('accounting_isolation_blocked', "Partner subdomain blocked from accounting page: {$post->post_name}", 'warning', [
  'subdomain' => $subdomain,
  'page' => $post->post_name,
- ], orabooks_get_current_user_id, (int) $org->id);
+ ], orabooks_get_current_user_id(), (int) $org->id);
 
  status_header(403);
  wp_die(
@@ -1911,7 +1911,7 @@ class OraBooks_Auth {
  return $result;
  }
 
- $route = (string) $request->get_route;
+ $route = (string) $request->get_route();
  if (strpos($route, '/orabooks/v1/') === false) {
  return $result;
  }
@@ -1938,7 +1938,7 @@ class OraBooks_Auth {
  return $result;
  }
 
- $user_id = orabooks_get_current_user_id;
+ $user_id = orabooks_get_current_user_id();
  if (!$user_id) {
  return $result;
  }
@@ -1952,7 +1952,7 @@ class OraBooks_Auth {
 
  $check = self::require_customer_org($user_id, $org_id);
  if (is_wp_error($check)) {
- return new WP_Error($check->get_error_code, $check->get_error_message, ['status' => 403]);
+ return new WP_Error($check->get_error_code(), $check->get_error_message(), ['status' => 403]);
  }
 
  return $result;
@@ -2014,7 +2014,7 @@ class OraBooks_Auth {
  *
  * @return string The detected subdomain, lowercased and trimmed
  */
- public static function detect_subdomain_from_host {
+ public static function detect_subdomain_from_host() {
  $host = $_SERVER['HTTP_HOST'] ?? '';
  if (empty($host)) {
  return '';
@@ -2038,13 +2038,13 @@ class OraBooks_Auth {
  return '';
  }
 
- public function ajax_select_tier {
+ public function ajax_select_tier() {
  $tier = $_POST['tier'] ?? '';
  $subdomain = strtolower(trim($_POST['subdomain'] ?? ''));
  $region_input = sanitize_text_field($_POST['region'] ?? '');
- $user_id = orabooks_get_current_user_id;
+ $user_id = orabooks_get_current_user_id();
  if (!$user_id) {
- $user_id = orabooks_resolve_tier_selection_user_id;
+ $user_id = orabooks_resolve_tier_selection_user_id();
  }
 
  if (!$user_id) {
@@ -2121,7 +2121,7 @@ class OraBooks_Auth {
  ]);
 
  if (is_wp_error($org_result)) {
- orabooks_json_error($org_result->get_error_message, 400);
+ orabooks_json_error($org_result->get_error_message(), 400);
  }
 
  // Update attribution org_id if pending or already verified before tier selection
