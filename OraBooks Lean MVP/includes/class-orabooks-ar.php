@@ -28,12 +28,18 @@ class OraBooks_AR {
             add_action('wp_ajax_nopriv_orabooks_payment_reverse', [self::$instance, 'ajax_reverse_payment']);
             add_action('wp_ajax_orabooks_credit_note_create', [self::$instance, 'ajax_create_credit_note']);
             add_action('wp_ajax_nopriv_orabooks_credit_note_create', [self::$instance, 'ajax_create_credit_note']);
+            add_action('wp_ajax_orabooks_credit_note_submit', [self::$instance, 'ajax_submit_credit_note']);
+            add_action('wp_ajax_nopriv_orabooks_credit_note_submit', [self::$instance, 'ajax_submit_credit_note']);
+            add_action('wp_ajax_orabooks_credit_note_approve', [self::$instance, 'ajax_approve_credit_note']);
+            add_action('wp_ajax_nopriv_orabooks_credit_note_approve', [self::$instance, 'ajax_approve_credit_note']);
             add_action('wp_ajax_orabooks_credit_note_post', [self::$instance, 'ajax_post_credit_note']);
             add_action('wp_ajax_nopriv_orabooks_credit_note_post', [self::$instance, 'ajax_post_credit_note']);
             add_action('wp_ajax_orabooks_credit_note_void', [self::$instance, 'ajax_void_credit_note']);
             add_action('wp_ajax_nopriv_orabooks_credit_note_void', [self::$instance, 'ajax_void_credit_note']);
             add_action('wp_ajax_orabooks_credit_notes_list', [self::$instance, 'ajax_credit_notes_list']);
             add_action('wp_ajax_nopriv_orabooks_credit_notes_list', [self::$instance, 'ajax_credit_notes_list']);
+            add_action('wp_ajax_orabooks_payments_list', [self::$instance, 'ajax_payments_list']);
+            add_action('wp_ajax_nopriv_orabooks_payments_list', [self::$instance, 'ajax_payments_list']);
             add_action('wp_ajax_orabooks_ar_config_get', [self::$instance, 'ajax_ar_config_get']);
             add_action('wp_ajax_nopriv_orabooks_ar_config_get', [self::$instance, 'ajax_ar_config_get']);
             add_action('wp_ajax_orabooks_ar_config_save', [self::$instance, 'ajax_ar_config_save']);
@@ -589,6 +595,60 @@ class OraBooks_AR {
         return self::format_credit_note(self::get_credit_note($id, (int) $org_id));
     }
 
+    public static function submit_credit_note($org_id, $credit_note_id, $user_id) {
+        $note = self::get_credit_note((int) $credit_note_id, (int) $org_id);
+        if (!$note) {
+            return new WP_Error('not_found', 'Credit note not found');
+        }
+        if ($note->workflow_status !== 'draft') {
+            return new WP_Error('invalid_status', 'Only draft credit notes can be submitted');
+        }
+
+        global $wpdb;
+        $wpdb->update(
+            OraBooks_Database::table('credit_notes'),
+            ['workflow_status' => 'submitted'],
+            ['id' => (int) $credit_note_id],
+            ['%s'],
+            ['%d']
+        );
+
+        orabooks_log_event('credit_note_submitted', "Credit note {$note->credit_note_number} submitted", 'info', [
+            'credit_note_id' => (int) $credit_note_id,
+        ], (int) $user_id, (int) $org_id);
+
+        return self::format_credit_note(self::get_credit_note((int) $credit_note_id, (int) $org_id));
+    }
+
+    public static function approve_credit_note($org_id, $credit_note_id, $user_id) {
+        $note = self::get_credit_note((int) $credit_note_id, (int) $org_id);
+        if (!$note) {
+            return new WP_Error('not_found', 'Credit note not found');
+        }
+        if ($note->workflow_status !== 'submitted') {
+            return new WP_Error('invalid_status', 'Only submitted credit notes can be approved');
+        }
+
+        global $wpdb;
+        $wpdb->update(
+            OraBooks_Database::table('credit_notes'),
+            [
+                'workflow_status' => 'approved',
+                'approved_by' => (int) $user_id,
+                'approved_at' => current_time('mysql'),
+            ],
+            ['id' => (int) $credit_note_id],
+            ['%s', '%d', '%s'],
+            ['%d']
+        );
+
+        orabooks_log_event('credit_note_approved', "Credit note {$note->credit_note_number} approved", 'info', [
+            'credit_note_id' => (int) $credit_note_id,
+        ], (int) $user_id, (int) $org_id);
+
+        return self::format_credit_note(self::get_credit_note((int) $credit_note_id, (int) $org_id));
+    }
+
     public static function post_credit_note($org_id, $credit_note_id, $user_id) {
         global $wpdb;
 
@@ -596,8 +656,8 @@ class OraBooks_AR {
         if (!$note) {
             return new WP_Error('not_found', 'Credit note not found');
         }
-        if (!in_array($note->workflow_status, ['draft', 'submitted', 'approved'], true)) {
-            return new WP_Error('invalid_status', 'Credit note cannot be posted from current status');
+        if (!in_array($note->workflow_status, ['approved'], true)) {
+            return new WP_Error('invalid_status', 'Only approved credit notes can be posted');
         }
 
         if ((int) $note->requires_second_approval === 1 && empty($note->approved_by)) {
