@@ -84,6 +84,9 @@ export default function InvoicesPage() {
     description: '',
   });
   const [createPreview, setCreatePreview] = useState<{ tax_rate: number; tax_amount: number; total_amount: number } | null>(null);
+  const [inventoryProducts, setInventoryProducts] = useState<{ id: number; sku: string; name: string; sales_price?: number; price?: number; current_stock?: number }[]>([]);
+  const [invoiceLineItems, setInvoiceLineItems] = useState<Array<{ product_id: string; quantity: string; unit_price: string }>>([]);
+  const [useInventoryLines, setUseInventoryLines] = useState(false);
 
   const [paymentInvoice, setPaymentInvoice] = useState<Invoice | null>(null);
   const [paymentForm, setPaymentForm] = useState({
