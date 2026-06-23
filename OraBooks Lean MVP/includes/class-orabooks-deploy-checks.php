@@ -98,6 +98,23 @@ class OraBooks_DeployChecks {
 
         $add_check('jwt_secret', 'JWT secret configured', $secrets_ok, $secrets_detail);
 
+        $react_view = class_exists('OraBooks_Views') && OraBooks_Views::exists('frontend/react-app');
+        $add_check(
+            'react_app_view',
+            'React SPA view template present',
+            $react_view,
+            $react_view ? 'includes/views/frontend/react-app.php' : 'missing includes/views/frontend/react-app.php'
+        );
+
+        $react_bundle = defined('ORABOOKS_PLUGIN_DIR')
+            && file_exists(ORABOOKS_PLUGIN_DIR . 'assets/react/frontend.js');
+        $add_check(
+            'react_frontend_bundle',
+            'React frontend bundle built',
+            $react_bundle,
+            $react_bundle ? 'assets/react/frontend.js' : 'run npm run build in orabooks-ui'
+        );
+
         $add_check(
             'encryption_key',
             'Encryption key configured',

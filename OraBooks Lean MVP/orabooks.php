@@ -242,32 +242,40 @@ function orabooks_init() {
 add_action('init', 'orabooks_mirror_jwt_ajax_nopriv_handlers', 999);
 
 /**
- * Create a WordPress page with shortcode content if it doesn't already exist
+ * Create a WordPress page with shortcode content if it doesn't already exist.
+ * Repairs existing pages that are missing the expected shortcode.
  */
 function orabooks_create_page($slug, $title, $shortcode, $parent_slug = '') {
     $path = $parent_slug ? trim($parent_slug, '/') . '/' . $slug : $slug;
+    $content = orabooks_build_page_shortcode_content($shortcode);
     $existing = get_page_by_path($path, OBJECT, 'page');
     if ($existing) {
-        return $existing->ID;
+        if ($shortcode !== '' && !orabooks_page_contains_shortcode($existing->post_content, $shortcode)) {
+            wp_update_post([
+                'ID' => (int) $existing->ID,
+                'post_content' => $content,
+            ]);
+        }
+        return (int) $existing->ID;
     }
-    
+
     $page_data = [
         'post_title'    => $title,
-        'post_content'  => '<!-- wp:shortcode -->' . $shortcode . '<!-- /wp:shortcode -->',
+        'post_content'  => $content,
         'post_status'   => 'publish',
         'post_type'     => 'page',
         'post_name'     => $slug,
         'comment_status' => 'closed',
         'ping_status'   => 'closed',
     ];
-    
+
     if (!empty($parent_slug)) {
         $parent = get_page_by_path($parent_slug, OBJECT, 'page');
         if ($parent) {
             $page_data['post_parent'] = $parent->ID;
         }
     }
-    
+
     return wp_insert_post($page_data);
 }
 

@@ -63,6 +63,13 @@ class OraBooks_Shortcodes {
     }
 
     private function render_view($view, $vars = []) {
+        if ($view === 'react-app') {
+            return orabooks_render_react_app_page(
+                $vars['initial_route'] ?? '/dashboard',
+                $vars['require_login'] ?? true
+            );
+        }
+
         return OraBooks_Views::render('frontend/' . $view, $vars);
     }
 
