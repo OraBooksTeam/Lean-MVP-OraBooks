@@ -1100,7 +1100,7 @@ class OraBooks_Vendors {
         return is_array($lines) ? $lines : [];
     }
 
-    private static function calculate_line_items_subtotal(array $lines, $cost_field = 'unit_cost') {
+    public static function calculate_line_items_subtotal(array $lines, $cost_field = 'unit_cost') {
         $subtotal = 0.0;
         foreach ($lines as $line) {
             if (!is_array($line)) {

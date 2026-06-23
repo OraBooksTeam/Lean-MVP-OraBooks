@@ -1544,6 +1544,14 @@ class OraBooks_Customers {
             return $credit_check;
         }
 
+        $inventory_items = self::get_inventory_items_for_invoice($invoice_id, $org_id);
+        if (!empty($inventory_items) && class_exists('OraBooks_Inventory')) {
+            $stock_check = OraBooks_Inventory::validate_sale_items($org_id, $inventory_items);
+            if (is_wp_error($stock_check)) {
+                return $stock_check;
+            }
+        }
+
         $journal_id = self::create_invoice_journal($invoice, $user_id);
         if (is_wp_error($journal_id)) {
             return $journal_id;
@@ -1598,9 +1606,71 @@ class OraBooks_Customers {
             'invoice_number' => $invoice->invoice_number,
             'total_amount'   => floatval($invoice->total_amount),
             'journal_id'     => $journal_id,
+            'inventory_items' => $inventory_items,
+            'user_id'        => $user_id,
         ]);
 
         return self::get_invoice($invoice_id);
+    }
+
+    public static function save_invoice_line_items($org_id, $invoice_id, array $lines) {
+        global $wpdb;
+
+        $table = OraBooks_Database::table('invoice_line_items');
+        $wpdb->delete($table, ['invoice_id' => (int) $invoice_id, 'org_id' => (int) $org_id], ['%d', '%d']);
+
+        $sort = 0;
+        foreach ($lines as $line) {
+            if (!is_array($line)) {
+                continue;
+            }
+            $qty = round(floatval($line['quantity'] ?? 0), 4);
+            if ($qty <= 0) {
+                continue;
+            }
+            $unit_price = round(floatval($line['unit_price'] ?? $line['unit_cost'] ?? 0), 6);
+            $line_total = round(floatval($line['line_total'] ?? ($qty * $unit_price)), 2);
+            $wpdb->insert(
+                $table,
+                [
+                    'org_id' => (int) $org_id,
+                    'invoice_id' => (int) $invoice_id,
+                    'product_id' => !empty($line['product_id']) ? (int) $line['product_id'] : null,
+                    'description' => isset($line['description']) ? sanitize_textarea_field($line['description']) : null,
+                    'quantity' => $qty,
+                    'unit_price' => $unit_price,
+                    'line_total' => $line_total,
+                    'sort_order' => $sort++,
+                ],
+                ['%d', '%d', '%d', '%s', '%f', '%f', '%f', '%d']
+            );
+        }
+    }
+
+    public static function get_invoice_line_items($invoice_id, $org_id) {
+        global $wpdb;
+
+        return $wpdb->get_results($wpdb->prepare(
+            "SELECT * FROM " . OraBooks_Database::table('invoice_line_items') . "
+             WHERE invoice_id = %d AND org_id = %d
+             ORDER BY sort_order ASC, id ASC",
+            (int) $invoice_id,
+            (int) $org_id
+        )) ?: [];
+    }
+
+    public static function get_inventory_items_for_invoice($invoice_id, $org_id) {
+        $items = [];
+        foreach (self::get_invoice_line_items($invoice_id, $org_id) as $line) {
+            if (empty($line->product_id)) {
+                continue;
+            }
+            $items[] = [
+                'product_id' => (int) $line->product_id,
+                'quantity' => floatval($line->quantity),
+            ];
+        }
+        return $items;
     }
 
     /**
