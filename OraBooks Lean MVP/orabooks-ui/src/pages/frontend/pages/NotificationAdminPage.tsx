@@ -62,6 +62,7 @@ export default function NotificationAdminPage() {
           ? parseList(p.escalation_fallback_chain)
           : ['email', 'inapp'],
       });
+      setMonthlyCostUsed(Number(p.monthly_cost_used ?? 0));
     });
 
   const loadHealth = (resolvedOrgId: number) =>
@@ -147,6 +148,10 @@ export default function NotificationAdminPage() {
     ],
     []
   );
+
+  const budgetLimit = Number(policy.monthly_budget || 0);
+  const budgetProgress = budgetLimit > 0 ? Math.min(100, (monthlyCostUsed / budgetLimit) * 100) : 0;
+  const budgetExceeded = budgetLimit > 0 && monthlyCostUsed > budgetLimit;
 
   if (!canManage) {
     return (
