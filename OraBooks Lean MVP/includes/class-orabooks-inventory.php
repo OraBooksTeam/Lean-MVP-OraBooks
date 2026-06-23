@@ -1075,45 +1075,6 @@ class OraBooks_Inventory {
         ]);
     }
 
-    private static function create_cogs_journal_removed_placeholder($org_id, $product, $quantity, $cogs_amount, $reference_id, $user_id) {
-        if (!class_exists('OraBooks_Posting') || $cogs_amount <= 0) {
-            return null;
-        }
-
-        $journal_id = OraBooks_Posting::create_journal([
-            'org_id' => intval($org_id),
-            'transaction_date' => current_time('Y-m-d'),
-            'source_type' => 'inventory_sale',
-            'source_id' => $reference_id ? intval($reference_id) : null,
-            'metadata' => [
-                'product_id' => intval($product->id),
-                'sku' => $product->sku,
-                'quantity' => floatval($quantity),
-            ],
-        ], $user_id ?: orabooks_get_current_user_id());
-
-        if (is_wp_error($journal_id)) {
-            return $journal_id;
-        }
-
-        OraBooks_Posting::add_lines($journal_id, [
-            [
-                'account_code' => self::COGS_ACCOUNT,
-                'debit' => $cogs_amount,
-                'credit' => 0,
-                'description' => 'COGS for SKU ' . $product->sku,
-            ],
-            [
-                'account_code' => self::INVENTORY_ASSET_ACCOUNT,
-                'debit' => 0,
-                'credit' => $cogs_amount,
-                'description' => 'Inventory reduction for SKU ' . $product->sku,
-            ],
-        ]);
-
-        return $journal_id;
-    }
-
     private function current_user_id() {
         return orabooks_get_current_user_id();
     }
