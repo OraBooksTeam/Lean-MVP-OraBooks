@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 /**
  * Unit Tests for OraBooks_Voice
  */
@@ -9,8 +9,7 @@ use PHPUnit\Framework\TestCase;
 class OraBooks_Voice_Test extends TestCase
 {
  #[Test]
- public function test_schema_defines_sl052_table
- {
+ public function test_schema_defines_sl052_table() {
  $sql = implode("\n", OraBooks_Voice::get_create_table_sql);
 
  $this->assertStringContainsString('orabooks_voice_inputs', $sql);
@@ -19,8 +18,7 @@ class OraBooks_Voice_Test extends TestCase
  }
 
  #[Test]
- public function test_nlu_stub_returns_transcript_and_extracted_data
- {
+ public function test_nlu_stub_returns_transcript_and_extracted_data() {
  $result = OraBooks_Voice::run_nlu_stub('expense-command.webm', 12);
 
  $this->assertNotEmpty($result['transcript']);
@@ -33,8 +31,7 @@ class OraBooks_Voice_Test extends TestCase
  }
 
  #[Test]
- public function test_nlu_stub_elevates_risk_for_unclear_audio
- {
+ public function test_nlu_stub_elevates_risk_for_unclear_audio() {
  $result = OraBooks_Voice::run_nlu_stub('unclear-audio.webm', 1);
 
  $this->assertContains($result['overall_risk_level'], ['medium', 'high']);
@@ -42,8 +39,7 @@ class OraBooks_Voice_Test extends TestCase
  }
 
  #[Test]
- public function test_format_voice_input_maps_core_fields
- {
+ public function test_format_voice_input_maps_core_fields() {
  $row = (object) [
  'id' => 3,
  'org_id' => 1,
@@ -73,8 +69,7 @@ class OraBooks_Voice_Test extends TestCase
  }
 
  #[Test]
- public function test_compute_overall_risk_level_rules
- {
+ public function test_compute_overall_risk_level_rules() {
  $this->assertSame('low', OraBooks_Voice::compute_overall_risk_level([
  'amount_risk' => 10,
  'vendor_risk' => 5,
@@ -90,8 +85,7 @@ class OraBooks_Voice_Test extends TestCase
  }
 
  #[Test]
- public function test_nlu_stub_includes_tax_and_due_date_fields
- {
+ public function test_nlu_stub_includes_tax_and_due_date_fields() {
  $result = OraBooks_Voice::run_nlu_stub('expense-command.webm', 12);
  $extracted = $result['extracted_data'];
 

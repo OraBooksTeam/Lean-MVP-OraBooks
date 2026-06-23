@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 /**
  * OraBooks Voice-to-Text
  *
@@ -27,7 +27,7 @@ class OraBooks_Voice {
 
  private static $instance = null;
 
- public static function init {
+ public static function init() {
  if (self::$instance === null) {
  self::$instance = new self;
 
@@ -47,7 +47,7 @@ class OraBooks_Voice {
  return self::$instance;
  }
 
- public static function get_create_table_sql {
+ public static function get_create_table_sql() {
  global $wpdb;
 
  $table = OraBooks_Database::table(self::TABLE_VOICE);
@@ -309,14 +309,14 @@ class OraBooks_Voice {
  $wpdb->update($table, [
  'status' => 'failed',
  'processing_retry_count' => $retry,
- 'dead_letter_reason' => $e->getMessage,
+ 'dead_letter_reason' => $e->getMessage(),
  ], ['id' => $voice_id], ['%s', '%d', '%s'], ['%d']);
 
- self::notify_transcription_failure($voice_id, $org_id, (int) $row->user_id, $e->getMessage);
+ self::notify_transcription_failure($voice_id, $org_id, (int) $row->user_id, $e->getMessage());
 
  orabooks_log_event('voice_transcription_failed', "Voice input #{$voice_id} dead-lettered", 'warning', [
  'voice_input_id' => $voice_id,
- 'reason' => $e->getMessage,
+ 'reason' => $e->getMessage(),
  'correlation_id' => function_exists('orabooks_get_correlation_id') ? orabooks_get_correlation_id: '',
  ], (int) $row->user_id, $org_id);
  } else {
@@ -358,7 +358,7 @@ class OraBooks_Voice {
  ], (int) $org_id);
  }
 
- public function cron_process_pending {
+ public function cron_process_pending() {
  global $wpdb;
 
  $table = OraBooks_Database::table(self::TABLE_VOICE);
@@ -712,11 +712,11 @@ class OraBooks_Voice {
  ));
  }
 
- public function cron_purge_old {
+ public function cron_purge_old() {
  global $wpdb;
 
  $table = OraBooks_Database::table(self::TABLE_VOICE);
- $cutoff = gmdate('Y-m-d H:i:s', time - (self::RETENTION_DAYS * DAY_IN_SECONDS));
+ $cutoff = gmdate('Y-m-d H:i:s', time() - (self::RETENTION_DAYS * DAY_IN_SECONDS));
 
  $wpdb->query($wpdb->prepare(
  "DELETE FROM {$table} WHERE retention_class = 'standard' AND created_at < %s AND status IN ('processed','failed','escalated')",
@@ -736,12 +736,12 @@ class OraBooks_Voice {
 
  $tenant = orabooks_assert_tenant_access($user_id, $org_id, false);
  if (is_wp_error($tenant)) {
- orabooks_json_error($tenant->get_error_message, 403);
+ orabooks_json_error($tenant->get_error_message(), 403);
  }
 
  $isolation = OraBooks_Auth::require_customer_org($user_id, $org_id);
  if (is_wp_error($isolation)) {
- orabooks_json_error($isolation->get_error_message, 403);
+ orabooks_json_error($isolation->get_error_message(), 403);
  }
 
  if (!OraBooks_RBAC::require_permission($user_id, $org_id, $permission)) {
@@ -749,8 +749,8 @@ class OraBooks_Voice {
  }
  }
 
- public function ajax_upload {
- $user_id = orabooks_get_current_user_id;
+ public function ajax_upload() {
+ $user_id = orabooks_get_current_user_id();
  $org_id = intval($_POST['org_id'] ?? 0);
  $this->require_voice_access($user_id, $org_id, 'manage_voice_inputs');
 
@@ -774,14 +774,14 @@ class OraBooks_Voice {
  );
 
  if (is_wp_error($result)) {
- orabooks_json_error($result->get_error_message, 400);
+ orabooks_json_error($result->get_error_message(), 400);
  }
 
  orabooks_json_success(['voice_input' => $result], 'Voice uploaded and transcribed');
  }
 
- public function ajax_get {
- $user_id = orabooks_get_current_user_id;
+ public function ajax_get() {
+ $user_id = orabooks_get_current_user_id();
  $org_id = intval($_GET['org_id'] ?? $_POST['org_id'] ?? 0);
  $voice_id = intval($_GET['voice_id'] ?? $_POST['voice_id'] ?? 0);
 
@@ -795,8 +795,8 @@ class OraBooks_Voice {
  orabooks_json_success(['voice_input' => self::format_voice_input($voice)]);
  }
 
- public function ajax_confirm {
- $user_id = orabooks_get_current_user_id;
+ public function ajax_confirm() {
+ $user_id = orabooks_get_current_user_id();
  $org_id = intval($_POST['org_id'] ?? 0);
  $voice_id = intval($_POST['voice_id'] ?? 0);
  $idempotency_key = sanitize_text_field($_POST['idempotency_key'] ?? '');
@@ -814,17 +814,17 @@ class OraBooks_Voice {
  $result = self::confirm_voice($voice_id, $org_id, $user_id, $idempotency_key, $edited);
  if (is_wp_error($result)) {
  $code = 400;
- if ($result->get_error_code === 'duplicate' || $result->get_error_code === 'already_submitted') {
+ if ($result->get_error_code() === 'duplicate' || $result->get_error_code() === 'already_submitted') {
  $code = 409;
  }
- orabooks_json_error($result->get_error_message, $code);
+ orabooks_json_error($result->get_error_message(), $code);
  }
 
  orabooks_json_success(['voice_input' => $result], 'Voice input confirmed');
  }
 
- public function ajax_list {
- $user_id = orabooks_get_current_user_id;
+ public function ajax_list() {
+ $user_id = orabooks_get_current_user_id();
  $org_id = intval($_GET['org_id'] ?? $_POST['org_id'] ?? 0);
 
  $this->require_voice_access($user_id, $org_id);

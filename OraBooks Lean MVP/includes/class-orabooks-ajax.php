@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 /**
  * OraBooks AJAX Handlers
  *
@@ -13,7 +13,7 @@ class OraBooks_Ajax {
 
  private static $instance = null;
 
- public static function init {
+ public static function init() {
  if (self::$instance === null) {
  self::$instance = new self;
  add_action('wp_ajax_orabooks_list_orgs', [self::$instance, 'ajax_list_orgs']);
@@ -61,7 +61,7 @@ class OraBooks_Ajax {
  return self::$instance;
  }
 
- public function register_settings {
+ public function register_settings() {
  register_setting('orabooks_settings', 'orabooks_block_same_email_domain');
  register_setting('orabooks_settings', 'orabooks_partner_commission_for_staff_viewer');
  register_setting('orabooks_settings', 'orabooks_audit_retention_days');
@@ -69,10 +69,10 @@ class OraBooks_Ajax {
  register_setting('orabooks_settings', 'orabooks_refresh_token_expiry');
  }
 
- private function get_current_orabooks_context {
+ private function get_current_orabooks_context() {
  global $wpdb;
 
- $user_id = orabooks_get_current_user_id;
+ $user_id = orabooks_get_current_user_id();
  if (!$user_id) {
  return new WP_Error('not_logged_in', 'Please log in to continue.');
  }
@@ -151,21 +151,21 @@ class OraBooks_Ajax {
  ];
  }
 
- public function ajax_frontend_context {
+ public function ajax_frontend_context() {
  $context = $this->get_current_orabooks_context;
  if (is_wp_error($context)) {
- orabooks_json_error($context->get_error_message, 401);
+ orabooks_json_error($context->get_error_message(), 401);
  }
 
  orabooks_json_success($context);
  }
 
- public function ajax_customer_dashboard {
+ public function ajax_customer_dashboard() {
  global $wpdb;
 
  $context = $this->get_current_orabooks_context;
  if (is_wp_error($context)) {
- orabooks_json_error($context->get_error_message, 401);
+ orabooks_json_error($context->get_error_message(), 401);
  }
 
  $org = $context['organization'];
@@ -251,12 +251,12 @@ class OraBooks_Ajax {
  ]);
  }
 
- public function ajax_vendor_dashboard {
+ public function ajax_vendor_dashboard() {
  global $wpdb;
 
  $context = $this->get_current_orabooks_context;
  if (is_wp_error($context)) {
- orabooks_json_error($context->get_error_message, 401);
+ orabooks_json_error($context->get_error_message(), 401);
  }
 
  $org = $context['organization'];
@@ -323,12 +323,12 @@ class OraBooks_Ajax {
  ]);
  }
 
- public function ajax_inventory_dashboard {
+ public function ajax_inventory_dashboard() {
  global $wpdb;
 
  $context = $this->get_current_orabooks_context;
  if (is_wp_error($context)) {
- orabooks_json_error($context->get_error_message, 401);
+ orabooks_json_error($context->get_error_message(), 401);
  }
 
  $org = $context['organization'];
@@ -384,12 +384,12 @@ class OraBooks_Ajax {
  ]);
  }
 
- public function ajax_bank_dashboard {
+ public function ajax_bank_dashboard() {
  global $wpdb;
 
  $context = $this->get_current_orabooks_context;
  if (is_wp_error($context)) {
- orabooks_json_error($context->get_error_message, 401);
+ orabooks_json_error($context->get_error_message(), 401);
  }
 
  $org = $context['organization'];
@@ -466,10 +466,10 @@ class OraBooks_Ajax {
  ]);
  }
 
- public function ajax_reports_dashboard {
+ public function ajax_reports_dashboard() {
  $context = $this->get_current_orabooks_context;
  if (is_wp_error($context)) {
- orabooks_json_error($context->get_error_message, 401);
+ orabooks_json_error($context->get_error_message(), 401);
  }
 
  $org = $context['organization'];
@@ -577,8 +577,8 @@ class OraBooks_Ajax {
  ]);
  }
 
- public function ajax_csv_imports_dashboard {
- $user_id = orabooks_get_current_user_id;
+ public function ajax_csv_imports_dashboard() {
+ $user_id = orabooks_get_current_user_id();
  if (!$user_id) {
  orabooks_json_error('Not authenticated', 401);
  }
@@ -604,7 +604,7 @@ class OraBooks_Ajax {
 
  $context = $this->get_current_orabooks_context;
  if (is_wp_error($context)) {
- orabooks_json_error($context->get_error_message, 401);
+ orabooks_json_error($context->get_error_message(), 401);
  }
 
  $org = $context['organization'];
@@ -673,10 +673,10 @@ class OraBooks_Ajax {
  ]);
  }
 
- public function ajax_team_dashboard {
+ public function ajax_team_dashboard() {
  $context = $this->get_current_orabooks_context;
  if (is_wp_error($context)) {
- orabooks_json_error($context->get_error_message, 401);
+ orabooks_json_error($context->get_error_message(), 401);
  }
 
  $org = $context['organization'];
@@ -755,10 +755,10 @@ class OraBooks_Ajax {
  ]);
  }
 
- public function ajax_attachments_dashboard {
+ public function ajax_attachments_dashboard() {
  $context = $this->get_current_orabooks_context;
  if (is_wp_error($context)) {
- orabooks_json_error($context->get_error_message, 401);
+ orabooks_json_error($context->get_error_message(), 401);
  }
 
  $org = $context['organization'];
@@ -829,10 +829,10 @@ class OraBooks_Ajax {
  ]);
  }
 
- public function ajax_approval_dashboard {
+ public function ajax_approval_dashboard() {
  $context = $this->get_current_orabooks_context;
  if (is_wp_error($context)) {
- orabooks_json_error($context->get_error_message, 401);
+ orabooks_json_error($context->get_error_message(), 401);
  }
 
  $org = $context['organization'];
@@ -910,10 +910,10 @@ class OraBooks_Ajax {
  ]);
  }
 
- public function ajax_ai_review_dashboard {
+ public function ajax_ai_review_dashboard() {
  $context = $this->get_current_orabooks_context;
  if (is_wp_error($context)) {
- orabooks_json_error($context->get_error_message, 401);
+ orabooks_json_error($context->get_error_message(), 401);
  }
 
  $org = $context['organization'];
@@ -962,10 +962,10 @@ class OraBooks_Ajax {
  ]);
  }
 
- public function ajax_expenses_dashboard {
+ public function ajax_expenses_dashboard() {
  $context = $this->get_current_orabooks_context;
  if (is_wp_error($context)) {
- orabooks_json_error($context->get_error_message, 401);
+ orabooks_json_error($context->get_error_message(), 401);
  }
 
  $org = $context['organization'];
@@ -1032,10 +1032,10 @@ class OraBooks_Ajax {
  ]);
  }
 
- public function ajax_voice_dashboard {
+ public function ajax_voice_dashboard() {
  $context = $this->get_current_orabooks_context;
  if (is_wp_error($context)) {
- orabooks_json_error($context->get_error_message, 401);
+ orabooks_json_error($context->get_error_message(), 401);
  }
 
  $org = $context['organization'];
@@ -1086,7 +1086,7 @@ class OraBooks_Ajax {
  ]);
  }
 
- public function ajax_list_orgs {
+ public function ajax_list_orgs() {
  if (!current_user_can('manage_options')) {
  orabooks_json_error('Permission denied', 403);
  }
@@ -1102,7 +1102,7 @@ class OraBooks_Ajax {
  orabooks_json_success($orgs);
  }
 
- public function ajax_suspend_org {
+ public function ajax_suspend_org() {
  if (!current_user_can('manage_options')) {
  orabooks_json_error('Permission denied', 403);
  }
@@ -1111,12 +1111,12 @@ class OraBooks_Ajax {
  $result = OraBooks_Organization::suspend($org_id, get_current_user_id);
 
  if (is_wp_error($result)) {
- orabooks_json_error($result->get_error_message, 400);
+ orabooks_json_error($result->get_error_message(), 400);
  }
  orabooks_json_success([], 'Organization suspended');
  }
 
- public function ajax_activate_org {
+ public function ajax_activate_org() {
  if (!current_user_can('manage_options')) {
  orabooks_json_error('Permission denied', 403);
  }
@@ -1125,7 +1125,7 @@ class OraBooks_Ajax {
  $result = OraBooks_Organization::reactivate_customer($org_id, get_current_user_id);
 
  if (is_wp_error($result)) {
- orabooks_json_error($result->get_error_message, 400);
+ orabooks_json_error($result->get_error_message(), 400);
  }
  orabooks_json_success([], 'Organization activated');
  }
@@ -1133,20 +1133,20 @@ class OraBooks_Ajax {
  /**
  * §5.6: Change enterprise customer data residency (super admin).
  */
- public function ajax_change_org_region {
+ public function ajax_change_org_region() {
  if (!current_user_can('manage_options')) {
  orabooks_json_error('Permission denied', 403);
  }
 
  $org_id = intval($_POST['org_id'] ?? 0);
  $region = sanitize_text_field($_POST['region'] ?? '');
- $admin_id = function_exists('orabooks_get_current_user_id')
- ? orabooks_get_current_user_id
+ $admin_id = function_exists('orabooks_get_current_user_id()')
+ ? orabooks_get_current_user_id()
 : get_current_user_id;
 
  $result = OraBooks_Organization::change_region($org_id, $region, (int) $admin_id);
  if (is_wp_error($result)) {
- orabooks_json_error($result->get_error_message, 400);
+ orabooks_json_error($result->get_error_message(), 400);
  }
 
  orabooks_json_success(['region' => strtolower(trim($region))], 'Organization region updated');
@@ -1155,7 +1155,7 @@ class OraBooks_Ajax {
  /**
  * §5.2: Resolve organization by subdomain (active orgs only).
  */
- public function ajax_get_org_by_subdomain {
+ public function ajax_get_org_by_subdomain() {
  $subdomain = sanitize_text_field($_GET['subdomain'] ?? $_POST['subdomain'] ?? '');
  if ($subdomain === '') {
  orabooks_json_error('Subdomain required', 400);
@@ -1167,8 +1167,8 @@ class OraBooks_Ajax {
 
  $org = OraBooks_Organization::get_active_by_subdomain($subdomain);
  if (is_wp_error($org)) {
- $code = $org->get_error_code === 'org_inactive' ? 403: 404;
- orabooks_json_error($org->get_error_message, $code);
+ $code = $org->get_error_code() === 'org_inactive' ? 403: 404;
+ orabooks_json_error($org->get_error_message(), $code);
  }
 
  orabooks_json_success([
@@ -1182,7 +1182,7 @@ class OraBooks_Ajax {
  ]);
  }
 
- public function ajax_list_users {
+ public function ajax_list_users() {
  if (!current_user_can('manage_options')) {
  orabooks_json_error('Permission denied', 403);
  }
@@ -1196,7 +1196,7 @@ class OraBooks_Ajax {
  /**
  * AJAX: Get dashboard statistics with live counts
  */
- public function ajax_dashboard_stats {
+ public function ajax_dashboard_stats() {
  if (!current_user_can('manage_options')) {
  orabooks_json_error('Permission denied', 403);
  }
@@ -1288,7 +1288,7 @@ class OraBooks_Ajax {
  }
 
  // Recent activity — last 7 days counts
- $seven_days_ago = date('Y-m-d H:i:s', time - 7 * 86400);
+ $seven_days_ago = date('Y-m-d H:i:s', time() - 7 * 86400);
  $recent_orgs = (int) $wpdb->get_var($wpdb->prepare(
  "SELECT COUNT(*) FROM {$table_orgs} WHERE created_at >= %s", $seven_days_ago
  ));
@@ -1341,7 +1341,7 @@ class OraBooks_Ajax {
  orabooks_json_success($stats);
  }
 
- public function ajax_platform_settings_get {
+ public function ajax_platform_settings_get() {
  if (!current_user_can('manage_options')) {
  orabooks_json_error('Permission denied', 403);
  }
@@ -1355,7 +1355,7 @@ class OraBooks_Ajax {
  ]);
  }
 
- public function ajax_platform_settings_save {
+ public function ajax_platform_settings_save() {
  if (!current_user_can('manage_options')) {
  orabooks_json_error('Permission denied', 403);
  }
@@ -1384,7 +1384,7 @@ class OraBooks_Ajax {
  /**
  * Post-deploy verification checks (WP admin only).
  */
- public function ajax_deploy_checks {
+ public function ajax_deploy_checks() {
  if (!current_user_can('manage_options')) {
  orabooks_json_error('Permission denied', 403);
  }
@@ -1395,7 +1395,7 @@ class OraBooks_Ajax {
  /**
  * Repair missing MVP cron schedules and re-run deploy checks (WP admin only).
  */
- public function ajax_deploy_repair {
+ public function ajax_deploy_repair() {
  if (!current_user_can('manage_options')) {
  orabooks_json_error('Permission denied', 403);
  }

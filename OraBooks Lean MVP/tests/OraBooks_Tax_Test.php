@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 /**
  * Unit Tests for OraBooks_Tax
  *
@@ -32,8 +32,7 @@ class OraBooks_Tax_Test extends TestCase
  }
 
  #[Test]
- public function test_get_create_table_sql_contains_required_tax_tables
- {
+ public function test_get_create_table_sql_contains_required_tax_tables() {
  $sql = implode("\n", OraBooks_Tax::get_create_table_sql);
 
  $this->assertStringContainsString('orabooks_tax_configs', $sql);
@@ -43,8 +42,7 @@ class OraBooks_Tax_Test extends TestCase
  }
 
  #[Test]
- public function test_calculate_uses_default_jurisdiction_rule
- {
+ public function test_calculate_uses_default_jurisdiction_rule() {
  global $wpdb;
 
  $wpdb->test_get_row_callback = function ($query) {
@@ -76,8 +74,7 @@ class OraBooks_Tax_Test extends TestCase
  }
 
  #[Test]
- public function test_calculate_prefers_active_org_config
- {
+ public function test_calculate_prefers_active_org_config() {
  global $wpdb;
 
  $wpdb->test_get_row_callback = function ($query) {
@@ -104,8 +101,7 @@ class OraBooks_Tax_Test extends TestCase
  }
 
  #[Test]
- public function test_calculate_exempt_customer_returns_zero_tax
- {
+ public function test_calculate_exempt_customer_returns_zero_tax() {
  $result = OraBooks_Tax::calculate([
  'org_id' => 5,
  'amount' => 500,
@@ -119,8 +115,7 @@ class OraBooks_Tax_Test extends TestCase
  }
 
  #[Test]
- public function test_create_snapshot_requires_override_reason
- {
+ public function test_create_snapshot_requires_override_reason() {
  $result = OraBooks_Tax::create_snapshot([
  'org_id' => 5,
  'transaction_id' => 100,
@@ -132,12 +127,11 @@ class OraBooks_Tax_Test extends TestCase
  ], 1);
 
  $this->assertInstanceOf(WP_Error::class, $result);
- $this->assertEquals('override_reason_required', $result->get_error_code);
+ $this->assertEquals('override_reason_required', $result->get_error_code());
  }
 
  #[Test]
- public function test_create_snapshot_inserts_override_snapshot
- {
+ public function test_create_snapshot_inserts_override_snapshot() {
  global $wpdb;
 
  $captured = [];
@@ -190,8 +184,7 @@ class OraBooks_Tax_Test extends TestCase
  }
 
  #[Test]
- public function test_save_config_updates_existing_config
- {
+ public function test_save_config_updates_existing_config() {
  global $wpdb;
 
  $wpdb->test_get_var_callback = function ($query) {
@@ -231,8 +224,7 @@ class OraBooks_Tax_Test extends TestCase
  }
 
  #[Test]
- public function test_save_config_blocked_when_fiscal_period_closed
- {
+ public function test_save_config_blocked_when_fiscal_period_closed() {
  global $wpdb;
 
  $wpdb->test_get_row_callback = function ($query) {
@@ -250,12 +242,11 @@ class OraBooks_Tax_Test extends TestCase
  ], 1);
 
  $this->assertInstanceOf(WP_Error::class, $result);
- $this->assertEquals('tax_locked', $result->get_error_code);
+ $this->assertEquals('tax_locked', $result->get_error_code());
  }
 
  #[Test]
- public function test_is_tax_locked_for_soft_closed_period
- {
+ public function test_is_tax_locked_for_soft_closed_period() {
  global $wpdb;
 
  $wpdb->test_get_row_callback = function ($query) {
@@ -269,8 +260,7 @@ class OraBooks_Tax_Test extends TestCase
  }
 
  #[Test]
- public function test_list_configs_formats_rows
- {
+ public function test_list_configs_formats_rows() {
  global $wpdb;
 
  $wpdb->test_get_results_callback = function ($query) {
@@ -301,8 +291,7 @@ class OraBooks_Tax_Test extends TestCase
  }
 
  #[Test]
- public function test_create_snapshot_returns_existing_without_insert
- {
+ public function test_create_snapshot_returns_existing_without_insert() {
  global $wpdb;
 
  $insert_called = false;
@@ -344,8 +333,7 @@ class OraBooks_Tax_Test extends TestCase
  }
 
  #[Test]
- public function test_list_snapshots_returns_formatted_rows
- {
+ public function test_list_snapshots_returns_formatted_rows() {
  global $wpdb;
 
  $wpdb->test_get_results_callback = function ($query) {
@@ -377,8 +365,7 @@ class OraBooks_Tax_Test extends TestCase
  $this->assertEquals(150.0, $snapshots[0]['tax_amount']);
  }
 
- public function test_create_snapshot_from_expense
- {
+ public function test_create_snapshot_from_expense() {
  global $wpdb;
 
  $wpdb->test_get_var_callback = function ($query) {

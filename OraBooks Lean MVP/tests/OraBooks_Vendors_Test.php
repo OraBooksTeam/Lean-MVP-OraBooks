@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 /**
  * Unit Tests for OraBooks_Vendors
  *
@@ -73,8 +73,7 @@ class OraBooks_Vendors_Test extends TestCase
  }
 
  #[Test]
- public function test_get_create_table_sql_contains_required_ap_tables
- {
+ public function test_get_create_table_sql_contains_required_ap_tables() {
  $sql = implode("\n", OraBooks_Vendors::get_create_table_sql);
 
  $this->assertStringContainsString('orabooks_vendors', $sql);
@@ -86,8 +85,7 @@ class OraBooks_Vendors_Test extends TestCase
  }
 
  #[Test]
- public function test_create_vendor_inserts_and_returns_vendor
- {
+ public function test_create_vendor_inserts_and_returns_vendor() {
  global $wpdb;
 
  $wpdb->test_get_row_callback = function ($query) {
@@ -110,8 +108,7 @@ class OraBooks_Vendors_Test extends TestCase
  }
 
  #[Test]
- public function test_create_bill_creates_draft_bill
- {
+ public function test_create_bill_creates_draft_bill() {
  global $wpdb;
 
  $wpdb->test_get_var_callback = function ($query) {
@@ -148,8 +145,7 @@ class OraBooks_Vendors_Test extends TestCase
  }
 
  #[Test]
- public function test_submit_bill_moves_draft_to_submitted
- {
+ public function test_submit_bill_moves_draft_to_submitted() {
  global $wpdb;
 
  $wpdb->test_get_row_callback = function ($query) {
@@ -178,8 +174,7 @@ class OraBooks_Vendors_Test extends TestCase
  }
 
  #[Test]
- public function test_approve_bill_without_auto_post_leaves_bill_approved
- {
+ public function test_approve_bill_without_auto_post_leaves_bill_approved() {
  global $wpdb;
 
  $wpdb->test_get_row_callback = function ($query) {
@@ -199,8 +194,7 @@ class OraBooks_Vendors_Test extends TestCase
  }
 
  #[Test]
- public function test_record_payment_allocates_fifo_and_stores_overpayment_credit
- {
+ public function test_record_payment_allocates_fifo_and_stores_overpayment_credit() {
  global $wpdb;
 
  $allocationCount = 0;
@@ -232,8 +226,7 @@ class OraBooks_Vendors_Test extends TestCase
  }
 
  #[Test]
- public function test_create_credit_note_flags_second_approval_above_threshold
- {
+ public function test_create_credit_note_flags_second_approval_above_threshold() {
  global $wpdb;
 
  $wpdb->test_get_row_callback = function ($query) {
@@ -264,8 +257,7 @@ class OraBooks_Vendors_Test extends TestCase
  }
 
  #[Test]
- public function test_get_ap_aging_buckets_outstanding_bills
- {
+ public function test_get_ap_aging_buckets_outstanding_bills() {
  global $wpdb;
 
  $wpdb->test_get_results_callback = function ($query) {
@@ -286,8 +278,7 @@ class OraBooks_Vendors_Test extends TestCase
  }
 
  #[Test]
- public function test_create_bill_calculates_tax_from_subtotal
- {
+ public function test_create_bill_calculates_tax_from_subtotal() {
  global $wpdb;
 
  $wpdb->test_get_var_callback = function {
@@ -330,8 +321,7 @@ class OraBooks_Vendors_Test extends TestCase
  }
 
  #[Test]
- public function test_post_bill_updates_workflow_to_posted
- {
+ public function test_post_bill_updates_workflow_to_posted() {
  global $wpdb;
 
  $wpdb->test_get_row_callback = function ($query) {
@@ -357,8 +347,7 @@ class OraBooks_Vendors_Test extends TestCase
  }
 
  #[Test]
- public function test_void_bill_draft_success
- {
+ public function test_void_bill_draft_success() {
  global $wpdb;
 
  $wpdb->test_get_row_callback = function ($query) {
@@ -381,8 +370,7 @@ class OraBooks_Vendors_Test extends TestCase
  }
 
  #[Test]
- public function test_void_bill_rejects_posted_status
- {
+ public function test_void_bill_rejects_posted_status() {
  global $wpdb;
 
  $wpdb->test_get_row_callback = function ($query) {
@@ -392,12 +380,11 @@ class OraBooks_Vendors_Test extends TestCase
  $result = OraBooks_Vendors::void_bill(5, 100, 1);
 
  $this->assertInstanceOf(WP_Error::class, $result);
- $this->assertEquals('invalid_status', $result->get_error_code);
+ $this->assertEquals('invalid_status', $result->get_error_code());
  }
 
  #[Test]
- public function test_void_bill_rejects_partial_payment
- {
+ public function test_void_bill_rejects_partial_payment() {
  global $wpdb;
 
  $wpdb->test_get_row_callback = function ($query) {
@@ -411,6 +398,6 @@ class OraBooks_Vendors_Test extends TestCase
  $result = OraBooks_Vendors::void_bill(5, 100, 1);
 
  $this->assertInstanceOf(WP_Error::class, $result);
- $this->assertEquals('has_payments', $result->get_error_code);
+ $this->assertEquals('has_payments', $result->get_error_code());
  }
 }

@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 /**
  * OraBooks AI Review Queue
  *
@@ -23,7 +23,7 @@ class OraBooks_Ai_Review {
  const LEASE_SECONDS = 300;
  const MODEL_VERSION = 'mvp-stub-1.0';
 
- public static function active_model_version {
+ public static function active_model_version() {
  return class_exists('OraBooks_Ai_Providers')
  ? OraBooks_Ai_Providers::model_version('classification')
 : self::MODEL_VERSION;
@@ -31,7 +31,7 @@ class OraBooks_Ai_Review {
 
  private static $instance = null;
 
- public static function init {
+ public static function init() {
  if (self::$instance === null) {
  self::$instance = new self;
 
@@ -49,7 +49,7 @@ class OraBooks_Ai_Review {
  return self::$instance;
  }
 
- public static function get_create_table_sql {
+ public static function get_create_table_sql() {
  global $wpdb;
 
  $table_queue = OraBooks_Database::table(self::TABLE_QUEUE);
@@ -386,7 +386,7 @@ class OraBooks_Ai_Review {
  ];
  }
 
- public function cron_process_queue {
+ public function cron_process_queue() {
  global $wpdb;
 
  $table = OraBooks_Database::table(self::TABLE_QUEUE);
@@ -413,7 +413,7 @@ class OraBooks_Ai_Review {
 
  $table = OraBooks_Database::table(self::TABLE_QUEUE);
  $token = orabooks_uuid;
- $lease = gmdate('Y-m-d H:i:s', time + self::LEASE_SECONDS);
+ $lease = gmdate('Y-m-d H:i:s', time() + self::LEASE_SECONDS);
 
  $wpdb->update($table, [
  'status' => 'processing',
@@ -468,7 +468,7 @@ class OraBooks_Ai_Review {
  }
 
  $backoff = pow(2, $retry_count) * 5;
- $next_retry = gmdate('Y-m-d H:i:s', time + $backoff);
+ $next_retry = gmdate('Y-m-d H:i:s', time() + $backoff);
 
  $wpdb->update($table, [
  'status' => 'pending',
@@ -537,11 +537,11 @@ class OraBooks_Ai_Review {
  ], 0);
  }
 
- public function cron_purge_resolved {
+ public function cron_purge_resolved() {
  global $wpdb;
 
  $table = OraBooks_Database::table(self::TABLE_QUEUE);
- $cutoff = gmdate('Y-m-d H:i:s', time - (self::RETENTION_DAYS * DAY_IN_SECONDS));
+ $cutoff = gmdate('Y-m-d H:i:s', time() - (self::RETENTION_DAYS * DAY_IN_SECONDS));
 
  $wpdb->query($wpdb->prepare(
  "DELETE FROM {$table} WHERE status = 'resolved' AND resolved_at IS NOT NULL AND resolved_at < %s",
@@ -575,8 +575,8 @@ class OraBooks_Ai_Review {
  ], ['%d', '%d', '%s', '%d', '%s']);
  }
 
- private function current_user_id {
- return orabooks_get_current_user_id;
+ private function current_user_id() {
+ return orabooks_get_current_user_id();
  }
 
  private function require_queue_access($user_id, $org_id) {
@@ -586,7 +586,7 @@ class OraBooks_Ai_Review {
 
  $isolation = OraBooks_Auth::require_customer_org($user_id, $org_id);
  if (is_wp_error($isolation)) {
- orabooks_json_error($isolation->get_error_message, 403);
+ orabooks_json_error($isolation->get_error_message(), 403);
  }
 
  if (!OraBooks_RBAC::require_permission($user_id, $org_id, 'view_ai_review_queue')) {
@@ -594,7 +594,7 @@ class OraBooks_Ai_Review {
  }
  }
 
- public function ajax_list {
+ public function ajax_list() {
  $user_id = $this->current_user_id;
  $org_id = intval($_POST['org_id'] ?? $_GET['org_id'] ?? 0);
 
@@ -612,7 +612,7 @@ class OraBooks_Ai_Review {
  ]);
  }
 
- public function ajax_resolve {
+ public function ajax_resolve() {
  $user_id = $this->current_user_id;
  $org_id = intval($_POST['org_id'] ?? $_GET['org_id'] ?? 0);
  $queue_id = intval($_POST['queue_id'] ?? $_GET['queue_id'] ?? 0);

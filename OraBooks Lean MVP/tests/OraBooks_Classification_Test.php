@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 /**
  * Unit Tests for OraBooks_Classification
  */
@@ -29,16 +29,14 @@ class OraBooks_Classification_Test extends TestCase
  }
 
  #[Test]
- public function test_schema_includes_classification_rules_table
- {
+ public function test_schema_includes_classification_rules_table() {
  $sql = implode("\n", OraBooks_Classification::get_create_table_sql);
  $this->assertStringContainsString('orabooks_classification_rules', $sql);
  $this->assertStringContainsString('match_value', $sql);
  }
 
  #[Test]
- public function test_validate_transition_accepts_valid_journal_submit
- {
+ public function test_validate_transition_accepts_valid_journal_submit() {
  $result = OraBooks_Classification::format_classification((object) [
  'classification_status' => 'processed',
  'suggested_account_code' => '5100',
@@ -54,8 +52,7 @@ class OraBooks_Classification_Test extends TestCase
  }
 
  #[Test]
- public function test_format_flags_low_confidence
- {
+ public function test_format_flags_low_confidence() {
  $result = OraBooks_Classification::format_classification((object) [
  'classification_status' => 'processed',
  'account_confidence' => 55,
@@ -65,8 +62,7 @@ class OraBooks_Classification_Test extends TestCase
  }
 
  #[Test]
- public function test_run_classification_updates_expense
- {
+ public function test_run_classification_updates_expense() {
  global $wpdb;
 
  $expense = (object) [
@@ -118,8 +114,7 @@ class OraBooks_Classification_Test extends TestCase
  }
 
  #[Test]
- public function test_override_marks_status_overridden
- {
+ public function test_override_marks_status_overridden() {
  global $wpdb;
 
  $expense = (object) [
@@ -147,8 +142,7 @@ class OraBooks_Classification_Test extends TestCase
  }
 
  #[Test]
- public function test_request_short_circuits_same_idempotency_key
- {
+ public function test_request_short_circuits_same_idempotency_key() {
  global $wpdb;
 
  $expense = (object) [
@@ -171,8 +165,7 @@ class OraBooks_Classification_Test extends TestCase
  }
 
  #[Test]
- public function test_request_returns_duplicate_error_for_conflicting_key
- {
+ public function test_request_returns_duplicate_error_for_conflicting_key() {
  global $wpdb;
 
  $expense = (object) [
@@ -197,13 +190,12 @@ class OraBooks_Classification_Test extends TestCase
  $result = OraBooks_Classification::request('expense', 8, 1, ['idempotency_key' => 'new-key']);
 
  $this->assertInstanceOf(WP_Error::class, $result);
- $this->assertEquals('duplicate', $result->get_error_code);
+ $this->assertEquals('duplicate', $result->get_error_code());
  $this->assertEquals(409, $result->get_error_data['status'] ?? null);
  }
 
  #[Test]
- public function test_handle_async_job_returns_error_message_on_failure
- {
+ public function test_handle_async_job_returns_error_message_on_failure() {
  $result = OraBooks_Classification::handle_async_job(null, [
  'record_type' => 'invalid_type',
  'record_id' => 1,
@@ -215,8 +207,7 @@ class OraBooks_Classification_Test extends TestCase
  }
 
  #[Test]
- public function test_rule_precedence_helpers_sync_both_option_keys
- {
+ public function test_rule_precedence_helpers_sync_both_option_keys() {
  OraBooks_Classification::set_rule_precedence_over_ai(true);
  $this->assertTrue(OraBooks_Classification::rule_precedence_over_ai_enabled);
 
@@ -225,20 +216,18 @@ class OraBooks_Classification_Test extends TestCase
  }
 
  #[Test]
- public function test_journal_line_record_type_is_registered
- {
+ public function test_journal_line_record_type_is_registered() {
  $invalid = OraBooks_Classification::dry_run('not_a_type', 1, 1);
  $this->assertInstanceOf(WP_Error::class, $invalid);
- $this->assertEquals('invalid_type', $invalid->get_error_code);
+ $this->assertEquals('invalid_type', $invalid->get_error_code());
 
  $missing = OraBooks_Classification::dry_run('journal_line', 1, 1);
  $this->assertInstanceOf(WP_Error::class, $missing);
- $this->assertEquals('not_found', $missing->get_error_code);
+ $this->assertEquals('not_found', $missing->get_error_code());
  }
 
  #[Test]
- public function test_format_classification_decodes_json_reason
- {
+ public function test_format_classification_decodes_json_reason() {
  $result = OraBooks_Classification::format_classification((object) [
  'classification_status' => 'failed',
  'classification_reason' => wp_json_encode(['summary' => 'Provider timeout', 'source' => 'system']),
@@ -249,8 +238,7 @@ class OraBooks_Classification_Test extends TestCase
  }
 
  #[Test]
- public function test_dry_run_returns_suggestion_without_db_update
- {
+ public function test_dry_run_returns_suggestion_without_db_update() {
  global $wpdb;
 
  $expense = (object) [

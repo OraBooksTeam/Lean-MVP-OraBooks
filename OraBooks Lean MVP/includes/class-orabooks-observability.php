@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 /**
  * OraBooks Observability & Monitoring
  *
@@ -66,7 +66,7 @@ class OraBooks_Observability {
  ],
  ];
 
- public static function init {
+ public static function init() {
  if (self::$instance === null) {
  self::$instance = new self;
 
@@ -86,7 +86,7 @@ class OraBooks_Observability {
  return self::$instance;
  }
 
- public static function get_create_table_sql {
+ public static function get_create_table_sql() {
  global $wpdb;
  $charset_collate = $wpdb->get_charset_collate;
  $tables = [];
@@ -159,7 +159,7 @@ class OraBooks_Observability {
  /**
  * Collect metrics from event bus, async queue, notifications, and exports.
  */
- public static function collect_platform_metrics {
+ public static function collect_platform_metrics() {
  global $wpdb;
 
  $snapshots = [];
@@ -342,7 +342,7 @@ class OraBooks_Observability {
  global $wpdb;
 
  $hours = max(1, min(168, intval($hours)));
- $since = date('Y-m-d H:i:s', time - ($hours * 3600));
+ $since = date('Y-m-d H:i:s', time() - ($hours * 3600));
 
  $health_table = OraBooks_Database::table('health_check_runs');
  $latest_health = $wpdb->get_results(
@@ -380,7 +380,7 @@ class OraBooks_Observability {
  ];
  }
 
- public static function get_slo_definitions {
+ public static function get_slo_definitions() {
  return apply_filters('orabooks_observability_slos', self::$slos);
  }
 
@@ -404,7 +404,7 @@ class OraBooks_Observability {
  ];
  }
 
- public static function evaluate_error_budgets {
+ public static function evaluate_error_budgets() {
  $dashboard = self::get_slo_dashboard;
  $thresholds = apply_filters('orabooks_observability_thresholds', self::$thresholds);
  $min_budget = (float) ($thresholds['slo_error_budget_min'] ?? 10);
@@ -437,7 +437,7 @@ class OraBooks_Observability {
  global $wpdb;
 
  $window_days = max(1, min(90, (int) $window_days));
- $since = gmdate('Y-m-d H:i:s', time - ($window_days * 86400));
+ $since = gmdate('Y-m-d H:i:s', time() - ($window_days * 86400));
 
  switch ($slo_id) {
  case 'notifications_delivery':
@@ -553,7 +553,7 @@ class OraBooks_Observability {
  ];
  }
 
- private static function empty_sli {
+ private static function empty_sli() {
  return [
  'total' => 0,
  'good' => 0,
@@ -636,7 +636,7 @@ class OraBooks_Observability {
  global $wpdb;
 
  $org_id = (int) $org_id;
- $since = gmdate('Y-m-d H:i:s', time - 86400);
+ $since = gmdate('Y-m-d H:i:s', time() - 86400);
  $transitions_table = OraBooks_Database::table('state_machine_transitions');
  $audit_table = OraBooks_Database::table('audit_logs');
 
@@ -676,7 +676,7 @@ class OraBooks_Observability {
  global $wpdb;
 
  $org_id = (int) $org_id;
- $since = gmdate('Y-m-d H:i:s', time - 86400);
+ $since = gmdate('Y-m-d H:i:s', time() - 86400);
  $audit_table = OraBooks_Database::table('audit_logs');
 
  $events = [
@@ -732,7 +732,7 @@ class OraBooks_Observability {
  public static function get_metric_series($service, $metric_name, $hours = 24, $limit = 500) {
  global $wpdb;
 
- $since = date('Y-m-d H:i:s', time - (max(1, intval($hours)) * 3600));
+ $since = date('Y-m-d H:i:s', time() - (max(1, intval($hours)) * 3600));
  $table = OraBooks_Database::table('platform_metrics');
 
  return $wpdb->get_results($wpdb->prepare(
@@ -748,19 +748,19 @@ class OraBooks_Observability {
  ));
  }
 
- public function cron_collect_metrics {
+ public function cron_collect_metrics() {
  self::collect_platform_metrics;
  }
 
- public function cron_evaluate_thresholds {
+ public function cron_evaluate_thresholds() {
  self::evaluate_thresholds;
  }
 
- public function cron_purge_old_metrics {
+ public function cron_purge_old_metrics() {
  global $wpdb;
 
- $metric_cutoff = date('Y-m-d H:i:s', time - (self::METRIC_RETENTION_DAYS * 86400));
- $health_cutoff = date('Y-m-d H:i:s', time - (self::HEALTH_RETENTION_DAYS * 86400));
+ $metric_cutoff = date('Y-m-d H:i:s', time() - (self::METRIC_RETENTION_DAYS * 86400));
+ $health_cutoff = date('Y-m-d H:i:s', time() - (self::HEALTH_RETENTION_DAYS * 86400));
 
  $metrics_table = OraBooks_Database::table('platform_metrics');
  $health_table = OraBooks_Database::table('health_check_runs');
@@ -824,7 +824,7 @@ class OraBooks_Observability {
  ]);
  }
 
- public function ajax_dashboard {
+ public function ajax_dashboard() {
  if (!current_user_can('manage_options')) {
  orabooks_json_error('Permission denied', 403);
  }
@@ -833,7 +833,7 @@ class OraBooks_Observability {
  orabooks_json_success(self::get_dashboard($hours));
  }
 
- public function ajax_metrics {
+ public function ajax_metrics() {
  if (!current_user_can('manage_options')) {
  orabooks_json_error('Permission denied', 403);
  }

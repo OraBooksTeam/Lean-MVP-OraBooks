@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 /**
  * Unit Tests for OraBooks_Notifications — Invoice Event Handlers ( Integration)
  *
@@ -132,36 +132,31 @@ class OraBooks_Notifications_Test extends TestCase
  // ================================================================
 
  #[Test]
- public function test_add_query_arg_appends_to_url_with_trailing_slash
- {
+ public function test_add_query_arg_appends_to_url_with_trailing_slash() {
  $result = add_query_arg('invoice_id', '123', 'http://example.com/dashboard/');
  $this->assertEquals('http://example.com/dashboard/?invoice_id=123', $result);
  }
 
  #[Test]
- public function test_add_query_arg_appends_to_url_without_trailing_slash
- {
+ public function test_add_query_arg_appends_to_url_without_trailing_slash() {
  $result = add_query_arg('id', '42', 'http://example.com/dashboard');
  $this->assertEquals('http://example.com/dashboard?id=42', $result);
  }
 
  #[Test]
- public function test_add_query_arg_uses_ampersand_when_url_has_existing_query
- {
+ public function test_add_query_arg_uses_ampersand_when_url_has_existing_query() {
  $result = add_query_arg('page', '2', 'http://example.com/list?sort=asc');
  $this->assertEquals('http://example.com/list?sort=asc&page=2', $result);
  }
 
  #[Test]
- public function test_add_query_arg_encodes_special_characters
- {
+ public function test_add_query_arg_encodes_special_characters() {
  $result = add_query_arg('q', 'hello world & more', 'http://example.com/search');
  $this->assertEquals('http://example.com/search?q=hello+world+%26+more', $result);
  }
 
  #[Test]
- public function test_add_query_arg_integration_with_get_customer_dashboard_url
- {
+ public function test_add_query_arg_integration_with_get_customer_dashboard_url() {
  // Verify the full flow: get_customer_dashboard_url uses add_query_arg
  // We test this indirectly via OraBooks_Notifications::init and the existing
  // test_on_invoices_marked_overdue_customer_notification_includes_view_url,
@@ -182,8 +177,7 @@ class OraBooks_Notifications_Test extends TestCase
  }
 
  #[Test]
- public function test_on_invoice_created_sends_notification
- {
+ public function test_on_invoice_created_sends_notification() {
  global $wpdb;
 
  $this->setUserNotifPrefs(42);
@@ -219,8 +213,7 @@ class OraBooks_Notifications_Test extends TestCase
  }
 
  #[Test]
- public function test_on_invoice_created_missing_customer_id
- {
+ public function test_on_invoice_created_missing_customer_id() {
  global $wpdb;
 
  $handler = $this->createHandler;
@@ -234,8 +227,7 @@ class OraBooks_Notifications_Test extends TestCase
  }
 
  #[Test]
- public function test_on_invoice_created_missing_org_id
- {
+ public function test_on_invoice_created_missing_org_id() {
  global $wpdb;
 
  $handler = $this->createHandler;
@@ -249,8 +241,7 @@ class OraBooks_Notifications_Test extends TestCase
  }
 
  #[Test]
- public function test_on_invoice_created_customer_not_found
- {
+ public function test_on_invoice_created_customer_not_found() {
  global $wpdb;
 
  $wpdb->test_get_row_callback = function ($query) {
@@ -274,8 +265,7 @@ class OraBooks_Notifications_Test extends TestCase
  // ================================================================
 
  #[Test]
- public function test_on_payment_recorded_paid_in_full
- {
+ public function test_on_payment_recorded_paid_in_full() {
  global $wpdb;
 
  $this->setUserNotifPrefs(42);
@@ -298,8 +288,7 @@ class OraBooks_Notifications_Test extends TestCase
  }
 
  #[Test]
- public function test_on_payment_recorded_partial_payment
- {
+ public function test_on_payment_recorded_partial_payment() {
  global $wpdb;
 
  $this->setUserNotifPrefs(42);
@@ -322,8 +311,7 @@ class OraBooks_Notifications_Test extends TestCase
  }
 
  #[Test]
- public function test_on_payment_recorded_missing_customer_user_id
- {
+ public function test_on_payment_recorded_missing_customer_user_id() {
  global $wpdb;
 
  $handler = $this->createHandler;
@@ -338,8 +326,7 @@ class OraBooks_Notifications_Test extends TestCase
  }
 
  #[Test]
- public function test_on_payment_recorded_missing_org_id
- {
+ public function test_on_payment_recorded_missing_org_id() {
  global $wpdb;
 
  $handler = $this->createHandler;
@@ -359,8 +346,7 @@ class OraBooks_Notifications_Test extends TestCase
  // ================================================================
 
  #[Test]
- public function test_on_invoices_marked_overdue_customer_notification_includes_view_url
- {
+ public function test_on_invoices_marked_overdue_customer_notification_includes_view_url() {
  global $wpdb;
 
  $this->setUserNotifPrefs(42);
@@ -431,8 +417,7 @@ class OraBooks_Notifications_Test extends TestCase
  }
 
  #[Test]
- public function test_on_invoices_marked_overdue_sends_notifications
- {
+ public function test_on_invoices_marked_overdue_sends_notifications() {
  global $wpdb;
 
  $this->setUserNotifPrefs(42);
@@ -491,8 +476,7 @@ class OraBooks_Notifications_Test extends TestCase
  }
 
  #[Test]
- public function test_on_invoices_marked_overdue_zero_count
- {
+ public function test_on_invoices_marked_overdue_zero_count() {
  global $wpdb;
 
  $handler = $this->createHandler;
@@ -502,8 +486,7 @@ class OraBooks_Notifications_Test extends TestCase
  }
 
  #[Test]
- public function test_on_invoices_marked_overdue_no_invoices_found
- {
+ public function test_on_invoices_marked_overdue_no_invoices_found() {
  global $wpdb;
 
  $wpdb->test_get_results_callback = function ($query) {
@@ -520,8 +503,7 @@ class OraBooks_Notifications_Test extends TestCase
  }
 
  #[Test]
- public function test_on_invoices_marked_overdue_sends_single_customer_notification
- {
+ public function test_on_invoices_marked_overdue_sends_single_customer_notification() {
  global $wpdb;
 
  $this->setUserNotifPrefs(42);
@@ -571,8 +553,7 @@ class OraBooks_Notifications_Test extends TestCase
  }
 
  #[Test]
- public function test_on_invoices_marked_overdue_notifies_admins_single_org
- {
+ public function test_on_invoices_marked_overdue_notifies_admins_single_org() {
  global $wpdb;
 
  // Prefs for customers (42, 55) and admins (100, 101)
@@ -645,8 +626,7 @@ class OraBooks_Notifications_Test extends TestCase
  }
 
  #[Test]
- public function test_on_invoices_marked_overdue_notifies_admins_multiple_orgs
- {
+ public function test_on_invoices_marked_overdue_notifies_admins_multiple_orgs() {
  global $wpdb;
 
  // Prefs for customers (42, 55) and admins (200 in org 10, 201 in org 20)
@@ -721,8 +701,7 @@ class OraBooks_Notifications_Test extends TestCase
  }
 
  #[Test]
- public function test_on_invoices_marked_overdue_no_admins_in_org
- {
+ public function test_on_invoices_marked_overdue_no_admins_in_org() {
  global $wpdb;
 
  // Only set prefs for the customer (no admin prefs needed)
@@ -785,8 +764,7 @@ class OraBooks_Notifications_Test extends TestCase
  // ================================================================
 
  #[Test]
- public function test_on_invoice_created_notifies_admins
- {
+ public function test_on_invoice_created_notifies_admins() {
  global $wpdb;
 
  $this->setUserNotifPrefs(42);
@@ -836,8 +814,7 @@ class OraBooks_Notifications_Test extends TestCase
  }
 
  #[Test]
- public function test_on_invoice_created_no_admins_in_org
- {
+ public function test_on_invoice_created_no_admins_in_org() {
  global $wpdb;
 
  $this->setUserNotifPrefs(42);
@@ -878,8 +855,7 @@ class OraBooks_Notifications_Test extends TestCase
  }
 
  #[Test]
- public function test_on_payment_recorded_notifies_admins
- {
+ public function test_on_payment_recorded_notifies_admins() {
  global $wpdb;
 
  $this->setUserNotifPrefs(42);
@@ -912,8 +888,7 @@ class OraBooks_Notifications_Test extends TestCase
  }
 
  #[Test]
- public function test_on_payment_recorded_no_admins_in_org
- {
+ public function test_on_payment_recorded_no_admins_in_org() {
  global $wpdb;
 
  $this->setUserNotifPrefs(42);
@@ -939,8 +914,7 @@ class OraBooks_Notifications_Test extends TestCase
  }
 
  #[Test]
- public function test_on_inventory_low_stock_alert_notifies_admins
- {
+ public function test_on_inventory_low_stock_alert_notifies_admins() {
  global $wpdb;
 
  $this->setUserNotifPrefs(100);
@@ -975,8 +949,7 @@ class OraBooks_Notifications_Test extends TestCase
  }
 
  #[Test]
- public function test_on_projection_integrity_failed_notifies_admins
- {
+ public function test_on_projection_integrity_failed_notifies_admins() {
  global $wpdb;
 
  $this->setUserNotifPrefs(100);
@@ -1014,8 +987,7 @@ class OraBooks_Notifications_Test extends TestCase
  // ================================================================
 
  #[Test]
- public function test_send_notification_uses_request_correlation_id
- {
+ public function test_send_notification_uses_request_correlation_id() {
  global $wpdb;
 
  $GLOBALS['orabooks_correlation_id'] = 'corr-test-abc123';
@@ -1042,8 +1014,7 @@ class OraBooks_Notifications_Test extends TestCase
  }
 
  #[Test]
- public function test_deduplication_logs_notification_deduplicated_event
- {
+ public function test_deduplication_logs_notification_deduplicated_event() {
  global $wpdb;
 
  $GLOBALS['orabooks_test_log_events'] = [];
@@ -1070,8 +1041,7 @@ class OraBooks_Notifications_Test extends TestCase
  }
 
  #[Test]
- public function test_mark_read_rejects_foreign_notification
- {
+ public function test_mark_read_rejects_foreign_notification() {
  global $wpdb;
 
  $wpdb->test_get_row_callback = function ($query) {
@@ -1083,12 +1053,11 @@ class OraBooks_Notifications_Test extends TestCase
 
  $result = OraBooks_Notifications::mark_read(99, 5);
  $this->assertInstanceOf(WP_Error::class, $result);
- $this->assertEquals('forbidden', $result->get_error_code);
+ $this->assertEquals('forbidden', $result->get_error_code());
  }
 
  #[Test]
- public function test_mark_read_rejects_missing_notification
- {
+ public function test_mark_read_rejects_missing_notification() {
  global $wpdb;
 
  $wpdb->test_get_row_callback = function ($query) {
@@ -1100,12 +1069,11 @@ class OraBooks_Notifications_Test extends TestCase
 
  $result = OraBooks_Notifications::mark_read(404, 5);
  $this->assertInstanceOf(WP_Error::class, $result);
- $this->assertEquals('not_found', $result->get_error_code);
+ $this->assertEquals('not_found', $result->get_error_code());
  }
 
  #[Test]
- public function test_format_notification_includes_delivery_region
- {
+ public function test_format_notification_includes_delivery_region() {
  $row = (object) [
  'id' => 1,
  'event_type' => 'test',

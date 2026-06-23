@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 /**
  * Unit Tests for OraBooks_Bank_Reconciliation
  */
@@ -44,8 +44,7 @@ class OraBooks_Bank_Reconciliation_Test extends TestCase
  }
 
  #[Test]
- public function test_get_create_table_sql_contains_reconciliation_tables
- {
+ public function test_get_create_table_sql_contains_reconciliation_tables() {
  $sql = implode("\n", OraBooks_Bank_Reconciliation::get_create_table_sql);
 
  $this->assertStringContainsString('orabooks_bank_accounts', $sql);
@@ -57,8 +56,7 @@ class OraBooks_Bank_Reconciliation_Test extends TestCase
  }
 
  #[Test]
- public function test_create_bank_account_inserts_and_returns_account
- {
+ public function test_create_bank_account_inserts_and_returns_account() {
  global $wpdb;
 
  $wpdb->test_get_row_callback = function ($query) {
@@ -86,8 +84,7 @@ class OraBooks_Bank_Reconciliation_Test extends TestCase
  }
 
  #[Test]
- public function test_import_rows_inserts_new_rows_and_skips_duplicates
- {
+ public function test_import_rows_inserts_new_rows_and_skips_duplicates() {
  global $wpdb;
 
  $getVarCalls = 0;
@@ -114,8 +111,7 @@ class OraBooks_Bank_Reconciliation_Test extends TestCase
  }
 
  #[Test]
- public function test_suggest_match_creates_rule_based_payment_suggestion
- {
+ public function test_suggest_match_creates_rule_based_payment_suggestion() {
  global $wpdb;
 
  $wpdb->test_get_row_callback = function ($query) {
@@ -140,8 +136,7 @@ class OraBooks_Bank_Reconciliation_Test extends TestCase
  }
 
  #[Test]
- public function test_manual_match_blocks_already_matched_transaction
- {
+ public function test_manual_match_blocks_already_matched_transaction() {
  global $wpdb;
 
  $wpdb->test_get_row_callback = function ($query) {
@@ -154,12 +149,11 @@ class OraBooks_Bank_Reconciliation_Test extends TestCase
  $result = OraBooks_Bank_Reconciliation::manual_match(5, 100, 'payment', 501, 9);
 
  $this->assertInstanceOf(WP_Error::class, $result);
- $this->assertEquals('invalid_status', $result->get_error_code);
+ $this->assertEquals('invalid_status', $result->get_error_code());
  }
 
  #[Test]
- public function test_manual_match_sets_transaction_matched
- {
+ public function test_manual_match_sets_transaction_matched() {
  global $wpdb;
 
  $wpdb->test_get_row_callback = function ($query) {
@@ -177,8 +171,7 @@ class OraBooks_Bank_Reconciliation_Test extends TestCase
  }
 
  #[Test]
- public function test_skip_transaction_blocks_reconciled_transaction
- {
+ public function test_skip_transaction_blocks_reconciled_transaction() {
  global $wpdb;
 
  $wpdb->test_get_row_callback = function ($query) {
@@ -188,12 +181,11 @@ class OraBooks_Bank_Reconciliation_Test extends TestCase
  $result = OraBooks_Bank_Reconciliation::skip_transaction(5, 100, 'Ignore', 9);
 
  $this->assertInstanceOf(WP_Error::class, $result);
- $this->assertEquals('invalid_status', $result->get_error_code);
+ $this->assertEquals('invalid_status', $result->get_error_code());
  }
 
  #[Test]
- public function test_finalize_reconciliation_rejects_unmatched_transactions
- {
+ public function test_finalize_reconciliation_rejects_unmatched_transactions() {
  global $wpdb;
 
  $wpdb->test_get_results_callback = function ($query) {
@@ -206,12 +198,11 @@ class OraBooks_Bank_Reconciliation_Test extends TestCase
  $result = OraBooks_Bank_Reconciliation::finalize_reconciliation(5, 10, '2026-06-30', 1000, 9);
 
  $this->assertInstanceOf(WP_Error::class, $result);
- $this->assertEquals('unmatched_transactions', $result->get_error_code);
+ $this->assertEquals('unmatched_transactions', $result->get_error_code());
  }
 
  #[Test]
- public function test_finalize_reconciliation_allows_force_balance_difference
- {
+ public function test_finalize_reconciliation_allows_force_balance_difference() {
  global $wpdb;
 
  $wpdb->test_get_results_callback = function ($query) {
@@ -234,8 +225,7 @@ class OraBooks_Bank_Reconciliation_Test extends TestCase
  }
 
  #[Test]
- public function test_get_transactions_list_without_account_filter_returns_org_transactions
- {
+ public function test_get_transactions_list_without_account_filter_returns_org_transactions() {
  global $wpdb;
 
  $seen_query = '';
@@ -254,8 +244,7 @@ class OraBooks_Bank_Reconciliation_Test extends TestCase
  }
 
  #[Test]
- public function test_parse_csv_content_parses_header_and_rows
- {
+ public function test_parse_csv_content_parses_header_and_rows() {
  $csv = "date,amount,description,reference\n2026-06-01,100.50,Deposit,REF-1\n2026-06-02,-25.00,Fee,";
  $rows = OraBooks_Bank_Reconciliation::parse_csv_content($csv);
 
@@ -267,15 +256,13 @@ class OraBooks_Bank_Reconciliation_Test extends TestCase
  }
 
  #[Test]
- public function test_parse_csv_content_rejects_empty_file
- {
+ public function test_parse_csv_content_rejects_empty_file() {
  $result = OraBooks_Bank_Reconciliation::parse_csv_content('');
  $this->assertInstanceOf(WP_Error::class, $result);
  }
 
  #[Test]
- public function test_confirm_suggested_match_updates_status
- {
+ public function test_confirm_suggested_match_updates_status() {
  global $wpdb;
 
  $wpdb->test_get_row_callback = function ($query) {
@@ -301,8 +288,7 @@ class OraBooks_Bank_Reconciliation_Test extends TestCase
  }
 
  #[Test]
- public function test_suggest_match_uses_expense_candidate
- {
+ public function test_suggest_match_uses_expense_candidate() {
  global $wpdb;
 
  $wpdb->test_get_row_callback = function ($query) {

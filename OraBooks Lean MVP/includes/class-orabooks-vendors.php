@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 /**
  * OraBooks Vendors / Bills / AP Module
  *
@@ -14,7 +14,7 @@ class OraBooks_Vendors {
 
  private static $instance = null;
 
- public static function init {
+ public static function init() {
  if (self::$instance === null) {
  self::$instance = new self;
  add_action('wp_ajax_orabooks_vendors_list', [self::$instance, 'ajax_vendors_list']);
@@ -45,7 +45,7 @@ class OraBooks_Vendors {
  return self::$instance;
  }
 
- public static function get_create_table_sql {
+ public static function get_create_table_sql() {
  global $wpdb;
 
  $charset_collate = $wpdb->get_charset_collate;
@@ -234,7 +234,7 @@ class OraBooks_Vendors {
  /**
  * Idempotent line-item table for existing installs ( integration).
  */
- public static function ensure_schema {
+ public static function ensure_schema() {
  if (self::get_schema_flag('orabooks_sl027_bill_line_items_v1') === '1') {
  return;
  }
@@ -265,14 +265,14 @@ class OraBooks_Vendors {
  }
 
  private static function get_schema_flag($key) {
- if (function_exists('is_multisite') && is_multisite && function_exists('get_site_option')) {
+ if (function_exists('is_multisite()') && is_multisite() && function_exists('get_site_option')) {
  return get_site_option($key);
  }
  return get_option($key);
  }
 
  private static function set_schema_flag($key, $value) {
- if (function_exists('is_multisite') && is_multisite && function_exists('update_site_option')) {
+ if (function_exists('is_multisite()') && is_multisite() && function_exists('update_site_option')) {
  update_site_option($key, $value);
  return;
  }
@@ -308,7 +308,7 @@ class OraBooks_Vendors {
  $vendor_id = intval($wpdb->insert_id);
  orabooks_log_event('vendor_created', "Vendor created: {$name}", 'info', [
  'vendor_id' => $vendor_id,
- ], orabooks_get_current_user_id, $org_id);
+ ], orabooks_get_current_user_id(), $org_id);
 
  return self::get_vendor($vendor_id, $org_id);
  }
@@ -380,7 +380,7 @@ class OraBooks_Vendors {
 
  orabooks_log_event('vendor_updated', "Vendor updated: {$vendor->name}", 'info', [
  'vendor_id' => $vendor_id,
- ], orabooks_get_current_user_id, $org_id);
+ ], orabooks_get_current_user_id(), $org_id);
 
  return self::get_vendor($vendor_id, $org_id);
  }
@@ -518,7 +518,7 @@ class OraBooks_Vendors {
  'payment_status' => 'unpaid',
  'lock_status' => 'unlocked',
  'idempotency_key' => $data['idempotency_key'] ?? orabooks_uuid,
- 'created_by' => orabooks_get_current_user_id,
+ 'created_by' => orabooks_get_current_user_id(),
  'rendered_copy' => !empty($data['rendered_copy']) ? wp_json_encode($data['rendered_copy']): null,
  ],
  ['%d', '%d', '%s', '%s', '%s', '%s', '%s', '%f', '%f', '%f', '%f', '%s', '%f', '%s', '%s', '%s', '%s', '%d', '%s']
@@ -532,7 +532,7 @@ class OraBooks_Vendors {
  'bill_id' => $bill_id,
  'vendor_id' => $vendor_id,
  'total_amount' => $total,
- ], orabooks_get_current_user_id, $org_id);
+ ], orabooks_get_current_user_id(), $org_id);
 
  return self::get_bill($bill_id, $org_id);
  }
@@ -819,7 +819,7 @@ class OraBooks_Vendors {
  $allocated,
  $data['payment_date'] ?? current_time('Y-m-d'),
  sanitize_text_field($data['reference'] ?? 'Vendor payment'),
- (int) ($data['user_id'] ?? orabooks_get_current_user_id)
+ (int) ($data['user_id'] ?? orabooks_get_current_user_id())
  );
  }
 
@@ -828,7 +828,7 @@ class OraBooks_Vendors {
  'vendor_id' => $vendor_id,
  'amount' => $amount,
  'unapplied_amount' => $remaining,
- ], orabooks_get_current_user_id, $org_id);
+ ], orabooks_get_current_user_id(), $org_id);
 
  return [
  'payment_id' => $payment_id,
@@ -874,7 +874,7 @@ class OraBooks_Vendors {
  'adjustment_account_code' => $adjustment_account,
  'requires_second_approval' => $requires_second ? 1: 0,
  'workflow_status' => 'draft',
- 'created_by' => orabooks_get_current_user_id,
+ 'created_by' => orabooks_get_current_user_id(),
  ],
  ['%d', '%d', '%d', '%s', '%s', '%f', '%s', '%d', '%s', '%d', '%s', '%d']
  );
@@ -885,7 +885,7 @@ class OraBooks_Vendors {
  'vendor_id' => $vendor_id,
  'amount' => $amount,
  'is_adjustment' => $is_adjustment,
- ], orabooks_get_current_user_id, $org_id);
+ ], orabooks_get_current_user_id(), $org_id);
 
  if (class_exists('OraBooks_AP')) {
  $note = OraBooks_AP::get_credit_note($credit_note_id, $org_id);
@@ -1259,8 +1259,8 @@ class OraBooks_Vendors {
  return intval($snapshot['snapshot_id']);
  }
 
- private function current_user_id {
- return orabooks_get_current_user_id;
+ private function current_user_id() {
+ return orabooks_get_current_user_id();
  }
 
  private function require_customer_org_access($user_id, $org_id) {
@@ -1270,7 +1270,7 @@ class OraBooks_Vendors {
 
  $isolation = OraBooks_Auth::require_customer_org($user_id, $org_id);
  if (is_wp_error($isolation)) {
- orabooks_json_error($isolation->get_error_message, 403);
+ orabooks_json_error($isolation->get_error_message(), 403);
  }
  }
 
@@ -1298,88 +1298,88 @@ class OraBooks_Vendors {
  orabooks_json_error('Permission denied', 403);
  }
 
- public function ajax_vendors_list {
+ public function ajax_vendors_list() {
  $user_id = $this->current_user_id;
  $org_id = intval($_GET['org_id'] ?? 0);
  $this->require_ap_permission($user_id, $org_id, ['view_reports']);
  orabooks_json_success(self::get_vendors_list($org_id, $_GET));
  }
 
- public function ajax_vendor_create {
+ public function ajax_vendor_create() {
  $user_id = $this->current_user_id;
  $org_id = intval($_POST['org_id'] ?? 0);
  $this->require_ap_permission($user_id, $org_id, ['manage_org_settings']);
  $result = self::create_vendor($org_id, $_POST);
  if (is_wp_error($result)) {
- orabooks_json_error($result->get_error_message, 400);
+ orabooks_json_error($result->get_error_message(), 400);
  }
  orabooks_json_success(['vendor' => $result]);
  }
 
- public function ajax_vendor_update {
+ public function ajax_vendor_update() {
  $user_id = $this->current_user_id;
  $org_id = intval($_POST['org_id'] ?? 0);
  $vendor_id = intval($_POST['vendor_id'] ?? 0);
  $this->require_ap_permission($user_id, $org_id, ['manage_org_settings']);
  $result = self::update_vendor($org_id, $vendor_id, $_POST);
  if (is_wp_error($result)) {
- orabooks_json_error($result->get_error_message, 400);
+ orabooks_json_error($result->get_error_message(), 400);
  }
  orabooks_json_success(['vendor' => $result], 'Vendor updated');
  }
 
- public function ajax_bills_list {
+ public function ajax_bills_list() {
  $user_id = $this->current_user_id;
  $org_id = intval($_GET['org_id'] ?? 0);
  $this->require_ap_permission($user_id, $org_id, ['view_reports']);
  orabooks_json_success(self::get_bills_list($org_id, $_GET));
  }
 
- public function ajax_bill_create {
+ public function ajax_bill_create() {
  $user_id = $this->current_user_id;
  $org_id = intval($_POST['org_id'] ?? 0);
  $this->require_ap_permission($user_id, $org_id, ['submit_transaction']);
  $result = self::create_bill($org_id, $_POST);
  if (is_wp_error($result)) {
- orabooks_json_error($result->get_error_message, 400);
+ orabooks_json_error($result->get_error_message(), 400);
  }
  orabooks_json_success(['bill' => $result]);
  }
 
- public function ajax_bill_submit {
+ public function ajax_bill_submit() {
  $user_id = $this->current_user_id;
  $org_id = intval($_POST['org_id'] ?? 0);
  $this->require_ap_permission($user_id, $org_id, ['submit_transaction']);
  $result = self::submit_bill($org_id, intval($_POST['bill_id'] ?? 0), $user_id);
  if (is_wp_error($result)) {
- orabooks_json_error($result->get_error_message, 400);
+ orabooks_json_error($result->get_error_message(), 400);
  }
  orabooks_json_success([], 'Bill submitted');
  }
 
- public function ajax_bill_approve {
+ public function ajax_bill_approve() {
  $user_id = $this->current_user_id;
  $org_id = intval($_POST['org_id'] ?? 0);
  $this->require_ap_permission($user_id, $org_id, ['approve_journal']);
  $result = self::approve_bill($org_id, intval($_POST['bill_id'] ?? 0), $user_id);
  if (is_wp_error($result)) {
- orabooks_json_error($result->get_error_message, 400);
+ orabooks_json_error($result->get_error_message(), 400);
  }
  orabooks_json_success([], 'Bill approved');
  }
 
- public function ajax_bill_post {
+ public function ajax_bill_post() {
  $user_id = $this->current_user_id;
  $org_id = intval($_POST['org_id'] ?? 0);
  $this->require_ap_permission($user_id, $org_id, ['approve_journal', 'manage_org_settings']);
  $result = self::post_bill($org_id, intval($_POST['bill_id'] ?? 0), $user_id);
  if (is_wp_error($result)) {
- orabooks_json_error($result->get_error_message, 400);
+ orabooks_json_error($result->get_error_message(), 400);
  }
  orabooks_json_success([], 'Bill posted');
  }
 
- public function ajax_bill_void {
+ public function ajax_bill_void() {
  $user_id = $this->current_user_id;
  $org_id = intval($_POST['org_id'] ?? 0);
  $reason = isset($_POST['reason']) ? sanitize_textarea_field(wp_unslash($_POST['reason'])): null;
@@ -1391,34 +1391,34 @@ class OraBooks_Vendors {
  if (is_array($data) && isset($data['status'])) {
  $status = (int) $data['status'];
  }
- orabooks_json_error($result->get_error_message, $status);
+ orabooks_json_error($result->get_error_message(), $status);
  }
  orabooks_json_success(['bill' => $result], 'Bill voided');
  }
 
- public function ajax_record_payment {
+ public function ajax_record_payment() {
  $user_id = $this->current_user_id;
  $org_id = intval($_POST['org_id'] ?? 0);
  $this->require_ap_permission($user_id, $org_id, ['manage_org_settings', 'approve_journal', 'submit_transaction', 'manage_billing']);
  $result = self::record_payment($org_id, intval($_POST['vendor_id'] ?? 0), $_POST);
  if (is_wp_error($result)) {
- orabooks_json_error($result->get_error_message, 400);
+ orabooks_json_error($result->get_error_message(), 400);
  }
  orabooks_json_success($result);
  }
 
- public function ajax_create_credit_note {
+ public function ajax_create_credit_note() {
  $user_id = $this->current_user_id;
  $org_id = intval($_POST['org_id'] ?? 0);
  $this->require_ap_permission($user_id, $org_id, ['manage_org_settings', 'approve_journal', 'manage_billing']);
  $result = self::create_credit_note($org_id, $_POST);
  if (is_wp_error($result)) {
- orabooks_json_error($result->get_error_message, 400);
+ orabooks_json_error($result->get_error_message(), 400);
  }
  orabooks_json_success(['credit_note' => $result]);
  }
 
- public function ajax_ap_aging {
+ public function ajax_ap_aging() {
  $user_id = $this->current_user_id;
  $org_id = intval($_GET['org_id'] ?? 0);
  $this->require_ap_permission($user_id, $org_id, ['view_reports']);

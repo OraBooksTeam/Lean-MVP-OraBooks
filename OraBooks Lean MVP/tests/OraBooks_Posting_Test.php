@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 /**
  * Unit Tests for OraBooks_Posting
  */
@@ -27,8 +27,7 @@ class OraBooks_Posting_Test extends TestCase
  }
 
  #[Test]
- public function test_compute_canonical_hash_is_deterministic
- {
+ public function test_compute_canonical_hash_is_deterministic() {
  $lines = [
  (object) [
  'account_id' => 2,
@@ -54,8 +53,7 @@ class OraBooks_Posting_Test extends TestCase
  }
 
  #[Test]
- public function test_map_external_transaction_returns_canonical_payload
- {
+ public function test_map_external_transaction_returns_canonical_payload() {
  $mapped = OraBooks_Posting::map_external_transaction('Stripe', [
  'id' => 'evt_123',
  'created_at' => '2026-06-20T08:00:00Z',
@@ -74,16 +72,14 @@ class OraBooks_Posting_Test extends TestCase
  }
 
  #[Test]
- public function test_reverse_journal_requires_reason
- {
+ public function test_reverse_journal_requires_reason() {
  $result = OraBooks_Posting::reverse_journal(1, 2, 9, ' ');
  $this->assertInstanceOf(WP_Error::class, $result);
- $this->assertSame('reason_required', $result->get_error_code);
+ $this->assertSame('reason_required', $result->get_error_code());
  }
 
  #[Test]
- public function test_reverse_journal_rejects_non_posted_status
- {
+ public function test_reverse_journal_rejects_non_posted_status() {
  global $wpdb;
 
  $wpdb->test_get_row_callback = function {
@@ -99,12 +95,11 @@ class OraBooks_Posting_Test extends TestCase
 
  $result = OraBooks_Posting::reverse_journal(1, 2, 9, 'Correction needed');
  $this->assertInstanceOf(WP_Error::class, $result);
- $this->assertSame('invalid_status', $result->get_error_code);
+ $this->assertSame('invalid_status', $result->get_error_code());
  }
 
  #[Test]
- public function test_validate_ledger_integrity_reports_hash_chain_break
- {
+ public function test_validate_ledger_integrity_reports_hash_chain_break() {
  global $wpdb;
 
  $wpdb->test_get_results_callback = function ($query) {
@@ -130,8 +125,7 @@ class OraBooks_Posting_Test extends TestCase
  }
 
  #[Test]
- public function test_seed_read_model_versions_creates_all_projections
- {
+ public function test_seed_read_model_versions_creates_all_projections() {
  global $wpdb;
  $inserted = [];
 
@@ -150,8 +144,7 @@ class OraBooks_Posting_Test extends TestCase
  }
 
  #[Test]
- public function test_bump_read_model_version_increments_requested_counters
- {
+ public function test_bump_read_model_version_increments_requested_counters() {
  global $wpdb;
 
  $wpdb->test_get_var_callback = function ($query) {
@@ -179,8 +172,7 @@ class OraBooks_Posting_Test extends TestCase
  }
 
  #[Test]
- public function test_bump_read_models_for_journal_posted_targets_ledger_projections
- {
+ public function test_bump_read_models_for_journal_posted_targets_ledger_projections() {
  global $wpdb;
  $updated = [];
 
@@ -214,8 +206,7 @@ class OraBooks_Posting_Test extends TestCase
  }
 
  #[Test]
- public function test_capture_balance_snapshot_persists_all_account_balances
- {
+ public function test_capture_balance_snapshot_persists_all_account_balances() {
  global $wpdb;
  $snapshots = [];
 
@@ -243,8 +234,7 @@ class OraBooks_Posting_Test extends TestCase
  }
 
  #[Test]
- public function test_replay_balances_from_snapshot_applies_post_checkpoint_ledger_deltas
- {
+ public function test_replay_balances_from_snapshot_applies_post_checkpoint_ledger_deltas() {
  global $wpdb;
 
  $wpdb->test_get_var_callback = function ($query) {
@@ -279,8 +269,7 @@ class OraBooks_Posting_Test extends TestCase
  }
 
  #[Test]
- public function test_validate_snapshot_replay_flags_mismatched_balances
- {
+ public function test_validate_snapshot_replay_flags_mismatched_balances() {
  global $wpdb;
 
  $wpdb->test_get_var_callback = function ($query) {
@@ -311,8 +300,7 @@ class OraBooks_Posting_Test extends TestCase
  }
 
  #[Test]
- public function test_validate_ledger_integrity_includes_snapshot_replay_issues
- {
+ public function test_validate_ledger_integrity_includes_snapshot_replay_issues() {
  global $wpdb;
 
  $wpdb->test_get_results_callback = function ($query) {
@@ -349,8 +337,7 @@ class OraBooks_Posting_Test extends TestCase
  }
 
  #[Test]
- public function test_create_journal_returns_existing_for_duplicate_idempotency_key
- {
+ public function test_create_journal_returns_existing_for_duplicate_idempotency_key() {
  global $wpdb;
 
  $wpdb->test_get_var_callback = function ($query) {
@@ -369,8 +356,7 @@ class OraBooks_Posting_Test extends TestCase
  }
 
  #[Test]
- public function test_post_journal_atomic_is_idempotent_when_already_locked
- {
+ public function test_post_journal_atomic_is_idempotent_when_already_locked() {
  global $wpdb;
 
  $wpdb->test_get_row_callback = function {

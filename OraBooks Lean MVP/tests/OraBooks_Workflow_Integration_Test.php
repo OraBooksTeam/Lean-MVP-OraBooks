@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 /**
  * Unit Tests for OraBooks_Workflow_Integration ( Phase 3)
  */
@@ -19,8 +19,7 @@ class OraBooks_Workflow_Integration_Test extends TestCase
  }
 
  #[Test]
- public function test_journal_submit_requires_submit_transaction_permission
- {
+ public function test_journal_submit_requires_submit_transaction_permission() {
  $GLOBALS['orabooks_test_has_permission'] = false;
 
  $record = (object) [
@@ -35,12 +34,11 @@ class OraBooks_Workflow_Integration_Test extends TestCase
  ]);
 
  $this->assertInstanceOf(WP_Error::class, $result);
- $this->assertEquals('precondition_failed', $result->get_error_code);
+ $this->assertEquals('precondition_failed', $result->get_error_code());
  }
 
  #[Test]
- public function test_journal_approve_allows_when_permission_granted
- {
+ public function test_journal_approve_allows_when_permission_granted() {
  $GLOBALS['orabooks_test_has_permission'] = true;
 
  $record = (object) [
@@ -58,8 +56,7 @@ class OraBooks_Workflow_Integration_Test extends TestCase
  }
 
  #[Test]
- public function test_track_failure_logs_audit_and_metric
- {
+ public function test_track_failure_logs_audit_and_metric() {
  global $wpdb;
 
  $inserted = [];
@@ -78,8 +75,7 @@ class OraBooks_Workflow_Integration_Test extends TestCase
  }
 
  #[Test]
- public function test_state_transition_event_consumer_skips_journal_notifications
- {
+ public function test_state_transition_event_consumer_skips_journal_notifications() {
  $event = (object) [
  'id' => 501,
  'event_type' => 'state_transition',
@@ -97,8 +93,7 @@ class OraBooks_Workflow_Integration_Test extends TestCase
  }
 
  #[Test]
- public function test_journal_approve_blocks_maker_checker_in_preconditions
- {
+ public function test_journal_approve_blocks_maker_checker_in_preconditions() {
  global $wpdb;
 
  $GLOBALS['orabooks_test_has_permission'] = true;
@@ -124,12 +119,11 @@ class OraBooks_Workflow_Integration_Test extends TestCase
  ]);
 
  $this->assertInstanceOf(WP_Error::class, $result);
- $this->assertEquals('maker_checker', $result->get_error_code);
+ $this->assertEquals('maker_checker', $result->get_error_code());
  }
 
  #[Test]
- public function test_expense_lock_precondition_allows_internal_lock
- {
+ public function test_expense_lock_precondition_allows_internal_lock() {
  $result = OraBooks_Workflow_Integration::apply_preconditions(true, 'expense', 'lock', (object) [
  'org_id' => 5,
  ], [

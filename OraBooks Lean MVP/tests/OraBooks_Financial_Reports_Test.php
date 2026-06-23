@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 /**
  * Unit Tests for OraBooks_Financial_Reports
  */
@@ -57,8 +57,7 @@ class OraBooks_Financial_Reports_Test extends TestCase
  }
 
  #[Test]
- public function test_schema_defines_sl074_reporting_tables
- {
+ public function test_schema_defines_sl074_reporting_tables() {
  $sql = implode("\n", OraBooks_Financial_Reports::get_create_table_sql);
 
  $this->assertStringContainsString('orabooks_report_ledger_summary', $sql);
@@ -74,8 +73,7 @@ class OraBooks_Financial_Reports_Test extends TestCase
  }
 
  #[Test]
- public function test_generate_profit_loss_creates_snapshot_from_read_model
- {
+ public function test_generate_profit_loss_creates_snapshot_from_read_model() {
  global $wpdb;
  $inserted = [];
 
@@ -104,8 +102,7 @@ class OraBooks_Financial_Reports_Test extends TestCase
  }
 
  #[Test]
- public function test_generate_balance_sheet_uses_normal_balances
- {
+ public function test_generate_balance_sheet_uses_normal_balances() {
  global $wpdb;
 
  $wpdb->test_get_var_callback = fn($query) => null;
@@ -127,8 +124,7 @@ class OraBooks_Financial_Reports_Test extends TestCase
  }
 
  #[Test]
- public function test_hard_closed_period_returns_frozen_snapshot
- {
+ public function test_hard_closed_period_returns_frozen_snapshot() {
  global $wpdb;
 
  $payload = wp_json_encode([
@@ -165,8 +161,7 @@ class OraBooks_Financial_Reports_Test extends TestCase
  }
 
  #[Test]
- public function test_project_journal_posted_updates_ledger_summary_and_checkpoint
- {
+ public function test_project_journal_posted_updates_ledger_summary_and_checkpoint() {
  global $wpdb;
  $queries = [];
 
@@ -199,8 +194,7 @@ class OraBooks_Financial_Reports_Test extends TestCase
  }
 
  #[Test]
- public function test_sign_report_creates_signature_and_approved_watermark
- {
+ public function test_sign_report_creates_signature_and_approved_watermark() {
  global $wpdb;
  $inserted = [];
 
@@ -232,8 +226,7 @@ class OraBooks_Financial_Reports_Test extends TestCase
  }
 
  #[Test]
- public function test_archive_and_integrity_governance
- {
+ public function test_archive_and_integrity_governance() {
  global $wpdb;
  $inserts = [];
 
@@ -278,8 +271,7 @@ class OraBooks_Financial_Reports_Test extends TestCase
  }
 
  #[Test]
- public function test_kms_encrypt_and_decrypt_snapshot_payload_roundtrip
- {
+ public function test_kms_encrypt_and_decrypt_snapshot_payload_roundtrip() {
  $plaintext = wp_json_encode(['report' => ['net_income' => 42.5]]);
  $encrypted = OraBooks_Financial_Reports::encrypt_snapshot_payload(10, $plaintext);
 
@@ -296,8 +288,7 @@ class OraBooks_Financial_Reports_Test extends TestCase
  }
 
  #[Test]
- public function test_encrypted_snapshot_create_stores_kms_metadata
- {
+ public function test_encrypted_snapshot_create_stores_kms_metadata() {
  global $wpdb;
  $inserted = [];
 
@@ -335,8 +326,7 @@ class OraBooks_Financial_Reports_Test extends TestCase
  }
 
  #[Test]
- public function test_verify_report_signature_validates_hmac
- {
+ public function test_verify_report_signature_validates_hmac() {
  global $wpdb;
 
  $plaintext = '{"report":{"net_income":1}}';
@@ -373,8 +363,7 @@ class OraBooks_Financial_Reports_Test extends TestCase
  }
 
  #[Test]
- public function test_sign_report_rejects_already_signed_snapshot
- {
+ public function test_sign_report_rejects_already_signed_snapshot() {
  global $wpdb;
 
  $wpdb->test_get_row_callback = function ($query) {
@@ -389,12 +378,11 @@ class OraBooks_Financial_Reports_Test extends TestCase
 
  $result = OraBooks_Financial_Reports::sign_report(44, 5, 'BOARD');
  $this->assertInstanceOf(WP_Error::class, $result);
- $this->assertEquals('already_signed', $result->get_error_code);
+ $this->assertEquals('already_signed', $result->get_error_code());
  }
 
  #[Test]
- public function test_resolve_replay_order_includes_dependencies
- {
+ public function test_resolve_replay_order_includes_dependencies() {
  global $wpdb;
 
  $wpdb->test_get_results_callback = function ($query) {
@@ -409,8 +397,7 @@ class OraBooks_Financial_Reports_Test extends TestCase
  }
 
  #[Test]
- public function test_replay_ledger_summary_rebuilds_projection_from_ledger
- {
+ public function test_replay_ledger_summary_rebuilds_projection_from_ledger() {
  global $wpdb;
  $queries = [];
 
@@ -446,8 +433,7 @@ class OraBooks_Financial_Reports_Test extends TestCase
  }
 
  #[Test]
- public function test_export_metadata_returns_approved_watermark_when_signed
- {
+ public function test_export_metadata_returns_approved_watermark_when_signed() {
  global $wpdb;
 
  $wpdb->test_get_row_callback = function ($query) {
@@ -481,8 +467,7 @@ class OraBooks_Financial_Reports_Test extends TestCase
  }
 
  #[Test]
- public function test_flatten_profit_loss_for_export
- {
+ public function test_flatten_profit_loss_for_export() {
  $flat = OraBooks_Financial_Reports::flatten_for_export([
  'report' => [
  'report_type' => 'profit_loss',
@@ -508,8 +493,7 @@ class OraBooks_Financial_Reports_Test extends TestCase
  }
 
  #[Test]
- public function test_expense_pl_category_splits_cogs_from_operating
- {
+ public function test_expense_pl_category_splits_cogs_from_operating() {
  $this->assertSame('cogs', OraBooks_Financial_Reports::expense_pl_category((object) [
  'type' => 'expense',
  'code' => '5100',
@@ -523,8 +507,7 @@ class OraBooks_Financial_Reports_Test extends TestCase
  }
 
  #[Test]
- public function test_trial_balance_columns_follow_normal_balance
- {
+ public function test_trial_balance_columns_follow_normal_balance() {
  $debit_asset = OraBooks_Financial_Reports::trial_balance_columns((object) [
  'normal_balance' => 'debit',
  'type' => 'asset',
@@ -541,8 +524,7 @@ class OraBooks_Financial_Reports_Test extends TestCase
  }
 
  #[Test]
- public function test_generate_trial_balance_uses_closing_debit_credit_totals
- {
+ public function test_generate_trial_balance_uses_closing_debit_credit_totals() {
  global $wpdb;
 
  $wpdb->test_get_var_callback = function ($query) {
@@ -574,8 +556,7 @@ class OraBooks_Financial_Reports_Test extends TestCase
  }
 
  #[Test]
- public function test_generate_balance_sheet_adds_current_period_net_income_to_equity
- {
+ public function test_generate_balance_sheet_adds_current_period_net_income_to_equity() {
  global $wpdb;
 
  $wpdb->test_get_var_callback = function ($query) {
@@ -615,8 +596,7 @@ class OraBooks_Financial_Reports_Test extends TestCase
  }
 
  #[Test]
- public function test_project_journal_posted_accepts_locked_status
- {
+ public function test_project_journal_posted_accepts_locked_status() {
  global $wpdb;
  $queries = [];
 
@@ -646,8 +626,7 @@ class OraBooks_Financial_Reports_Test extends TestCase
  }
 
  #[Test]
- public function test_export_report_data_resolves_financial_export_type
- {
+ public function test_export_report_data_resolves_financial_export_type() {
  global $wpdb;
 
  $wpdb->test_get_row_callback = function ($query) {

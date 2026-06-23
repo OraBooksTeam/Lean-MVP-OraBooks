@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 /**
  * Multi-tenant & Residency tests.
  */
@@ -30,23 +30,19 @@ class OraBooks_Organization_Test extends TestCase
  unset($GLOBALS['orabooks_test_jwt_payload']);
  }
 
- public function test_validate_org_region_enterprise_requires_selection
- {
+ public function test_validate_org_region_enterprise_requires_selection() {
  $this->assertSame('Please select a data residency region.', orabooks_validate_org_region('', 'enterprise'));
  }
 
- public function test_validate_org_region_rejects_invalid_enterprise_region
- {
+ public function test_validate_org_region_rejects_invalid_enterprise_region() {
  $this->assertSame('Invalid region selected.', orabooks_validate_org_region('invalid', 'enterprise'));
  }
 
- public function test_validate_org_region_free_tier_cannot_customize
- {
+ public function test_validate_org_region_free_tier_cannot_customize() {
  $this->assertSame('Region cannot be changed for this plan.', orabooks_validate_org_region('eu-west-1', 'free'));
  }
 
- public function test_get_active_by_subdomain_rejects_inactive_org
- {
+ public function test_get_active_by_subdomain_rejects_inactive_org() {
  $this->wpdb->test_get_row_callback = function {
  return (object) [
  'id' => 10,
@@ -60,11 +56,10 @@ class OraBooks_Organization_Test extends TestCase
 
  $result = OraBooks_Organization::get_active_by_subdomain('inactive-co');
  $this->assertInstanceOf(WP_Error::class, $result);
- $this->assertSame('org_inactive', $result->get_error_code);
+ $this->assertSame('org_inactive', $result->get_error_code());
  }
 
- public function test_get_active_by_subdomain_returns_active_org
- {
+ public function test_get_active_by_subdomain_returns_active_org() {
  $this->wpdb->test_get_row_callback = function {
  return (object) [
  'id' => 11,
@@ -83,8 +78,7 @@ class OraBooks_Organization_Test extends TestCase
  $this->assertSame('active', $org->status);
  }
 
- public function test_change_region_rejects_non_enterprise_customer
- {
+ public function test_change_region_rejects_non_enterprise_customer() {
  $this->wpdb->test_get_row_callback = function {
  return (object) [
  'id' => 20,
@@ -98,11 +92,10 @@ class OraBooks_Organization_Test extends TestCase
 
  $result = OraBooks_Organization::change_region(20, 'eu-west-1', 1);
  $this->assertInstanceOf(WP_Error::class, $result);
- $this->assertSame('invalid_type', $result->get_error_code);
+ $this->assertSame('invalid_type', $result->get_error_code());
  }
 
- public function test_change_region_updates_enterprise_org_and_queues_migration
- {
+ public function test_change_region_updates_enterprise_org_and_queues_migration() {
  $updated = null;
  $this->wpdb->test_get_row_callback = function {
  return (object) [
@@ -125,8 +118,7 @@ class OraBooks_Organization_Test extends TestCase
  $this->assertSame('ap-southeast-1', $updated['data']['region']);
  }
 
- public function test_user_belongs_to_org_checks_membership_and_owner
- {
+ public function test_user_belongs_to_org_checks_membership_and_owner() {
  $this->wpdb->test_get_var_callback = function ($query) {
  if (stripos($query, 'orabooks_user_org') !== false) {
  return null;
@@ -140,8 +132,7 @@ class OraBooks_Organization_Test extends TestCase
  $this->assertTrue(orabooks_user_belongs_to_org(5, 7));
  }
 
- public function test_assert_tenant_access_blocks_cross_tenant_org
- {
+ public function test_assert_tenant_access_blocks_cross_tenant_org() {
  $GLOBALS['orabooks_test_current_user_can'] = false;
  $this->wpdb->test_get_var_callback = function {
  return null;
@@ -149,11 +140,10 @@ class OraBooks_Organization_Test extends TestCase
 
  $result = orabooks_assert_tenant_access(5, 99);
  $this->assertInstanceOf(WP_Error::class, $result);
- $this->assertSame('tenant_isolation', $result->get_error_code);
+ $this->assertSame('tenant_isolation', $result->get_error_code());
  }
 
- public function test_resolve_request_org_id_blocks_foreign_org_id
- {
+ public function test_resolve_request_org_id_blocks_foreign_org_id() {
  $GLOBALS['orabooks_test_current_user_can'] = false;
  $this->wpdb->test_get_var_callback = function {
  return null;
@@ -163,8 +153,7 @@ class OraBooks_Organization_Test extends TestCase
  $this->assertSame(0, $org_id);
  }
 
- public function test_resolve_request_org_id_allows_member_org
- {
+ public function test_resolve_request_org_id_allows_member_org() {
  $this->wpdb->test_get_var_callback = function ($query) {
  if (stripos($query, 'orabooks_user_org') !== false) {
  return 1;

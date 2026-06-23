@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 /**
  * Unit Tests for RBAC / ABAC.
  */
@@ -33,15 +33,13 @@ class OraBooks_RBAC_Test extends TestCase
  }
 
  #[Test]
- public function test_fixed_roles_and_deny_by_default
- {
+ public function test_fixed_roles_and_deny_by_default() {
  $this->assertSame(['owner', 'admin', 'approver', 'staff', 'viewer'], OraBooks_RBAC::get_roles);
  $this->assertFalse(OraBooks_RBAC::check_permission('owner', 'undefined_permission', 10));
  }
 
  #[Test]
- public function test_permission_aliases_match_final_spec
- {
+ public function test_permission_aliases_match_final_spec() {
  $this->assertTrue(OraBooks_RBAC::check_permission('owner', 'manage_roles', 10));
  $this->assertFalse(OraBooks_RBAC::check_permission('admin', 'manage_roles', 10));
  $this->assertTrue(OraBooks_RBAC::check_permission('admin', 'manage_employees', 10));
@@ -49,8 +47,7 @@ class OraBooks_RBAC_Test extends TestCase
  }
 
  #[Test]
- public function test_partner_commission_access_can_be_enabled_for_staff_viewer
- {
+ public function test_partner_commission_access_can_be_enabled_for_staff_viewer() {
  $GLOBALS['orabooks_test_org_callback'] = function {
  return (object) [
  'id' => 10,
@@ -65,8 +62,7 @@ class OraBooks_RBAC_Test extends TestCase
  }
 
  #[Test]
- public function test_require_permission_blocks_partner_accounting_even_for_owner
- {
+ public function test_require_permission_blocks_partner_accounting_even_for_owner() {
  $GLOBALS['orabooks_test_org_callback'] = function {
  return (object) [
  'id' => 10,
@@ -82,8 +78,7 @@ class OraBooks_RBAC_Test extends TestCase
  }
 
  #[Test]
- public function test_require_permission_logs_dedicated_permission_audit_row
- {
+ public function test_require_permission_logs_dedicated_permission_audit_row() {
  global $wpdb;
 
  $inserted = [];
@@ -102,8 +97,7 @@ class OraBooks_RBAC_Test extends TestCase
  }
 
  #[Test]
- public function test_role_change_revokes_refresh_tokens
- {
+ public function test_role_change_revokes_refresh_tokens() {
  global $wpdb;
 
  $queries = [];
@@ -128,8 +122,7 @@ class OraBooks_RBAC_Test extends TestCase
  }
 
  #[Test]
- public function test_effective_permissions_include_public_aliases
- {
+ public function test_effective_permissions_include_public_aliases() {
  $permissions = OBN_Access_Control::get_effective_permissions('owner', 10);
 
  $this->assertContains('manage_employees', $permissions);
@@ -138,8 +131,7 @@ class OraBooks_RBAC_Test extends TestCase
  }
 
  #[Test]
- public function test_accept_invite_ajax_returns_json_for_unauthenticated_post
- {
+ public function test_accept_invite_ajax_returns_json_for_unauthenticated_post() {
  $GLOBALS['orabooks_test_current_user_id'] = 0;
  $_POST['token'] = 'sample-invite-token';
  $_SERVER['REQUEST_METHOD'] = 'POST';
@@ -150,7 +142,7 @@ class OraBooks_RBAC_Test extends TestCase
  $team->ajax_accept_invite_nopriv;
  $this->fail('Expected JSON error for unauthenticated invite acceptance.');
  } catch (\RuntimeException $exception) {
- $payload = json_decode($exception->getMessage, true);
+ $payload = json_decode($exception->getMessage(), true);
  $this->assertIsArray($payload);
  $this->assertTrue($payload['error']);
  $this->assertStringContainsString('log in', strtolower($payload['message']));
@@ -158,8 +150,7 @@ class OraBooks_RBAC_Test extends TestCase
  }
 
  #[Test]
- public function test_accept_pending_invite_for_user_assigns_invited_role
- {
+ public function test_accept_pending_invite_for_user_assigns_invited_role() {
  global $wpdb;
 
  $invite = (object) [

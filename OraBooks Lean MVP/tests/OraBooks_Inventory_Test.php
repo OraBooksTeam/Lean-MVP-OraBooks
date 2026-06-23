@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 /**
  * Unit Tests for OraBooks_Inventory
  */
@@ -44,8 +44,7 @@ class OraBooks_Inventory_Test extends TestCase
  }
 
  #[Test]
- public function test_get_create_table_sql_contains_inventory_tables
- {
+ public function test_get_create_table_sql_contains_inventory_tables() {
  $sql = implode("\n", OraBooks_Inventory::get_create_table_sql);
 
  $this->assertStringContainsString('orabooks_products', $sql);
@@ -56,8 +55,7 @@ class OraBooks_Inventory_Test extends TestCase
  }
 
  #[Test]
- public function test_create_product_rejects_duplicate_sku
- {
+ public function test_create_product_rejects_duplicate_sku() {
  global $wpdb;
 
  $wpdb->test_get_var_callback = function ($query) {
@@ -73,12 +71,11 @@ class OraBooks_Inventory_Test extends TestCase
  ]);
 
  $this->assertInstanceOf(WP_Error::class, $result);
- $this->assertEquals('duplicate_sku', $result->get_error_code);
+ $this->assertEquals('duplicate_sku', $result->get_error_code());
  }
 
  #[Test]
- public function test_create_product_with_opening_stock_adds_movement
- {
+ public function test_create_product_with_opening_stock_adds_movement() {
  global $wpdb;
 
  $movementInserted = false;
@@ -113,8 +110,7 @@ class OraBooks_Inventory_Test extends TestCase
  }
 
  #[Test]
- public function test_receive_purchase_recalculates_weighted_average_cost
- {
+ public function test_receive_purchase_recalculates_weighted_average_cost() {
  global $wpdb;
 
  $wpdb->test_get_row_callback = function ($query) {
@@ -137,8 +133,7 @@ class OraBooks_Inventory_Test extends TestCase
  }
 
  #[Test]
- public function test_record_sale_reduces_stock_and_returns_cogs
- {
+ public function test_record_sale_reduces_stock_and_returns_cogs() {
  global $wpdb;
 
  $wpdb->test_get_row_callback = function ($query) {
@@ -162,8 +157,7 @@ class OraBooks_Inventory_Test extends TestCase
  }
 
  #[Test]
- public function test_record_sale_blocks_negative_stock
- {
+ public function test_record_sale_blocks_negative_stock() {
  global $wpdb;
 
  $wpdb->test_get_row_callback = function ($query) {
@@ -173,12 +167,11 @@ class OraBooks_Inventory_Test extends TestCase
  $result = OraBooks_Inventory::record_sale(5, 10, 3, 300, 1);
 
  $this->assertInstanceOf(WP_Error::class, $result);
- $this->assertEquals('negative_stock', $result->get_error_code);
+ $this->assertEquals('negative_stock', $result->get_error_code());
  }
 
  #[Test]
- public function test_adjust_stock_requires_reason
- {
+ public function test_adjust_stock_requires_reason() {
  global $wpdb;
 
  $wpdb->test_get_row_callback = function ($query) {
@@ -188,12 +181,11 @@ class OraBooks_Inventory_Test extends TestCase
  $result = OraBooks_Inventory::adjust_stock(5, 10, -1, '', 1);
 
  $this->assertInstanceOf(WP_Error::class, $result);
- $this->assertEquals('reason_required', $result->get_error_code);
+ $this->assertEquals('reason_required', $result->get_error_code());
  }
 
  #[Test]
- public function test_adjust_stock_updates_stock_and_logs_movement
- {
+ public function test_adjust_stock_updates_stock_and_logs_movement() {
  global $wpdb;
 
  $wpdb->test_get_row_callback = function ($query) {
@@ -210,8 +202,7 @@ class OraBooks_Inventory_Test extends TestCase
  }
 
  #[Test]
- public function test_get_recent_movements_joins_product_details
- {
+ public function test_get_recent_movements_joins_product_details() {
  global $wpdb;
 
  $wpdb->test_get_results_callback = function ($query) {
@@ -241,8 +232,7 @@ class OraBooks_Inventory_Test extends TestCase
  }
 
  #[Test]
- public function test_validate_sale_items_blocks_insufficient_stock
- {
+ public function test_validate_sale_items_blocks_insufficient_stock() {
  global $wpdb;
 
  $wpdb->test_get_row_callback = function ($query) {
@@ -257,12 +247,11 @@ class OraBooks_Inventory_Test extends TestCase
  ]);
 
  $this->assertInstanceOf(WP_Error::class, $result);
- $this->assertEquals('negative_stock', $result->get_error_code);
+ $this->assertEquals('negative_stock', $result->get_error_code());
  }
 
  #[Test]
- public function test_validate_sale_items_skips_service_products
- {
+ public function test_validate_sale_items_skips_service_products() {
  global $wpdb;
 
  $wpdb->test_get_row_callback = function ($query) {
@@ -280,8 +269,7 @@ class OraBooks_Inventory_Test extends TestCase
  }
 
  #[Test]
- public function test_get_inventory_items_for_bill_returns_product_lines
- {
+ public function test_get_inventory_items_for_bill_returns_product_lines() {
  global $wpdb;
 
  $wpdb->test_get_results_callback = function ($query) {
@@ -303,8 +291,7 @@ class OraBooks_Inventory_Test extends TestCase
  }
 
  #[Test]
- public function test_get_inventory_items_for_invoice_returns_product_lines
- {
+ public function test_get_inventory_items_for_invoice_returns_product_lines() {
  global $wpdb;
 
  $wpdb->test_get_results_callback = function ($query) {

@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 /**
  * Unit Tests for OraBooks_Approval
  */
@@ -68,8 +68,7 @@ class OraBooks_Approval_Test extends TestCase
  }
 
  #[Test]
- public function test_format_journal_maps_core_fields
- {
+ public function test_format_journal_maps_core_fields() {
  $journal = (object) [
  'id' => 10,
  'org_id' => 1,
@@ -99,8 +98,7 @@ class OraBooks_Approval_Test extends TestCase
  }
 
  #[Test]
- public function test_format_approval_history_row_includes_snapshot_hash
- {
+ public function test_format_approval_history_row_includes_snapshot_hash() {
  $row = (object) [
  'id' => 3,
  'journal_id' => 10,
@@ -120,27 +118,24 @@ class OraBooks_Approval_Test extends TestCase
  }
 
  #[Test]
- public function test_reject_journal_requires_reason
- {
+ public function test_reject_journal_requires_reason() {
  $result = OraBooks_Posting::reject_journal(1, 1, '');
  $this->assertInstanceOf(WP_Error::class, $result);
- $this->assertSame('reason_required', $result->get_error_code);
+ $this->assertSame('reason_required', $result->get_error_code());
  }
 
  #[Test]
- public function test_validate_submit_rounds_blocks_when_max_reached
- {
+ public function test_validate_submit_rounds_blocks_when_max_reached() {
  $journal = $this->journal(['approval_round' => 5]);
  $policy = $this->policy(['max_approval_rounds' => 5]);
 
  $result = OraBooks_Approval::validate_submit_rounds($journal, $policy);
  $this->assertInstanceOf(WP_Error::class, $result);
- $this->assertSame('max_rounds', $result->get_error_code);
+ $this->assertSame('max_rounds', $result->get_error_code());
  }
 
  #[Test]
- public function test_compute_snapshot_hash_is_deterministic
- {
+ public function test_compute_snapshot_hash_is_deterministic() {
  global $wpdb;
 
  $journal = $this->journal;
@@ -173,8 +168,7 @@ class OraBooks_Approval_Test extends TestCase
  }
 
  #[Test]
- public function test_approve_journal_blocks_maker_checker
- {
+ public function test_approve_journal_blocks_maker_checker() {
  global $wpdb;
 
  $journal = $this->journal(['created_by' => 2]);
@@ -187,12 +181,11 @@ class OraBooks_Approval_Test extends TestCase
 
  $result = OraBooks_Approval::approve_journal(10, 2);
  $this->assertInstanceOf(WP_Error::class, $result);
- $this->assertSame('maker_checker', $result->get_error_code);
+ $this->assertSame('maker_checker', $result->get_error_code());
  }
 
  #[Test]
- public function test_approve_journal_requires_mfa_for_high_amount
- {
+ public function test_approve_journal_requires_mfa_for_high_amount() {
  global $wpdb;
 
  $journal = $this->journal(['total_amount' => 25000, 'created_by' => 1]);
@@ -205,12 +198,11 @@ class OraBooks_Approval_Test extends TestCase
 
  $result = OraBooks_Approval::approve_journal(10, 2);
  $this->assertInstanceOf(WP_Error::class, $result);
- $this->assertSame('mfa_required', $result->get_error_code);
+ $this->assertSame('mfa_required', $result->get_error_code());
  }
 
  #[Test]
- public function test_approve_journal_succeeds_with_mfa_otp
- {
+ public function test_approve_journal_succeeds_with_mfa_otp() {
  global $wpdb;
 
  $journal = $this->journal(['total_amount' => 25000, 'created_by' => 1]);
@@ -243,8 +235,7 @@ class OraBooks_Approval_Test extends TestCase
  }
 
  #[Test]
- public function test_resubmit_requires_draft_with_prior_round
- {
+ public function test_resubmit_requires_draft_with_prior_round() {
  global $wpdb;
 
  $wpdb->test_get_row_callback = function {
@@ -253,12 +244,11 @@ class OraBooks_Approval_Test extends TestCase
 
  $result = OraBooks_Approval::resubmit_journal(10, 2);
  $this->assertInstanceOf(WP_Error::class, $result);
- $this->assertSame('invalid_status', $result->get_error_code);
+ $this->assertSame('invalid_status', $result->get_error_code());
  }
 
  #[Test]
- public function test_invalidate_on_edit_moves_approved_to_draft
- {
+ public function test_invalidate_on_edit_moves_approved_to_draft() {
  global $wpdb;
  $updated = [];
 
@@ -278,16 +268,14 @@ class OraBooks_Approval_Test extends TestCase
  }
 
  #[Test]
- public function test_create_delegation_rejects_same_user
- {
+ public function test_create_delegation_rejects_same_user() {
  $result = OraBooks_Approval::create_delegation(1, 2, 2, '2026-06-18 00:00:00', '2026-06-25 00:00:00', 2);
  $this->assertInstanceOf(WP_Error::class, $result);
- $this->assertSame('invalid_delegate', $result->get_error_code);
+ $this->assertSame('invalid_delegate', $result->get_error_code());
  }
 
  #[Test]
- public function test_has_history_action_detects_existing_escalation
- {
+ public function test_has_history_action_detects_existing_escalation() {
  global $wpdb;
 
  $wpdb->test_get_var_callback = function ($query) {
@@ -301,8 +289,7 @@ class OraBooks_Approval_Test extends TestCase
  }
 
  #[Test]
- public function test_user_can_approve_via_active_delegation
- {
+ public function test_user_can_approve_via_active_delegation() {
  global $wpdb;
 
  $GLOBALS['orabooks_test_has_permission'] = false;
@@ -322,8 +309,7 @@ class OraBooks_Approval_Test extends TestCase
  }
 
  #[Test]
- public function test_cron_expire_stale_approvals_marks_journal_stale
- {
+ public function test_cron_expire_stale_approvals_marks_journal_stale() {
  global $wpdb;
 
  $journal = $this->journal([
@@ -363,8 +349,7 @@ class OraBooks_Approval_Test extends TestCase
  }
 
  #[Test]
- public function test_cron_escalate_skips_when_already_escalated
- {
+ public function test_cron_escalate_skips_when_already_escalated() {
  global $wpdb;
 
  $journal = $this->journal([
@@ -399,8 +384,7 @@ class OraBooks_Approval_Test extends TestCase
  }
 
  #[Test]
- public function test_on_submitted_publishes_journal_submitted_event
- {
+ public function test_on_submitted_publishes_journal_submitted_event() {
  global $wpdb;
 
  $events = [];
@@ -424,8 +408,7 @@ class OraBooks_Approval_Test extends TestCase
  }
 
  #[Test]
- public function test_promote_to_review_pending_keeps_approved_snapshot_hash_null
- {
+ public function test_promote_to_review_pending_keeps_approved_snapshot_hash_null() {
  global $wpdb;
 
  $journal = $this->journal(['status' => 'draft', 'approval_round' => 0]);

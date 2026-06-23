@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 /**
  * OraBooks Customers / Invoices / AR Module
  *
@@ -22,7 +22,7 @@ class OraBooks_Customers {
 
  private static $instance = null;
 
- public static function init {
+ public static function init() {
  if (self::$instance === null) {
  self::$instance = new self;
 
@@ -66,7 +66,7 @@ class OraBooks_Customers {
  // DATABASE SCHEMA
  // ================================================================
 
- public static function get_create_table_sql {
+ public static function get_create_table_sql() {
  global $wpdb;
 
  $charset_collate = $wpdb->get_charset_collate;
@@ -211,7 +211,7 @@ class OraBooks_Customers {
  * Idempotent schema upgrades for existing installs.
  * dbDelta CREATE TABLE IF NOT EXISTS does not add missing columns.
  */
- public static function ensure_schema {
+ public static function ensure_schema() {
  global $wpdb;
 
  if (
@@ -321,7 +321,7 @@ class OraBooks_Customers {
  /**
  *: invoice line items for inventory integration.
  */
- private static function ensure_invoice_line_items_schema {
+ private static function ensure_invoice_line_items_schema() {
  if (self::get_schema_flag('orabooks_sl034_invoice_line_items_v1') === '1') {
  return;
  }
@@ -354,7 +354,7 @@ class OraBooks_Customers {
  /**
  * Run schema migration before queries when bootstrap missed it.
  */
- private static function maybe_ensure_schema {
+ private static function maybe_ensure_schema() {
  static $ran = false;
  if ($ran) {
  return;
@@ -386,7 +386,7 @@ class OraBooks_Customers {
  /**
  * Add org-scoped AR contact fields so customers can be created without a platform user.
  */
- private static function ensure_customer_contact_schema {
+ private static function ensure_customer_contact_schema() {
  global $wpdb;
 
  if (self::get_schema_flag('orabooks_sl021_customer_contacts_v1') === '1') {
@@ -430,7 +430,7 @@ class OraBooks_Customers {
  /**
  * credit/wallet columns on customers (credit_limit, credit_hold, etc.).
  */
- private static function ensure_customer_credit_schema {
+ private static function ensure_customer_credit_schema() {
  global $wpdb;
 
  if (self::get_schema_flag('orabooks_sl021_customer_credit_v1') === '1') {
@@ -466,7 +466,7 @@ class OraBooks_Customers {
  /**
  * Extended customer profile fields used by the React add/edit modal.
  */
- private static function ensure_customer_profile_schema {
+ private static function ensure_customer_profile_schema() {
  global $wpdb;
 
  if (self::get_schema_flag('orabooks_sl021_customer_profile_v1') === '1') {
@@ -524,7 +524,7 @@ class OraBooks_Customers {
  /**
  * Create payments table without relying on dbDelta foreign keys.
  */
- private static function ensure_payments_table {
+ private static function ensure_payments_table() {
  global $wpdb;
 
  $table_payments = OraBooks_Database::table('payments');
@@ -574,7 +574,7 @@ class OraBooks_Customers {
  /**
  * Whether invoice/payment tables have the columns dashboard queries need.
  */
- public static function schema_is_ready {
+ public static function schema_is_ready() {
  global $wpdb;
 
  $table_invoices = OraBooks_Database::table('invoices');
@@ -599,7 +599,7 @@ class OraBooks_Customers {
  }
 
  private static function get_schema_flag($key) {
- if (function_exists('is_multisite') && is_multisite && function_exists('get_site_option')) {
+ if (function_exists('is_multisite()') && is_multisite() && function_exists('get_site_option')) {
  return get_site_option($key);
  }
 
@@ -607,7 +607,7 @@ class OraBooks_Customers {
  }
 
  private static function set_schema_flag($key, $value) {
- if (function_exists('is_multisite') && is_multisite && function_exists('update_site_option')) {
+ if (function_exists('is_multisite()') && is_multisite() && function_exists('update_site_option')) {
  update_site_option($key, $value);
  return;
  }
@@ -714,7 +714,7 @@ class OraBooks_Customers {
  * Seed customer records for users referenced in partner_attributions
  * that don't already have a customers row.
  */
- public static function seed_default_customers {
+ public static function seed_default_customers() {
  global $wpdb;
 
  $table_customers = OraBooks_Database::table('customers');
@@ -884,7 +884,7 @@ class OraBooks_Customers {
  "Customer profile created: {$display_name}",
  'info',
  ['customer_id' => $customer_id, 'contact_email' => $contact_email],
- orabooks_get_current_user_id,
+ orabooks_get_current_user_id(),
  $org_id
  );
 
@@ -1119,7 +1119,7 @@ class OraBooks_Customers {
  "Customer #{$customer_ref} ". ($is_active ? 'activated': 'deactivated'),
  'info',
  ['customer_id' => $customer->id, 'user_id' => $customer->user_id, 'org_id' => $customer->org_id],
- orabooks_get_current_user_id,
+ orabooks_get_current_user_id(),
  $customer->org_id
  );
 
@@ -1239,7 +1239,7 @@ class OraBooks_Customers {
  'tax_jurisdiction'=> !empty($data['tax_jurisdiction']) ? strtoupper(sanitize_text_field($data['tax_jurisdiction'])): null,
  'tax_type' => !empty($data['tax_type']) ? sanitize_text_field($data['tax_type']): null,
  'tax_override_reason' => !empty($data['tax_override_reason']) ? sanitize_text_field($data['tax_override_reason']): null,
- 'tax_override_by' => !empty($data['tax_override_reason']) ? orabooks_get_current_user_id: null,
+ 'tax_override_by' => !empty($data['tax_override_reason']) ? orabooks_get_current_user_id(): null,
  'tax_override_at' => !empty($data['tax_override_reason']) ? current_time('mysql'): null,
  'currency' => $data['currency'] ?? 'USD',
  'payment_status' => 'unpaid',
@@ -1268,7 +1268,7 @@ class OraBooks_Customers {
  'customer_id' => (int) $data['customer_id'],
  'total_amount' => $data['total_amount'],
  'org_id' => $org_id,
- ], orabooks_get_current_user_id, $org_id);
+ ], orabooks_get_current_user_id(), $org_id);
 
  // Fire event for notification system
  do_action('orabooks_invoice_created', $invoice_id, [
@@ -2089,7 +2089,7 @@ class OraBooks_Customers {
  $applied_to_invoice,
  $payment_date,
  $invoice->invoice_number,
- orabooks_get_current_user_id
+ orabooks_get_current_user_id()
  );
 
  if (in_array($new_status, ['paid', 'partial'], true) && class_exists('OraBooks_Tax')) {
@@ -2099,7 +2099,7 @@ class OraBooks_Customers {
  $org_id
  ));
  if ($posted_invoice) {
- OraBooks_Tax::snapshot_for_invoice($posted_invoice, orabooks_get_current_user_id);
+ OraBooks_Tax::snapshot_for_invoice($posted_invoice, orabooks_get_current_user_id());
  }
  }
 
@@ -2123,7 +2123,7 @@ class OraBooks_Customers {
  'payment_status'=> $new_status,
  'customer_id' => $invoice->customer_id,
  'org_id' => $org_id,
- ], orabooks_get_current_user_id, $org_id);
+ ], orabooks_get_current_user_id(), $org_id);
 
  return [
  'payment_id' => $payment_id,
@@ -2214,7 +2214,7 @@ class OraBooks_Customers {
  * Daily check: mark customers as inactive if they have no paid
  * invoices within the active window. Also recalc lifetime_value.
  */
- public function daily_customer_status_check {
+ public function daily_customer_status_check() {
  global $wpdb;
 
  $table_customers = OraBooks_Database::table('customers');
@@ -2261,7 +2261,7 @@ class OraBooks_Customers {
  /**
  * Daily check: mark invoices as overdue if past due_date and unpaid/partial.
  */
- public function daily_invoice_overdue_check {
+ public function daily_invoice_overdue_check() {
  global $wpdb;
 
  $table = OraBooks_Database::table('invoices');
@@ -2459,7 +2459,7 @@ class OraBooks_Customers {
 
  $isolation = OraBooks_Auth::require_customer_org($user_id, $org_id);
  if (is_wp_error($isolation)) {
- orabooks_json_error($isolation->get_error_message, 403);
+ orabooks_json_error($isolation->get_error_message(), 403);
  }
 
  if (!current_user_can('manage_options') && !OraBooks_RBAC::require_permission($user_id, $org_id, $permission)) {
@@ -2491,8 +2491,8 @@ class OraBooks_Customers {
  /**
  * List customers for admin.
  */
- public function ajax_customers_list {
- $user_id = orabooks_get_current_user_id;
+ public function ajax_customers_list() {
+ $user_id = orabooks_get_current_user_id();
  $org_id = intval($_GET['org_id'] ?? $_POST['org_id'] ?? 0);
  $org_id = $this->resolve_request_org_id($user_id, $org_id);
 
@@ -2516,8 +2516,8 @@ class OraBooks_Customers {
  /**
  * Create a customer profile for the current organization.
  */
- public function ajax_customer_create {
- $user_id = orabooks_get_current_user_id;
+ public function ajax_customer_create() {
+ $user_id = orabooks_get_current_user_id();
  $org_id = intval($_POST['org_id'] ?? 0);
 
  if (!$user_id) {
@@ -2532,7 +2532,7 @@ class OraBooks_Customers {
 
  $result = self::create_customer($org_id, $_POST);
  if (is_wp_error($result)) {
- orabooks_json_error($result->get_error_message, 400);
+ orabooks_json_error($result->get_error_message(), 400);
  }
 
  orabooks_json_success(['customer' => $result], 'Customer created');
@@ -2542,8 +2542,8 @@ class OraBooks_Customers {
  * Get a single customer. Accepts either customer_id (customers.id)
  * or user_id (users table ID).
  */
- public function ajax_customer_get {
- $user_id = orabooks_get_current_user_id;
+ public function ajax_customer_get() {
+ $user_id = orabooks_get_current_user_id();
  if (!$user_id) {
  orabooks_json_error('Not authenticated', 401);
  }
@@ -2571,8 +2571,8 @@ class OraBooks_Customers {
  /**
  * Update customer notes (is_active is derived from invoice activity per ).
  */
- public function ajax_customer_update {
- $user_id = orabooks_get_current_user_id;
+ public function ajax_customer_update() {
+ $user_id = orabooks_get_current_user_id();
  $customer_id = intval($_POST['customer_id'] ?? 0);
  if (!$customer_id) {
  orabooks_json_error('Customer ID required', 400);
@@ -2675,8 +2675,8 @@ class OraBooks_Customers {
  /**
  * List invoices.
  */
- public function ajax_invoices_list {
- $user_id = orabooks_get_current_user_id;
+ public function ajax_invoices_list() {
+ $user_id = orabooks_get_current_user_id();
  $org_id = intval($_GET['org_id'] ?? $_POST['org_id'] ?? 0);
 
  if (!$org_id) {
@@ -2706,9 +2706,9 @@ class OraBooks_Customers {
  /**
  * Create an invoice.
  */
- public function ajax_invoice_create {
+ public function ajax_invoice_create() {
  global $wpdb;
- $user_id = orabooks_get_current_user_id;
+ $user_id = orabooks_get_current_user_id();
  $org_id = intval($_POST['org_id'] ?? 0);
 
  if (!$user_id) {
@@ -2750,7 +2750,7 @@ class OraBooks_Customers {
 
  $result = self::create_invoice($org_id, $data);
  if (is_wp_error($result)) {
- orabooks_json_error($result->get_error_message, 400);
+ orabooks_json_error($result->get_error_message(), 400);
  }
 
  orabooks_json_success(['invoice' => self::format_invoice($result)], 'Invoice created');
@@ -2759,8 +2759,8 @@ class OraBooks_Customers {
  /**
  * Get single invoice details.
  */
- public function ajax_invoice_get {
- $user_id = orabooks_get_current_user_id;
+ public function ajax_invoice_get() {
+ $user_id = orabooks_get_current_user_id();
  $invoice_id = intval($_GET['invoice_id'] ?? $_POST['invoice_id'] ?? 0);
 
  if (!$user_id) {
@@ -2784,10 +2784,10 @@ class OraBooks_Customers {
  /**
  * Override invoice tax before posting.
  */
- public function ajax_invoice_override_tax {
+ public function ajax_invoice_override_tax() {
  global $wpdb;
 
- $user_id = orabooks_get_current_user_id;
+ $user_id = orabooks_get_current_user_id();
  $invoice_id = intval($_POST['invoice_id'] ?? 0);
  $org_id = intval($_POST['org_id'] ?? 0);
 
@@ -2813,7 +2813,7 @@ class OraBooks_Customers {
 
  $isolation = OraBooks_Auth::require_customer_org($user_id, $org_id);
  if (is_wp_error($isolation)) {
- orabooks_json_error($isolation->get_error_message, 403);
+ orabooks_json_error($isolation->get_error_message(), 403);
  }
 
  $can_override = class_exists('OraBooks_Tax')
@@ -2835,7 +2835,7 @@ class OraBooks_Customers {
  );
 
  if (is_wp_error($result)) {
- orabooks_json_error($result->get_error_message, 400);
+ orabooks_json_error($result->get_error_message(), 400);
  }
 
  orabooks_json_success($result, 'Tax override applied');
@@ -2844,10 +2844,10 @@ class OraBooks_Customers {
  /**
  * Clear invoice tax override and recalculate from ( §5.4).
  */
- public function ajax_invoice_clear_tax_override {
+ public function ajax_invoice_clear_tax_override() {
  global $wpdb;
 
- $user_id = orabooks_get_current_user_id;
+ $user_id = orabooks_get_current_user_id();
  $invoice_id = intval($_POST['invoice_id'] ?? 0);
  $org_id = intval($_POST['org_id'] ?? 0);
 
@@ -2873,7 +2873,7 @@ class OraBooks_Customers {
 
  $isolation = OraBooks_Auth::require_customer_org($user_id, $org_id);
  if (is_wp_error($isolation)) {
- orabooks_json_error($isolation->get_error_message, 403);
+ orabooks_json_error($isolation->get_error_message(), 403);
  }
 
  $can_override = class_exists('OraBooks_Tax')
@@ -2892,7 +2892,7 @@ class OraBooks_Customers {
  );
 
  if (is_wp_error($result)) {
- orabooks_json_error($result->get_error_message, 400);
+ orabooks_json_error($result->get_error_message(), 400);
  }
 
  orabooks_json_success(['invoice' => $result], 'Tax override cleared');
@@ -2901,9 +2901,9 @@ class OraBooks_Customers {
  /**
  * Send a draft invoice to the customer.
  */
- public function ajax_invoice_send {
+ public function ajax_invoice_send() {
  global $wpdb;
- $user_id = orabooks_get_current_user_id;
+ $user_id = orabooks_get_current_user_id();
  $org_id = intval($_POST['org_id'] ?? 0);
  $invoice_id = intval($_POST['invoice_id'] ?? 0);
 
@@ -2927,7 +2927,7 @@ class OraBooks_Customers {
 
  $result = self::send_invoice($org_id, $invoice_id, $user_id);
  if (is_wp_error($result)) {
- orabooks_json_error($result->get_error_message, 400);
+ orabooks_json_error($result->get_error_message(), 400);
  }
 
  orabooks_json_success(['invoice' => $result], 'Invoice sent');
@@ -2936,9 +2936,9 @@ class OraBooks_Customers {
  /**
  * Post an invoice to accounts receivable.
  */
- public function ajax_invoice_post {
+ public function ajax_invoice_post() {
  global $wpdb;
- $user_id = orabooks_get_current_user_id;
+ $user_id = orabooks_get_current_user_id();
  $org_id = intval($_POST['org_id'] ?? 0);
  $invoice_id = intval($_POST['invoice_id'] ?? 0);
 
@@ -2962,7 +2962,7 @@ class OraBooks_Customers {
 
  $result = self::post_invoice($org_id, $invoice_id, $user_id);
  if (is_wp_error($result)) {
- orabooks_json_error($result->get_error_message, 400);
+ orabooks_json_error($result->get_error_message(), 400);
  }
 
  orabooks_json_success(['invoice' => $result], 'Invoice posted');
@@ -2971,9 +2971,9 @@ class OraBooks_Customers {
  /**
  * Cancel a draft or sent invoice.
  */
- public function ajax_invoice_cancel {
+ public function ajax_invoice_cancel() {
  global $wpdb;
- $user_id = orabooks_get_current_user_id;
+ $user_id = orabooks_get_current_user_id();
  $org_id = intval($_POST['org_id'] ?? 0);
  $invoice_id = intval($_POST['invoice_id'] ?? 0);
  $reason = isset($_POST['reason']) ? sanitize_textarea_field(wp_unslash($_POST['reason'])): null;
@@ -3003,7 +3003,7 @@ class OraBooks_Customers {
  if (is_array($data) && isset($data['status'])) {
  $status = (int) $data['status'];
  }
- orabooks_json_error($result->get_error_message, $status);
+ orabooks_json_error($result->get_error_message(), $status);
  }
 
  orabooks_json_success(['invoice' => $result], 'Invoice cancelled');
@@ -3012,9 +3012,9 @@ class OraBooks_Customers {
  /**
  * Record a payment against an invoice.
  */
- public function ajax_record_payment {
+ public function ajax_record_payment() {
  global $wpdb;
- $user_id = orabooks_get_current_user_id;
+ $user_id = orabooks_get_current_user_id();
  $org_id = intval($_POST['org_id'] ?? 0);
 
  if (!$user_id) {
@@ -3052,7 +3052,7 @@ class OraBooks_Customers {
 
  $result = self::record_payment($org_id, $invoice_id, $data);
  if (is_wp_error($result)) {
- orabooks_json_error($result->get_error_message, 400);
+ orabooks_json_error($result->get_error_message(), 400);
  }
 
  orabooks_json_success($result, 'Payment recorded');
@@ -3061,8 +3061,8 @@ class OraBooks_Customers {
  /**
  * Customer stats for admin dashboard.
  */
- public function ajax_customer_stats {
- $user_id = orabooks_get_current_user_id;
+ public function ajax_customer_stats() {
+ $user_id = orabooks_get_current_user_id();
  $org_id = intval($_GET['org_id'] ?? $_POST['org_id'] ?? 0);
  $org_id = $this->resolve_request_org_id($user_id, $org_id);
 

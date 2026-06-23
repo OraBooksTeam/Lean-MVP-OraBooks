@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 /**
  * Unit Tests for Manual Tax Override
  */
@@ -25,17 +25,15 @@ class OraBooks_Tax_Override_Test extends TestCase
  }
 
  #[Test]
- public function test_validate_override_requires_reason_code
- {
+ public function test_validate_override_requires_reason_code() {
  $result = OraBooks_Tax::validate_override(2, 'US', 5, '');
 
  $this->assertInstanceOf(WP_Error::class, $result);
- $this->assertSame('override_reason_required', $result->get_error_code);
+ $this->assertSame('override_reason_required', $result->get_error_code());
  }
 
  #[Test]
- public function test_validate_override_rejects_unknown_reason
- {
+ public function test_validate_override_rejects_unknown_reason() {
  global $wpdb;
 
  $wpdb->test_get_row_callback = function ($query) {
@@ -50,12 +48,11 @@ class OraBooks_Tax_Override_Test extends TestCase
  $result = OraBooks_Tax::validate_override(2, 'US', 5, 'NOT_A_REAL_REASON');
 
  $this->assertInstanceOf(WP_Error::class, $result);
- $this->assertSame('invalid_override_reason', $result->get_error_code);
+ $this->assertSame('invalid_override_reason', $result->get_error_code());
  }
 
  #[Test]
- public function test_validate_override_accepts_allowed_reason_and_rate
- {
+ public function test_validate_override_accepts_allowed_reason_and_rate() {
  global $wpdb;
 
  $wpdb->test_get_row_callback = function ($query) {
@@ -71,8 +68,7 @@ class OraBooks_Tax_Override_Test extends TestCase
  }
 
  #[Test]
- public function test_override_invoice_tax_blocks_posted_invoice
- {
+ public function test_override_invoice_tax_blocks_posted_invoice() {
  global $wpdb;
 
  $wpdb->test_get_row_callback = function {
@@ -90,12 +86,11 @@ class OraBooks_Tax_Override_Test extends TestCase
  $result = OraBooks_Customers::override_invoice_tax(2, 10, 5, 'LOCAL_TAX_RULE', 1, 'US');
 
  $this->assertInstanceOf(WP_Error::class, $result);
- $this->assertSame('invalid_status', $result->get_error_code);
+ $this->assertSame('invalid_status', $result->get_error_code());
  }
 
  #[Test]
- public function test_clear_invoice_tax_override_clears_reason_fields
- {
+ public function test_clear_invoice_tax_override_clears_reason_fields() {
  global $wpdb;
 
  $wpdb->test_get_row_callback = function ($query) {
@@ -166,8 +161,7 @@ class OraBooks_Tax_Override_Test extends TestCase
  }
 
  #[Test]
- public function test_format_invoice_includes_override_metadata
- {
+ public function test_format_invoice_includes_override_metadata() {
  $invoice = (object) [
  'id' => 3,
  'org_id' => 2,

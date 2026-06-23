@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 /**
  * Unit Tests for OraBooks_Workflow
  */
@@ -49,8 +49,7 @@ class OraBooks_Workflow_Test extends TestCase
  }
 
  #[Test]
- public function test_machines_include_journal_and_bill
- {
+ public function test_machines_include_journal_and_bill() {
  $machines = OraBooks_Workflow::get_machines;
 
  $this->assertArrayHasKey('journal', $machines);
@@ -63,8 +62,7 @@ class OraBooks_Workflow_Test extends TestCase
  }
 
  #[Test]
- public function test_allowed_events_from_draft_journal
- {
+ public function test_allowed_events_from_draft_journal() {
  $events = OraBooks_Workflow::allowed_events('journal', 'draft');
 
  $this->assertContains('submit', $events);
@@ -73,20 +71,18 @@ class OraBooks_Workflow_Test extends TestCase
  }
 
  #[Test]
- public function test_validate_transition_accepts_valid_journal_submit
- {
+ public function test_validate_transition_accepts_valid_journal_submit() {
  $result = OraBooks_Workflow::validate_transition('journal', 'draft', 'submit');
 
  $this->assertTrue($result);
  }
 
  #[Test]
- public function test_validate_transition_rejects_invalid_state_and_audits
- {
+ public function test_validate_transition_rejects_invalid_state_and_audits() {
  $result = OraBooks_Workflow::validate_transition('journal', 'posted', 'submit');
 
  $this->assertInstanceOf(WP_Error::class, $result);
- $this->assertEquals('invalid_state', $result->get_error_code);
+ $this->assertEquals('invalid_state', $result->get_error_code());
  $this->assertEquals(409, $result->get_error_data['status']);
 
  $audit = end($GLOBALS['orabooks_test_log_events']);
@@ -94,17 +90,15 @@ class OraBooks_Workflow_Test extends TestCase
  }
 
  #[Test]
- public function test_validate_transition_rejects_unknown_event
- {
+ public function test_validate_transition_rejects_unknown_event() {
  $result = OraBooks_Workflow::validate_transition('journal', 'draft', 'fly');
 
  $this->assertInstanceOf(WP_Error::class, $result);
- $this->assertEquals('invalid_event', $result->get_error_code);
+ $this->assertEquals('invalid_event', $result->get_error_code());
  }
 
  #[Test]
- public function test_record_transition_logs_without_updating_status
- {
+ public function test_record_transition_logs_without_updating_status() {
  global $wpdb;
 
  $journal = (object) [
@@ -133,8 +127,7 @@ class OraBooks_Workflow_Test extends TestCase
  }
 
  #[Test]
- public function test_transition_updates_status_when_enabled
- {
+ public function test_transition_updates_status_when_enabled() {
  global $wpdb;
 
  $bill = (object) [
@@ -179,8 +172,7 @@ class OraBooks_Workflow_Test extends TestCase
  }
 
  #[Test]
- public function test_transition_rolls_back_on_precondition_failure
- {
+ public function test_transition_rolls_back_on_precondition_failure() {
  global $wpdb;
 
  $journal = (object) [
@@ -211,13 +203,12 @@ class OraBooks_Workflow_Test extends TestCase
  ]);
 
  $this->assertInstanceOf(WP_Error::class, $result);
- $this->assertEquals('fiscal_closed', $result->get_error_code);
+ $this->assertEquals('fiscal_closed', $result->get_error_code());
  $this->assertContains('ROLLBACK', $tx_queries);
  }
 
  #[Test]
- public function test_transition_rolls_back_when_event_publish_fails_in_strict_mode
- {
+ public function test_transition_rolls_back_when_event_publish_fails_in_strict_mode() {
  global $wpdb;
 
  $journal = (object) [
@@ -258,15 +249,14 @@ class OraBooks_Workflow_Test extends TestCase
  ]);
 
  $this->assertInstanceOf(WP_Error::class, $result);
- $this->assertEquals('event_publish_failed', $result->get_error_code);
+ $this->assertEquals('event_publish_failed', $result->get_error_code());
  $this->assertContains('ROLLBACK', $tx_queries);
 
  unset($GLOBALS['orabooks_test_publish_event_override']);
  }
 
  #[Test]
- public function test_transition_fires_after_transition_action
- {
+ public function test_transition_fires_after_transition_action() {
  global $wpdb;
 
  $journal = (object) [
@@ -309,8 +299,7 @@ class OraBooks_Workflow_Test extends TestCase
  }
 
  #[Test]
- public function test_format_transition_row_includes_org_id
- {
+ public function test_format_transition_row_includes_org_id() {
  $row = (object) [
  'id' => 1,
  'org_id' => 99,
@@ -333,8 +322,7 @@ class OraBooks_Workflow_Test extends TestCase
  }
 
  #[Test]
- public function test_transition_uses_for_update_row_lock
- {
+ public function test_transition_uses_for_update_row_lock() {
  global $wpdb;
 
  $invoice = (object) [
@@ -372,8 +360,7 @@ class OraBooks_Workflow_Test extends TestCase
  }
 
  #[Test]
- public function test_invoice_cancel_transition_via_engine
- {
+ public function test_invoice_cancel_transition_via_engine() {
  global $wpdb;
 
  $invoice = (object) [
@@ -409,8 +396,7 @@ class OraBooks_Workflow_Test extends TestCase
  }
 
  #[Test]
- public function test_expense_submit_transition_from_draft
- {
+ public function test_expense_submit_transition_from_draft() {
  global $wpdb;
 
  $expense = (object) [
@@ -450,8 +436,7 @@ class OraBooks_Workflow_Test extends TestCase
  }
 
  #[Test]
- public function test_expense_ai_review_transition_from_draft
- {
+ public function test_expense_ai_review_transition_from_draft() {
  global $wpdb;
 
  $expense = (object) [

@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 /**
  * Unit Tests for OraBooks_Partner (/139)
  *
@@ -95,18 +95,17 @@ class OraBooks_Partner_Test extends TestCase
  $partner->$method;
  $this->fail("Expected RuntimeException (JSON response) was not thrown by {$method}");
  } catch (RuntimeException $e) {
- return json_decode($e->getMessage, true);
+ return json_decode($e->getMessage(), true);
  }
  }
 
  // ================================================================
- // Helper: orabooks_generate_partner_code
+ // Helper: orabooks_generate_partner_code()
  // ================================================================
 
  #[Test]
- public function test_generate_partner_code_format
- {
- $code = orabooks_generate_partner_code;
+ public function test_generate_partner_code_format() {
+ $code = orabooks_generate_partner_code();
  $this->assertIsString($code);
  $this->assertStringStartsWith('PARTNER-', $code);
  // Should be PARTNER- + 8 uppercase hex chars = 16 chars total
@@ -119,8 +118,7 @@ class OraBooks_Partner_Test extends TestCase
  // ================================================================
 
  #[Test]
- public function test_get_partner_info_success
- {
+ public function test_get_partner_info_success() {
  global $wpdb;
 
  $getRowCalls = 0;
@@ -168,8 +166,7 @@ class OraBooks_Partner_Test extends TestCase
  }
 
  #[Test]
- public function test_get_partner_info_not_found
- {
+ public function test_get_partner_info_not_found() {
  global $wpdb;
  $wpdb->test_get_row_callback = function ($query) {
  return null; // No partner code found
@@ -180,8 +177,7 @@ class OraBooks_Partner_Test extends TestCase
  }
 
  #[Test]
- public function test_get_onboarding_info_contract
- {
+ public function test_get_onboarding_info_contract() {
  global $wpdb;
 
  $wpdb->test_get_row_callback = function ($query) {
@@ -213,8 +209,7 @@ class OraBooks_Partner_Test extends TestCase
  }
 
  #[Test]
- public function test_get_onboarding_status_messages
- {
+ public function test_get_onboarding_status_messages() {
  $this->assertStringContainsString('⏳', OraBooks_Partner::get_onboarding_status_message('pending_review', 'pending_setup'));
  $this->assertStringContainsString('✅', OraBooks_Partner::get_onboarding_status_message('active', 'active'));
  $this->assertStringContainsString('🚫', OraBooks_Partner::get_onboarding_status_message('disabled', 'active'));
@@ -223,8 +218,7 @@ class OraBooks_Partner_Test extends TestCase
  }
 
  #[Test]
- public function test_format_partner_type_label
- {
+ public function test_format_partner_type_label() {
  $this->assertEquals('Agency', OraBooks_Partner::format_partner_type_label('agency'));
  $this->assertEquals('Individual', OraBooks_Partner::format_partner_type_label('individual'));
  }
@@ -268,8 +262,7 @@ class OraBooks_Partner_Test extends TestCase
  // ================================================================
 
  #[Test]
- public function test_get_active_customer_count_with_customers_table
- {
+ public function test_get_active_customer_count_with_customers_table() {
  global $wpdb;
 
  $getVarCalls = 0;
@@ -286,8 +279,7 @@ class OraBooks_Partner_Test extends TestCase
  }
 
  #[Test]
- public function test_get_active_customer_count_fallback_no_customers_table
- {
+ public function test_get_active_customer_count_fallback_no_customers_table() {
  global $wpdb;
 
  $getVarCalls = 0;
@@ -304,8 +296,7 @@ class OraBooks_Partner_Test extends TestCase
  }
 
  #[Test]
- public function test_get_active_customer_count_zero
- {
+ public function test_get_active_customer_count_zero() {
  global $wpdb;
 
  $wpdb->test_get_var_callback = function ($query) {
@@ -321,8 +312,7 @@ class OraBooks_Partner_Test extends TestCase
  // ================================================================
 
  #[Test]
- public function test_request_reactivation_success
- {
+ public function test_request_reactivation_success() {
  global $wpdb;
 
  $wpdb->test_get_row_callback = function ($query) {
@@ -336,8 +326,7 @@ class OraBooks_Partner_Test extends TestCase
  }
 
  #[Test]
- public function test_request_reactivation_not_inactive
- {
+ public function test_request_reactivation_not_inactive() {
  global $wpdb;
  $wpdb->test_get_row_callback = function ($query) {
  return null; // No inactive code found
@@ -346,7 +335,7 @@ class OraBooks_Partner_Test extends TestCase
  $result = OraBooks_Partner::request_reactivation(5, 10, 'Reactivate me');
 
  $this->assertInstanceOf(WP_Error::class, $result);
- $this->assertEquals('not_inactive', $result->get_error_code);
+ $this->assertEquals('not_inactive', $result->get_error_code());
  }
 
  // ================================================================
@@ -354,8 +343,7 @@ class OraBooks_Partner_Test extends TestCase
  // ================================================================
 
  #[Test]
- public function test_approve_partner_code_success
- {
+ public function test_approve_partner_code_success() {
  global $wpdb;
 
  $wpdb->test_get_row_callback = function ($query) {
@@ -373,8 +361,7 @@ class OraBooks_Partner_Test extends TestCase
  }
 
  #[Test]
- public function test_approve_partner_code_not_found
- {
+ public function test_approve_partner_code_not_found() {
  global $wpdb;
  $wpdb->test_get_row_callback = function ($query) {
  return null;
@@ -383,12 +370,11 @@ class OraBooks_Partner_Test extends TestCase
  $result = OraBooks_Partner::approve_partner_code(999, 1);
 
  $this->assertInstanceOf(WP_Error::class, $result);
- $this->assertEquals('not_found', $result->get_error_code);
+ $this->assertEquals('not_found', $result->get_error_code());
  }
 
  #[Test]
- public function test_approve_partner_code_invalid_status
- {
+ public function test_approve_partner_code_invalid_status() {
  global $wpdb;
  $wpdb->test_get_row_callback = function ($query) {
  return $this->mockPartnerCode([
@@ -400,12 +386,11 @@ class OraBooks_Partner_Test extends TestCase
  $result = OraBooks_Partner::approve_partner_code(1, 1);
 
  $this->assertInstanceOf(WP_Error::class, $result);
- $this->assertEquals('invalid_status', $result->get_error_code);
+ $this->assertEquals('invalid_status', $result->get_error_code());
  }
 
  #[Test]
- public function test_approve_partner_code_skips_org_update_when_not_pending
- {
+ public function test_approve_partner_code_skips_org_update_when_not_pending() {
  global $wpdb;
 
  $wpdb->test_get_row_callback = function ($query) {
@@ -427,8 +412,7 @@ class OraBooks_Partner_Test extends TestCase
  // ================================================================
 
  #[Test]
- public function test_reject_partner_code_success
- {
+ public function test_reject_partner_code_success() {
  global $wpdb;
 
  $wpdb->test_get_row_callback = function ($query) {
@@ -447,8 +431,7 @@ class OraBooks_Partner_Test extends TestCase
  }
 
  #[Test]
- public function test_reject_partner_code_not_found
- {
+ public function test_reject_partner_code_not_found() {
  global $wpdb;
  $wpdb->test_get_row_callback = function ($query) {
  return null;
@@ -457,12 +440,11 @@ class OraBooks_Partner_Test extends TestCase
  $result = OraBooks_Partner::reject_partner_code(999, 1);
 
  $this->assertInstanceOf(WP_Error::class, $result);
- $this->assertEquals('not_found', $result->get_error_code);
+ $this->assertEquals('not_found', $result->get_error_code());
  }
 
  #[Test]
- public function test_reject_partner_code_invalid_status
- {
+ public function test_reject_partner_code_invalid_status() {
  global $wpdb;
  $wpdb->test_get_row_callback = function ($query) {
  return $this->mockPartnerCode([
@@ -473,12 +455,11 @@ class OraBooks_Partner_Test extends TestCase
  $result = OraBooks_Partner::reject_partner_code(1, 1);
 
  $this->assertInstanceOf(WP_Error::class, $result);
- $this->assertEquals('invalid_status', $result->get_error_code);
+ $this->assertEquals('invalid_status', $result->get_error_code());
  }
 
  #[Test]
- public function test_reject_partner_code_default_reason
- {
+ public function test_reject_partner_code_default_reason() {
  global $wpdb;
 
  $wpdb->test_get_row_callback = function ($query) {
@@ -502,8 +483,7 @@ class OraBooks_Partner_Test extends TestCase
  // ================================================================
 
  #[Test]
- public function test_get_pending_partners_with_pagination_args
- {
+ public function test_get_pending_partners_with_pagination_args() {
  global $wpdb;
 
  $capturedLimit = null;
@@ -527,8 +507,7 @@ class OraBooks_Partner_Test extends TestCase
  }
 
  #[Test]
- public function test_get_active_partners_with_pagination_args
- {
+ public function test_get_active_partners_with_pagination_args() {
  global $wpdb;
 
  $capturedLimit = null;
@@ -555,8 +534,7 @@ class OraBooks_Partner_Test extends TestCase
  // ================================================================
 
  #[Test]
- public function test_get_pending_partners_returns_list
- {
+ public function test_get_pending_partners_returns_list() {
  global $wpdb;
 
  $wpdb->test_get_results_callback = function ($query) {
@@ -574,8 +552,7 @@ class OraBooks_Partner_Test extends TestCase
  }
 
  #[Test]
- public function test_get_pending_partners_empty
- {
+ public function test_get_pending_partners_empty() {
  global $wpdb;
  $wpdb->test_get_results_callback = function ($query) {
  return [];
@@ -587,8 +564,7 @@ class OraBooks_Partner_Test extends TestCase
  }
 
  #[Test]
- public function test_get_active_partners_returns_list
- {
+ public function test_get_active_partners_returns_list() {
  global $wpdb;
 
  $wpdb->test_get_results_callback = function ($query) {
@@ -606,8 +582,7 @@ class OraBooks_Partner_Test extends TestCase
  }
 
  #[Test]
- public function test_get_reactivation_requests_returns_list
- {
+ public function test_get_reactivation_requests_returns_list() {
  global $wpdb;
 
  $wpdb->test_get_results_callback = function ($query) {
@@ -719,8 +694,7 @@ class OraBooks_Partner_Test extends TestCase
  }
 
  #[Test]
- public function test_get_dashboard_data_success
- {
+ public function test_get_dashboard_data_success() {
  $this->setupDashboardDataMocks;
 
  $result = OraBooks_Partner::get_dashboard_data(5);
@@ -760,8 +734,7 @@ class OraBooks_Partner_Test extends TestCase
  }
 
  #[Test]
- public function test_get_dashboard_data_null_no_partner
- {
+ public function test_get_dashboard_data_null_no_partner() {
  global $wpdb;
  $wpdb->test_get_row_callback = function ($query) {
  return null; // No partner code found
@@ -772,8 +745,7 @@ class OraBooks_Partner_Test extends TestCase
  }
 
  #[Test]
- public function test_get_dashboard_data_fraud_freeze_blocked
- {
+ public function test_get_dashboard_data_fraud_freeze_blocked() {
  $this->setupDashboardDataMocks(['org_status' => 'fraud_freeze']);
 
  $result = OraBooks_Partner::get_dashboard_data(5);
@@ -784,8 +756,7 @@ class OraBooks_Partner_Test extends TestCase
  }
 
  #[Test]
- public function test_get_dashboard_data_suspended_read_only
- {
+ public function test_get_dashboard_data_suspended_read_only() {
  $this->setupDashboardDataMocks(['org_status' => 'suspended']);
 
  $result = OraBooks_Partner::get_dashboard_data(5);
@@ -796,8 +767,7 @@ class OraBooks_Partner_Test extends TestCase
  }
 
  #[Test]
- public function test_get_dashboard_data_payout_hold
- {
+ public function test_get_dashboard_data_payout_hold() {
  $this->setupDashboardDataMocks(['org_status' => 'payout_hold']);
 
  $result = OraBooks_Partner::get_dashboard_data(5);
@@ -808,8 +778,7 @@ class OraBooks_Partner_Test extends TestCase
  }
 
  #[Test]
- public function test_get_dashboard_data_can_reactivate_when_inactive
- {
+ public function test_get_dashboard_data_can_reactivate_when_inactive() {
  $this->setupDashboardDataMocks(['status' => 'inactive']);
 
  $result = OraBooks_Partner::get_dashboard_data(5);
@@ -821,10 +790,9 @@ class OraBooks_Partner_Test extends TestCase
  }
 
  #[Test]
- public function test_get_dashboard_data_is_dormant
- {
+ public function test_get_dashboard_data_is_dormant() {
  // Dormant: no active customers, last attribution 6-12 months ago
- $sixMonthsAgo = date('Y-m-d H:i:s', time - (7 * 30 * 86400)); // ~7 months ago
+ $sixMonthsAgo = date('Y-m-d H:i:s', time() - (7 * 30 * 86400)); // ~7 months ago
  $this->setupDashboardDataMocks([
  'last_attribution_at' => $sixMonthsAgo,
  ]);
@@ -850,8 +818,7 @@ class OraBooks_Partner_Test extends TestCase
  }
 
  #[Test]
- public function test_get_dashboard_data_attributions_with_commission_status
- {
+ public function test_get_dashboard_data_attributions_with_commission_status() {
  $this->setupDashboardDataMocks;
 
  $result = OraBooks_Partner::get_dashboard_data(5);
@@ -876,8 +843,7 @@ class OraBooks_Partner_Test extends TestCase
  // ================================================================
 
  #[Test]
- public function test_dispatch_partner_activity_job_enqueues_async
- {
+ public function test_dispatch_partner_activity_job_enqueues_async() {
  $GLOBALS['orabooks_test_log_events'] = [];
 
  $partner = OraBooks_Partner::init;
@@ -895,14 +861,13 @@ class OraBooks_Partner_Test extends TestCase
  // ================================================================
 
  #[Test]
- public function test_process_partner_activity_deactivation_warning
- {
+ public function test_process_partner_activity_deactivation_warning() {
  global $wpdb;
 
  // Partner with last_attribution_at ~11.5 months ago, 0 active customers
  // Set low_activity_reminder_sent_at recently so low-activity update doesn't override last_query
- $elevenMonthsAgo = date('Y-m-d H:i:s', time - (345 * 86400)); // ~11.5 months
- $recently = date('Y-m-d H:i:s', time - (86400)); // 1 day ago
+ $elevenMonthsAgo = date('Y-m-d H:i:s', time() - (345 * 86400)); // ~11.5 months
+ $recently = date('Y-m-d H:i:s', time() - (86400)); // 1 day ago
  $wpdb->test_get_results_callback = function ($query) use ($elevenMonthsAgo, $recently) {
  return [
  (object)[
@@ -929,14 +894,13 @@ class OraBooks_Partner_Test extends TestCase
  }
 
  #[Test]
- public function test_process_partner_activity_deactivation
- {
+ public function test_process_partner_activity_deactivation() {
  global $wpdb;
 
  // Partner with last_attribution_at 13 months ago, 0 active customers
  // Set low_activity_reminder_sent_at recently so low-activity update doesn't override last_query
- $thirteenMonthsAgo = date('Y-m-d H:i:s', time - (395 * 86400));
- $recently = date('Y-m-d H:i:s', time - (86400)); // 1 day ago
+ $thirteenMonthsAgo = date('Y-m-d H:i:s', time() - (395 * 86400));
+ $recently = date('Y-m-d H:i:s', time() - (86400)); // 1 day ago
  $wpdb->test_get_results_callback = function ($query) use ($thirteenMonthsAgo, $recently) {
  return [
  (object)[
@@ -962,13 +926,12 @@ class OraBooks_Partner_Test extends TestCase
  }
 
  #[Test]
- public function test_process_partner_activity_low_activity_reminder
- {
+ public function test_process_partner_activity_low_activity_reminder() {
  global $wpdb;
 
  // Partner with last_attribution_at 7 months ago (triggers low-activity),
  // no deactivation warning yet (0 active customers, but < 11 months)
- $sevenMonthsAgo = date('Y-m-d H:i:s', time - (210 * 86400));
+ $sevenMonthsAgo = date('Y-m-d H:i:s', time() - (210 * 86400));
  $wpdb->test_get_results_callback = function ($query) use ($sevenMonthsAgo) {
  return [
  (object)[
@@ -994,12 +957,11 @@ class OraBooks_Partner_Test extends TestCase
  }
 
  #[Test]
- public function test_process_partner_activity_active_partner_no_action
- {
+ public function test_process_partner_activity_active_partner_no_action() {
  global $wpdb;
 
  // Active partner with recent attribution
- $recent = date('Y-m-d H:i:s', time - (86400 * 30)); // 30 days ago
+ $recent = date('Y-m-d H:i:s', time() - (86400 * 30)); // 30 days ago
  $wpdb->test_get_results_callback = function ($query) use ($recent) {
  return [
  (object)[
@@ -1027,11 +989,10 @@ class OraBooks_Partner_Test extends TestCase
  }
 
  #[Test]
- public function test_process_partner_activity_skips_low_activity_when_active_customers_exist
- {
+ public function test_process_partner_activity_skips_low_activity_when_active_customers_exist() {
  global $wpdb;
 
- $sevenMonthsAgo = date('Y-m-d H:i:s', time - (210 * 86400));
+ $sevenMonthsAgo = date('Y-m-d H:i:s', time() - (210 * 86400));
  $wpdb->test_get_results_callback = function ($query) use ($sevenMonthsAgo) {
  return [
  (object)[
@@ -1058,13 +1019,12 @@ class OraBooks_Partner_Test extends TestCase
  // ================================================================
 
  #[Test]
- public function test_process_partner_activity_reminder_already_sent_no_repeat
- {
+ public function test_process_partner_activity_reminder_already_sent_no_repeat() {
  global $wpdb;
 
  // Partner with 7 months inactivity, but reminder already sent 2 months ago
- $sevenMonthsAgo = date('Y-m-d H:i:s', time - (210 * 86400));
- $twoMonthsAgo = date('Y-m-d H:i:s', time - (60 * 86400));
+ $sevenMonthsAgo = date('Y-m-d H:i:s', time() - (210 * 86400));
+ $twoMonthsAgo = date('Y-m-d H:i:s', time() - (60 * 86400));
  $wpdb->test_get_results_callback = function ($query) use ($sevenMonthsAgo, $twoMonthsAgo) {
  return [
  (object)[
@@ -1094,8 +1054,7 @@ class OraBooks_Partner_Test extends TestCase
  // ================================================================
 
  #[Test]
- public function test_ajax_admin_approve_partner_success
- {
+ public function test_ajax_admin_approve_partner_success() {
  global $wpdb;
 
  $wpdb->test_get_row_callback = function ($query) {
@@ -1114,8 +1073,7 @@ class OraBooks_Partner_Test extends TestCase
  }
 
  #[Test]
- public function test_ajax_admin_approve_partner_permission_denied
- {
+ public function test_ajax_admin_approve_partner_permission_denied() {
  $GLOBALS['orabooks_test_current_user_can'] = false;
 
  $response = $this->callAjax('ajax_admin_approve_partner', [
@@ -1127,8 +1085,7 @@ class OraBooks_Partner_Test extends TestCase
  }
 
  #[Test]
- public function test_ajax_admin_approve_partner_missing_id
- {
+ public function test_ajax_admin_approve_partner_missing_id() {
  // No partner_code_id in POST
  $response = $this->callAjax('ajax_admin_approve_partner');
 
@@ -1141,8 +1098,7 @@ class OraBooks_Partner_Test extends TestCase
  // ================================================================
 
  #[Test]
- public function test_ajax_admin_reject_partner_success
- {
+ public function test_ajax_admin_reject_partner_success() {
  global $wpdb;
 
  $wpdb->test_get_row_callback = function ($query) {
@@ -1162,8 +1118,7 @@ class OraBooks_Partner_Test extends TestCase
  }
 
  #[Test]
- public function test_ajax_admin_reject_partner_permission_denied
- {
+ public function test_ajax_admin_reject_partner_permission_denied() {
  $GLOBALS['orabooks_test_current_user_can'] = false;
 
  $response = $this->callAjax('ajax_admin_reject_partner', [
@@ -1179,8 +1134,7 @@ class OraBooks_Partner_Test extends TestCase
  // ================================================================
 
  #[Test]
- public function test_ajax_admin_review_reactivation_approve
- {
+ public function test_ajax_admin_review_reactivation_approve() {
  global $wpdb;
 
  $wpdb->test_get_row_callback = function ($query) {
@@ -1203,8 +1157,7 @@ class OraBooks_Partner_Test extends TestCase
  }
 
  #[Test]
- public function test_ajax_admin_review_reactivation_deny
- {
+ public function test_ajax_admin_review_reactivation_deny() {
  $response = $this->callAjax('ajax_admin_review_reactivation', [
  'review_id' => 5,
  'decision' => 'denied',
@@ -1216,8 +1169,7 @@ class OraBooks_Partner_Test extends TestCase
  }
 
  #[Test]
- public function test_ajax_admin_review_reactivation_invalid_decision
- {
+ public function test_ajax_admin_review_reactivation_invalid_decision() {
  $response = $this->callAjax('ajax_admin_review_reactivation', [
  'review_id' => 5,
  'decision' => 'invalid_decision',
@@ -1232,8 +1184,7 @@ class OraBooks_Partner_Test extends TestCase
  // ================================================================
 
  #[Test]
- public function test_ajax_admin_list_pending_partners_success
- {
+ public function test_ajax_admin_list_pending_partners_success() {
  global $wpdb;
  $wpdb->test_get_results_callback = function ($query) {
  return [
@@ -1249,8 +1200,7 @@ class OraBooks_Partner_Test extends TestCase
  }
 
  #[Test]
- public function test_ajax_admin_list_active_partners_success
- {
+ public function test_ajax_admin_list_active_partners_success() {
  global $wpdb;
  $wpdb->test_get_results_callback = function ($query) {
  return [
@@ -1266,8 +1216,7 @@ class OraBooks_Partner_Test extends TestCase
  }
 
  #[Test]
- public function test_ajax_admin_list_reactivation_requests_success
- {
+ public function test_ajax_admin_list_reactivation_requests_success() {
  global $wpdb;
  $wpdb->test_get_results_callback = function ($query) {
  return [
@@ -1296,8 +1245,7 @@ class OraBooks_Partner_Test extends TestCase
  }
 
  #[Test]
- public function test_ajax_partner_onboarding_success
- {
+ public function test_ajax_partner_onboarding_success() {
  $this->mockPartnerOrgMember;
 
  $response = $this->callAjax('ajax_partner_onboarding');
@@ -1309,8 +1257,7 @@ class OraBooks_Partner_Test extends TestCase
  }
 
  #[Test]
- public function test_ajax_partner_onboarding_denied_non_partner
- {
+ public function test_ajax_partner_onboarding_denied_non_partner() {
  global $wpdb;
 
  $wpdb->test_get_row_callback = function ($query) {
@@ -1329,8 +1276,7 @@ class OraBooks_Partner_Test extends TestCase
  }
 
  #[Test]
- public function test_ajax_partner_onboarding_complete
- {
+ public function test_ajax_partner_onboarding_complete() {
  $this->mockPartnerOrgMember;
 
  $response = $this->callAjax('ajax_partner_onboarding_complete');
@@ -1342,8 +1288,7 @@ class OraBooks_Partner_Test extends TestCase
  }
 
  #[Test]
- public function test_future_partner_endpoints_return_501
- {
+ public function test_future_partner_endpoints_return_501() {
  $paymentResponse = $this->callAjax('ajax_payment_settings');
  $applicationResponse = $this->callAjax('ajax_partner_application');
 
@@ -1360,8 +1305,7 @@ class OraBooks_Partner_Test extends TestCase
  // ================================================================
 
  #[Test]
- public function test_get_dashboard_data_commission_summary_from_stub
- {
+ public function test_get_dashboard_data_commission_summary_from_stub() {
  $this->setupDashboardDataMocks;
 
  $result = OraBooks_Partner::get_dashboard_data(5);

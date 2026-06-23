@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 /**
  * OraBooks REST API + OpenAPI discovery (, )
  *
@@ -13,11 +13,11 @@ class OraBooks_Rest_Api {
 
  const NAMESPACE = 'api';
 
- public static function init {
+ public static function init() {
  add_action('rest_api_init', [__CLASS__, 'register_routes']);
  }
 
- public static function register_routes {
+ public static function register_routes() {
  register_rest_route(self::NAMESPACE, '/openapi.json', [
  'methods' => WP_REST_Server::READABLE,
  'callback' => [__CLASS__, 'rest_openapi'],
@@ -269,7 +269,7 @@ class OraBooks_Rest_Api {
  ]);
  }
 
- public static function rest_manifest {
+ public static function rest_manifest() {
  if (class_exists('OraBooks_Pwa')) {
  return OraBooks_Pwa::rest_manifest;
  }
@@ -277,7 +277,7 @@ class OraBooks_Rest_Api {
  return rest_ensure_response([]);
  }
 
- public static function rest_service_worker {
+ public static function rest_service_worker() {
  if (class_exists('OraBooks_Pwa')) {
  return OraBooks_Pwa::rest_service_worker;
  }
@@ -285,11 +285,11 @@ class OraBooks_Rest_Api {
  return new WP_Error('orabooks_pwa_unavailable', 'PWA service worker unavailable.', ['status' => 503]);
  }
 
- public static function openapi_spec_path {
+ public static function openapi_spec_path() {
  return ORABOOKS_PLUGIN_DIR. 'docs/openapi/openapi.json';
  }
 
- public static function load_openapi_spec {
+ public static function load_openapi_spec() {
  $path = self::openapi_spec_path;
  if (!file_exists($path)) {
  return [];
@@ -299,7 +299,7 @@ class OraBooks_Rest_Api {
  return is_array($decoded) ? $decoded: [];
  }
 
- public static function rest_openapi {
+ public static function rest_openapi() {
  $spec = self::load_openapi_spec;
  if (empty($spec)) {
  return new WP_Error('openapi_missing', 'OpenAPI specification is not available.', ['status' => 404]);
@@ -317,9 +317,9 @@ class OraBooks_Rest_Api {
  return $org_id > 0 ? $org_id: 0;
  }
 
- public static function current_user_id {
- return function_exists('orabooks_get_current_user_id')
- ? (int) orabooks_get_current_user_id
+ public static function current_user_id() {
+ return function_exists('orabooks_get_current_user_id()')
+ ? (int) orabooks_get_current_user_id()
 : (int) get_current_user_id;
  }
 
@@ -336,7 +336,7 @@ class OraBooks_Rest_Api {
 
  $isolation = OraBooks_Auth::require_customer_org($user_id, $org_id);
  if (is_wp_error($isolation)) {
- return new WP_Error('forbidden', $isolation->get_error_message, ['status' => 403]);
+ return new WP_Error('forbidden', $isolation->get_error_message(), ['status' => 403]);
  }
 
  if (!OraBooks_RBAC::require_permission($user_id, $org_id, $permission)) {
@@ -840,7 +840,7 @@ class OraBooks_Rest_Api {
  );
 
  if (is_wp_error($result)) {
- $status = $result->get_error_code === 'duplicate' ? 409: 400;
+ $status = $result->get_error_code() === 'duplicate' ? 409: 400;
  $result->add_data(['status' => $status]);
  return $result;
  }
@@ -956,7 +956,7 @@ class OraBooks_Rest_Api {
 
  $isolation = OraBooks_Auth::require_customer_org($user_id, $org_id);
  if (is_wp_error($isolation)) {
- return new WP_Error('forbidden', $isolation->get_error_message, ['status' => 403]);
+ return new WP_Error('forbidden', $isolation->get_error_message(), ['status' => 403]);
  }
 
  if (function_exists('current_user_can') && current_user_can('manage_options')) {
@@ -1011,7 +1011,7 @@ class OraBooks_Rest_Api {
  if (is_array($data) && isset($data['status'])) {
  $status = (int) $data['status'];
  }
- if ($result->get_error_code === 'invalid_transition') {
+ if ($result->get_error_code() === 'invalid_transition') {
  $status = 409;
  }
  $result->add_data(['status' => $status]);

@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 /**
  * Unit Tests for OraBooks_EventBus
  */
@@ -35,8 +35,7 @@ class OraBooks_EventBus_Test extends TestCase
  }
 
  #[Test]
- public function test_publish_writes_pending_outbox_event_with_default_version
- {
+ public function test_publish_writes_pending_outbox_event_with_default_version() {
  global $wpdb;
 
  $captured = [];
@@ -59,8 +58,7 @@ class OraBooks_EventBus_Test extends TestCase
  }
 
  #[Test]
- public function test_process_outbox_delivers_to_each_closure_consumer_once
- {
+ public function test_process_outbox_delivers_to_each_closure_consumer_once() {
  global $wpdb;
 
  $event = (object) [
@@ -103,8 +101,7 @@ class OraBooks_EventBus_Test extends TestCase
  }
 
  #[Test]
- public function test_process_outbox_retries_failed_consumer_with_backoff
- {
+ public function test_process_outbox_retries_failed_consumer_with_backoff() {
  global $wpdb;
 
  $event = (object) [
@@ -138,8 +135,7 @@ class OraBooks_EventBus_Test extends TestCase
  }
 
  #[Test]
- public function test_process_outbox_moves_to_dead_letter_after_max_retries
- {
+ public function test_process_outbox_moves_to_dead_letter_after_max_retries() {
  global $wpdb;
 
  $event = (object) [
@@ -173,8 +169,7 @@ class OraBooks_EventBus_Test extends TestCase
  }
 
  #[Test]
- public function test_schema_defines_consumer_tracking_idempotency_table
- {
+ public function test_schema_defines_consumer_tracking_idempotency_table() {
  $sql = implode("\n", OraBooks_EventBus::get_create_table_sql);
 
  $this->assertStringContainsString('orabooks_consumer_event_tracking', $sql);
@@ -183,8 +178,7 @@ class OraBooks_EventBus_Test extends TestCase
  }
 
  #[Test]
- public function test_final_report_tables_use_gob_prefix_and_tob_suffix
- {
+ public function test_final_report_tables_use_gob_prefix_and_tob_suffix() {
  $sql = implode("\n", OraBooks_Event_Module::get_create_table_sql);
 
  $this->assertStringContainsString('gob_event_outbox_tob', $sql);
@@ -195,8 +189,7 @@ class OraBooks_EventBus_Test extends TestCase
  }
 
  #[Test]
- public function test_final_report_canonical_events_are_registered
- {
+ public function test_final_report_canonical_events_are_registered() {
  $this->assertSame([
  'journal_posted',
  'sale_delivered',
@@ -207,8 +200,7 @@ class OraBooks_EventBus_Test extends TestCase
  }
 
  #[Test]
- public function test_event_module_publish_validates_and_records_outbox
- {
+ public function test_event_module_publish_validates_and_records_outbox() {
  global $wpdb;
 
  $captured = null;
@@ -227,8 +219,7 @@ class OraBooks_EventBus_Test extends TestCase
  }
 
  #[Test]
- public function test_event_module_health_returns_dashboard_counts
- {
+ public function test_event_module_health_returns_dashboard_counts() {
  global $wpdb;
 
  $values = [3, 1, 20, 2];
@@ -279,6 +270,6 @@ class OraBooks_EventBus_Test extends TestCase
  $result = OraBooks_Event_Module::replay_dead_letter(3, 1, 9);
 
  $this->assertInstanceOf(WP_Error::class, $result);
- $this->assertSame('forbidden', $result->get_error_code);
+ $this->assertSame('forbidden', $result->get_error_code());
  }
 }

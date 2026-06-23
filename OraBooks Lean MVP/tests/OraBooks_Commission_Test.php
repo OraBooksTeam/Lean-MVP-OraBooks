@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 /**
  * Unit Tests for OraBooks_Commission
  */
@@ -62,8 +62,7 @@ class OraBooks_Commission_Test extends TestCase
  }
 
  #[Test]
- public function test_schema_defines_sl068_tables_and_fee_columns
- {
+ public function test_schema_defines_sl068_tables_and_fee_columns() {
  $sql = implode("\n", OraBooks_Commission::get_create_table_sql);
 
  $this->assertStringContainsString('orabooks_partner_commission_config', $sql);
@@ -79,8 +78,7 @@ class OraBooks_Commission_Test extends TestCase
  }
 
  #[Test]
- public function test_seed_default_config_inserts_platform_defaults
- {
+ public function test_seed_default_config_inserts_platform_defaults() {
  global $wpdb;
  $inserted = [];
 
@@ -100,8 +98,7 @@ class OraBooks_Commission_Test extends TestCase
  }
 
  #[Test]
- public function test_create_escrow_from_verified_attribution_creates_full_schedule
- {
+ public function test_create_escrow_from_verified_attribution_creates_full_schedule() {
  global $wpdb;
  $inserts = [];
 
@@ -144,8 +141,7 @@ class OraBooks_Commission_Test extends TestCase
  }
 
  #[Test]
- public function test_create_escrow_is_idempotent_when_event_consumed
- {
+ public function test_create_escrow_is_idempotent_when_event_consumed() {
  global $wpdb;
  $insertCount = 0;
 
@@ -167,8 +163,7 @@ class OraBooks_Commission_Test extends TestCase
  }
 
  #[Test]
- public function test_forced_payout_batch_tracks_threshold_hold_and_fee
- {
+ public function test_forced_payout_batch_tracks_threshold_hold_and_fee() {
  global $wpdb;
  $insertedPayouts = [];
 
@@ -211,8 +206,7 @@ class OraBooks_Commission_Test extends TestCase
  }
 
  #[Test]
- public function test_stats_and_payouts_read_models_are_partner_scoped
- {
+ public function test_stats_and_payouts_read_models_are_partner_scoped() {
  global $wpdb;
  $values = [125.0, 50.0, 10.0, 75.0, 300.0, 364.2, 3, 2];
 
@@ -245,8 +239,7 @@ class OraBooks_Commission_Test extends TestCase
  }
 
  #[Test]
- public function test_payout_settlement_lines_balance_gross_net_and_fee
- {
+ public function test_payout_settlement_lines_balance_gross_net_and_fee() {
  $lines = OraBooks_Commission::build_payout_settlement_lines(100.00, 2.50);
  $this->assertLinesBalance($lines);
  $this->assertEquals(100.00, $lines[0]['debit']);
@@ -256,8 +249,7 @@ class OraBooks_Commission_Test extends TestCase
  }
 
  #[Test]
- public function test_gateway_fee_payment_lines_balance
- {
+ public function test_gateway_fee_payment_lines_balance() {
  $lines = OraBooks_Commission::build_gateway_fee_payment_lines(2.50);
  $this->assertLinesBalance($lines);
  $this->assertEquals('2100', $lines[0]['account_code']);
@@ -265,8 +257,7 @@ class OraBooks_Commission_Test extends TestCase
  }
 
  #[Test]
- public function test_expiry_reversal_lines_support_income_and_expense_actions
- {
+ public function test_expiry_reversal_lines_support_income_and_expense_actions() {
  $expense = OraBooks_Commission::build_expiry_reversal_lines(25.00, 'reverse_expense');
  $income = OraBooks_Commission::build_expiry_reversal_lines(25.00, 'income');
  $this->assertLinesBalance($expense);
@@ -276,8 +267,7 @@ class OraBooks_Commission_Test extends TestCase
  }
 
  #[Test]
- public function test_calculate_payout_fee_percentage_and_flat
- {
+ public function test_calculate_payout_fee_percentage_and_flat() {
  $config = $this->config(['payout_fee_type' => 'percentage', 'payout_fee_rate' => 2.5]);
  $this->assertEquals(2.50, OraBooks_Commission::calculate_payout_fee(100.00, $config));
 
@@ -286,8 +276,7 @@ class OraBooks_Commission_Test extends TestCase
  }
 
  #[Test]
- public function test_payout_batch_skips_when_not_first_day_without_force
- {
+ public function test_payout_batch_skips_when_not_first_day_without_force() {
  if ((int) date('j') === 1) {
  $this->markTestSkipped('Cannot assert non-first-day skip on the 1st of the month.');
  }
@@ -298,8 +287,7 @@ class OraBooks_Commission_Test extends TestCase
  }
 
  #[Test]
- public function test_settle_payout_posts_journal_before_status_update
- {
+ public function test_settle_payout_posts_journal_before_status_update() {
  global $wpdb;
  $updatedPayout = false;
  $updatedEarned = false;
@@ -361,8 +349,7 @@ class OraBooks_Commission_Test extends TestCase
  }
 
  #[Test]
- public function test_settle_payout_is_idempotent_when_already_settled
- {
+ public function test_settle_payout_is_idempotent_when_already_settled() {
  global $wpdb;
  $GLOBALS['orabooks_test_commission_skip_posting'] = true;
  $GLOBALS['orabooks_test_commission_journal_posts'] = [];
@@ -377,8 +364,7 @@ class OraBooks_Commission_Test extends TestCase
  }
 
  #[Test]
- public function test_settle_gateway_fee_requires_settled_payout
- {
+ public function test_settle_gateway_fee_requires_settled_payout() {
  global $wpdb;
  $GLOBALS['orabooks_test_commission_skip_posting'] = true;
  $GLOBALS['orabooks_test_commission_journal_posts'] = [];
@@ -395,12 +381,11 @@ class OraBooks_Commission_Test extends TestCase
 
  $result = OraBooks_Commission::settle_gateway_fee(42, 9002);
  $this->assertInstanceOf(WP_Error::class, $result);
- $this->assertEquals('invalid_status', $result->get_error_code);
+ $this->assertEquals('invalid_status', $result->get_error_code());
  }
 
  #[Test]
- public function test_settle_gateway_fee_posts_fee_journal_for_settled_payout
- {
+ public function test_settle_gateway_fee_posts_fee_journal_for_settled_payout() {
  global $wpdb;
  $GLOBALS['orabooks_test_commission_skip_posting'] = true;
  $GLOBALS['orabooks_test_commission_journal_posts'] = [];
@@ -424,8 +409,7 @@ class OraBooks_Commission_Test extends TestCase
  }
 
  #[Test]
- public function test_bank_manual_match_commission_payout_triggers_settlement
- {
+ public function test_bank_manual_match_commission_payout_triggers_settlement() {
  global $wpdb;
  $GLOBALS['orabooks_test_commission_skip_posting'] = true;
  $GLOBALS['orabooks_test_commission_journal_posts'] = [];
@@ -462,8 +446,7 @@ class OraBooks_Commission_Test extends TestCase
  }
 
  #[Test]
- public function test_process_expiry_posts_system_journal_for_expired_earned
- {
+ public function test_process_expiry_posts_system_journal_for_expired_earned() {
  global $wpdb;
  $GLOBALS['orabooks_test_commission_skip_posting'] = true;
  $GLOBALS['orabooks_test_commission_journal_posts'] = [];
@@ -518,8 +501,7 @@ class OraBooks_Commission_Test extends TestCase
  }
 
  #[Test]
- public function test_maybe_create_escrow_retries_when_customer_becomes_active
- {
+ public function test_maybe_create_escrow_retries_when_customer_becomes_active() {
  global $wpdb;
  $inserts = [];
 
@@ -566,8 +548,7 @@ class OraBooks_Commission_Test extends TestCase
  }
 
  #[Test]
- public function test_on_customer_active_status_changed_skips_inactive_customers
- {
+ public function test_on_customer_active_status_changed_skips_inactive_customers() {
  global $wpdb;
  $insertCount = 0;
 
@@ -584,8 +565,7 @@ class OraBooks_Commission_Test extends TestCase
  }
 
  #[Test]
- public function test_build_yearly_breakdown_uses_config_percentages
- {
+ public function test_build_yearly_breakdown_uses_config_percentages() {
  $config = $this->config;
  $breakdown = OraBooks_Commission::build_yearly_breakdown($config, 64.2);
 
@@ -596,8 +576,7 @@ class OraBooks_Commission_Test extends TestCase
  }
 
  #[Test]
- public function test_get_commission_by_customer_masks_email_and_includes_breakdown
- {
+ public function test_get_commission_by_customer_masks_email_and_includes_breakdown() {
  global $wpdb;
 
  $wpdb->test_get_row_callback = function ($query) {

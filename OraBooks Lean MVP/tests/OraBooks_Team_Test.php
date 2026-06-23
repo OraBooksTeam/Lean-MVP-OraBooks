@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 /**
  * Unit Tests for Team Management (invites, roles, membership).
  *
@@ -52,7 +52,7 @@ class OraBooks_Team_Test extends TestCase
  $callback;
  $this->fail('Expected JSON error response.');
  } catch (\RuntimeException $exception) {
- $payload = json_decode($exception->getMessage, true);
+ $payload = json_decode($exception->getMessage(), true);
  $this->assertIsArray($payload);
  $this->assertTrue($payload['error']);
 
@@ -66,7 +66,7 @@ class OraBooks_Team_Test extends TestCase
  $result = OraBooks_Team::invite_user(10, 'not-an-email', 'staff', 1);
 
  $this->assertInstanceOf(WP_Error::class, $result);
- $this->assertSame('invalid_email', $result->get_error_code);
+ $this->assertSame('invalid_email', $result->get_error_code());
  }
 
  #[Test]
@@ -75,7 +75,7 @@ class OraBooks_Team_Test extends TestCase
  $result = OraBooks_Team::invite_user(10, 'staff@example.com', 'owner', 1);
 
  $this->assertInstanceOf(WP_Error::class, $result);
- $this->assertSame('invalid_role', $result->get_error_code);
+ $this->assertSame('invalid_role', $result->get_error_code());
  }
 
  #[Test]
@@ -94,7 +94,7 @@ class OraBooks_Team_Test extends TestCase
  $result = OraBooks_Team::invite_user(10, 'member@example.com', 'staff', 1);
 
  $this->assertInstanceOf(WP_Error::class, $result);
- $this->assertSame('already_member', $result->get_error_code);
+ $this->assertSame('already_member', $result->get_error_code());
  }
 
  #[Test]
@@ -108,7 +108,7 @@ class OraBooks_Team_Test extends TestCase
  $result = OraBooks_Team::invite_user(10, 'new@example.com', 'staff', 1);
 
  $this->assertInstanceOf(WP_Error::class, $result);
- $this->assertSame('rate_limit', $result->get_error_code);
+ $this->assertSame('rate_limit', $result->get_error_code());
  }
 
  #[Test]
@@ -146,7 +146,7 @@ class OraBooks_Team_Test extends TestCase
  $result = OraBooks_Team::preview_invite('');
 
  $this->assertInstanceOf(WP_Error::class, $result);
- $this->assertSame('invalid_invite', $result->get_error_code);
+ $this->assertSame('invalid_invite', $result->get_error_code());
  }
 
  #[Test]
@@ -183,7 +183,7 @@ class OraBooks_Team_Test extends TestCase
  $result = OraBooks_Team::accept_invite('missing-token');
 
  $this->assertInstanceOf(WP_Error::class, $result);
- $this->assertSame('invalid_invite', $result->get_error_code);
+ $this->assertSame('invalid_invite', $result->get_error_code());
  }
 
  #[Test]
@@ -219,7 +219,7 @@ class OraBooks_Team_Test extends TestCase
  $result = OraBooks_Team::accept_invite('token-abc', 99);
 
  $this->assertInstanceOf(WP_Error::class, $result);
- $this->assertSame('invite_email_mismatch', $result->get_error_code);
+ $this->assertSame('invite_email_mismatch', $result->get_error_code());
  }
 
  #[Test]
@@ -277,7 +277,7 @@ class OraBooks_Team_Test extends TestCase
  $result = OraBooks_Team::update_role(10, 5, 'admin', 5);
 
  $this->assertInstanceOf(WP_Error::class, $result);
- $this->assertSame('self_change', $result->get_error_code);
+ $this->assertSame('self_change', $result->get_error_code());
  }
 
  #[Test]
@@ -299,7 +299,7 @@ class OraBooks_Team_Test extends TestCase
  $result = OraBooks_Team::update_role(10, 20, 'admin', 1);
 
  $this->assertInstanceOf(WP_Error::class, $result);
- $this->assertSame('last_owner', $result->get_error_code);
+ $this->assertSame('last_owner', $result->get_error_code());
  }
 
  #[Test]
@@ -339,7 +339,7 @@ class OraBooks_Team_Test extends TestCase
  $result = OraBooks_Team::remove_user(10, 5, 5);
 
  $this->assertInstanceOf(WP_Error::class, $result);
- $this->assertSame('self_remove', $result->get_error_code);
+ $this->assertSame('self_remove', $result->get_error_code());
  }
 
  #[Test]
@@ -361,7 +361,7 @@ class OraBooks_Team_Test extends TestCase
  $result = OraBooks_Team::remove_user(10, 20, 1);
 
  $this->assertInstanceOf(WP_Error::class, $result);
- $this->assertSame('last_owner', $result->get_error_code);
+ $this->assertSame('last_owner', $result->get_error_code());
  }
 
  #[Test]

@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 /**
  * Unit Tests for OraBooks_Exports
  *
@@ -93,8 +93,7 @@ class OraBooks_Exports_Test extends TestCase
  // -----------------------------------------------------------------------
 
  #[Test]
- public function test_get_create_table_sql_returns_array
- {
+ public function test_get_create_table_sql_returns_array() {
  $sql = OraBooks_Exports::get_create_table_sql;
  $this->assertIsArray($sql);
  $this->assertCount(2, $sql, 'Should return exactly 2 CREATE TABLE statements');
@@ -107,8 +106,7 @@ class OraBooks_Exports_Test extends TestCase
  // -----------------------------------------------------------------------
 
  #[Test]
- public function test_register_report_provider_has_no_return
- {
+ public function test_register_report_provider_has_no_return() {
  $result = OraBooks_Exports::register_report_provider('my_report', function {
  return [['col' => 'val']];
  });
@@ -116,8 +114,7 @@ class OraBooks_Exports_Test extends TestCase
  }
 
  #[Test]
- public function test_get_report_data_uses_registered_provider
- {
+ public function test_get_report_data_uses_registered_provider() {
  OraBooks_Exports::register_report_provider('my_report', function ($params) {
  return ['rows' => [['a' => 1]], 'columns' => ['a']];
  });
@@ -137,8 +134,7 @@ class OraBooks_Exports_Test extends TestCase
  }
 
  #[Test]
- public function test_get_report_data_handles_provider_exception
- {
+ public function test_get_report_data_handles_provider_exception() {
  OraBooks_Exports::register_report_provider('crash_report', function ($params) {
  throw new \Exception('Intentional crash');
  });
@@ -157,8 +153,7 @@ class OraBooks_Exports_Test extends TestCase
  // -----------------------------------------------------------------------
 
  #[Test]
- public function test_request_export_success
- {
+ public function test_request_export_success() {
  $result = OraBooks_Exports::request_export(1, 1, 'test_report', 'csv', ['filter' => 'all']);
 
  $this->assertIsArray($result);
@@ -171,17 +166,15 @@ class OraBooks_Exports_Test extends TestCase
  }
 
  #[Test]
- public function test_request_export_invalid_format
- {
+ public function test_request_export_invalid_format() {
  $result = OraBooks_Exports::request_export(1, 1, 'test_report', 'xml', []);
 
  $this->assertInstanceOf('WP_Error', $result);
- $this->assertEquals('invalid_format', $result->get_error_code);
+ $this->assertEquals('invalid_format', $result->get_error_code());
  }
 
  #[Test]
- public function test_request_export_respects_rate_limit_when_under_limit
- {
+ public function test_request_export_respects_rate_limit_when_under_limit() {
  // Our mock orabooks_check_rate_limit always returns true,
  // so the request should succeed.
  $result = OraBooks_Exports::request_export(1, 1, 'test_report', 'csv');
@@ -190,8 +183,7 @@ class OraBooks_Exports_Test extends TestCase
  }
 
  #[Test]
- public function test_request_export_pdf_format
- {
+ public function test_request_export_pdf_format() {
  $result = OraBooks_Exports::request_export(1, 1, 'test_report', 'pdf');
 
  $this->assertIsArray($result);
@@ -204,24 +196,21 @@ class OraBooks_Exports_Test extends TestCase
  // -----------------------------------------------------------------------
 
  #[Test]
- public function test_generate_export_job_missing_export_id
- {
+ public function test_generate_export_job_missing_export_id() {
  $result = OraBooks_Exports::generate_export_job((object)[], ['export_id' => 0, 'org_id' => 1, 'user_id' => 1]);
  $this->assertIsString($result);
  $this->assertStringContainsString('Missing', $result);
  }
 
  #[Test]
- public function test_generate_export_job_missing_org_id
- {
+ public function test_generate_export_job_missing_org_id() {
  $result = OraBooks_Exports::generate_export_job((object)[], ['export_id' => 1, 'org_id' => 0, 'user_id' => 1]);
  $this->assertIsString($result);
  $this->assertStringContainsString('Missing', $result);
  }
 
  #[Test]
- public function test_generate_export_job_not_pending
- {
+ public function test_generate_export_job_not_pending() {
  global $wpdb;
  $wpdb->test_get_row_callback = function ($query) {
  return (object)[
@@ -252,8 +241,7 @@ class OraBooks_Exports_Test extends TestCase
  }
 
  #[Test]
- public function test_generate_export_job_csv_success
- {
+ public function test_generate_export_job_csv_success() {
  $this->registerTestProvider;
 
  global $wpdb;
@@ -285,8 +273,7 @@ class OraBooks_Exports_Test extends TestCase
  }
 
  #[Test]
- public function test_generate_export_job_pdf_success
- {
+ public function test_generate_export_job_pdf_success() {
  $this->registerTestProvider;
 
  global $wpdb;
@@ -321,8 +308,7 @@ class OraBooks_Exports_Test extends TestCase
  }
 
  #[Test]
- public function test_generate_export_job_fallback_data
- {
+ public function test_generate_export_job_fallback_data() {
  // Register NO provider — the job should use parameters['columns'] as fallback
  OraBooks_Exports::register_report_provider('test_report', function ($params) {
  return null; // Simulate no provider available
@@ -359,21 +345,19 @@ class OraBooks_Exports_Test extends TestCase
  // -----------------------------------------------------------------------
 
  #[Test]
- public function test_download_export_not_found
- {
+ public function test_download_export_not_found() {
  global $wpdb;
  $wpdb->test_get_row_callback = function ($query) { return null; };
 
  $result = OraBooks_Exports::download_export(999, 1);
  $this->assertInstanceOf('WP_Error', $result);
- $this->assertEquals('not_found', $result->get_error_code);
+ $this->assertEquals('not_found', $result->get_error_code());
 
  $wpdb->test_get_row_callback = null;
  }
 
  #[Test]
- public function test_download_export_success_as_admin
- {
+ public function test_download_export_success_as_admin() {
  global $wpdb;
  $wpdb->test_get_row_callback = function ($query) {
  return (object)[
@@ -386,7 +370,7 @@ class OraBooks_Exports_Test extends TestCase
  'file_url' => 'http://example.com/file.csv',
  'file_size' => 100,
  'file_hash' => 'abc',
- 'expires_at' => date('Y-m-d H:i:s', time + 86400),
+ 'expires_at' => date('Y-m-d H:i:s', time() + 86400),
  'download_count' => 0,
  'correlation_id' => 'c1',
  'created_at' => date('Y-m-d H:i:s'),
@@ -402,8 +386,7 @@ class OraBooks_Exports_Test extends TestCase
  }
 
  #[Test]
- public function test_download_export_not_ready
- {
+ public function test_download_export_not_ready() {
  global $wpdb;
  $wpdb->test_get_row_callback = function ($query) {
  return (object)[
@@ -425,14 +408,13 @@ class OraBooks_Exports_Test extends TestCase
 
  $result = OraBooks_Exports::download_export(1, 1);
  $this->assertInstanceOf('WP_Error', $result);
- $this->assertEquals('not_ready', $result->get_error_code);
+ $this->assertEquals('not_ready', $result->get_error_code());
 
  $wpdb->test_get_row_callback = null;
  }
 
  #[Test]
- public function test_download_export_expired
- {
+ public function test_download_export_expired() {
  global $wpdb;
  $wpdb->test_get_row_callback = function ($query) {
  return (object)[
@@ -445,7 +427,7 @@ class OraBooks_Exports_Test extends TestCase
  'file_url' => 'http://example.com/file.csv',
  'file_size' => 100,
  'file_hash' => 'abc',
- 'expires_at' => date('Y-m-d H:i:s', time - 86400), // Expired 1 day ago
+ 'expires_at' => date('Y-m-d H:i:s', time() - 86400), // Expired 1 day ago
  'download_count' => 0,
  'correlation_id' => 'c1',
  'created_at' => date('Y-m-d H:i:s'),
@@ -454,14 +436,13 @@ class OraBooks_Exports_Test extends TestCase
 
  $result = OraBooks_Exports::download_export(1, 1);
  $this->assertInstanceOf('WP_Error', $result);
- $this->assertEquals('expired', $result->get_error_code);
+ $this->assertEquals('expired', $result->get_error_code());
 
  $wpdb->test_get_row_callback = null;
  }
 
  #[Test]
- public function test_download_export_success
- {
+ public function test_download_export_success() {
  global $wpdb;
  $wpdb->test_get_row_callback = function ($query) {
  return (object)[
@@ -474,7 +455,7 @@ class OraBooks_Exports_Test extends TestCase
  'file_url' => 'http://example.com/test.csv',
  'file_size' => 2048,
  'file_hash' => 'sha256abc123',
- 'expires_at' => date('Y-m-d H:i:s', time + 86400 * 7),
+ 'expires_at' => date('Y-m-d H:i:s', time() + 86400 * 7),
  'download_count' => 2,
  'correlation_id' => 'corr-001',
  'created_at' => date('Y-m-d H:i:s'),
@@ -501,21 +482,19 @@ class OraBooks_Exports_Test extends TestCase
  // -----------------------------------------------------------------------
 
  #[Test]
- public function test_cancel_export_not_found
- {
+ public function test_cancel_export_not_found() {
  global $wpdb;
  $wpdb->test_get_row_callback = function ($query) { return null; };
 
  $result = OraBooks_Exports::cancel_export(999, 1);
  $this->assertInstanceOf('WP_Error', $result);
- $this->assertEquals('not_found', $result->get_error_code);
+ $this->assertEquals('not_found', $result->get_error_code());
 
  $wpdb->test_get_row_callback = null;
  }
 
  #[Test]
- public function test_cancel_export_invalid_status
- {
+ public function test_cancel_export_invalid_status() {
  global $wpdb;
  $wpdb->test_get_row_callback = function ($query) {
  return (object)[
@@ -532,14 +511,13 @@ class OraBooks_Exports_Test extends TestCase
 
  $result = OraBooks_Exports::cancel_export(1, 1);
  $this->assertInstanceOf('WP_Error', $result);
- $this->assertEquals('invalid_status', $result->get_error_code);
+ $this->assertEquals('invalid_status', $result->get_error_code());
 
  $wpdb->test_get_row_callback = null;
  }
 
  #[Test]
- public function test_cancel_export_success
- {
+ public function test_cancel_export_success() {
  global $wpdb;
  $wpdb->test_get_row_callback = function ($query) {
  return (object)[
@@ -565,16 +543,14 @@ class OraBooks_Exports_Test extends TestCase
  // -----------------------------------------------------------------------
 
  #[Test]
- public function test_cleanup_expired_empty
- {
+ public function test_cleanup_expired_empty() {
  $exports = new OraBooks_Exports;
  $result = $exports->cleanup_expired;
  $this->assertEquals(0, $result, 'No expired exports should be cleaned');
  }
 
  #[Test]
- public function test_cleanup_expired_with_expired_files
- {
+ public function test_cleanup_expired_with_expired_files() {
  // Create a mock expired file
  $expiredFile = self::$tmpDir. '/orabooks-expired/test_old.csv';
  $expiredDir = dirname($expiredFile);
@@ -611,8 +587,7 @@ class OraBooks_Exports_Test extends TestCase
  // -----------------------------------------------------------------------
 
  #[Test]
- public function test_get_user_exports_default_pagination
- {
+ public function test_get_user_exports_default_pagination() {
  $result = OraBooks_Exports::get_user_exports(1, 1);
 
  $this->assertIsArray($result);
@@ -628,8 +603,7 @@ class OraBooks_Exports_Test extends TestCase
  }
 
  #[Test]
- public function test_get_user_exports_custom_pagination
- {
+ public function test_get_user_exports_custom_pagination() {
  $result = OraBooks_Exports::get_user_exports(1, 1, 2, 10);
 
  $this->assertEquals(2, $result['page']);
@@ -638,8 +612,7 @@ class OraBooks_Exports_Test extends TestCase
  }
 
  #[Test]
- public function test_get_user_exports_export_shape
- {
+ public function test_get_user_exports_export_shape() {
  $result = OraBooks_Exports::get_user_exports(1, 1);
  if (count($result['exports']) > 0) {
  $export = $result['exports'][0];
@@ -656,8 +629,7 @@ class OraBooks_Exports_Test extends TestCase
  // -----------------------------------------------------------------------
 
  #[Test]
- public function test_get_export_stats_shape
- {
+ public function test_get_export_stats_shape() {
  $stats = OraBooks_Exports::get_export_stats;
 
  $this->assertIsArray($stats);
@@ -669,8 +641,7 @@ class OraBooks_Exports_Test extends TestCase
  }
 
  #[Test]
- public function test_get_export_stats_counts
- {
+ public function test_get_export_stats_counts() {
  $stats = OraBooks_Exports::get_export_stats;
 
  $this->assertEquals(42, $stats['total_downloads']);
@@ -684,8 +655,7 @@ class OraBooks_Exports_Test extends TestCase
  // -----------------------------------------------------------------------
 
  #[Test]
- public function test_format_file_size_bytes
- {
+ public function test_format_file_size_bytes() {
  $refl = new ReflectionClass('OraBooks_Exports');
  $method = $refl->getMethod('format_file_size');
  $method;
@@ -694,8 +664,7 @@ class OraBooks_Exports_Test extends TestCase
  }
 
  #[Test]
- public function test_format_file_size_kb
- {
+ public function test_format_file_size_kb() {
  $refl = new ReflectionClass('OraBooks_Exports');
  $method = $refl->getMethod('format_file_size');
  $method;
@@ -706,8 +675,7 @@ class OraBooks_Exports_Test extends TestCase
  }
 
  #[Test]
- public function test_format_file_size_mb
- {
+ public function test_format_file_size_mb() {
  $refl = new ReflectionClass('OraBooks_Exports');
  $method = $refl->getMethod('format_file_size');
  $method;
@@ -717,8 +685,7 @@ class OraBooks_Exports_Test extends TestCase
  }
 
  #[Test]
- public function test_format_file_size_gb
- {
+ public function test_format_file_size_gb() {
  $refl = new ReflectionClass('OraBooks_Exports');
  $method = $refl->getMethod('format_file_size');
  $method;
@@ -728,8 +695,7 @@ class OraBooks_Exports_Test extends TestCase
  }
 
  #[Test]
- public function test_format_file_size_zero
- {
+ public function test_format_file_size_zero() {
  $refl = new ReflectionClass('OraBooks_Exports');
  $method = $refl->getMethod('format_file_size');
  $method;
@@ -742,37 +708,34 @@ class OraBooks_Exports_Test extends TestCase
  // -----------------------------------------------------------------------
 
  #[Test]
- public function test_time_remaining_expired
- {
+ public function test_time_remaining_expired() {
  $refl = new ReflectionClass('OraBooks_Exports');
  $method = $refl->getMethod('time_remaining');
  $method;
 
- $expired = date('Y-m-d H:i:s', time - 3600);
+ $expired = date('Y-m-d H:i:s', time() - 3600);
  $result = $method->invoke(null, $expired);
  $this->assertEquals('Expired', $result);
  }
 
  #[Test]
- public function test_time_remaining_days
- {
+ public function test_time_remaining_days() {
  $refl = new ReflectionClass('OraBooks_Exports');
  $method = $refl->getMethod('time_remaining');
  $method;
 
- $future = date('Y-m-d H:i:s', time + (3 * 86400 + 3600)); // 3 days 1 hour
+ $future = date('Y-m-d H:i:s', time() + (3 * 86400 + 3600)); // 3 days 1 hour
  $result = $method->invoke(null, $future);
  $this->assertStringContainsString('days', $result);
  }
 
  #[Test]
- public function test_time_remaining_hours
- {
+ public function test_time_remaining_hours() {
  $refl = new ReflectionClass('OraBooks_Exports');
  $method = $refl->getMethod('time_remaining');
  $method;
 
- $future = date('Y-m-d H:i:s', time + 7200); // 2 hours
+ $future = date('Y-m-d H:i:s', time() + 7200); // 2 hours
  $result = $method->invoke(null, $future);
  $this->assertStringContainsString('hrs', $result);
  }
@@ -782,8 +745,7 @@ class OraBooks_Exports_Test extends TestCase
  // -----------------------------------------------------------------------
 
  #[Test]
- public function test_get_org_name_found
- {
+ public function test_get_org_name_found() {
  $refl = new ReflectionClass('OraBooks_Exports');
  $method = $refl->getMethod('get_org_name');
  $method;
@@ -798,8 +760,7 @@ class OraBooks_Exports_Test extends TestCase
  // -----------------------------------------------------------------------
 
  #[Test]
- public function test_get_user_org_id_found
- {
+ public function test_get_user_org_id_found() {
  $refl = new ReflectionClass('OraBooks_Exports');
  $method = $refl->getMethod('get_user_org_id');
  $method;
@@ -814,8 +775,7 @@ class OraBooks_Exports_Test extends TestCase
  // -----------------------------------------------------------------------
 
  #[Test]
- public function test_register_default_providers_sets_providers
- {
+ public function test_register_default_providers_sets_providers() {
  $refl = new ReflectionClass('OraBooks_Exports');
  $method = $refl->getMethod('register_default_providers');
  $method;
@@ -838,19 +798,17 @@ class OraBooks_Exports_Test extends TestCase
  // -----------------------------------------------------------------------
 
  #[Test]
- public function test_global_helper_success
- {
+ public function test_global_helper_success() {
  $result = orabooks_request_export(1, 1, 'global_test', 'csv');
  $this->assertIsArray($result);
  $this->assertEquals('pending', $result['status']);
  }
 
  #[Test]
- public function test_global_helper_invalid_format
- {
+ public function test_global_helper_invalid_format() {
  $result = orabooks_request_export(1, 1, 'global_test', 'json');
  $this->assertInstanceOf('WP_Error', $result);
- $this->assertEquals('invalid_format', $result->get_error_code);
+ $this->assertEquals('invalid_format', $result->get_error_code());
  }
 
  // -----------------------------------------------------------------------
@@ -858,8 +816,7 @@ class OraBooks_Exports_Test extends TestCase
  // -----------------------------------------------------------------------
 
  #[Test]
- public function test_generate_csv_with_columns_and_rows
- {
+ public function test_generate_csv_with_columns_and_rows() {
  $refl = new ReflectionClass('OraBooks_Exports');
  $method = $refl->getMethod('generate_csv');
  $method;
@@ -891,8 +848,7 @@ class OraBooks_Exports_Test extends TestCase
  }
 
  #[Test]
- public function test_generate_csv_with_object_rows
- {
+ public function test_generate_csv_with_object_rows() {
  $refl = new ReflectionClass('OraBooks_Exports');
  $method = $refl->getMethod('generate_csv');
  $method;
@@ -914,8 +870,7 @@ class OraBooks_Exports_Test extends TestCase
  }
 
  #[Test]
- public function test_generate_csv_with_associative_array_rows
- {
+ public function test_generate_csv_with_associative_array_rows() {
  $refl = new ReflectionClass('OraBooks_Exports');
  $method = $refl->getMethod('generate_csv');
  $method;
@@ -937,8 +892,7 @@ class OraBooks_Exports_Test extends TestCase
  }
 
  #[Test]
- public function test_generate_csv_empty_data
- {
+ public function test_generate_csv_empty_data() {
  $refl = new ReflectionClass('OraBooks_Exports');
  $method = $refl->getMethod('generate_csv');
  $method;
@@ -953,8 +907,7 @@ class OraBooks_Exports_Test extends TestCase
  }
 
  #[Test]
- public function test_generate_csv_with_escaping
- {
+ public function test_generate_csv_with_escaping() {
  $refl = new ReflectionClass('OraBooks_Exports');
  $method = $refl->getMethod('generate_csv');
  $method;
@@ -976,8 +929,7 @@ class OraBooks_Exports_Test extends TestCase
  // -----------------------------------------------------------------------
 
  #[Test]
- public function test_generate_pdf_html_with_data
- {
+ public function test_generate_pdf_html_with_data() {
  $refl = new ReflectionClass('OraBooks_Exports');
  $method = $refl->getMethod('generate_pdf_html');
  $method;
@@ -1014,8 +966,7 @@ class OraBooks_Exports_Test extends TestCase
  }
 
  #[Test]
- public function test_generate_pdf_html_empty_data
- {
+ public function test_generate_pdf_html_empty_data() {
  $refl = new ReflectionClass('OraBooks_Exports');
  $method = $refl->getMethod('generate_pdf_html');
  $method;
@@ -1034,8 +985,7 @@ class OraBooks_Exports_Test extends TestCase
  }
 
  #[Test]
- public function test_generate_pdf_html_no_columns
- {
+ public function test_generate_pdf_html_no_columns() {
  $refl = new ReflectionClass('OraBooks_Exports');
  $method = $refl->getMethod('generate_pdf_html');
  $method;
@@ -1061,15 +1011,13 @@ class OraBooks_Exports_Test extends TestCase
  // -----------------------------------------------------------------------
 
  #[Test]
- public function test_init_returns_instance
- {
+ public function test_init_returns_instance() {
  $instance = OraBooks_Exports::init;
  $this->assertInstanceOf('OraBooks_Exports', $instance);
  }
 
  #[Test]
- public function test_init_adds_actions
- {
+ public function test_init_adds_actions() {
  // init should set up the singleton and hooks
  // We just verify it returns the same instance on second call
  $instance1 = OraBooks_Exports::init;
@@ -1084,8 +1032,7 @@ class OraBooks_Exports_Test extends TestCase
  /**
  * Register a simple test provider that returns known data.
  */
- private function registerTestProvider
- {
+ private function registerTestProvider() {
  OraBooks_Exports::register_report_provider('test_report', function ($params) {
  return [
  'columns' => ['name', 'value'],

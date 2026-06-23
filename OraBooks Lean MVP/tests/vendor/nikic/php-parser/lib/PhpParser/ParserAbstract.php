@@ -1,4 +1,4 @@
-<?php declare(strict_types=1);
+﻿<?php declare(strict_types=1);
 
 namespace PhpParser;
 
@@ -430,7 +430,7 @@ abstract class ParserAbstract implements Parser {
      * Format error message including expected tokens.
      *
      * @param int $symbol Unexpected symbol
-     * @param int $state State at time of error
+     * @param int $state State at time() of error
      *
      * @return string Formatted error message
      */

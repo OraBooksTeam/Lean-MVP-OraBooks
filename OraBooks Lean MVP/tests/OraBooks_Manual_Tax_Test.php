@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 /**
  * Unit Tests for Manual Tax Override
  */
@@ -49,8 +49,7 @@ class OraBooks_Manual_Tax_Test extends TestCase
  }
 
  #[Test]
- public function test_invoice_schema_contains_manual_tax_override_columns
- {
+ public function test_invoice_schema_contains_manual_tax_override_columns() {
  $sql = implode("\n", OraBooks_Customers::get_create_table_sql);
 
  $this->assertStringContainsString('tax_rate DECIMAL(8,4)', $sql);
@@ -62,8 +61,7 @@ class OraBooks_Manual_Tax_Test extends TestCase
  }
 
  #[Test]
- public function test_override_invoice_tax_updates_draft_invoice
- {
+ public function test_override_invoice_tax_updates_draft_invoice() {
  global $wpdb;
 
  $wpdb->test_get_row_callback = function ($query) {
@@ -102,8 +100,7 @@ class OraBooks_Manual_Tax_Test extends TestCase
  }
 
  #[Test]
- public function test_override_invoice_tax_rejects_invalid_reason
- {
+ public function test_override_invoice_tax_rejects_invalid_reason() {
  global $wpdb;
 
  $wpdb->test_get_row_callback = function ($query) {
@@ -134,12 +131,11 @@ class OraBooks_Manual_Tax_Test extends TestCase
  );
 
  $this->assertInstanceOf(WP_Error::class, $result);
- $this->assertEquals('invalid_override_reason', $result->get_error_code);
+ $this->assertEquals('invalid_override_reason', $result->get_error_code());
  }
 
  #[Test]
- public function test_override_invoice_tax_blocks_posted_invoice
- {
+ public function test_override_invoice_tax_blocks_posted_invoice() {
  global $wpdb;
 
  $wpdb->test_get_row_callback = function ($query) {
@@ -159,12 +155,11 @@ class OraBooks_Manual_Tax_Test extends TestCase
  );
 
  $this->assertInstanceOf(WP_Error::class, $result);
- $this->assertEquals('invalid_status', $result->get_error_code);
+ $this->assertEquals('invalid_status', $result->get_error_code());
  }
 
  #[Test]
- public function test_override_invoice_tax_allows_sent_invoice
- {
+ public function test_override_invoice_tax_allows_sent_invoice() {
  global $wpdb;
 
  $wpdb->test_get_row_callback = function ($query) {
@@ -199,8 +194,7 @@ class OraBooks_Manual_Tax_Test extends TestCase
  }
 
  #[Test]
- public function test_override_invoice_tax_blocks_when_fiscal_period_closed
- {
+ public function test_override_invoice_tax_blocks_when_fiscal_period_closed() {
  global $wpdb;
 
  $wpdb->test_get_row_callback = function ($query) {
@@ -223,7 +217,7 @@ class OraBooks_Manual_Tax_Test extends TestCase
  );
 
  $this->assertInstanceOf(WP_Error::class, $result);
- $this->assertEquals('tax_locked', $result->get_error_code);
+ $this->assertEquals('tax_locked', $result->get_error_code());
  }
 
  private function mockExpense(array $overrides = []): object
@@ -270,8 +264,7 @@ class OraBooks_Manual_Tax_Test extends TestCase
  }
 
  #[Test]
- public function test_expense_schema_contains_manual_tax_override_columns
- {
+ public function test_expense_schema_contains_manual_tax_override_columns() {
  $sql = implode("\n", OraBooks_Expenses::get_create_table_sql);
 
  $this->assertStringContainsString('tax_override_reason VARCHAR(64)', $sql);
@@ -280,8 +273,7 @@ class OraBooks_Manual_Tax_Test extends TestCase
  }
 
  #[Test]
- public function test_override_expense_tax_updates_draft_expense
- {
+ public function test_override_expense_tax_updates_draft_expense() {
  global $wpdb;
 
  $wpdb->test_get_row_callback = function ($query) {
@@ -320,8 +312,7 @@ class OraBooks_Manual_Tax_Test extends TestCase
  }
 
  #[Test]
- public function test_override_expense_tax_blocks_submitted_expense
- {
+ public function test_override_expense_tax_blocks_submitted_expense() {
  global $wpdb;
 
  $wpdb->test_get_row_callback = function ($query) {
@@ -341,12 +332,11 @@ class OraBooks_Manual_Tax_Test extends TestCase
  );
 
  $this->assertInstanceOf(WP_Error::class, $result);
- $this->assertEquals('invalid_status', $result->get_error_code);
+ $this->assertEquals('invalid_status', $result->get_error_code());
  }
 
  #[Test]
- public function test_clear_expense_tax_override_recalculates_from_tax_engine
- {
+ public function test_clear_expense_tax_override_recalculates_from_tax_engine() {
  global $wpdb;
 
  $wpdb->test_get_row_callback = function ($query) {

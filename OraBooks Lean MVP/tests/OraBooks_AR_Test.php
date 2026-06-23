@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 /**
  * Unit Tests for OraBooks_AR ( extension)
  */
@@ -68,7 +68,7 @@ class OraBooks_AR_Test extends TestCase
  ]);
 
  $this->assertInstanceOf(WP_Error::class, $result);
- $this->assertSame('credit_hold', $result->get_error_code);
+ $this->assertSame('credit_hold', $result->get_error_code());
  }
 
  #[Test]

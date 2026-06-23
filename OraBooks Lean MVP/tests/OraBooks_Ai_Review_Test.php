@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 /**
  * Unit Tests for OraBooks_Ai_Review
  */
@@ -9,8 +9,7 @@ use PHPUnit\Framework\TestCase;
 class OraBooks_Ai_Review_Test extends TestCase
 {
  #[Test]
- public function test_schema_defines_sl076_tables
- {
+ public function test_schema_defines_sl076_tables() {
  $sql = implode("\n", OraBooks_Ai_Review::get_create_table_sql);
 
  $this->assertStringContainsString('orabooks_ai_review_queue', $sql);
@@ -20,8 +19,7 @@ class OraBooks_Ai_Review_Test extends TestCase
  }
 
  #[Test]
- public function test_passes_threshold_requires_confidence_and_low_risk
- {
+ public function test_passes_threshold_requires_confidence_and_low_risk() {
  $this->assertTrue(OraBooks_Ai_Review::passes_threshold([
  'confidence' => 75,
  'risk_level' => 'low',
@@ -39,8 +37,7 @@ class OraBooks_Ai_Review_Test extends TestCase
  }
 
  #[Test]
- public function test_format_queue_item_maps_expected_fields
- {
+ public function test_format_queue_item_maps_expected_fields() {
  $row = (object) [
  'id' => 5,
  'org_id' => 1,
@@ -70,8 +67,7 @@ class OraBooks_Ai_Review_Test extends TestCase
  }
 
  #[Test]
- public function test_evaluate_journal_flags_high_value_entries
- {
+ public function test_evaluate_journal_flags_high_value_entries() {
  global $wpdb;
 
  $wpdb->test_get_row_callback = function ($query) {

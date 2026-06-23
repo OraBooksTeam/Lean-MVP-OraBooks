@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 /**
  * Unit Tests for OraBooks_Security
  */
@@ -29,8 +29,7 @@ class OraBooks_Security_Test extends TestCase
  }
 
  #[Test]
- public function test_schema_defines_sl099_tables
- {
+ public function test_schema_defines_sl099_tables() {
  $sql = implode("\n", OraBooks_Security::get_create_table_sql);
 
  $this->assertStringContainsString('orabooks_security_controls', $sql);
@@ -40,51 +39,45 @@ class OraBooks_Security_Test extends TestCase
  }
 
  #[Test]
- public function test_validate_outbound_url_blocks_private_hosts
- {
+ public function test_validate_outbound_url_blocks_private_hosts() {
  $result = OraBooks_Security::validate_outbound_url('https://127.0.0.1/hook');
 
  $this->assertInstanceOf(WP_Error::class, $result);
- $this->assertEquals('ssrf_private', $result->get_error_code);
+ $this->assertEquals('ssrf_private', $result->get_error_code());
  }
 
  #[Test]
- public function test_validate_outbound_url_allows_slack_hooks
- {
+ public function test_validate_outbound_url_allows_slack_hooks() {
  $result = OraBooks_Security::validate_outbound_url('https://hooks.slack.com/services/T00/B00/xxx');
 
  $this->assertTrue($result);
  }
 
  #[Test]
- public function test_validate_outbound_url_rejects_non_https
- {
+ public function test_validate_outbound_url_rejects_non_https() {
  $result = OraBooks_Security::validate_outbound_url('http://hooks.slack.com/services/x');
 
  $this->assertInstanceOf(WP_Error::class, $result);
- $this->assertEquals('ssrf_scheme', $result->get_error_code);
+ $this->assertEquals('ssrf_scheme', $result->get_error_code());
  }
 
  #[Test]
- public function test_validate_input_rejects_invalid_email
- {
+ public function test_validate_input_rejects_invalid_email() {
  $result = OraBooks_Security::validate_input('email', 'not-an-email');
 
  $this->assertInstanceOf(WP_Error::class, $result);
- $this->assertEquals('invalid_input', $result->get_error_code);
+ $this->assertEquals('invalid_input', $result->get_error_code());
  }
 
  #[Test]
- public function test_validate_input_accepts_valid_uuid
- {
+ public function test_validate_input_accepts_valid_uuid() {
  $result = OraBooks_Security::validate_input('uuid', '550e8400-e29b-41d4-a716-446655440000');
 
  $this->assertTrue($result);
  }
 
  #[Test]
- public function test_record_incident_inserts_row
- {
+ public function test_record_incident_inserts_row() {
  global $wpdb;
 
  $captured = null;
@@ -103,8 +96,7 @@ class OraBooks_Security_Test extends TestCase
  }
 
  #[Test]
- public function test_get_rate_limit_config_returns_centralized_limits
- {
+ public function test_get_rate_limit_config_returns_centralized_limits() {
  $config = OraBooks_Security::get_rate_limit_config;
 
  $this->assertArrayHasKey('registration_per_ip', $config);
@@ -113,8 +105,7 @@ class OraBooks_Security_Test extends TestCase
  }
 
  #[Test]
- public function test_get_headers_status_reports_configured_headers
- {
+ public function test_get_headers_status_reports_configured_headers() {
  $status = OraBooks_Security::get_headers_status;
 
  $this->assertArrayHasKey('configured', $status);
@@ -123,8 +114,7 @@ class OraBooks_Security_Test extends TestCase
  }
 
  #[Test]
- public function test_get_owasp_catalog_has_all_ten_controls
- {
+ public function test_get_owasp_catalog_has_all_ten_controls() {
  $catalog = OraBooks_Security::get_owasp_catalog;
 
  $this->assertCount(10, $catalog);
@@ -136,8 +126,7 @@ class OraBooks_Security_Test extends TestCase
  }
 
  #[Test]
- public function test_get_secret_rotation_status_returns_structure
- {
+ public function test_get_secret_rotation_status_returns_structure() {
  $status = OraBooks_Security::get_secret_rotation_status;
 
  $this->assertArrayHasKey('last_rotated', $status);
@@ -147,8 +136,7 @@ class OraBooks_Security_Test extends TestCase
  }
 
  #[Test]
- public function test_store_scan_result_inserts_scan
- {
+ public function test_store_scan_result_inserts_scan() {
  global $wpdb;
 
  $captured = null;

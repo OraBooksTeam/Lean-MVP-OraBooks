@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 /**
  * OraBooks Async Queue & Job Governance
  *
@@ -37,7 +37,7 @@ class OraBooks_AsyncQueue {
  /** Registered job handlers: job_type => callable */
  private static $handlers = [];
 
- public static function init {
+ public static function init() {
  if (self::$instance === null) {
  self::$instance = new self;
 
@@ -131,7 +131,7 @@ class OraBooks_AsyncQueue {
  }
 
  $next_retry_at = $delay > 0
- ? date('Y-m-d H:i:s', time + $delay)
+ ? date('Y-m-d H:i:s', time() + $delay)
 : current_time('mysql', true);
 
  if ($idempotency_key !== '') {
@@ -235,7 +235,7 @@ class OraBooks_AsyncQueue {
  * Process pending jobs. Runs every minute via cron.
  * Picks highest priority jobs first, locks them with FOR UPDATE.
  */
- public function process_queue {
+ public function process_queue() {
  global $wpdb;
 
  $table = OraBooks_Database::table(self::TABLE_JOBS);
@@ -297,7 +297,7 @@ class OraBooks_AsyncQueue {
  }
  } catch (\Exception $e) {
  $job_success = false;
- $error_msg = $e->getMessage;
+ $error_msg = $e->getMessage();
  }
  } else {
  // No handler registered — mark as failed with clear message
@@ -357,7 +357,7 @@ class OraBooks_AsyncQueue {
  } else {
  // Schedule retry with exponential backoff
  $delay = min(self::BACKOFF_MAX, self::BACKOFF_INITIAL * pow(self::BACKOFF_FACTOR, $new_retry - 1));
- $next_retry = date('Y-m-d H:i:s', time + $delay);
+ $next_retry = date('Y-m-d H:i:s', time() + $delay);
 
  self::transition_job($job, 'pending', [
  'retry_count' => $new_retry,
@@ -384,7 +384,7 @@ class OraBooks_AsyncQueue {
  } catch (\Exception $e) {
  $wpdb->query("ROLLBACK");
  $failed++;
- orabooks_log_event('async_queue_error', "Async queue processing error: ". $e->getMessage, 'warning', [
+ orabooks_log_event('async_queue_error', "Async queue processing error: ". $e->getMessage(), 'warning', [
  'job_id' => $job->id,
  ]);
  }
@@ -412,11 +412,11 @@ class OraBooks_AsyncQueue {
  * Recover jobs stuck in 'processing' state (worker crashed).
  * If heartbeat_at is older than 5 minutes, reset to pending.
  */
- public function heartbeat_recovery {
+ public function heartbeat_recovery() {
  global $wpdb;
 
  $table = OraBooks_Database::table(self::TABLE_JOBS);
- $cutoff = date('Y-m-d H:i:s', time - 300); // 5 minutes
+ $cutoff = date('Y-m-d H:i:s', time() - 300); // 5 minutes
 
  $recovered = $wpdb->query($wpdb->prepare(
  "UPDATE {$table}
@@ -457,7 +457,7 @@ class OraBooks_AsyncQueue {
  /**
  * Monitor queue health and alert via if thresholds exceeded.
  */
- public function monitor_health {
+ public function monitor_health() {
  global $wpdb;
 
  $table = OraBooks_Database::table(self::TABLE_JOBS);
@@ -612,14 +612,14 @@ class OraBooks_AsyncQueue {
  /**
  * Org scope for queue UI/API: 0 = platform-wide (WP admin), else tenant org_id.
  */
- public static function resolve_queue_org_scope {
+ public static function resolve_queue_org_scope() {
  if (current_user_can('manage_options')) {
  return 0;
  }
- if (!function_exists('orabooks_get_current_user_id')) {
+ if (!function_exists('orabooks_get_current_user_id()')) {
  return 0;
  }
- $user_id = (int) orabooks_get_current_user_id;
+ $user_id = (int) orabooks_get_current_user_id();
  if ($user_id <= 0) {
  return 0;
  }
@@ -772,10 +772,10 @@ class OraBooks_AsyncQueue {
  return !empty($params) ? $wpdb->get_results($wpdb->prepare($sql, $params)): $wpdb->get_results($sql);
  }
 
- public static function archive_completed_jobs {
+ public static function archive_completed_jobs() {
  global $wpdb;
  $table = OraBooks_Database::table(self::TABLE_JOBS);
- $cutoff = date('Y-m-d H:i:s', time - self::ARCHIVE_AFTER_DAYS * DAY_IN_SECONDS);
+ $cutoff = date('Y-m-d H:i:s', time() - self::ARCHIVE_AFTER_DAYS * DAY_IN_SECONDS);
  $jobs = $wpdb->get_results($wpdb->prepare(
  "SELECT id, job_type, payload FROM {$table}
  WHERE status = 'completed' AND completed_at < %s AND archived_at IS NULL
@@ -817,14 +817,14 @@ class OraBooks_AsyncQueue {
  return $clean;
  }
 
- private static function current_user_can_manage_queue {
+ private static function current_user_can_manage_queue() {
  if (current_user_can('manage_options')) {
  return true;
  }
- if (!function_exists('orabooks_get_current_user_id') || !function_exists('orabooks_get_current_org_id')) {
+ if (!function_exists('orabooks_get_current_user_id()') || !function_exists('orabooks_get_current_org_id')) {
  return false;
  }
- $user_id = (int) orabooks_get_current_user_id;
+ $user_id = (int) orabooks_get_current_user_id();
  $org_id = (int) orabooks_get_current_org_id($user_id);
  if (!$user_id || !$org_id) {
  return false;
@@ -833,14 +833,14 @@ class OraBooks_AsyncQueue {
  || orabooks_has_permission($user_id, $org_id, 'manage_employees');
  }
 
- private static function current_user_can_manage_webhooks {
+ private static function current_user_can_manage_webhooks() {
  if (current_user_can('manage_options')) {
  return true;
  }
- if (!function_exists('orabooks_get_current_user_id')) {
+ if (!function_exists('orabooks_get_current_user_id()')) {
  return false;
  }
- $user_id = (int) orabooks_get_current_user_id;
+ $user_id = (int) orabooks_get_current_user_id();
  if (!$user_id) {
  return false;
  }
@@ -853,8 +853,8 @@ class OraBooks_AsyncQueue {
  return orabooks_has_permission($user_id, $org_id, 'manage_settings');
  }
 
- private static function resolve_webhook_org_id {
- $user_id = function_exists('orabooks_get_current_user_id') ? (int) orabooks_get_current_user_id: 0;
+ private static function resolve_webhook_org_id() {
+ $user_id = function_exists('orabooks_get_current_user_id()') ? (int) orabooks_get_current_user_id(): 0;
  if (function_exists('orabooks_resolve_request_org_id')) {
  return (int) orabooks_resolve_request_org_id($user_id, $_REQUEST['org_id'] ?? 0);
  }
@@ -869,14 +869,14 @@ class OraBooks_AsyncQueue {
  if (!is_wp_error($result)) {
  return;
  }
- $code = $result->get_error_code === 'forbidden' ? 403: 400;
- orabooks_json_error($result->get_error_message, $code);
+ $code = $result->get_error_code() === 'forbidden' ? 403: 400;
+ orabooks_json_error($result->get_error_message(), $code);
  }
 
  /**
  * AJAX: Manual replay of a dead-letter/failed job (admin only).
  */
- public function ajax_replay_job {
+ public function ajax_replay_job() {
  if (!self::current_user_can_manage_queue) {
  orabooks_json_error('Permission denied', 403);
  }
@@ -896,7 +896,7 @@ class OraBooks_AsyncQueue {
  orabooks_json_success([], 'Job retried successfully');
  }
 
- public function ajax_discard_job {
+ public function ajax_discard_job() {
  if (!self::current_user_can_manage_queue) {
  orabooks_json_error('Permission denied', 403);
  }
@@ -913,7 +913,7 @@ class OraBooks_AsyncQueue {
  orabooks_json_success([], 'Job discarded successfully');
  }
 
- public function ajax_cancel_job {
+ public function ajax_cancel_job() {
  if (!self::current_user_can_manage_queue) {
  orabooks_json_error('Permission denied', 403);
  }
@@ -930,7 +930,7 @@ class OraBooks_AsyncQueue {
  orabooks_json_success([], 'Job cancelled successfully');
  }
 
- public function ajax_poll_now {
+ public function ajax_poll_now() {
  if (!self::current_user_can_manage_queue) {
  orabooks_json_error('Permission denied', 403);
  }
@@ -941,7 +941,7 @@ class OraBooks_AsyncQueue {
  /**
  * AJAX: Get queue stats (admin only).
  */
- public function ajax_queue_stats {
+ public function ajax_queue_stats() {
  if (!self::current_user_can_manage_queue) {
  orabooks_json_error('Permission denied', 403);
  }
@@ -958,7 +958,7 @@ class OraBooks_AsyncQueue {
  orabooks_json_success($stats);
  }
 
- public function ajax_webhook_settings_get {
+ public function ajax_webhook_settings_get() {
  if (!self::current_user_can_manage_webhooks) {
  orabooks_json_error('Permission denied', 403);
  }
@@ -969,7 +969,7 @@ class OraBooks_AsyncQueue {
  ]);
  }
 
- public function ajax_webhook_settings_save {
+ public function ajax_webhook_settings_save() {
  if (!self::current_user_can_manage_webhooks) {
  orabooks_json_error('Permission denied', 403);
  }
@@ -978,7 +978,7 @@ class OraBooks_AsyncQueue {
  orabooks_json_success(['urls' => implode("\n", $urls)], 'Webhook settings saved');
  }
 
- public function ajax_report_async_export {
+ public function ajax_report_async_export() {
  if (!self::current_user_can_manage_queue) {
  orabooks_json_error('Permission denied', 403);
  }
@@ -1015,7 +1015,7 @@ class OraBooks_AsyncQueue {
  /**
  * Register default handlers for common job types.
  */
- public static function register_default_handlers {
+ public static function register_default_handlers() {
  self::register_handler('send_notification_email', [__CLASS__, 'handle_send_notification_email']);
  self::register_handler('send_email', [__CLASS__, 'handle_send_notification_email']);
  self::register_handler('export_report_async', [__CLASS__, 'handle_export_report_async']);
@@ -1101,7 +1101,7 @@ class OraBooks_AsyncQueue {
  if (class_exists('OraBooks_Security')) {
  $ssrf = OraBooks_Security::validate_outbound_url($url);
  if (is_wp_error($ssrf)) {
- $errors[] = $ssrf->get_error_message;
+ $errors[] = $ssrf->get_error_message();
  continue;
  }
  }
@@ -1114,7 +1114,7 @@ class OraBooks_AsyncQueue {
  ]);
 
  if (is_wp_error($response)) {
- $errors[] = $response->get_error_message;
+ $errors[] = $response->get_error_message();
  continue;
  }
 
@@ -1283,7 +1283,7 @@ class OraBooks_AsyncQueue {
  }
  }
 
- private static function get_alert_user_ids {
+ private static function get_alert_user_ids() {
  $users = get_users(['role__in' => ['administrator', 'owner', 'admin'], 'fields' => 'ID']);
  return array_map('intval', $users ?: []);
  }

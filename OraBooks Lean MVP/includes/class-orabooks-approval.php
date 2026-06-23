@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 /**
  * OraBooks Journal Approval Gate
  *
@@ -14,7 +14,7 @@ class OraBooks_Approval {
 
  private static $instance = null;
 
- public static function init {
+ public static function init() {
  if (self::$instance !== null) {
  return self::$instance;
  }
@@ -315,7 +315,7 @@ class OraBooks_Approval {
  }
 
  $current_hash = self::compute_snapshot_hash((int) $journal_id);
- $expires_at = gmdate('Y-m-d H:i:s', time + ((int) ($policy->approval_expiry_hours ?? 72) * 3600));
+ $expires_at = gmdate('Y-m-d H:i:s', time() + ((int) ($policy->approval_expiry_hours ?? 72) * 3600));
 
  $transition = OraBooks_Workflow::transition('journal', (int) $journal_id, 'approve', [
  'user_id' => (int) $user_id,
@@ -375,7 +375,7 @@ class OraBooks_Approval {
  }
 
  if ((int) $journal->approval_round <= 0) {
- return new WP_Error('invalid_resubmit', 'Use submit for first-time approval');
+ return new WP_Error('invalid_resubmit', 'Use submit for first-time() approval');
  }
 
  $wpdb->update(
@@ -606,7 +606,7 @@ class OraBooks_Approval {
  ));
  }
 
- public static function cron_expire_stale_approvals {
+ public static function cron_expire_stale_approvals() {
  global $wpdb;
 
  $table = OraBooks_Database::table('journals');
@@ -659,7 +659,7 @@ class OraBooks_Approval {
  }
  }
 
- public static function cron_expiry_reminders {
+ public static function cron_expiry_reminders() {
  global $wpdb;
 
  $table_journals = OraBooks_Database::table('journals');
@@ -700,7 +700,7 @@ class OraBooks_Approval {
  }
  }
 
- public static function cron_escalate_overdue_reviews {
+ public static function cron_escalate_overdue_reviews() {
  global $wpdb;
 
  $table_journals = OraBooks_Database::table('journals');
@@ -766,7 +766,7 @@ class OraBooks_Approval {
  }
  }
 
- public static function install_history_guards {
+ public static function install_history_guards() {
  global $wpdb;
 
  $table = OraBooks_Database::table('journal_approval_history');
@@ -818,14 +818,14 @@ class OraBooks_Approval {
 
  $isolation = OraBooks_Auth::require_customer_org($user_id, (int) $journal->org_id);
  if (is_wp_error($isolation)) {
- orabooks_json_error($isolation->get_error_message, 403);
+ orabooks_json_error($isolation->get_error_message(), 403);
  }
 
  return (int) $journal->org_id;
  }
 
- public function ajax_resubmit_journal {
- $user_id = orabooks_get_current_user_id;
+ public function ajax_resubmit_journal() {
+ $user_id = orabooks_get_current_user_id();
  $journal_id = (int) ($_POST['journal_id'] ?? 0);
  $org_id = $this->require_journal_org($user_id, $journal_id);
 
@@ -835,14 +835,14 @@ class OraBooks_Approval {
 
  $result = self::resubmit_journal($journal_id, $user_id);
  if (is_wp_error($result)) {
- orabooks_json_error($result->get_error_message, 400);
+ orabooks_json_error($result->get_error_message(), 400);
  }
 
  orabooks_json_success([], 'Journal resubmitted for approval');
  }
 
- public function ajax_update_journal_draft {
- $user_id = orabooks_get_current_user_id;
+ public function ajax_update_journal_draft() {
+ $user_id = orabooks_get_current_user_id();
  $journal_id = (int) ($_POST['journal_id'] ?? 0);
  $org_id = $this->require_journal_org($user_id, $journal_id);
 
@@ -899,7 +899,7 @@ class OraBooks_Approval {
 
  $add = OraBooks_Posting::add_lines($journal_id, $lines);
  if (is_wp_error($add)) {
- orabooks_json_error($add->get_error_message, 400);
+ orabooks_json_error($add->get_error_message(), 400);
  }
  }
 
@@ -908,13 +908,13 @@ class OraBooks_Approval {
  ], 'Journal updated');
  }
 
- public function ajax_policy_get {
- $user_id = orabooks_get_current_user_id;
+ public function ajax_policy_get() {
+ $user_id = orabooks_get_current_user_id();
  $org_id = (int) ($_GET['org_id'] ?? $_POST['org_id'] ?? 0);
 
  $isolation = OraBooks_Auth::require_customer_org($user_id, $org_id);
  if (is_wp_error($isolation)) {
- orabooks_json_error($isolation->get_error_message, 403);
+ orabooks_json_error($isolation->get_error_message(), 403);
  }
 
  if (!OraBooks_RBAC::require_permission($user_id, $org_id, 'manage_org_settings')) {
@@ -925,13 +925,13 @@ class OraBooks_Approval {
  orabooks_json_success(['policy' => $policy]);
  }
 
- public function ajax_policy_save {
- $user_id = orabooks_get_current_user_id;
+ public function ajax_policy_save() {
+ $user_id = orabooks_get_current_user_id();
  $org_id = (int) ($_POST['org_id'] ?? 0);
 
  $isolation = OraBooks_Auth::require_customer_org($user_id, $org_id);
  if (is_wp_error($isolation)) {
- orabooks_json_error($isolation->get_error_message, 403);
+ orabooks_json_error($isolation->get_error_message(), 403);
  }
 
  if (!OraBooks_RBAC::require_permission($user_id, $org_id, 'manage_org_settings')) {
@@ -940,19 +940,19 @@ class OraBooks_Approval {
 
  $result = self::save_policy($org_id, $_POST);
  if (is_wp_error($result)) {
- orabooks_json_error($result->get_error_message, 400);
+ orabooks_json_error($result->get_error_message(), 400);
  }
 
  orabooks_json_success(['policy' => $result], 'Approval policy saved');
  }
 
- public function ajax_delegation_create {
- $user_id = orabooks_get_current_user_id;
+ public function ajax_delegation_create() {
+ $user_id = orabooks_get_current_user_id();
  $org_id = (int) ($_POST['org_id'] ?? 0);
 
  $isolation = OraBooks_Auth::require_customer_org($user_id, $org_id);
  if (is_wp_error($isolation)) {
- orabooks_json_error($isolation->get_error_message, 403);
+ orabooks_json_error($isolation->get_error_message(), 403);
  }
 
  $result = self::create_delegation(
@@ -960,42 +960,42 @@ class OraBooks_Approval {
  (int) ($_POST['delegator_user_id'] ?? $user_id),
  (int) ($_POST['delegate_user_id'] ?? 0),
  sanitize_text_field($_POST['starts_at'] ?? gmdate('Y-m-d H:i:s')),
- sanitize_text_field($_POST['ends_at'] ?? gmdate('Y-m-d H:i:s', time + (7 * DAY_IN_SECONDS))),
+ sanitize_text_field($_POST['ends_at'] ?? gmdate('Y-m-d H:i:s', time() + (7 * DAY_IN_SECONDS))),
  $user_id
  );
 
  if (is_wp_error($result)) {
- orabooks_json_error($result->get_error_message, 400);
+ orabooks_json_error($result->get_error_message(), 400);
  }
 
  orabooks_json_success($result, 'Delegation created');
  }
 
- public function ajax_delegation_revoke {
- $user_id = orabooks_get_current_user_id;
+ public function ajax_delegation_revoke() {
+ $user_id = orabooks_get_current_user_id();
  $org_id = (int) ($_POST['org_id'] ?? 0);
  $delegation_id = (int) ($_POST['delegation_id'] ?? 0);
 
  $isolation = OraBooks_Auth::require_customer_org($user_id, $org_id);
  if (is_wp_error($isolation)) {
- orabooks_json_error($isolation->get_error_message, 403);
+ orabooks_json_error($isolation->get_error_message(), 403);
  }
 
  $result = self::revoke_delegation($delegation_id, $user_id, $org_id);
  if (is_wp_error($result)) {
- orabooks_json_error($result->get_error_message, 400);
+ orabooks_json_error($result->get_error_message(), 400);
  }
 
  orabooks_json_success([], 'Delegation revoked');
  }
 
- public function ajax_delegations_list {
- $user_id = orabooks_get_current_user_id;
+ public function ajax_delegations_list() {
+ $user_id = orabooks_get_current_user_id();
  $org_id = (int) ($_GET['org_id'] ?? $_POST['org_id'] ?? 0);
 
  $isolation = OraBooks_Auth::require_customer_org($user_id, $org_id);
  if (is_wp_error($isolation)) {
- orabooks_json_error($isolation->get_error_message, 403);
+ orabooks_json_error($isolation->get_error_message(), 403);
  }
 
  if (!OraBooks_RBAC::require_permission($user_id, $org_id, 'manage_org_settings')) {

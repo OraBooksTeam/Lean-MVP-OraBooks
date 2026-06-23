@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 /**
  * Unit Tests for OraBooks_Fiscal
  */
@@ -26,8 +26,7 @@ class OraBooks_Fiscal_Test extends TestCase
  }
 
  #[Test]
- public function test_can_post_blocks_closed_period
- {
+ public function test_can_post_blocks_closed_period() {
  global $wpdb;
 
  $wpdb->test_get_var_callback = function ($query) {
@@ -39,13 +38,12 @@ class OraBooks_Fiscal_Test extends TestCase
 
  $result = OraBooks_Fiscal::can_post(4, '2026-06-15');
  $this->assertInstanceOf(WP_Error::class, $result);
- $this->assertSame('fiscal_closed', $result->get_error_code);
+ $this->assertSame('fiscal_closed', $result->get_error_code());
  $this->assertSame(409, $result->get_error_data['status']);
  }
 
  #[Test]
- public function test_can_post_allows_open_period
- {
+ public function test_can_post_allows_open_period() {
  global $wpdb;
 
  $wpdb->test_get_var_callback = function ($query) {
@@ -60,8 +58,7 @@ class OraBooks_Fiscal_Test extends TestCase
  }
 
  #[Test]
- public function test_close_period_rejects_non_open_status
- {
+ public function test_close_period_rejects_non_open_status() {
  global $wpdb;
 
  $wpdb->test_get_row_callback = function {
@@ -76,20 +73,18 @@ class OraBooks_Fiscal_Test extends TestCase
 
  $result = OraBooks_Fiscal::close_period(10, 2, 'soft', 1);
  $this->assertInstanceOf(WP_Error::class, $result);
- $this->assertSame('invalid_status', $result->get_error_code);
+ $this->assertSame('invalid_status', $result->get_error_code());
  }
 
  #[Test]
- public function test_reopen_period_requires_reason
- {
+ public function test_reopen_period_requires_reason() {
  $result = OraBooks_Fiscal::reopen_period(10, 2, 1, ' ');
  $this->assertInstanceOf(WP_Error::class, $result);
- $this->assertSame('reason_required', $result->get_error_code);
+ $this->assertSame('reason_required', $result->get_error_code());
  }
 
  #[Test]
- public function test_reopen_period_blocks_hard_closed
- {
+ public function test_reopen_period_blocks_hard_closed() {
  global $wpdb;
 
  $wpdb->test_get_row_callback = function {
@@ -104,12 +99,11 @@ class OraBooks_Fiscal_Test extends TestCase
 
  $result = OraBooks_Fiscal::reopen_period(10, 2, 1, 'Correction needed');
  $this->assertInstanceOf(WP_Error::class, $result);
- $this->assertSame('hard_closed', $result->get_error_code);
+ $this->assertSame('hard_closed', $result->get_error_code());
  }
 
  #[Test]
- public function test_is_period_hard_closed
- {
+ public function test_is_period_hard_closed() {
  global $wpdb;
 
  $wpdb->test_get_var_callback = function ($query) {
@@ -123,8 +117,7 @@ class OraBooks_Fiscal_Test extends TestCase
  }
 
  #[Test]
- public function test_override_reopen_period_requires_hard_closed
- {
+ public function test_override_reopen_period_requires_hard_closed() {
  global $wpdb;
 
  $wpdb->test_get_row_callback = function {
@@ -139,12 +132,11 @@ class OraBooks_Fiscal_Test extends TestCase
 
  $result = OraBooks_Fiscal::override_reopen_period(10, 2, 1, 'Audit correction');
  $this->assertInstanceOf(WP_Error::class, $result);
- $this->assertSame('invalid_status', $result->get_error_code);
+ $this->assertSame('invalid_status', $result->get_error_code());
  }
 
  #[Test]
- public function test_paginate_periods_filters_by_status
- {
+ public function test_paginate_periods_filters_by_status() {
  global $wpdb;
 
  $wpdb->test_get_results_callback = function ($query) {
@@ -163,8 +155,7 @@ class OraBooks_Fiscal_Test extends TestCase
  }
 
  #[Test]
- public function test_close_period_requires_hard_confirm_for_hard_close
- {
+ public function test_close_period_requires_hard_confirm_for_hard_close() {
  global $wpdb;
 
  $wpdb->test_get_row_callback = function {
@@ -179,12 +170,11 @@ class OraBooks_Fiscal_Test extends TestCase
 
  $result = OraBooks_Fiscal::close_period(10, 2, 'hard', 1, 'note', ['hard_confirm' => false]);
  $this->assertInstanceOf(WP_Error::class, $result);
- $this->assertSame('hard_confirm_required', $result->get_error_code);
+ $this->assertSame('hard_confirm_required', $result->get_error_code());
  }
 
  #[Test]
- public function test_can_reverse_blocks_hard_closed_period
- {
+ public function test_can_reverse_blocks_hard_closed_period() {
  global $wpdb;
 
  $wpdb->test_get_var_callback = function ($query) {
@@ -196,12 +186,11 @@ class OraBooks_Fiscal_Test extends TestCase
 
  $result = OraBooks_Fiscal::can_reverse(2, '2026-05-15');
  $this->assertInstanceOf(WP_Error::class, $result);
- $this->assertSame('fiscal_hard_closed', $result->get_error_code);
+ $this->assertSame('fiscal_hard_closed', $result->get_error_code());
  }
 
  #[Test]
- public function test_can_modify_account_structure_blocks_after_close
- {
+ public function test_can_modify_account_structure_blocks_after_close() {
  global $wpdb;
 
  $wpdb->test_get_var_callback = function ($query) {
@@ -213,12 +202,11 @@ class OraBooks_Fiscal_Test extends TestCase
 
  $result = OraBooks_Fiscal::can_modify_account_structure(2);
  $this->assertInstanceOf(WP_Error::class, $result);
- $this->assertSame('fiscal_account_locked', $result->get_error_code);
+ $this->assertSame('fiscal_account_locked', $result->get_error_code());
  }
 
  #[Test]
- public function test_reopen_soft_closed_period_succeeds
- {
+ public function test_reopen_soft_closed_period_succeeds() {
  global $wpdb;
 
  $wpdb->test_get_row_callback = function {
@@ -239,8 +227,7 @@ class OraBooks_Fiscal_Test extends TestCase
  }
 
  #[Test]
- public function test_create_period_rejects_overlap
- {
+ public function test_create_period_rejects_overlap() {
  global $wpdb;
 
  $wpdb->test_get_var_callback = function ($query) {
@@ -252,12 +239,11 @@ class OraBooks_Fiscal_Test extends TestCase
 
  $result = OraBooks_Fiscal::create_period(2, '2026-07-01', '2026-09-30');
  $this->assertInstanceOf(WP_Error::class, $result);
- $this->assertSame('duplicate_period', $result->get_error_code);
+ $this->assertSame('duplicate_period', $result->get_error_code());
  }
 
  #[Test]
- public function test_update_period_succeeds_on_open_period
- {
+ public function test_update_period_succeeds_on_open_period() {
  global $wpdb;
 
  $wpdb->test_get_row_callback = function {
@@ -290,8 +276,7 @@ class OraBooks_Fiscal_Test extends TestCase
  }
 
  #[Test]
- public function test_update_period_blocks_soft_closed
- {
+ public function test_update_period_blocks_soft_closed() {
  global $wpdb;
 
  $wpdb->test_get_row_callback = function {
@@ -309,12 +294,11 @@ class OraBooks_Fiscal_Test extends TestCase
  'period_end' => '2026-06-30',
  ], 1);
  $this->assertInstanceOf(WP_Error::class, $result);
- $this->assertSame('invalid_status', $result->get_error_code);
+ $this->assertSame('invalid_status', $result->get_error_code());
  }
 
  #[Test]
- public function test_update_period_blocks_hard_closed
- {
+ public function test_update_period_blocks_hard_closed() {
  global $wpdb;
 
  $wpdb->test_get_row_callback = function {
@@ -332,12 +316,11 @@ class OraBooks_Fiscal_Test extends TestCase
  'period_end' => '2026-05-31',
  ], 1);
  $this->assertInstanceOf(WP_Error::class, $result);
- $this->assertSame('invalid_status', $result->get_error_code);
+ $this->assertSame('invalid_status', $result->get_error_code());
  }
 
  #[Test]
- public function test_update_period_rejects_overlap
- {
+ public function test_update_period_rejects_overlap() {
  global $wpdb;
 
  $wpdb->test_get_row_callback = function {
@@ -361,6 +344,6 @@ class OraBooks_Fiscal_Test extends TestCase
  'period_end' => '2026-10-31',
  ], 1);
  $this->assertInstanceOf(WP_Error::class, $result);
- $this->assertSame('duplicate_period', $result->get_error_code);
+ $this->assertSame('duplicate_period', $result->get_error_code());
  }
 }

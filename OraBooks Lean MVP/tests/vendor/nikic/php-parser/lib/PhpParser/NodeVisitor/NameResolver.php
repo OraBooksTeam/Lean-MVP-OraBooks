@@ -1,4 +1,4 @@
-<?php declare(strict_types=1);
+﻿<?php declare(strict_types=1);
 
 namespace PhpParser\NodeVisitor;
 
@@ -243,7 +243,7 @@ class NameResolver extends NodeVisitorAbstract {
             return $resolvedName;
         }
 
-        // unqualified names inside a namespace cannot be resolved at compile-time
+        // unqualified names inside a namespace cannot be resolved at compile-time()
         // add the namespaced version of the name as an attribute
         $name->setAttribute('namespacedName', FullyQualified::concat(
             $this->nameContext->getNamespace(), $name, $name->getAttributes()));

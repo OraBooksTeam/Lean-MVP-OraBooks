@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 /**
  * OraBooks Plugin Unit Tests Bootstrap
  *
@@ -95,9 +95,9 @@ if (!class_exists('wpdb', false)) {
  /** Register SHOW COLUMNS results so dbDelta calls don't crash */
  private $show_columns_cache = [];
 
- public function __construct {}
+ public function __construct() {}
 
- public function get_charset_collate {
+ public function get_charset_collate() {
  return 'DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci';
  }
 
@@ -188,7 +188,7 @@ if (!class_exists('wpdb', false)) {
  'file_url' => 'http://example.com/exports/test.csv',
  'file_size' => 1024,
  'file_hash' => 'abc123',
- 'expires_at' => date('Y-m-d H:i:s', time + 86400 * 7),
+ 'expires_at' => date('Y-m-d H:i:s', time() + 86400 * 7),
  'download_count' => 0,
  'correlation_id' => '550e8400-e29b-41d4-a716-446655440000',
  'error_message' => null,
@@ -252,12 +252,12 @@ if (!class_exists('wpdb', false)) {
  'file_url' => $i === 1 ? 'http://example.com/exports/test.csv': null,
  'file_size' => $i === 1 ? 2048: null,
  'file_hash' => $i === 1 ? 'def456': null,
- 'expires_at' => $i === 1 ? date('Y-m-d H:i:s', time + 86400 * 7): null,
+ 'expires_at' => $i === 1 ? date('Y-m-d H:i:s', time() + 86400 * 7): null,
  'download_count' => $i === 1 ? 3: 0,
  'correlation_id' => 'uuid-'. $i,
  'error_message' => $i === 3 ? 'Generation failed': null,
- 'generated_at' => $i === 1 ? date('Y-m-d H:i:s', time - 3600): null,
- 'created_at' => date('Y-m-d H:i:s', time - ($i * 3600)),
+ 'generated_at' => $i === 1 ? date('Y-m-d H:i:s', time() - 3600): null,
+ 'created_at' => date('Y-m-d H:i:s', time() - ($i * 3600)),
  ];
  }
  return $rows;
@@ -368,8 +368,8 @@ if (!class_exists('wpdb', false)) {
  return 1;
  }
 
- public function get_charset { return 'utf8mb4'; }
- public function get_collate { return 'utf8mb4_unicode_ci'; }
+ public function get_charset() { return 'utf8mb4'; }
+ public function get_collate() { return 'utf8mb4_unicode_ci'; }
  }
 }
 
@@ -381,7 +381,7 @@ $wpdb = new wpdb;
 if (!class_exists('OraBooks_Database', false)) {
  class OraBooks_Database
  {
- public static function init { return new self; }
+ public static function init() { return new self; }
 
  public static function table($name) {
  global $wpdb;
@@ -397,10 +397,10 @@ if (!class_exists('OraBooks_Database', false)) {
 if (!function_exists('current_time')) {
  function current_time($type, $gmt = false) {
  if ($type === 'mysql') {
- return date('Y-m-d H:i:s', $gmt ? time: time);
+ return date('Y-m-d H:i:s', $gmt ? time(): time());
  }
  if ($type === 'timestamp') {
- return time;
+ return time();
  }
  return date($type);
  }
@@ -532,8 +532,8 @@ if (!function_exists('get_userdata')) {
  }
 }
 
-if (!function_exists('orabooks_get_current_user_id')) {
- function orabooks_get_current_user_id {
+if (!function_exists('orabooks_get_current_user_id()')) {
+ function orabooks_get_current_user_id() {
  return get_current_user_id;
  }
 }
@@ -585,7 +585,7 @@ if (!function_exists('get_transient')) {
  return false;
  }
  // Check expiry
- if ($entry['expires_at'] !== null && $entry['expires_at'] < time) {
+ if ($entry['expires_at'] !== null && $entry['expires_at'] < time()) {
  unset($GLOBALS['orabooks_test_transients'][$key]);
  return false;
  }
@@ -600,7 +600,7 @@ if (!function_exists('set_transient')) {
  }
  $GLOBALS['orabooks_test_transients'][$key] = [
  'value' => $value,
- 'expires_at' => $expiration > 0 ? time + $expiration: null,
+ 'expires_at' => $expiration > 0 ? time() + $expiration: null,
  ];
  return true;
  }
@@ -724,7 +724,7 @@ if (!class_exists('WP_REST_Request')) {
  $this->headers[$key] = $value;
  }
 
- public function get_file_params {
+ public function get_file_params() {
  return $_FILES ?? [];
  }
  }
@@ -741,11 +741,11 @@ if (!class_exists('WP_REST_Response')) {
  $this->status = $status;
  }
 
- public function get_data {
+ public function get_data() {
  return $this->data;
  }
 
- public function get_status {
+ public function get_status() {
  return $this->status;
  }
 
@@ -754,7 +754,7 @@ if (!class_exists('WP_REST_Response')) {
  return $this;
  }
 
- public function get_headers {
+ public function get_headers() {
  return $this->headers;
  }
  }
@@ -818,7 +818,7 @@ if (!function_exists('add_query_arg')) {
 }
 
 if (!function_exists('wp_create_nonce')) {
- function wp_create_nonce($action) { return md5($action. time); }
+ function wp_create_nonce($action) { return md5($action. time()); }
 }
 
 if (!function_exists('number_format_i18n')) {
@@ -846,21 +846,21 @@ if (!class_exists('WP_Error', false)) {
  }
  }
 
- public function get_error_code {
+ public function get_error_code() {
  $codes = array_keys($this->errors);
  return $codes[0] ?? '';
  }
 
  public function get_error_message($code = '') {
  if (empty($code)) {
- $code = $this->get_error_code;
+ $code = $this->get_error_code();
  }
  return $this->errors[$code][0] ?? '';
  }
 
  public function get_error_data($code = '') {
  if (empty($code)) {
- $code = $this->get_error_code;
+ $code = $this->get_error_code();
  }
  return $this->error_data[$code] ?? null;
  }
@@ -1012,7 +1012,7 @@ if (!class_exists('OraBooks_Secrets', false)) {
 
  public static function generate_jwt($payload) {
  $GLOBALS['orabooks_test_last_jwt_payload'] = $payload;
- return $GLOBALS['orabooks_test_jwt_token'] ?? 'test-jwt-token-'. time;
+ return $GLOBALS['orabooks_test_jwt_token'] ?? 'test-jwt-token-'. time();
  }
 
  public static function hash_password($password) {
@@ -1031,7 +1031,7 @@ if (!class_exists('OraBooks_Secrets', false)) {
  return password_verify($password, $hash);
  }
 
- public static function generate_totp_secret {
+ public static function generate_totp_secret() {
  return $GLOBALS['orabooks_test_totp_secret'] ?? 'TESTSECRET123456';
  }
 
@@ -1043,7 +1043,7 @@ if (!class_exists('OraBooks_Secrets', false)) {
  return 'https://quickchart.io/qr?size=200&text='. rawurlencode(self::get_totp_provisioning_uri($secret, $email));
  }
 
- public static function generate_backup_codes {
+ public static function generate_backup_codes() {
  return ['backup-code-001', 'backup-code-002', 'backup-code-003', 'backup-code-004', 'backup-code-005', 'backup-code-006', 'backup-code-007', 'backup-code-008'];
  }
 
@@ -1082,7 +1082,7 @@ if (!class_exists('OraBooks_Secrets', false)) {
  return false;
  }
 
- if (empty($payload['exp']) || (int) $payload['exp'] < time) {
+ if (empty($payload['exp']) || (int) $payload['exp'] < time()) {
  // Test tokens omit exp — treat missing exp as valid in unit tests.
  if (!empty($payload['exp'])) {
  return false;
@@ -1092,15 +1092,15 @@ if (!class_exists('OraBooks_Secrets', false)) {
  return $payload;
  }
 
- public static function get_jwt_secret {
+ public static function get_jwt_secret() {
  return $GLOBALS['orabooks_test_jwt_secret'] ?? 'test-jwt-secret-with-sufficient-length-for-sl008';
  }
 
- public static function get_encryption_key {
+ public static function get_encryption_key() {
  return $GLOBALS['orabooks_test_encryption_key'] ?? 'test-encryption-key-32chars-min!!';
  }
 
- public static function get_status {
+ public static function get_status() {
  if (isset($GLOBALS['orabooks_test_secrets_status'])) {
  return $GLOBALS['orabooks_test_secrets_status'];
  }
@@ -1118,23 +1118,23 @@ if (!class_exists('OraBooks_Secrets', false)) {
  ];
  }
 
- public static function requires_tls {
+ public static function requires_tls() {
  return (bool) ($GLOBALS['orabooks_test_requires_tls'] ?? false);
  }
 
- public static function is_ready {
+ public static function is_ready() {
  return (bool) ($GLOBALS['orabooks_test_secrets_ready'] ?? true);
  }
 
- public static function get_hmac_signing_key {
+ public static function get_hmac_signing_key() {
  return (string) self::get_jwt_secret;
  }
 
- public static function get_default_jwt_expiry {
+ public static function get_default_jwt_expiry() {
  return 900;
  }
 
- public static function check_database_tls {
+ public static function check_database_tls() {
  return $GLOBALS['orabooks_test_database_tls'] ?? [
  'ok' => true,
  'skipped' => true,
@@ -1427,9 +1427,9 @@ if (!function_exists('orabooks_validate_password')) {
  }
 }
 
-if (!function_exists('orabooks_is_user_logged_in')) {
- function orabooks_is_user_logged_in {
- return orabooks_get_current_user_id > 0;
+if (!function_exists('orabooks_is_user_logged_in()')) {
+ function orabooks_is_user_logged_in() {
+ return orabooks_get_current_user_id() > 0;
  }
 }
 
@@ -1472,8 +1472,8 @@ if (!function_exists('orabooks_persist_login_session')) {
  }
 }
 
-if (!function_exists('orabooks_get_refresh_token_cookie_ttl')) {
- function orabooks_get_refresh_token_cookie_ttl {
+if (!function_exists('orabooks_get_refresh_token_cookie_ttl()')) {
+ function orabooks_get_refresh_token_cookie_ttl() {
  return 604800;
  }
 }
@@ -1490,8 +1490,8 @@ if (!function_exists('orabooks_clear_refresh_token_cookie')) {
  }
 }
 
-if (!function_exists('orabooks_get_refresh_token_from_request')) {
- function orabooks_get_refresh_token_from_request {
+if (!function_exists('orabooks_get_refresh_token_from_request()')) {
+ function orabooks_get_refresh_token_from_request() {
  return $GLOBALS['orabooks_test_refresh_token_cookie'] ?? '';
  }
 }
@@ -1562,14 +1562,14 @@ if (!function_exists('orabooks_normalize_backup_code')) {
  }
 }
 
-if (!function_exists('orabooks_resolve_tier_selection_user_id')) {
+if (!function_exists('orabooks_resolve_tier_selection_user_id()')) {
  function orabooks_resolve_tier_selection_user_id($token = '') {
  return 0;
  }
 }
 
-if (!function_exists('orabooks_clear_logout_landing_cookie')) {
- function orabooks_clear_logout_landing_cookie {
+if (!function_exists('orabooks_clear_logout_landing_cookie()')) {
+ function orabooks_clear_logout_landing_cookie() {
  unset($GLOBALS['orabooks_test_logout_cookie']);
  }
 }
@@ -1603,7 +1603,7 @@ if (!function_exists('orabooks_get_org_workspace_url')) {
  }
 }
 
-if (!function_exists('orabooks_get_network_login_url')) {
+if (!function_exists('orabooks_get_network_login_url()')) {
  function orabooks_get_network_login_url($path = 'login') {
  return home_url('/'. ltrim((string) $path, '/'). '/');
  }
@@ -1621,8 +1621,8 @@ if (!function_exists('orabooks_ensure_wp_user_link_for_orabooks_user')) {
  }
 }
 
-if (!function_exists('orabooks_get_logout_redirect_url')) {
- function orabooks_get_logout_redirect_url {
+if (!function_exists('orabooks_get_logout_redirect_url()')) {
+ function orabooks_get_logout_redirect_url() {
  return add_query_arg('logged_out', '1', orabooks_get_network_login_url('login'));
  }
 }
@@ -1677,9 +1677,9 @@ if (!function_exists('orabooks_auth_error_status_code')) {
  }
 }
 
-if (!function_exists('orabooks_resolve_authenticated_user_id')) {
- function orabooks_resolve_authenticated_user_id {
- return orabooks_get_current_user_id;
+if (!function_exists('orabooks_resolve_authenticated_user_id()')) {
+ function orabooks_resolve_authenticated_user_id() {
+ return orabooks_get_current_user_id();
  }
 }
 
@@ -1732,7 +1732,7 @@ if (!function_exists('orabooks_get_allowed_regions')) {
  }
 }
 
-if (!function_exists('orabooks_get_default_region_for_tier')) {
+if (!function_exists('orabooks_get_default_region_for_tier()')) {
  function orabooks_get_default_region_for_tier($tier) {
  return 'us-east';
  }
@@ -1913,32 +1913,32 @@ if (!function_exists('orabooks_get_user_role')) {
  }
 }
 
-if (!function_exists('orabooks_get_client_ip')) {
- function orabooks_get_client_ip {
+if (!function_exists('orabooks_get_client_ip()')) {
+ function orabooks_get_client_ip() {
  return '127.0.0.1';
  }
 }
 
-if (!function_exists('orabooks_get_user_agent')) {
- function orabooks_get_user_agent {
+if (!function_exists('orabooks_get_user_agent()')) {
+ function orabooks_get_user_agent() {
  return 'PHPUnit Test/1.0';
  }
 }
 
-if (!function_exists('orabooks_generate_partner_code')) {
- function orabooks_generate_partner_code {
- return 'PARTNER-'. strtoupper(substr(md5(time), 0, 8));
+if (!function_exists('orabooks_generate_partner_code()')) {
+ function orabooks_generate_partner_code() {
+ return 'PARTNER-'. strtoupper(substr(md5(time()), 0, 8));
  }
 }
 
-if (!function_exists('orabooks_users_can_register')) {
- function orabooks_users_can_register {
+if (!function_exists('orabooks_users_can_register()')) {
+ function orabooks_users_can_register() {
  return true;
  }
 }
 
-if (!function_exists('orabooks_multisite_uses_signup_activation')) {
- function orabooks_multisite_uses_signup_activation {
+if (!function_exists('orabooks_multisite_uses_signup_activation()')) {
+ function orabooks_multisite_uses_signup_activation() {
  return false;
  }
 }
@@ -1958,7 +1958,7 @@ if (!function_exists('orabooks_create_wp_user_for_registration')) {
 
 if (!function_exists('orabooks_resolve_user_id')) {
  function orabooks_resolve_user_id($user_id = 0) {
- return (int) ($user_id ?: orabooks_get_current_user_id);
+ return (int) ($user_id ?: orabooks_get_current_user_id());
  }
 }
 
@@ -2311,8 +2311,8 @@ if (!class_exists('OraBooks_Audit', false)) {
 // Stub OraBooks_Commission
 if (!class_exists('OraBooks_Commission', false)) {
  class OraBooks_Commission {
- public static function init { return new self; }
- public static function get_config { return (object)['min_payout_threshold' => 25.00, 'customer_active_window_days' => 30, 'base_monthly_amount' => 10.00, 'max_years' => 6, 'yearly_percentages' => [20, 15, 10, 5, 2.5, 1], 'currency' => 'USD']; }
+ public static function init() { return new self; }
+ public static function get_config() { return (object)['min_payout_threshold' => 25.00, 'customer_active_window_days' => 30, 'base_monthly_amount' => 10.00, 'max_years' => 6, 'yearly_percentages' => [20, 15, 10, 5, 2.5, 1], 'currency' => 'USD']; }
  public static function get_commission_stats($partner_user_id) { return ['total_earned' => 0, 'pending_payout' => 0, 'total_paid' => 0, 'total_expired' => 0]; }
  public static function get_payouts($partner_user_id, $args = []) { return []; }
  public static function refresh_customer_active_status($customer_id) { return true; }

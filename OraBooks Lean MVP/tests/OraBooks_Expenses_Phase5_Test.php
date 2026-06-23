@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 /**
  * Phase 5 — observability metrics and production confidence tests.
  */
@@ -101,7 +101,7 @@ class OraBooks_Expenses_Phase5_Test extends TestCase
  $result = OraBooks_Expenses::upload_receipt(9, 1, 'receipt.pdf', '%PDF-1.4', 'application/pdf');
 
  $this->assertInstanceOf(WP_Error::class, $result);
- $this->assertSame('rate_limit', $result->get_error_code);
+ $this->assertSame('rate_limit', $result->get_error_code());
  }
 
  #[Test]

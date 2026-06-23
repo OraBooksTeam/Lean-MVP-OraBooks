@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 /**
  * Unit Tests for OraBooks_Ai_Providers (,, )
  */
@@ -27,8 +27,7 @@ class OraBooks_Ai_Providers_Test extends TestCase
  }
 
  #[Test]
- public function test_provider_name_defaults_to_stub_without_credentials
- {
+ public function test_provider_name_defaults_to_stub_without_credentials() {
  $this->assertSame('mvp-stub', OraBooks_Ai_Providers::provider_name('ocr'));
  $this->assertSame('mvp-stub', OraBooks_Ai_Providers::provider_name('speech'));
  $this->assertSame('mvp-stub', OraBooks_Ai_Providers::provider_name('classification'));
@@ -36,8 +35,7 @@ class OraBooks_Ai_Providers_Test extends TestCase
  }
 
  #[Test]
- public function test_provider_name_uses_azure_document_intelligence_when_configured
- {
+ public function test_provider_name_uses_azure_document_intelligence_when_configured() {
  $GLOBALS['orabooks_test_secrets'] = [
  'azure_document_intelligence_endpoint' => 'https://example.cognitiveservices.azure.com',
  'azure_document_intelligence_key' => 'test-key',
@@ -48,8 +46,7 @@ class OraBooks_Ai_Providers_Test extends TestCase
  }
 
  #[Test]
- public function test_run_ocr_falls_back_to_stub_without_file_bytes
- {
+ public function test_run_ocr_falls_back_to_stub_without_file_bytes() {
  $ocr = OraBooks_Ai_Providers::run_ocr([
  'filename' => 'office-supplies.pdf',
  'expense_id' => 12,
@@ -63,8 +60,7 @@ class OraBooks_Ai_Providers_Test extends TestCase
  }
 
  #[Test]
- public function test_normalize_receipt_result_maps_azure_fields
- {
+ public function test_normalize_receipt_result_maps_azure_fields() {
  $payload = [
  'analyzeResult' => [
  'documents' => [[
@@ -91,8 +87,7 @@ class OraBooks_Ai_Providers_Test extends TestCase
  }
 
  #[Test]
- public function test_run_ocr_uses_document_intelligence_when_configured
- {
+ public function test_run_ocr_uses_document_intelligence_when_configured() {
  $GLOBALS['orabooks_test_secrets'] = [
  'azure_document_intelligence_endpoint' => 'https://example.cognitiveservices.azure.com',
  'azure_document_intelligence_key' => 'test-key',
@@ -141,8 +136,7 @@ class OraBooks_Ai_Providers_Test extends TestCase
  }
 
  #[Test]
- public function test_classify_record_falls_back_to_stub_without_credentials
- {
+ public function test_classify_record_falls_back_to_stub_without_credentials() {
  $record = (object) ['category' => 'meals'];
  $suggestion = OraBooks_Ai_Providers::classify_record('expense', $record, 'team lunch', 85.0, 1);
 
@@ -151,8 +145,7 @@ class OraBooks_Ai_Providers_Test extends TestCase
  }
 
  #[Test]
- public function test_run_voice_nlu_falls_back_to_stub_without_audio
- {
+ public function test_run_voice_nlu_falls_back_to_stub_without_audio() {
  $result = OraBooks_Ai_Providers::run_voice_nlu([
  'filename' => 'recording.webm',
  'voice_id' => 3,

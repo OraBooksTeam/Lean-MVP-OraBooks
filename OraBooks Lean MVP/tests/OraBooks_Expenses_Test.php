@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 /**
  * Unit Tests for OraBooks_Expenses
  */
@@ -9,8 +9,7 @@ use PHPUnit\Framework\TestCase;
 class OraBooks_Expenses_Test extends TestCase
 {
  #[Test]
- public function test_schema_defines_sl028_tables
- {
+ public function test_schema_defines_sl028_tables() {
  $sql = implode("\n", OraBooks_Expenses::get_create_table_sql);
 
  $this->assertStringContainsString('orabooks_expenses', $sql);
@@ -21,8 +20,7 @@ class OraBooks_Expenses_Test extends TestCase
  }
 
  #[Test]
- public function test_ocr_stub_returns_structured_fields
- {
+ public function test_ocr_stub_returns_structured_fields() {
  $ocr = OraBooks_Expenses::run_ocr_stub('office-supplies-receipt.pdf', 42);
 
  $this->assertNotEmpty($ocr['vendor']);
@@ -34,8 +32,7 @@ class OraBooks_Expenses_Test extends TestCase
  }
 
  #[Test]
- public function test_ocr_stub_elevates_risk_for_high_value_expense
- {
+ public function test_ocr_stub_elevates_risk_for_high_value_expense() {
  $ocr = OraBooks_Expenses::run_ocr_stub('enterprise-vendor-invoice.pdf', 95000);
 
  $this->assertGreaterThanOrEqual(5000, $ocr['total_amount']);
@@ -43,8 +40,7 @@ class OraBooks_Expenses_Test extends TestCase
  }
 
  #[Test]
- public function test_format_expense_maps_core_fields
- {
+ public function test_format_expense_maps_core_fields() {
  $row = (object) [
  'id' => 7,
  'org_id' => 1,
@@ -92,8 +88,7 @@ class OraBooks_Expenses_Test extends TestCase
  }
 
  #[Test]
- public function test_format_expense_hides_ocr_risk_until_confidence_exists
- {
+ public function test_format_expense_hides_ocr_risk_until_confidence_exists() {
  $row = (object) [
  'id' => 8,
  'org_id' => 1,
@@ -138,8 +133,7 @@ class OraBooks_Expenses_Test extends TestCase
  }
 
  #[Test]
- public function test_ocr_stub_includes_extended_sl028_fields
- {
+ public function test_ocr_stub_includes_extended_sl028_fields() {
  $ocr = OraBooks_Expenses::run_ocr_stub('vendor-receipt.pdf', 10);
 
  $this->assertArrayHasKey('vendor_tax_id', $ocr);
@@ -148,8 +142,7 @@ class OraBooks_Expenses_Test extends TestCase
  }
 
  #[Test]
- public function test_run_live_checks_returns_expected_shape
- {
+ public function test_run_live_checks_returns_expected_shape() {
  $result = OraBooks_Expenses::run_live_checks(0);
 
  $this->assertArrayHasKey('ok', $result);
@@ -163,8 +156,7 @@ class OraBooks_Expenses_Test extends TestCase
  }
 
  #[Test]
- public function test_get_ocr_queue_state_returns_latest_row
- {
+ public function test_get_ocr_queue_state_returns_latest_row() {
  global $wpdb;
 
  $wpdb->test_get_row_callback = function ($query) {
@@ -181,8 +173,7 @@ class OraBooks_Expenses_Test extends TestCase
  }
 
  #[Test]
- public function test_resolve_submit_route_matrix
- {
+ public function test_resolve_submit_route_matrix() {
  $submitted = OraBooks_Expenses::resolve_submit_route(80, 'low');
  $this->assertSame('submitted', $submitted['target_status']);
 
@@ -191,8 +182,7 @@ class OraBooks_Expenses_Test extends TestCase
  }
 
  #[Test]
- public function test_async_ocr_handler_is_registered
- {
+ public function test_async_ocr_handler_is_registered() {
  if (!class_exists('OraBooks_AsyncQueue')) {
  $this->markTestSkipped('OraBooks_AsyncQueue not loaded');
  }
@@ -203,8 +193,7 @@ class OraBooks_Expenses_Test extends TestCase
  }
 
  #[Test]
- public function test_get_org_settings_falls_back_to_global_option
- {
+ public function test_get_org_settings_falls_back_to_global_option() {
  global $wpdb;
 
  $settings_table = OraBooks_Database::table('expense_settings');
@@ -234,8 +223,7 @@ class OraBooks_Expenses_Test extends TestCase
  }
 
  #[Test]
- public function test_save_org_settings_persists_auto_post_flag
- {
+ public function test_save_org_settings_persists_auto_post_flag() {
  global $wpdb;
 
  $settings_table = OraBooks_Database::table('expense_settings');

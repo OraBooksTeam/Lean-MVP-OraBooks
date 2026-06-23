@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 /**
  * OraBooks OWASP Top-10 Security Controls
  *
@@ -47,7 +47,7 @@ class OraBooks_Security {
  /**
  * OWASP Top-10 (2021) catalog — source of truth for matrix + admin UI.
  */
- public static function get_owasp_catalog {
+ public static function get_owasp_catalog() {
  return [
  'A01' => [
  'control_name' => 'Broken Access Control',
@@ -164,7 +164,7 @@ class OraBooks_Security {
  ];
  }
 
- public static function init {
+ public static function init() {
  if (self::$instance === null) {
  self::$instance = new self;
 
@@ -182,7 +182,7 @@ class OraBooks_Security {
  return self::$instance;
  }
 
- public static function get_create_table_sql {
+ public static function get_create_table_sql() {
  global $wpdb;
  $charset_collate = $wpdb->get_charset_collate;
  $tables = [];
@@ -230,7 +230,7 @@ class OraBooks_Security {
  /**
  * Seed OWASP Top-10 (2021) control mapping matrix.
  */
- public static function seed_owasp_controls {
+ public static function seed_owasp_controls() {
  global $wpdb;
 
  $table = OraBooks_Database::table('security_controls');
@@ -257,7 +257,7 @@ class OraBooks_Security {
  /**
  * Send HTTP security headers ( §5.5).
  */
- public static function send_security_headers {
+ public static function send_security_headers() {
  if (headers_sent) {
  return;
  }
@@ -290,7 +290,7 @@ class OraBooks_Security {
  update_option('orabooks_security_headers_last_sent', current_time('mysql', true));
  }
 
- public function maybe_send_security_headers {
+ public function maybe_send_security_headers() {
  $send = false;
 
  if (defined('DOING_AJAX') && DOING_AJAX) {
@@ -310,7 +310,7 @@ class OraBooks_Security {
  /**
  * Centralized rate-limit configuration.
  */
- public static function get_rate_limit_config {
+ public static function get_rate_limit_config() {
  return apply_filters('orabooks_security_rate_limits', self::$rate_limits);
  }
 
@@ -452,7 +452,7 @@ class OraBooks_Security {
  /**
  * Verify OWASP controls and update matrix status.
  */
- public static function verify_controls {
+ public static function verify_controls() {
  global $wpdb;
 
  $table = OraBooks_Database::table('security_controls');
@@ -504,7 +504,7 @@ class OraBooks_Security {
  global $wpdb;
 
  $hours = max(1, min(168, (int) $hours));
- $since = date('Y-m-d H:i:s', time - ($hours * 3600));
+ $since = date('Y-m-d H:i:s', time() - ($hours * 3600));
 
  $incidents_table = OraBooks_Database::table('security_incidents');
  $audit_table = OraBooks_Database::table('audit_logs');
@@ -600,12 +600,12 @@ class OraBooks_Security {
  /**
  * Secret rotation status for dashboard.
  */
- public static function get_secret_rotation_status {
+ public static function get_secret_rotation_status() {
  $last_rotated = get_option('orabooks_secrets_last_rotated', '');
  if ($last_rotated === '') {
  $last_rotated = get_option('orabooks_installed_at', current_time('mysql', true));
  }
- $days_since = (int) floor((time - strtotime($last_rotated)) / DAY_IN_SECONDS);
+ $days_since = (int) floor((time() - strtotime($last_rotated)) / DAY_IN_SECONDS);
 
  return [
  'last_rotated' => $last_rotated,
@@ -632,7 +632,7 @@ class OraBooks_Security {
  return (int) $wpdb->insert_id;
  }
 
- public static function get_headers_status {
+ public static function get_headers_status() {
  $last_sent = get_option('orabooks_security_headers_last_sent', '');
  $configured = [
  'Strict-Transport-Security' => is_ssl,
@@ -650,7 +650,7 @@ class OraBooks_Security {
  ];
  }
 
- public function cron_dependency_scan {
+ public function cron_dependency_scan() {
  $inventory = self::collect_dependency_inventory;
  $vulnerabilities = (int) ($inventory['vulnerabilities'] ?? 0);
  $status = $vulnerabilities > 0 ? 'fail': 'pass';
@@ -678,7 +678,7 @@ class OraBooks_Security {
  /**
  * Inventory Composer and npm dependencies for SBOM tracking.
  */
- private static function collect_dependency_inventory {
+ private static function collect_dependency_inventory() {
  $packages = [];
  $vulnerabilities = 0;
 
@@ -715,7 +715,7 @@ class OraBooks_Security {
  ];
  }
 
- public function cron_header_check {
+ public function cron_header_check() {
  $status = self::get_headers_status;
  $all_ok = !in_array(false, $status['configured'], true);
  $scan_status = $all_ok ? 'pass': 'warn';
@@ -740,7 +740,7 @@ class OraBooks_Security {
  );
  }
 
- public function cron_audit_integrity {
+ public function cron_audit_integrity() {
  global $wpdb;
 
  $audit_table = OraBooks_Database::table('audit_logs');
@@ -805,14 +805,14 @@ class OraBooks_Security {
  }
  }
 
- public function cron_secret_rotation_reminder {
+ public function cron_secret_rotation_reminder() {
  $last_rotated = get_option('orabooks_secrets_last_rotated', '');
  if ($last_rotated === '') {
  $last_rotated = get_option('orabooks_installed_at', current_time('mysql', true));
  update_option('orabooks_secrets_last_rotated', $last_rotated);
  }
 
- $days_since = (int) floor((time - strtotime($last_rotated)) / DAY_IN_SECONDS);
+ $days_since = (int) floor((time() - strtotime($last_rotated)) / DAY_IN_SECONDS);
  $due = $days_since >= self::SECRET_ROTATION_DAYS;
  $status = $due ? 'warn': 'pass';
  $summary = $due
@@ -838,11 +838,11 @@ class OraBooks_Security {
  }
  }
 
- public function cron_purge_old_records {
+ public function cron_purge_old_records() {
  global $wpdb;
 
- $incident_cutoff = date('Y-m-d H:i:s', time - (self::INCIDENT_RETENTION_DAYS * DAY_IN_SECONDS));
- $scan_cutoff = date('Y-m-d H:i:s', time - (self::SCAN_RETENTION_DAYS * DAY_IN_SECONDS));
+ $incident_cutoff = date('Y-m-d H:i:s', time() - (self::INCIDENT_RETENTION_DAYS * DAY_IN_SECONDS));
+ $scan_cutoff = date('Y-m-d H:i:s', time() - (self::SCAN_RETENTION_DAYS * DAY_IN_SECONDS));
 
  $incidents = OraBooks_Database::table('security_incidents');
  $scans = OraBooks_Database::table('security_scan_results');
@@ -862,7 +862,7 @@ class OraBooks_Security {
  ]);
  }
 
- public function ajax_dashboard {
+ public function ajax_dashboard() {
  if (!current_user_can('manage_options')) {
  orabooks_json_error('Permission denied', 403);
  }
@@ -871,7 +871,7 @@ class OraBooks_Security {
  orabooks_json_success(self::get_dashboard($hours));
  }
 
- public function ajax_verify_controls {
+ public function ajax_verify_controls() {
  if (!current_user_can('manage_options')) {
  orabooks_json_error('Permission denied', 403);
  }
@@ -932,11 +932,11 @@ class OraBooks_Security {
  }
  }
 
- private static function evaluate_access_denied_threshold {
+ private static function evaluate_access_denied_threshold() {
  global $wpdb;
 
  $table = OraBooks_Database::table('security_incidents');
- $since = date('Y-m-d H:i:s', time - 3600);
+ $since = date('Y-m-d H:i:s', time() - 3600);
  $count = (int) $wpdb->get_var($wpdb->prepare(
  "SELECT COUNT(*) FROM {$table}
  WHERE incident_type = 'access_denied' AND created_at >= %s",
@@ -986,7 +986,7 @@ class OraBooks_Security {
  }
  }
 
- private static function get_client_ip {
+ private static function get_client_ip() {
  $ip = $_SERVER['REMOTE_ADDR'] ?? '';
  return sanitize_text_field(substr($ip, 0, 45));
  }

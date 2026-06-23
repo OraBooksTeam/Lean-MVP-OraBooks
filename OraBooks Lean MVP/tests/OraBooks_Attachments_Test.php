@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 /**
  * Unit Tests for OraBooks_Attachments
  */
@@ -27,8 +27,7 @@ class OraBooks_Attachments_Test extends TestCase
  }
 
  #[Test]
- public function test_schema_defines_sl203_tables
- {
+ public function test_schema_defines_sl203_tables() {
  $sql = implode("\n", OraBooks_Attachments::get_create_table_sql);
 
  $this->assertStringContainsString('orabooks_attachments', $sql);
@@ -38,8 +37,7 @@ class OraBooks_Attachments_Test extends TestCase
  }
 
  #[Test]
- public function test_resource_types_include_common_entities
- {
+ public function test_resource_types_include_common_entities() {
  $this->assertContains('invoice', OraBooks_Attachments::RESOURCE_TYPES);
  $this->assertContains('bill', OraBooks_Attachments::RESOURCE_TYPES);
  $this->assertContains('inventory_item', OraBooks_Attachments::RESOURCE_TYPES);
@@ -50,8 +48,7 @@ class OraBooks_Attachments_Test extends TestCase
  }
 
  #[Test]
- public function test_format_version_maps_expected_fields
- {
+ public function test_format_version_maps_expected_fields() {
  $version = (object) [
  'id' => 9,
  'attachment_id' => 3,
@@ -75,8 +72,7 @@ class OraBooks_Attachments_Test extends TestCase
  }
 
  #[Test]
- public function test_upload_rejects_invalid_resource_type
- {
+ public function test_upload_rejects_invalid_resource_type() {
  $result = OraBooks_Attachments::upload_attachment(
  1,
  1,
@@ -88,12 +84,11 @@ class OraBooks_Attachments_Test extends TestCase
  );
 
  $this->assertInstanceOf(WP_Error::class, $result);
- $this->assertSame('invalid_resource_type', $result->get_error_code);
+ $this->assertSame('invalid_resource_type', $result->get_error_code());
  }
 
  #[Test]
- public function test_upload_rejects_empty_file
- {
+ public function test_upload_rejects_empty_file() {
  $result = OraBooks_Attachments::upload_attachment(
  1,
  1,
@@ -105,12 +100,11 @@ class OraBooks_Attachments_Test extends TestCase
  );
 
  $this->assertInstanceOf(WP_Error::class, $result);
- $this->assertSame('invalid_file', $result->get_error_code);
+ $this->assertSame('invalid_file', $result->get_error_code());
  }
 
  #[Test]
- public function test_format_attachment_row_includes_current_version_fields
- {
+ public function test_format_attachment_row_includes_current_version_fields() {
  $row = (object) [
  'id' => 5,
  'org_id' => 1,

@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 /**
  * Unit Tests for OraBooks_Secrets
  */
@@ -16,7 +16,7 @@ class OraBooks_Secrets_Test extends TestCase
  $GLOBALS['orabooks_test_options'] = [];
  OraBooks_Secrets::set('jwt_secret', 'initial-jwt-secret-with-enough-length-for-tests');
  OraBooks_Secrets::set('encryption_key', 'initial-encryption-key-32chars-min');
- update_option('orabooks_jwt_secret_grace_until', time + 3600);
+ update_option('orabooks_jwt_secret_grace_until', time() + 3600);
  }
 
  private function reset_secrets_cache: void
@@ -39,15 +39,13 @@ class OraBooks_Secrets_Test extends TestCase
  }
 
  #[Test]
- public function test_mask_value_redacts_short_and_long_secrets
- {
+ public function test_mask_value_redacts_short_and_long_secrets() {
  $this->assertSame('****', OraBooks_Secrets::mask_value('short'));
  $this->assertSame('abcd…wxyz', OraBooks_Secrets::mask_value('abcdefghijklmnopwxyz'));
  }
 
  #[Test]
- public function test_redact_sensitive_removes_nested_secret_keys
- {
+ public function test_redact_sensitive_removes_nested_secret_keys() {
  $redacted = OraBooks_Secrets::redact_sensitive([
  'user' => 'alice',
  'jwt_token' => 'abc123',
@@ -60,16 +58,14 @@ class OraBooks_Secrets_Test extends TestCase
  }
 
  #[Test]
- public function test_encrypt_sensitive_round_trip
- {
+ public function test_encrypt_sensitive_round_trip() {
  $encrypted = OraBooks_Secrets::encrypt_sensitive('totp-secret-value');
  $this->assertStringStartsWith('enc:', $encrypted);
  $this->assertSame('totp-secret-value', OraBooks_Secrets::decrypt_sensitive($encrypted));
  }
 
  #[Test]
- public function test_jwt_rotation_accepts_previous_secret_during_grace_period
- {
+ public function test_jwt_rotation_accepts_previous_secret_during_grace_period() {
  $payload = ['sub' => 42, 'type' => 'access'];
  $old_secret = OraBooks_Secrets::get_jwt_secret;
  $token = OraBooks_Secrets::generate_jwt($payload);
@@ -81,8 +77,7 @@ class OraBooks_Secrets_Test extends TestCase
  }
 
  #[Test]
- public function test_check_tls_certificate_skips_localhost
- {
+ public function test_check_tls_certificate_skips_localhost() {
  $result = OraBooks_Secrets::check_tls_certificate('localhost');
 
  $this->assertTrue($result['ok']);
@@ -90,12 +85,11 @@ class OraBooks_Secrets_Test extends TestCase
  }
 
  #[Test]
- public function test_totp_round_trip_with_base32_secret
- {
+ public function test_totp_round_trip_with_base32_secret() {
  $secret = OraBooks_Secrets::generate_totp_secret;
  $this->assertNotSame('', $secret);
 
- $time_slice = floor(time / 30);
+ $time_slice = floor(time() / 30);
  $ref = new ReflectionClass(OraBooks_Secrets::class);
  $method = $ref->getMethod('generate_totp_code');
  $method->setAccessible(true);
@@ -109,32 +103,29 @@ class OraBooks_Secrets_Test extends TestCase
  }
 
  #[Test]
- public function test_generate_jwt_respects_custom_expiry
- {
+ public function test_generate_jwt_respects_custom_expiry() {
  OraBooks_Secrets::set('jwt_secret', 'jwt-secret-with-enough-length-for-custom-exp-tests');
  $token = OraBooks_Secrets::generate_jwt([
  'user_id' => 1,
  'purpose' => '2fa_challenge',
- 'exp' => time + 300,
+ 'exp' => time() + 300,
  ]);
 
  $payload = OraBooks_Secrets::verify_jwt($token);
  $this->assertIsArray($payload);
  $this->assertSame('2fa_challenge', $payload['purpose']);
- $this->assertLessThanOrEqual(time + 301, (int) $payload['exp']);
- $this->assertGreaterThan(time + 240, (int) $payload['exp']);
+ $this->assertLessThanOrEqual(time() + 301, (int) $payload['exp']);
+ $this->assertGreaterThan(time() + 240, (int) $payload['exp']);
  }
 
  #[Test]
- public function test_get_hmac_signing_key_matches_jwt_secret
- {
+ public function test_get_hmac_signing_key_matches_jwt_secret() {
  $this->assertSame(OraBooks_Secrets::get_jwt_secret, OraBooks_Secrets::get_hmac_signing_key);
  }
 
  #[Test]
- public function test_check_database_tls_skips_non_production
- {
- $off = static function {
+ public function test_check_database_tls_skips_non_production() {
+ $off = static function() {
  return false;
  };
  add_filter('orabooks_is_production', $off);
@@ -148,12 +139,11 @@ class OraBooks_Secrets_Test extends TestCase
  }
 
  #[Test]
- public function test_bootstrap_fails_in_production_when_secrets_invalid
- {
- $prod = static function {
+ public function test_bootstrap_fails_in_production_when_secrets_invalid() {
+ $prod = static function() {
  return true;
  };
- $db_tls = static function {
+ $db_tls = static function() {
  return true;
  };
  add_filter('orabooks_is_production', $prod);
@@ -166,7 +156,7 @@ class OraBooks_Secrets_Test extends TestCase
  $result = OraBooks_Secrets::bootstrap;
 
  $this->assertInstanceOf(WP_Error::class, $result);
- $this->assertSame('secrets_invalid', $result->get_error_code);
+ $this->assertSame('secrets_invalid', $result->get_error_code());
 
  $this->reset_secrets_cache;
  OraBooks_Secrets::init;
@@ -179,8 +169,7 @@ class OraBooks_Secrets_Test extends TestCase
  }
 
  #[Test]
- public function test_default_jwt_expiry_is_fifteen_minutes
- {
+ public function test_default_jwt_expiry_is_fifteen_minutes() {
  $this->assertSame(900, OraBooks_Secrets::get_default_jwt_expiry);
  }
 }

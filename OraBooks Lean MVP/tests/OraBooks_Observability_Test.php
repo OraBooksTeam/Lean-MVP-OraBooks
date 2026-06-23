@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 /**
  * Unit Tests for OraBooks_Observability
  */
@@ -28,8 +28,7 @@ class OraBooks_Observability_Test extends TestCase
  }
 
  #[Test]
- public function test_schema_defines_sl093_tables
- {
+ public function test_schema_defines_sl093_tables() {
  $sql = implode("\n", OraBooks_Observability::get_create_table_sql);
 
  $this->assertStringContainsString('orabooks_platform_metrics', $sql);
@@ -38,8 +37,7 @@ class OraBooks_Observability_Test extends TestCase
  }
 
  #[Test]
- public function test_record_metric_inserts_sample
- {
+ public function test_record_metric_inserts_sample() {
  global $wpdb;
 
  $captured = null;
@@ -59,8 +57,7 @@ class OraBooks_Observability_Test extends TestCase
  }
 
  #[Test]
- public function test_collect_platform_metrics_snapshots_services
- {
+ public function test_collect_platform_metrics_snapshots_services() {
  global $wpdb;
 
  $call = 0;
@@ -97,8 +94,7 @@ class OraBooks_Observability_Test extends TestCase
  }
 
  #[Test]
- public function test_evaluate_thresholds_identifies_backlog
- {
+ public function test_evaluate_thresholds_identifies_backlog() {
  $snapshots = [
  'eventbus' => ['pending' => 500, 'dead_letter' => 15, 'status' => 'critical'],
  'async_queue' => [
@@ -121,8 +117,7 @@ class OraBooks_Observability_Test extends TestCase
  }
 
  #[Test]
- public function test_status_from_counts_marks_critical_when_dead_letters_high
- {
+ public function test_status_from_counts_marks_critical_when_dead_letters_high() {
  $ref = new ReflectionMethod(OraBooks_Observability::class, 'status_from_counts');
  $status = $ref->invoke(null, 10, 100, 25, 20);
 
@@ -130,8 +125,7 @@ class OraBooks_Observability_Test extends TestCase
  }
 
  #[Test]
- public function test_get_workflow_health_supports_org_scope
- {
+ public function test_get_workflow_health_supports_org_scope() {
  global $wpdb;
 
  $queries = [];
@@ -151,8 +145,7 @@ class OraBooks_Observability_Test extends TestCase
  }
 
  #[Test]
- public function test_slo_dashboard_calculates_error_budget
- {
+ public function test_slo_dashboard_calculates_error_budget() {
  global $wpdb;
 
  $wpdb->test_get_row_callback = function ($query) {
@@ -194,8 +187,7 @@ class OraBooks_Observability_Test extends TestCase
  }
 
  #[Test]
- public function test_evaluate_error_budgets_alerts_on_breach
- {
+ public function test_evaluate_error_budgets_alerts_on_breach() {
  $ref = new ReflectionMethod(OraBooks_Observability::class, 'build_slo_status');
  $definition = [
  'name' => 'Test SLO',

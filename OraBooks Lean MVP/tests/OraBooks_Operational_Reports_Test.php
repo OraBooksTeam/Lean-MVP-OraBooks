@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 /**
  * Unit Tests for OraBooks_Operational_Reports
  */
@@ -31,8 +31,7 @@ class OraBooks_Operational_Reports_Test extends TestCase
  }
 
  #[Test]
- public function test_schema_defines_sl075_read_models
- {
+ public function test_schema_defines_sl075_read_models() {
  $sql = implode("\n", OraBooks_Operational_Reports::get_create_table_sql);
 
  $this->assertStringContainsString('orabooks_report_inventory_status', $sql);
@@ -45,8 +44,7 @@ class OraBooks_Operational_Reports_Test extends TestCase
  }
 
  #[Test]
- public function test_ar_aging_groups_bucket_rows_per_customer
- {
+ public function test_ar_aging_groups_bucket_rows_per_customer() {
  global $wpdb;
 
  $wpdb->test_get_results_callback = function ($query) {
@@ -70,8 +68,7 @@ class OraBooks_Operational_Reports_Test extends TestCase
  }
 
  #[Test]
- public function test_inventory_status_marks_low_stock_and_filters
- {
+ public function test_inventory_status_marks_low_stock_and_filters() {
  global $wpdb;
 
  $wpdb->test_get_results_callback = function ($query) {
@@ -98,8 +95,7 @@ class OraBooks_Operational_Reports_Test extends TestCase
  }
 
  #[Test]
- public function test_bank_reconciliation_summary_is_org_scoped
- {
+ public function test_bank_reconciliation_summary_is_org_scoped() {
  global $wpdb;
 
  $wpdb->test_get_results_callback = function ($query) {
@@ -127,8 +123,7 @@ class OraBooks_Operational_Reports_Test extends TestCase
  }
 
  #[Test]
- public function test_sales_and_purchase_summaries_return_period_rows
- {
+ public function test_sales_and_purchase_summaries_return_period_rows() {
  global $wpdb;
 
  $wpdb->test_get_results_callback = function ($query) {
@@ -152,8 +147,7 @@ class OraBooks_Operational_Reports_Test extends TestCase
  }
 
  #[Test]
- public function test_invoice_and_bill_projectors_update_operational_read_models
- {
+ public function test_invoice_and_bill_projectors_update_operational_read_models() {
  global $wpdb;
  $queries = [];
 
@@ -201,8 +195,7 @@ class OraBooks_Operational_Reports_Test extends TestCase
  }
 
  #[Test]
- public function test_inventory_and_bank_projectors_update_read_models
- {
+ public function test_inventory_and_bank_projectors_update_read_models() {
  global $wpdb;
  $queries = [];
  $getVarCalls = 0;
@@ -240,8 +233,7 @@ class OraBooks_Operational_Reports_Test extends TestCase
  }
 
  #[Test]
- public function test_low_stock_alert_job_counts_rows
- {
+ public function test_low_stock_alert_job_counts_rows() {
  global $wpdb;
 
  $wpdb->test_get_results_callback = function ($query) {
@@ -257,8 +249,7 @@ class OraBooks_Operational_Reports_Test extends TestCase
  }
 
  #[Test]
- public function test_operational_report_uses_short_cache
- {
+ public function test_operational_report_uses_short_cache() {
  global $wpdb;
  $calls = 0;
 
@@ -276,8 +267,7 @@ class OraBooks_Operational_Reports_Test extends TestCase
  }
 
  #[Test]
- public function test_flatten_ar_aging_for_export
- {
+ public function test_flatten_ar_aging_for_export() {
  $flat = OraBooks_Operational_Reports::flatten_for_export([
  'report_type' => 'ar_aging',
  'data' => [
@@ -291,8 +281,7 @@ class OraBooks_Operational_Reports_Test extends TestCase
  }
 
  #[Test]
- public function test_export_report_data_resolves_operational_export_type
- {
+ public function test_export_report_data_resolves_operational_export_type() {
  global $wpdb;
 
  $wpdb->test_get_results_callback = function ($query) {

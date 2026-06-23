@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 /**
  * Unit Tests for OraBooks_Exports AJAX Handler Methods
  *
@@ -60,7 +60,7 @@ class OraBooks_Exports_Ajax_Test extends TestCase
  // If no exception thrown, the handler didn't call json_error/success
  $this->fail("Expected RuntimeException (JSON response) was not thrown by {$method}");
  } catch (RuntimeException $e) {
- return json_decode($e->getMessage, true);
+ return json_decode($e->getMessage(), true);
  }
  }
 
@@ -69,8 +69,7 @@ class OraBooks_Exports_Ajax_Test extends TestCase
  // ================================================================
 
  #[Test]
- public function test_ajax_request_export_no_auth
- {
+ public function test_ajax_request_export_no_auth() {
  $GLOBALS['orabooks_test_current_user_id'] = 0;
  $_POST['export_type'] = 'test';
  $_POST['format'] = 'csv';
@@ -82,8 +81,7 @@ class OraBooks_Exports_Ajax_Test extends TestCase
  }
 
  #[Test]
- public function test_ajax_request_export_missing_type
- {
+ public function test_ajax_request_export_missing_type() {
  $_POST['format'] = 'csv';
 
  $response = $this->callAjax('ajax_request_export');
@@ -93,8 +91,7 @@ class OraBooks_Exports_Ajax_Test extends TestCase
  }
 
  #[Test]
- public function test_ajax_request_export_no_org
- {
+ public function test_ajax_request_export_no_org() {
  global $wpdb;
  // Make get_user_org_id return 0 (no org found)
  $wpdb->test_get_var_callback = function ($query) {
@@ -111,8 +108,7 @@ class OraBooks_Exports_Ajax_Test extends TestCase
  }
 
  #[Test]
- public function test_ajax_request_export_permission_denied
- {
+ public function test_ajax_request_export_permission_denied() {
  $GLOBALS['orabooks_test_has_permission'] = false;
 
  $_POST['export_type'] = 'test';
@@ -125,8 +121,7 @@ class OraBooks_Exports_Ajax_Test extends TestCase
  }
 
  #[Test]
- public function test_ajax_request_export_invalid_format_returns_error
- {
+ public function test_ajax_request_export_invalid_format_returns_error() {
  $_POST['export_type'] = 'test';
  $_POST['format'] = 'xml'; // Invalid format
 
@@ -137,8 +132,7 @@ class OraBooks_Exports_Ajax_Test extends TestCase
  }
 
  #[Test]
- public function test_ajax_request_export_success
- {
+ public function test_ajax_request_export_success() {
  $_POST['export_type'] = 'test_report';
  $_POST['format'] = 'csv';
  $_POST['parameters'] = json_encode(['filter' => 'all']);
@@ -155,8 +149,7 @@ class OraBooks_Exports_Ajax_Test extends TestCase
  }
 
  #[Test]
- public function test_ajax_request_export_defaults_to_csv
- {
+ public function test_ajax_request_export_defaults_to_csv() {
  $_POST['export_type'] = 'test_report';
  // No format specified — should default to 'csv'
 
@@ -167,8 +160,7 @@ class OraBooks_Exports_Ajax_Test extends TestCase
  }
 
  #[Test]
- public function test_ajax_request_export_without_parameters
- {
+ public function test_ajax_request_export_without_parameters() {
  $_POST['export_type'] = 'test_report';
  $_POST['format'] = 'pdf';
  // No parameters
@@ -184,8 +176,7 @@ class OraBooks_Exports_Ajax_Test extends TestCase
  // ================================================================
 
  #[Test]
- public function test_ajax_exports_list_no_auth
- {
+ public function test_ajax_exports_list_no_auth() {
  $GLOBALS['orabooks_test_current_user_id'] = 0;
 
  $response = $this->callAjax('ajax_exports_list');
@@ -195,8 +186,7 @@ class OraBooks_Exports_Ajax_Test extends TestCase
  }
 
  #[Test]
- public function test_ajax_exports_list_no_org
- {
+ public function test_ajax_exports_list_no_org() {
  global $wpdb;
  $wpdb->test_get_var_callback = function ($query) {
  return null; // No org
@@ -211,8 +201,7 @@ class OraBooks_Exports_Ajax_Test extends TestCase
  }
 
  #[Test]
- public function test_ajax_exports_list_default_page
- {
+ public function test_ajax_exports_list_default_page() {
  $response = $this->callAjax('ajax_exports_list');
 
  $this->assertFalse($response['error']);
@@ -225,8 +214,7 @@ class OraBooks_Exports_Ajax_Test extends TestCase
  }
 
  #[Test]
- public function test_ajax_exports_list_custom_page
- {
+ public function test_ajax_exports_list_custom_page() {
  $_GET['page'] = 2;
 
  $response = $this->callAjax('ajax_exports_list');
@@ -236,8 +224,7 @@ class OraBooks_Exports_Ajax_Test extends TestCase
  }
 
  #[Test]
- public function test_ajax_exports_list_export_shape
- {
+ public function test_ajax_exports_list_export_shape() {
  $response = $this->callAjax('ajax_exports_list');
 
  $this->assertFalse($response['error']);
@@ -257,8 +244,7 @@ class OraBooks_Exports_Ajax_Test extends TestCase
  }
 
  #[Test]
- public function test_ajax_exports_list_page_at_least_one
- {
+ public function test_ajax_exports_list_page_at_least_one() {
  // Even if page is 0 or negative, it should be clamped to 1
  $_GET['page'] = -1;
 
@@ -273,8 +259,7 @@ class OraBooks_Exports_Ajax_Test extends TestCase
  // ================================================================
 
  #[Test]
- public function test_ajax_download_export_no_auth
- {
+ public function test_ajax_download_export_no_auth() {
  $GLOBALS['orabooks_test_current_user_id'] = 0;
 
  $response = $this->callAjax('ajax_download_export');
@@ -284,8 +269,7 @@ class OraBooks_Exports_Ajax_Test extends TestCase
  }
 
  #[Test]
- public function test_ajax_download_export_missing_id
- {
+ public function test_ajax_download_export_missing_id() {
  // No export_id in $_GET
 
  $response = $this->callAjax('ajax_download_export');
@@ -295,8 +279,7 @@ class OraBooks_Exports_Ajax_Test extends TestCase
  }
 
  #[Test]
- public function test_ajax_download_export_not_found
- {
+ public function test_ajax_download_export_not_found() {
  global $wpdb;
  $wpdb->test_get_row_callback = function ($query) { return null; };
 
@@ -309,8 +292,7 @@ class OraBooks_Exports_Ajax_Test extends TestCase
  }
 
  #[Test]
- public function test_ajax_download_export_success
- {
+ public function test_ajax_download_export_success() {
  global $wpdb;
  $wpdb->test_get_row_callback = function ($query) {
  return (object)[
@@ -323,7 +305,7 @@ class OraBooks_Exports_Ajax_Test extends TestCase
  'file_url' => 'http://example.com/test.csv',
  'file_size' => 2048,
  'file_hash' => 'sha256abc',
- 'expires_at' => date('Y-m-d H:i:s', time + 86400 * 7),
+ 'expires_at' => date('Y-m-d H:i:s', time() + 86400 * 7),
  'download_count' => 0,
  'correlation_id' => 'corr-001',
  'created_at' => date('Y-m-d H:i:s'),
@@ -344,8 +326,7 @@ class OraBooks_Exports_Ajax_Test extends TestCase
  }
 
  #[Test]
- public function test_ajax_download_export_not_ready
- {
+ public function test_ajax_download_export_not_ready() {
  global $wpdb;
  $wpdb->test_get_row_callback = function ($query) {
  return (object)[
@@ -378,8 +359,7 @@ class OraBooks_Exports_Ajax_Test extends TestCase
  // ================================================================
 
  #[Test]
- public function test_ajax_cancel_export_no_auth
- {
+ public function test_ajax_cancel_export_no_auth() {
  $GLOBALS['orabooks_test_current_user_id'] = 0;
 
  $response = $this->callAjax('ajax_cancel_export');
@@ -389,8 +369,7 @@ class OraBooks_Exports_Ajax_Test extends TestCase
  }
 
  #[Test]
- public function test_ajax_cancel_export_missing_id
- {
+ public function test_ajax_cancel_export_missing_id() {
  $response = $this->callAjax('ajax_cancel_export');
 
  $this->assertTrue($response['error']);
@@ -398,8 +377,7 @@ class OraBooks_Exports_Ajax_Test extends TestCase
  }
 
  #[Test]
- public function test_ajax_cancel_export_not_found
- {
+ public function test_ajax_cancel_export_not_found() {
  global $wpdb;
  $wpdb->test_get_row_callback = function ($query) { return null; };
 
@@ -412,8 +390,7 @@ class OraBooks_Exports_Ajax_Test extends TestCase
  }
 
  #[Test]
- public function test_ajax_cancel_export_success
- {
+ public function test_ajax_cancel_export_success() {
  global $wpdb;
  $wpdb->test_get_row_callback = function ($query) {
  return (object)[
@@ -437,8 +414,7 @@ class OraBooks_Exports_Ajax_Test extends TestCase
  }
 
  #[Test]
- public function test_ajax_cancel_export_invalid_status
- {
+ public function test_ajax_cancel_export_invalid_status() {
  global $wpdb;
  $wpdb->test_get_row_callback = function ($query) {
  return (object)[
@@ -466,8 +442,7 @@ class OraBooks_Exports_Ajax_Test extends TestCase
  // ================================================================
 
  #[Test]
- public function test_ajax_exports_stats_permission_denied
- {
+ public function test_ajax_exports_stats_permission_denied() {
  $GLOBALS['orabooks_test_current_user_can'] = false;
 
  $response = $this->callAjax('ajax_exports_stats');
@@ -477,8 +452,7 @@ class OraBooks_Exports_Ajax_Test extends TestCase
  }
 
  #[Test]
- public function test_ajax_exports_stats_success
- {
+ public function test_ajax_exports_stats_success() {
  $response = $this->callAjax('ajax_exports_stats');
 
  $this->assertFalse($response['error']);
@@ -491,8 +465,7 @@ class OraBooks_Exports_Ajax_Test extends TestCase
  }
 
  #[Test]
- public function test_ajax_exports_stats_counts
- {
+ public function test_ajax_exports_stats_counts() {
  $response = $this->callAjax('ajax_exports_stats');
 
  $this->assertEquals(42, $response['data']['total_downloads']);

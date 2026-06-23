@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 /**
  * Job Monitor template.
  */
@@ -40,7 +40,7 @@ $jobs = class_exists('OraBooks_AsyncQueue') ? OraBooks_AsyncQueue::list_jobs(['l
  <td>#<?php echo esc_html($job->id); ?></td>
  <td><?php echo esc_html($job->queue_name); ?></td>
  <td><?php echo esc_html($job->job_type); ?></td>
- <td><?php echo esc_html($job->status === 'pending' && !empty($job->next_retry_at) && strtotime($job->next_retry_at) > time ? 'pending (retry wait)': $job->status); ?></td>
+ <td><?php echo esc_html($job->status === 'pending' && !empty($job->next_retry_at) && strtotime($job->next_retry_at) > time() ? 'pending (retry wait)': $job->status); ?></td>
  <td><?php echo esc_html($job->retry_count. '/'. $job->max_retries); ?></td>
  <td><?php echo esc_html($job->next_retry_at ?: '-'); ?></td>
  <td>

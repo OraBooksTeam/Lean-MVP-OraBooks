@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 /**
  * OraBooks AI / OCR / Voice provider integrations (,, )
  *
@@ -58,16 +58,16 @@ class OraBooks_Ai_Providers {
  }
  }
 
- public static function is_document_intelligence_configured {
+ public static function is_document_intelligence_configured() {
  return self::config('azure_document_intelligence_endpoint') !== ''
  && self::config('azure_document_intelligence_key') !== '';
  }
 
- public static function is_openai_configured {
+ public static function is_openai_configured() {
  return self::config('openai_api_key') !== '';
  }
 
- public static function is_azure_openai_configured {
+ public static function is_azure_openai_configured() {
  return self::config('azure_openai_endpoint') !== ''
  && self::config('azure_openai_key') !== ''
  && self::config('azure_openai_deployment') !== '';
@@ -106,7 +106,7 @@ class OraBooks_Ai_Providers {
  return $result;
  }
  orabooks_log_event('ocr_provider_fallback', 'Document Intelligence failed; using stub', 'warning', [
- 'error' => $result->get_error_message,
+ 'error' => $result->get_error_message(),
  'expense_id' => $expense_id,
  ], null, null);
  }
@@ -135,7 +135,7 @@ class OraBooks_Ai_Providers {
  }
  if (is_wp_error($transcript)) {
  orabooks_log_event('voice_provider_fallback', 'Speech transcription failed; using stub', 'warning', [
- 'error' => $transcript->get_error_message,
+ 'error' => $transcript->get_error_message(),
  'voice_id' => $voice_id,
  ], null, null);
  }
@@ -155,7 +155,7 @@ class OraBooks_Ai_Providers {
  return $result;
  }
  orabooks_log_event('classification_provider_fallback', 'AI classification failed; using stub', 'warning', [
- 'error' => $result->get_error_message,
+ 'error' => $result->get_error_message(),
  'record_type' => $record_type,
  ], null, (int) $org_id);
  }

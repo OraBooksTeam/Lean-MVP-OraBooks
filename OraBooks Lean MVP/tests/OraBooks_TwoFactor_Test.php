@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 /**
  * Unit Tests for OraBooks_TwoFactor
  */
@@ -25,8 +25,7 @@ class OraBooks_TwoFactor_Test extends TestCase
  }
 
  #[Test]
- public function test_org_requires_2fa_reads_config_json
- {
+ public function test_org_requires_2fa_reads_config_json() {
  global $wpdb;
 
  $wpdb->test_get_var_callback = function ($query) {
@@ -40,8 +39,7 @@ class OraBooks_TwoFactor_Test extends TestCase
  }
 
  #[Test]
- public function test_user_needs_2fa_setup_when_org_requires_and_user_disabled
- {
+ public function test_user_needs_2fa_setup_when_org_requires_and_user_disabled() {
  global $wpdb;
 
  $wpdb->test_get_var_callback = function ($query) {
@@ -58,8 +56,7 @@ class OraBooks_TwoFactor_Test extends TestCase
  }
 
  #[Test]
- public function test_disable_blocked_when_org_requires_2fa
- {
+ public function test_disable_blocked_when_org_requires_2fa() {
  global $wpdb;
 
  $wpdb->test_get_row_callback = function {
@@ -78,20 +75,18 @@ class OraBooks_TwoFactor_Test extends TestCase
 
  $result = OraBooks_TwoFactor::disable(3, '123456');
  $this->assertInstanceOf(WP_Error::class, $result);
- $this->assertSame('org_2fa_required', $result->get_error_code);
+ $this->assertSame('org_2fa_required', $result->get_error_code());
  }
 
  #[Test]
- public function test_admin_recover_requires_justification
- {
+ public function test_admin_recover_requires_justification() {
  $result = OraBooks_TwoFactor::admin_recover(2, 1, ' ');
  $this->assertInstanceOf(WP_Error::class, $result);
- $this->assertSame('justification_required', $result->get_error_code);
+ $this->assertSame('justification_required', $result->get_error_code());
  }
 
  #[Test]
- public function test_admin_recover_platform_admin_succeeds
- {
+ public function test_admin_recover_platform_admin_succeeds() {
  global $wpdb;
 
  $GLOBALS['orabooks_test_current_user_can'] = true;
@@ -113,8 +108,7 @@ class OraBooks_TwoFactor_Test extends TestCase
  }
 
  #[Test]
- public function test_get_org_policy_reflects_config
- {
+ public function test_get_org_policy_reflects_config() {
  global $wpdb;
 
  $wpdb->test_get_var_callback = function ($query) {
@@ -130,8 +124,7 @@ class OraBooks_TwoFactor_Test extends TestCase
  }
 
  #[Test]
- public function test_assert_org_compliance_blocks_when_setup_required
- {
+ public function test_assert_org_compliance_blocks_when_setup_required() {
  global $wpdb;
 
  $wpdb->test_get_var_callback = function ($query) {
@@ -146,20 +139,18 @@ class OraBooks_TwoFactor_Test extends TestCase
 
  $result = OraBooks_TwoFactor::assert_org_compliance(3, 5);
  $this->assertInstanceOf(WP_Error::class, $result);
- $this->assertSame('2fa_setup_required', $result->get_error_code);
+ $this->assertSame('2fa_setup_required', $result->get_error_code());
  }
 
  #[Test]
- public function test_compliance_exempt_actions_include_2fa_setup
- {
+ public function test_compliance_exempt_actions_include_2fa_setup() {
  $this->assertTrue(OraBooks_TwoFactor::is_2fa_compliance_exempt_action('orabooks_setup_2fa'));
  $this->assertTrue(OraBooks_TwoFactor::is_2fa_compliance_exempt_action('orabooks_reveal_2fa_backup_codes'));
  $this->assertFalse(OraBooks_TwoFactor::is_2fa_compliance_exempt_action('orabooks_customer_dashboard'));
  }
 
  #[Test]
- public function test_reveal_backup_codes_requires_valid_otp
- {
+ public function test_reveal_backup_codes_requires_valid_otp() {
  global $wpdb;
 
  $wpdb->test_get_row_callback = function {
@@ -172,6 +163,6 @@ class OraBooks_TwoFactor_Test extends TestCase
 
  $result = OraBooks_TwoFactor::reveal_backup_codes(3, '000000');
  $this->assertInstanceOf(WP_Error::class, $result);
- $this->assertSame('invalid_otp', $result->get_error_code);
+ $this->assertSame('invalid_otp', $result->get_error_code());
  }
 }

@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 /**
  * OraBooks Partner Commission Engine
  *
@@ -20,7 +20,7 @@ class OraBooks_Commission {
 
  private static $instance = null;
 
- public static function init {
+ public static function init() {
  if (self::$instance === null) {
  self::$instance = new self;
 
@@ -60,7 +60,7 @@ class OraBooks_Commission {
  * DATABASE SCHEMA (called from OraBooks_Database::install)
  * ============================================================
  */
- public static function get_create_table_sql {
+ public static function get_create_table_sql() {
  global $wpdb;
 
  $charset_collate = $wpdb->get_charset_collate;
@@ -194,7 +194,7 @@ class OraBooks_Commission {
  * SEED DEFAULT CONFIG
  * ============================================================
  */
- public static function seed_default_config {
+ public static function seed_default_config() {
  global $wpdb;
  $table = OraBooks_Database::table('partner_commission_config');
 
@@ -224,7 +224,7 @@ class OraBooks_Commission {
  * GET PLATFORM CONFIG
  * ============================================================
  */
- public static function get_config {
+ public static function get_config() {
  global $wpdb;
  $table = OraBooks_Database::table('partner_commission_config');
  $config = wp_cache_get('orabooks_commission_config', 'orabooks');
@@ -349,7 +349,7 @@ class OraBooks_Commission {
  /**
  * Refresh all customer active statuses (daily cron)
  */
- public static function refresh_all_customer_active_status {
+ public static function refresh_all_customer_active_status() {
  global $wpdb;
 
  $table_active = OraBooks_Database::table('customer_active_status');
@@ -583,7 +583,7 @@ class OraBooks_Commission {
  * MONTHLY RELEASE JOB (Accrual Entries)
  * ============================================================
  */
- public static function process_monthly_release {
+ public static function process_monthly_release() {
  global $wpdb;
 
  $table_release = OraBooks_Database::table('commission_release_schedule');
@@ -701,10 +701,10 @@ class OraBooks_Commission {
  } catch (Exception $e) {
  $wpdb->query("ROLLBACK");
  orabooks_log_event('commission_release_failed',
- "Monthly release failed: ". $e->getMessage,
+ "Monthly release failed: ". $e->getMessage(),
  'warning', [
  'release_id' => $release->id,
- 'error' => $e->getMessage
+ 'error' => $e->getMessage()
  ], $release->partner_user_id, null);
  }
  } else {
@@ -749,7 +749,7 @@ class OraBooks_Commission {
  * Commission entries (Dr Expense, Cr Payable) are made in this org
  * because partner orgs do not have a Chart of Accounts (per ).
  */
- private static function get_or_create_system_org {
+ private static function get_or_create_system_org() {
  global $wpdb;
 
  $table_orgs = OraBooks_Database::table('organizations');
@@ -790,7 +790,7 @@ class OraBooks_Commission {
  /**
  * Platform CoA accounts used for commission accrual, payout, and expiry journals.
  */
- private static function system_account_definitions {
+ private static function system_account_definitions() {
  return [
  ['code' => '1000', 'name' => 'Operating Bank', 'type' => 'asset', 'normal_balance' => 'debit'],
  ['code' => '2000', 'name' => 'Commission Payable', 'type' => 'liability', 'normal_balance' => 'credit'],
@@ -1386,7 +1386,7 @@ class OraBooks_Commission {
  * EXPIRY JOB (Daily)
  * ============================================================
  */
- public static function process_expiry {
+ public static function process_expiry() {
  global $wpdb;
 
  $table_earned = OraBooks_Database::table('commissions_earned');
@@ -1874,7 +1874,7 @@ class OraBooks_Commission {
  // ============================================================
 
  private function require_partner_commission_user($action = 'commission') {
- $user_id = orabooks_get_current_user_id;
+ $user_id = orabooks_get_current_user_id();
  if (!$user_id) {
  orabooks_json_error('Not authenticated', 401);
  }
@@ -1896,7 +1896,7 @@ class OraBooks_Commission {
  if ($org_id > 0) {
  $tenant = orabooks_assert_tenant_access($user_id, $org_id, false);
  if (is_wp_error($tenant)) {
- orabooks_json_error($tenant->get_error_message, 403);
+ orabooks_json_error($tenant->get_error_message(), 403);
  }
 
  $table_orgs = OraBooks_Database::table('organizations');
@@ -1938,7 +1938,7 @@ class OraBooks_Commission {
  return $partner_user_id;
  }
 
- public function ajax_commission_stats {
+ public function ajax_commission_stats() {
  $context = $this->require_partner_commission_user('commission_stats');
  $partner_user_id = $this->resolve_partner_user_id($context);
 
@@ -1967,7 +1967,7 @@ class OraBooks_Commission {
  orabooks_json_success($stats);
  }
 
- public function ajax_commission_earned {
+ public function ajax_commission_earned() {
  $context = $this->require_partner_commission_user('commission_earned');
  $partner_user_id = $this->resolve_partner_user_id($context);
 
@@ -1983,7 +1983,7 @@ class OraBooks_Commission {
  orabooks_json_success($earned);
  }
 
- public function ajax_commission_payouts {
+ public function ajax_commission_payouts() {
  $context = $this->require_partner_commission_user('commission_payouts');
  $partner_user_id = $this->resolve_partner_user_id($context);
 
@@ -1997,7 +1997,7 @@ class OraBooks_Commission {
  orabooks_json_success($payouts);
  }
 
- public function ajax_commission_aging {
+ public function ajax_commission_aging() {
  $context = $this->require_partner_commission_user('commission_aging');
  $partner_user_id = $this->resolve_partner_user_id($context);
 
@@ -2005,14 +2005,14 @@ class OraBooks_Commission {
  orabooks_json_success($aging);
  }
 
- public function ajax_commission_by_customer {
+ public function ajax_commission_by_customer() {
  $context = $this->require_partner_commission_user('commission_by_customer');
  $partner_user_id = $this->resolve_partner_user_id($context);
 
  orabooks_json_success(self::get_commission_by_customer($partner_user_id));
  }
 
- public function ajax_release_history {
+ public function ajax_release_history() {
  $context = $this->require_partner_commission_user('commission_release_history');
  $partner_user_id = $this->resolve_partner_user_id($context);
  $escrow_id = intval($_GET['escrow_id'] ?? 0);
@@ -2020,7 +2020,7 @@ class OraBooks_Commission {
  orabooks_json_success(self::get_release_history($partner_user_id, $escrow_id));
  }
 
- public function ajax_commission_config {
+ public function ajax_commission_config() {
  if (!current_user_can('manage_options')) {
  orabooks_json_error('Permission denied', 403);
  }
@@ -2029,7 +2029,7 @@ class OraBooks_Commission {
  orabooks_json_success($config);
  }
 
- public function ajax_update_config {
+ public function ajax_update_config() {
  if (!current_user_can('manage_options')) {
  orabooks_json_error('Permission denied', 403);
  }
@@ -2060,13 +2060,13 @@ class OraBooks_Commission {
  $result = self::update_config($data);
 
  if (is_wp_error($result)) {
- orabooks_json_error($result->get_error_message, 400);
+ orabooks_json_error($result->get_error_message(), 400);
  }
 
  orabooks_json_success([], 'Configuration updated');
  }
 
- public function ajax_escrow_schedule {
+ public function ajax_escrow_schedule() {
  $context = $this->require_partner_commission_user('commission_escrow');
  $partner_user_id = $this->resolve_partner_user_id($context);
  $escrows = self::get_escrow_schedule($partner_user_id);

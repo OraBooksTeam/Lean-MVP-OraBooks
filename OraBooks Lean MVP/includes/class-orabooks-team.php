@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 /**
  * OraBooks Team Management
  *
@@ -13,7 +13,7 @@ class OraBooks_Team {
 
  private static $instance = null;
 
- public static function init {
+ public static function init() {
  if (self::$instance === null) {
  self::$instance = new self;
  add_action('wp_ajax_orabooks_invite_user', [self::$instance, 'ajax_invite_user']);
@@ -78,7 +78,7 @@ class OraBooks_Team {
  );
 
  $from_email = function_exists('get_option') ? get_option('admin_email'): '';
- if (function_exists('is_multisite') && is_multisite && function_exists('get_site_option')) {
+ if (function_exists('is_multisite()') && is_multisite() && function_exists('get_site_option')) {
  $network_email = get_site_option('admin_email');
  if (!empty($network_email) && is_email($network_email)) {
  $from_email = $network_email;
@@ -93,7 +93,7 @@ class OraBooks_Team {
  sprintf('From: %s <%s>', $site_name, $from_email),
  ];
 
- $content_type_filter = static function {
+ $content_type_filter = static function() {
  return 'text/plain';
  };
  add_filter('wp_mail_content_type', $content_type_filter);
@@ -179,7 +179,7 @@ class OraBooks_Team {
  // Generate token
  $raw_token = orabooks_random_string(32);
  $token_hash = orabooks_hash_token($raw_token);
- $expires = date('Y-m-d H:i:s', time + 604800); // 7 days
+ $expires = date('Y-m-d H:i:s', time() + 604800); // 7 days
 
  $wpdb->insert(
  $table_invites,
@@ -539,8 +539,8 @@ class OraBooks_Team {
  }
 
  // AJAX handlers
- private function current_user_id {
- return orabooks_get_current_user_id;
+ private function current_user_id() {
+ return orabooks_get_current_user_id();
  }
 
  private function require_org_member_access($user_id, $org_id) {
@@ -567,7 +567,7 @@ class OraBooks_Team {
  }
  }
 
- public function ajax_invite_user {
+ public function ajax_invite_user() {
  $user_id = $this->current_user_id;
  $org_id = intval($_POST['org_id'] ?? 0);
  $email = sanitize_email($_POST['email'] ?? '');
@@ -581,12 +581,12 @@ class OraBooks_Team {
 
  $result = self::invite_user($org_id, $email, $role, $user_id);
  if (is_wp_error($result)) {
- orabooks_json_error($result->get_error_message, 400);
+ orabooks_json_error($result->get_error_message(), 400);
  }
  orabooks_json_success($result, 'Invitation sent');
  }
 
- public function ajax_list_members {
+ public function ajax_list_members() {
  $user_id = $this->current_user_id;
  $org_id = intval($_POST['org_id'] ?? $_GET['org_id'] ?? 0);
 
@@ -598,7 +598,7 @@ class OraBooks_Team {
  ]);
  }
 
- public function ajax_update_role {
+ public function ajax_update_role() {
  $user_id = $this->current_user_id;
  $org_id = intval($_POST['org_id'] ?? 0);
  $target_user_id = intval($_POST['user_id'] ?? 0);
@@ -612,7 +612,7 @@ class OraBooks_Team {
 
  $result = self::update_role($org_id, $target_user_id, $new_role, $user_id);
  if (is_wp_error($result)) {
- orabooks_json_error($result->get_error_message, 400);
+ orabooks_json_error($result->get_error_message(), 400);
  }
 
  $updated_role = orabooks_get_user_role($target_user_id, $org_id);
@@ -624,7 +624,7 @@ class OraBooks_Team {
  ], 'Role updated');
  }
 
- public function ajax_remove_user {
+ public function ajax_remove_user() {
  $user_id = $this->current_user_id;
  $org_id = intval($_POST['org_id'] ?? 0);
  $target_user_id = intval($_POST['user_id'] ?? 0);
@@ -637,12 +637,12 @@ class OraBooks_Team {
 
  $result = self::remove_user($org_id, $target_user_id, $user_id);
  if (is_wp_error($result)) {
- orabooks_json_error($result->get_error_message, 400);
+ orabooks_json_error($result->get_error_message(), 400);
  }
  orabooks_json_success([], 'User removed');
  }
 
- public function ajax_list_pending_invites {
+ public function ajax_list_pending_invites() {
  $user_id = $this->current_user_id;
  $org_id = intval($_POST['org_id'] ?? $_GET['org_id'] ?? 0);
 
@@ -658,7 +658,7 @@ class OraBooks_Team {
  ]);
  }
 
- public function ajax_resend_invite {
+ public function ajax_resend_invite() {
  global $wpdb;
 
  $invite_id = intval($_POST['invite_id'] ?? 0);
@@ -675,7 +675,7 @@ class OraBooks_Team {
 
  $raw_token = orabooks_random_string(32);
  $token_hash = orabooks_hash_token($raw_token);
- $expires = date('Y-m-d H:i:s', time + 604800);
+ $expires = date('Y-m-d H:i:s', time() + 604800);
 
  $wpdb->update(
  $table,
@@ -703,7 +703,7 @@ class OraBooks_Team {
  ], 'Invitation resent');
  }
 
- public function ajax_cancel_invite {
+ public function ajax_cancel_invite() {
  global $wpdb;
 
  $invite_id = intval($_POST['invite_id'] ?? 0);
@@ -727,8 +727,8 @@ class OraBooks_Team {
  orabooks_json_success([], 'Invitation cancelled');
  }
 
- public function ajax_accept_invite {
- $user_id = orabooks_get_current_user_id;
+ public function ajax_accept_invite() {
+ $user_id = orabooks_get_current_user_id();
  if (!$user_id) {
  orabooks_json_error('Please log in to accept this invitation.', 401);
  }
@@ -740,8 +740,8 @@ class OraBooks_Team {
 
  $result = self::accept_invite($token, $user_id);
  if (is_wp_error($result)) {
- $status = $result->get_error_code === 'invite_email_mismatch' ? 403: 400;
- orabooks_json_error($result->get_error_message, $status);
+ $status = $result->get_error_code() === 'invite_email_mismatch' ? 403: 400;
+ orabooks_json_error($result->get_error_message(), $status);
  }
 
  if (!class_exists('OraBooks_Organization') || !class_exists('OraBooks_Auth')) {
@@ -761,7 +761,7 @@ class OraBooks_Team {
  );
 
  if (is_wp_error($session)) {
- orabooks_json_error($session->get_error_message, 400);
+ orabooks_json_error($session->get_error_message(), 400);
  }
 
  $session = orabooks_enrich_login_response($session);
@@ -772,7 +772,7 @@ class OraBooks_Team {
  * Unauthenticated invite links from email open the React page (GET).
  * AJAX POST (React app, including JWT auth without WP cookie) returns JSON.
  */
- public function ajax_accept_invite_nopriv {
+ public function ajax_accept_invite_nopriv() {
  $method = strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET');
  $raw_token = isset($_POST['token']) ? (string) $_POST['token']: '';
  $has_post_token = sanitize_text_field($raw_token) !== '';
@@ -788,18 +788,18 @@ class OraBooks_Team {
  /**
  * Legacy admin-ajax invite links redirect to the React accept-invite page.
  */
- public function ajax_accept_invite_legacy_redirect {
+ public function ajax_accept_invite_legacy_redirect() {
  $token = isset($_REQUEST['token']) ? sanitize_text_field(wp_unslash($_REQUEST['token'])): '';
  $destination = orabooks_get_accept_invite_url($token);
  wp_redirect($destination);
  exit;
  }
 
- public function ajax_preview_invite {
+ public function ajax_preview_invite() {
  $token = sanitize_text_field($_REQUEST['token'] ?? $_POST['token'] ?? '');
  $preview = self::preview_invite($token);
  if (is_wp_error($preview)) {
- orabooks_json_error($preview->get_error_message, 400);
+ orabooks_json_error($preview->get_error_message(), 400);
  }
  orabooks_json_success($preview);
  }
@@ -807,14 +807,14 @@ class OraBooks_Team {
  /**
  * Reserved MVP endpoint — ownership transfer ( §5.10).
  */
- public function ajax_transfer_ownership {
+ public function ajax_transfer_ownership() {
  orabooks_json_error('Ownership transfer is not implemented in MVP.', 501);
  }
 
  /**
  * Delete expired invite rows (optional nightly cleanup, §5.11).
  */
- public static function cleanup_expired_invites {
+ public static function cleanup_expired_invites() {
  global $wpdb;
 
  $table = OraBooks_Database::table('org_invites');

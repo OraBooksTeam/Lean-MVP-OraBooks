@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 /**
  * Workflow integration tests for OraBooks_Expenses ( Phase 2)
  */
@@ -126,8 +126,7 @@ class OraBooks_Expenses_Workflow_Test extends TestCase
  }
 
  #[Test]
- public function test_resolve_submit_route_high_confidence_low_risk_goes_to_approval
- {
+ public function test_resolve_submit_route_high_confidence_low_risk_goes_to_approval() {
  $route = OraBooks_Expenses::resolve_submit_route(85.0, 'low');
 
  $this->assertSame('submit', $route['workflow_event']);
@@ -136,8 +135,7 @@ class OraBooks_Expenses_Workflow_Test extends TestCase
  }
 
  #[Test]
- public function test_resolve_submit_route_threshold_boundary_submits_at_seventy
- {
+ public function test_resolve_submit_route_threshold_boundary_submits_at_seventy() {
  $route = OraBooks_Expenses::resolve_submit_route(70.0, 'low');
 
  $this->assertSame('submitted', $route['target_status']);
@@ -145,8 +143,7 @@ class OraBooks_Expenses_Workflow_Test extends TestCase
  }
 
  #[Test]
- public function test_resolve_submit_route_low_confidence_escalates_to_ai_review
- {
+ public function test_resolve_submit_route_low_confidence_escalates_to_ai_review() {
  $route = OraBooks_Expenses::resolve_submit_route(69.9, 'low');
 
  $this->assertSame('ai_review', $route['target_status']);
@@ -155,8 +152,7 @@ class OraBooks_Expenses_Workflow_Test extends TestCase
  }
 
  #[Test]
- public function test_resolve_submit_route_elevated_risk_escalates_even_with_high_confidence
- {
+ public function test_resolve_submit_route_elevated_risk_escalates_even_with_high_confidence() {
  foreach (['medium', 'high'] as $risk) {
  $route = OraBooks_Expenses::resolve_submit_route(95.0, $risk);
  $this->assertSame('ai_review', $route['target_status'], "Expected ai_review for risk={$risk}");
@@ -164,8 +160,7 @@ class OraBooks_Expenses_Workflow_Test extends TestCase
  }
 
  #[Test]
- public function test_confirm_submit_routes_high_confidence_expense_to_submitted
- {
+ public function test_confirm_submit_routes_high_confidence_expense_to_submitted() {
  $expense = $this->expense(['ocr_confidence' => 88.0, 'ocr_risk_level' => 'low']);
  $this->mock_expense_db($expense);
 
@@ -177,8 +172,7 @@ class OraBooks_Expenses_Workflow_Test extends TestCase
  }
 
  #[Test]
- public function test_ai_review_enqueue_inserts_expense_queue_row
- {
+ public function test_ai_review_enqueue_inserts_expense_queue_row() {
  global $wpdb;
 
  $inserts = [];
@@ -211,8 +205,7 @@ class OraBooks_Expenses_Workflow_Test extends TestCase
  }
 
  #[Test]
- public function test_confirm_submit_routes_low_confidence_expense_to_ai_review_queue
- {
+ public function test_confirm_submit_routes_low_confidence_expense_to_ai_review_queue() {
  $expense = $this->expense(['ocr_confidence' => 62.0, 'ocr_risk_level' => 'low']);
  $this->mock_expense_db($expense);
 
@@ -228,32 +221,29 @@ class OraBooks_Expenses_Workflow_Test extends TestCase
  }
 
  #[Test]
- public function test_confirm_submit_rejects_when_ocr_is_pending
- {
+ public function test_confirm_submit_rejects_when_ocr_is_pending() {
  $expense = $this->expense(['ocr_confidence' => null]);
  $this->mock_expense_db($expense);
 
  $result = OraBooks_Expenses::confirm_submit(55, 9, 1, 'idem-pending');
 
  $this->assertInstanceOf(WP_Error::class, $result);
- $this->assertSame('ocr_pending', $result->get_error_code);
+ $this->assertSame('ocr_pending', $result->get_error_code());
  }
 
  #[Test]
- public function test_confirm_submit_rejects_non_draft_expense
- {
+ public function test_confirm_submit_rejects_non_draft_expense() {
  $expense = $this->expense(['workflow_status' => 'submitted']);
  $this->mock_expense_db($expense);
 
  $result = OraBooks_Expenses::confirm_submit(55, 9, 1, 'idem-invalid');
 
  $this->assertInstanceOf(WP_Error::class, $result);
- $this->assertSame('invalid_status', $result->get_error_code);
+ $this->assertSame('invalid_status', $result->get_error_code());
  }
 
  #[Test]
- public function test_confirm_submit_rejects_duplicate_idempotency_key
- {
+ public function test_confirm_submit_rejects_duplicate_idempotency_key() {
  global $wpdb;
 
  $expense = $this->expense;
@@ -268,12 +258,11 @@ class OraBooks_Expenses_Workflow_Test extends TestCase
  $result = OraBooks_Expenses::confirm_submit(55, 9, 1, 'duplicate-key');
 
  $this->assertInstanceOf(WP_Error::class, $result);
- $this->assertSame('duplicate', $result->get_error_code);
+ $this->assertSame('duplicate', $result->get_error_code());
  }
 
  #[Test]
- public function test_approve_expense_transitions_submitted_to_approved_without_auto_post
- {
+ public function test_approve_expense_transitions_submitted_to_approved_without_auto_post() {
  $expense = $this->expense([
  'workflow_status' => 'submitted',
  'ocr_confidence' => 88.0,
@@ -290,8 +279,7 @@ class OraBooks_Expenses_Workflow_Test extends TestCase
  }
 
  #[Test]
- public function test_approve_expense_accepts_ai_review_status
- {
+ public function test_approve_expense_accepts_ai_review_status() {
  $expense = $this->expense([
  'workflow_status' => 'ai_review',
  'ocr_confidence' => 55.0,
@@ -306,8 +294,7 @@ class OraBooks_Expenses_Workflow_Test extends TestCase
  }
 
  #[Test]
- public function test_reject_expense_returns_draft_from_submitted
- {
+ public function test_reject_expense_returns_draft_from_submitted() {
  $expense = $this->expense(['workflow_status' => 'submitted']);
  $this->mock_expense_db($expense);
 
@@ -319,20 +306,18 @@ class OraBooks_Expenses_Workflow_Test extends TestCase
  }
 
  #[Test]
- public function test_post_expense_requires_approved_status
- {
+ public function test_post_expense_requires_approved_status() {
  $expense = $this->expense(['workflow_status' => 'submitted']);
  $this->mock_expense_db($expense);
 
  $result = OraBooks_Expenses::post_expense(55, 9, 2);
 
  $this->assertInstanceOf(WP_Error::class, $result);
- $this->assertSame('invalid_status', $result->get_error_code);
+ $this->assertSame('invalid_status', $result->get_error_code());
  }
 
  #[Test]
- public function test_confirm_submit_allows_manual_entry_after_ocr_failure
- {
+ public function test_confirm_submit_allows_manual_entry_after_ocr_failure() {
  global $wpdb;
 
  $expense = $this->expense([

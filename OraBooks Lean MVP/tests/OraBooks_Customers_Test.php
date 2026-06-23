@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 /**
  * Unit Tests for OraBooks_Customers
  *
@@ -111,8 +111,7 @@ class OraBooks_Customers_Test extends TestCase
  // ---------- get_or_create ----------
 
  #[Test]
- public function test_get_or_create_returns_existing_customer
- {
+ public function test_get_or_create_returns_existing_customer() {
  global $wpdb;
 
  $wpdb->test_get_row_callback = function ($query) {
@@ -129,8 +128,7 @@ class OraBooks_Customers_Test extends TestCase
  }
 
  #[Test]
- public function test_get_or_create_creates_new_customer
- {
+ public function test_get_or_create_creates_new_customer() {
  global $wpdb;
 
  $callCount = 0;
@@ -162,8 +160,7 @@ class OraBooks_Customers_Test extends TestCase
  // ---------- get_by_id ----------
 
  #[Test]
- public function test_get_by_id_found
- {
+ public function test_get_by_id_found() {
  global $wpdb;
 
  $wpdb->test_get_row_callback = function ($query) {
@@ -182,8 +179,7 @@ class OraBooks_Customers_Test extends TestCase
  }
 
  #[Test]
- public function test_get_by_id_not_found
- {
+ public function test_get_by_id_not_found() {
  global $wpdb;
 
  $wpdb->test_get_row_callback = function ($query) {
@@ -198,8 +194,7 @@ class OraBooks_Customers_Test extends TestCase
  // ---------- get_by_user_id ----------
 
  #[Test]
- public function test_get_by_user_id_found
- {
+ public function test_get_by_user_id_found() {
  global $wpdb;
 
  $wpdb->test_get_row_callback = function ($query) {
@@ -217,8 +212,7 @@ class OraBooks_Customers_Test extends TestCase
  }
 
  #[Test]
- public function test_get_by_user_id_not_found
- {
+ public function test_get_by_user_id_not_found() {
  global $wpdb;
 
  $wpdb->test_get_row_callback = function ($query) {
@@ -231,8 +225,7 @@ class OraBooks_Customers_Test extends TestCase
  }
 
  #[Test]
- public function test_recompute_active_status_uses_recent_payment_date
- {
+ public function test_recompute_active_status_uses_recent_payment_date() {
  global $wpdb;
 
  $wpdb->test_get_row_callback = function ($query) {
@@ -260,8 +253,7 @@ class OraBooks_Customers_Test extends TestCase
  // ---------- update_active_status ----------
 
  #[Test]
- public function test_update_active_status_activate
- {
+ public function test_update_active_status_activate() {
  global $wpdb;
 
  $wpdb->test_get_row_callback = function ($query) {
@@ -279,8 +271,7 @@ class OraBooks_Customers_Test extends TestCase
  }
 
  #[Test]
- public function test_update_active_status_deactivate
- {
+ public function test_update_active_status_deactivate() {
  global $wpdb;
 
  $wpdb->test_get_row_callback = function ($query) {
@@ -296,8 +287,7 @@ class OraBooks_Customers_Test extends TestCase
  }
 
  #[Test]
- public function test_update_active_status_not_found
- {
+ public function test_update_active_status_not_found() {
  global $wpdb;
 
  $wpdb->test_get_row_callback = function ($query) {
@@ -307,12 +297,11 @@ class OraBooks_Customers_Test extends TestCase
  $result = OraBooks_Customers::update_active_status(999, true);
 
  $this->assertInstanceOf(WP_Error::class, $result);
- $this->assertEquals('not_found', $result->get_error_code);
+ $this->assertEquals('not_found', $result->get_error_code());
  }
 
  #[Test]
- public function test_update_active_status_same_status_no_audit
- {
+ public function test_update_active_status_same_status_no_audit() {
  // When the status doesn't change, no audit event should fire
  global $wpdb;
 
@@ -334,8 +323,7 @@ class OraBooks_Customers_Test extends TestCase
  // ================================================================
 
  #[Test]
- public function test_get_list_with_org_filter
- {
+ public function test_get_list_with_org_filter() {
  global $wpdb;
 
  $customers = [
@@ -363,8 +351,7 @@ class OraBooks_Customers_Test extends TestCase
  }
 
  #[Test]
- public function test_get_list_global_admin_mode
- {
+ public function test_get_list_global_admin_mode() {
  global $wpdb;
 
  // org_id = 0 should skip the org filter (WHERE 1=1)
@@ -390,8 +377,7 @@ class OraBooks_Customers_Test extends TestCase
  }
 
  #[Test]
- public function test_get_list_with_active_filter
- {
+ public function test_get_list_with_active_filter() {
  global $wpdb;
 
  $wpdb->test_get_results_callback = function ($query) {
@@ -408,8 +394,7 @@ class OraBooks_Customers_Test extends TestCase
  }
 
  #[Test]
- public function test_get_list_with_search
- {
+ public function test_get_list_with_search() {
  global $wpdb;
 
  $wpdb->test_get_results_callback = function ($query) {
@@ -426,8 +411,7 @@ class OraBooks_Customers_Test extends TestCase
  }
 
  #[Test]
- public function test_get_list_pagination
- {
+ public function test_get_list_pagination() {
  global $wpdb;
 
  $wpdb->test_get_results_callback = function ($query) {
@@ -448,8 +432,7 @@ class OraBooks_Customers_Test extends TestCase
  // ================================================================
 
  #[Test]
- public function test_create_invoice_success
- {
+ public function test_create_invoice_success() {
  global $wpdb;
 
  // No duplicate (get_var returns 0)
@@ -498,8 +481,7 @@ class OraBooks_Customers_Test extends TestCase
  }
 
  #[Test]
- public function test_create_invoice_auto_generates_number
- {
+ public function test_create_invoice_auto_generates_number() {
  global $wpdb;
 
  // No duplicate (get_var returns 0)
@@ -542,43 +524,39 @@ class OraBooks_Customers_Test extends TestCase
  }
 
  #[Test]
- public function test_create_invoice_missing_customer_id
- {
+ public function test_create_invoice_missing_customer_id() {
  $result = OraBooks_Customers::create_invoice(5, [
  'total_amount' => 100.00,
  ]);
 
  $this->assertInstanceOf(WP_Error::class, $result);
- $this->assertEquals('missing_field', $result->get_error_code);
+ $this->assertEquals('missing_field', $result->get_error_code());
  }
 
  #[Test]
- public function test_create_invoice_zero_amount
- {
+ public function test_create_invoice_zero_amount() {
  $result = OraBooks_Customers::create_invoice(5, [
  'customer_id' => 1,
  'total_amount' => 0,
  ]);
 
  $this->assertInstanceOf(WP_Error::class, $result);
- $this->assertEquals('invalid_amount', $result->get_error_code);
+ $this->assertEquals('invalid_amount', $result->get_error_code());
  }
 
  #[Test]
- public function test_create_invoice_negative_amount
- {
+ public function test_create_invoice_negative_amount() {
  $result = OraBooks_Customers::create_invoice(5, [
  'customer_id' => 1,
  'total_amount' => -100,
  ]);
 
  $this->assertInstanceOf(WP_Error::class, $result);
- $this->assertEquals('invalid_amount', $result->get_error_code);
+ $this->assertEquals('invalid_amount', $result->get_error_code());
  }
 
  #[Test]
- public function test_create_invoice_duplicate_number
- {
+ public function test_create_invoice_duplicate_number() {
  global $wpdb;
 
  // Duplicate exists (get_var returns non-zero)
@@ -596,7 +574,7 @@ class OraBooks_Customers_Test extends TestCase
  ]);
 
  $this->assertInstanceOf(WP_Error::class, $result);
- $this->assertEquals('duplicate', $result->get_error_code);
+ $this->assertEquals('duplicate', $result->get_error_code());
  }
 
  // ================================================================
@@ -604,8 +582,7 @@ class OraBooks_Customers_Test extends TestCase
  // ================================================================
 
  #[Test]
- public function test_get_invoice_found_with_payments
- {
+ public function test_get_invoice_found_with_payments() {
  global $wpdb;
 
  $wpdb->test_get_row_callback = function ($query) {
@@ -635,8 +612,7 @@ class OraBooks_Customers_Test extends TestCase
  }
 
  #[Test]
- public function test_get_invoice_not_found
- {
+ public function test_get_invoice_not_found() {
  global $wpdb;
 
  $wpdb->test_get_row_callback = function ($query) {
@@ -649,8 +625,7 @@ class OraBooks_Customers_Test extends TestCase
  }
 
  #[Test]
- public function test_get_invoices_list_with_filters
- {
+ public function test_get_invoices_list_with_filters() {
  global $wpdb;
 
  $invoices = [
@@ -677,8 +652,7 @@ class OraBooks_Customers_Test extends TestCase
  }
 
  #[Test]
- public function test_get_invoices_list_global_admin_mode
- {
+ public function test_get_invoices_list_global_admin_mode() {
  global $wpdb;
 
  $invoices = [
@@ -700,8 +674,7 @@ class OraBooks_Customers_Test extends TestCase
  }
 
  #[Test]
- public function test_get_invoices_list_with_date_range
- {
+ public function test_get_invoices_list_with_date_range() {
  global $wpdb;
 
  $wpdb->test_get_results_callback = function ($query) {
@@ -724,8 +697,7 @@ class OraBooks_Customers_Test extends TestCase
  // ================================================================
 
  #[Test]
- public function test_record_payment_full_payment
- {
+ public function test_record_payment_full_payment() {
  global $wpdb;
 
  // get_row: retrieve invoice
@@ -767,8 +739,7 @@ class OraBooks_Customers_Test extends TestCase
  }
 
  #[Test]
- public function test_record_payment_partial_payment
- {
+ public function test_record_payment_partial_payment() {
  global $wpdb;
 
  $wpdb->test_get_row_callback = function ($query) {
@@ -804,8 +775,7 @@ class OraBooks_Customers_Test extends TestCase
  }
 
  #[Test]
- public function test_record_payment_multiple_payments_accumulate
- {
+ public function test_record_payment_multiple_payments_accumulate() {
  global $wpdb;
 
  $wpdb->test_get_row_callback = function ($query) {
@@ -840,8 +810,7 @@ class OraBooks_Customers_Test extends TestCase
  }
 
  #[Test]
- public function test_record_payment_invoice_not_found
- {
+ public function test_record_payment_invoice_not_found() {
  global $wpdb;
 
  $wpdb->test_get_row_callback = function ($query) {
@@ -853,12 +822,11 @@ class OraBooks_Customers_Test extends TestCase
  ]);
 
  $this->assertInstanceOf(WP_Error::class, $result);
- $this->assertEquals('not_found', $result->get_error_code);
+ $this->assertEquals('not_found', $result->get_error_code());
  }
 
  #[Test]
- public function test_record_payment_cancelled_invoice
- {
+ public function test_record_payment_cancelled_invoice() {
  global $wpdb;
 
  $wpdb->test_get_row_callback = function ($query) {
@@ -873,12 +841,11 @@ class OraBooks_Customers_Test extends TestCase
  ]);
 
  $this->assertInstanceOf(WP_Error::class, $result);
- $this->assertEquals('cancelled', $result->get_error_code);
+ $this->assertEquals('cancelled', $result->get_error_code());
  }
 
  #[Test]
- public function test_record_payment_invalid_amount
- {
+ public function test_record_payment_invalid_amount() {
  global $wpdb;
 
  $wpdb->test_get_row_callback = function ($query) {
@@ -894,7 +861,7 @@ class OraBooks_Customers_Test extends TestCase
  ]);
 
  $this->assertInstanceOf(WP_Error::class, $result);
- $this->assertEquals('invalid_amount', $result->get_error_code);
+ $this->assertEquals('invalid_amount', $result->get_error_code());
 
  // Negative amount
  $result2 = OraBooks_Customers::record_payment(5, 100, [
@@ -902,7 +869,7 @@ class OraBooks_Customers_Test extends TestCase
  ]);
 
  $this->assertInstanceOf(WP_Error::class, $result2);
- $this->assertEquals('invalid_amount', $result2->get_error_code);
+ $this->assertEquals('invalid_amount', $result2->get_error_code());
  }
 
  // ================================================================
@@ -910,8 +877,7 @@ class OraBooks_Customers_Test extends TestCase
  // ================================================================
 
  #[Test]
- public function test_get_customer_stats_shape
- {
+ public function test_get_customer_stats_shape() {
  global $wpdb;
 
  $wpdb->test_get_var_callback = function ($query) {
@@ -967,8 +933,7 @@ class OraBooks_Customers_Test extends TestCase
  }
 
  #[Test]
- public function test_get_customer_stats_zero_counts
- {
+ public function test_get_customer_stats_zero_counts() {
  global $wpdb;
 
  $wpdb->test_get_var_callback = function ($query) {
@@ -991,8 +956,7 @@ class OraBooks_Customers_Test extends TestCase
  // ================================================================
 
  #[Test]
- public function test_ajax_customers_list_requires_org_id
- {
+ public function test_ajax_customers_list_requires_org_id() {
  // org_id = 0 triggers "Organization ID required"
  $_GET['org_id'] = 0;
 
@@ -1000,15 +964,14 @@ class OraBooks_Customers_Test extends TestCase
  (new OraBooks_Customers)->ajax_customers_list;
  $this->fail('Expected RuntimeException was not thrown');
  } catch (RuntimeException $e) {
- $response = json_decode($e->getMessage, true);
+ $response = json_decode($e->getMessage(), true);
  $this->assertTrue($response['error'] ?? false);
  $this->assertStringContainsString('Organization ID required', $response['message'] ?? '');
  }
  }
 
  #[Test]
- public function test_ajax_customer_get_by_customer_id
- {
+ public function test_ajax_customer_get_by_customer_id() {
  global $wpdb;
 
  $wpdb->test_get_row_callback = function ($query) {
@@ -1024,15 +987,14 @@ class OraBooks_Customers_Test extends TestCase
  (new OraBooks_Customers)->ajax_customer_get;
  $this->fail('Expected RuntimeException was not thrown');
  } catch (RuntimeException $e) {
- $response = json_decode($e->getMessage, true);
+ $response = json_decode($e->getMessage(), true);
  $this->assertFalse($response['error'] ?? true);
  $this->assertEquals(5, $response['data']['id'] ?? 0);
  }
  }
 
  #[Test]
- public function test_ajax_customer_get_by_user_id
- {
+ public function test_ajax_customer_get_by_user_id() {
  global $wpdb;
 
  $wpdb->test_get_row_callback = function ($query) {
@@ -1048,29 +1010,27 @@ class OraBooks_Customers_Test extends TestCase
  (new OraBooks_Customers)->ajax_customer_get;
  $this->fail('Expected RuntimeException was not thrown');
  } catch (RuntimeException $e) {
- $response = json_decode($e->getMessage, true);
+ $response = json_decode($e->getMessage(), true);
  $this->assertFalse($response['error'] ?? true);
  $this->assertEquals(20, $response['data']['user_id'] ?? 0);
  }
  }
 
  #[Test]
- public function test_ajax_customer_get_no_params
- {
+ public function test_ajax_customer_get_no_params() {
  // No customer_id or user_id provided
  try {
  (new OraBooks_Customers)->ajax_customer_get;
  $this->fail('Expected RuntimeException was not thrown');
  } catch (RuntimeException $e) {
- $response = json_decode($e->getMessage, true);
+ $response = json_decode($e->getMessage(), true);
  $this->assertTrue($response['error'] ?? false);
  $this->assertStringContainsString('customer_id or user_id required', $response['message'] ?? '');
  }
  }
 
  #[Test]
- public function test_ajax_customer_get_not_found
- {
+ public function test_ajax_customer_get_not_found() {
  global $wpdb;
 
  $wpdb->test_get_row_callback = function ($query) {
@@ -1083,15 +1043,14 @@ class OraBooks_Customers_Test extends TestCase
  (new OraBooks_Customers)->ajax_customer_get;
  $this->fail('Expected RuntimeException was not thrown');
  } catch (RuntimeException $e) {
- $response = json_decode($e->getMessage, true);
+ $response = json_decode($e->getMessage(), true);
  $this->assertTrue($response['error'] ?? false);
  $this->assertStringContainsString('not found', $response['message'] ?? '');
  }
  }
 
  #[Test]
- public function test_ajax_customer_update_rejects_manual_active_toggle
- {
+ public function test_ajax_customer_update_rejects_manual_active_toggle() {
  global $wpdb;
 
  $wpdb->test_get_row_callback = function ($query) {
@@ -1108,22 +1067,21 @@ class OraBooks_Customers_Test extends TestCase
  (new OraBooks_Customers)->ajax_customer_update;
  $this->fail('Expected RuntimeException was not thrown');
  } catch (RuntimeException $e) {
- $response = json_decode($e->getMessage, true);
+ $response = json_decode($e->getMessage(), true);
  $this->assertTrue($response['error'] ?? false);
  $this->assertStringContainsString('derived from invoice activity', $response['message'] ?? '');
  }
  }
 
  #[Test]
- public function test_ajax_customer_update_missing_id
- {
+ public function test_ajax_customer_update_missing_id() {
  $_POST['is_active'] = 1;
 
  try {
  (new OraBooks_Customers)->ajax_customer_update;
  $this->fail('Expected RuntimeException was not thrown');
  } catch (RuntimeException $e) {
- $response = json_decode($e->getMessage, true);
+ $response = json_decode($e->getMessage(), true);
  $this->assertTrue($response['error'] ?? false);
  $this->assertStringContainsString('Customer ID required', $response['message'] ?? '');
  }
@@ -1134,8 +1092,7 @@ class OraBooks_Customers_Test extends TestCase
  // ================================================================
 
  #[Test]
- public function test_seed_default_customers_no_missing
- {
+ public function test_seed_default_customers_no_missing() {
  global $wpdb;
 
  // No missing customers found
@@ -1152,8 +1109,7 @@ class OraBooks_Customers_Test extends TestCase
  }
 
  #[Test]
- public function test_seed_default_customers_with_missing
- {
+ public function test_seed_default_customers_with_missing() {
  global $wpdb;
 
  $wpdb->test_get_results_callback = function ($query) {
@@ -1174,8 +1130,7 @@ class OraBooks_Customers_Test extends TestCase
  }
 
  #[Test]
- public function test_get_create_table_sql_returns_array
- {
+ public function test_get_create_table_sql_returns_array() {
  $sql = OraBooks_Customers::get_create_table_sql;
 
  $this->assertIsArray($sql);
@@ -1190,8 +1145,7 @@ class OraBooks_Customers_Test extends TestCase
  // ================================================================
 
  #[Test]
- public function test_daily_invoice_overdue_check
- {
+ public function test_daily_invoice_overdue_check() {
  global $wpdb;
 
  $wpdb->test_query_callback = function ($query) {
@@ -1208,8 +1162,7 @@ class OraBooks_Customers_Test extends TestCase
  }
 
  #[Test]
- public function test_daily_customer_status_check
- {
+ public function test_daily_customer_status_check() {
  global $wpdb;
 
  $wpdb->test_get_row_callback = function ($query) {
@@ -1233,8 +1186,7 @@ class OraBooks_Customers_Test extends TestCase
  }
 
  #[Test]
- public function test_create_invoice_calculates_tax_from_subtotal
- {
+ public function test_create_invoice_calculates_tax_from_subtotal() {
  global $wpdb;
 
  $wpdb->test_get_var_callback = function ($query) {
@@ -1279,8 +1231,7 @@ class OraBooks_Customers_Test extends TestCase
  }
 
  #[Test]
- public function test_get_list_includes_wallet_balance
- {
+ public function test_get_list_includes_wallet_balance() {
  global $wpdb;
 
  $wpdb->test_get_results_callback = function ($query) {
@@ -1309,8 +1260,7 @@ class OraBooks_Customers_Test extends TestCase
  }
 
  #[Test]
- public function test_create_customer_success
- {
+ public function test_create_customer_success() {
  global $wpdb;
 
  $wpdb->test_insert_id = 42;
@@ -1352,17 +1302,15 @@ class OraBooks_Customers_Test extends TestCase
  }
 
  #[Test]
- public function test_create_customer_requires_name
- {
+ public function test_create_customer_requires_name() {
  $result = OraBooks_Customers::create_customer(5, ['email' => 'billing@acme.com']);
 
  $this->assertInstanceOf(WP_Error::class, $result);
- $this->assertSame('missing_field', $result->get_error_code);
+ $this->assertSame('missing_field', $result->get_error_code());
  }
 
  #[Test]
- public function test_cancel_invoice_draft_success
- {
+ public function test_cancel_invoice_draft_success() {
  global $wpdb;
 
  $wpdb->test_get_row_callback = function ($query) {
@@ -1388,8 +1336,7 @@ class OraBooks_Customers_Test extends TestCase
  }
 
  #[Test]
- public function test_cancel_invoice_sent_success
- {
+ public function test_cancel_invoice_sent_success() {
  global $wpdb;
 
  $wpdb->test_get_row_callback = function ($query) {
@@ -1415,8 +1362,7 @@ class OraBooks_Customers_Test extends TestCase
  }
 
  #[Test]
- public function test_cancel_invoice_rejects_posted_status
- {
+ public function test_cancel_invoice_rejects_posted_status() {
  global $wpdb;
 
  $wpdb->test_get_row_callback = function ($query) {
@@ -1429,12 +1375,11 @@ class OraBooks_Customers_Test extends TestCase
  $result = OraBooks_Customers::cancel_invoice(5, 100, 1);
 
  $this->assertInstanceOf(WP_Error::class, $result);
- $this->assertEquals('invalid_status', $result->get_error_code);
+ $this->assertEquals('invalid_status', $result->get_error_code());
  }
 
  #[Test]
- public function test_cancel_invoice_rejects_partial_payment
- {
+ public function test_cancel_invoice_rejects_partial_payment() {
  global $wpdb;
 
  $wpdb->test_get_row_callback = function ($query) {
@@ -1451,6 +1396,6 @@ class OraBooks_Customers_Test extends TestCase
  $result = OraBooks_Customers::cancel_invoice(5, 100, 1);
 
  $this->assertInstanceOf(WP_Error::class, $result);
- $this->assertEquals('has_payments', $result->get_error_code);
+ $this->assertEquals('has_payments', $result->get_error_code());
  }
 }

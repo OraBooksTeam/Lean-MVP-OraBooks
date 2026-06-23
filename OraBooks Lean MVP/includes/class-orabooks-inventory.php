@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 /**
  * OraBooks Inventory Lite
  *
@@ -17,7 +17,7 @@ class OraBooks_Inventory {
  const INVENTORY_ASSET_ACCOUNT = '1200';
  const COGS_ACCOUNT = '5100';
 
- public static function init {
+ public static function init() {
  if (self::$instance === null) {
  self::$instance = new self;
 
@@ -45,7 +45,7 @@ class OraBooks_Inventory {
  return self::$instance;
  }
 
- public static function get_create_table_sql {
+ public static function get_create_table_sql() {
  global $wpdb;
 
  $charset_collate = $wpdb->get_charset_collate;
@@ -132,7 +132,7 @@ class OraBooks_Inventory {
  ];
  }
 
- private static function lookup_types {
+ private static function lookup_types() {
  return ['brand', 'category', 'unit', 'tax', 'warehouse'];
  }
 
@@ -141,7 +141,7 @@ class OraBooks_Inventory {
  return in_array($type, self::lookup_types, true) ? $type: '';
  }
 
- private static function maybe_ensure_lookup_schema {
+ private static function maybe_ensure_lookup_schema() {
  static $ran = false;
  if ($ran) {
  return;
@@ -358,7 +358,7 @@ class OraBooks_Inventory {
  return self::format_lookup($row);
  }
 
- private static function maybe_ensure_product_schema {
+ private static function maybe_ensure_product_schema() {
  static $ran = false;
  if ($ran) {
  return;
@@ -553,7 +553,7 @@ class OraBooks_Inventory {
  'reason' => 'Opening balance',
  'note' => null,
  'journal_id' => null,
- 'created_by' => orabooks_get_current_user_id,
+ 'created_by' => orabooks_get_current_user_id(),
  ]);
  }
 
@@ -561,7 +561,7 @@ class OraBooks_Inventory {
  'product_id' => $product_id,
  'sku' => $sku,
  'initial_stock' => $initial_stock,
- ], orabooks_get_current_user_id, $org_id);
+ ], orabooks_get_current_user_id(), $org_id);
 
  return self::get_product($product_id, $org_id);
  }
@@ -725,7 +725,7 @@ class OraBooks_Inventory {
  'reason' => 'Purchase receipt',
  'note' => null,
  'journal_id' => null,
- 'created_by' => $user_id ? intval($user_id): orabooks_get_current_user_id,
+ 'created_by' => $user_id ? intval($user_id): orabooks_get_current_user_id(),
  ]);
 
  orabooks_log_event('inventory_purchase_received', 'Inventory purchase received', 'info', [
@@ -733,7 +733,7 @@ class OraBooks_Inventory {
  'quantity' => $quantity,
  'average_cost' => $new_average_cost,
  'movement_id' => $movement_id,
- ], $user_id ?: orabooks_get_current_user_id, intval($org_id));
+ ], $user_id ?: orabooks_get_current_user_id(), intval($org_id));
 
  return [
  'product_id' => intval($product_id),
@@ -793,7 +793,7 @@ class OraBooks_Inventory {
  'reason' => 'Sale',
  'note' => null,
  'journal_id' => is_wp_error($journal_id) ? null: $journal_id,
- 'created_by' => $user_id ? intval($user_id): orabooks_get_current_user_id,
+ 'created_by' => $user_id ? intval($user_id): orabooks_get_current_user_id(),
  ]);
 
  orabooks_log_event('inventory_sale_recorded', 'Inventory sale recorded', 'info', [
@@ -802,7 +802,7 @@ class OraBooks_Inventory {
  'cogs_amount' => $cogs_amount,
  'movement_id' => $movement_id,
  'journal_id' => is_wp_error($journal_id) ? null: $journal_id,
- ], $user_id ?: orabooks_get_current_user_id, intval($org_id));
+ ], $user_id ?: orabooks_get_current_user_id(), intval($org_id));
 
  return [
  'product_id' => intval($product_id),
@@ -863,7 +863,7 @@ class OraBooks_Inventory {
  'reason' => $reason,
  'note' => sanitize_textarea_field($note),
  'journal_id' => null,
- 'created_by' => $user_id ? intval($user_id): orabooks_get_current_user_id,
+ 'created_by' => $user_id ? intval($user_id): orabooks_get_current_user_id(),
  ]);
 
  orabooks_log_event('inventory_adjusted', 'Inventory stock adjusted', 'warning', [
@@ -873,7 +873,7 @@ class OraBooks_Inventory {
  'stock_after' => $stock_after,
  'reason' => $reason,
  'movement_id' => $movement_id,
- ], $user_id ?: orabooks_get_current_user_id, intval($org_id));
+ ], $user_id ?: orabooks_get_current_user_id(), intval($org_id));
 
  return [
  'product_id' => intval($product_id),
@@ -925,7 +925,7 @@ class OraBooks_Inventory {
 
  public function on_vendor_bill_posted($bill_id, $payload = []) {
  $org_id = intval($payload['org_id'] ?? 0);
- $user_id = intval($payload['user_id'] ?? orabooks_get_current_user_id);
+ $user_id = intval($payload['user_id'] ?? orabooks_get_current_user_id());
  $items = $payload['inventory_items'] ?? [];
  foreach ($items as $item) {
  $product_id = intval($item['product_id'] ?? 0);
@@ -944,7 +944,7 @@ class OraBooks_Inventory {
 
  public function on_invoice_posted($invoice_id, $payload = []) {
  $org_id = intval($payload['org_id'] ?? 0);
- $user_id = intval($payload['user_id'] ?? orabooks_get_current_user_id);
+ $user_id = intval($payload['user_id'] ?? orabooks_get_current_user_id());
  $items = $payload['inventory_items'] ?? [];
  foreach ($items as $item) {
  $product_id = intval($item['product_id'] ?? 0);
@@ -1001,7 +1001,7 @@ class OraBooks_Inventory {
  return null;
  }
 
- $actor = $user_id ?: orabooks_get_current_user_id;
+ $actor = $user_id ?: orabooks_get_current_user_id();
 
  $journal_id = OraBooks_Posting::create_journal([
  'org_id' => intval($org_id),
@@ -1060,7 +1060,7 @@ class OraBooks_Inventory {
  ];
  }
 
- public function ajax_product_get {
+ public function ajax_product_get() {
  $user_id = $this->current_user_id;
  $org_id = intval($_GET['org_id'] ?? 0);
  $product_id = intval($_GET['product_id'] ?? 0);
@@ -1075,8 +1075,8 @@ class OraBooks_Inventory {
  ]);
  }
 
- private function current_user_id {
- return orabooks_get_current_user_id;
+ private function current_user_id() {
+ return orabooks_get_current_user_id();
  }
 
  private function require_customer_org_access($user_id, $org_id) {
@@ -1086,7 +1086,7 @@ class OraBooks_Inventory {
 
  $isolation = OraBooks_Auth::require_customer_org($user_id, $org_id);
  if (is_wp_error($isolation)) {
- orabooks_json_error($isolation->get_error_message, 403);
+ orabooks_json_error($isolation->get_error_message(), 403);
  }
  }
 
@@ -1114,14 +1114,14 @@ class OraBooks_Inventory {
  orabooks_json_error('Permission denied', 403);
  }
 
- public function ajax_products_list {
+ public function ajax_products_list() {
  $user_id = $this->current_user_id;
  $org_id = intval($_GET['org_id'] ?? 0);
  $this->require_inventory_permission($user_id, $org_id, ['view_reports']);
  orabooks_json_success(self::get_products_list($org_id, $_GET));
  }
 
- public function ajax_product_create {
+ public function ajax_product_create() {
  $user_id = $this->current_user_id;
  $org_id = intval($_POST['org_id'] ?? 0);
  $this->require_inventory_permission($user_id, $org_id, ['manage_org_settings']);
@@ -1135,7 +1135,7 @@ class OraBooks_Inventory {
 
  $attachment_id = media_handle_upload('item_image', 0);
  if (is_wp_error($attachment_id)) {
- orabooks_json_error($attachment_id->get_error_message, 400);
+ orabooks_json_error($attachment_id->get_error_message(), 400);
  }
 
  $_POST['item_image_url'] = wp_get_attachment_url($attachment_id);
@@ -1143,12 +1143,12 @@ class OraBooks_Inventory {
 
  $result = self::create_product($org_id, $_POST);
  if (is_wp_error($result)) {
- orabooks_json_error($result->get_error_message, 400);
+ orabooks_json_error($result->get_error_message(), 400);
  }
  orabooks_json_success(['product' => $result]);
  }
 
- public function ajax_adjust_stock {
+ public function ajax_adjust_stock() {
  $user_id = $this->current_user_id;
  $org_id = intval($_POST['org_id'] ?? 0);
  $this->require_inventory_permission($user_id, $org_id, ['manage_org_settings', 'submit_transaction']);
@@ -1161,12 +1161,12 @@ class OraBooks_Inventory {
  sanitize_textarea_field($_POST['note'] ?? '')
  );
  if (is_wp_error($result)) {
- orabooks_json_error($result->get_error_message, 400);
+ orabooks_json_error($result->get_error_message(), 400);
  }
  orabooks_json_success($result);
  }
 
- public function ajax_movements {
+ public function ajax_movements() {
  $user_id = $this->current_user_id;
  $org_id = intval($_GET['org_id'] ?? 0);
  $this->require_inventory_permission($user_id, $org_id, ['view_reports']);
@@ -1177,7 +1177,7 @@ class OraBooks_Inventory {
  orabooks_json_success(['movements' => $movements]);
  }
 
- public function ajax_lookups_list {
+ public function ajax_lookups_list() {
  $user_id = $this->current_user_id;
  $org_id = intval($_GET['org_id'] ?? 0);
  $this->require_inventory_permission($user_id, $org_id, ['view_reports']);
@@ -1190,19 +1190,19 @@ class OraBooks_Inventory {
  orabooks_json_success(['lookups' => $lookups]);
  }
 
- public function ajax_lookup_create {
+ public function ajax_lookup_create() {
  $user_id = $this->current_user_id;
  $org_id = intval($_POST['org_id'] ?? 0);
  $this->require_inventory_permission($user_id, $org_id, ['manage_org_settings']);
  $lookup_type = sanitize_key($_POST['lookup_type'] ?? '');
  $result = self::create_lookup($org_id, $lookup_type, $_POST);
  if (is_wp_error($result)) {
- orabooks_json_error($result->get_error_message, 400);
+ orabooks_json_error($result->get_error_message(), 400);
  }
  orabooks_json_success(['lookup' => $result]);
  }
 
- public function ajax_lookup_code {
+ public function ajax_lookup_code() {
  $user_id = $this->current_user_id;
  $org_id = intval($_GET['org_id'] ?? 0);
  $this->require_inventory_permission($user_id, $org_id, ['view_reports']);

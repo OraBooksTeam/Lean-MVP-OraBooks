@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 /**
  * Unit Tests for OraBooks_COA
  */
@@ -26,8 +26,7 @@ class OraBooks_COA_Test extends TestCase
  }
 
  #[Test]
- public function test_load_chart_of_accounts_skips_partner_orgs
- {
+ public function test_load_chart_of_accounts_skips_partner_orgs() {
  global $wpdb;
 
  $query_count = 0;
@@ -44,8 +43,7 @@ class OraBooks_COA_Test extends TestCase
  }
 
  #[Test]
- public function test_load_chart_of_accounts_inserts_free_tier_template
- {
+ public function test_load_chart_of_accounts_inserts_free_tier_template() {
  global $wpdb;
 
  $inserts = [];
@@ -78,8 +76,7 @@ class OraBooks_COA_Test extends TestCase
  }
 
  #[Test]
- public function test_get_accounts_returns_empty_for_partner_org
- {
+ public function test_get_accounts_returns_empty_for_partner_org() {
  global $wpdb;
 
  $GLOBALS['orabooks_test_org_callback'] = function {
@@ -100,8 +97,7 @@ class OraBooks_COA_Test extends TestCase
  }
 
  #[Test]
- public function test_get_accounts_includes_journal_usage_flag
- {
+ public function test_get_accounts_includes_journal_usage_flag() {
  global $wpdb;
 
  $GLOBALS['orabooks_test_org_callback'] = function {
@@ -132,8 +128,7 @@ class OraBooks_COA_Test extends TestCase
  }
 
  #[Test]
- public function test_account_types_enum_is_centralized
- {
+ public function test_account_types_enum_is_centralized() {
  $this->assertSame(
  ['asset', 'liability', 'equity', 'revenue', 'expense'],
  OraBooks_COA::ACCOUNT_TYPES
@@ -141,8 +136,7 @@ class OraBooks_COA_Test extends TestCase
  }
 
  #[Test]
- public function test_create_account_rejects_duplicate_code
- {
+ public function test_create_account_rejects_duplicate_code() {
  global $wpdb;
 
  $GLOBALS['orabooks_test_org_callback'] = function {
@@ -164,14 +158,13 @@ class OraBooks_COA_Test extends TestCase
  ]);
 
  $this->assertInstanceOf(WP_Error::class, $result);
- $this->assertSame('duplicate_code', $result->get_error_code);
+ $this->assertSame('duplicate_code', $result->get_error_code());
 
  unset($GLOBALS['orabooks_test_org_callback']);
  }
 
  #[Test]
- public function test_update_account_blocks_type_change_when_used_in_journals
- {
+ public function test_update_account_blocks_type_change_when_used_in_journals() {
  global $wpdb;
 
  $GLOBALS['orabooks_test_org_callback'] = function {
@@ -202,14 +195,13 @@ class OraBooks_COA_Test extends TestCase
  ], 1);
 
  $this->assertInstanceOf(WP_Error::class, $result);
- $this->assertSame('account_in_use', $result->get_error_code);
+ $this->assertSame('account_in_use', $result->get_error_code());
 
  unset($GLOBALS['orabooks_test_org_callback']);
  }
 
  #[Test]
- public function test_update_account_allows_name_change_for_system_account
- {
+ public function test_update_account_allows_name_change_for_system_account() {
  global $wpdb;
 
  $GLOBALS['orabooks_test_org_callback'] = function {

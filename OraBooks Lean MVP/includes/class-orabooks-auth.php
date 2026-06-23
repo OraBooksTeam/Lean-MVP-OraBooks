@@ -55,7 +55,7 @@ class OraBooks_Auth {
  add_filter('rest_pre_dispatch', [self::$instance, 'enforce_partner_accounting_isolation_rest'], 10, 3);
  //: Admin partner approval endpoints registered in OraBooks_Partner
 
- if (function_exists('is_multisite') && is_multisite()) {
+ if (function_exists('is_multisite()') && is_multisite()) {
  add_action('wpmu_activate_user', [self::$instance, 'handle_multisite_user_activation'], 10, 3);
  add_action('wpmu_activate_blog', [self::$instance, 'handle_multisite_blog_activation'], 10, 5);
  }
@@ -316,7 +316,7 @@ class OraBooks_Auth {
  ]);
  }
 
- if (function_exists('is_multisite') && is_multisite() && function_exists('add_user_to_blog')) {
+ if (function_exists('is_multisite()') && is_multisite() && function_exists('add_user_to_blog')) {
  $blog_id = get_current_blog_id();
  if (!is_user_member_of_blog($wp_user_id, $blog_id)) {
  add_user_to_blog($blog_id, $wp_user_id, 'subscriber');
@@ -473,7 +473,7 @@ class OraBooks_Auth {
  }
 
  $from_email = function_exists('get_option') ? get_option('admin_email'): '';
- if (function_exists('is_multisite') && is_multisite() && function_exists('get_site_option')) {
+ if (function_exists('is_multisite()') && is_multisite() && function_exists('get_site_option')) {
  $network_email = get_site_option('admin_email');
  if (!empty($network_email) && is_email($network_email)) {
  $from_email = $network_email;
@@ -1364,7 +1364,7 @@ class OraBooks_Auth {
  $exists = $wpdb->get_var($wpdb->prepare(
  "SELECT id FROM {$table} WHERE subdomain = %s", $subdomain
  ));
- $site_taken = function_exists('orabooks_multisite_subdomain_taken')
+ $site_taken = function_exists('orabooks_multisite_subdomain_taken()')
  ? orabooks_multisite_subdomain_taken($subdomain)
 : false;
  $taken = (bool) $exists || $site_taken;
