@@ -352,6 +352,101 @@
         }
       }
     },
+    "/expenses/settings": {
+      "get": {
+        "tags": ["Expenses"],
+        "summary": "Get org expense workflow settings",
+        "parameters": [
+          { "in": "query", "name": "org_id", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": {
+          "200": { "description": "Settings including auto_post_on_approve" }
+        }
+      },
+      "put": {
+        "tags": ["Expenses"],
+        "summary": "Save org expense workflow settings",
+        "parameters": [
+          { "in": "query", "name": "org_id", "required": true, "schema": { "type": "integer" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "auto_post_on_approve": { "type": "integer", "enum": [0, 1] }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Updated settings" },
+          "403": { "description": "Insufficient permissions" }
+        }
+      }
+    },
+    "/expenses/{id}/approve": {
+      "post": {
+        "tags": ["Expenses"],
+        "summary": "Approve expense (auto-posts when org setting enabled)",
+        "parameters": [
+          { "$ref": "#/components/parameters/ExpenseId" },
+          { "in": "query", "name": "org_id", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": {
+          "200": { "description": "Approved expense" },
+          "400": { "description": "Invalid workflow state" },
+          "404": { "description": "Not found" }
+        }
+      }
+    },
+    "/expenses/{id}/reject": {
+      "post": {
+        "tags": ["Expenses"],
+        "summary": "Reject expense with reason",
+        "parameters": [
+          { "$ref": "#/components/parameters/ExpenseId" },
+          { "in": "query", "name": "org_id", "required": true, "schema": { "type": "integer" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["reason"],
+                "properties": {
+                  "reason": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Rejected expense" },
+          "400": { "description": "Missing reason or invalid state" },
+          "404": { "description": "Not found" }
+        }
+      }
+    },
+    "/expenses/{id}/post": {
+      "post": {
+        "tags": ["Expenses"],
+        "summary": "Post approved expense to ledger",
+        "parameters": [
+          { "$ref": "#/components/parameters/ExpenseId" },
+          { "in": "query", "name": "org_id", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": {
+          "200": { "description": "Posted expense" },
+          "400": { "description": "Invalid workflow state" },
+          "404": { "description": "Not found" }
+        }
+      }
+    },
     "/auth/2fa/setup": {
       "post": {
         "tags": ["Auth"],
