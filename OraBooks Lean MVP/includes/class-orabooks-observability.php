@@ -66,7 +66,7 @@ class OraBooks_Observability {
  ],
  ];
 
- public static function init {
+ public static function init() {
  if (self::$instance === null) {
  self::$instance = new self;
 
@@ -86,7 +86,7 @@ class OraBooks_Observability {
  return self::$instance;
  }
 
- public static function get_create_table_sql {
+ public static function get_create_table_sql() {
  global $wpdb;
  $charset_collate = $wpdb->get_charset_collate;
  $tables = [];
@@ -159,7 +159,7 @@ class OraBooks_Observability {
  /**
  * Collect metrics from event bus, async queue, notifications, and exports.
  */
- public static function collect_platform_metrics {
+ public static function collect_platform_metrics() {
  global $wpdb;
 
  $snapshots = [];
@@ -380,7 +380,7 @@ class OraBooks_Observability {
  ];
  }
 
- public static function get_slo_definitions {
+ public static function get_slo_definitions() {
  return apply_filters('orabooks_observability_slos', self::$slos);
  }
 
@@ -404,7 +404,7 @@ class OraBooks_Observability {
  ];
  }
 
- public static function evaluate_error_budgets {
+ public static function evaluate_error_budgets() {
  $dashboard = self::get_slo_dashboard;
  $thresholds = apply_filters('orabooks_observability_thresholds', self::$thresholds);
  $min_budget = (float) ($thresholds['slo_error_budget_min'] ?? 10);
@@ -553,7 +553,7 @@ class OraBooks_Observability {
  ];
  }
 
- private static function empty_sli {
+ private static function empty_sli() {
  return [
  'total' => 0,
  'good' => 0,
@@ -748,15 +748,15 @@ class OraBooks_Observability {
  ));
  }
 
- public function cron_collect_metrics {
+ public function cron_collect_metrics() {
  self::collect_platform_metrics;
  }
 
- public function cron_evaluate_thresholds {
+ public function cron_evaluate_thresholds() {
  self::evaluate_thresholds;
  }
 
- public function cron_purge_old_metrics {
+ public function cron_purge_old_metrics() {
  global $wpdb;
 
  $metric_cutoff = date('Y-m-d H:i:s', time - (self::METRIC_RETENTION_DAYS * 86400));
@@ -824,7 +824,7 @@ class OraBooks_Observability {
  ]);
  }
 
- public function ajax_dashboard {
+ public function ajax_dashboard() {
  if (!current_user_can('manage_options')) {
  orabooks_json_error('Permission denied', 403);
  }
@@ -833,7 +833,7 @@ class OraBooks_Observability {
  orabooks_json_success(self::get_dashboard($hours));
  }
 
- public function ajax_metrics {
+ public function ajax_metrics() {
  if (!current_user_can('manage_options')) {
  orabooks_json_error('Permission denied', 403);
  }

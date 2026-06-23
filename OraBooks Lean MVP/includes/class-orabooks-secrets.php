@@ -27,7 +27,7 @@ class OraBooks_Secrets {
  const TLS_EXPIRY_WARN_DAYS = 30;
  const DEFAULT_JWT_EXPIRY_SECONDS = 900;
 
- public static function init {
+ public static function init() {
  if (self::$instance === null) {
  self::$instance = new self;
  $boot = self::bootstrap;
@@ -47,28 +47,28 @@ class OraBooks_Secrets {
  /**
  * Whether bootstrap completed without blocking errors.
  */
- public static function is_ready {
+ public static function is_ready() {
  return self::$bootstrap_error === null;
  }
 
  /**
  * @return WP_Error|null
  */
- public static function get_bootstrap_error {
+ public static function get_bootstrap_error() {
  return self::$bootstrap_error;
  }
 
  /**
  * Default JWT access-token lifetime (: 15 minutes).
  */
- public static function get_default_jwt_expiry {
+ public static function get_default_jwt_expiry() {
  return (int) apply_filters('orabooks_default_jwt_expiry', self::DEFAULT_JWT_EXPIRY_SECONDS);
  }
 
  /**
  * Shared HMAC signing material for internal integrity proofs ( §5.6).
  */
- public static function get_hmac_signing_key {
+ public static function get_hmac_signing_key() {
  return (string) self::get_jwt_secret;
  }
 
@@ -89,7 +89,7 @@ class OraBooks_Secrets {
  /**
  * Load secrets, migrate legacy options, and ensure required keys exist.
  */
- public static function bootstrap {
+ public static function bootstrap() {
  if (self::$bootstrapped) {
  return self::$bootstrap_error instanceof WP_Error ? self::$bootstrap_error: true;
  }
@@ -139,7 +139,7 @@ class OraBooks_Secrets {
  /**
  * Whether the deployment should enforce production-grade TLS/secrets rules.
  */
- public static function is_production {
+ public static function is_production() {
  if (defined('ORABOOKS_ENV') && ORABOOKS_ENV === 'production') {
  return true;
  }
@@ -156,7 +156,7 @@ class OraBooks_Secrets {
  /**
  * Redirect HTTP to HTTPS in production ( §5.3).
  */
- public static function maybe_enforce_https {
+ public static function maybe_enforce_https() {
  if (is_ssl || !self::requires_tls) {
  return;
  }
@@ -189,19 +189,19 @@ class OraBooks_Secrets {
  exit;
  }
 
- public static function requires_tls {
+ public static function requires_tls() {
  return (bool) apply_filters('orabooks_require_tls', self::is_production);
  }
 
  /**
  * Block OraBooks runtime when bootstrap failed in production ( §10).
  */
- private static function register_failure_handlers {
+ private static function register_failure_handlers() {
  add_action('admin_notices', [self::class, 'render_bootstrap_admin_notice']);
  add_action('init', [self::class, 'block_orabooks_ajax_when_not_ready'], 0);
  }
 
- public static function render_bootstrap_admin_notice {
+ public static function render_bootstrap_admin_notice() {
  if (!current_user_can('manage_options') || !self::$bootstrap_error) {
  return;
  }
@@ -215,7 +215,7 @@ class OraBooks_Secrets {
  echo '<div class="notice notice-error"><p><strong>OraBooks:</strong> '. $message. '</p></div>';
  }
 
- public static function block_orabooks_ajax_when_not_ready {
+ public static function block_orabooks_ajax_when_not_ready() {
  if (self::is_ready || !defined('DOING_AJAX') || !DOING_AJAX) {
  return;
  }
@@ -244,7 +244,7 @@ class OraBooks_Secrets {
  *
  * @return array<string, mixed>
  */
- public static function check_database_tls {
+ public static function check_database_tls() {
  if (!self::is_production) {
  return [
  'ok' => true,
@@ -310,7 +310,7 @@ class OraBooks_Secrets {
  *
  * @return array<string, string>
  */
- private static function load_file_secrets {
+ private static function load_file_secrets() {
  if (self::$file_secrets !== null) {
  return self::$file_secrets;
  }
@@ -343,8 +343,8 @@ class OraBooks_Secrets {
  /**
  * Migrate plaintext legacy options into encrypted secret storage.
  */
- private static function migrate_legacy_secrets {
- $legacy_jwt = self::with_shared_options(function {
+ private static function migrate_legacy_secrets() {
+ $legacy_jwt = self::with_shared_options(function() {
  return get_option('orabooks_jwt_secret', '');
  });
 
@@ -547,7 +547,7 @@ class OraBooks_Secrets {
  /**
  * Derive AES key from the master encryption key ( §5.4).
  */
- private static function get_cipher_key {
+ private static function get_cipher_key() {
  $master = self::$secrets_cache['encryption_key'] ?? null;
  if ($master === null || $master === '') {
  $master = self::load_secret('encryption_key');
@@ -562,7 +562,7 @@ class OraBooks_Secrets {
  /**
  * Legacy cipher key for secrets encrypted before master-key migration.
  */
- private static function get_legacy_cipher_key {
+ private static function get_legacy_cipher_key() {
  return defined('LOGGED_IN_KEY') ? LOGGED_IN_KEY: wp_salt('logged_in');
  }
 
@@ -647,7 +647,7 @@ class OraBooks_Secrets {
  /**
  * Get JWT secret key
  */
- public static function get_jwt_secret {
+ public static function get_jwt_secret() {
  $secret = self::get('jwt_secret');
  if (!$secret) {
  $secret = wp_generate_password(64, true, true);
@@ -666,9 +666,9 @@ class OraBooks_Secrets {
  *
  * @return string[]
  */
- private static function get_jwt_verification_secrets {
+ private static function get_jwt_verification_secrets() {
  $secrets = [self::get_jwt_secret];
- $grace_until = (int) self::with_shared_options(function {
+ $grace_until = (int) self::with_shared_options(function() {
  return (int) get_option('orabooks_jwt_secret_grace_until', 0);
  });
 
@@ -782,7 +782,7 @@ class OraBooks_Secrets {
  /**
  * Health snapshot for deploy/security dashboards.
  */
- public static function get_status {
+ public static function get_status() {
  $jwt = self::get_jwt_secret;
  $encryption = self::get_encryption_key;
  $tls = self::check_tls_certificate;
@@ -805,7 +805,7 @@ class OraBooks_Secrets {
  /**
  * Get encryption key for sensitive data (2FA, backup codes)
  */
- public static function get_encryption_key {
+ public static function get_encryption_key() {
  if (!empty(self::$secrets_cache['encryption_key'])) {
  return self::$secrets_cache['encryption_key'];
  }
@@ -827,7 +827,7 @@ class OraBooks_Secrets {
  $secret = self::get_jwt_secret;
  $header = self::base64url_encode(json_encode(['alg' => 'HS256', 'typ' => 'JWT']));
  $payload['iat'] = time;
- $jwt_expiry = self::with_shared_options(function {
+ $jwt_expiry = self::with_shared_options(function() {
  return (int) get_option('orabooks_jwt_expiry', self::get_default_jwt_expiry);
  });
  if (empty($payload['exp']) || (int) $payload['exp'] <= time) {
@@ -907,7 +907,7 @@ class OraBooks_Secrets {
  /**
  * Generate TOTP secret for 2FA (Base32, RFC 6238).
  */
- public static function generate_totp_secret {
+ public static function generate_totp_secret() {
  return self::base32_encode(random_bytes(20));
  }
 
@@ -1072,7 +1072,7 @@ class OraBooks_Secrets {
  /**
  * Generate backup codes (8 codes)
  */
- public static function generate_backup_codes {
+ public static function generate_backup_codes() {
  $codes = [];
  for ($i = 0; $i < 8; $i++) {
  $codes[] = strtoupper(bin2hex(random_bytes(4)));

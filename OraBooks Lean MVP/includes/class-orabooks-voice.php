@@ -27,7 +27,7 @@ class OraBooks_Voice {
 
  private static $instance = null;
 
- public static function init {
+ public static function init() {
  if (self::$instance === null) {
  self::$instance = new self;
 
@@ -47,7 +47,7 @@ class OraBooks_Voice {
  return self::$instance;
  }
 
- public static function get_create_table_sql {
+ public static function get_create_table_sql() {
  global $wpdb;
 
  $table = OraBooks_Database::table(self::TABLE_VOICE);
@@ -358,7 +358,7 @@ class OraBooks_Voice {
  ], (int) $org_id);
  }
 
- public function cron_process_pending {
+ public function cron_process_pending() {
  global $wpdb;
 
  $table = OraBooks_Database::table(self::TABLE_VOICE);
@@ -712,7 +712,7 @@ class OraBooks_Voice {
  ));
  }
 
- public function cron_purge_old {
+ public function cron_purge_old() {
  global $wpdb;
 
  $table = OraBooks_Database::table(self::TABLE_VOICE);
@@ -749,7 +749,7 @@ class OraBooks_Voice {
  }
  }
 
- public function ajax_upload {
+ public function ajax_upload() {
  $user_id = orabooks_get_current_user_id;
  $org_id = intval($_POST['org_id'] ?? 0);
  $this->require_voice_access($user_id, $org_id, 'manage_voice_inputs');
@@ -780,7 +780,7 @@ class OraBooks_Voice {
  orabooks_json_success(['voice_input' => $result], 'Voice uploaded and transcribed');
  }
 
- public function ajax_get {
+ public function ajax_get() {
  $user_id = orabooks_get_current_user_id;
  $org_id = intval($_GET['org_id'] ?? $_POST['org_id'] ?? 0);
  $voice_id = intval($_GET['voice_id'] ?? $_POST['voice_id'] ?? 0);
@@ -795,7 +795,7 @@ class OraBooks_Voice {
  orabooks_json_success(['voice_input' => self::format_voice_input($voice)]);
  }
 
- public function ajax_confirm {
+ public function ajax_confirm() {
  $user_id = orabooks_get_current_user_id;
  $org_id = intval($_POST['org_id'] ?? 0);
  $voice_id = intval($_POST['voice_id'] ?? 0);
@@ -823,7 +823,7 @@ class OraBooks_Voice {
  orabooks_json_success(['voice_input' => $result], 'Voice input confirmed');
  }
 
- public function ajax_list {
+ public function ajax_list() {
  $user_id = orabooks_get_current_user_id;
  $org_id = intval($_GET['org_id'] ?? $_POST['org_id'] ?? 0);
 

@@ -21,7 +21,7 @@ class OraBooks_Tax {
  'REGIONAL_COMPLIANCE_OVERRIDE',
  ];
 
- public static function init {
+ public static function init() {
  if (self::$instance === null) {
  self::$instance = new self;
  add_action('wp_ajax_orabooks_tax_calculate', [self::$instance, 'ajax_calculate']);
@@ -46,7 +46,7 @@ class OraBooks_Tax {
  return self::$instance;
  }
 
- private static function maybe_ensure_tax_schema {
+ private static function maybe_ensure_tax_schema() {
  static $ran = false;
  if ($ran) {
  return;
@@ -74,7 +74,7 @@ class OraBooks_Tax {
  }
  }
 
- public static function get_create_table_sql {
+ public static function get_create_table_sql() {
  global $wpdb;
 
  $charset_collate = $wpdb->get_charset_collate;
@@ -138,7 +138,7 @@ class OraBooks_Tax {
  return $tables;
  }
 
- public static function seed_default_jurisdictions {
+ public static function seed_default_jurisdictions() {
  global $wpdb;
 
  $table = OraBooks_Database::table('tax_jurisdictions');
@@ -521,7 +521,7 @@ class OraBooks_Tax {
  return array_map([self::class, 'format_config'], $rows ?: []);
  }
 
- public static function list_jurisdictions {
+ public static function list_jurisdictions() {
  global $wpdb;
 
  $table = OraBooks_Database::table('tax_jurisdictions');
@@ -792,7 +792,7 @@ class OraBooks_Tax {
  }
  }
 
- public function ajax_calculate {
+ public function ajax_calculate() {
  $user_id = orabooks_get_current_user_id;
  $org_id = intval($_POST['org_id'] ?? $_GET['org_id'] ?? 0);
  $this->require_tax_access($user_id, $org_id, 'create_invoice');
@@ -805,7 +805,7 @@ class OraBooks_Tax {
  orabooks_json_success($result);
  }
 
- public function ajax_save_config {
+ public function ajax_save_config() {
  $user_id = orabooks_get_current_user_id;
  $org_id = intval($_POST['org_id'] ?? 0);
  $this->require_tax_access($user_id, $org_id, 'manage_org_settings');
@@ -818,7 +818,7 @@ class OraBooks_Tax {
  orabooks_json_success(['config' => self::format_config($result)]);
  }
 
- public function ajax_list_configs {
+ public function ajax_list_configs() {
  $user_id = orabooks_get_current_user_id;
  $org_id = intval($_GET['org_id'] ?? $_POST['org_id'] ?? 0);
  $this->require_tax_access($user_id, $org_id, 'manage_org_settings');
@@ -833,7 +833,7 @@ class OraBooks_Tax {
  /**
  *: reason codes for override modal (read-only; no full tax config required).
  */
- public function ajax_override_reasons {
+ public function ajax_override_reasons() {
  $user_id = orabooks_get_current_user_id;
  $org_id = intval($_GET['org_id'] ?? $_POST['org_id'] ?? 0);
 
@@ -864,7 +864,7 @@ class OraBooks_Tax {
  ]);
  }
 
- public function ajax_list_jurisdictions {
+ public function ajax_list_jurisdictions() {
  $user_id = orabooks_get_current_user_id;
  $org_id = intval($_GET['org_id'] ?? $_POST['org_id'] ?? 0);
  if ($org_id > 0) {
@@ -876,7 +876,7 @@ class OraBooks_Tax {
  orabooks_json_success(['jurisdictions' => self::list_jurisdictions]);
  }
 
- public function ajax_lock_status {
+ public function ajax_lock_status() {
  $user_id = orabooks_get_current_user_id;
  $org_id = intval($_GET['org_id'] ?? $_POST['org_id'] ?? 0);
  $date = sanitize_text_field($_GET['transaction_date'] ?? $_POST['transaction_date'] ?? '');
@@ -885,7 +885,7 @@ class OraBooks_Tax {
  orabooks_json_success(self::get_lock_status($org_id, $date ?: null));
  }
 
- public function ajax_create_snapshot {
+ public function ajax_create_snapshot() {
  $user_id = orabooks_get_current_user_id;
  $org_id = intval($_POST['org_id'] ?? 0);
  $this->require_tax_access($user_id, $org_id, 'submit_transaction');
@@ -898,7 +898,7 @@ class OraBooks_Tax {
  orabooks_json_success($result);
  }
 
- public function ajax_get_snapshot {
+ public function ajax_get_snapshot() {
  $user_id = orabooks_get_current_user_id;
  $org_id = intval($_GET['org_id'] ?? $_POST['org_id'] ?? 0);
  $transaction_type = sanitize_text_field($_GET['transaction_type'] ?? $_POST['transaction_type'] ?? '');
@@ -913,7 +913,7 @@ class OraBooks_Tax {
  orabooks_json_success(['snapshot' => $snapshot]);
  }
 
- public function ajax_list_snapshots {
+ public function ajax_list_snapshots() {
  $user_id = orabooks_get_current_user_id;
  $org_id = intval($_GET['org_id'] ?? $_POST['org_id'] ?? 0);
  $limit = intval($_GET['limit'] ?? $_POST['limit'] ?? 25);

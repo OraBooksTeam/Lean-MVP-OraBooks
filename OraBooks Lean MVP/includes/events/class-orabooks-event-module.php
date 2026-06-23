@@ -17,7 +17,7 @@ class OraBooks_Event_Module {
  private static $consumers = [];
  private static $processing = false;
 
- public static function init {
+ public static function init() {
  self::register_default_consumers;
 
  add_action('orabooks_events_process_outbox', [__CLASS__, 'process_outbox']);
@@ -37,7 +37,7 @@ class OraBooks_Event_Module {
  }
  }
 
- public static function canonical_event_types {
+ public static function canonical_event_types() {
  return [
  'journal_posted',
  'sale_delivered',
@@ -52,7 +52,7 @@ class OraBooks_Event_Module {
  return $wpdb->prefix. 'gob_'. $name. '_tob';
  }
 
- public static function get_create_table_sql {
+ public static function get_create_table_sql() {
  global $wpdb;
  $charset_collate = $wpdb->get_charset_collate;
 
@@ -149,7 +149,7 @@ class OraBooks_Event_Module {
  ];
  }
 
- public static function schedule {
+ public static function schedule() {
  if (!wp_next_scheduled('orabooks_events_process_outbox')) {
  wp_schedule_event(time, 'every_minute', 'orabooks_events_process_outbox');
  }
@@ -219,7 +219,7 @@ class OraBooks_Event_Module {
  self::$consumers[$event_type][$consumer_key] = $handler;
  }
 
- public static function register_default_consumers {
+ public static function register_default_consumers() {
  self::register_consumer('journal_posted', 'journal_read_model', [__CLASS__, 'consume_journal_read_model']);
 
  foreach (self::canonical_event_types as $event_type) {
@@ -388,7 +388,7 @@ class OraBooks_Event_Module {
  ], ['%d', '%s', '%d', '%s', '%s', '%d', '%s', '%s', '%s']);
  }
 
- public static function recover_stale_processing_locks {
+ public static function recover_stale_processing_locks() {
  global $wpdb;
  $outbox = self::table('event_outbox');
  $cutoff = gmdate('Y-m-d H:i:s', time - self::LOCK_TTL_SECONDS);
@@ -400,7 +400,7 @@ class OraBooks_Event_Module {
  ));
  }
 
- public static function maybe_poll_pending_events {
+ public static function maybe_poll_pending_events() {
  if (is_admin || wp_doing_ajax || wp_doing_cron) {
  return;
  }
@@ -412,7 +412,7 @@ class OraBooks_Event_Module {
  }
  }
 
- public static function shutdown_poll {
+ public static function shutdown_poll() {
  if (self::$processing || wp_doing_ajax || wp_doing_cron) {
  return;
  }
@@ -449,7 +449,7 @@ class OraBooks_Event_Module {
  ));
  }
 
- public static function resolve_event_org_scope {
+ public static function resolve_event_org_scope() {
  if (current_user_can('manage_options')) {
  return 0;
  }
@@ -561,7 +561,7 @@ class OraBooks_Event_Module {
  return true;
  }
 
- public static function render_dead_letter_replay_page {
+ public static function render_dead_letter_replay_page() {
  if (!self::current_user_can_manage_events) {
  wp_die(__('You do not have permission to view this page.', 'orabooks'));
  }
@@ -579,7 +579,7 @@ class OraBooks_Event_Module {
  orabooks_json_error($result->get_error_message, $code);
  }
 
- public static function ajax_dead_letters {
+ public static function ajax_dead_letters() {
  self::require_owner_ajax;
  $org_scope = self::resolve_event_org_scope;
  orabooks_json_success([
@@ -588,7 +588,7 @@ class OraBooks_Event_Module {
  ]);
  }
 
- public static function ajax_replay {
+ public static function ajax_replay() {
  self::require_owner_ajax;
  $org_scope = self::resolve_event_org_scope;
  $scope = $org_scope > 0 ? $org_scope: null;
@@ -599,7 +599,7 @@ class OraBooks_Event_Module {
  orabooks_json_success(['health' => self::get_health($org_scope)]);
  }
 
- public static function ajax_replay_all {
+ public static function ajax_replay_all() {
  self::require_owner_ajax;
  $org_scope = self::resolve_event_org_scope;
  $scope = $org_scope > 0 ? $org_scope: null;
@@ -613,7 +613,7 @@ class OraBooks_Event_Module {
  orabooks_json_success(['replayed' => $count, 'health' => self::get_health($org_scope)]);
  }
 
- public static function ajax_discard {
+ public static function ajax_discard() {
  self::require_owner_ajax;
  $org_scope = self::resolve_event_org_scope;
  $scope = $org_scope > 0 ? $org_scope: null;
@@ -624,19 +624,19 @@ class OraBooks_Event_Module {
  orabooks_json_success(['health' => self::get_health($org_scope)]);
  }
 
- public static function ajax_poll_now {
+ public static function ajax_poll_now() {
  self::require_owner_ajax;
  $org_scope = self::resolve_event_org_scope;
  orabooks_json_success(['result' => self::process_outbox(50), 'health' => self::get_health($org_scope)]);
  }
 
- private static function require_owner_ajax {
+ private static function require_owner_ajax() {
  if (!self::current_user_can_manage_events) {
  orabooks_json_error('Permission denied', 403);
  }
  }
 
- private static function current_user_can_manage_events {
+ private static function current_user_can_manage_events() {
  if (current_user_can('manage_options')) {
  return true;
  }

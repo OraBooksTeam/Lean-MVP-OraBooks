@@ -45,7 +45,7 @@ class OraBooks_Workflow {
  ],
  ];
 
- public static function init {
+ public static function init() {
  if (self::$instance === null) {
  self::$instance = new self;
  self::register_default_machines;
@@ -66,7 +66,7 @@ class OraBooks_Workflow {
  /**
  * Default state machine definitions (MVP hard-coded, filterable).
  */
- public static function register_default_machines {
+ public static function register_default_machines() {
  self::$machines = apply_filters('orabooks_workflow_state_machines', [
  'journal' => [
  'states' => ['draft', 'review_pending', 'approved', 'posted', 'locked', 'reversed'],
@@ -121,7 +121,7 @@ class OraBooks_Workflow {
  ]);
  }
 
- public static function get_machines {
+ public static function get_machines() {
  if (empty(self::$machines)) {
  self::register_default_machines;
  }
@@ -423,7 +423,7 @@ class OraBooks_Workflow {
  return $formatted;
  }
 
- public function ajax_get_transitions {
+ public function ajax_get_transitions() {
  $user_id = orabooks_get_current_user_id;
  $org_id = orabooks_get_current_org_id($user_id);
 
@@ -448,7 +448,7 @@ class OraBooks_Workflow {
  ]);
  }
 
- public function ajax_allowed_events {
+ public function ajax_allowed_events() {
  $user_id = orabooks_get_current_user_id;
  $org_id = orabooks_get_current_org_id($user_id);
 
@@ -478,7 +478,7 @@ class OraBooks_Workflow {
  ]);
  }
 
- public function ajax_transition {
+ public function ajax_transition() {
  $user_id = orabooks_get_current_user_id;
  $org_id = orabooks_get_current_org_id($user_id);
 
@@ -554,7 +554,7 @@ class OraBooks_Workflow {
  || orabooks_has_permission($user_id, $org_id, 'approve_journal');
  }
 
- public function ajax_workflow_health {
+ public function ajax_workflow_health() {
  $user_id = orabooks_get_current_user_id;
  $org_id = orabooks_get_current_org_id($user_id);
 

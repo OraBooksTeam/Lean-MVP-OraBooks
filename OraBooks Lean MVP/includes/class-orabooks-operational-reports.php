@@ -16,7 +16,7 @@ class OraBooks_Operational_Reports {
 
  private static $instance = null;
 
- public static function init {
+ public static function init() {
  if (self::$instance === null) {
  self::$instance = new self;
 
@@ -39,7 +39,7 @@ class OraBooks_Operational_Reports {
  return self::$instance;
  }
 
- public static function get_create_table_sql {
+ public static function get_create_table_sql() {
  global $wpdb;
 
  $charset_collate = $wpdb->get_charset_collate;
@@ -675,7 +675,7 @@ class OraBooks_Operational_Reports {
  wp_cache_set('last_invalidation_'. intval($org_id). '_'. ($report_type ?: 'all'), time, 'orabooks_operational_reports', self::CACHE_TTL);
  }
 
- private static function correlation_id {
+ private static function correlation_id() {
  return function_exists('orabooks_uuid') ? orabooks_uuid: bin2hex(random_bytes(16));
  }
 
@@ -771,7 +771,7 @@ class OraBooks_Operational_Reports {
  return null;
  }
 
- public function ajax_generate_report {
+ public function ajax_generate_report() {
  $user_id = orabooks_get_current_user_id;
  $org_id = intval($_REQUEST['org_id'] ?? 0);
  if (!$user_id) {
@@ -794,7 +794,7 @@ class OraBooks_Operational_Reports {
  orabooks_json_success($result);
  }
 
- public function ajax_request_export {
+ public function ajax_request_export() {
  $user_id = orabooks_get_current_user_id;
  $org_id = intval($_POST['org_id'] ?? 0);
  if (!$user_id) {
@@ -826,7 +826,7 @@ class OraBooks_Operational_Reports {
  orabooks_json_error('Export service unavailable.', 501);
  }
 
- public function ajax_update_reorder_level {
+ public function ajax_update_reorder_level() {
  $user_id = orabooks_get_current_user_id;
  $org_id = intval($_POST['org_id'] ?? 0);
  if (!$user_id) {

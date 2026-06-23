@@ -14,7 +14,7 @@ class OraBooks_Approval {
 
  private static $instance = null;
 
- public static function init {
+ public static function init() {
  if (self::$instance !== null) {
  return self::$instance;
  }
@@ -606,7 +606,7 @@ class OraBooks_Approval {
  ));
  }
 
- public static function cron_expire_stale_approvals {
+ public static function cron_expire_stale_approvals() {
  global $wpdb;
 
  $table = OraBooks_Database::table('journals');
@@ -659,7 +659,7 @@ class OraBooks_Approval {
  }
  }
 
- public static function cron_expiry_reminders {
+ public static function cron_expiry_reminders() {
  global $wpdb;
 
  $table_journals = OraBooks_Database::table('journals');
@@ -700,7 +700,7 @@ class OraBooks_Approval {
  }
  }
 
- public static function cron_escalate_overdue_reviews {
+ public static function cron_escalate_overdue_reviews() {
  global $wpdb;
 
  $table_journals = OraBooks_Database::table('journals');
@@ -766,7 +766,7 @@ class OraBooks_Approval {
  }
  }
 
- public static function install_history_guards {
+ public static function install_history_guards() {
  global $wpdb;
 
  $table = OraBooks_Database::table('journal_approval_history');
@@ -824,7 +824,7 @@ class OraBooks_Approval {
  return (int) $journal->org_id;
  }
 
- public function ajax_resubmit_journal {
+ public function ajax_resubmit_journal() {
  $user_id = orabooks_get_current_user_id;
  $journal_id = (int) ($_POST['journal_id'] ?? 0);
  $org_id = $this->require_journal_org($user_id, $journal_id);
@@ -841,7 +841,7 @@ class OraBooks_Approval {
  orabooks_json_success([], 'Journal resubmitted for approval');
  }
 
- public function ajax_update_journal_draft {
+ public function ajax_update_journal_draft() {
  $user_id = orabooks_get_current_user_id;
  $journal_id = (int) ($_POST['journal_id'] ?? 0);
  $org_id = $this->require_journal_org($user_id, $journal_id);
@@ -908,7 +908,7 @@ class OraBooks_Approval {
  ], 'Journal updated');
  }
 
- public function ajax_policy_get {
+ public function ajax_policy_get() {
  $user_id = orabooks_get_current_user_id;
  $org_id = (int) ($_GET['org_id'] ?? $_POST['org_id'] ?? 0);
 
@@ -925,7 +925,7 @@ class OraBooks_Approval {
  orabooks_json_success(['policy' => $policy]);
  }
 
- public function ajax_policy_save {
+ public function ajax_policy_save() {
  $user_id = orabooks_get_current_user_id;
  $org_id = (int) ($_POST['org_id'] ?? 0);
 
@@ -946,7 +946,7 @@ class OraBooks_Approval {
  orabooks_json_success(['policy' => $result], 'Approval policy saved');
  }
 
- public function ajax_delegation_create {
+ public function ajax_delegation_create() {
  $user_id = orabooks_get_current_user_id;
  $org_id = (int) ($_POST['org_id'] ?? 0);
 
@@ -971,7 +971,7 @@ class OraBooks_Approval {
  orabooks_json_success($result, 'Delegation created');
  }
 
- public function ajax_delegation_revoke {
+ public function ajax_delegation_revoke() {
  $user_id = orabooks_get_current_user_id;
  $org_id = (int) ($_POST['org_id'] ?? 0);
  $delegation_id = (int) ($_POST['delegation_id'] ?? 0);
@@ -989,7 +989,7 @@ class OraBooks_Approval {
  orabooks_json_success([], 'Delegation revoked');
  }
 
- public function ajax_delegations_list {
+ public function ajax_delegations_list() {
  $user_id = orabooks_get_current_user_id;
  $org_id = (int) ($_GET['org_id'] ?? $_POST['org_id'] ?? 0);
 

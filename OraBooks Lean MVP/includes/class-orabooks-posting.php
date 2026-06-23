@@ -14,7 +14,7 @@ class OraBooks_Posting {
 
  private static $instance = null;
 
- public static function init {
+ public static function init() {
  if (self::$instance === null) {
  self::$instance = new self;
  add_action('wp_ajax_orabooks_create_journal', [self::$instance, 'ajax_create_journal']);
@@ -1033,7 +1033,7 @@ class OraBooks_Posting {
  /**
  * Projection names tracked in read_model_versions ( enterprise checklist).
  */
- public static function read_model_projection_names {
+ public static function read_model_projection_names() {
  return [
  'ledger_summary',
  'ar_aging',
@@ -1047,7 +1047,7 @@ class OraBooks_Posting {
  /**
  * Seed read-model version rows for all known projections.
  */
- public static function seed_read_model_versions {
+ public static function seed_read_model_versions() {
  global $wpdb;
 
  $table = OraBooks_Database::table('read_model_versions');
@@ -1092,7 +1092,7 @@ class OraBooks_Posting {
  /**
  * List all projection version rows.
  */
- public static function list_read_model_versions {
+ public static function list_read_model_versions() {
  global $wpdb;
 
  self::seed_read_model_versions;
@@ -1371,7 +1371,7 @@ class OraBooks_Posting {
  ];
  }
 
- public static function cron_validate_all_orgs {
+ public static function cron_validate_all_orgs() {
  global $wpdb;
 
  $table = OraBooks_Database::table('organizations');
@@ -1387,7 +1387,7 @@ class OraBooks_Posting {
  /**
  * Monthly checkpoint: capture end-of-period balance snapshots for all active orgs.
  */
- public static function cron_capture_balance_snapshots {
+ public static function cron_capture_balance_snapshots() {
  global $wpdb;
 
  $table = OraBooks_Database::table('organizations');
@@ -1417,17 +1417,17 @@ class OraBooks_Posting {
  ];
  }
 
- private static function begin_transaction {
+ private static function begin_transaction() {
  global $wpdb;
  $wpdb->query('START TRANSACTION');
  }
 
- private static function commit_transaction {
+ private static function commit_transaction() {
  global $wpdb;
  $wpdb->query('COMMIT');
  }
 
- private static function rollback_transaction {
+ private static function rollback_transaction() {
  global $wpdb;
  $wpdb->query('ROLLBACK');
  }
@@ -1463,7 +1463,7 @@ class OraBooks_Posting {
  /**
  * Background worker: retry transient posting failures up to 3 times, then manual_review.
  */
- public static function cron_process_posting_retries {
+ public static function cron_process_posting_retries() {
  global $wpdb;
 
  $table = OraBooks_Database::table('posting_retry_queue');
@@ -1821,7 +1821,7 @@ class OraBooks_Posting {
  ];
  }
 
- private function current_user_id {
+ private function current_user_id() {
  return orabooks_get_current_user_id;
  }
 
@@ -1851,7 +1851,7 @@ class OraBooks_Posting {
  }
 
  // AJAX handlers
- public function ajax_create_journal {
+ public function ajax_create_journal() {
  $user_id = orabooks_get_current_user_id;
  $org_id = intval($_POST['org_id'] ?? 0);
 
@@ -1882,7 +1882,7 @@ class OraBooks_Posting {
  orabooks_json_success(['journal_id' => $journal_id], 'Journal created');
  }
 
- public function ajax_submit_journal {
+ public function ajax_submit_journal() {
  $user_id = $this->current_user_id;
  $journal_id = intval($_POST['journal_id'] ?? 0);
  $org_id = $this->require_journal_access($user_id, $journal_id);
@@ -1901,7 +1901,7 @@ class OraBooks_Posting {
  orabooks_json_success([], 'Journal submitted for approval');
  }
 
- public function ajax_approve_journal {
+ public function ajax_approve_journal() {
  $user_id = $this->current_user_id;
  $journal_id = intval($_POST['journal_id'] ?? 0);
  $org_id = $this->require_journal_access($user_id, $journal_id);
@@ -1927,7 +1927,7 @@ class OraBooks_Posting {
  orabooks_json_success([], 'Journal approved');
  }
 
- public function ajax_reject_journal {
+ public function ajax_reject_journal() {
  $user_id = $this->current_user_id;
  $journal_id = intval($_POST['journal_id'] ?? 0);
  $reason = sanitize_textarea_field($_POST['reason'] ?? '');
@@ -1946,7 +1946,7 @@ class OraBooks_Posting {
  orabooks_json_success([], 'Journal rejected');
  }
 
- public function ajax_post_journal {
+ public function ajax_post_journal() {
  $user_id = $this->current_user_id;
  $journal_id = intval($_POST['journal_id'] ?? 0);
  $org_id = $this->require_journal_access($user_id, $journal_id);
@@ -1962,7 +1962,7 @@ class OraBooks_Posting {
  orabooks_json_success($result, 'Journal posted to ledger');
  }
 
- public function ajax_get_journals {
+ public function ajax_get_journals() {
  $user_id = $this->current_user_id;
  $org_id = intval($_GET['org_id'] ?? $_POST['org_id'] ?? 0);
 
@@ -1988,7 +1988,7 @@ class OraBooks_Posting {
  ]);
  }
 
- public function ajax_get_journal {
+ public function ajax_get_journal() {
  $user_id = $this->current_user_id;
  $org_id = intval($_GET['org_id'] ?? $_POST['org_id'] ?? 0);
  $journal_id = intval($_GET['journal_id'] ?? $_POST['journal_id'] ?? 0);
@@ -2017,7 +2017,7 @@ class OraBooks_Posting {
  ]);
  }
 
- public function ajax_reverse_journal {
+ public function ajax_reverse_journal() {
  $user_id = $this->current_user_id;
  $journal_id = intval($_POST['journal_id'] ?? 0);
  $reason = sanitize_textarea_field($_POST['reason'] ?? '');

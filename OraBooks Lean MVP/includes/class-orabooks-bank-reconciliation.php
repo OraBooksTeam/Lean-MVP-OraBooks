@@ -15,7 +15,7 @@ class OraBooks_Bank_Reconciliation {
 
  private static $instance = null;
 
- public static function init {
+ public static function init() {
  if (self::$instance === null) {
  self::$instance = new self;
 
@@ -49,7 +49,7 @@ class OraBooks_Bank_Reconciliation {
  return self::$instance;
  }
 
- public static function get_create_table_sql {
+ public static function get_create_table_sql() {
  global $wpdb;
 
  $charset_collate = $wpdb->get_charset_collate;
@@ -148,7 +148,7 @@ class OraBooks_Bank_Reconciliation {
  /**
  * Idempotent schema upgrades for existing installs.
  */
- public static function ensure_schema {
+ public static function ensure_schema() {
  if (self::get_schema_flag('orabooks_sl031_bank_schema_v1') === '1') {
  return;
  }
@@ -1173,7 +1173,7 @@ class OraBooks_Bank_Reconciliation {
  ))), 2);
  }
 
- private function current_user_id {
+ private function current_user_id() {
  return orabooks_get_current_user_id;
  }
 
@@ -1207,14 +1207,14 @@ class OraBooks_Bank_Reconciliation {
  orabooks_json_error('Permission denied', 403);
  }
 
- public function ajax_accounts_list {
+ public function ajax_accounts_list() {
  $user_id = $this->current_user_id;
  $org_id = intval($_GET['org_id'] ?? 0);
  $this->require_bank_permission($user_id, $org_id, ['view_bank_reconciliation', 'view_reports']);
  orabooks_json_success(['accounts' => self::get_accounts_list($org_id)]);
  }
 
- public function ajax_account_create {
+ public function ajax_account_create() {
  $user_id = $this->current_user_id;
  $org_id = intval($_POST['org_id'] ?? 0);
  $this->require_bank_permission($user_id, $org_id, ['reconcile_bank', 'manage_org_settings']);
@@ -1225,7 +1225,7 @@ class OraBooks_Bank_Reconciliation {
  orabooks_json_success(['account' => $result]);
  }
 
- public function ajax_import_rows {
+ public function ajax_import_rows() {
  $user_id = $this->current_user_id;
  $org_id = intval($_POST['org_id'] ?? 0);
  $this->require_bank_permission($user_id, $org_id, ['match_transaction', 'reconcile_bank', 'submit_transaction', 'manage_org_settings']);
@@ -1237,7 +1237,7 @@ class OraBooks_Bank_Reconciliation {
  orabooks_json_success($result);
  }
 
- public function ajax_import_csv {
+ public function ajax_import_csv() {
  $user_id = $this->current_user_id;
  $org_id = intval($_POST['org_id'] ?? 0);
  $this->require_bank_permission($user_id, $org_id, ['match_transaction', 'reconcile_bank', 'submit_transaction', 'manage_org_settings']);
@@ -1254,7 +1254,7 @@ class OraBooks_Bank_Reconciliation {
  orabooks_json_success($result, 'Bank statement imported');
  }
 
- public function ajax_transactions_list {
+ public function ajax_transactions_list() {
  $user_id = $this->current_user_id;
  $org_id = intval($_GET['org_id'] ?? 0);
  $this->require_bank_permission($user_id, $org_id, ['view_bank_reconciliation', 'view_reports']);
@@ -1262,7 +1262,7 @@ class OraBooks_Bank_Reconciliation {
  orabooks_json_success(['transactions' => $transactions]);
  }
 
- public function ajax_manual_match {
+ public function ajax_manual_match() {
  $user_id = $this->current_user_id;
  $org_id = intval($_POST['org_id'] ?? 0);
  $this->require_bank_permission($user_id, $org_id, ['match_transaction', 'submit_transaction', 'approve_journal']);
@@ -1273,7 +1273,7 @@ class OraBooks_Bank_Reconciliation {
  orabooks_json_success($result);
  }
 
- public function ajax_confirm_match {
+ public function ajax_confirm_match() {
  $user_id = $this->current_user_id;
  $org_id = intval($_POST['org_id'] ?? 0);
  $this->require_bank_permission($user_id, $org_id, ['match_transaction', 'submit_transaction', 'approve_journal']);
@@ -1289,7 +1289,7 @@ class OraBooks_Bank_Reconciliation {
  orabooks_json_success($result, 'Suggested match confirmed');
  }
 
- public function ajax_create_transaction {
+ public function ajax_create_transaction() {
  $user_id = $this->current_user_id;
  $org_id = intval($_POST['org_id'] ?? 0);
  $this->require_bank_permission($user_id, $org_id, ['match_transaction', 'submit_transaction', 'manage_org_settings']);
@@ -1306,7 +1306,7 @@ class OraBooks_Bank_Reconciliation {
  orabooks_json_success($result, 'Linked transaction created');
  }
 
- public function ajax_skip_transaction {
+ public function ajax_skip_transaction() {
  $user_id = $this->current_user_id;
  $org_id = intval($_POST['org_id'] ?? 0);
  $this->require_bank_permission($user_id, $org_id, ['match_transaction', 'submit_transaction', 'approve_journal']);
@@ -1317,7 +1317,7 @@ class OraBooks_Bank_Reconciliation {
  orabooks_json_success([], 'Bank transaction skipped');
  }
 
- public function ajax_finalize_reconciliation {
+ public function ajax_finalize_reconciliation() {
  $user_id = $this->current_user_id;
  $org_id = intval($_POST['org_id'] ?? 0);
  $this->require_bank_permission($user_id, $org_id, ['reconcile_bank', 'manage_org_settings', 'approve_journal']);
@@ -1336,7 +1336,7 @@ class OraBooks_Bank_Reconciliation {
  orabooks_json_success($result);
  }
 
- public function ajax_connect_feed {
+ public function ajax_connect_feed() {
  $user_id = $this->current_user_id;
  $org_id = intval($_POST['org_id'] ?? 0);
  $this->require_bank_permission($user_id, $org_id, ['reconcile_bank', 'manage_org_settings']);
@@ -1352,7 +1352,7 @@ class OraBooks_Bank_Reconciliation {
  orabooks_json_success(['feed' => $result], 'Bank feed connection initialized');
  }
 
- public function ajax_feeds_list {
+ public function ajax_feeds_list() {
  $user_id = $this->current_user_id;
  $org_id = intval($_GET['org_id'] ?? 0);
  $this->require_bank_permission($user_id, $org_id, ['view_bank_reconciliation', 'view_reports']);
@@ -1361,7 +1361,7 @@ class OraBooks_Bank_Reconciliation {
  ]);
  }
 
- public function ajax_account_summary {
+ public function ajax_account_summary() {
  $user_id = $this->current_user_id;
  $org_id = intval($_GET['org_id'] ?? 0);
  $this->require_bank_permission($user_id, $org_id, ['view_bank_reconciliation', 'view_reports', 'reconcile_bank', 'manage_org_settings']);

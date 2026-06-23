@@ -40,7 +40,7 @@ class OBN_Access_Control {
  'sign_report',
  ];
 
- public static function init {
+ public static function init() {
  if (class_exists('OraBooks_RBAC')) {
  OraBooks_RBAC::init;
  }
@@ -57,7 +57,7 @@ class OBN_Access_Control {
  return $reverse[$permission] ?? $permission;
  }
 
- public static function get_roles {
+ public static function get_roles() {
  return self::ROLES;
  }
 

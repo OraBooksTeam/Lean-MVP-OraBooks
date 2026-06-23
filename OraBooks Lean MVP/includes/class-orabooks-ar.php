@@ -14,7 +14,7 @@ class OraBooks_AR {
 
  private static $instance = null;
 
- public static function init {
+ public static function init() {
  if (self::$instance === null) {
  self::$instance = new self;
 
@@ -55,7 +55,7 @@ class OraBooks_AR {
  return self::$instance;
  }
 
- public static function get_create_table_sql {
+ public static function get_create_table_sql() {
  global $wpdb;
  $charset = $wpdb->get_charset_collate;
  $tables = [];
@@ -155,7 +155,7 @@ class OraBooks_AR {
  return $tables;
  }
 
- public static function ensure_schema {
+ public static function ensure_schema() {
  global $wpdb;
 
  static $ran = false;
@@ -792,7 +792,7 @@ class OraBooks_AR {
  return $buckets;
  }
 
- public function daily_statement_snapshot {
+ public function daily_statement_snapshot() {
  global $wpdb;
  self::ensure_schema;
 
@@ -832,7 +832,7 @@ class OraBooks_AR {
  }
  }
 
- public function daily_dunning_check {
+ public function daily_dunning_check() {
  global $wpdb;
  self::ensure_schema;
 
@@ -1121,7 +1121,7 @@ class OraBooks_AR {
  }
  }
 
- public function ajax_invoice_submit {
+ public function ajax_invoice_submit() {
  $user_id = orabooks_get_current_user_id;
  $org_id = (int) ($_POST['org_id'] ?? 0);
  $invoice_id = (int) ($_POST['invoice_id'] ?? 0);
@@ -1133,7 +1133,7 @@ class OraBooks_AR {
  orabooks_json_success(['invoice' => OraBooks_Customers::format_invoice($result)]);
  }
 
- public function ajax_invoice_approve {
+ public function ajax_invoice_approve() {
  $user_id = orabooks_get_current_user_id;
  $org_id = (int) ($_POST['org_id'] ?? 0);
  $invoice_id = (int) ($_POST['invoice_id'] ?? 0);
@@ -1147,7 +1147,7 @@ class OraBooks_AR {
  )]);
  }
 
- public function ajax_record_customer_payment {
+ public function ajax_record_customer_payment() {
  $user_id = orabooks_get_current_user_id;
  $org_id = (int) ($_POST['org_id'] ?? 0);
  $customer_id = (int) ($_POST['customer_id'] ?? 0);
@@ -1159,7 +1159,7 @@ class OraBooks_AR {
  orabooks_json_success($result);
  }
 
- public function ajax_reverse_payment {
+ public function ajax_reverse_payment() {
  $user_id = orabooks_get_current_user_id;
  $org_id = (int) ($_POST['org_id'] ?? 0);
  $payment_id = (int) ($_POST['payment_id'] ?? 0);
@@ -1171,7 +1171,7 @@ class OraBooks_AR {
  orabooks_json_success($result);
  }
 
- public function ajax_create_credit_note {
+ public function ajax_create_credit_note() {
  $user_id = orabooks_get_current_user_id;
  $org_id = (int) ($_POST['org_id'] ?? 0);
  $this->require_ar_access($user_id, $org_id);
@@ -1182,7 +1182,7 @@ class OraBooks_AR {
  orabooks_json_success(['credit_note' => $result]);
  }
 
- public function ajax_submit_credit_note {
+ public function ajax_submit_credit_note() {
  $user_id = orabooks_get_current_user_id;
  $org_id = (int) ($_POST['org_id'] ?? 0);
  $credit_note_id = (int) ($_POST['credit_note_id'] ?? 0);
@@ -1194,7 +1194,7 @@ class OraBooks_AR {
  orabooks_json_success(['credit_note' => $result]);
  }
 
- public function ajax_approve_credit_note {
+ public function ajax_approve_credit_note() {
  $user_id = orabooks_get_current_user_id;
  $org_id = (int) ($_POST['org_id'] ?? 0);
  $credit_note_id = (int) ($_POST['credit_note_id'] ?? 0);
@@ -1206,7 +1206,7 @@ class OraBooks_AR {
  orabooks_json_success(['credit_note' => $result]);
  }
 
- public function ajax_post_credit_note {
+ public function ajax_post_credit_note() {
  $user_id = orabooks_get_current_user_id;
  $org_id = (int) ($_POST['org_id'] ?? 0);
  $credit_note_id = (int) ($_POST['credit_note_id'] ?? 0);
@@ -1218,7 +1218,7 @@ class OraBooks_AR {
  orabooks_json_success(['credit_note' => $result]);
  }
 
- public function ajax_void_credit_note {
+ public function ajax_void_credit_note() {
  $user_id = orabooks_get_current_user_id;
  $org_id = (int) ($_POST['org_id'] ?? 0);
  $credit_note_id = (int) ($_POST['credit_note_id'] ?? 0);
@@ -1230,7 +1230,7 @@ class OraBooks_AR {
  orabooks_json_success(['credit_note' => $result]);
  }
 
- public function ajax_credit_notes_list {
+ public function ajax_credit_notes_list() {
  $user_id = orabooks_get_current_user_id;
  $org_id = (int) ($_GET['org_id'] ?? $_POST['org_id'] ?? 0);
  $customer_id = (int) ($_GET['customer_id'] ?? $_POST['customer_id'] ?? 0);
@@ -1239,7 +1239,7 @@ class OraBooks_AR {
  orabooks_json_success(['credit_notes' => self::list_credit_notes($org_id, $customer_id, $invoice_id)]);
  }
 
- public function ajax_payments_list {
+ public function ajax_payments_list() {
  $user_id = orabooks_get_current_user_id;
  $org_id = (int) ($_GET['org_id'] ?? $_POST['org_id'] ?? 0);
  $this->require_ar_access($user_id, $org_id, 'view_invoices');
@@ -1250,7 +1250,7 @@ class OraBooks_AR {
  orabooks_json_success(['payments' => $payments]);
  }
 
- public function ajax_ar_config_get {
+ public function ajax_ar_config_get() {
  $user_id = orabooks_get_current_user_id;
  $org_id = (int) ($_GET['org_id'] ?? 0);
  $this->require_ar_access($user_id, $org_id, 'view_invoices');
@@ -1263,21 +1263,21 @@ class OraBooks_AR {
  ]);
  }
 
- public function ajax_ar_config_save {
+ public function ajax_ar_config_save() {
  $user_id = orabooks_get_current_user_id;
  $org_id = (int) ($_POST['org_id'] ?? 0);
  $this->require_ar_access($user_id, $org_id, 'manage_org_settings');
  orabooks_json_success(['config' => self::save_ar_config($org_id, $_POST)]);
  }
 
- public function ajax_ar_aging {
+ public function ajax_ar_aging() {
  $user_id = orabooks_get_current_user_id;
  $org_id = (int) ($_GET['org_id'] ?? 0);
  $this->require_ar_access($user_id, $org_id, 'view_invoices');
  orabooks_json_success(['aging' => self::get_ar_aging($org_id)]);
  }
 
- public function ajax_statements_list {
+ public function ajax_statements_list() {
  $user_id = orabooks_get_current_user_id;
  $org_id = (int) ($_GET['org_id'] ?? 0);
  $customer_id = (int) ($_GET['customer_id'] ?? 0);

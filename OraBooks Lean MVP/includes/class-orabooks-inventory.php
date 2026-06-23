@@ -17,7 +17,7 @@ class OraBooks_Inventory {
  const INVENTORY_ASSET_ACCOUNT = '1200';
  const COGS_ACCOUNT = '5100';
 
- public static function init {
+ public static function init() {
  if (self::$instance === null) {
  self::$instance = new self;
 
@@ -45,7 +45,7 @@ class OraBooks_Inventory {
  return self::$instance;
  }
 
- public static function get_create_table_sql {
+ public static function get_create_table_sql() {
  global $wpdb;
 
  $charset_collate = $wpdb->get_charset_collate;
@@ -132,7 +132,7 @@ class OraBooks_Inventory {
  ];
  }
 
- private static function lookup_types {
+ private static function lookup_types() {
  return ['brand', 'category', 'unit', 'tax', 'warehouse'];
  }
 
@@ -141,7 +141,7 @@ class OraBooks_Inventory {
  return in_array($type, self::lookup_types, true) ? $type: '';
  }
 
- private static function maybe_ensure_lookup_schema {
+ private static function maybe_ensure_lookup_schema() {
  static $ran = false;
  if ($ran) {
  return;
@@ -358,7 +358,7 @@ class OraBooks_Inventory {
  return self::format_lookup($row);
  }
 
- private static function maybe_ensure_product_schema {
+ private static function maybe_ensure_product_schema() {
  static $ran = false;
  if ($ran) {
  return;
@@ -1060,7 +1060,7 @@ class OraBooks_Inventory {
  ];
  }
 
- public function ajax_product_get {
+ public function ajax_product_get() {
  $user_id = $this->current_user_id;
  $org_id = intval($_GET['org_id'] ?? 0);
  $product_id = intval($_GET['product_id'] ?? 0);
@@ -1075,7 +1075,7 @@ class OraBooks_Inventory {
  ]);
  }
 
- private function current_user_id {
+ private function current_user_id() {
  return orabooks_get_current_user_id;
  }
 
@@ -1114,14 +1114,14 @@ class OraBooks_Inventory {
  orabooks_json_error('Permission denied', 403);
  }
 
- public function ajax_products_list {
+ public function ajax_products_list() {
  $user_id = $this->current_user_id;
  $org_id = intval($_GET['org_id'] ?? 0);
  $this->require_inventory_permission($user_id, $org_id, ['view_reports']);
  orabooks_json_success(self::get_products_list($org_id, $_GET));
  }
 
- public function ajax_product_create {
+ public function ajax_product_create() {
  $user_id = $this->current_user_id;
  $org_id = intval($_POST['org_id'] ?? 0);
  $this->require_inventory_permission($user_id, $org_id, ['manage_org_settings']);
@@ -1148,7 +1148,7 @@ class OraBooks_Inventory {
  orabooks_json_success(['product' => $result]);
  }
 
- public function ajax_adjust_stock {
+ public function ajax_adjust_stock() {
  $user_id = $this->current_user_id;
  $org_id = intval($_POST['org_id'] ?? 0);
  $this->require_inventory_permission($user_id, $org_id, ['manage_org_settings', 'submit_transaction']);
@@ -1166,7 +1166,7 @@ class OraBooks_Inventory {
  orabooks_json_success($result);
  }
 
- public function ajax_movements {
+ public function ajax_movements() {
  $user_id = $this->current_user_id;
  $org_id = intval($_GET['org_id'] ?? 0);
  $this->require_inventory_permission($user_id, $org_id, ['view_reports']);
@@ -1177,7 +1177,7 @@ class OraBooks_Inventory {
  orabooks_json_success(['movements' => $movements]);
  }
 
- public function ajax_lookups_list {
+ public function ajax_lookups_list() {
  $user_id = $this->current_user_id;
  $org_id = intval($_GET['org_id'] ?? 0);
  $this->require_inventory_permission($user_id, $org_id, ['view_reports']);
@@ -1190,7 +1190,7 @@ class OraBooks_Inventory {
  orabooks_json_success(['lookups' => $lookups]);
  }
 
- public function ajax_lookup_create {
+ public function ajax_lookup_create() {
  $user_id = $this->current_user_id;
  $org_id = intval($_POST['org_id'] ?? 0);
  $this->require_inventory_permission($user_id, $org_id, ['manage_org_settings']);
@@ -1202,7 +1202,7 @@ class OraBooks_Inventory {
  orabooks_json_success(['lookup' => $result]);
  }
 
- public function ajax_lookup_code {
+ public function ajax_lookup_code() {
  $user_id = $this->current_user_id;
  $org_id = intval($_GET['org_id'] ?? 0);
  $this->require_inventory_permission($user_id, $org_id, ['view_reports']);

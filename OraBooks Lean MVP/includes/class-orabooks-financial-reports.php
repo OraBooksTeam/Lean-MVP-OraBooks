@@ -17,7 +17,7 @@ class OraBooks_Financial_Reports {
 
  private static $instance = null;
 
- public static function init {
+ public static function init() {
  if (self::$instance === null) {
  self::$instance = new self;
 
@@ -39,7 +39,7 @@ class OraBooks_Financial_Reports {
  return self::$instance;
  }
 
- public static function get_create_table_sql {
+ public static function get_create_table_sql() {
  global $wpdb;
 
  $charset_collate = $wpdb->get_charset_collate;
@@ -166,7 +166,7 @@ class OraBooks_Financial_Reports {
  ) {$charset_collate};";
  }
 
- public static function seed_projection_dependencies {
+ public static function seed_projection_dependencies() {
  global $wpdb;
 
  $table = OraBooks_Database::table('projection_dependencies');
@@ -1510,7 +1510,7 @@ class OraBooks_Financial_Reports {
  return $snapshot->snapshot_data ?? '';
  }
 
- private static function correlation_id {
+ private static function correlation_id() {
  return function_exists('orabooks_uuid') ? orabooks_uuid: bin2hex(random_bytes(16));
  }
 
@@ -1672,7 +1672,7 @@ class OraBooks_Financial_Reports {
  return null;
  }
 
- private function current_user_id {
+ private function current_user_id() {
  return orabooks_get_current_user_id;
  }
 
@@ -1687,7 +1687,7 @@ class OraBooks_Financial_Reports {
  }
  }
 
- public function ajax_generate_report {
+ public function ajax_generate_report() {
  $user_id = $this->current_user_id;
  $org_id = intval($_REQUEST['org_id'] ?? 0);
  $this->require_customer_org_access($user_id, $org_id);
@@ -1714,7 +1714,7 @@ class OraBooks_Financial_Reports {
  orabooks_json_success($result);
  }
 
- public function ajax_request_export {
+ public function ajax_request_export() {
  $user_id = $this->current_user_id;
  $org_id = intval($_POST['org_id'] ?? 0);
  $this->require_customer_org_access($user_id, $org_id);
@@ -1745,7 +1745,7 @@ class OraBooks_Financial_Reports {
  orabooks_json_error('Export service unavailable.', 501);
  }
 
- public function ajax_sign_report {
+ public function ajax_sign_report() {
  $user_id = $this->current_user_id;
  $org_id = intval($_POST['org_id'] ?? 0);
  $this->require_customer_org_access($user_id, $org_id);
@@ -1760,7 +1760,7 @@ class OraBooks_Financial_Reports {
  orabooks_json_success($result);
  }
 
- public function ajax_rebuild_projection {
+ public function ajax_rebuild_projection() {
  if (!current_user_can('manage_options')) {
  orabooks_json_error('Permission denied', 403);
  }
@@ -1780,7 +1780,7 @@ class OraBooks_Financial_Reports {
  orabooks_json_success($result);
  }
 
- public function ajax_replay_projection {
+ public function ajax_replay_projection() {
  if (!current_user_can('manage_options')) {
  orabooks_json_error('Permission denied', 403);
  }

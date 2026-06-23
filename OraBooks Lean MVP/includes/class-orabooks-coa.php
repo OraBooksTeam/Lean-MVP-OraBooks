@@ -59,7 +59,7 @@ class OraBooks_COA {
  ],
  ];
 
- public static function init {
+ public static function init() {
  if (self::$instance === null) {
  self::$instance = new self;
  add_action('wp_ajax_orabooks_get_coa', [self::$instance, 'ajax_get_coa']);
@@ -428,7 +428,7 @@ class OraBooks_COA {
  }
 
  // AJAX handlers
- public function ajax_get_coa {
+ public function ajax_get_coa() {
  $user_id = orabooks_get_current_user_id;
  $org_id = intval($_GET['org_id'] ?? 0);
 
@@ -446,7 +446,7 @@ class OraBooks_COA {
  orabooks_json_success(array_map([self::class, 'format_account_for_api'], $accounts ?: []));
  }
 
- public function ajax_create_account {
+ public function ajax_create_account() {
  $user_id = orabooks_get_current_user_id;
  $org_id = intval($_POST['org_id'] ?? 0);
 
@@ -476,7 +476,7 @@ class OraBooks_COA {
  ]);
  }
 
- public function ajax_update_account {
+ public function ajax_update_account() {
  $user_id = orabooks_get_current_user_id;
  $org_id = intval($_POST['org_id'] ?? 0);
  $account_id = intval($_POST['account_id'] ?? 0);
@@ -509,7 +509,7 @@ class OraBooks_COA {
  ]);
  }
 
- public function ajax_export_coa {
+ public function ajax_export_coa() {
  $user_id = orabooks_get_current_user_id;
  $org_id = intval($_GET['org_id'] ?? 0);
 

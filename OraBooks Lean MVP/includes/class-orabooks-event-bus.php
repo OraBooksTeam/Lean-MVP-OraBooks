@@ -29,7 +29,7 @@ class OraBooks_EventBus {
  /** Registered consumers: event_type => [handler,...] */
  private static $consumers = [];
 
- public static function init {
+ public static function init() {
  if (self::$instance === null) {
  self::$instance = new self;
 
@@ -66,7 +66,7 @@ class OraBooks_EventBus {
  * Register all known consumers for OraBooks domain events.
  * Called during plugin init.
  */
- public static function register_consumers {
+ public static function register_consumers() {
  // journal_posted → updates read models, triggers notifications
  self::register_consumer('journal_posted', function($event, $payload) {
  orabooks_log_event('eventbus_consumer_journal', 'Journal posted event consumed', 'info', [
@@ -229,7 +229,7 @@ class OraBooks_EventBus {
  * Process pending outbox events.
  * Runs every minute via WordPress cron.
  */
- public function process_outbox {
+ public function process_outbox() {
  global $wpdb;
 
  $table = OraBooks_Database::table(self::OUTBOX_TABLE);
@@ -393,7 +393,7 @@ class OraBooks_EventBus {
  /**
  * Retry dead-letter events — resets status to pending.
  */
- public function retry_dead_letter {
+ public function retry_dead_letter() {
  global $wpdb;
 
  $table = OraBooks_Database::table(self::OUTBOX_TABLE);
@@ -421,7 +421,7 @@ class OraBooks_EventBus {
  /**
  * Monitor event bus health and alert via if needed.
  */
- public function monitor_health {
+ public function monitor_health() {
  global $wpdb;
 
  $table = OraBooks_Database::table(self::OUTBOX_TABLE);
@@ -465,7 +465,7 @@ class OraBooks_EventBus {
  * Get CREATE TABLE SQL for the consumer_event_tracking table.
  * (outbox_messages table is already created by )
  */
- public static function get_create_table_sql {
+ public static function get_create_table_sql() {
  global $wpdb;
  $charset_collate = $wpdb->get_charset_collate;
  $tables = [];

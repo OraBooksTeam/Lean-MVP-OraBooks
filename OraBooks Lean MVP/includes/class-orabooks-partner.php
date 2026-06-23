@@ -14,7 +14,7 @@ class OraBooks_Partner {
 
  private static $instance = null;
 
- public static function init {
+ public static function init() {
  if (self::$instance === null) {
  self::$instance = new self;
  add_action('orabooks_partner_activity_check', [self::$instance, 'dispatch_partner_activity_job']);
@@ -86,7 +86,7 @@ class OraBooks_Partner {
  /**
  * Queue partner inactivity processing via (fallback to direct run).
  */
- public function dispatch_partner_activity_job {
+ public function dispatch_partner_activity_job() {
  if (function_exists('orabooks_enqueue_job')) {
  $job_id = orabooks_enqueue_job('partner_activity_check', [
  'source' => 'daily_cron',
@@ -114,7 +114,7 @@ class OraBooks_Partner {
  * - 12 months: deactivate to 'inactive'
  * - 6 months no attribution: send low-activity reminder (repeat every 3 months)
  */
- public static function process_partner_activity {
+ public static function process_partner_activity() {
  global $wpdb;
 
  $table_codes = OraBooks_Database::table('partner_codes');
@@ -923,7 +923,7 @@ class OraBooks_Partner {
  //: AJAX HANDLERS
  // ============================================================
 
- public function ajax_get_partner_info {
+ public function ajax_get_partner_info() {
  $user_id = orabooks_get_current_user_id;
  if (!$user_id) {
  orabooks_json_error('Not authenticated', 401);
@@ -948,7 +948,7 @@ class OraBooks_Partner {
  orabooks_json_success($info);
  }
 
- public function ajax_partner_onboarding {
+ public function ajax_partner_onboarding() {
  $user_id = orabooks_get_current_user_id;
  if (!$user_id) {
  orabooks_json_error('Not authenticated', 401);
@@ -982,7 +982,7 @@ class OraBooks_Partner {
  orabooks_json_success($info);
  }
 
- public function ajax_partner_onboarding_complete {
+ public function ajax_partner_onboarding_complete() {
  $user_id = orabooks_get_current_user_id;
  if (!$user_id) {
  orabooks_json_error('Not authenticated', 401);
@@ -1013,7 +1013,7 @@ class OraBooks_Partner {
  ]);
  }
 
- public function ajax_request_reactivation {
+ public function ajax_request_reactivation() {
  $user_id = orabooks_get_current_user_id;
  if (!$user_id) {
  orabooks_json_error('Not authenticated', 401);
@@ -1054,7 +1054,7 @@ class OraBooks_Partner {
  /**
  *: Full partner dashboard data endpoint
  */
- public function ajax_partner_dashboard {
+ public function ajax_partner_dashboard() {
  $user_id = orabooks_get_current_user_id;
  if (!$user_id) {
  orabooks_json_error('Not authenticated', 401);
@@ -1109,7 +1109,7 @@ class OraBooks_Partner {
  /**
  * Track partner code copy (audit event)
  */
- public function ajax_code_copied {
+ public function ajax_code_copied() {
  $user_id = orabooks_get_current_user_id;
  if (!$user_id) {
  orabooks_json_error('Not authenticated', 401);
@@ -1142,7 +1142,7 @@ class OraBooks_Partner {
  /**
  * Get attribution list for the partner
  */
- public function ajax_partner_attributions {
+ public function ajax_partner_attributions() {
  $user_id = orabooks_get_current_user_id;
  if (!$user_id) {
  orabooks_json_error('Not authenticated', 401);
@@ -1182,11 +1182,11 @@ class OraBooks_Partner {
  orabooks_json_success($attributions);
  }
 
- public function ajax_payment_settings {
+ public function ajax_payment_settings() {
  orabooks_json_error('Partner payment settings are not implemented in MVP. This is reserved for.', 501);
  }
 
- public function ajax_partner_application {
+ public function ajax_partner_application() {
  orabooks_json_error('Partner applications for existing customers are not implemented in MVP. This is reserved for.', 501);
  }
 
@@ -1197,7 +1197,7 @@ class OraBooks_Partner {
  /**
  * AJAX: Approve a pending partner code
  */
- public function ajax_admin_approve_partner {
+ public function ajax_admin_approve_partner() {
  if (!current_user_can('manage_options')) {
  orabooks_json_error('Permission denied', 403);
  }
@@ -1221,7 +1221,7 @@ class OraBooks_Partner {
  /**
  * AJAX: Reject a pending partner code
  */
- public function ajax_admin_reject_partner {
+ public function ajax_admin_reject_partner() {
  if (!current_user_can('manage_options')) {
  orabooks_json_error('Permission denied', 403);
  }
@@ -1246,7 +1246,7 @@ class OraBooks_Partner {
  /**
  * AJAX: List pending partner codes for admin
  */
- public function ajax_admin_list_pending_partners {
+ public function ajax_admin_list_pending_partners() {
  if (!current_user_can('manage_options')) {
  orabooks_json_error('Permission denied', 403);
  }
@@ -1258,7 +1258,7 @@ class OraBooks_Partner {
  /**
  * AJAX: List active partners for admin
  */
- public function ajax_admin_list_active_partners {
+ public function ajax_admin_list_active_partners() {
  if (!current_user_can('manage_options')) {
  orabooks_json_error('Permission denied', 403);
  }
@@ -1270,7 +1270,7 @@ class OraBooks_Partner {
  /**
  * AJAX: List pending reactivation requests for admin
  */
- public function ajax_admin_list_reactivation_requests {
+ public function ajax_admin_list_reactivation_requests() {
  if (!current_user_can('manage_options')) {
  orabooks_json_error('Permission denied', 403);
  }
@@ -1282,7 +1282,7 @@ class OraBooks_Partner {
  /**
  * AJAX: Review (approve/deny) a reactivation request
  */
- public function ajax_admin_review_reactivation {
+ public function ajax_admin_review_reactivation() {
  if (!current_user_can('manage_options')) {
  orabooks_json_error('Permission denied', 403);
  }

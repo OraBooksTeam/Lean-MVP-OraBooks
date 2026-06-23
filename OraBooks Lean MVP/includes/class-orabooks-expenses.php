@@ -38,7 +38,7 @@ class OraBooks_Expenses {
  'software' => '5500',
  ];
 
- public static function init {
+ public static function init() {
  if (self::$instance === null) {
  self::$instance = new self;
 
@@ -77,7 +77,7 @@ class OraBooks_Expenses {
  return self::$instance;
  }
 
- public static function register_event_consumer {
+ public static function register_event_consumer() {
  if (!class_exists('OraBooks_EventBus')) {
  return;
  }
@@ -122,7 +122,7 @@ class OraBooks_Expenses {
  self::init->process_ocr_item_by_id($queue_id);
  }
 
- public static function get_create_table_sql {
+ public static function get_create_table_sql() {
  global $wpdb;
 
  $table_expenses = OraBooks_Database::table(self::TABLE_EXPENSES);
@@ -217,7 +217,7 @@ class OraBooks_Expenses {
  /**
  * Org-level expense workflow settings ( Phase 4).
  */
- public static function ensure_settings_schema {
+ public static function ensure_settings_schema() {
  global $wpdb;
 
  static $ran = false;
@@ -652,7 +652,7 @@ class OraBooks_Expenses {
  return (int) $wpdb->insert_id;
  }
 
- public function cron_process_ocr_queue {
+ public function cron_process_ocr_queue() {
  global $wpdb;
 
  $table = OraBooks_Database::table(self::TABLE_OCR_QUEUE);
@@ -1453,7 +1453,7 @@ class OraBooks_Expenses {
  }
  }
 
- public function ajax_upload_receipt {
+ public function ajax_upload_receipt() {
  $user_id = orabooks_get_current_user_id;
  $org_id = intval($_POST['org_id'] ?? 0);
  $this->require_expense_access($user_id, $org_id, 'manage_expenses');
@@ -1486,7 +1486,7 @@ class OraBooks_Expenses {
  orabooks_json_success(['expense' => $result], 'Receipt uploaded and OCR processed');
  }
 
- public function ajax_get {
+ public function ajax_get() {
  $user_id = orabooks_get_current_user_id;
  $org_id = intval($_GET['org_id'] ?? $_POST['org_id'] ?? 0);
  $expense_id = intval($_GET['expense_id'] ?? $_POST['expense_id'] ?? 0);
@@ -1525,7 +1525,7 @@ class OraBooks_Expenses {
  }
  }
 
- public function ajax_confirm {
+ public function ajax_confirm() {
  $user_id = orabooks_get_current_user_id;
  $org_id = intval($_POST['org_id'] ?? 0);
  $expense_id = intval($_POST['expense_id'] ?? 0);
@@ -1550,7 +1550,7 @@ class OraBooks_Expenses {
  orabooks_json_success(['expense' => $result], 'Expense submitted');
  }
 
- public function ajax_approve {
+ public function ajax_approve() {
  $user_id = orabooks_get_current_user_id;
  $org_id = intval($_POST['org_id'] ?? 0);
  $expense_id = intval($_POST['expense_id'] ?? 0);
@@ -1565,7 +1565,7 @@ class OraBooks_Expenses {
  orabooks_json_success(['expense' => $result], 'Expense approved');
  }
 
- public function ajax_reject {
+ public function ajax_reject() {
  $user_id = orabooks_get_current_user_id;
  $org_id = intval($_POST['org_id'] ?? 0);
  $expense_id = intval($_POST['expense_id'] ?? 0);
@@ -1581,7 +1581,7 @@ class OraBooks_Expenses {
  orabooks_json_success(['expense' => $result], 'Expense rejected');
  }
 
- public function ajax_post {
+ public function ajax_post() {
  $user_id = orabooks_get_current_user_id;
  $org_id = intval($_POST['org_id'] ?? 0);
  $expense_id = intval($_POST['expense_id'] ?? 0);
@@ -1596,7 +1596,7 @@ class OraBooks_Expenses {
  orabooks_json_success(['expense' => $result], 'Expense posted');
  }
 
- public function ajax_list {
+ public function ajax_list() {
  $user_id = orabooks_get_current_user_id;
  $org_id = intval($_GET['org_id'] ?? $_POST['org_id'] ?? 0);
  $status = sanitize_text_field($_GET['status'] ?? $_POST['status'] ?? '');
@@ -1618,7 +1618,7 @@ class OraBooks_Expenses {
  || OraBooks_RBAC::require_permission($user_id, $org_id, 'override_tax'));
  }
 
- public function ajax_override_tax {
+ public function ajax_override_tax() {
  global $wpdb;
 
  $user_id = orabooks_get_current_user_id;
@@ -1670,7 +1670,7 @@ class OraBooks_Expenses {
  orabooks_json_success($result, 'Tax override applied');
  }
 
- public function ajax_clear_tax_override {
+ public function ajax_clear_tax_override() {
  global $wpdb;
 
  $user_id = orabooks_get_current_user_id;
@@ -1917,7 +1917,7 @@ class OraBooks_Expenses {
  ];
  }
 
- public function ajax_settings_get {
+ public function ajax_settings_get() {
  $user_id = orabooks_get_current_user_id;
  $org_id = orabooks_get_current_org_id($user_id);
 
@@ -1934,7 +1934,7 @@ class OraBooks_Expenses {
  ]);
  }
 
- public function ajax_settings_save {
+ public function ajax_settings_save() {
  $user_id = orabooks_get_current_user_id;
  $org_id = orabooks_get_current_org_id($user_id);
 
@@ -1957,7 +1957,7 @@ class OraBooks_Expenses {
  orabooks_json_success(['settings' => $settings], 'Expense settings saved');
  }
 
- public function ajax_live_check {
+ public function ajax_live_check() {
  $user_id = orabooks_get_current_user_id;
  $org_id = orabooks_get_current_org_id($user_id);
 

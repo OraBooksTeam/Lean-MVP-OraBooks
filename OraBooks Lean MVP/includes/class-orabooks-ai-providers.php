@@ -58,16 +58,16 @@ class OraBooks_Ai_Providers {
  }
  }
 
- public static function is_document_intelligence_configured {
+ public static function is_document_intelligence_configured() {
  return self::config('azure_document_intelligence_endpoint') !== ''
  && self::config('azure_document_intelligence_key') !== '';
  }
 
- public static function is_openai_configured {
+ public static function is_openai_configured() {
  return self::config('openai_api_key') !== '';
  }
 
- public static function is_azure_openai_configured {
+ public static function is_azure_openai_configured() {
  return self::config('azure_openai_endpoint') !== ''
  && self::config('azure_openai_key') !== ''
  && self::config('azure_openai_deployment') !== '';

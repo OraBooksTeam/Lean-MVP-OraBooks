@@ -40,7 +40,7 @@ class OraBooks_Csv_Imports {
 
  private static $instance = null;
 
- public static function init {
+ public static function init() {
  if (self::$instance === null) {
  self::$instance = new self;
 
@@ -64,7 +64,7 @@ class OraBooks_Csv_Imports {
  // DATABASE SCHEMA
  // ================================================================
 
- public static function get_create_table_sql {
+ public static function get_create_table_sql() {
  global $wpdb;
 
  $table_imports = OraBooks_Database::table(self::TABLE_IMPORTS);
@@ -1329,7 +1329,7 @@ class OraBooks_Csv_Imports {
  return openssl_decrypt($data, $method, $key, 0, $iv);
  }
 
- private static function get_file_encryption_key {
+ private static function get_file_encryption_key() {
  if (class_exists('OraBooks_Secrets')) {
  return OraBooks_Secrets::get_encryption_key;
  }
@@ -1359,7 +1359,7 @@ class OraBooks_Csv_Imports {
  /**
  * Purge import files past retention (respects legal_hold).
  */
- public function cron_purge_old_imports {
+ public function cron_purge_old_imports() {
  global $wpdb;
 
  $table = OraBooks_Database::table(self::TABLE_IMPORTS);
@@ -1396,7 +1396,7 @@ class OraBooks_Csv_Imports {
  // AJAX
  // ================================================================
 
- private function current_user_id {
+ private function current_user_id() {
  return orabooks_get_current_user_id;
  }
 
@@ -1418,7 +1418,7 @@ class OraBooks_Csv_Imports {
  }
  }
 
- public function ajax_upload {
+ public function ajax_upload() {
  $user_id = $this->current_user_id;
  $org_id = intval($_POST['org_id'] ?? 0);
  $resource_type = sanitize_text_field($_POST['resource_type'] ?? '');
@@ -1442,7 +1442,7 @@ class OraBooks_Csv_Imports {
  orabooks_json_success($result);
  }
 
- public function ajax_get_import {
+ public function ajax_get_import() {
  $user_id = $this->current_user_id;
  $org_id = intval($_POST['org_id'] ?? $_GET['org_id'] ?? 0);
  $import_id = intval($_POST['import_id'] ?? $_GET['import_id'] ?? 0);
@@ -1470,7 +1470,7 @@ class OraBooks_Csv_Imports {
  orabooks_json_success($preview);
  }
 
- public function ajax_confirm {
+ public function ajax_confirm() {
  $user_id = $this->current_user_id;
  $org_id = intval($_POST['org_id'] ?? 0);
  $import_id = intval($_POST['import_id'] ?? 0);
@@ -1502,7 +1502,7 @@ class OraBooks_Csv_Imports {
  orabooks_json_success($result);
  }
 
- public function ajax_list_imports {
+ public function ajax_list_imports() {
  $user_id = $this->current_user_id;
  $org_id = intval($_POST['org_id'] ?? $_GET['org_id'] ?? 0);
 

@@ -52,7 +52,7 @@ class OraBooks_Classification {
  ['rule_type' => 'vendor', 'match_value' => 'uber', 'account_code' => '5300', 'priority' => 20],
  ];
 
- public static function init {
+ public static function init() {
  if (self::$instance === null) {
  self::$instance = new self;
 
@@ -81,7 +81,7 @@ class OraBooks_Classification {
  return self::$instance;
  }
 
- public static function register_event_consumer {
+ public static function register_event_consumer() {
  if (!class_exists('OraBooks_EventBus')) {
  return;
  }
@@ -100,7 +100,7 @@ class OraBooks_Classification {
  });
  }
 
- public static function get_create_table_sql {
+ public static function get_create_table_sql() {
  global $wpdb;
  $charset = $wpdb->get_charset_collate;
  $table = OraBooks_Database::table('classification_rules');
@@ -126,7 +126,7 @@ class OraBooks_Classification {
  /**
  * Add classification columns to transaction tables (idempotent).
  */
- public static function ensure_schema {
+ public static function ensure_schema() {
  global $wpdb;
 
  $columns_sql = "
@@ -256,7 +256,7 @@ class OraBooks_Classification {
  return self::request($record_type, $record_id, $org_id, $context);
  }
 
- public static function rule_precedence_over_ai_enabled {
+ public static function rule_precedence_over_ai_enabled() {
  if (get_option('orabooks_rule_precedence_over_ai', null) !== null) {
  return (bool) get_option('orabooks_rule_precedence_over_ai', 1);
  }
@@ -848,7 +848,7 @@ class OraBooks_Classification {
  ];
  }
 
- public function ajax_run {
+ public function ajax_run() {
  $user_id = orabooks_get_current_user_id;
  $org_id = orabooks_get_current_org_id($user_id);
 
@@ -877,7 +877,7 @@ class OraBooks_Classification {
  orabooks_json_success(['classification' => is_array($result) ? $result: self::format_classification($result)]);
  }
 
- public function ajax_apply {
+ public function ajax_apply() {
  $user_id = orabooks_get_current_user_id;
  $org_id = orabooks_get_current_org_id($user_id);
 
@@ -900,7 +900,7 @@ class OraBooks_Classification {
  orabooks_json_success(['classification' => self::format_classification($result)]);
  }
 
- public function ajax_override {
+ public function ajax_override() {
  $user_id = orabooks_get_current_user_id;
  $org_id = orabooks_get_current_org_id($user_id);
 
@@ -926,7 +926,7 @@ class OraBooks_Classification {
  orabooks_json_success(['classification' => self::format_classification($result)]);
  }
 
- public function ajax_status {
+ public function ajax_status() {
  $user_id = orabooks_get_current_user_id;
  $org_id = orabooks_get_current_org_id($user_id);
 
@@ -949,7 +949,7 @@ class OraBooks_Classification {
  orabooks_json_success(['classification' => $result]);
  }
 
- public function ajax_rules_list {
+ public function ajax_rules_list() {
  $user_id = orabooks_get_current_user_id;
  $org_id = orabooks_get_current_org_id($user_id);
 
@@ -968,7 +968,7 @@ class OraBooks_Classification {
  ]);
  }
 
- public function ajax_rules_save {
+ public function ajax_rules_save() {
  $user_id = orabooks_get_current_user_id;
  $org_id = orabooks_get_current_org_id($user_id);
 
@@ -1007,7 +1007,7 @@ class OraBooks_Classification {
  ], 'Classification rules saved');
  }
 
- public function ajax_rules_delete {
+ public function ajax_rules_delete() {
  $user_id = orabooks_get_current_user_id;
  $org_id = orabooks_get_current_org_id($user_id);
  $rule_id = (int) ($_POST['rule_id'] ?? 0);
@@ -1525,7 +1525,7 @@ class OraBooks_Classification {
  ];
  }
 
- public function ajax_live_check {
+ public function ajax_live_check() {
  $user_id = orabooks_get_current_user_id;
  $org_id = orabooks_get_current_org_id($user_id);
 

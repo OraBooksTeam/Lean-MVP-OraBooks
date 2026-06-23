@@ -22,7 +22,7 @@ class OraBooks_Customers {
 
  private static $instance = null;
 
- public static function init {
+ public static function init() {
  if (self::$instance === null) {
  self::$instance = new self;
 
@@ -66,7 +66,7 @@ class OraBooks_Customers {
  // DATABASE SCHEMA
  // ================================================================
 
- public static function get_create_table_sql {
+ public static function get_create_table_sql() {
  global $wpdb;
 
  $charset_collate = $wpdb->get_charset_collate;
@@ -211,7 +211,7 @@ class OraBooks_Customers {
  * Idempotent schema upgrades for existing installs.
  * dbDelta CREATE TABLE IF NOT EXISTS does not add missing columns.
  */
- public static function ensure_schema {
+ public static function ensure_schema() {
  global $wpdb;
 
  if (
@@ -321,7 +321,7 @@ class OraBooks_Customers {
  /**
  *: invoice line items for inventory integration.
  */
- private static function ensure_invoice_line_items_schema {
+ private static function ensure_invoice_line_items_schema() {
  if (self::get_schema_flag('orabooks_sl034_invoice_line_items_v1') === '1') {
  return;
  }
@@ -354,7 +354,7 @@ class OraBooks_Customers {
  /**
  * Run schema migration before queries when bootstrap missed it.
  */
- private static function maybe_ensure_schema {
+ private static function maybe_ensure_schema() {
  static $ran = false;
  if ($ran) {
  return;
@@ -386,7 +386,7 @@ class OraBooks_Customers {
  /**
  * Add org-scoped AR contact fields so customers can be created without a platform user.
  */
- private static function ensure_customer_contact_schema {
+ private static function ensure_customer_contact_schema() {
  global $wpdb;
 
  if (self::get_schema_flag('orabooks_sl021_customer_contacts_v1') === '1') {
@@ -430,7 +430,7 @@ class OraBooks_Customers {
  /**
  * credit/wallet columns on customers (credit_limit, credit_hold, etc.).
  */
- private static function ensure_customer_credit_schema {
+ private static function ensure_customer_credit_schema() {
  global $wpdb;
 
  if (self::get_schema_flag('orabooks_sl021_customer_credit_v1') === '1') {
@@ -466,7 +466,7 @@ class OraBooks_Customers {
  /**
  * Extended customer profile fields used by the React add/edit modal.
  */
- private static function ensure_customer_profile_schema {
+ private static function ensure_customer_profile_schema() {
  global $wpdb;
 
  if (self::get_schema_flag('orabooks_sl021_customer_profile_v1') === '1') {
@@ -524,7 +524,7 @@ class OraBooks_Customers {
  /**
  * Create payments table without relying on dbDelta foreign keys.
  */
- private static function ensure_payments_table {
+ private static function ensure_payments_table() {
  global $wpdb;
 
  $table_payments = OraBooks_Database::table('payments');
@@ -574,7 +574,7 @@ class OraBooks_Customers {
  /**
  * Whether invoice/payment tables have the columns dashboard queries need.
  */
- public static function schema_is_ready {
+ public static function schema_is_ready() {
  global $wpdb;
 
  $table_invoices = OraBooks_Database::table('invoices');
@@ -714,7 +714,7 @@ class OraBooks_Customers {
  * Seed customer records for users referenced in partner_attributions
  * that don't already have a customers row.
  */
- public static function seed_default_customers {
+ public static function seed_default_customers() {
  global $wpdb;
 
  $table_customers = OraBooks_Database::table('customers');
@@ -2214,7 +2214,7 @@ class OraBooks_Customers {
  * Daily check: mark customers as inactive if they have no paid
  * invoices within the active window. Also recalc lifetime_value.
  */
- public function daily_customer_status_check {
+ public function daily_customer_status_check() {
  global $wpdb;
 
  $table_customers = OraBooks_Database::table('customers');
@@ -2261,7 +2261,7 @@ class OraBooks_Customers {
  /**
  * Daily check: mark invoices as overdue if past due_date and unpaid/partial.
  */
- public function daily_invoice_overdue_check {
+ public function daily_invoice_overdue_check() {
  global $wpdb;
 
  $table = OraBooks_Database::table('invoices');
@@ -2491,7 +2491,7 @@ class OraBooks_Customers {
  /**
  * List customers for admin.
  */
- public function ajax_customers_list {
+ public function ajax_customers_list() {
  $user_id = orabooks_get_current_user_id;
  $org_id = intval($_GET['org_id'] ?? $_POST['org_id'] ?? 0);
  $org_id = $this->resolve_request_org_id($user_id, $org_id);
@@ -2516,7 +2516,7 @@ class OraBooks_Customers {
  /**
  * Create a customer profile for the current organization.
  */
- public function ajax_customer_create {
+ public function ajax_customer_create() {
  $user_id = orabooks_get_current_user_id;
  $org_id = intval($_POST['org_id'] ?? 0);
 
@@ -2542,7 +2542,7 @@ class OraBooks_Customers {
  * Get a single customer. Accepts either customer_id (customers.id)
  * or user_id (users table ID).
  */
- public function ajax_customer_get {
+ public function ajax_customer_get() {
  $user_id = orabooks_get_current_user_id;
  if (!$user_id) {
  orabooks_json_error('Not authenticated', 401);
@@ -2571,7 +2571,7 @@ class OraBooks_Customers {
  /**
  * Update customer notes (is_active is derived from invoice activity per ).
  */
- public function ajax_customer_update {
+ public function ajax_customer_update() {
  $user_id = orabooks_get_current_user_id;
  $customer_id = intval($_POST['customer_id'] ?? 0);
  if (!$customer_id) {
@@ -2675,7 +2675,7 @@ class OraBooks_Customers {
  /**
  * List invoices.
  */
- public function ajax_invoices_list {
+ public function ajax_invoices_list() {
  $user_id = orabooks_get_current_user_id;
  $org_id = intval($_GET['org_id'] ?? $_POST['org_id'] ?? 0);
 
@@ -2706,7 +2706,7 @@ class OraBooks_Customers {
  /**
  * Create an invoice.
  */
- public function ajax_invoice_create {
+ public function ajax_invoice_create() {
  global $wpdb;
  $user_id = orabooks_get_current_user_id;
  $org_id = intval($_POST['org_id'] ?? 0);
@@ -2759,7 +2759,7 @@ class OraBooks_Customers {
  /**
  * Get single invoice details.
  */
- public function ajax_invoice_get {
+ public function ajax_invoice_get() {
  $user_id = orabooks_get_current_user_id;
  $invoice_id = intval($_GET['invoice_id'] ?? $_POST['invoice_id'] ?? 0);
 
@@ -2784,7 +2784,7 @@ class OraBooks_Customers {
  /**
  * Override invoice tax before posting.
  */
- public function ajax_invoice_override_tax {
+ public function ajax_invoice_override_tax() {
  global $wpdb;
 
  $user_id = orabooks_get_current_user_id;
@@ -2844,7 +2844,7 @@ class OraBooks_Customers {
  /**
  * Clear invoice tax override and recalculate from ( §5.4).
  */
- public function ajax_invoice_clear_tax_override {
+ public function ajax_invoice_clear_tax_override() {
  global $wpdb;
 
  $user_id = orabooks_get_current_user_id;
@@ -2901,7 +2901,7 @@ class OraBooks_Customers {
  /**
  * Send a draft invoice to the customer.
  */
- public function ajax_invoice_send {
+ public function ajax_invoice_send() {
  global $wpdb;
  $user_id = orabooks_get_current_user_id;
  $org_id = intval($_POST['org_id'] ?? 0);
@@ -2936,7 +2936,7 @@ class OraBooks_Customers {
  /**
  * Post an invoice to accounts receivable.
  */
- public function ajax_invoice_post {
+ public function ajax_invoice_post() {
  global $wpdb;
  $user_id = orabooks_get_current_user_id;
  $org_id = intval($_POST['org_id'] ?? 0);
@@ -2971,7 +2971,7 @@ class OraBooks_Customers {
  /**
  * Cancel a draft or sent invoice.
  */
- public function ajax_invoice_cancel {
+ public function ajax_invoice_cancel() {
  global $wpdb;
  $user_id = orabooks_get_current_user_id;
  $org_id = intval($_POST['org_id'] ?? 0);
@@ -3012,7 +3012,7 @@ class OraBooks_Customers {
  /**
  * Record a payment against an invoice.
  */
- public function ajax_record_payment {
+ public function ajax_record_payment() {
  global $wpdb;
  $user_id = orabooks_get_current_user_id;
  $org_id = intval($_POST['org_id'] ?? 0);
@@ -3061,7 +3061,7 @@ class OraBooks_Customers {
  /**
  * Customer stats for admin dashboard.
  */
- public function ajax_customer_stats {
+ public function ajax_customer_stats() {
  $user_id = orabooks_get_current_user_id;
  $org_id = intval($_GET['org_id'] ?? $_POST['org_id'] ?? 0);
  $org_id = $this->resolve_request_org_id($user_id, $org_id);

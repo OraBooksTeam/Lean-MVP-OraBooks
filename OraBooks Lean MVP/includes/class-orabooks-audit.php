@@ -20,7 +20,7 @@ class OraBooks_Audit {
 
  private static $instance = null;
 
- public static function init {
+ public static function init() {
  if (self::$instance === null) {
  self::$instance = new self;
  add_action('wp_ajax_orabooks_get_audit_logs', [self::$instance, 'ajax_get_logs']);
@@ -197,7 +197,7 @@ class OraBooks_Audit {
  /**
  * Archive old audit logs (retention 365 days by default, §5.5).
  */
- public static function archive_old_logs {
+ public static function archive_old_logs() {
  global $wpdb;
 
  $retention_days = (int) get_option('orabooks_audit_retention_days', 365);
@@ -353,7 +353,7 @@ class OraBooks_Audit {
  return true;
  }
 
- public function ajax_get_logs {
+ public function ajax_get_logs() {
  $user_id = orabooks_get_current_user_id;
  $org_id = self::resolve_audit_org_id($_GET['org_id'] ?? 0);
 
@@ -381,7 +381,7 @@ class OraBooks_Audit {
  orabooks_json_success($logs);
  }
 
- public function ajax_export_logs {
+ public function ajax_export_logs() {
  $user_id = orabooks_get_current_user_id;
  $org_id = self::resolve_audit_org_id($_GET['org_id'] ?? 0);
 

@@ -9,7 +9,7 @@ if (!defined('ABSPATH')) {
 
 class OraBooks_Workflow_Integration {
 
- public static function init {
+ public static function init() {
  add_filter('orabooks_workflow_preconditions', [__CLASS__, 'apply_preconditions'], 10, 5);
  add_action('orabooks_workflow_after_transition', [__CLASS__, 'on_after_transition'], 10, 6);
  }

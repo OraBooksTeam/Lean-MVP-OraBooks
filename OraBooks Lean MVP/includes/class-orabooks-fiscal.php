@@ -13,7 +13,7 @@ class OraBooks_Fiscal {
 
  private static $instance = null;
 
- public static function init {
+ public static function init() {
  if (self::$instance === null) {
  self::$instance = new self;
  add_action('wp_ajax_orabooks_fiscal_periods_list', [self::$instance, 'ajax_list_periods']);
@@ -53,7 +53,7 @@ class OraBooks_Fiscal {
  /**
  * Monthly cron: ensure next month periods exist for all customer orgs.
  */
- public static function cron_ensure_periods {
+ public static function cron_ensure_periods() {
  global $wpdb;
 
  $table = OraBooks_Database::table('organizations');
@@ -595,7 +595,7 @@ class OraBooks_Fiscal {
  ));
  }
 
- public function ajax_list_periods {
+ public function ajax_list_periods() {
  $user_id = orabooks_get_current_user_id;
  $org_id = intval($_GET['org_id'] ?? $_POST['org_id'] ?? 0);
 
@@ -611,7 +611,7 @@ class OraBooks_Fiscal {
  orabooks_json_success(self::list_periods_for_api($org_id));
  }
 
- public function ajax_close_period {
+ public function ajax_close_period() {
  $user_id = orabooks_get_current_user_id;
  $org_id = intval($_POST['org_id'] ?? 0);
  $period_id = intval($_POST['period_id'] ?? 0);
@@ -643,7 +643,7 @@ class OraBooks_Fiscal {
  ]);
  }
 
- public function ajax_reopen_period {
+ public function ajax_reopen_period() {
  $user_id = orabooks_get_current_user_id;
  $org_id = intval($_POST['org_id'] ?? 0);
  $period_id = intval($_POST['period_id'] ?? 0);
@@ -666,7 +666,7 @@ class OraBooks_Fiscal {
  orabooks_json_success(['period_id' => $period_id, 'status' => 'open']);
  }
 
- public function ajax_override_reopen_period {
+ public function ajax_override_reopen_period() {
  $user_id = orabooks_get_current_user_id;
  $org_id = intval($_POST['org_id'] ?? 0);
  $period_id = intval($_POST['period_id'] ?? 0);
@@ -689,7 +689,7 @@ class OraBooks_Fiscal {
  orabooks_json_success(['period_id' => $period_id, 'status' => 'open']);
  }
 
- public function ajax_create_period {
+ public function ajax_create_period() {
  $user_id = orabooks_get_current_user_id;
  $org_id = intval($_POST['org_id'] ?? 0);
  $period_start = sanitize_text_field($_POST['period_start'] ?? '');
@@ -716,7 +716,7 @@ class OraBooks_Fiscal {
  ]);
  }
 
- public function ajax_update_period {
+ public function ajax_update_period() {
  $user_id = orabooks_get_current_user_id;
  $org_id = intval($_POST['org_id'] ?? 0);
  $period_id = intval($_POST['period_id'] ?? 0);

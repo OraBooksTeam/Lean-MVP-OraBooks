@@ -13,7 +13,7 @@ class OraBooks_DeployChecks {
  *
  * @return array<string, string> hook => recurrence
  */
- public static function mvp_cron_jobs {
+ public static function mvp_cron_jobs() {
  return [
  'orabooks_partner_activity_check' => 'daily',
  'orabooks_async_queue_process' => 'every_minute',
@@ -31,7 +31,7 @@ class OraBooks_DeployChecks {
  *
  * @return string[]
  */
- public static function ensure_mvp_cron_schedules {
+ public static function ensure_mvp_cron_schedules() {
  $repaired = [];
 
  foreach (self::mvp_cron_jobs as $hook => $recurrence) {
@@ -49,7 +49,7 @@ class OraBooks_DeployChecks {
  /**
  * @return array{ok:bool,checks:array<int,array{id:string,label:string,ok:bool,detail:string}>,timestamp:string,environment:array<string,mixed>}
  */
- public static function run {
+ public static function run() {
  $checks = [];
  $ok = true;
 

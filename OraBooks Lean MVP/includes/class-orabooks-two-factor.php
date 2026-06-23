@@ -13,7 +13,7 @@ class OraBooks_TwoFactor {
 
  private static $instance = null;
 
- public static function init {
+ public static function init() {
  if (self::$instance !== null) {
  return self::$instance;
  }
@@ -632,7 +632,7 @@ class OraBooks_TwoFactor {
  *
  * @return string[]
  */
- public static function get_2fa_compliance_exempt_actions {
+ public static function get_2fa_compliance_exempt_actions() {
  return [
  'orabooks_login',
  'orabooks_register',
@@ -667,7 +667,7 @@ class OraBooks_TwoFactor {
  return in_array(sanitize_key((string) $action), self::get_2fa_compliance_exempt_actions, true);
  }
 
- public function maybe_enforce_ajax_2fa_compliance {
+ public function maybe_enforce_ajax_2fa_compliance() {
  if (!wp_doing_ajax) {
  return;
  }
@@ -826,7 +826,7 @@ class OraBooks_TwoFactor {
  }
  }
 
- public function ajax_disable_2fa {
+ public function ajax_disable_2fa() {
  if (!orabooks_is_user_logged_in) {
  orabooks_json_error('Not authenticated', 401);
  }
@@ -843,7 +843,7 @@ class OraBooks_TwoFactor {
  orabooks_json_success($result, 'Two-factor authentication disabled');
  }
 
- public function ajax_regenerate_backup_codes {
+ public function ajax_regenerate_backup_codes() {
  if (!orabooks_is_user_logged_in) {
  orabooks_json_error('Not authenticated', 401);
  }
@@ -860,7 +860,7 @@ class OraBooks_TwoFactor {
  orabooks_json_success($result, 'Backup codes regenerated');
  }
 
- public function ajax_reveal_backup_codes {
+ public function ajax_reveal_backup_codes() {
  if (!orabooks_is_user_logged_in) {
  orabooks_json_error('Not authenticated', 401);
  }
@@ -877,7 +877,7 @@ class OraBooks_TwoFactor {
  orabooks_json_success($result, 'Backup codes retrieved');
  }
 
- public function ajax_status {
+ public function ajax_status() {
  if (!orabooks_is_user_logged_in) {
  orabooks_json_error('Not authenticated', 401);
  }
@@ -885,7 +885,7 @@ class OraBooks_TwoFactor {
  orabooks_json_success(self::get_status(orabooks_get_current_user_id));
  }
 
- public function ajax_admin_recover {
+ public function ajax_admin_recover() {
  if (!orabooks_is_user_logged_in) {
  orabooks_json_error('Not authenticated', 401);
  }
@@ -903,7 +903,7 @@ class OraBooks_TwoFactor {
  orabooks_json_success($result, $result['message'] ?? '2FA recovered');
  }
 
- public function ajax_org_policy_get {
+ public function ajax_org_policy_get() {
  if (!orabooks_is_user_logged_in) {
  orabooks_json_error('Not authenticated', 401);
  }
@@ -920,7 +920,7 @@ class OraBooks_TwoFactor {
  orabooks_json_success(self::get_org_policy($org_id));
  }
 
- public function ajax_org_policy_set {
+ public function ajax_org_policy_set() {
  if (!orabooks_is_user_logged_in) {
  orabooks_json_error('Not authenticated', 401);
  }

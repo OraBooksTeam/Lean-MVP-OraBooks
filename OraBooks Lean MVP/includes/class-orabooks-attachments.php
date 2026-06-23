@@ -50,7 +50,7 @@ class OraBooks_Attachments {
 
  private static $instance = null;
 
- public static function init {
+ public static function init() {
  if (self::$instance === null) {
  self::$instance = new self;
 
@@ -71,7 +71,7 @@ class OraBooks_Attachments {
  return self::$instance;
  }
 
- public static function get_create_table_sql {
+ public static function get_create_table_sql() {
  global $wpdb;
 
  $table_attachments = OraBooks_Database::table(self::TABLE_ATTACHMENTS);
@@ -582,7 +582,7 @@ class OraBooks_Attachments {
  return openssl_decrypt($data, $method, $key, 0, $iv);
  }
 
- private static function get_file_encryption_key {
+ private static function get_file_encryption_key() {
  if (class_exists('OraBooks_Secrets')) {
  return OraBooks_Secrets::get_encryption_key;
  }
@@ -590,7 +590,7 @@ class OraBooks_Attachments {
  return wp_salt('auth');
  }
 
- public function cron_purge_old_attachments {
+ public function cron_purge_old_attachments() {
  global $wpdb;
 
  $table_attachments = OraBooks_Database::table(self::TABLE_ATTACHMENTS);
@@ -632,7 +632,7 @@ class OraBooks_Attachments {
  ]);
  }
 
- private function current_user_id {
+ private function current_user_id() {
  return orabooks_get_current_user_id;
  }
 
@@ -647,7 +647,7 @@ class OraBooks_Attachments {
  }
  }
 
- public function ajax_upload {
+ public function ajax_upload() {
  $user_id = $this->current_user_id;
  $org_id = intval($_POST['org_id'] ?? 0);
  $resource_type = sanitize_text_field($_POST['resource_type'] ?? 'general');
@@ -689,7 +689,7 @@ class OraBooks_Attachments {
  orabooks_json_success($result);
  }
 
- public function ajax_list {
+ public function ajax_list() {
  $user_id = $this->current_user_id;
  $org_id = intval($_POST['org_id'] ?? $_GET['org_id'] ?? 0);
  $resource_type = sanitize_text_field($_POST['resource_type'] ?? $_GET['resource_type'] ?? '');
@@ -711,7 +711,7 @@ class OraBooks_Attachments {
  ]);
  }
 
- public function ajax_get {
+ public function ajax_get() {
  $user_id = $this->current_user_id;
  $org_id = intval($_POST['org_id'] ?? $_GET['org_id'] ?? 0);
  $attachment_id = intval($_POST['attachment_id'] ?? $_GET['attachment_id'] ?? 0);
@@ -753,7 +753,7 @@ class OraBooks_Attachments {
  ]);
  }
 
- public function ajax_delete {
+ public function ajax_delete() {
  $user_id = $this->current_user_id;
  $org_id = intval($_POST['org_id'] ?? 0);
  $attachment_id = intval($_POST['attachment_id'] ?? 0);
@@ -772,7 +772,7 @@ class OraBooks_Attachments {
  orabooks_json_success([], 'Attachment deleted');
  }
 
- public function ajax_download {
+ public function ajax_download() {
  $user_id = $this->current_user_id;
  $org_id = intval($_GET['org_id'] ?? 0);
  $attachment_id = intval($_GET['attachment_id'] ?? 0);

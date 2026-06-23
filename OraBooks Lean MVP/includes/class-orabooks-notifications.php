@@ -21,7 +21,7 @@ class OraBooks_Notifications {
  'inapp' => 0.00001,
  ];
 
- public static function init {
+ public static function init() {
  if (self::$instance === null) {
  self::$instance = new self;
  add_action('init', [self::$instance, 'register_cron_hooks']);
@@ -92,7 +92,7 @@ class OraBooks_Notifications {
  /**
  * Register cron hooks
  */
- public function register_cron_hooks {
+ public function register_cron_hooks() {
  add_action('orabooks_notification_provider_health_update', [self::$instance, 'cron_update_provider_health']);
  add_action('orabooks_notification_sla_check', [self::$instance, 'cron_sla_compliance_check']);
  add_action('orabooks_notification_device_cleanup', [self::$instance, 'cron_deactivate_stale_devices']);
@@ -706,7 +706,7 @@ class OraBooks_Notifications {
  /**
  * Cron: Update provider health scores (every 5 minutes).
  */
- public function cron_update_provider_health {
+ public function cron_update_provider_health() {
  global $wpdb;
 
  $table_notifications = OraBooks_Database::table('notifications');
@@ -782,7 +782,7 @@ class OraBooks_Notifications {
  /**
  * Cron: Check SLA compliance for critical notifications.
  */
- public function cron_sla_compliance_check {
+ public function cron_sla_compliance_check() {
  global $wpdb;
 
  $table = OraBooks_Database::table('notifications');
@@ -841,7 +841,7 @@ class OraBooks_Notifications {
  /**
  * Cron: Deactivate stale devices (30 days no activity).
  */
- public function cron_deactivate_stale_devices {
+ public function cron_deactivate_stale_devices() {
  global $wpdb;
  $table = OraBooks_Database::table('mobile_devices');
  $cutoff = date('Y-m-d H:i:s', time - (30 * 86400));
@@ -855,7 +855,7 @@ class OraBooks_Notifications {
  /**
  * Cron: Purge notifications past org retention policy (default 365 days).
  */
- public function cron_notification_retention {
+ public function cron_notification_retention() {
  global $wpdb;
 
  $table = OraBooks_Database::table('notifications');
@@ -896,7 +896,7 @@ class OraBooks_Notifications {
  /**
  * Cron: Retry pending/dead deliveries
  */
- public function cron_retry_deliveries {
+ public function cron_retry_deliveries() {
  global $wpdb;
  $table = OraBooks_Database::table('notifications');
 
@@ -1017,7 +1017,7 @@ class OraBooks_Notifications {
  // GET CREATE TABLE SQL (for database installer)
  // ================================================================
 
- public static function get_create_table_sql {
+ public static function get_create_table_sql() {
  global $wpdb;
  $charset_collate = $wpdb->get_charset_collate;
 
@@ -1140,7 +1140,7 @@ class OraBooks_Notifications {
  // SEED DEFAULT DEPENDENCIES
  // ================================================================
 
- public static function seed_dependencies {
+ public static function seed_dependencies() {
  global $wpdb;
  $table = OraBooks_Database::table('notification_dependencies');
 
@@ -1402,7 +1402,7 @@ class OraBooks_Notifications {
  // AJAX HANDLERS
  // ============================================================
 
- private function require_notification_user {
+ private function require_notification_user() {
  $user_id = orabooks_get_current_user_id;
  if (!$user_id) {
  orabooks_json_error('Not authenticated', 401);
@@ -1484,7 +1484,7 @@ class OraBooks_Notifications {
  /**
  * AJAX: List notifications for current user.
  */
- public function ajax_list_notifications {
+ public function ajax_list_notifications() {
  $user_id = $this->require_notification_user;
 
  $args = [
@@ -1516,7 +1516,7 @@ class OraBooks_Notifications {
  /**
  * AJAX: Mark notification as read.
  */
- public function ajax_mark_read {
+ public function ajax_mark_read() {
  $user_id = $this->require_notification_user;
  $notification_id = intval($_POST['notification_id'] ?? 0);
 
@@ -1532,7 +1532,7 @@ class OraBooks_Notifications {
  /**
  * AJAX: Mark all notifications as read.
  */
- public function ajax_mark_all_read {
+ public function ajax_mark_all_read() {
  $user_id = $this->require_notification_user;
 
  self::mark_all_read($user_id);
@@ -1542,7 +1542,7 @@ class OraBooks_Notifications {
  /**
  * AJAX: Get unread count.
  */
- public function ajax_unread_count {
+ public function ajax_unread_count() {
  $user_id = $this->require_notification_user;
 
  $count = self::get_unread_count($user_id);
@@ -1552,7 +1552,7 @@ class OraBooks_Notifications {
  /**
  * AJAX: Manually retry failed or dead-letter notification delivery.
  */
- public function ajax_retry_delivery {
+ public function ajax_retry_delivery() {
  $user_id = $this->require_notification_user;
  $notification_id = intval($_POST['notification_id'] ?? 0);
 
@@ -1569,7 +1569,7 @@ class OraBooks_Notifications {
  /**
  * AJAX: Get user notification preferences.
  */
- public function ajax_get_preferences {
+ public function ajax_get_preferences() {
  $user_id = $this->require_notification_user;
 
  $prefs = self::get_user_preferences($user_id);
@@ -1579,7 +1579,7 @@ class OraBooks_Notifications {
  /**
  * AJAX: Save user notification preferences.
  */
- public function ajax_save_preferences {
+ public function ajax_save_preferences() {
  $user_id = $this->require_notification_user;
 
  $data = [
@@ -1604,7 +1604,7 @@ class OraBooks_Notifications {
  /**
  * AJAX: Get org notification policy (Owner only).
  */
- public function ajax_get_org_policy {
+ public function ajax_get_org_policy() {
  $org_id = intval($_GET['org_id'] ?? 0);
  $this->require_org_notification_admin($org_id);
 
@@ -1615,7 +1615,7 @@ class OraBooks_Notifications {
  /**
  * AJAX: Save org notification policy (Owner only).
  */
- public function ajax_save_org_policy {
+ public function ajax_save_org_policy() {
  $org_id = intval($_POST['org_id'] ?? 0);
  $user_id = $this->require_org_notification_admin($org_id);
 
@@ -1635,7 +1635,7 @@ class OraBooks_Notifications {
  /**
  * AJAX: Get provider health scores (Owner only).
  */
- public function ajax_provider_health {
+ public function ajax_provider_health() {
  $org_id = intval($_GET['org_id'] ?? $_POST['org_id'] ?? 0);
  if ($org_id) {
  $this->require_org_notification_admin($org_id);
@@ -1652,7 +1652,7 @@ class OraBooks_Notifications {
  /**
  * AJAX: Export signed audit bundle (Owner only).
  */
- public function ajax_audit_export {
+ public function ajax_audit_export() {
  $org_id = intval($_GET['org_id'] ?? 0);
  $user_id = $this->require_org_notification_admin($org_id);
  $start_date = sanitize_text_field($_GET['start_date'] ?? date('Y-m-d', strtotime('-30 days')));
@@ -1666,7 +1666,7 @@ class OraBooks_Notifications {
  /**
  * AJAX: Register mobile device token.
  */
- public function ajax_register_device {
+ public function ajax_register_device() {
  $user_id = orabooks_get_current_user_id;
  if (!$user_id) {
  orabooks_json_error('Not authenticated', 401);
@@ -1879,7 +1879,7 @@ class OraBooks_Notifications {
  * first marked overdue) and sends a consolidated digest per org
  * via notify_org_admins.
  */
- public function cron_send_overdue_digest {
+ public function cron_send_overdue_digest() {
  global $wpdb;
 
  $table_invoices = OraBooks_Database::table('invoices');
