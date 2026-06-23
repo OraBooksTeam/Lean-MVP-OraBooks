@@ -296,6 +296,44 @@ export default function CustomersPage() {
     setSaving(false);
   };
 
+  const openWallet = async (customer: Customer) => {
+    if (!orgId) return;
+    setWalletCustomer(customer);
+    setCustomerPaymentForm({
+      amount: '',
+      payment_date: new Date().toISOString().slice(0, 10),
+      payment_method: 'bank_transfer',
+      reference: '',
+      allocation_method: 'FIFO',
+    });
+    setError('');
+    const res = await api.customerStatementsList(orgId, customer.id);
+    if (!res.error) setStatements((res as any).data?.statements || []);
+    else setStatements([]);
+  };
+
+  const recordCustomerPayment = async () => {
+    if (!orgId || !walletCustomer) return;
+    setSaving(true);
+    setError('');
+    const res = await api.customerPaymentRecord({
+      org_id: orgId,
+      customer_id: walletCustomer.id,
+      amount: parseFloat(customerPaymentForm.amount) || 0,
+      payment_date: customerPaymentForm.payment_date,
+      payment_method: customerPaymentForm.payment_method,
+      reference: customerPaymentForm.reference,
+      allocation_method: customerPaymentForm.allocation_method,
+    });
+    if (res.error) setError(res.error);
+    else {
+      setSuccess('Customer payment recorded (FIFO allocation).');
+      setWalletCustomer(null);
+      await load();
+    }
+    setSaving(false);
+  };
+
   return (
     <ClientShell
       title="Customers"
@@ -422,6 +460,9 @@ export default function CustomersPage() {
                       <WpLink to={`/invoices?customer_id=${customer.id}`}>
                         <Button size="sm" variant="secondary">Invoices</Button>
                       </WpLink>
+                      <Button size="sm" variant="secondary" onClick={() => void openWallet(customer)}>
+                        Wallet
+                      </Button>
                       <WpLink to={`/attachments?resource_type=customer&resource_id=${customer.id}`}>
                         <Button size="sm" variant="secondary">
                           <Paperclip className="h-3.5 w-3.5" />
@@ -446,6 +487,51 @@ export default function CustomersPage() {
                 Create customer
               </Button>
             </div>
+          </Modal>
+        )}
+
+        {walletCustomer && (
+          <Modal title="Customer wallet" onClose={() => setWalletCustomer(null)}>
+            <p className="mb-4 text-sm text-slate-600">{customerLabel(walletCustomer)}</p>
+            {error && <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div>}
+            <div className="mb-4 grid gap-3 sm:grid-cols-2">
+              <div className="rounded-lg border border-border bg-slate-50 p-3">
+                <p className="text-xs uppercase text-slate-500">AR due</p>
+                <p className="text-lg font-semibold">{money(walletCustomer.wallet_balance, walletCustomer.default_currency)}</p>
+              </div>
+              <div className="rounded-lg border border-border bg-slate-50 p-3">
+                <p className="text-xs uppercase text-slate-500">Credit balance</p>
+                <p className="text-lg font-semibold">{money(walletCustomer.credit_balance, walletCustomer.default_currency)}</p>
+              </div>
+            </div>
+            {canManageCustomers && (
+              <div className="grid gap-4 border-t border-border pt-4">
+                <h4 className="text-sm font-semibold text-ink">Record payment (FIFO)</h4>
+                <Field label="Amount">
+                  <Input type="number" min="0" step="0.01" value={customerPaymentForm.amount} onChange={(e) => setCustomerPaymentForm((p) => ({ ...p, amount: e.target.value }))} />
+                </Field>
+                <Field label="Payment date">
+                  <Input type="date" value={customerPaymentForm.payment_date} onChange={(e) => setCustomerPaymentForm((p) => ({ ...p, payment_date: e.target.value }))} />
+                </Field>
+                <div className="flex justify-end gap-2">
+                  <Button variant="secondary" onClick={() => setWalletCustomer(null)}>Close</Button>
+                  <Button onClick={() => void recordCustomerPayment()} loading={saving} disabled={!customerPaymentForm.amount}>Record payment</Button>
+                </div>
+              </div>
+            )}
+            {statements.length > 0 && (
+              <div className="mt-4 border-t border-border pt-4">
+                <h4 className="mb-2 text-sm font-semibold text-ink">Monthly statements</h4>
+                <ul className="space-y-2 text-sm text-slate-600">
+                  {statements.map((row) => (
+                    <li key={row.id} className="flex justify-between rounded-lg border border-border px-3 py-2">
+                      <span>{row.statement_month}</span>
+                      <span>{money(row.ar_balance, walletCustomer.default_currency)}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </Modal>
         )}
 
