@@ -204,10 +204,121 @@ class OraBooks_Expenses {
                 FOREIGN KEY (expense_id) REFERENCES {$table_expenses}(id) ON DELETE CASCADE,
                 INDEX idx_expense (expense_id)
             ) {$charset};",
+            "CREATE TABLE IF NOT EXISTS {$table_orgs}_expense_settings_placeholder {$charset};",
         ];
     }
 
-    public static function get_expense_stats($org_id) {
+    /**
+     * Org-level expense workflow settings (SL-028 Phase 4).
+     */
+    public static function ensure_settings_schema() {
+        global $wpdb;
+
+        static $ran = false;
+        if ($ran) {
+            return;
+        }
+        $ran = true;
+
+        $table_orgs = OraBooks_Database::table('organizations');
+        $table = OraBooks_Database::table(self::TABLE_SETTINGS);
+        $charset = $wpdb->get_charset_collate();
+
+        if ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table)) !== $table) {
+            $wpdb->query(
+                "CREATE TABLE IF NOT EXISTS {$table} (
+                    org_id BIGINT UNSIGNED NOT NULL PRIMARY KEY,
+                    auto_post_on_approve TINYINT(1) NOT NULL DEFAULT 1,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                    FOREIGN KEY (org_id) REFERENCES {$table_orgs}(id) ON DELETE CASCADE
+                ) {$charset}"
+            );
+        }
+    }
+
+    public static function get_org_settings($org_id) {
+        global $wpdb;
+
+        self::ensure_settings_schema();
+
+        $table = OraBooks_Database::table(self::TABLE_SETTINGS);
+        $row = $wpdb->get_row($wpdb->prepare(
+            "SELECT * FROM {$table} WHERE org_id = %d",
+            (int) $org_id
+        ));
+
+        if ($row) {
+            return $row;
+        }
+
+        return (object) [
+            'org_id'               => (int) $org_id,
+            'auto_post_on_approve' => (int) get_option('orabooks_expense_auto_post_on_approve', 1),
+        ];
+    }
+
+    public static function save_org_settings($org_id, array $data) {
+        global $wpdb;
+
+        self::ensure_settings_schema();
+
+        $table = OraBooks_Database::table(self::TABLE_SETTINGS);
+        $payload = [
+            'org_id'               => (int) $org_id,
+            'auto_post_on_approve' => !empty($data['auto_post_on_approve']) ? 1 : 0,
+        ];
+
+        $existing = $wpdb->get_var($wpdb->prepare(
+            "SELECT org_id FROM {$table} WHERE org_id = %d",
+            (int) $org_id
+        ));
+
+        if ($existing) {
+            $wpdb->update(
+                $table,
+                ['auto_post_on_approve' => $payload['auto_post_on_approve']],
+                ['org_id' => (int) $org_id],
+                ['%d'],
+                ['%d']
+            );
+        } else {
+            $wpdb->insert($table, $payload, ['%d', '%d']);
+        }
+
+        update_option('orabooks_expense_auto_post_on_approve', $payload['auto_post_on_approve'], false);
+
+        return self::format_org_settings(self::get_org_settings($org_id));
+    }
+
+    public static function format_org_settings($row) {
+        return [
+            'org_id'               => (int) ($row->org_id ?? 0),
+            'auto_post_on_approve' => (int) ($row->auto_post_on_approve ?? 1),
+        ];
+    }
+
+    public static function auto_post_on_approve_enabled($org_id) {
+        $settings = self::get_org_settings((int) $org_id);
+        return !empty($settings->auto_post_on_approve);
+    }
+
+    public static function get_create_table_sql_legacy_placeholder() {
+        return [];
+    }
+
+    private static function get_create_table_sql_inner() {
+        global $wpdb;
+
+        $table_expenses = OraBooks_Database::table(self::TABLE_EXPENSES);
+        $table_queue = OraBooks_Database::table(self::TABLE_OCR_QUEUE);
+        $table_lines = OraBooks_Database::table(self::TABLE_LINE_ITEMS);
+        $table_settings = OraBooks_Database::table(self::TABLE_SETTINGS);
+        $table_orgs = OraBooks_Database::table('organizations');
+        $table_attachments = OraBooks_Database::table('attachments');
+        $charset = $wpdb->get_charset_collate();
+
+        return [
+            "CREATE TABLE IF NOT EXISTS {$table_expenses} (
         global $wpdb;
 
         $table = OraBooks_Database::table(self::TABLE_EXPENSES);
