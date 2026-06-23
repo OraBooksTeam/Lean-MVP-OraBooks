@@ -398,7 +398,12 @@ class OraBooks_Vendors {
 
         $org_id = intval($org_id);
         $vendor_id = intval($data['vendor_id'] ?? 0);
+        $line_items = self::parse_line_items($data);
         $subtotal = round(floatval($data['subtotal_amount'] ?? $data['total_amount'] ?? 0), 2);
+
+        if (!empty($line_items)) {
+            $subtotal = self::calculate_line_items_subtotal($line_items, 'unit_cost');
+        }
 
         if ($org_id <= 0 || $vendor_id <= 0) {
             return new WP_Error('missing_field', 'Vendor is required');
@@ -472,6 +477,9 @@ class OraBooks_Vendors {
         );
 
         $bill_id = intval($wpdb->insert_id);
+        if (!empty($line_items)) {
+            self::save_bill_line_items($org_id, $bill_id, $line_items);
+        }
         orabooks_log_event('vendor_bill_created', "Bill {$bill_number} created", 'info', [
             'bill_id' => $bill_id,
             'vendor_id' => $vendor_id,
@@ -706,6 +714,8 @@ class OraBooks_Vendors {
             'org_id' => intval($org_id),
             'vendor_id' => intval($bill->vendor_id),
             'total_amount' => floatval($bill->total_amount),
+            'inventory_items' => self::get_inventory_items_for_bill(intval($bill_id), intval($org_id)),
+            'user_id' => intval($user_id),
         ]);
 
         return true;

@@ -163,6 +163,24 @@ class OraBooks_Customers {
             INDEX idx_overdue_notified (payment_status, overdue_notified_at)
         ) {$charset_collate};";
 
+        $table_invoice_lines = OraBooks_Database::table('invoice_line_items');
+        $tables[] = "CREATE TABLE IF NOT EXISTS {$table_invoice_lines} (
+            id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            org_id BIGINT UNSIGNED NOT NULL,
+            invoice_id BIGINT UNSIGNED NOT NULL,
+            product_id BIGINT UNSIGNED NULL,
+            description TEXT NULL,
+            quantity DECIMAL(20,4) NOT NULL DEFAULT 0,
+            unit_price DECIMAL(20,6) NOT NULL DEFAULT 0,
+            line_total DECIMAL(20,2) NOT NULL DEFAULT 0,
+            sort_order INT NOT NULL DEFAULT 0,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (org_id) REFERENCES {$table_orgs}(id) ON DELETE CASCADE,
+            FOREIGN KEY (invoice_id) REFERENCES {$table_invoices}(id) ON DELETE CASCADE,
+            INDEX idx_invoice (invoice_id),
+            INDEX idx_product (product_id)
+        ) {$charset_collate};";
+
         // SL-021: payments table
         $table_payments = OraBooks_Database::table('payments');
         $tables[] = "CREATE TABLE IF NOT EXISTS {$table_payments} (
