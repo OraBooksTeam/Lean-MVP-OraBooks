@@ -477,12 +477,45 @@ export default function InventoryPage() {
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-4">
               <div>
                 <h2 className="font-bold text-ink">{selectedProduct.name}</h2>
-                <p className="text-sm text-slate-600">SKU {selectedProduct.sku} · #{selectedProduct.id}</p>
+                <p className="text-sm text-slate-600">
+                  SKU {selectedProduct.sku} · Stock {formatQty(Number(selectedProduct.current_stock || 0))} {selectedProduct.unit || 'piece'}
+                  · Avg cost {money(Number(selectedProduct.average_cost || 0))}
+                </p>
               </div>
-              <Button variant="secondary" size="sm" onClick={() => setSelectedProduct(null)}>
-                Close
-              </Button>
+              <div className="flex gap-2">
+                <Button variant="secondary" size="sm" onClick={() => openAdjust(selectedProduct)}>Adjust stock</Button>
+                <Button variant="secondary" size="sm" onClick={() => { setSelectedProduct(null); setProductMovements([]); }}>
+                  Close
+                </Button>
+              </div>
             </div>
+            {productMovements.length > 0 && (
+              <div className="mt-4">
+                <h3 className="mb-2 text-sm font-semibold text-ink">Movement history</h3>
+                <table className="min-w-full text-left text-sm">
+                  <thead>
+                    <tr className="border-b border-border text-xs uppercase text-slate-500">
+                      <th className="py-2 pr-3 font-semibold">Date</th>
+                      <th className="py-2 pr-3 font-semibold">Type</th>
+                      <th className="py-2 pr-3 text-right font-semibold">Qty</th>
+                      <th className="py-2 pr-3 text-right font-semibold">Stock after</th>
+                      <th className="py-2 font-semibold">Reason</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {productMovements.map((m) => (
+                      <tr key={m.id}>
+                        <td className="py-2 pr-3 text-slate-600">{String(m.created_at || '').slice(0, 10)}</td>
+                        <td className="py-2 pr-3">{m.reference_type}</td>
+                        <td className="py-2 pr-3 text-right font-medium">{formatQty(Number(m.quantity_change || 0))}</td>
+                        <td className="py-2 pr-3 text-right">{formatQty(Number(m.stock_after || 0))}</td>
+                        <td className="py-2 text-slate-600">{m.reason || m.note || '—'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
             <div className="mt-4">
               <ResourceAttachmentsPanel
                 orgId={orgId}
