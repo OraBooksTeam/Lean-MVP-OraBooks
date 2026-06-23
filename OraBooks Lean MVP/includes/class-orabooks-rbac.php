@@ -63,6 +63,9 @@ class OraBooks_RBAC {
             'view_invoices'               => ['owner', 'admin', 'approver', 'staff', 'viewer'],
             'override_tax'                => ['owner', 'admin', 'approver'],
             'manage_partner_settings'     => ['owner', 'admin'],
+            'view_bank_reconciliation'    => ['owner', 'admin', 'approver', 'staff', 'viewer'],
+            'match_transaction'           => ['owner', 'admin', 'approver', 'staff'],
+            'reconcile_bank'              => ['owner', 'admin'],
         ];
     }
     
@@ -150,6 +153,9 @@ class OraBooks_RBAC {
             'view_invoices',
             'override_tax',
             'manage_billing',
+            'view_bank_reconciliation',
+            'match_transaction',
+            'reconcile_bank',
         ];
         
         if ($org->organization_type === 'partner' && in_array($permission, $accounting_permissions, true)) {
