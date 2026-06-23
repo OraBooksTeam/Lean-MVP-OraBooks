@@ -89,4 +89,41 @@ class OraBooks_Expenses_Test extends TestCase
         $this->assertSame('low', $formatted['ocr_risk_level']);
         $this->assertSame(88.5, $formatted['ocr_confidence']);
     }
+
+    #[Test]
+    public function test_ocr_stub_includes_extended_sl028_fields()
+    {
+        $ocr = OraBooks_Expenses::run_ocr_stub('vendor-receipt.pdf', 10);
+
+        $this->assertArrayHasKey('vendor_tax_id', $ocr);
+        $this->assertArrayHasKey('due_date', $ocr);
+        $this->assertArrayHasKey('merchant_address', $ocr);
+    }
+
+    #[Test]
+    public function test_run_live_checks_returns_expected_shape()
+    {
+        $result = OraBooks_Expenses::run_live_checks(0);
+
+        $this->assertArrayHasKey('ok', $result);
+        $this->assertArrayHasKey('checks', $result);
+        $this->assertArrayHasKey('environment', $result);
+        $this->assertArrayHasKey('manual_steps', $result);
+        $this->assertIsArray($result['checks']);
+        $this->assertNotEmpty($result['checks']);
+        $this->assertSame(70, $result['environment']['confidence_threshold']);
+        $this->assertSame(10, $result['environment']['rate_limit_per_min']);
+    }
+
+    #[Test]
+    public function test_async_ocr_handler_is_registered()
+    {
+        if (!class_exists('OraBooks_AsyncQueue')) {
+            $this->markTestSkipped('OraBooks_AsyncQueue not loaded');
+        }
+
+        OraBooks_Expenses::init();
+        $handler = OraBooks_AsyncQueue::get_handler('process_expense_ocr');
+        $this->assertTrue(is_callable($handler));
+    }
 }

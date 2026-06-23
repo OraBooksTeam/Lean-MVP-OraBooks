@@ -39,6 +39,7 @@ import ObservabilityPage from './pages/ObservabilityPage';
 import NotificationAdminPage from './pages/NotificationAdminPage';
 import CommissionAdminPage from './pages/CommissionAdminPage';
 import ClassificationLiveTestPage from './pages/ClassificationLiveTestPage';
+import ExpensesLiveTestPage from './pages/ExpensesLiveTestPage';
 import AuditLogPage from './pages/AuditLogPage';
 import { normalizeAppRoute, toWpUrl } from './lib/wp-routing';
 
@@ -73,6 +74,7 @@ const ROUTES: Record<string, RouteConfig> = {
   '/approval-settings': { element: <ApprovalSettingsPage /> },
   '/ai-review': { element: <AiReviewPage /> },
   '/classification-test': { element: <ClassificationLiveTestPage /> },
+  '/expenses-test': { element: <ExpensesLiveTestPage /> },
   '/expenses': { element: <ExpensesPage /> },
   '/voice': { element: <VoicePage /> },
   '/onboarding': { element: <PartnerOnboardingPage /> },

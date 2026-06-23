@@ -993,6 +993,7 @@ export const api = {
   classificationRulesDelete: (ruleId: number) =>
     api.post('orabooks_classification_rules_delete', { rule_id: ruleId }),
   classificationLiveCheck: () => api.get('orabooks_classification_live_check'),
+  expensesLiveCheck: () => api.get('orabooks_expenses_live_check'),
   voiceDashboard: () =>
     api.get('orabooks_voice_dashboard'),
   uploadVoice: (orgId: number, file: File, idempotencyKey = '') => {
