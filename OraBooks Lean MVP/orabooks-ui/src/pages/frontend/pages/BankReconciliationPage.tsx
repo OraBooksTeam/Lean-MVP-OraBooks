@@ -5,7 +5,14 @@ import Button from '@/components/Button';
 import Input from '@/components/Input';
 import { api } from '../api';
 import ClientShell from '../components/ClientShell';
-import { Landmark, Paperclip, Plus, RefreshCw, ShieldCheck, Wallet } from 'lucide-react';
+import { Landmark, Paperclip, Plus, RefreshCw, ShieldCheck, Upload, Wallet, Link2 } from 'lucide-react';
+
+type BankSuggestion = {
+  id: number;
+  transaction_type: string;
+  transaction_id: number;
+  confidence_score: number;
+};
 
 export default function BankReconciliationPage() {
   const [context, setContext] = useState<any>(null);
@@ -27,6 +34,16 @@ export default function BankReconciliationPage() {
   });
 
   const [showImportForm, setShowImportForm] = useState(false);
+  const [showCsvImport, setShowCsvImport] = useState(false);
+  const [csvFile, setCsvFile] = useState<File | null>(null);
+  const [selectedAccountId, setSelectedAccountId] = useState('');
+  const [accountSummary, setAccountSummary] = useState<any>(null);
+  const [feeds, setFeeds] = useState<any[]>([]);
+  const [showConnectFeed, setShowConnectFeed] = useState(false);
+  const [feedForm, setFeedForm] = useState({ bank_account_id: '', provider: 'plaid' as 'plaid' | 'yodlee' });
+  const [createTxn, setCreateTxn] = useState<any | null>(null);
+  const [createTxnForm, setCreateTxnForm] = useState({ transaction_type: 'expense' as 'expense' | 'invoice', vendor: '', category: 'General', customer_id: '' });
+  const [customers, setCustomers] = useState<any[]>([]);
   const [importForm, setImportForm] = useState({
     bank_account_id: '',
     date: new Date().toISOString().slice(0, 10),
