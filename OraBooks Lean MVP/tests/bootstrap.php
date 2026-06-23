@@ -2045,6 +2045,11 @@ if (!file_exists($vendors_file)) {
 }
 require_once $vendors_file;
 
+$ap_file = __DIR__ . '/../includes/class-orabooks-ap.php';
+if (file_exists($ap_file)) {
+    require_once $ap_file;
+}
+
 $inventory_file = __DIR__ . '/../includes/class-orabooks-inventory.php';
 if (!file_exists($inventory_file)) {
     echo "ERROR: Cannot find class-orabooks-inventory.php at {$inventory_file}\n";
@@ -2321,7 +2326,9 @@ if (!class_exists('OraBooks_Posting', false)) {
     class OraBooks_Posting {
         public static function create_journal($data, $user_id) { return 1; }
         public static function add_lines($journal_id, $lines) { return true; }
+        public static function submit_journal($journal_id, $user_id) { return true; }
         public static function approve_journal($journal_id, $user_id) { return true; }
         public static function post_journal($journal_id, $user_id) { return true; }
+        public static function reverse_journal($journal_id, $org_id, $user_id, $reason) { return 2; }
     }
 }
