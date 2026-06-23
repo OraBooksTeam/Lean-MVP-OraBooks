@@ -5,7 +5,7 @@ $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $Root = Split-Path -Parent $ScriptDir
 $Parent = Split-Path -Parent $Root
 $SearchRoots = @($Root, $Parent)
-$Exts = @('.php', '.ts', '.tsx', '.md', '.txt', '.json', '.jsx', '.js', '.css', '.html', '.xml', '.mjs', '.ps1', '.doc')
+$Exts = @('.php', '.ts', '.tsx', '.md', '.txt', '.json', '.jsx', '.js', '.css', '.html', '.xml', '.mjs', '.ps1', '.doc', '.py')
 $SkipDirs = @('node_modules', 'vendor', '.git', 'dist', 'build', '.next', 'coverage')
 
 function Test-SkipPath {
