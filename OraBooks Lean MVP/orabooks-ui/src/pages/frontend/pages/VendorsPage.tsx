@@ -153,7 +153,24 @@ export default function VendorsPage() {
   });
 
   const [creditNoteVendor, setCreditNoteVendor] = useState<Vendor | null>(null);
-  const [creditNoteForm, setCreditNoteForm] = useState({ amount: '', reason: '', credit_date: new Date().toISOString().slice(0, 10) });
+  const [creditNoteForm, setCreditNoteForm] = useState({
+    amount: '',
+    reason: '',
+    credit_date: new Date().toISOString().slice(0, 10),
+    is_adjustment: false,
+    bill_id: '',
+  });
+  const [vendorCreditNotes, setVendorCreditNotes] = useState<VendorCreditNote[]>([]);
+  const [walletPayments, setWalletPayments] = useState<VendorPayment[]>([]);
+  const [statements, setStatements] = useState<VendorStatement[]>([]);
+  const [reversePayment, setReversePayment] = useState<VendorPayment | null>(null);
+  const [reverseReason, setReverseReason] = useState('');
+  const [detailBill, setDetailBill] = useState<Bill | null>(null);
+  const [billCreditNotes, setBillCreditNotes] = useState<VendorCreditNote[]>([]);
+  const [billPayments, setBillPayments] = useState<VendorPayment[]>([]);
+  const [voidCreditNote, setVoidCreditNote] = useState<VendorCreditNote | null>(null);
+  const [voidCreditReason, setVoidCreditReason] = useState('');
+  const [actionCreditNoteId, setActionCreditNoteId] = useState<number | null>(null);
 
   const orgId = context?.organization?.id;
 
@@ -342,7 +359,7 @@ export default function VendorsPage() {
     setActionBillId(null);
   };
 
-  const openPayment = (vendor: Vendor) => {
+  const openPayment = async (vendor: Vendor) => {
     setPaymentVendor(vendor);
     setPaymentForm({
       amount: String(Number(vendor.payable_balance || 0) || ''),
@@ -352,6 +369,32 @@ export default function VendorsPage() {
       notes: '',
     });
     setError('');
+    if (orgId) {
+      const [paymentsRes, statementsRes] = await Promise.all([
+        api.vendorPaymentsList(orgId, { vendor_id: vendor.id }),
+        api.vendorStatementsList(orgId, vendor.id),
+      ]);
+      if (!paymentsRes.error) setWalletPayments((paymentsRes as any).data?.payments || []);
+      if (!statementsRes.error) setStatements((statementsRes as any).data?.statements || []);
+    }
+  };
+
+  const openBillDetail = async (bill: Bill) => {
+    if (!orgId) return;
+    setDetailBill(bill);
+    setError('');
+    const [cnRes, payRes] = await Promise.all([
+      api.vendorCreditNotesList(orgId, { bill_id: bill.id }),
+      api.vendorPaymentsList(orgId, { bill_id: bill.id }),
+    ]);
+    if (!cnRes.error) setBillCreditNotes((cnRes as any).data?.credit_notes || []);
+    if (!payRes.error) setBillPayments((payRes as any).data?.payments || []);
+  };
+
+  const loadVendorCreditNotes = async (vendorId: number) => {
+    if (!orgId) return;
+    const res = await api.vendorCreditNotesList(orgId, { vendor_id: vendorId });
+    if (!res.error) setVendorCreditNotes((res as any).data?.credit_notes || []);
   };
 
   const handleRecordPayment = async () => {
@@ -369,7 +412,23 @@ export default function VendorsPage() {
     if (res.error) setError(res.error);
     else {
       setSuccess('Vendor payment recorded (FIFO allocation).');
-      setPaymentVendor(null);
+      await openPayment(paymentVendor);
+      await load();
+    }
+    setSaving(false);
+  };
+
+  const handleReversePayment = async () => {
+    if (!orgId || !paymentVendor || !reversePayment) return;
+    setSaving(true);
+    setError('');
+    const res = await api.vendorPaymentReverse(orgId, reversePayment.id, reverseReason.trim());
+    if (res.error) setError(res.error);
+    else {
+      setSuccess('Payment reversed.');
+      setReversePayment(null);
+      setReverseReason('');
+      await openPayment(paymentVendor);
       await load();
     }
     setSaving(false);
@@ -383,20 +442,68 @@ export default function VendorsPage() {
     }
     setSaving(true);
     setError('');
-    const res = await api.vendorCreditNoteCreate(orgId, {
+    const payload: Record<string, unknown> = {
       vendor_id: creditNoteVendor.id,
       amount: parseFloat(creditNoteForm.amount) || 0,
       reason: creditNoteForm.reason.trim(),
       credit_date: creditNoteForm.credit_date,
-    });
+      is_adjustment: creditNoteForm.is_adjustment ? 1 : 0,
+    };
+    if (creditNoteForm.bill_id) payload.bill_id = parseInt(creditNoteForm.bill_id, 10);
+    const res = await api.vendorCreditNoteCreate(orgId, payload);
     if (res.error) setError(res.error);
     else {
-      setSuccess('Vendor credit note created.');
-      setCreditNoteVendor(null);
-      setCreditNoteForm({ amount: '', reason: '', credit_date: new Date().toISOString().slice(0, 10) });
-      await load();
+      setSuccess('Vendor credit note created in draft.');
+      setCreditNoteForm({
+        amount: '',
+        reason: '',
+        credit_date: new Date().toISOString().slice(0, 10),
+        is_adjustment: false,
+        bill_id: '',
+      });
+      await loadVendorCreditNotes(creditNoteVendor.id);
     }
     setSaving(false);
+  };
+
+  const runCreditNoteAction = async (
+    action: 'submit' | 'approve' | 'post',
+    creditNoteId: number,
+    context: 'vendor' | 'bill' = 'vendor'
+  ) => {
+    if (!orgId) return;
+    setActionCreditNoteId(creditNoteId);
+    setError('');
+    const res = action === 'submit'
+      ? await api.vendorCreditNoteSubmit(orgId, creditNoteId)
+      : action === 'approve'
+        ? await api.vendorCreditNoteApprove(orgId, creditNoteId)
+        : await api.vendorCreditNotePost(orgId, creditNoteId);
+    if (res.error) setError(res.error);
+    else {
+      setSuccess(`Credit note ${action === 'submit' ? 'submitted' : action === 'approve' ? 'approved' : 'posted'}.`);
+      if (creditNoteVendor) await loadVendorCreditNotes(creditNoteVendor.id);
+      if (detailBill) await openBillDetail(detailBill);
+      await load();
+    }
+    setActionCreditNoteId(null);
+  };
+
+  const handleVoidCreditNote = async () => {
+    if (!orgId || !voidCreditNote) return;
+    setActionCreditNoteId(voidCreditNote.id);
+    setError('');
+    const res = await api.vendorCreditNoteVoid(orgId, voidCreditNote.id, voidCreditReason.trim());
+    if (res.error) setError(res.error);
+    else {
+      setSuccess('Credit note voided.');
+      setVoidCreditNote(null);
+      setVoidCreditReason('');
+      if (creditNoteVendor) await loadVendorCreditNotes(creditNoteVendor.id);
+      if (detailBill) await openBillDetail(detailBill);
+      await load();
+    }
+    setActionCreditNoteId(null);
   };
 
   return (
