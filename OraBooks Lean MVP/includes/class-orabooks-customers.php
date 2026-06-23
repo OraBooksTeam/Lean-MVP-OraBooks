@@ -220,6 +220,9 @@ class OraBooks_Customers {
         self::ensure_customer_contact_schema();
         self::ensure_customer_credit_schema();
         self::ensure_customer_profile_schema();
+        if (class_exists('OraBooks_AR')) {
+            OraBooks_AR::ensure_schema();
+        }
 
         $table_invoices = OraBooks_Database::table('invoices');
         if ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table_invoices)) !== $table_invoices) {
