@@ -55,6 +55,7 @@ require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-exports.php';
 require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-customers.php';
 require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-ar.php';
 require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-vendors.php';
+require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-ap.php';
 require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-inventory.php';
 require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-bank-reconciliation.php';
 require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-financial-reports.php';
@@ -122,6 +123,7 @@ function orabooks_init() {
     OraBooks_Customers::init();
     OraBooks_AR::init();
     OraBooks_Vendors::init();
+    OraBooks_AP::init();
     OraBooks_Inventory::init();
     OraBooks_Bank_Reconciliation::init();
     OraBooks_Financial_Reports::init();
@@ -341,6 +343,9 @@ function orabooks_ensure_database() {
 
         if (class_exists('OraBooks_Customers')) {
             OraBooks_Customers::ensure_schema();
+        }
+        if (class_exists('OraBooks_AP')) {
+            OraBooks_AP::ensure_schema();
         }
 
         $table_users = OraBooks_Database::table('users');
