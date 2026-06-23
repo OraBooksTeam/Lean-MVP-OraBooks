@@ -464,7 +464,7 @@ class OraBooks_Secrets {
  }
 
  $option_key = 'orabooks_secret_'. md5($key);
- $stored = self::with_shared_options(function use ($option_key) {
+ $stored = self::with_shared_options(function() use ($option_key) {
  return get_option($option_key, false);
  });
  if ($stored) {
