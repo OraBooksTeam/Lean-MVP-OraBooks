@@ -43,6 +43,8 @@
  * This searches calls[i].data.action for a matching string.
  */
 
+require('./jest.setup.js');
+
 const $ = require('jquery');
 const path = require('path');
 const fs = require('fs');
