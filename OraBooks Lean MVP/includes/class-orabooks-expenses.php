@@ -413,8 +413,6 @@ class OraBooks_Expenses {
             ));
         }
 
-        $expense_scope = $org_id > 0 ? $wpdb->prepare(' AND org_id = %d', $org_id) : '';
-
         $terminal = $completed_24h + $failed_24h;
 
         return [
