@@ -142,6 +142,9 @@ export default function VendorsPage() {
     description: '',
   });
   const [billPreview, setBillPreview] = useState<{ tax_amount: number; total_amount: number; tax_rate: number } | null>(null);
+  const [inventoryProducts, setInventoryProducts] = useState<{ id: number; sku: string; name: string; average_cost?: number }[]>([]);
+  const [billLineItems, setBillLineItems] = useState<Array<{ product_id: string; quantity: string; unit_cost: string }>>([]);
+  const [useInventoryLines, setUseInventoryLines] = useState(false);
 
   const [paymentVendor, setPaymentVendor] = useState<Vendor | null>(null);
   const [paymentForm, setPaymentForm] = useState({
@@ -220,7 +223,13 @@ export default function VendorsPage() {
   useEffect(() => { void load(); }, []);
 
   useEffect(() => {
-    if (!showBillForm || !orgId || !billForm.subtotal_amount) {
+    if (!showBillForm || !orgId) return;
+    void api.inventoryProductsList(orgId, { limit: 200, is_active: 1 }).then((res) => {
+      if (!res.error) setInventoryProducts((res as any).data?.products || []);
+    });
+  }, [showBillForm, orgId]);
+
+  useEffect(() => {
       setBillPreview(null);
       return;
     }
@@ -279,9 +288,23 @@ export default function VendorsPage() {
     setSaving(false);
   };
 
+  const billLinesSubtotal = () => billLineItems.reduce((sum, line) => {
+    const qty = parseFloat(line.quantity) || 0;
+    const cost = parseFloat(line.unit_cost) || 0;
+    return sum + qty * cost;
+  }, 0);
+
   const handleCreateBill = async () => {
-    if (!orgId || !billForm.vendor_id || !billForm.subtotal_amount) {
-      setError('Vendor and subtotal are required.');
+    if (!orgId || !billForm.vendor_id) {
+      setError('Vendor is required.');
+      return;
+    }
+    const linesSubtotal = useInventoryLines ? billLinesSubtotal() : 0;
+    const subtotal = useInventoryLines && linesSubtotal > 0
+      ? linesSubtotal
+      : parseFloat(billForm.subtotal_amount) || 0;
+    if (subtotal <= 0) {
+      setError('Bill subtotal or inventory lines are required.');
       return;
     }
     setSaving(true);
@@ -289,11 +312,22 @@ export default function VendorsPage() {
     const payload: Record<string, unknown> = {
       vendor_id: parseInt(billForm.vendor_id, 10),
       bill_date: billForm.bill_date,
-      subtotal_amount: parseFloat(billForm.subtotal_amount) || 0,
+      subtotal_amount: subtotal,
       jurisdiction: billForm.jurisdiction,
       currency: billForm.currency || 'USD',
       description: billForm.description,
     };
+    if (useInventoryLines && billLineItems.length > 0) {
+      payload.line_items = JSON.stringify(
+        billLineItems
+          .filter((l) => l.product_id && parseFloat(l.quantity) > 0)
+          .map((l) => ({
+            product_id: parseInt(l.product_id, 10),
+            quantity: parseFloat(l.quantity) || 0,
+            unit_cost: parseFloat(l.unit_cost) || 0,
+          }))
+      );
+    }
     if (billForm.use_due_date && billForm.due_date) {
       payload.due_date = billForm.due_date;
     } else {
