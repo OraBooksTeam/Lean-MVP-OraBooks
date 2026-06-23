@@ -839,8 +839,16 @@ export default function ExpensesPage() {
                 ['submitted', 'ai_review'].includes(selectedExpense.workflow_status) && (
                   <>
                     <Button disabled={actionId === selectedExpense.id} onClick={() => void handleApprove(selectedExpense.id)}>
-                      Approve
+                      {approveLabel}
                     </Button>
+                    {!autoPostOnApprove && selectedExpense.workflow_status === 'approved' && caps.post && (
+                      <Button
+                        disabled={actionId === selectedExpense.id}
+                        onClick={() => void handlePost(selectedExpense.id)}
+                      >
+                        Post
+                      </Button>
+                    )}
                     <Button
                       variant="secondary"
                       disabled={actionId === selectedExpense.id}
@@ -880,6 +888,9 @@ export default function ExpensesPage() {
             onApprove={caps.approve ? (id) => void handleApprove(id) : undefined}
             onReject={caps.approve ? (id) => void handleReject(id) : undefined}
             actionId={actionId}
+            approveLabel={approveLabel}
+            showPostAction={!autoPostOnApprove && !!caps.post}
+            onPost={caps.post ? (id) => void handlePost(id) : undefined}
           />
         )}
 
@@ -891,6 +902,9 @@ export default function ExpensesPage() {
           onOverride={(expense) => void openOverride(expense)}
           canOverride={!!caps.override_tax}
           actionId={actionId}
+          approveLabel={approveLabel}
+          showPostAction={!autoPostOnApprove && !!caps.post}
+          onPost={caps.post ? (id) => void handlePost(id) : undefined}
         />
 
         <TaxOverrideModal
@@ -926,9 +940,12 @@ function ExpenseTable({
   onSelect,
   onApprove,
   onReject,
+  onPost,
   onOverride,
   canOverride,
   actionId,
+  approveLabel = 'Approve',
+  showPostAction = false,
 }: {
   title: string;
   expenses: any[];
@@ -936,9 +953,12 @@ function ExpenseTable({
   onSelect: (id: number) => void;
   onApprove?: (id: number) => void;
   onReject?: (id: number) => void;
+  onPost?: (id: number) => void;
   onOverride?: (expense: any) => void;
   canOverride?: boolean;
   actionId: number | null;
+  approveLabel?: string;
+  showPostAction?: boolean;
 }) {
   return (
     <div className="glass-panel overflow-hidden">
@@ -967,7 +987,7 @@ function ExpenseTable({
             </tr>
           ) : expenses.length === 0 ? (
             <tr>
-              <td colSpan={7} className="px-5 py-8 text-center text-sm text-slate-500">
+              <td colSpan={8} className="px-5 py-8 text-center text-sm text-slate-500">
                 No expenses yet.
               </td>
             </tr>
@@ -1028,8 +1048,13 @@ function ExpenseTable({
                     {onApprove && ['submitted', 'ai_review'].includes(expense.workflow_status) && (
                       <>
                         <Button size="sm" disabled={actionId === expense.id} onClick={() => onApprove(expense.id)}>
-                          Approve
+                          {approveLabel}
                         </Button>
+                        {showPostAction && expense.workflow_status === 'approved' && onPost && (
+                          <Button size="sm" disabled={actionId === expense.id} onClick={() => onPost(expense.id)}>
+                            Post
+                          </Button>
+                        )}
                         <Button
                           size="sm"
                           variant="secondary"
