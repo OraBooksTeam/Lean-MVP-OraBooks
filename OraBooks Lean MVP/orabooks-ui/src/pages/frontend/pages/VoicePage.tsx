@@ -227,7 +227,7 @@ export default function VoicePage {
  const riskScores = selectedVoice?.risk_scores || {};
 
  return (
- <ClientShell title="Voice Input" eyebrow=" voice-to-text" organization={data?.context?.organization}>
+ <ClientShell title="Voice Input" eyebrow="voice-to-text" organization={data?.context?.organization}>
  <div className="space-y-5">
  <div
  className="rounded-xl border border-primary/20 bg-primary/5 p-4 text-sm text-slate-700"

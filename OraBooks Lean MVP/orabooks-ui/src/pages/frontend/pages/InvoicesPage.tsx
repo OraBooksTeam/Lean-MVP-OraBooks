@@ -596,7 +596,7 @@ export default function InvoicesPage {
  return (
  <ClientShell
  title="Invoices"
- eyebrow=" Accounts receivable"
+ eyebrow="Accounts receivable"
  organization={context?.organization}
  isPartner={context?.organization?.organization_type === 'partner'}
  >

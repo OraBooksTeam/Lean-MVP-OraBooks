@@ -196,7 +196,7 @@ export default function AttachmentsPage {
  const maxMb = Math.round((data?.limits?.max_file_size || 26214400) / 1048576);
 
  return (
- <ClientShell title="Attachments" eyebrow=" files & versioning" organization={data?.context?.organization}>
+ <ClientShell title="Attachments" eyebrow="files & versioning" organization={data?.context?.organization}>
  <div className="space-y-5">
  <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
  <Metric label="Active Files" value={data?.stats?.active_count ?? 0} />

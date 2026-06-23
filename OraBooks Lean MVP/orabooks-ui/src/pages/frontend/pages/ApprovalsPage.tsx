@@ -152,7 +152,7 @@ export default function ApprovalsPage {
  };
 
  return (
- <ClientShell title="Approvals" eyebrow=" journal approval gate" organization={data?.context?.organization}>
+ <ClientShell title="Approvals" eyebrow="journal approval gate" organization={data?.context?.organization}>
  <div className="space-y-5">
  <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
  <Metric label="Pending Review" value={data?.stats?.pending_review ?? 0} tone="warning" />
