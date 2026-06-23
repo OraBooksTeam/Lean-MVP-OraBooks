@@ -1094,6 +1094,15 @@ class OraBooks_Customers {
         if (empty($data['customer_id'])) {
             return new WP_Error('missing_field', 'Customer ID is required');
         }
+
+        $credit_check = self::validate_customer_credit_for_invoice((object) [
+            'customer_id' => (int) $data['customer_id'],
+            'total_amount' => (float) ($data['total_amount'] ?? $data['subtotal_amount'] ?? 0),
+        ]);
+        if (is_wp_error($credit_check)) {
+            return $credit_check;
+        }
+
         if (empty($data['total_amount']) || $data['total_amount'] <= 0) {
             if (!empty($data['subtotal_amount']) && floatval($data['subtotal_amount']) > 0) {
                 $subtotal = round(floatval($data['subtotal_amount']), 2);
@@ -1237,6 +1246,15 @@ class OraBooks_Customers {
             'paid_amount'     => isset($invoice->total_paid_amount)
                 ? (float) $invoice->total_paid_amount
                 : (float) ($invoice->paid_amount ?? 0),
+            'lock_status'     => $invoice->lock_status ?? 'unlocked',
+            'dunning_stage'   => $invoice->dunning_stage ?? 'none',
+            'journal_id'      => !empty($invoice->journal_id) ? (int) $invoice->journal_id : null,
+            'approved_by'     => !empty($invoice->approved_by) ? (int) $invoice->approved_by : null,
+            'approved_at'     => $invoice->approved_at ?? null,
+            'posted_at'       => $invoice->posted_at ?? null,
+            'rendered_copy'   => !empty($invoice->rendered_copy)
+                ? (is_string($invoice->rendered_copy) ? json_decode($invoice->rendered_copy, true) : $invoice->rendered_copy)
+                : null,
         ];
 
         if (class_exists('OraBooks_Classification')) {
@@ -1504,9 +1522,19 @@ class OraBooks_Customers {
             return new WP_Error('workflow_unavailable', 'Workflow engine unavailable');
         }
 
+        $rendered = class_exists('OraBooks_AR')
+            ? OraBooks_AR::build_invoice_rendered_copy($invoice)
+            : null;
+
         $result = OraBooks_Workflow::transition('invoice', $invoice_id, 'post', [
             'user_id' => $user_id,
             'org_id'  => $org_id,
+            'row_updates' => [
+                'lock_status'   => 'locked',
+                'journal_id'    => is_numeric($journal_id) ? (int) $journal_id : null,
+                'posted_at'     => current_time('mysql'),
+                'rendered_copy' => $rendered ? wp_json_encode($rendered) : null,
+            ],
         ]);
         if (is_wp_error($result)) {
             return $result;
@@ -1515,6 +1543,10 @@ class OraBooks_Customers {
         if (class_exists('OraBooks_Tax')
             && (floatval($invoice->tax_amount) > 0 || !empty($invoice->tax_override_reason))) {
             OraBooks_Tax::snapshot_for_invoice($invoice, $user_id);
+        }
+
+        if (class_exists('OraBooks_AR')) {
+            OraBooks_AR::apply_customer_credit_to_invoice($org_id, (int) $invoice->customer_id, $invoice_id, $user_id);
         }
 
         orabooks_log_event('invoice_posted', "Invoice {$invoice->invoice_number} posted", 'info', [
@@ -1890,9 +1922,15 @@ class OraBooks_Customers {
 
         // Calculate new total paid
         $total_paid = (float) $wpdb->get_var($wpdb->prepare(
-            "SELECT COALESCE(SUM(amount), 0) FROM {$table_payments} WHERE invoice_id = %d",
+            "SELECT COALESCE(SUM(amount), 0) FROM {$table_payments} WHERE invoice_id = %d AND (type IS NULL OR type = 'payment')",
             $invoice_id
         ));
+
+        $overpayment = max(0, round($total_paid - (float) $invoice->total_amount, 2));
+        if ($overpayment > 0 && class_exists('OraBooks_AR')) {
+            OraBooks_AR::adjust_customer_credit_balance((int) $invoice->customer_id, (int) $org_id, $overpayment);
+            $total_paid = (float) $invoice->total_amount;
+        }
 
         // Determine new payment status
         if ($total_paid >= $invoice->total_amount) {
