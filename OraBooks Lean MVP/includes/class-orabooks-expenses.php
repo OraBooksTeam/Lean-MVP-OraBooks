@@ -15,7 +15,6 @@ class OraBooks_Expenses {
     const TABLE_EXPENSES     = 'expenses';
     const TABLE_OCR_QUEUE    = 'ocr_processing_queue';
     const TABLE_LINE_ITEMS   = 'expense_line_items';
-    const TABLE_SETTINGS     = 'expense_settings';
 
     const CONFIDENCE_THRESHOLD = 70.0;
     const MAX_RECEIPT_SIZE     = 10485760; // 10 MB
@@ -64,10 +63,6 @@ class OraBooks_Expenses {
             add_action('wp_ajax_nopriv_orabooks_expenses_list', [self::$instance, 'ajax_list']);
             add_action('wp_ajax_orabooks_expenses_live_check', [self::$instance, 'ajax_live_check']);
             add_action('wp_ajax_nopriv_orabooks_expenses_live_check', [self::$instance, 'ajax_live_check']);
-            add_action('wp_ajax_orabooks_expense_settings_get', [self::$instance, 'ajax_settings_get']);
-            add_action('wp_ajax_nopriv_orabooks_expense_settings_get', [self::$instance, 'ajax_settings_get']);
-            add_action('wp_ajax_orabooks_expense_settings_save', [self::$instance, 'ajax_settings_save']);
-            add_action('wp_ajax_nopriv_orabooks_expense_settings_save', [self::$instance, 'ajax_settings_save']);
 
             if (class_exists('OraBooks_AsyncQueue')) {
                 OraBooks_AsyncQueue::register_handler('process_expense_ocr', [self::class, 'handle_async_ocr_job']);
@@ -128,7 +123,6 @@ class OraBooks_Expenses {
         $table_expenses = OraBooks_Database::table(self::TABLE_EXPENSES);
         $table_queue = OraBooks_Database::table(self::TABLE_OCR_QUEUE);
         $table_lines = OraBooks_Database::table(self::TABLE_LINE_ITEMS);
-        $table_settings = OraBooks_Database::table(self::TABLE_SETTINGS);
         $table_orgs = OraBooks_Database::table('organizations');
         $table_attachments = OraBooks_Database::table('attachments');
         $charset = $wpdb->get_charset_collate();
@@ -205,105 +199,7 @@ class OraBooks_Expenses {
                 FOREIGN KEY (expense_id) REFERENCES {$table_expenses}(id) ON DELETE CASCADE,
                 INDEX idx_expense (expense_id)
             ) {$charset};",
-            "CREATE TABLE IF NOT EXISTS {$table_settings} (
-                org_id BIGINT UNSIGNED NOT NULL PRIMARY KEY,
-                auto_post_on_approve TINYINT(1) NOT NULL DEFAULT 1,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-                FOREIGN KEY (org_id) REFERENCES {$table_orgs}(id) ON DELETE CASCADE
-            ) {$charset};",
         ];
-    }
-
-    /**
-     * Org-level expense workflow settings (SL-028 Phase 4).
-     */
-    public static function ensure_settings_schema() {
-        global $wpdb;
-
-        static $ran = false;
-        if ($ran) {
-            return;
-        }
-        $ran = true;
-
-        $table_orgs = OraBooks_Database::table('organizations');
-        $table = OraBooks_Database::table(self::TABLE_SETTINGS);
-        $charset = $wpdb->get_charset_collate();
-
-        if ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table)) !== $table) {
-            $wpdb->query(
-                "CREATE TABLE IF NOT EXISTS {$table} (
-                    org_id BIGINT UNSIGNED NOT NULL PRIMARY KEY,
-                    auto_post_on_approve TINYINT(1) NOT NULL DEFAULT 1,
-                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-                    FOREIGN KEY (org_id) REFERENCES {$table_orgs}(id) ON DELETE CASCADE
-                ) {$charset}"
-            );
-        }
-    }
-
-    public static function get_org_settings($org_id) {
-        global $wpdb;
-
-        self::ensure_settings_schema();
-
-        $table = OraBooks_Database::table(self::TABLE_SETTINGS);
-        $row = $wpdb->get_row($wpdb->prepare(
-            "SELECT * FROM {$table} WHERE org_id = %d",
-            (int) $org_id
-        ));
-
-        if ($row) {
-            return $row;
-        }
-
-        return (object) [
-            'org_id'               => (int) $org_id,
-            'auto_post_on_approve' => (int) get_option('orabooks_expense_auto_post_on_approve', 1),
-        ];
-    }
-
-    public static function save_org_settings($org_id, array $data) {
-        global $wpdb;
-
-        self::ensure_settings_schema();
-
-        $table = OraBooks_Database::table(self::TABLE_SETTINGS);
-        $payload = [
-            'org_id'               => (int) $org_id,
-            'auto_post_on_approve' => !empty($data['auto_post_on_approve']) ? 1 : 0,
-        ];
-
-        $existing = $wpdb->get_var($wpdb->prepare(
-            "SELECT org_id FROM {$table} WHERE org_id = %d",
-            (int) $org_id
-        ));
-
-        if ($existing) {
-            $wpdb->update(
-                $table,
-                ['auto_post_on_approve' => $payload['auto_post_on_approve']],
-                ['org_id' => (int) $org_id],
-                ['%d'],
-                ['%d']
-            );
-        } else {
-            $wpdb->insert($table, $payload, ['%d', '%d']);
-        }
-
-        return self::format_org_settings(self::get_org_settings($org_id));
-    }
-
-    public static function format_org_settings($row) {
-        return [
-            'org_id'               => (int) ($row->org_id ?? 0),
-            'auto_post_on_approve' => (int) ($row->auto_post_on_approve ?? 1),
-        ];
-    }
-
-    public static function auto_post_on_approve_enabled($org_id) {
-        $settings = self::get_org_settings((int) $org_id);
-        return !empty($settings->auto_post_on_approve);
     }
 
     public static function get_expense_stats($org_id) {
@@ -342,90 +238,6 @@ class OraBooks_Expenses {
         ));
 
         return $stats;
-    }
-
-    /**
-     * OCR pipeline metrics for SL-093 observability (SL-028 Phase 5).
-     *
-     * @return array{
-     *   org_id:?int,
-     *   queue_depth:int,
-     *   pending_count:int,
-     *   processing_count:int,
-     *   completed_24h:int,
-     *   failed_24h:int,
-     *   success_rate_24h:float,
-     *   avg_confidence_24h:?float,
-     *   window_hours:int
-     * }
-     */
-    public static function get_observability_stats($org_id = 0) {
-        global $wpdb;
-
-        $org_id = (int) $org_id;
-        $since = gmdate('Y-m-d H:i:s', time() - 86400);
-        $queue_table = OraBooks_Database::table(self::TABLE_OCR_QUEUE);
-        $expenses_table = OraBooks_Database::table(self::TABLE_EXPENSES);
-
-        $scope = $org_id > 0 ? $wpdb->prepare(' AND org_id = %d', $org_id) : '';
-
-        $pending = (int) $wpdb->get_var(
-            "SELECT COUNT(*) FROM {$queue_table} WHERE status = 'pending'{$scope}"
-        );
-        $processing = (int) $wpdb->get_var(
-            "SELECT COUNT(*) FROM {$queue_table} WHERE status = 'processing'{$scope}"
-        );
-
-        if ($org_id > 0) {
-            $completed_24h = (int) $wpdb->get_var($wpdb->prepare(
-                "SELECT COUNT(*) FROM {$queue_table}
-                 WHERE status = 'completed' AND updated_at >= %s AND org_id = %d",
-                $since,
-                $org_id
-            ));
-            $failed_24h = (int) $wpdb->get_var($wpdb->prepare(
-                "SELECT COUNT(*) FROM {$queue_table}
-                 WHERE status = 'failed' AND updated_at >= %s AND org_id = %d",
-                $since,
-                $org_id
-            ));
-            $avg_confidence = $wpdb->get_var($wpdb->prepare(
-                "SELECT AVG(ocr_confidence) FROM {$expenses_table}
-                 WHERE ocr_confidence IS NOT NULL AND updated_at >= %s AND org_id = %d",
-                $since,
-                $org_id
-            ));
-        } else {
-            $completed_24h = (int) $wpdb->get_var($wpdb->prepare(
-                "SELECT COUNT(*) FROM {$queue_table}
-                 WHERE status = 'completed' AND updated_at >= %s",
-                $since
-            ));
-            $failed_24h = (int) $wpdb->get_var($wpdb->prepare(
-                "SELECT COUNT(*) FROM {$queue_table}
-                 WHERE status = 'failed' AND updated_at >= %s",
-                $since
-            ));
-            $avg_confidence = $wpdb->get_var($wpdb->prepare(
-                "SELECT AVG(ocr_confidence) FROM {$expenses_table}
-                 WHERE ocr_confidence IS NOT NULL AND updated_at >= %s",
-                $since
-            ));
-        }
-
-        $terminal = $completed_24h + $failed_24h;
-
-        return [
-            'org_id'              => $org_id > 0 ? $org_id : null,
-            'queue_depth'         => $pending + $processing,
-            'pending_count'       => $pending,
-            'processing_count'    => $processing,
-            'completed_24h'       => $completed_24h,
-            'failed_24h'          => $failed_24h,
-            'success_rate_24h'    => $terminal > 0 ? round($completed_24h / $terminal, 4) : 1.0,
-            'avg_confidence_24h'  => $avg_confidence !== null ? round((float) $avg_confidence, 2) : null,
-            'window_hours'        => 24,
-        ];
     }
 
     public static function list_expenses($org_id, $args = []) {
@@ -1195,12 +1007,11 @@ class OraBooks_Expenses {
 
         if (function_exists('orabooks_publish_event')) {
             orabooks_publish_event($event, intval($expense_id), [
-                'expense_id'        => intval($expense_id),
-                'org_id'            => intval($org_id),
-                'confidence'        => $confidence,
-                'risk_level'        => $risk,
-                'ocr_snapshot_hash' => (string) ($expense->ocr_snapshot_hash ?? ''),
-                'total_amount'      => (float) $expense->total_amount,
+                'expense_id'  => intval($expense_id),
+                'org_id'      => intval($org_id),
+                'confidence'  => $confidence,
+                'risk_level'  => $risk,
+                'total_amount'=> (float) $expense->total_amount,
             ]);
         }
 
@@ -1222,10 +1033,9 @@ class OraBooks_Expenses {
         }
 
         orabooks_log_event($log_event, "Expense #{$expense_id} routed to {$target_status}", 'info', [
-            'expense_id'        => intval($expense_id),
-            'confidence'        => $confidence,
-            'risk_level'        => $risk,
-            'ocr_snapshot_hash' => (string) ($expense->ocr_snapshot_hash ?? ''),
+            'expense_id' => intval($expense_id),
+            'confidence' => $confidence,
+            'risk_level' => $risk,
         ], $user_id, $org_id);
 
         $updated = self::get_expense($expense_id, $org_id);
@@ -1268,7 +1078,7 @@ class OraBooks_Expenses {
             OraBooks_Ai_Review::resolve_ai_review_by_resource(intval($org_id), 'expense', intval($expense_id), $user_id);
         }
 
-        $auto_post = self::auto_post_on_approve_enabled((int) $org_id);
+        $auto_post = (bool) get_option('orabooks_expense_auto_post_on_approve', true);
         if ($auto_post) {
             return self::post_expense($expense_id, $org_id, $user_id);
         }
@@ -1764,12 +1574,10 @@ class OraBooks_Expenses {
         $expenses_table = OraBooks_Database::table(self::TABLE_EXPENSES);
         $queue_table = OraBooks_Database::table(self::TABLE_OCR_QUEUE);
         $lines_table = OraBooks_Database::table(self::TABLE_LINE_ITEMS);
-        $settings_table = OraBooks_Database::table(self::TABLE_SETTINGS);
 
         $add('table_expenses', 'Expenses table', $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $expenses_table)) === $expenses_table, $expenses_table);
         $add('table_ocr_queue', 'OCR processing queue table', $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $queue_table)) === $queue_table, $queue_table);
         $add('table_line_items', 'Expense line items table', $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $lines_table)) === $lines_table, $lines_table);
-        $add('table_expense_settings', 'Expense settings table (Phase 4)', $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $settings_table)) === $settings_table, $settings_table);
 
         $exp_cols = $wpdb->get_col("SHOW COLUMNS FROM {$expenses_table}", 0);
         $add(
@@ -1922,51 +1730,10 @@ class OraBooks_Expenses {
                 'rate_limit_per_min'   => self::RATE_LIMIT_MAX,
                 'ocr_provider'         => $ocr_provider,
                 'react_bundle_at'      => $generated ?: null,
-                'auto_post_on_approve' => self::auto_post_on_approve_enabled($org_id),
-                'ocr_observability'    => self::get_observability_stats($org_id),
+                'auto_post_on_approve' => (bool) get_option('orabooks_expense_auto_post_on_approve', true),
             ],
             'manual_steps' => $manual_steps,
         ];
-    }
-
-    public function ajax_settings_get() {
-        $user_id = orabooks_get_current_user_id();
-        $org_id = orabooks_get_current_org_id($user_id);
-
-        if (!$user_id || !$org_id) {
-            orabooks_json_error('Authentication required', 401);
-        }
-
-        if (!OraBooks_RBAC::require_permission($user_id, $org_id, 'view_expenses')) {
-            orabooks_json_error('Permission denied', 403);
-        }
-
-        orabooks_json_success([
-            'settings' => self::format_org_settings(self::get_org_settings($org_id)),
-        ]);
-    }
-
-    public function ajax_settings_save() {
-        $user_id = orabooks_get_current_user_id();
-        $org_id = orabooks_get_current_org_id($user_id);
-
-        if (!$user_id || !$org_id) {
-            orabooks_json_error('Authentication required', 401);
-        }
-
-        if (!OraBooks_RBAC::require_permission($user_id, $org_id, 'manage_org_settings')) {
-            orabooks_json_error('Permission denied', 403);
-        }
-
-        $auto_post = isset($_POST['auto_post_on_approve'])
-            ? (int) $_POST['auto_post_on_approve']
-            : 0;
-
-        $settings = self::save_org_settings($org_id, [
-            'auto_post_on_approve' => $auto_post,
-        ]);
-
-        orabooks_json_success(['settings' => $settings], 'Expense settings saved');
     }
 
     public function ajax_live_check() {

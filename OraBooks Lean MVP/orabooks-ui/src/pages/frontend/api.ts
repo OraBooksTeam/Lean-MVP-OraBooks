@@ -956,13 +956,6 @@ export const api = {
     api.post('orabooks_expense_reject', { org_id: orgId, expense_id: expenseId, reason }),
   expensePost: (orgId: number, expenseId: number) =>
     api.post('orabooks_expense_post', { org_id: orgId, expense_id: expenseId }),
-  expenseSettingsGet: (orgId: number) =>
-    api.get('orabooks_expense_settings_get', { org_id: orgId }),
-  expenseSettingsSave: (orgId: number, autoPostOnApprove: boolean) =>
-    api.post('orabooks_expense_settings_save', {
-      org_id: orgId,
-      auto_post_on_approve: autoPostOnApprove ? 1 : 0,
-    }),
   expenseOverrideTax: (
     orgId: number,
     expenseId: number,

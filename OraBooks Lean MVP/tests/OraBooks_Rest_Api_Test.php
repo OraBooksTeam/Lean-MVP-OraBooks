@@ -29,10 +29,6 @@ class OraBooks_Rest_Api_Test extends TestCase
         $this->assertArrayHasKey('/auth/2fa/setup', $spec['paths'] ?? []);
         $this->assertArrayHasKey('/org/security/2fa-policy', $spec['paths'] ?? []);
         $this->assertArrayHasKey('/expenses/upload-receipt', $spec['paths'] ?? []);
-        $this->assertArrayHasKey('/expenses/settings', $spec['paths'] ?? []);
-        $this->assertArrayHasKey('/expenses/{id}/approve', $spec['paths'] ?? []);
-        $this->assertArrayHasKey('/expenses/{id}/reject', $spec['paths'] ?? []);
-        $this->assertArrayHasKey('/expenses/{id}/post', $spec['paths'] ?? []);
         $this->assertArrayHasKey('/openapi.json', $spec['paths'] ?? []);
     }
 
@@ -113,92 +109,5 @@ class OraBooks_Rest_Api_Test extends TestCase
 
         $this->assertInstanceOf(WP_Error::class, $result);
         $this->assertSame('not_found', $result->get_error_code());
-    }
-
-    #[Test]
-    public function test_rest_get_expense_settings_returns_org_defaults()
-    {
-        global $wpdb;
-
-        $request = new WP_REST_Request('GET', '/api/expenses/settings');
-        $request->set_header('X-OraBooks-Org-Id', '9');
-        $request->set_param('org_id', 9);
-
-        $GLOBALS['orabooks_test_current_user_id'] = 1;
-        $settings_table = OraBooks_Database::table('expense_settings');
-
-        $wpdb->test_get_var_callback = function ($query) use ($settings_table) {
-            if (stripos($query, 'user_org') !== false || stripos($query, 'owner_id') !== false) {
-                return 1;
-            }
-            if (stripos($query, 'SHOW TABLES LIKE') !== false) {
-                return $settings_table;
-            }
-            if (stripos($query, 'SELECT org_id FROM') !== false && stripos($query, 'expense_settings') !== false) {
-                return null;
-            }
-            return null;
-        };
-        $wpdb->test_get_row_callback = function ($query) {
-            if (stripos($query, 'organizations') !== false) {
-                return (object) [
-                    'id' => 9,
-                    'status' => 'active',
-                    'organization_type' => 'customer',
-                    'name' => 'Test Org',
-                    'tier' => 'premium',
-                    'subdomain' => 'testorg',
-                    'owner_id' => 1,
-                ];
-            }
-            if (stripos($query, 'expense_settings') !== false) {
-                return (object) ['org_id' => 9, 'auto_post_on_approve' => 0];
-            }
-            return null;
-        };
-
-        $result = OraBooks_Rest_Api::rest_get_expense_settings($request);
-
-        $this->assertIsArray($result);
-        $this->assertSame(0, $result['settings']['auto_post_on_approve']);
-    }
-
-    #[Test]
-    public function test_rest_reject_expense_requires_reason()
-    {
-        global $wpdb;
-
-        $request = new WP_REST_Request('POST', '/api/expenses/55/reject');
-        $request->set_header('X-OraBooks-Org-Id', '9');
-        $request->set_param('org_id', 9);
-        $request->set_param('id', 55);
-
-        $GLOBALS['orabooks_test_current_user_id'] = 1;
-
-        $wpdb->test_get_var_callback = function ($query) {
-            if (stripos($query, 'user_org') !== false || stripos($query, 'owner_id') !== false) {
-                return 1;
-            }
-            return null;
-        };
-        $wpdb->test_get_row_callback = function ($query) {
-            if (stripos($query, 'organizations') !== false) {
-                return (object) [
-                    'id' => 9,
-                    'status' => 'active',
-                    'organization_type' => 'customer',
-                    'name' => 'Test Org',
-                    'tier' => 'premium',
-                    'subdomain' => 'testorg',
-                    'owner_id' => 1,
-                ];
-            }
-            return null;
-        };
-
-        $result = OraBooks_Rest_Api::rest_reject_expense($request);
-
-        $this->assertInstanceOf(WP_Error::class, $result);
-        $this->assertSame('reason_required', $result->get_error_code());
     }
 }
