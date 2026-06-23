@@ -1752,10 +1752,12 @@ class OraBooks_Expenses {
         $expenses_table = OraBooks_Database::table(self::TABLE_EXPENSES);
         $queue_table = OraBooks_Database::table(self::TABLE_OCR_QUEUE);
         $lines_table = OraBooks_Database::table(self::TABLE_LINE_ITEMS);
+        $settings_table = OraBooks_Database::table(self::TABLE_SETTINGS);
 
         $add('table_expenses', 'Expenses table', $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $expenses_table)) === $expenses_table, $expenses_table);
         $add('table_ocr_queue', 'OCR processing queue table', $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $queue_table)) === $queue_table, $queue_table);
         $add('table_line_items', 'Expense line items table', $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $lines_table)) === $lines_table, $lines_table);
+        $add('table_expense_settings', 'Expense settings table (Phase 4)', $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $settings_table)) === $settings_table, $settings_table);
 
         $exp_cols = $wpdb->get_col("SHOW COLUMNS FROM {$expenses_table}", 0);
         $add(
@@ -1908,10 +1910,51 @@ class OraBooks_Expenses {
                 'rate_limit_per_min'   => self::RATE_LIMIT_MAX,
                 'ocr_provider'         => $ocr_provider,
                 'react_bundle_at'      => $generated ?: null,
-                'auto_post_on_approve' => (bool) get_option('orabooks_expense_auto_post_on_approve', true),
+                'auto_post_on_approve' => self::auto_post_on_approve_enabled($org_id),
+                'ocr_observability'    => self::get_observability_stats($org_id),
             ],
             'manual_steps' => $manual_steps,
         ];
+    }
+
+    public function ajax_settings_get() {
+        $user_id = orabooks_get_current_user_id();
+        $org_id = orabooks_get_current_org_id($user_id);
+
+        if (!$user_id || !$org_id) {
+            orabooks_json_error('Authentication required', 401);
+        }
+
+        if (!OraBooks_RBAC::require_permission($user_id, $org_id, 'view_expenses')) {
+            orabooks_json_error('Permission denied', 403);
+        }
+
+        orabooks_json_success([
+            'settings' => self::format_org_settings(self::get_org_settings($org_id)),
+        ]);
+    }
+
+    public function ajax_settings_save() {
+        $user_id = orabooks_get_current_user_id();
+        $org_id = orabooks_get_current_org_id($user_id);
+
+        if (!$user_id || !$org_id) {
+            orabooks_json_error('Authentication required', 401);
+        }
+
+        if (!OraBooks_RBAC::require_permission($user_id, $org_id, 'manage_org_settings')) {
+            orabooks_json_error('Permission denied', 403);
+        }
+
+        $auto_post = isset($_POST['auto_post_on_approve'])
+            ? (int) $_POST['auto_post_on_approve']
+            : 0;
+
+        $settings = self::save_org_settings($org_id, [
+            'auto_post_on_approve' => $auto_post,
+        ]);
+
+        orabooks_json_success(['settings' => $settings], 'Expense settings saved');
     }
 
     public function ajax_live_check() {
