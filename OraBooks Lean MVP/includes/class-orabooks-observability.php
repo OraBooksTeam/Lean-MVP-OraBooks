@@ -26,6 +26,8 @@ class OraBooks_Observability {
         'notification_dead'     => 25,
         'export_failed_24h'     => 15,
         'workflow_failures_24h' => 20,
+        'expense_ocr_pending'   => 50,
+        'expense_ocr_failed_24h'=> 10,
         'slo_error_budget_min'  => 10,
     ];
 

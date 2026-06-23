@@ -375,20 +375,45 @@ class OraBooks_Expenses {
         $processing = (int) $wpdb->get_var(
             "SELECT COUNT(*) FROM {$queue_table} WHERE status = 'processing'{$scope}"
         );
-        $completed_24h = (int) $wpdb->get_var(
-            "SELECT COUNT(*) FROM {$queue_table}
-             WHERE status = 'completed' AND updated_at >= '{$since}'{$scope}"
-        );
-        $failed_24h = (int) $wpdb->get_var(
-            "SELECT COUNT(*) FROM {$queue_table}
-             WHERE status = 'failed' AND updated_at >= '{$since}'{$scope}"
-        );
+
+        if ($org_id > 0) {
+            $completed_24h = (int) $wpdb->get_var($wpdb->prepare(
+                "SELECT COUNT(*) FROM {$queue_table}
+                 WHERE status = 'completed' AND updated_at >= %s AND org_id = %d",
+                $since,
+                $org_id
+            ));
+            $failed_24h = (int) $wpdb->get_var($wpdb->prepare(
+                "SELECT COUNT(*) FROM {$queue_table}
+                 WHERE status = 'failed' AND updated_at >= %s AND org_id = %d",
+                $since,
+                $org_id
+            ));
+            $avg_confidence = $wpdb->get_var($wpdb->prepare(
+                "SELECT AVG(ocr_confidence) FROM {$expenses_table}
+                 WHERE ocr_confidence IS NOT NULL AND updated_at >= %s AND org_id = %d",
+                $since,
+                $org_id
+            ));
+        } else {
+            $completed_24h = (int) $wpdb->get_var($wpdb->prepare(
+                "SELECT COUNT(*) FROM {$queue_table}
+                 WHERE status = 'completed' AND updated_at >= %s",
+                $since
+            ));
+            $failed_24h = (int) $wpdb->get_var($wpdb->prepare(
+                "SELECT COUNT(*) FROM {$queue_table}
+                 WHERE status = 'failed' AND updated_at >= %s",
+                $since
+            ));
+            $avg_confidence = $wpdb->get_var($wpdb->prepare(
+                "SELECT AVG(ocr_confidence) FROM {$expenses_table}
+                 WHERE ocr_confidence IS NOT NULL AND updated_at >= %s",
+                $since
+            ));
+        }
 
         $expense_scope = $org_id > 0 ? $wpdb->prepare(' AND org_id = %d', $org_id) : '';
-        $avg_confidence = $wpdb->get_var(
-            "SELECT AVG(ocr_confidence) FROM {$expenses_table}
-             WHERE ocr_confidence IS NOT NULL AND updated_at >= '{$since}'{$expense_scope}"
-        );
 
         $terminal = $completed_24h + $failed_24h;
 
@@ -1900,6 +1925,7 @@ class OraBooks_Expenses {
                 'ocr_provider'         => $ocr_provider,
                 'react_bundle_at'      => $generated ?: null,
                 'auto_post_on_approve' => self::auto_post_on_approve_enabled($org_id),
+                'ocr_observability'    => self::get_observability_stats($org_id),
             ],
             'manual_steps' => $manual_steps,
         ];
