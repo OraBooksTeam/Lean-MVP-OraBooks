@@ -966,6 +966,24 @@ class OraBooks_Bank_Reconciliation {
     }
 
     private static function find_rule_based_candidate($org_id, $bank_transaction) {
+        $candidates = array_filter([
+            self::find_payment_candidate($org_id, $bank_transaction),
+            self::find_vendor_payment_candidate($org_id, $bank_transaction),
+            self::find_expense_candidate($org_id, $bank_transaction),
+        ]);
+
+        if (empty($candidates)) {
+            return null;
+        }
+
+        usort($candidates, function ($a, $b) {
+            return ($b['confidence_score'] <=> $a['confidence_score']);
+        });
+
+        return $candidates[0];
+    }
+
+    private static function find_payment_candidate($org_id, $bank_transaction) {
         global $wpdb;
 
         $amount = abs(floatval($bank_transaction->amount));
@@ -983,16 +1001,152 @@ class OraBooks_Bank_Reconciliation {
             $date
         ));
 
-        if ($payment) {
-            $confidence = ($reference && isset($payment->reference) && stripos((string) $payment->reference, $reference) !== false) ? 98 : 85;
-            return [
-                'transaction_type' => 'payment',
-                'transaction_id' => intval($payment->id),
-                'confidence_score' => $confidence,
-            ];
+        if (!$payment) {
+            return null;
         }
 
-        return null;
+        $confidence = 85;
+        if ($reference && !empty($payment->reference) && stripos((string) $payment->reference, $reference) !== false) {
+            $confidence = 98;
+        } elseif ($reference && stripos((string) $payment->reference, $reference) === false) {
+            $confidence = 82;
+        }
+
+        return [
+            'transaction_type' => 'payment',
+            'transaction_id' => intval($payment->id),
+            'confidence_score' => $confidence,
+        ];
+    }
+
+    private static function find_vendor_payment_candidate($org_id, $bank_transaction) {
+        global $wpdb;
+
+        $amount = abs(floatval($bank_transaction->amount));
+        $date = sanitize_text_field($bank_transaction->transaction_date);
+        $reference = sanitize_text_field($bank_transaction->reference ?? '');
+
+        $payment = $wpdb->get_row($wpdb->prepare(
+            "SELECT id, reference FROM " . OraBooks_Database::table('vendor_payments') . "
+             WHERE org_id = %d AND ABS(amount) = %f AND payment_date BETWEEN DATE_SUB(%s, INTERVAL 3 DAY) AND DATE_ADD(%s, INTERVAL 3 DAY)
+             ORDER BY ABS(DATEDIFF(payment_date, %s)) ASC LIMIT 1",
+            intval($org_id),
+            $amount,
+            $date,
+            $date,
+            $date
+        ));
+
+        if (!$payment) {
+            return null;
+        }
+
+        $confidence = 84;
+        if ($reference && !empty($payment->reference) && stripos((string) $payment->reference, $reference) !== false) {
+            $confidence = 97;
+        }
+
+        return [
+            'transaction_type' => 'vendor_payment',
+            'transaction_id' => intval($payment->id),
+            'confidence_score' => $confidence,
+        ];
+    }
+
+    private static function find_expense_candidate($org_id, $bank_transaction) {
+        global $wpdb;
+
+        $amount = abs(floatval($bank_transaction->amount));
+        $date = sanitize_text_field($bank_transaction->transaction_date);
+        $description = sanitize_textarea_field($bank_transaction->description ?? '');
+
+        $expense = $wpdb->get_row($wpdb->prepare(
+            "SELECT id, vendor, description FROM " . OraBooks_Database::table('expenses') . "
+             WHERE org_id = %d AND ABS(total_amount) = %f
+               AND transaction_date BETWEEN DATE_SUB(%s, INTERVAL 3 DAY) AND DATE_ADD(%s, INTERVAL 3 DAY)
+             ORDER BY ABS(DATEDIFF(transaction_date, %s)) ASC LIMIT 1",
+            intval($org_id),
+            $amount,
+            $date,
+            $date,
+            $date
+        ));
+
+        if (!$expense) {
+            return null;
+        }
+
+        $confidence = 83;
+        $similarity = self::description_similarity($description, trim(($expense->vendor ?? '') . ' ' . ($expense->description ?? '')));
+        if ($similarity >= 80) {
+            $confidence = 92;
+        } elseif ($similarity >= 60) {
+            $confidence = 86;
+        }
+
+        return [
+            'transaction_type' => 'expense',
+            'transaction_id' => intval($expense->id),
+            'confidence_score' => $confidence,
+        ];
+    }
+
+    private static function find_ai_candidate($org_id, $bank_transaction) {
+        global $wpdb;
+
+        $description = strtolower(trim((string) ($bank_transaction->description ?? '')));
+        $amount = abs(floatval($bank_transaction->amount));
+        if ($description === '' || $amount <= 0) {
+            return null;
+        }
+
+        $best = null;
+
+        $expenses = $wpdb->get_results($wpdb->prepare(
+            "SELECT id, vendor, description, total_amount FROM " . OraBooks_Database::table('expenses') . "
+             WHERE org_id = %d AND ABS(total_amount) = %f
+             ORDER BY id DESC LIMIT 5",
+            intval($org_id),
+            $amount
+        ));
+        foreach ($expenses ?: [] as $expense) {
+            $similarity = self::description_similarity($description, strtolower(trim(($expense->vendor ?? '') . ' ' . ($expense->description ?? ''))));
+            if ($similarity >= 60) {
+                $candidate = [
+                    'transaction_type' => 'expense',
+                    'transaction_id' => intval($expense->id),
+                    'confidence_score' => min(75, 60 + ($similarity / 4)),
+                ];
+                if (!$best || $candidate['confidence_score'] > $best['confidence_score']) {
+                    $best = $candidate;
+                }
+            }
+        }
+
+        if (class_exists('OraBooks_Classification') && method_exists('OraBooks_Classification', 'score_text_match')) {
+            $ai = OraBooks_Classification::score_text_match($description, $amount, intval($org_id));
+            if (is_array($ai) && !empty($ai['transaction_type']) && !empty($ai['transaction_id']) && floatval($ai['confidence_score'] ?? 0) >= 60) {
+                if (!$best || floatval($ai['confidence_score']) > $best['confidence_score']) {
+                    $best = [
+                        'transaction_type' => sanitize_key($ai['transaction_type']),
+                        'transaction_id' => intval($ai['transaction_id']),
+                        'confidence_score' => floatval($ai['confidence_score']),
+                    ];
+                }
+            }
+        }
+
+        return $best;
+    }
+
+    private static function description_similarity($left, $right) {
+        $left = strtolower(trim((string) $left));
+        $right = strtolower(trim((string) $right));
+        if ($left === '' || $right === '') {
+            return 0;
+        }
+        similar_text($left, $right, $percent);
+        return round($percent, 2);
     }
 
     private static function get_unresolved_transactions($org_id, $bank_account_id, $statement_date) {
