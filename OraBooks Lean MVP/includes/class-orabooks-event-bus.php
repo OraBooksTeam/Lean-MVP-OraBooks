@@ -145,6 +145,10 @@ class OraBooks_EventBus {
         if (class_exists('OraBooks_Classification')) {
             OraBooks_Classification::register_event_consumer();
         }
+
+        if (class_exists('OraBooks_Expenses')) {
+            OraBooks_Expenses::register_event_consumer();
+        }
     }
 
     /**

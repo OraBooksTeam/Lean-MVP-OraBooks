@@ -40,6 +40,7 @@ class OraBooks_Shortcodes {
             add_shortcode('orabooks_approval_settings', [self::$instance, 'approval_settings_page']);
             add_shortcode('orabooks_ai_review', [self::$instance, 'ai_review_page']);
             add_shortcode('orabooks_classification_test', [self::$instance, 'classification_test_page']);
+            add_shortcode('orabooks_expenses_test', [self::$instance, 'expenses_test_page']);
             add_shortcode('orabooks_expenses', [self::$instance, 'expenses_page']);
             add_shortcode('orabooks_voice', [self::$instance, 'voice_page']);
             add_shortcode('orabooks_export_button', [self::$instance, 'export_button']);

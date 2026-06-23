@@ -243,6 +243,47 @@ class OraBooks_DeployChecks {
             );
         }
 
+        if (class_exists('OraBooks_Expenses')) {
+            global $wpdb;
+
+            $ocr_handler = class_exists('OraBooks_AsyncQueue')
+                ? OraBooks_AsyncQueue::get_handler('process_expense_ocr')
+                : null;
+            $add_check(
+                'async_process_expense_ocr_handler',
+                'Async handler: process_expense_ocr (SL-028)',
+                is_callable($ocr_handler)
+            );
+
+            $queue_table = OraBooks_Database::table('ocr_processing_queue');
+            $queue_exists = $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $queue_table)) === $queue_table;
+            $add_check('table_ocr_processing_queue', 'Table exists: ocr_processing_queue', $queue_exists, $queue_table);
+
+            $line_items_table = OraBooks_Database::table('expense_line_items');
+            $lines_exists = $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $line_items_table)) === $line_items_table;
+            $add_check('table_expense_line_items', 'Table exists: expense_line_items', $lines_exists, $line_items_table);
+
+            $expenses_table = OraBooks_Database::table('expenses');
+            $exp_cols = $wpdb->get_col("SHOW COLUMNS FROM {$expenses_table}", 0);
+            $ocr_ok = is_array($exp_cols)
+                && in_array('ocr_confidence', $exp_cols, true)
+                && in_array('ocr_snapshot_hash', $exp_cols, true);
+            $add_check(
+                'expenses_ocr_schema',
+                'Expenses SL-028 OCR columns present',
+                $ocr_ok,
+                is_array($exp_cols) ? implode(', ', array_intersect($exp_cols, ['ocr_confidence', 'ocr_risk_level', 'ocr_snapshot_hash'])) : 'n/a'
+            );
+
+            $ocr_cron = wp_next_scheduled('orabooks_expenses_ocr_process');
+            $add_check(
+                'cron_orabooks_expenses_ocr_process',
+                'Cron scheduled: orabooks_expenses_ocr_process',
+                $ocr_cron !== false,
+                $ocr_cron ? gmdate('c', $ocr_cron) : 'not scheduled'
+            );
+        }
+
         return [
             'ok' => $ok,
             'checks' => $checks,
