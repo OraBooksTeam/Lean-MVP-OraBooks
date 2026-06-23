@@ -489,7 +489,7 @@ export default function InventoryPage() {
                 </Button>
               </div>
             </div>
-            {productMovements.length > 0 && (
+            {productMovements.length > 0 ? (
               <div className="mt-4">
                 <h3 className="mb-2 text-sm font-semibold text-ink">Movement history</h3>
                 <table className="min-w-full text-left text-sm">
@@ -515,6 +515,8 @@ export default function InventoryPage() {
                   </tbody>
                 </table>
               </div>
+            ) : (
+              <p className="mt-4 text-sm text-slate-500">No movement history for this product yet.</p>
             )}
             <div className="mt-4">
               <ResourceAttachmentsPanel
