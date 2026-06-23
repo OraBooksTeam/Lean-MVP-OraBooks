@@ -4,6 +4,11 @@ import { api } from '../api';
 import ClientShell from '../components/ClientShell';
 import { Mail, RefreshCw, UserPlus, Users } from 'lucide-react';
 import NotificationPolicyPanel from '@/components/NotificationPolicyPanel';
+import {
+  assignableMemberRoles,
+  canEditMemberRole,
+  canRemoveMember,
+} from '@/lib/org-team';
 
 const fieldClass =
   'w-full rounded-lg border border-border bg-white px-3.5 py-2.5 text-sm text-ink shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20';
@@ -99,7 +104,10 @@ export default function TeamPage() {
     setSuccess('');
     const res = await api.resendTeamInvite(orgId, inviteId);
     if (res.error) setError(res.error);
-    else setSuccess('Invitation resent.');
+    else {
+      setSuccess('Invitation resent.');
+      await load();
+    }
     setActionInviteId(null);
   };
 
@@ -124,6 +132,8 @@ export default function TeamPage() {
   const canManageNotificationPolicy = ['owner', 'admin'].includes(data?.context?.role);
   const canViewAccessMatrix = ['owner', 'admin'].includes(data?.context?.role);
   const permissionMatrix = data?.context?.permission_matrix || {};
+  const assignableRoles = assignableMemberRoles(data?.member_roles || []);
+  const showActionsColumn = caps.change_role || caps.remove_user;
 
   return (
     <ClientShell
@@ -175,6 +185,9 @@ export default function TeamPage() {
                 </Button>
               </div>
             </div>
+            <p className="mt-4 rounded-xl border border-primary/20 bg-primary/10 p-3 text-sm font-medium text-primary-dark">
+              Invitation link is emailed to the user and valid for 7 days. They join this organization automatically after sign-up or sign-in.
+            </p>
           </div>
         )}
 
@@ -210,13 +223,13 @@ export default function TeamPage() {
             <tbody className="divide-y divide-border">
               {loading ? (
                 <tr>
-                  <td colSpan={4} className="px-5 py-8 text-center text-slate-500">
+                  <td colSpan={showActionsColumn ? 4 : 3} className="px-5 py-8 text-center text-slate-500">
                     Loading members...
                   </td>
                 </tr>
               ) : members.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="px-5 py-10 text-center">
+                  <td colSpan={showActionsColumn ? 4 : 3} className="px-5 py-10 text-center">
                     <Users className="mx-auto h-8 w-8 text-slate-300" />
                     <p className="mt-2 text-sm text-slate-500">No team members found.</p>
                   </td>
