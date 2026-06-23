@@ -159,8 +159,8 @@ class OraBooks_Rest_Api_Test extends TestCase
 
         $result = OraBooks_Rest_Api::rest_get_expense_settings($request);
 
-        $this->assertIsArray($result->data);
-        $this->assertSame(0, $result->data['settings']['auto_post_on_approve']);
+        $this->assertIsArray($result);
+        $this->assertSame(0, $result['settings']['auto_post_on_approve']);
     }
 
     #[Test]

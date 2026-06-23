@@ -904,7 +904,7 @@ class OraBooks_Rest_Api {
             return $context;
         }
 
-        $expense_id = (int) $request['id'];
+        $expense_id = self::resolve_route_id($request);
         $expense = OraBooks_Expenses::get_expense($expense_id, $context['org_id']);
         if (!$expense) {
             return new WP_Error('not_found', 'Expense not found.', ['status' => 404]);
@@ -930,7 +930,7 @@ class OraBooks_Rest_Api {
             return $context;
         }
 
-        $expense_id = (int) $request['id'];
+        $expense_id = self::resolve_route_id($request);
         $expense = OraBooks_Expenses::get_expense($expense_id, $context['org_id']);
         if (!$expense) {
             return new WP_Error('not_found', 'Expense not found.', ['status' => 404]);
