@@ -113,13 +113,14 @@ export default function NotificationCenterPanel({
               Org settings
             </WpLink>
           )}
-          <WpLink
-            to="/notification-preferences"
-            className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
-            title="Quiet hours, digest, and escalation preferences"
-          >
-            Preferences
-          </WpLink>
+          {showPreferencesLink && (
+            <WpLink
+              to="/notification-preferences"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
+              title="Quiet hours, digest, and escalation preferences"
+            >
+              Preferences
+            </WpLink>
           )}
           <Button onClick={onRefresh} variant="secondary" size="sm" disabled={loading}>
             <RefreshCw className="h-4 w-4" />
