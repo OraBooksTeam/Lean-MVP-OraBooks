@@ -97,6 +97,8 @@ class OraBooks_AR_Test extends TestCase
         $this->assertSame('draft', $formatted['workflow_status']);
     }
 
+    #[Test]
+    public function submit_credit_note_moves_draft_to_submitted(): void
     {
         global $wpdb;
         $note = (object) [
@@ -105,8 +107,13 @@ class OraBooks_AR_Test extends TestCase
             'credit_note_number' => 'CN-2026-000001',
             'workflow_status' => 'draft',
         ];
-        $wpdb->test_get_row_callback = static function ($query) use ($note) {
+        $calls = 0;
+        $wpdb->test_get_row_callback = static function ($query) use ($note, &$calls) {
             if (strpos($query, 'credit_notes') !== false) {
+                $calls++;
+                if ($calls >= 2) {
+                    return (object) array_merge((array) $note, ['workflow_status' => 'submitted']);
+                }
                 return $note;
             }
             return null;
