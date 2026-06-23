@@ -864,6 +864,32 @@ class OraBooks_Expenses {
         return max(0, round($total - $tax, 2));
     }
 
+    /**
+     * Determine confirm/submit routing from OCR confidence and risk (SL-028).
+     *
+     * @return array{workflow_event:string,target_status:string,event:string,log_event:string}
+     */
+    public static function resolve_submit_route($confidence, $risk_level = 'medium') {
+        $confidence = (float) $confidence;
+        $risk_level = $risk_level ?: 'medium';
+
+        if ($confidence >= self::CONFIDENCE_THRESHOLD && $risk_level === 'low') {
+            return [
+                'workflow_event' => 'submit',
+                'target_status'  => 'submitted',
+                'event'          => 'expense_submitted',
+                'log_event'      => 'expense_submitted',
+            ];
+        }
+
+        return [
+            'workflow_event' => 'ai_review',
+            'target_status'  => 'ai_review',
+            'event'          => 'expense_escalated',
+            'log_event'      => 'expense_escalated_to_ai_review',
+        ];
+    }
+
     public static function confirm_submit($expense_id, $org_id, $user_id, $idempotency_key, array $edited_fields = []) {
         global $wpdb;
 
@@ -920,17 +946,11 @@ class OraBooks_Expenses {
         $confidence = (float) ($expense->ocr_confidence ?? 0);
         $risk = $expense->ocr_risk_level ?: 'medium';
 
-        if ($confidence >= self::CONFIDENCE_THRESHOLD && $risk === 'low') {
-            $workflow_event = 'submit';
-            $event = 'expense_submitted';
-            $log_event = 'expense_submitted';
-            $target_status = 'submitted';
-        } else {
-            $workflow_event = 'ai_review';
-            $event = 'expense_escalated';
-            $log_event = 'expense_escalated_to_ai_review';
-            $target_status = 'ai_review';
-        }
+        $route = self::resolve_submit_route($confidence, $risk);
+        $workflow_event = $route['workflow_event'];
+        $event = $route['event'];
+        $log_event = $route['log_event'];
+        $target_status = $route['target_status'];
 
         unset($update['workflow_status']);
         if (!empty($update)) {
@@ -1516,6 +1536,23 @@ class OraBooks_Expenses {
             ? OraBooks_AsyncQueue::get_handler('process_expense_ocr')
             : null;
         $add('async_ocr_handler', 'Async handler: process_expense_ocr (SL-303)', is_callable($ocr_handler));
+
+        if (class_exists('OraBooks_Workflow')) {
+            $machines = OraBooks_Workflow::get_machines();
+            $expense_machine = $machines['expense'] ?? null;
+            $has_ai_review_state = is_array($expense_machine)
+                && in_array('ai_review', $expense_machine['states'] ?? [], true);
+            $has_submit_transition = is_array($expense_machine)
+                && isset($expense_machine['transitions']['submit']);
+            $add(
+                'expense_workflow_machine',
+                'Expense workflow machine (SL-301)',
+                $has_ai_review_state && $has_submit_transition,
+                $has_ai_review_state
+                    ? 'States: ' . implode(', ', $expense_machine['states'])
+                    : 'Expense state machine not registered'
+            );
+        }
 
         $ocr_provider = class_exists('OraBooks_Ai_Providers')
             ? OraBooks_Ai_Providers::provider_name('ocr')
