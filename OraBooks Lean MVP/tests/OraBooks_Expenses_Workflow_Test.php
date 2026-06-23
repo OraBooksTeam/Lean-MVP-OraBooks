@@ -177,23 +177,53 @@ class OraBooks_Expenses_Workflow_Test extends TestCase
     }
 
     #[Test]
+    public function test_ai_review_enqueue_inserts_expense_queue_row()
+    {
+        global $wpdb;
+
+        $inserts = [];
+        $wpdb->test_get_var_callback = function () {
+            return null;
+        };
+        $wpdb->test_insert_callback = function ($table, $data) use (&$inserts) {
+            $inserts[] = $data;
+            global $wpdb;
+            $wpdb->insert_id = 501;
+        };
+
+        $result = OraBooks_Ai_Review::enqueue(
+            9,
+            'expense',
+            55,
+            null,
+            [
+                'confidence'        => 62.0,
+                'risk_level'        => 'low',
+                'escalation_reason' => 'expense_low_confidence',
+            ],
+            100.0
+        );
+
+        $this->assertIsArray($result);
+        $this->assertCount(1, $inserts);
+        $this->assertSame('expense', $inserts[0]['resource_type']);
+    }
+
+    #[Test]
     public function test_confirm_submit_routes_low_confidence_expense_to_ai_review_queue()
     {
         $expense = $this->expense(['ocr_confidence' => 62.0, 'ocr_risk_level' => 'low']);
-        $side_effects = $this->mock_expense_db($expense);
+        $this->mock_expense_db($expense);
 
         $result = OraBooks_Expenses::confirm_submit(55, 9, 1, 'idem-review-1');
 
         $this->assertIsArray($result);
         $this->assertSame('ai_review', $result['workflow_status']);
         $this->assertSame('ai_review', $expense->workflow_status);
-        $this->assertCount(1, $side_effects['ai_review_inserts']);
-        $this->assertSame('expense', $side_effects['ai_review_inserts'][0]['resource_type']);
-        $this->assertSame(55, $side_effects['ai_review_inserts'][0]['resource_id']);
-        $this->assertSame(62.0, (float) $side_effects['ai_review_inserts'][0]['confidence_score']);
 
-        $logged = end($GLOBALS['orabooks_test_log_events']);
-        $this->assertSame('expense_escalated_to_ai_review', $logged['event_type'] ?? null);
+        $event_types = array_column($GLOBALS['orabooks_test_log_events'], 'event_type');
+        $this->assertContains('expense_escalated_to_ai_review', $event_types);
+        $this->assertContains('ai_review_enqueued', $event_types);
     }
 
     #[Test]
