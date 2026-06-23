@@ -37,7 +37,8 @@ class OraBooks_AP_Test extends TestCase
     public function submit_credit_note_moves_draft_to_submitted(): void
     {
         global $wpdb;
-        $wpdb->test_get_row_callback = static function ($query) {
+        $status = 'draft';
+        $wpdb->test_get_row_callback = static function ($query) use (&$status) {
             if (strpos($query, 'vendor_credit_notes') !== false && strpos($query, 'WHERE id') !== false) {
                 return (object) [
                     'id' => 12,
@@ -48,10 +49,14 @@ class OraBooks_AP_Test extends TestCase
                     'amount' => '100.00',
                     'reason' => 'Return',
                     'is_adjustment' => 0,
-                    'workflow_status' => 'draft',
+                    'workflow_status' => $status,
                 ];
             }
             return null;
+        };
+        $wpdb->test_update_callback = static function () use (&$status) {
+            $status = 'submitted';
+            return 1;
         };
 
         $result = OraBooks_AP::submit_credit_note(5, 12, 1);
