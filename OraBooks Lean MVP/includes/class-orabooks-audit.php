@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 /**
  * OraBooks Audit Logging
  *
@@ -20,7 +20,7 @@ class OraBooks_Audit {
 
  private static $instance = null;
 
- public static function init() {
+ public static function init {
  if (self::$instance === null) {
  self::$instance = new self;
  add_action('wp_ajax_orabooks_get_audit_logs', [self::$instance, 'ajax_get_logs']);
@@ -41,8 +41,8 @@ class OraBooks_Audit {
 
  $table = OraBooks_Database::table('audit_logs');
 
- if ($user_id === null && function_exists('orabooks_get_current_user_id()')) {
- $user_id = orabooks_get_current_user_id();
+ if ($user_id === null && function_exists('orabooks_get_current_user_id')) {
+ $user_id = orabooks_get_current_user_id;
  }
 
  $severity = in_array($severity, ['info', 'warning', 'critical'], true) ? $severity: 'info';
@@ -62,15 +62,15 @@ class OraBooks_Audit {
  'event_type' => (string) $event_type,
  'severity' => $severity,
  'description' => $description,
- 'ip_address' => orabooks_get_client_ip(),
- 'user_agent' => orabooks_get_user_agent(),
+ 'ip_address' => orabooks_get_client_ip,
+ 'user_agent' => orabooks_get_user_agent,
  'correlation_id' => (string) $correlation_id,
  'metadata' => $sanitized ? wp_json_encode($sanitized): null,
  ],
  ['%d', '%d', '%s', '%s', '%s', '%s', '%s', '%s', '%s']
  );
 
- return $wpdb->insert_id();
+ return $wpdb->insert_id;
  }
 
  /**
@@ -183,7 +183,7 @@ class OraBooks_Audit {
  if (empty($args['skip_view_log']) && !self::should_skip_view_audit($args)) {
  self::log_event('audit_log_viewed', 'Audit log accessed', 'info', [
  'filters' => array_diff_key($args, ['skip_view_log' => true]),
- ], orabooks_get_current_user_id(), $all_orgs ? 0: $org_id);
+ ], orabooks_get_current_user_id, $all_orgs ? 0: $org_id);
  }
 
  return $results;
@@ -197,7 +197,7 @@ class OraBooks_Audit {
  /**
  * Archive old audit logs (retention 365 days by default, §5.5).
  */
- public static function archive_old_logs() {
+ public static function archive_old_logs {
  global $wpdb;
 
  $retention_days = (int) get_option('orabooks_audit_retention_days', 365);
@@ -205,7 +205,7 @@ class OraBooks_Audit {
  $table = OraBooks_Database::table('audit_logs');
  $archive_table = OraBooks_Database::table('audit_logs_archive');
 
- $cutoff = gmdate('Y-m-d H:i:s', time() - ($retention_days * DAY_IN_SECONDS));
+ $cutoff = gmdate('Y-m-d H:i:s', time - ($retention_days * DAY_IN_SECONDS));
 
  $wpdb->query('START TRANSACTION');
  $wpdb->query('SET @orabooks_audit_archival = 1');
@@ -293,13 +293,13 @@ class OraBooks_Audit {
  'row_count' => count($logs),
  'format' => 'csv',
  'filename' => $filename,
- ], orabooks_get_current_user_id(), $org_id ?: 0);
+ ], orabooks_get_current_user_id, $org_id ?: 0);
 
  exit;
  }
 
  private static function resolve_audit_org_id($requested_org_id) {
- $user_id = function_exists('orabooks_get_current_user_id()') ? (int) orabooks_get_current_user_id(): 0;
+ $user_id = function_exists('orabooks_get_current_user_id') ? (int) orabooks_get_current_user_id: 0;
  if (function_exists('orabooks_resolve_request_org_id')) {
  return (int) orabooks_resolve_request_org_id($user_id, $requested_org_id);
  }
@@ -335,7 +335,7 @@ class OraBooks_Audit {
  if (function_exists('orabooks_assert_tenant_access')) {
  $tenant = orabooks_assert_tenant_access($user_id, $org_id, false);
  if (is_wp_error($tenant)) {
- orabooks_json_error($tenant->get_error_message(), 403);
+ orabooks_json_error($tenant->get_error_message, 403);
  }
  }
 
@@ -353,8 +353,8 @@ class OraBooks_Audit {
  return true;
  }
 
- public function ajax_get_logs() {
- $user_id = orabooks_get_current_user_id();
+ public function ajax_get_logs {
+ $user_id = orabooks_get_current_user_id;
  $org_id = self::resolve_audit_org_id($_GET['org_id'] ?? 0);
 
  $args = [
@@ -381,8 +381,8 @@ class OraBooks_Audit {
  orabooks_json_success($logs);
  }
 
- public function ajax_export_logs() {
- $user_id = orabooks_get_current_user_id();
+ public function ajax_export_logs {
+ $user_id = orabooks_get_current_user_id;
  $org_id = self::resolve_audit_org_id($_GET['org_id'] ?? 0);
 
  $args = [

@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 /**
  * OraBooks Tax Governance & Compliance Engine
  *
@@ -21,7 +21,7 @@ class OraBooks_Tax {
  'REGIONAL_COMPLIANCE_OVERRIDE',
  ];
 
- public static function init() {
+ public static function init {
  if (self::$instance === null) {
  self::$instance = new self;
  add_action('wp_ajax_orabooks_tax_calculate', [self::$instance, 'ajax_calculate']);
@@ -46,7 +46,7 @@ class OraBooks_Tax {
  return self::$instance;
  }
 
- private static function maybe_ensure_tax_schema() {
+ private static function maybe_ensure_tax_schema {
  static $ran = false;
  if ($ran) {
  return;
@@ -74,10 +74,10 @@ class OraBooks_Tax {
  }
  }
 
- public static function get_create_table_sql() {
+ public static function get_create_table_sql {
  global $wpdb;
 
- $charset_collate = $wpdb->get_charset_collate();
+ $charset_collate = $wpdb->get_charset_collate;
  $tables = [];
 
  $table_configs = OraBooks_Database::table('tax_configs');
@@ -138,7 +138,7 @@ class OraBooks_Tax {
  return $tables;
  }
 
- public static function seed_default_jurisdictions() {
+ public static function seed_default_jurisdictions {
  global $wpdb;
 
  $table = OraBooks_Database::table('tax_jurisdictions');
@@ -184,7 +184,7 @@ class OraBooks_Tax {
  }
 
  public static function calculate($data) {
- self::maybe_ensure_tax_schema();
+ self::maybe_ensure_tax_schema;
  $org_id = intval($data['org_id'] ?? 0);
  $amount = round(floatval($data['amount'] ?? 0), 2);
  $jurisdiction = strtoupper(sanitize_text_field($data['jurisdiction'] ?? 'US'));
@@ -207,7 +207,7 @@ class OraBooks_Tax {
  $config = self::get_active_config($org_id, $jurisdiction);
  if ($config) {
  $rate = floatval($config->default_tax_rate);
- $tax_type = $config->tax_type();
+ $tax_type = $config->tax_type;
  $rule_id = 'org_config_'. intval($config->id);
  } else {
  $jurisdiction_rule = self::get_jurisdiction_rule($jurisdiction);
@@ -247,7 +247,7 @@ class OraBooks_Tax {
 
  public static function save_config($org_id, $data, $user_id = null) {
  global $wpdb;
- self::maybe_ensure_tax_schema();
+ self::maybe_ensure_tax_schema;
 
  $org_id = intval($org_id);
  $user_id = $user_id ? intval($user_id): get_current_user_id;
@@ -423,7 +423,7 @@ class OraBooks_Tax {
  if (!empty($invoice->tax_override_reason)) {
  $payload['override'] = true;
  $payload['override_tax_rate'] = floatval($invoice->tax_rate ?? 0);
- $payload['override_reason'] = $invoice->tax_override_reason();
+ $payload['override_reason'] = $invoice->tax_override_reason;
  } else {
  $payload['override'] = false;
  }
@@ -457,7 +457,7 @@ class OraBooks_Tax {
  if (!empty($expense->tax_override_reason)) {
  $payload['override'] = true;
  $payload['override_tax_rate'] = (float) ($expense->tax_rate ?? 0);
- $payload['override_reason'] = $expense->tax_override_reason();
+ $payload['override_reason'] = $expense->tax_override_reason;
  } else {
  $payload['override'] = false;
  }
@@ -467,7 +467,7 @@ class OraBooks_Tax {
 
  public static function list_snapshots($org_id, $limit = 25) {
  global $wpdb;
- self::maybe_ensure_tax_schema();
+ self::maybe_ensure_tax_schema;
 
  $table = OraBooks_Database::table('tax_snapshots');
  $limit = max(1, min(100, (int) $limit));
@@ -484,7 +484,7 @@ class OraBooks_Tax {
  }
 
  private static function normalize_override_reasons($raw) {
- $allowed = self::DEFAULT_OVERRIDE_REASONS();
+ $allowed = self::DEFAULT_OVERRIDE_REASONS;
  $reasons = [];
 
  if (is_string($raw) && $raw !== '') {
@@ -510,7 +510,7 @@ class OraBooks_Tax {
 
  public static function list_configs($org_id) {
  global $wpdb;
- self::maybe_ensure_tax_schema();
+ self::maybe_ensure_tax_schema;
 
  $table = OraBooks_Database::table('tax_configs');
  $rows = $wpdb->get_results($wpdb->prepare(
@@ -521,7 +521,7 @@ class OraBooks_Tax {
  return array_map([self::class, 'format_config'], $rows ?: []);
  }
 
- public static function list_jurisdictions() {
+ public static function list_jurisdictions {
  global $wpdb;
 
  $table = OraBooks_Database::table('tax_jurisdictions');
@@ -570,7 +570,7 @@ class OraBooks_Tax {
  }
 
  public static function format_config($config) {
- $override_reasons = self::DEFAULT_OVERRIDE_REASONS();
+ $override_reasons = self::DEFAULT_OVERRIDE_REASONS;
  if (!empty($config->override_reasons)) {
  $decoded = json_decode($config->override_reasons, true);
  if (is_array($decoded) && $decoded) {
@@ -689,7 +689,7 @@ class OraBooks_Tax {
  }
  }
 
- return self::DEFAULT_OVERRIDE_REASONS();
+ return self::DEFAULT_OVERRIDE_REASONS;
  }
 
  /**
@@ -714,7 +714,7 @@ class OraBooks_Tax {
  public static function get_override_reasons($org_id, $jurisdiction = null) {
  $org_id = (int) $org_id;
  if ($org_id <= 0) {
- return self::DEFAULT_OVERRIDE_REASONS();
+ return self::DEFAULT_OVERRIDE_REASONS;
  }
 
  if ($jurisdiction !== null && $jurisdiction !== '') {
@@ -729,7 +729,7 @@ class OraBooks_Tax {
  }
  }
 
- return $reasons ? array_keys($reasons): self::DEFAULT_OVERRIDE_REASONS();
+ return $reasons ? array_keys($reasons): self::DEFAULT_OVERRIDE_REASONS;
  }
 
  public static function validate_override($org_id, $jurisdiction, $tax_rate, $reason_code) {
@@ -784,7 +784,7 @@ class OraBooks_Tax {
 
  $isolation = OraBooks_Auth::require_customer_org($user_id, $org_id);
  if (is_wp_error($isolation)) {
- orabooks_json_error($isolation->get_error_message(), 403);
+ orabooks_json_error($isolation->get_error_message, 403);
  }
 
  if (!OraBooks_RBAC::require_permission($user_id, $org_id, $permission)) {
@@ -792,34 +792,34 @@ class OraBooks_Tax {
  }
  }
 
- public function ajax_calculate() {
- $user_id = orabooks_get_current_user_id();
+ public function ajax_calculate {
+ $user_id = orabooks_get_current_user_id;
  $org_id = intval($_POST['org_id'] ?? $_GET['org_id'] ?? 0);
  $this->require_tax_access($user_id, $org_id, 'create_invoice');
 
  $result = self::calculate($_POST);
  if (is_wp_error($result)) {
- orabooks_json_error($result->get_error_message(), 400);
+ orabooks_json_error($result->get_error_message, 400);
  }
 
  orabooks_json_success($result);
  }
 
- public function ajax_save_config() {
- $user_id = orabooks_get_current_user_id();
+ public function ajax_save_config {
+ $user_id = orabooks_get_current_user_id;
  $org_id = intval($_POST['org_id'] ?? 0);
  $this->require_tax_access($user_id, $org_id, 'manage_org_settings');
 
  $result = self::save_config($org_id, $_POST, $user_id);
  if (is_wp_error($result)) {
- orabooks_json_error($result->get_error_message(), 400);
+ orabooks_json_error($result->get_error_message, 400);
  }
 
  orabooks_json_success(['config' => self::format_config($result)]);
  }
 
- public function ajax_list_configs() {
- $user_id = orabooks_get_current_user_id();
+ public function ajax_list_configs {
+ $user_id = orabooks_get_current_user_id;
  $org_id = intval($_GET['org_id'] ?? $_POST['org_id'] ?? 0);
  $this->require_tax_access($user_id, $org_id, 'manage_org_settings');
 
@@ -833,8 +833,8 @@ class OraBooks_Tax {
  /**
  *: reason codes for override modal (read-only; no full tax config required).
  */
- public function ajax_override_reasons() {
- $user_id = orabooks_get_current_user_id();
+ public function ajax_override_reasons {
+ $user_id = orabooks_get_current_user_id;
  $org_id = intval($_GET['org_id'] ?? $_POST['org_id'] ?? 0);
 
  if (!$user_id) {
@@ -847,7 +847,7 @@ class OraBooks_Tax {
 
  $isolation = OraBooks_Auth::require_customer_org($user_id, $org_id);
  if (is_wp_error($isolation)) {
- orabooks_json_error($isolation->get_error_message(), 403);
+ orabooks_json_error($isolation->get_error_message, 403);
  }
 
  if (!self::user_can_override_tax($user_id, $org_id)
@@ -864,8 +864,8 @@ class OraBooks_Tax {
  ]);
  }
 
- public function ajax_list_jurisdictions() {
- $user_id = orabooks_get_current_user_id();
+ public function ajax_list_jurisdictions {
+ $user_id = orabooks_get_current_user_id;
  $org_id = intval($_GET['org_id'] ?? $_POST['org_id'] ?? 0);
  if ($org_id > 0) {
  $this->require_tax_access($user_id, $org_id, 'view_reports');
@@ -876,8 +876,8 @@ class OraBooks_Tax {
  orabooks_json_success(['jurisdictions' => self::list_jurisdictions]);
  }
 
- public function ajax_lock_status() {
- $user_id = orabooks_get_current_user_id();
+ public function ajax_lock_status {
+ $user_id = orabooks_get_current_user_id;
  $org_id = intval($_GET['org_id'] ?? $_POST['org_id'] ?? 0);
  $date = sanitize_text_field($_GET['transaction_date'] ?? $_POST['transaction_date'] ?? '');
  $this->require_tax_access($user_id, $org_id, 'manage_org_settings');
@@ -885,21 +885,21 @@ class OraBooks_Tax {
  orabooks_json_success(self::get_lock_status($org_id, $date ?: null));
  }
 
- public function ajax_create_snapshot() {
- $user_id = orabooks_get_current_user_id();
+ public function ajax_create_snapshot {
+ $user_id = orabooks_get_current_user_id;
  $org_id = intval($_POST['org_id'] ?? 0);
  $this->require_tax_access($user_id, $org_id, 'submit_transaction');
 
  $result = self::create_snapshot($_POST, $user_id);
  if (is_wp_error($result)) {
- orabooks_json_error($result->get_error_message(), 409);
+ orabooks_json_error($result->get_error_message, 409);
  }
 
  orabooks_json_success($result);
  }
 
- public function ajax_get_snapshot() {
- $user_id = orabooks_get_current_user_id();
+ public function ajax_get_snapshot {
+ $user_id = orabooks_get_current_user_id;
  $org_id = intval($_GET['org_id'] ?? $_POST['org_id'] ?? 0);
  $transaction_type = sanitize_text_field($_GET['transaction_type'] ?? $_POST['transaction_type'] ?? '');
  $transaction_id = intval($_GET['transaction_id'] ?? $_POST['transaction_id'] ?? 0);
@@ -913,8 +913,8 @@ class OraBooks_Tax {
  orabooks_json_success(['snapshot' => $snapshot]);
  }
 
- public function ajax_list_snapshots() {
- $user_id = orabooks_get_current_user_id();
+ public function ajax_list_snapshots {
+ $user_id = orabooks_get_current_user_id;
  $org_id = intval($_GET['org_id'] ?? $_POST['org_id'] ?? 0);
  $limit = intval($_GET['limit'] ?? $_POST['limit'] ?? 25);
  $this->require_tax_access($user_id, $org_id, 'view_reports');

@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 /**
  * OraBooks Shortcodes
  *
@@ -13,7 +13,7 @@ class OraBooks_Shortcodes {
 
  private static $instance = null;
 
- public static function init() {
+ public static function init {
  if (self::$instance === null) {
  self::$instance = new self;
  add_shortcode('orabooks_login', [self::$instance, 'login_form']);
@@ -78,7 +78,7 @@ class OraBooks_Shortcodes {
  * @param bool $require_login Whether a logged-in user is required.
  */
  private function react_page($route, $require_login = true) {
- OraBooks_Assets::mark_frontend_shortcode_rendered();
+ OraBooks_Assets::mark_frontend_shortcode_rendered;
 
  return $this->render_view('react-app', [
  'initial_route' => $route,
@@ -93,148 +93,148 @@ class OraBooks_Shortcodes {
  return $this->react_page($route, $require_login);
  }
 
- public function login_form() {
+ public function login_form {
  return $this->react_page('/login', false);
  }
 
- public function register_form() {
+ public function register_form {
  return $this->react_page('/register', false);
  }
 
- public function verify_email() {
+ public function verify_email {
  return $this->react_page('/verify-email', false);
  }
 
- public function accept_invite() {
+ public function accept_invite {
  return $this->react_page('/accept-invite', false);
  }
 
- public function reset_password() {
+ public function reset_password {
  return $this->react_page('/reset-password', false);
  }
 
- public function partner_onboarding() {
+ public function partner_onboarding {
  return $this->react_page('/onboarding');
  }
 
- public function tier_selection() {
+ public function tier_selection {
  return $this->react_page('/tier-selection');
  }
 
- public function dashboard() {
+ public function dashboard {
  return $this->customer_react_page('/dashboard');
  }
 
- public function customers_page() {
+ public function customers_page {
  return $this->customer_react_page('/customers');
  }
 
- public function vendors_page() {
+ public function vendors_page {
  return $this->customer_react_page('/vendors');
  }
 
- public function inventory_page() {
+ public function inventory_page {
  return $this->customer_react_page('/inventory');
  }
 
- public function bank_reconciliation_page() {
+ public function bank_reconciliation_page {
  return $this->customer_react_page('/bank-reconciliation');
  }
 
- public function reports_page() {
+ public function reports_page {
  return $this->customer_react_page('/reports');
  }
 
- public function invoices_page() {
+ public function invoices_page {
  return $this->customer_react_page('/invoices');
  }
 
- public function chart_of_accounts_page() {
+ public function chart_of_accounts_page {
  return $this->customer_react_page('/chart-of-accounts');
  }
 
- public function fiscal_periods_page() {
+ public function fiscal_periods_page {
  return $this->customer_react_page('/fiscal-periods');
  }
 
- public function tax_settings_page() {
+ public function tax_settings_page {
  return $this->customer_react_page('/tax-settings');
  }
 
- public function journals_page() {
+ public function journals_page {
  return $this->customer_react_page('/journals');
  }
 
- public function profile_page() {
+ public function profile_page {
  return $this->customer_react_page('/profile');
  }
 
- public function security_2fa_page() {
+ public function security_2fa_page {
  return $this->customer_react_page('/security/2fa');
  }
 
- public function audit_log_page() {
+ public function audit_log_page {
  return $this->customer_react_page('/audit-log');
  }
 
- public function webhook_settings_page() {
+ public function webhook_settings_page {
  return $this->customer_react_page('/webhook-settings');
  }
 
- public function team_page() {
+ public function team_page {
  return $this->customer_react_page('/team');
  }
 
- public function attachments_page() {
+ public function attachments_page {
  return $this->customer_react_page('/attachments');
  }
 
- public function approvals_page() {
+ public function approvals_page {
  return $this->customer_react_page('/approvals');
  }
 
- public function approval_settings_page() {
+ public function approval_settings_page {
  return $this->customer_react_page('/approval-settings');
  }
 
- public function ai_review_page() {
+ public function ai_review_page {
  return $this->customer_react_page('/ai-review');
  }
 
- public function classification_test_page() {
+ public function classification_test_page {
  return $this->customer_react_page('/classification-test');
  }
 
- public function expenses_test_page() {
+ public function expenses_test_page {
  return $this->customer_react_page('/expenses-test');
  }
 
- public function expenses_page() {
+ public function expenses_page {
  return $this->customer_react_page('/expenses');
  }
 
- public function voice_page() {
+ public function voice_page {
  return $this->customer_react_page('/voice');
  }
 
  /**
  * Partner Commission Dashboard Shortcode
  */
- public function commission_dashboard() {
+ public function commission_dashboard {
  return $this->react_page('/commissions');
  }
 
  /**
  * Partner Dashboard Shortcode
  */
- public function partner_dashboard() {
+ public function partner_dashboard {
  return $this->react_page('/partner-program');
  }
 
  /**
  * Commission Admin Shortcode (Super Admin - config management)
  */
- public function commission_admin() {
+ public function commission_admin {
  return $this->react_page('/commission-admin');
  }
 
@@ -242,27 +242,27 @@ class OraBooks_Shortcodes {
  // NOTIFICATION CENTER SHORTCODES
  // ================================================================
 
- public function notification_center() {
+ public function notification_center {
  return $this->react_page('/notifications');
  }
 
- public function notification_preferences() {
+ public function notification_preferences {
  return $this->react_page('/notification-preferences');
  }
 
- public function notification_admin() {
+ public function notification_admin {
  return $this->react_page('/notification-admin');
  }
 
- public function async_queue_dashboard() {
+ public function async_queue_dashboard {
  return $this->react_page('/job-queue');
  }
 
- public function export_status() {
+ public function export_status {
  return $this->react_page('/my-exports');
  }
 
- public function csv_import_page() {
+ public function csv_import_page {
  return $this->customer_react_page('/csv-imports');
  }
 
@@ -287,7 +287,7 @@ class OraBooks_Shortcodes {
  );
  }
 
- public function observability_dashboard() {
+ public function observability_dashboard {
  return $this->react_page('/observability');
  }
 }

@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 /**
  * OraBooks Chart of Accounts
  *
@@ -59,7 +59,7 @@ class OraBooks_COA {
  ],
  ];
 
- public static function init() {
+ public static function init {
  if (self::$instance === null) {
  self::$instance = new self;
  add_action('wp_ajax_orabooks_get_coa', [self::$instance, 'ajax_get_coa']);
@@ -272,7 +272,7 @@ class OraBooks_COA {
  return new WP_Error('db_error', 'Failed to create account.');
  }
 
- $account_id = (int) $wpdb->insert_id();
+ $account_id = (int) $wpdb->insert_id;
  $table_balances = OraBooks_Database::table('account_balances');
  $wpdb->insert($table_balances, [
  'org_id' => (int) $org_id,
@@ -428,14 +428,14 @@ class OraBooks_COA {
  }
 
  // AJAX handlers
- public function ajax_get_coa() {
- $user_id = orabooks_get_current_user_id();
+ public function ajax_get_coa {
+ $user_id = orabooks_get_current_user_id;
  $org_id = intval($_GET['org_id'] ?? 0);
 
  //: Enforce customer org isolation on accounting endpoints
  $isolation = OraBooks_Auth::require_customer_org($user_id, $org_id);
  if (is_wp_error($isolation)) {
- orabooks_json_error($isolation->get_error_message(), 403);
+ orabooks_json_error($isolation->get_error_message, 403);
  }
 
  if (!OraBooks_RBAC::require_permission($user_id, $org_id, 'view_coa')) {
@@ -446,13 +446,13 @@ class OraBooks_COA {
  orabooks_json_success(array_map([self::class, 'format_account_for_api'], $accounts ?: []));
  }
 
- public function ajax_create_account() {
- $user_id = orabooks_get_current_user_id();
+ public function ajax_create_account {
+ $user_id = orabooks_get_current_user_id;
  $org_id = intval($_POST['org_id'] ?? 0);
 
  $isolation = OraBooks_Auth::require_customer_org($user_id, $org_id);
  if (is_wp_error($isolation)) {
- orabooks_json_error($isolation->get_error_message(), 403);
+ orabooks_json_error($isolation->get_error_message, 403);
  }
 
  if (!OraBooks_RBAC::require_permission($user_id, $org_id, 'manage_coa')) {
@@ -466,7 +466,7 @@ class OraBooks_COA {
  'normal_balance' => $_POST['normal_balance'] ?? '',
  ]);
  if (is_wp_error($account_id)) {
- orabooks_json_error($account_id->get_error_message(), 409);
+ orabooks_json_error($account_id->get_error_message, 409);
  }
 
  $account = self::get_account((int) $account_id, $org_id);
@@ -476,14 +476,14 @@ class OraBooks_COA {
  ]);
  }
 
- public function ajax_update_account() {
- $user_id = orabooks_get_current_user_id();
+ public function ajax_update_account {
+ $user_id = orabooks_get_current_user_id;
  $org_id = intval($_POST['org_id'] ?? 0);
  $account_id = intval($_POST['account_id'] ?? 0);
 
  $isolation = OraBooks_Auth::require_customer_org($user_id, $org_id);
  if (is_wp_error($isolation)) {
- orabooks_json_error($isolation->get_error_message(), 403);
+ orabooks_json_error($isolation->get_error_message, 403);
  }
 
  if (!OraBooks_RBAC::require_permission($user_id, $org_id, 'manage_coa')) {
@@ -499,7 +499,7 @@ class OraBooks_COA {
  return $value !== null;
  }), $user_id);
  if (is_wp_error($result)) {
- orabooks_json_error($result->get_error_message(), 409);
+ orabooks_json_error($result->get_error_message, 409);
  }
 
  $account = self::get_account($account_id, $org_id);
@@ -509,14 +509,14 @@ class OraBooks_COA {
  ]);
  }
 
- public function ajax_export_coa() {
- $user_id = orabooks_get_current_user_id();
+ public function ajax_export_coa {
+ $user_id = orabooks_get_current_user_id;
  $org_id = intval($_GET['org_id'] ?? 0);
 
  //: Enforce customer org isolation on accounting endpoints
  $isolation = OraBooks_Auth::require_customer_org($user_id, $org_id);
  if (is_wp_error($isolation)) {
- orabooks_json_error($isolation->get_error_message(), 403);
+ orabooks_json_error($isolation->get_error_message, 403);
  }
 
  if (!OraBooks_RBAC::require_permission($user_id, $org_id, 'view_coa')) {

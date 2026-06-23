@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 /**
  * OraBooks Core Financial Statements
  *
@@ -17,7 +17,7 @@ class OraBooks_Financial_Reports {
 
  private static $instance = null;
 
- public static function init() {
+ public static function init {
  if (self::$instance === null) {
  self::$instance = new self;
 
@@ -39,10 +39,10 @@ class OraBooks_Financial_Reports {
  return self::$instance;
  }
 
- public static function get_create_table_sql() {
+ public static function get_create_table_sql {
  global $wpdb;
 
- $charset_collate = $wpdb->get_charset_collate();
+ $charset_collate = $wpdb->get_charset_collate;
  $table_orgs = OraBooks_Database::table('organizations');
  $table_accounts = OraBooks_Database::table('accounts');
  $tables = [];
@@ -166,7 +166,7 @@ class OraBooks_Financial_Reports {
  ) {$charset_collate};";
  }
 
- public static function seed_projection_dependencies() {
+ public static function seed_projection_dependencies {
  global $wpdb;
 
  $table = OraBooks_Database::table('projection_dependencies');
@@ -402,7 +402,7 @@ class OraBooks_Financial_Reports {
  $has_ledger_activity = self::posted_ledger_has_activity($org_id);
 
  foreach ($closing_rows as $row) {
- $account_id = (int) $row->account_id();
+ $account_id = (int) $row->account_id;
  $closing_balance = self::account_amount($row);
  $opening_balance = (float) ($opening_map[$account_id] ?? 0);
  $columns = self::trial_balance_columns($row, $closing_balance);
@@ -767,7 +767,7 @@ class OraBooks_Financial_Reports {
  'report_schema_version' => self::SCHEMA_VERSION,
  'frozen' => $frozen ? 1: 0,
  'archived' => 0,
- 'expires_at' => $frozen ? null: date('Y-m-d H:i:s', time() + self::SNAPSHOT_TTL_SECONDS),
+ 'expires_at' => $frozen ? null: date('Y-m-d H:i:s', time + self::SNAPSHOT_TTL_SECONDS),
  ], ['%d', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%d', '%d', '%s', '%d', '%d', '%d', '%s']);
 
  $snapshot = (object) [
@@ -872,8 +872,8 @@ class OraBooks_Financial_Reports {
  ));
 
  foreach ($lines as $line) {
- $debit = (float) $line->debit_sum();
- $credit = (float) $line->credit_sum();
+ $debit = (float) $line->debit_sum;
+ $credit = (float) $line->credit_sum;
  $wpdb->query($wpdb->prepare(
  "INSERT INTO {$table_summary} (org_id, account_id, period_date, debit_sum, credit_sum, balance, schema_version, last_event_id)
  VALUES (%d, %d, %s, %f, %f, %f, %d, %d)
@@ -1279,13 +1279,13 @@ class OraBooks_Financial_Reports {
  $rows = $wpdb->get_results("SELECT projection_name, depends_on, rebuild_order FROM {$table} ORDER BY rebuild_order ASC");
 
  if (empty($rows)) {
- self::seed_projection_dependencies();
+ self::seed_projection_dependencies;
  $rows = $wpdb->get_results("SELECT projection_name, depends_on, rebuild_order FROM {$table} ORDER BY rebuild_order ASC");
  }
 
  $graph = [];
  foreach ($rows as $row) {
- $graph[$row->projection_name] = $row->depends_on();
+ $graph[$row->projection_name] = $row->depends_on;
  }
  if (!isset($graph[$projection_name]) && $projection_name === 'ledger_summary') {
  return ['ledger_summary'];
@@ -1369,9 +1369,9 @@ class OraBooks_Financial_Reports {
  }
 
  foreach ($entries as $entry) {
- $debit = (float) $entry->debit_amount();
- $credit = (float) $entry->credit_amount();
- $event_id = (int) $entry->event_id();
+ $debit = (float) $entry->debit_amount;
+ $credit = (float) $entry->credit_amount;
+ $event_id = (int) $entry->event_id;
  $last_event_id = max($last_event_id, $event_id);
 
  $wpdb->query($wpdb->prepare(
@@ -1444,7 +1444,7 @@ class OraBooks_Financial_Reports {
 
  private static function get_snapshot_dek($org_id) {
  if (class_exists('OraBooks_Secrets') && method_exists('OraBooks_Secrets', 'get_encryption_key')) {
- return OraBooks_Secrets::get_encryption_key();
+ return OraBooks_Secrets::get_encryption_key;
  }
  if (function_exists('wp_salt')) {
  return wp_salt('auth');
@@ -1510,7 +1510,7 @@ class OraBooks_Financial_Reports {
  return $snapshot->snapshot_data ?? '';
  }
 
- private static function correlation_id() {
+ private static function correlation_id {
  return function_exists('orabooks_uuid') ? orabooks_uuid: bin2hex(random_bytes(16));
  }
 
@@ -1672,8 +1672,8 @@ class OraBooks_Financial_Reports {
  return null;
  }
 
- private function current_user_id() {
- return orabooks_get_current_user_id();
+ private function current_user_id {
+ return orabooks_get_current_user_id;
  }
 
  private function require_customer_org_access($user_id, $org_id) {
@@ -1683,12 +1683,12 @@ class OraBooks_Financial_Reports {
 
  $isolation = OraBooks_Auth::require_customer_org($user_id, $org_id);
  if (is_wp_error($isolation)) {
- orabooks_json_error($isolation->get_error_message(), 403);
+ orabooks_json_error($isolation->get_error_message, 403);
  }
  }
 
- public function ajax_generate_report() {
- $user_id = $this->current_user_id();
+ public function ajax_generate_report {
+ $user_id = $this->current_user_id;
  $org_id = intval($_REQUEST['org_id'] ?? 0);
  $this->require_customer_org_access($user_id, $org_id);
  if (!OraBooks_RBAC::require_permission($user_id, $org_id, 'view_financial_reports')) {
@@ -1708,14 +1708,14 @@ class OraBooks_Financial_Reports {
  );
 
  if (is_wp_error($result)) {
- orabooks_json_error($result->get_error_message(), 400);
+ orabooks_json_error($result->get_error_message, 400);
  }
 
  orabooks_json_success($result);
  }
 
- public function ajax_request_export() {
- $user_id = $this->current_user_id();
+ public function ajax_request_export {
+ $user_id = $this->current_user_id;
  $org_id = intval($_POST['org_id'] ?? 0);
  $this->require_customer_org_access($user_id, $org_id);
  if (!OraBooks_RBAC::require_permission($user_id, $org_id, 'export_reports')) {
@@ -1737,7 +1737,7 @@ class OraBooks_Financial_Reports {
  $_POST
  );
  if (is_wp_error($result)) {
- orabooks_json_error($result->get_error_message(), 400);
+ orabooks_json_error($result->get_error_message, 400);
  }
  orabooks_json_success($result);
  }
@@ -1745,8 +1745,8 @@ class OraBooks_Financial_Reports {
  orabooks_json_error('Export service unavailable.', 501);
  }
 
- public function ajax_sign_report() {
- $user_id = $this->current_user_id();
+ public function ajax_sign_report {
+ $user_id = $this->current_user_id;
  $org_id = intval($_POST['org_id'] ?? 0);
  $this->require_customer_org_access($user_id, $org_id);
  if (!OraBooks_RBAC::require_permission($user_id, $org_id, 'sign_report')) {
@@ -1755,12 +1755,12 @@ class OraBooks_Financial_Reports {
 
  $result = self::sign_report(intval($_POST['snapshot_id'] ?? 0), $user_id, $_POST['board_approval_reference'] ?? '');
  if (is_wp_error($result)) {
- orabooks_json_error($result->get_error_message(), 400);
+ orabooks_json_error($result->get_error_message, 400);
  }
  orabooks_json_success($result);
  }
 
- public function ajax_rebuild_projection() {
+ public function ajax_rebuild_projection {
  if (!current_user_can('manage_options')) {
  orabooks_json_error('Permission denied', 403);
  }
@@ -1775,12 +1775,12 @@ class OraBooks_Financial_Reports {
  'skip_throttle' => !empty($_POST['skip_throttle']),
  ]);
  if (is_wp_error($result)) {
- orabooks_json_error($result->get_error_message(), 400);
+ orabooks_json_error($result->get_error_message, 400);
  }
  orabooks_json_success($result);
  }
 
- public function ajax_replay_projection() {
+ public function ajax_replay_projection {
  if (!current_user_can('manage_options')) {
  orabooks_json_error('Permission denied', 403);
  }
@@ -1794,7 +1794,7 @@ class OraBooks_Financial_Reports {
  'skip_throttle' => !empty($_POST['skip_throttle']),
  ]);
  if (is_wp_error($result)) {
- orabooks_json_error($result->get_error_message(), 400);
+ orabooks_json_error($result->get_error_message, 400);
  }
  orabooks_json_success($result);
  }

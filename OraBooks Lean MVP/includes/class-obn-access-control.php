@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 /**
  * RBAC / ABAC access-control facade.
  *
@@ -40,9 +40,9 @@ class OBN_Access_Control {
  'sign_report',
  ];
 
- public static function init() {
+ public static function init {
  if (class_exists('OraBooks_RBAC')) {
- OraBooks_RBAC::init();
+ OraBooks_RBAC::init;
  }
  }
 
@@ -57,7 +57,7 @@ class OBN_Access_Control {
  return $reverse[$permission] ?? $permission;
  }
 
- public static function get_roles() {
+ public static function get_roles {
  return self::ROLES;
  }
 
@@ -161,8 +161,8 @@ class OBN_Access_Control {
  'permission' => $permission,
  'role' => $role,
  'reason' => $reason,
- 'ip_address' => function_exists('orabooks_get_client_ip()') ? orabooks_get_client_ip(): '',
- 'user_agent' => function_exists('orabooks_get_user_agent()') ? orabooks_get_user_agent(): '',
+ 'ip_address' => function_exists('orabooks_get_client_ip') ? orabooks_get_client_ip: '',
+ 'user_agent' => function_exists('orabooks_get_user_agent') ? orabooks_get_user_agent: '',
  ], is_array($metadata) ? $metadata: []);
 
  if (class_exists('OraBooks_Database')) {

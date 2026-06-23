@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 /**
  * OraBooks Attachments & Versioning
  *
@@ -50,7 +50,7 @@ class OraBooks_Attachments {
 
  private static $instance = null;
 
- public static function init() {
+ public static function init {
  if (self::$instance === null) {
  self::$instance = new self;
 
@@ -71,13 +71,13 @@ class OraBooks_Attachments {
  return self::$instance;
  }
 
- public static function get_create_table_sql() {
+ public static function get_create_table_sql {
  global $wpdb;
 
  $table_attachments = OraBooks_Database::table(self::TABLE_ATTACHMENTS);
  $table_versions = OraBooks_Database::table(self::TABLE_VERSIONS);
  $table_orgs = OraBooks_Database::table('organizations');
- $charset = $wpdb->get_charset_collate();
+ $charset = $wpdb->get_charset_collate;
 
  return [
  "CREATE TABLE IF NOT EXISTS {$table_attachments} (
@@ -208,7 +208,7 @@ class OraBooks_Attachments {
  'resource_id' => $resource_id,
  ], ['%d', '%s', '%d']);
 
- $attachment_id = (int) $wpdb->insert_id();
+ $attachment_id = (int) $wpdb->insert_id;
  if (!$attachment_id) {
  return new WP_Error('db_error', 'Failed to create attachment record');
  }
@@ -237,7 +237,7 @@ class OraBooks_Attachments {
  'virus_scan_status' => 'clean',
  ], ['%d', '%d', '%s', '%d', '%s', '%s', '%s', '%d', '%s', '%s']);
 
- $version_id = (int) $wpdb->insert_id();
+ $version_id = (int) $wpdb->insert_id;
  if (!$version_id) {
  return new WP_Error('db_error', 'Failed to create attachment version');
  }
@@ -437,7 +437,7 @@ class OraBooks_Attachments {
  }
 
  if ($version_id <= 0) {
- $version_id = (int) $attachment->current_version_id();
+ $version_id = (int) $attachment->current_version_id;
  }
 
  $version = self::get_version($version_id, $org_id);
@@ -570,32 +570,32 @@ class OraBooks_Attachments {
 
  private static function encrypt_content($data) {
  $method = 'aes-256-cbc';
- $key = self::get_file_encryption_key();
+ $key = self::get_file_encryption_key;
  $iv = substr(hash('sha256', $key. '_attachment_iv'), 0, 16);
  return openssl_encrypt($data, $method, $key, 0, $iv);
  }
 
  private static function decrypt_content($data) {
  $method = 'aes-256-cbc';
- $key = self::get_file_encryption_key();
+ $key = self::get_file_encryption_key;
  $iv = substr(hash('sha256', $key. '_attachment_iv'), 0, 16);
  return openssl_decrypt($data, $method, $key, 0, $iv);
  }
 
- private static function get_file_encryption_key() {
+ private static function get_file_encryption_key {
  if (class_exists('OraBooks_Secrets')) {
- return OraBooks_Secrets::get_encryption_key();
+ return OraBooks_Secrets::get_encryption_key;
  }
 
  return wp_salt('auth');
  }
 
- public function cron_purge_old_attachments() {
+ public function cron_purge_old_attachments {
  global $wpdb;
 
  $table_attachments = OraBooks_Database::table(self::TABLE_ATTACHMENTS);
  $table_versions = OraBooks_Database::table(self::TABLE_VERSIONS);
- $cutoff = gmdate('Y-m-d H:i:s', time() - (self::RETENTION_DAYS * DAY_IN_SECONDS));
+ $cutoff = gmdate('Y-m-d H:i:s', time - (self::RETENTION_DAYS * DAY_IN_SECONDS));
 
  $attachments = $wpdb->get_results($wpdb->prepare(
  "SELECT id FROM {$table_attachments}
@@ -632,8 +632,8 @@ class OraBooks_Attachments {
  ]);
  }
 
- private function current_user_id() {
- return orabooks_get_current_user_id();
+ private function current_user_id {
+ return orabooks_get_current_user_id;
  }
 
  private function require_customer_org_access($user_id, $org_id) {
@@ -643,12 +643,12 @@ class OraBooks_Attachments {
 
  $isolation = OraBooks_Auth::require_customer_org($user_id, $org_id);
  if (is_wp_error($isolation)) {
- orabooks_json_error($isolation->get_error_message(), 403);
+ orabooks_json_error($isolation->get_error_message, 403);
  }
  }
 
- public function ajax_upload() {
- $user_id = $this->current_user_id();
+ public function ajax_upload {
+ $user_id = $this->current_user_id;
  $org_id = intval($_POST['org_id'] ?? 0);
  $resource_type = sanitize_text_field($_POST['resource_type'] ?? 'general');
  $resource_id = intval($_POST['resource_id'] ?? 0);
@@ -682,15 +682,15 @@ class OraBooks_Attachments {
  );
 
  if (is_wp_error($result)) {
- $code = $result->get_error_code() === 'duplicate' ? 409: 400;
- orabooks_json_error($result->get_error_message(), $code, $result->get_error_data);
+ $code = $result->get_error_code === 'duplicate' ? 409: 400;
+ orabooks_json_error($result->get_error_message, $code, $result->get_error_data);
  }
 
  orabooks_json_success($result);
  }
 
- public function ajax_list() {
- $user_id = $this->current_user_id();
+ public function ajax_list {
+ $user_id = $this->current_user_id;
  $org_id = intval($_POST['org_id'] ?? $_GET['org_id'] ?? 0);
  $resource_type = sanitize_text_field($_POST['resource_type'] ?? $_GET['resource_type'] ?? '');
  $resource_id = intval($_POST['resource_id'] ?? $_GET['resource_id'] ?? 0);
@@ -711,8 +711,8 @@ class OraBooks_Attachments {
  ]);
  }
 
- public function ajax_get() {
- $user_id = $this->current_user_id();
+ public function ajax_get {
+ $user_id = $this->current_user_id;
  $org_id = intval($_POST['org_id'] ?? $_GET['org_id'] ?? 0);
  $attachment_id = intval($_POST['attachment_id'] ?? $_GET['attachment_id'] ?? 0);
 
@@ -753,8 +753,8 @@ class OraBooks_Attachments {
  ]);
  }
 
- public function ajax_delete() {
- $user_id = $this->current_user_id();
+ public function ajax_delete {
+ $user_id = $this->current_user_id;
  $org_id = intval($_POST['org_id'] ?? 0);
  $attachment_id = intval($_POST['attachment_id'] ?? 0);
 
@@ -766,14 +766,14 @@ class OraBooks_Attachments {
 
  $result = self::soft_delete($attachment_id, $org_id, $user_id);
  if (is_wp_error($result)) {
- orabooks_json_error($result->get_error_message(), 400);
+ orabooks_json_error($result->get_error_message, 400);
  }
 
  orabooks_json_success([], 'Attachment deleted');
  }
 
- public function ajax_download() {
- $user_id = $this->current_user_id();
+ public function ajax_download {
+ $user_id = $this->current_user_id;
  $org_id = intval($_GET['org_id'] ?? 0);
  $attachment_id = intval($_GET['attachment_id'] ?? 0);
  $version_id = intval($_GET['version_id'] ?? 0);
@@ -786,10 +786,10 @@ class OraBooks_Attachments {
 
  $download = self::prepare_download($attachment_id, $org_id, $user_id, $version_id);
  if (is_wp_error($download)) {
- orabooks_json_error($download->get_error_message(), 400);
+ orabooks_json_error($download->get_error_message, 400);
  }
 
- nocache_headers();
+ nocache_headers;
  header('Content-Type: '. $download['mime_type']);
  header('Content-Disposition: attachment; filename="'. sanitize_file_name($download['filename']). '"');
  header('Content-Length: '. strlen($download['content']));

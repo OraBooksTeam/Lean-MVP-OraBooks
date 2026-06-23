@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 /**
  * OraBooks Workflow State Engine
  *
@@ -45,10 +45,10 @@ class OraBooks_Workflow {
  ],
  ];
 
- public static function init() {
+ public static function init {
  if (self::$instance === null) {
  self::$instance = new self;
- self::register_default_machines();
+ self::register_default_machines;
 
  add_action('wp_ajax_orabooks_workflow_transitions', [self::$instance, 'ajax_get_transitions']);
  add_action('wp_ajax_orabooks_workflow_allowed_events', [self::$instance, 'ajax_allowed_events']);
@@ -57,7 +57,7 @@ class OraBooks_Workflow {
  }
 
  if (class_exists('OraBooks_Workflow_Integration')) {
- OraBooks_Workflow_Integration::init();
+ OraBooks_Workflow_Integration::init;
  }
 
  return self::$instance;
@@ -66,7 +66,7 @@ class OraBooks_Workflow {
  /**
  * Default state machine definitions (MVP hard-coded, filterable).
  */
- public static function register_default_machines() {
+ public static function register_default_machines {
  self::$machines = apply_filters('orabooks_workflow_state_machines', [
  'journal' => [
  'states' => ['draft', 'review_pending', 'approved', 'posted', 'locked', 'reversed'],
@@ -121,9 +121,9 @@ class OraBooks_Workflow {
  ]);
  }
 
- public static function get_machines() {
+ public static function get_machines {
  if (empty(self::$machines)) {
- self::register_default_machines();
+ self::register_default_machines;
  }
  return self::$machines;
  }
@@ -134,7 +134,7 @@ class OraBooks_Workflow {
  * @return string[]
  */
  public static function allowed_events($record_type, $current_state) {
- $machines = self::get_machines();
+ $machines = self::get_machines;
  $sm = $machines[$record_type] ?? null;
  if (!$sm) {
  return [];
@@ -157,7 +157,7 @@ class OraBooks_Workflow {
  * @return true|WP_Error
  */
  public static function validate_transition($record_type, $current_state, $event) {
- $machines = self::get_machines();
+ $machines = self::get_machines;
  $sm = $machines[$record_type] ?? null;
 
  if (!$sm) {
@@ -241,19 +241,19 @@ class OraBooks_Workflow {
 
  $validation = self::validate_transition($record_type, $current_state, $event);
  if (is_wp_error($validation)) {
- self::track_failure($record_type, $event, $resolved_org_id, $validation->get_error_code(), $context);
+ self::track_failure($record_type, $event, $resolved_org_id, $validation->get_error_code, $context);
  self::rollback_transaction($skip_transaction);
  return $validation;
  }
 
  $preconditions = self::check_preconditions($record_type, $event, $record, $context);
  if (is_wp_error($preconditions)) {
- self::track_failure($record_type, $event, $resolved_org_id, $preconditions->get_error_code(), $context);
+ self::track_failure($record_type, $event, $resolved_org_id, $preconditions->get_error_code, $context);
  self::rollback_transaction($skip_transaction);
  return $preconditions;
  }
 
- $machines = self::get_machines();
+ $machines = self::get_machines;
  $to_state = $machines[$record_type]['transitions'][$event]['to'];
 
  $row_updates = apply_filters(
@@ -319,7 +319,7 @@ class OraBooks_Workflow {
  self::commit_transaction($skip_transaction);
  } catch (Exception $e) {
  self::rollback_transaction($skip_transaction);
- return new WP_Error('transition_failed', $e->getMessage());
+ return new WP_Error('transition_failed', $e->getMessage);
  }
 
  $result = [
@@ -423,8 +423,8 @@ class OraBooks_Workflow {
  return $formatted;
  }
 
- public function ajax_get_transitions() {
- $user_id = orabooks_get_current_user_id();
+ public function ajax_get_transitions {
+ $user_id = orabooks_get_current_user_id;
  $org_id = orabooks_get_current_org_id($user_id);
 
  if (!$user_id || !$org_id) {
@@ -448,8 +448,8 @@ class OraBooks_Workflow {
  ]);
  }
 
- public function ajax_allowed_events() {
- $user_id = orabooks_get_current_user_id();
+ public function ajax_allowed_events {
+ $user_id = orabooks_get_current_user_id;
  $org_id = orabooks_get_current_org_id($user_id);
 
  if (!$user_id || !$org_id) {
@@ -469,7 +469,7 @@ class OraBooks_Workflow {
 
  $state = self::get_record_state($record_type, $record_id, $org_id);
  if (is_wp_error($state)) {
- orabooks_json_error($state->get_error_message(), 404);
+ orabooks_json_error($state->get_error_message, 404);
  }
 
  orabooks_json_success([
@@ -478,8 +478,8 @@ class OraBooks_Workflow {
  ]);
  }
 
- public function ajax_transition() {
- $user_id = orabooks_get_current_user_id();
+ public function ajax_transition {
+ $user_id = orabooks_get_current_user_id;
  $org_id = orabooks_get_current_org_id($user_id);
 
  if (!$user_id || !$org_id) {
@@ -506,11 +506,11 @@ class OraBooks_Workflow {
 
  if (is_wp_error($result)) {
  $status = 400;
- $data = $result->get_error_data();
+ $data = $result->get_error_data;
  if (is_array($data) && isset($data['status'])) {
  $status = (int) $data['status'];
  }
- orabooks_json_error($result->get_error_message(), $status);
+ orabooks_json_error($result->get_error_message, $status);
  }
 
  orabooks_json_success($result);
@@ -554,8 +554,8 @@ class OraBooks_Workflow {
  || orabooks_has_permission($user_id, $org_id, 'approve_journal');
  }
 
- public function ajax_workflow_health() {
- $user_id = orabooks_get_current_user_id();
+ public function ajax_workflow_health {
+ $user_id = orabooks_get_current_user_id;
  $org_id = orabooks_get_current_org_id($user_id);
 
  if (!$user_id || !$org_id) {
@@ -687,7 +687,7 @@ class OraBooks_Workflow {
  return 0;
  }
 
- return (int) $wpdb->insert_id();
+ return (int) $wpdb->insert_id;
  }
 
  /**

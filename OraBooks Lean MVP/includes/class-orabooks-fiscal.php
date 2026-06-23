@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 /**
  * OraBooks Fiscal Period & Lock Governance
  *
@@ -13,7 +13,7 @@ class OraBooks_Fiscal {
 
  private static $instance = null;
 
- public static function init() {
+ public static function init {
  if (self::$instance === null) {
  self::$instance = new self;
  add_action('wp_ajax_orabooks_fiscal_periods_list', [self::$instance, 'ajax_list_periods']);
@@ -53,7 +53,7 @@ class OraBooks_Fiscal {
  /**
  * Monthly cron: ensure next month periods exist for all customer orgs.
  */
- public static function cron_ensure_periods() {
+ public static function cron_ensure_periods {
  global $wpdb;
 
  $table = OraBooks_Database::table('organizations');
@@ -243,7 +243,7 @@ class OraBooks_Fiscal {
  return new WP_Error('db_error', 'Failed to create fiscal period.');
  }
 
- return (int) $wpdb->insert_id();
+ return (int) $wpdb->insert_id;
  }
 
  public static function update_period($period_id, $org_id, $data, $user_id) {
@@ -595,13 +595,13 @@ class OraBooks_Fiscal {
  ));
  }
 
- public function ajax_list_periods() {
- $user_id = orabooks_get_current_user_id();
+ public function ajax_list_periods {
+ $user_id = orabooks_get_current_user_id;
  $org_id = intval($_GET['org_id'] ?? $_POST['org_id'] ?? 0);
 
  $isolation = OraBooks_Auth::require_customer_org($user_id, $org_id);
  if (is_wp_error($isolation)) {
- orabooks_json_error($isolation->get_error_message(), 403);
+ orabooks_json_error($isolation->get_error_message, 403);
  }
 
  if (!OraBooks_RBAC::require_permission($user_id, $org_id, 'manage_fiscal_periods')) {
@@ -611,8 +611,8 @@ class OraBooks_Fiscal {
  orabooks_json_success(self::list_periods_for_api($org_id));
  }
 
- public function ajax_close_period() {
- $user_id = orabooks_get_current_user_id();
+ public function ajax_close_period {
+ $user_id = orabooks_get_current_user_id;
  $org_id = intval($_POST['org_id'] ?? 0);
  $period_id = intval($_POST['period_id'] ?? 0);
  $close_type = sanitize_text_field($_POST['close_type'] ?? 'soft');
@@ -621,7 +621,7 @@ class OraBooks_Fiscal {
 
  $isolation = OraBooks_Auth::require_customer_org($user_id, $org_id);
  if (is_wp_error($isolation)) {
- orabooks_json_error($isolation->get_error_message(), 403);
+ orabooks_json_error($isolation->get_error_message, 403);
  }
 
  if (!OraBooks_RBAC::require_permission($user_id, $org_id, 'manage_fiscal_periods')) {
@@ -632,7 +632,7 @@ class OraBooks_Fiscal {
  'hard_confirm' => $hard_confirm,
  ]);
  if (is_wp_error($result)) {
- orabooks_json_error($result->get_error_message(), 409);
+ orabooks_json_error($result->get_error_message, 409);
  }
 
  orabooks_json_success([
@@ -643,15 +643,15 @@ class OraBooks_Fiscal {
  ]);
  }
 
- public function ajax_reopen_period() {
- $user_id = orabooks_get_current_user_id();
+ public function ajax_reopen_period {
+ $user_id = orabooks_get_current_user_id;
  $org_id = intval($_POST['org_id'] ?? 0);
  $period_id = intval($_POST['period_id'] ?? 0);
  $reason = sanitize_textarea_field($_POST['reason'] ?? '');
 
  $isolation = OraBooks_Auth::require_customer_org($user_id, $org_id);
  if (is_wp_error($isolation)) {
- orabooks_json_error($isolation->get_error_message(), 403);
+ orabooks_json_error($isolation->get_error_message, 403);
  }
 
  if (!OraBooks_RBAC::require_permission($user_id, $org_id, 'manage_fiscal_periods')) {
@@ -660,14 +660,14 @@ class OraBooks_Fiscal {
 
  $result = self::reopen_period($period_id, $org_id, $user_id, $reason);
  if (is_wp_error($result)) {
- orabooks_json_error($result->get_error_message(), 409);
+ orabooks_json_error($result->get_error_message, 409);
  }
 
  orabooks_json_success(['period_id' => $period_id, 'status' => 'open']);
  }
 
- public function ajax_override_reopen_period() {
- $user_id = orabooks_get_current_user_id();
+ public function ajax_override_reopen_period {
+ $user_id = orabooks_get_current_user_id;
  $org_id = intval($_POST['org_id'] ?? 0);
  $period_id = intval($_POST['period_id'] ?? 0);
  $justification = sanitize_textarea_field($_POST['justification'] ?? '');
@@ -678,26 +678,26 @@ class OraBooks_Fiscal {
 
  $isolation = OraBooks_Auth::require_customer_org($user_id, $org_id);
  if (is_wp_error($isolation)) {
- orabooks_json_error($isolation->get_error_message(), 403);
+ orabooks_json_error($isolation->get_error_message, 403);
  }
 
  $result = self::override_reopen_period($period_id, $org_id, $user_id, $justification);
  if (is_wp_error($result)) {
- orabooks_json_error($result->get_error_message(), 409);
+ orabooks_json_error($result->get_error_message, 409);
  }
 
  orabooks_json_success(['period_id' => $period_id, 'status' => 'open']);
  }
 
- public function ajax_create_period() {
- $user_id = orabooks_get_current_user_id();
+ public function ajax_create_period {
+ $user_id = orabooks_get_current_user_id;
  $org_id = intval($_POST['org_id'] ?? 0);
  $period_start = sanitize_text_field($_POST['period_start'] ?? '');
  $period_end = sanitize_text_field($_POST['period_end'] ?? '');
 
  $isolation = OraBooks_Auth::require_customer_org($user_id, $org_id);
  if (is_wp_error($isolation)) {
- orabooks_json_error($isolation->get_error_message(), 403);
+ orabooks_json_error($isolation->get_error_message, 403);
  }
 
  if (!OraBooks_RBAC::require_permission($user_id, $org_id, 'manage_fiscal_periods')) {
@@ -706,7 +706,7 @@ class OraBooks_Fiscal {
 
  $period_id = self::create_period($org_id, $period_start, $period_end);
  if (is_wp_error($period_id)) {
- orabooks_json_error($period_id->get_error_message(), 409);
+ orabooks_json_error($period_id->get_error_message, 409);
  }
 
  $period = self::get_period($period_id, $org_id);
@@ -716,8 +716,8 @@ class OraBooks_Fiscal {
  ]);
  }
 
- public function ajax_update_period() {
- $user_id = orabooks_get_current_user_id();
+ public function ajax_update_period {
+ $user_id = orabooks_get_current_user_id;
  $org_id = intval($_POST['org_id'] ?? 0);
  $period_id = intval($_POST['period_id'] ?? 0);
  $period_start = sanitize_text_field($_POST['period_start'] ?? '');
@@ -725,7 +725,7 @@ class OraBooks_Fiscal {
 
  $isolation = OraBooks_Auth::require_customer_org($user_id, $org_id);
  if (is_wp_error($isolation)) {
- orabooks_json_error($isolation->get_error_message(), 403);
+ orabooks_json_error($isolation->get_error_message, 403);
  }
 
  if (!OraBooks_RBAC::require_permission($user_id, $org_id, 'manage_fiscal_periods')) {
@@ -737,7 +737,7 @@ class OraBooks_Fiscal {
  'period_end' => $period_end,
  ], $user_id);
  if (is_wp_error($result)) {
- orabooks_json_error($result->get_error_message(), 409);
+ orabooks_json_error($result->get_error_message, 409);
  }
 
  $period = self::get_period($period_id, $org_id);

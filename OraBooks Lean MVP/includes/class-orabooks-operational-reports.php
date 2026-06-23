@@ -1,8 +1,8 @@
-﻿<?php
+<?php
 /**
  * OraBooks Operational Reports
  *
- * Near real-time() operational reporting from read models. This module does not
+ * Near real-time operational reporting from read models. This module does not
  * generate core financial statements; those belong to.
  */
 
@@ -16,7 +16,7 @@ class OraBooks_Operational_Reports {
 
  private static $instance = null;
 
- public static function init() {
+ public static function init {
  if (self::$instance === null) {
  self::$instance = new self;
 
@@ -39,10 +39,10 @@ class OraBooks_Operational_Reports {
  return self::$instance;
  }
 
- public static function get_create_table_sql() {
+ public static function get_create_table_sql {
  global $wpdb;
 
- $charset_collate = $wpdb->get_charset_collate();
+ $charset_collate = $wpdb->get_charset_collate;
  $tables = [];
  $table_orgs = OraBooks_Database::table('organizations');
 
@@ -239,7 +239,7 @@ class OraBooks_Operational_Reports {
  ];
  }
  $bucket = self::normalize_bucket($row->bucket);
- $amount = (float) $row->amount();
+ $amount = (float) $row->amount;
  $result[$id][$bucket] += $amount;
  $result[$id]['total_due'] += $amount;
  }
@@ -249,7 +249,7 @@ class OraBooks_Operational_Reports {
  private static function aging_totals($rows) {
  $totals = ['current' => 0.0, '30' => 0.0, '60' => 0.0, '90_plus' => 0.0];
  foreach ($rows as $row) {
- $totals[self::normalize_bucket($row->bucket)] += (float) $row->amount();
+ $totals[self::normalize_bucket($row->bucket)] += (float) $row->amount;
  }
  return $totals;
  }
@@ -283,8 +283,8 @@ class OraBooks_Operational_Reports {
 
  $low_count = 0;
  foreach ($rows as $row) {
- $row->current_stock = (float) $row->current_stock();
- $row->reorder_level = (float) $row->reorder_level();
+ $row->current_stock = (float) $row->current_stock;
+ $row->reorder_level = (float) $row->reorder_level;
  $row->status = $row->current_stock < $row->reorder_level ? 'low': 'ok';
  if ($row->status === 'low') {
  $low_count++;
@@ -415,7 +415,7 @@ class OraBooks_Operational_Reports {
 
  $table = OraBooks_Database::table('report_inventory_status');
  $reorder_level = isset($product->low_stock_threshold) && $product->low_stock_threshold !== null ? (float) $product->low_stock_threshold: 10.0;
- $current_stock = (float) $product->current_stock();
+ $current_stock = (float) $product->current_stock;
  $status = $current_stock < $reorder_level ? 'low': 'ok';
 
  $wpdb->query($wpdb->prepare(
@@ -485,7 +485,7 @@ class OraBooks_Operational_Reports {
 
  $table = OraBooks_Database::table('report_sales_summary');
  $date = sanitize_text_field($invoice->transaction_date);
- $total_sales = (float) $invoice->total_amount();
+ $total_sales = (float) $invoice->total_amount;
  $returns = $invoice->payment_status === 'cancelled' ? $total_sales: 0.0;
  $net = $total_sales - $returns;
 
@@ -672,10 +672,10 @@ class OraBooks_Operational_Reports {
  public static function invalidate_cache($org_id, $report_type = null) {
  // WordPress object cache has no portable group flush. Version bump keeps
  // current request caches coherent while persistent caches expire by TTL.
- wp_cache_set('last_invalidation_'. intval($org_id). '_'. ($report_type ?: 'all'), time(), 'orabooks_operational_reports', self::CACHE_TTL);
+ wp_cache_set('last_invalidation_'. intval($org_id). '_'. ($report_type ?: 'all'), time, 'orabooks_operational_reports', self::CACHE_TTL);
  }
 
- private static function correlation_id() {
+ private static function correlation_id {
  return function_exists('orabooks_uuid') ? orabooks_uuid: bin2hex(random_bytes(16));
  }
 
@@ -771,8 +771,8 @@ class OraBooks_Operational_Reports {
  return null;
  }
 
- public function ajax_generate_report() {
- $user_id = orabooks_get_current_user_id();
+ public function ajax_generate_report {
+ $user_id = orabooks_get_current_user_id;
  $org_id = intval($_REQUEST['org_id'] ?? 0);
  if (!$user_id) {
  orabooks_json_error('Not authenticated', 401);
@@ -780,7 +780,7 @@ class OraBooks_Operational_Reports {
 
  $isolation = OraBooks_Auth::require_customer_org($user_id, $org_id);
  if (is_wp_error($isolation)) {
- orabooks_json_error($isolation->get_error_message(), 403);
+ orabooks_json_error($isolation->get_error_message, 403);
  }
 
  if (!OraBooks_RBAC::require_permission($user_id, $org_id, 'view_operational_reports')) {
@@ -789,13 +789,13 @@ class OraBooks_Operational_Reports {
 
  $result = self::generate_report($org_id, $_REQUEST['report_type'] ?? '', $_REQUEST);
  if (is_wp_error($result)) {
- orabooks_json_error($result->get_error_message(), 400);
+ orabooks_json_error($result->get_error_message, 400);
  }
  orabooks_json_success($result);
  }
 
- public function ajax_request_export() {
- $user_id = orabooks_get_current_user_id();
+ public function ajax_request_export {
+ $user_id = orabooks_get_current_user_id;
  $org_id = intval($_POST['org_id'] ?? 0);
  if (!$user_id) {
  orabooks_json_error('Not authenticated', 401);
@@ -803,7 +803,7 @@ class OraBooks_Operational_Reports {
 
  $isolation = OraBooks_Auth::require_customer_org($user_id, $org_id);
  if (is_wp_error($isolation)) {
- orabooks_json_error($isolation->get_error_message(), 403);
+ orabooks_json_error($isolation->get_error_message, 403);
  }
 
  if (!OraBooks_RBAC::require_permission($user_id, $org_id, 'export_reports')) {
@@ -818,7 +818,7 @@ class OraBooks_Operational_Reports {
  if (class_exists('OraBooks_Exports') && method_exists('OraBooks_Exports', 'request_export')) {
  $result = OraBooks_Exports::request_export($org_id, $user_id, 'operational_'. sanitize_text_field($_POST['report_type'] ?? 'report'), sanitize_text_field($_POST['format'] ?? 'csv'), $_POST);
  if (is_wp_error($result)) {
- orabooks_json_error($result->get_error_message(), 400);
+ orabooks_json_error($result->get_error_message, 400);
  }
  orabooks_json_success($result);
  }
@@ -826,8 +826,8 @@ class OraBooks_Operational_Reports {
  orabooks_json_error('Export service unavailable.', 501);
  }
 
- public function ajax_update_reorder_level() {
- $user_id = orabooks_get_current_user_id();
+ public function ajax_update_reorder_level {
+ $user_id = orabooks_get_current_user_id;
  $org_id = intval($_POST['org_id'] ?? 0);
  if (!$user_id) {
  orabooks_json_error('Not authenticated', 401);
@@ -835,7 +835,7 @@ class OraBooks_Operational_Reports {
 
  $isolation = OraBooks_Auth::require_customer_org($user_id, $org_id);
  if (is_wp_error($isolation)) {
- orabooks_json_error($isolation->get_error_message(), 403);
+ orabooks_json_error($isolation->get_error_message, 403);
  }
 
  if (!OraBooks_RBAC::require_permission($user_id, $org_id, 'manage_inventory')) {
@@ -844,7 +844,7 @@ class OraBooks_Operational_Reports {
 
  $result = self::update_reorder_level($org_id, intval($_POST['product_id'] ?? 0), floatval($_POST['reorder_level'] ?? 0));
  if (is_wp_error($result)) {
- orabooks_json_error($result->get_error_message(), 400);
+ orabooks_json_error($result->get_error_message, 400);
  }
  orabooks_json_success([], 'Reorder level updated.');
  }

@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 /**
  * Unified Frontend Accounting module (merged WPMU Basic Accounting into Lean MVP).
  *
@@ -25,7 +25,7 @@ if (!class_exists('Frontend_Accounting_Permissions')) {
 
 if (!function_exists('orabooks_can_access_accounting')) {
     function orabooks_can_access_accounting() {
-        if (function_exists('orabooks_is_user_logged_in()') && orabooks_is_user_logged_in()) {
+        if (function_exists('orabooks_is_user_logged_in') && orabooks_is_user_logged_in()) {
             // Continue with OraBooks auth below.
         } elseif (!is_user_logged_in()) {
             return false;
@@ -35,7 +35,7 @@ if (!function_exists('orabooks_can_access_accounting')) {
             return true;
         }
 
-        $user_id = function_exists('orabooks_get_current_user_id()') ? orabooks_get_current_user_id() : get_current_user_id();
+        $user_id = function_exists('orabooks_get_current_user_id') ? orabooks_get_current_user_id() : get_current_user_id();
         if ($user_id && class_exists('OraBooks_Auth')) {
             $org_id = function_exists('orabooks_get_current_org_id')
                 ? (int) orabooks_get_current_org_id($user_id)
@@ -102,7 +102,7 @@ class OraBooks_Accounting {
             return;
         }
 
-        $user_id = function_exists('orabooks_get_current_user_id()') ? orabooks_get_current_user_id() : 0;
+        $user_id = function_exists('orabooks_get_current_user_id') ? orabooks_get_current_user_id() : 0;
         $org_id = $user_id > 0 && function_exists('orabooks_get_current_org_id')
             ? orabooks_get_current_org_id($user_id)
             : 0;

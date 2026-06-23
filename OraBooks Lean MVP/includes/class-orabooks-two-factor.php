@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 /**
  * OraBooks Two-Factor Authentication service
  *
@@ -13,7 +13,7 @@ class OraBooks_TwoFactor {
 
  private static $instance = null;
 
- public static function init() {
+ public static function init {
  if (self::$instance !== null) {
  return self::$instance;
  }
@@ -67,11 +67,11 @@ class OraBooks_TwoFactor {
  );
  }
 
- $secret = OraBooks_Secrets::generate_totp_secret();
+ $secret = OraBooks_Secrets::generate_totp_secret;
  orabooks_set_2fa_temp_secret($wp_user_id, $secret);
 
- $email = get_userdata($wp_user_id)->user_email ?? (string) $user->email();
- $backup_codes = OraBooks_Secrets::generate_backup_codes();
+ $email = get_userdata($wp_user_id)->user_email ?? (string) $user->email;
+ $backup_codes = OraBooks_Secrets::generate_backup_codes;
  orabooks_set_2fa_temp_backup_codes($wp_user_id, $backup_codes);
 
  return [
@@ -161,7 +161,7 @@ class OraBooks_TwoFactor {
  }
 
  $user_id = (int) ($payload['user_id'] ?? 0);
- $rate_key = '2fa_challenge_'. orabooks_get_client_ip(). '_'. $user_id;
+ $rate_key = '2fa_challenge_'. orabooks_get_client_ip. '_'. $user_id;
 
  $wp_user_id = orabooks_get_wp_user_id_for_orabooks_user($user_id);
  if ($wp_user_id <= 0) {
@@ -329,7 +329,7 @@ class OraBooks_TwoFactor {
  return new WP_Error('invalid_otp', 'Invalid OTP code', ['status' => 400]);
  }
 
- $backup_codes = OraBooks_Secrets::generate_backup_codes();
+ $backup_codes = OraBooks_Secrets::generate_backup_codes;
  self::persist_backup_codes($orabooks_user_id, $backup_codes);
 
  orabooks_log_event(
@@ -632,7 +632,7 @@ class OraBooks_TwoFactor {
  *
  * @return string[]
  */
- public static function get_2fa_compliance_exempt_actions() {
+ public static function get_2fa_compliance_exempt_actions {
  return [
  'orabooks_login',
  'orabooks_register',
@@ -667,7 +667,7 @@ class OraBooks_TwoFactor {
  return in_array(sanitize_key((string) $action), self::get_2fa_compliance_exempt_actions, true);
  }
 
- public function maybe_enforce_ajax_2fa_compliance() {
+ public function maybe_enforce_ajax_2fa_compliance {
  if (!wp_doing_ajax) {
  return;
  }
@@ -681,11 +681,11 @@ class OraBooks_TwoFactor {
  return;
  }
 
- if (!orabooks_is_user_logged_in()) {
+ if (!orabooks_is_user_logged_in) {
  return;
  }
 
- $user_id = orabooks_get_current_user_id();
+ $user_id = orabooks_get_current_user_id;
  if ($user_id <= 0) {
  return;
  }
@@ -702,7 +702,7 @@ class OraBooks_TwoFactor {
 
  $compliance = self::assert_org_compliance($user_id, $org_id);
  if (is_wp_error($compliance)) {
- orabooks_json_error($compliance->get_error_message(), 403);
+ orabooks_json_error($compliance->get_error_message, 403);
  }
  }
 
@@ -826,85 +826,85 @@ class OraBooks_TwoFactor {
  }
  }
 
- public function ajax_disable_2fa() {
- if (!orabooks_is_user_logged_in()) {
+ public function ajax_disable_2fa {
+ if (!orabooks_is_user_logged_in) {
  orabooks_json_error('Not authenticated', 401);
  }
 
  $result = self::disable(
- orabooks_get_current_user_id(),
+ orabooks_get_current_user_id,
  sanitize_text_field($_POST['otp_code'] ?? '')
  );
 
  if (is_wp_error($result)) {
- orabooks_json_error($result->get_error_message(), (int) ($result->get_error_data['status'] ?? 400));
+ orabooks_json_error($result->get_error_message, (int) ($result->get_error_data['status'] ?? 400));
  }
 
  orabooks_json_success($result, 'Two-factor authentication disabled');
  }
 
- public function ajax_regenerate_backup_codes() {
- if (!orabooks_is_user_logged_in()) {
+ public function ajax_regenerate_backup_codes {
+ if (!orabooks_is_user_logged_in) {
  orabooks_json_error('Not authenticated', 401);
  }
 
  $result = self::regenerate_backup_codes(
- orabooks_get_current_user_id(),
+ orabooks_get_current_user_id,
  sanitize_text_field($_POST['otp_code'] ?? '')
  );
 
  if (is_wp_error($result)) {
- orabooks_json_error($result->get_error_message(), (int) ($result->get_error_data['status'] ?? 400));
+ orabooks_json_error($result->get_error_message, (int) ($result->get_error_data['status'] ?? 400));
  }
 
  orabooks_json_success($result, 'Backup codes regenerated');
  }
 
- public function ajax_reveal_backup_codes() {
- if (!orabooks_is_user_logged_in()) {
+ public function ajax_reveal_backup_codes {
+ if (!orabooks_is_user_logged_in) {
  orabooks_json_error('Not authenticated', 401);
  }
 
  $result = self::reveal_backup_codes(
- orabooks_get_current_user_id(),
+ orabooks_get_current_user_id,
  sanitize_text_field($_POST['otp_code'] ?? '')
  );
 
  if (is_wp_error($result)) {
- orabooks_json_error($result->get_error_message(), (int) ($result->get_error_data['status'] ?? 400));
+ orabooks_json_error($result->get_error_message, (int) ($result->get_error_data['status'] ?? 400));
  }
 
  orabooks_json_success($result, 'Backup codes retrieved');
  }
 
- public function ajax_status() {
- if (!orabooks_is_user_logged_in()) {
+ public function ajax_status {
+ if (!orabooks_is_user_logged_in) {
  orabooks_json_error('Not authenticated', 401);
  }
 
- orabooks_json_success(self::get_status(orabooks_get_current_user_id()));
+ orabooks_json_success(self::get_status(orabooks_get_current_user_id));
  }
 
- public function ajax_admin_recover() {
- if (!orabooks_is_user_logged_in()) {
+ public function ajax_admin_recover {
+ if (!orabooks_is_user_logged_in) {
  orabooks_json_error('Not authenticated', 401);
  }
 
  $result = self::admin_recover(
  (int) ($_POST['target_user_id'] ?? 0),
- orabooks_get_current_user_id(),
+ orabooks_get_current_user_id,
  sanitize_textarea_field($_POST['justification'] ?? '')
  );
 
  if (is_wp_error($result)) {
- orabooks_json_error($result->get_error_message(), (int) ($result->get_error_data['status'] ?? 400));
+ orabooks_json_error($result->get_error_message, (int) ($result->get_error_data['status'] ?? 400));
  }
 
  orabooks_json_success($result, $result['message'] ?? '2FA recovered');
  }
 
- public function ajax_org_policy_get() {
- if (!orabooks_is_user_logged_in()) {
+ public function ajax_org_policy_get {
+ if (!orabooks_is_user_logged_in) {
  orabooks_json_error('Not authenticated', 401);
  }
 
@@ -913,24 +913,24 @@ class OraBooks_TwoFactor {
  orabooks_json_error('Organization is required', 400);
  }
 
- if (!OraBooks_RBAC::require_permission(orabooks_get_current_user_id(), $org_id, 'manage_org_settings')) {
+ if (!OraBooks_RBAC::require_permission(orabooks_get_current_user_id, $org_id, 'manage_org_settings')) {
  orabooks_json_error('Permission denied', 403);
  }
 
  orabooks_json_success(self::get_org_policy($org_id));
  }
 
- public function ajax_org_policy_set() {
- if (!orabooks_is_user_logged_in()) {
+ public function ajax_org_policy_set {
+ if (!orabooks_is_user_logged_in) {
  orabooks_json_error('Not authenticated', 401);
  }
 
  $org_id = (int) ($_POST['org_id'] ?? orabooks_get_current_org_id);
  $enabled = !empty($_POST['require_2fa']) && filter_var($_POST['require_2fa'], FILTER_VALIDATE_BOOLEAN);
 
- $result = self::set_org_requires_2fa($org_id, $enabled, orabooks_get_current_user_id());
+ $result = self::set_org_requires_2fa($org_id, $enabled, orabooks_get_current_user_id);
  if (is_wp_error($result)) {
- orabooks_json_error($result->get_error_message(), (int) ($result->get_error_data['status'] ?? 400));
+ orabooks_json_error($result->get_error_message, (int) ($result->get_error_data['status'] ?? 400));
  }
 
  orabooks_json_success($result, $enabled ? 'Organization now requires 2FA': 'Organization 2FA requirement removed');

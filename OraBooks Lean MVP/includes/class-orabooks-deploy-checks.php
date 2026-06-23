@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 /**
  * Post-deploy verification checks for production smoke testing.
  */
@@ -13,7 +13,7 @@ class OraBooks_DeployChecks {
  *
  * @return array<string, string> hook => recurrence
  */
- public static function mvp_cron_jobs() {
+ public static function mvp_cron_jobs {
  return [
  'orabooks_partner_activity_check' => 'daily',
  'orabooks_async_queue_process' => 'every_minute',
@@ -31,7 +31,7 @@ class OraBooks_DeployChecks {
  *
  * @return string[]
  */
- public static function ensure_mvp_cron_schedules() {
+ public static function ensure_mvp_cron_schedules {
  $repaired = [];
 
  foreach (self::mvp_cron_jobs as $hook => $recurrence) {
@@ -39,7 +39,7 @@ class OraBooks_DeployChecks {
  continue;
  }
 
- wp_schedule_event(time(), $recurrence, $hook);
+ wp_schedule_event(time, $recurrence, $hook);
  $repaired[] = $hook;
  }
 
@@ -49,7 +49,7 @@ class OraBooks_DeployChecks {
  /**
  * @return array{ok:bool,checks:array<int,array{id:string,label:string,ok:bool,detail:string}>,timestamp:string,environment:array<string,mixed>}
  */
- public static function run() {
+ public static function run {
  $checks = [];
  $ok = true;
 
@@ -70,7 +70,7 @@ class OraBooks_DeployChecks {
  $secrets_detail = '';
 
  if (class_exists('OraBooks_Secrets')) {
- $status = OraBooks_Secrets::get_status();
+ $status = OraBooks_Secrets::get_status;
  $secrets_ok = !empty($status['jwt_secret_configured'])
  && !empty($status['encryption_key_configured']);
 
@@ -125,7 +125,7 @@ class OraBooks_DeployChecks {
  );
 
  if (class_exists('OraBooks_Secrets')) {
- $db_tls = OraBooks_Secrets::check_database_tls();
+ $db_tls = OraBooks_Secrets::check_database_tls;
  $db_tls_ok = !empty($db_tls['ok']) || !empty($db_tls['skipped']);
  $db_tls_detail = '';
  if (!$db_tls_ok) {
@@ -161,12 +161,12 @@ class OraBooks_DeployChecks {
  );
 
  $table_prefix = '';
- $run_table_checks = function() use (&$table_prefix, $add_check) {
+ $run_table_checks = function use (&$table_prefix, $add_check) {
  global $wpdb;
 
  $table_prefix = function_exists('orabooks_get_table_prefix')
  ? orabooks_get_table_prefix
-: $wpdb->prefix();
+: $wpdb->prefix;
  $add_check('table_prefix', 'Shared table prefix resolved', $table_prefix !== '', $table_prefix);
 
  $required_tables = [
@@ -310,9 +310,9 @@ class OraBooks_DeployChecks {
  'checks' => $checks,
  'timestamp' => current_time('mysql'),
  'environment' => [
- 'is_multisite()' => function_exists('is_multisite()') && is_multisite(),
+ 'is_multisite' => function_exists('is_multisite') && is_multisite,
  'data_blog_id' => function_exists('orabooks_get_data_blog_id') ? orabooks_get_data_blog_id: null,
- 'current_blog_id' => function_exists('get_current_blog_id()') ? get_current_blog_id(): null,
+ 'current_blog_id' => function_exists('get_current_blog_id') ? get_current_blog_id: null,
  'table_prefix' => $table_prefix,
  'plugin_version' => defined('ORABOOKS_VERSION') ? ORABOOKS_VERSION: null,
  'db_version_expected' => $expected_db_version,

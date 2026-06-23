@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 /**
  * OraBooks Progressive Web App ( mobile / offline receipt queue)
  */
@@ -9,12 +9,12 @@ if (!defined('ABSPATH')) {
 
 class OraBooks_Pwa {
 
- public static function init() {
+ public static function init {
  add_action('wp_head', [__CLASS__, 'output_head_tags'], 5);
  add_filter('orabooks_ajax_config', [__CLASS__, 'extend_ajax_config']);
  }
 
- public static function is_enabled() {
+ public static function is_enabled {
  return apply_filters('orabooks_pwa_enabled', true);
  }
 
@@ -22,7 +22,7 @@ class OraBooks_Pwa {
  return ORABOOKS_PLUGIN_URL. 'assets/pwa/'. ltrim($file, '/');
  }
 
- public static function get_manifest() {
+ public static function get_manifest {
  $start = home_url('/dashboard/');
  $scope = home_url('/');
 
@@ -49,7 +49,7 @@ class OraBooks_Pwa {
  ];
  }
 
- public static function get_manifest_icons() {
+ public static function get_manifest_icons {
  $candidates = [
  [
  'file' => 'icons/icon-192.png',
@@ -94,11 +94,11 @@ class OraBooks_Pwa {
  return $icons;
  }
 
- public static function service_worker_url() {
+ public static function service_worker_url {
  return rest_url('api/pwa/service-worker');
  }
 
- public static function service_worker_scope() {
+ public static function service_worker_scope {
  return home_url('/');
  }
 
@@ -118,7 +118,7 @@ class OraBooks_Pwa {
  return $config;
  }
 
- public static function output_head_tags() {
+ public static function output_head_tags {
  if (!self::is_enabled || !is_singular('page')) {
  return;
  }
@@ -144,14 +144,14 @@ class OraBooks_Pwa {
  echo '<meta name="apple-mobile-web-app-title" content="OraBooks" />'. "\n";
  }
 
- public static function rest_manifest() {
+ public static function rest_manifest {
  $response = rest_ensure_response(self::get_manifest);
  $response->header('Cache-Control', 'public, max-age=3600');
 
  return $response;
  }
 
- public static function rest_service_worker() {
+ public static function rest_service_worker {
  $path = ORABOOKS_PLUGIN_DIR. 'assets/pwa/service-worker.js';
  if (!file_exists($path)) {
  return new WP_Error('orabooks_pwa_sw_missing', 'Service worker not found.', ['status' => 404]);

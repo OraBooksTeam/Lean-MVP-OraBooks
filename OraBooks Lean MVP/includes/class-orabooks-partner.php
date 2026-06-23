@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 /**
  * OraBooks Partner Management (/139 extensions)
  *
@@ -14,7 +14,7 @@ class OraBooks_Partner {
 
  private static $instance = null;
 
- public static function init() {
+ public static function init {
  if (self::$instance === null) {
  self::$instance = new self;
  add_action('orabooks_partner_activity_check', [self::$instance, 'dispatch_partner_activity_job']);
@@ -86,7 +86,7 @@ class OraBooks_Partner {
  /**
  * Queue partner inactivity processing via (fallback to direct run).
  */
- public function dispatch_partner_activity_job() {
+ public function dispatch_partner_activity_job {
  if (function_exists('orabooks_enqueue_job')) {
  $job_id = orabooks_enqueue_job('partner_activity_check', [
  'source' => 'daily_cron',
@@ -104,7 +104,7 @@ class OraBooks_Partner {
  }
  }
 
- self::process_partner_activity();
+ self::process_partner_activity;
  }
 
  /**
@@ -114,7 +114,7 @@ class OraBooks_Partner {
  * - 12 months: deactivate to 'inactive'
  * - 6 months no attribution: send low-activity reminder (repeat every 3 months)
  */
- public static function process_partner_activity() {
+ public static function process_partner_activity {
  global $wpdb;
 
  $table_codes = OraBooks_Database::table('partner_codes');
@@ -127,7 +127,7 @@ class OraBooks_Partner {
  foreach ($partners as $p) {
  $active_customers = self::get_active_customer_count($p->user_id);
  $last_attr_ts = $p->last_attribution_at ? strtotime($p->last_attribution_at): 0;
- $now = time();
+ $now = time;
 
  // Deactivation logic (only if zero active customers)
  if ($active_customers == 0) {
@@ -674,15 +674,15 @@ class OraBooks_Partner {
  return null;
  }
 
- $org_id = $partner->org_id();
+ $org_id = $partner->org_id;
 
  // APPLY ACCESS RULES
  $is_blocked = false;
  $read_only = false;
  $payout_disabled = false;
  $can_reactivate = false;
- $org_status = $partner->org_status();
- $code_status = $partner->status();
+ $org_status = $partner->org_status;
+ $code_status = $partner->status;
 
  switch ($org_status) {
  case 'fraud_freeze':
@@ -734,8 +734,8 @@ class OraBooks_Partner {
  // Compute dormant flag (single definition per spec)
  // Dormant = no active customers, but had attribution within 6-12 months ago
  $last_attr_ts = $partner->last_attribution_at ? strtotime($partner->last_attribution_at): 0;
- $six_months_ago = time() - (6 * 30 * 86400);
- $twelve_months_ago = time() - (12 * 30 * 86400);
+ $six_months_ago = time - (6 * 30 * 86400);
+ $twelve_months_ago = time - (12 * 30 * 86400);
 
  $is_dormant = (
  $active_customer_count == 0
@@ -923,8 +923,8 @@ class OraBooks_Partner {
  //: AJAX HANDLERS
  // ============================================================
 
- public function ajax_get_partner_info() {
- $user_id = orabooks_get_current_user_id();
+ public function ajax_get_partner_info {
+ $user_id = orabooks_get_current_user_id;
  if (!$user_id) {
  orabooks_json_error('Not authenticated', 401);
  }
@@ -948,8 +948,8 @@ class OraBooks_Partner {
  orabooks_json_success($info);
  }
 
- public function ajax_partner_onboarding() {
- $user_id = orabooks_get_current_user_id();
+ public function ajax_partner_onboarding {
+ $user_id = orabooks_get_current_user_id;
  if (!$user_id) {
  orabooks_json_error('Not authenticated', 401);
  }
@@ -960,7 +960,7 @@ class OraBooks_Partner {
 
  $access = self::assert_partner_org_member($user_id);
  if (is_wp_error($access)) {
- orabooks_json_error($access->get_error_message(), 403);
+ orabooks_json_error($access->get_error_message, 403);
  }
 
  $info = self::get_onboarding_info($user_id);
@@ -982,8 +982,8 @@ class OraBooks_Partner {
  orabooks_json_success($info);
  }
 
- public function ajax_partner_onboarding_complete() {
- $user_id = orabooks_get_current_user_id();
+ public function ajax_partner_onboarding_complete {
+ $user_id = orabooks_get_current_user_id;
  if (!$user_id) {
  orabooks_json_error('Not authenticated', 401);
  }
@@ -994,7 +994,7 @@ class OraBooks_Partner {
 
  $access = self::assert_partner_org_member($user_id);
  if (is_wp_error($access)) {
- orabooks_json_error($access->get_error_message(), 403);
+ orabooks_json_error($access->get_error_message, 403);
  }
 
  orabooks_mark_partner_onboarding_completed($user_id);
@@ -1013,8 +1013,8 @@ class OraBooks_Partner {
  ]);
  }
 
- public function ajax_request_reactivation() {
- $user_id = orabooks_get_current_user_id();
+ public function ajax_request_reactivation {
+ $user_id = orabooks_get_current_user_id;
  if (!$user_id) {
  orabooks_json_error('Not authenticated', 401);
  }
@@ -1023,7 +1023,7 @@ class OraBooks_Partner {
 
  $tenant = orabooks_assert_tenant_access($user_id, $org_id);
  if (is_wp_error($tenant)) {
- orabooks_json_error($tenant->get_error_message(), 403);
+ orabooks_json_error($tenant->get_error_message, 403);
  }
 
  if (!orabooks_check_rate_limit('reactivate_'. $user_id, 5, 3600)) {
@@ -1033,7 +1033,7 @@ class OraBooks_Partner {
  $result = self::request_reactivation($user_id, $org_id, $reason);
 
  if (is_wp_error($result)) {
- orabooks_json_error($result->get_error_message(), 400);
+ orabooks_json_error($result->get_error_message, 400);
  }
 
  // Audit: reactivation requested
@@ -1054,8 +1054,8 @@ class OraBooks_Partner {
  /**
  *: Full partner dashboard data endpoint
  */
- public function ajax_partner_dashboard() {
- $user_id = orabooks_get_current_user_id();
+ public function ajax_partner_dashboard {
+ $user_id = orabooks_get_current_user_id;
  if (!$user_id) {
  orabooks_json_error('Not authenticated', 401);
  }
@@ -1109,15 +1109,15 @@ class OraBooks_Partner {
  /**
  * Track partner code copy (audit event)
  */
- public function ajax_code_copied() {
- $user_id = orabooks_get_current_user_id();
+ public function ajax_code_copied {
+ $user_id = orabooks_get_current_user_id;
  if (!$user_id) {
  orabooks_json_error('Not authenticated', 401);
  }
 
  $access = self::assert_partner_org_member($user_id);
  if (is_wp_error($access)) {
- orabooks_json_error($access->get_error_message(), 403);
+ orabooks_json_error($access->get_error_message, 403);
  }
 
  if (!orabooks_check_rate_limit('partner_code_copied_'. $user_id, 60, 60)) {
@@ -1132,7 +1132,7 @@ class OraBooks_Partner {
 
  orabooks_log_event('partner_code_copied', 'Partner copied their code', 'info', [
  'source' => $source,
- 'ip' => orabooks_get_client_ip(),
+ 'ip' => orabooks_get_client_ip,
  'correlation_id' => $correlation_id,
  ], $user_id, (int) ($access->org_id ?? 0));
 
@@ -1142,8 +1142,8 @@ class OraBooks_Partner {
  /**
  * Get attribution list for the partner
  */
- public function ajax_partner_attributions() {
- $user_id = orabooks_get_current_user_id();
+ public function ajax_partner_attributions {
+ $user_id = orabooks_get_current_user_id;
  if (!$user_id) {
  orabooks_json_error('Not authenticated', 401);
  }
@@ -1182,11 +1182,11 @@ class OraBooks_Partner {
  orabooks_json_success($attributions);
  }
 
- public function ajax_payment_settings() {
+ public function ajax_payment_settings {
  orabooks_json_error('Partner payment settings are not implemented in MVP. This is reserved for.', 501);
  }
 
- public function ajax_partner_application() {
+ public function ajax_partner_application {
  orabooks_json_error('Partner applications for existing customers are not implemented in MVP. This is reserved for.', 501);
  }
 
@@ -1197,7 +1197,7 @@ class OraBooks_Partner {
  /**
  * AJAX: Approve a pending partner code
  */
- public function ajax_admin_approve_partner() {
+ public function ajax_admin_approve_partner {
  if (!current_user_can('manage_options')) {
  orabooks_json_error('Permission denied', 403);
  }
@@ -1212,7 +1212,7 @@ class OraBooks_Partner {
  $result = self::approve_partner_code($partner_code_id, $admin_id);
 
  if (is_wp_error($result)) {
- orabooks_json_error($result->get_error_message(), 400);
+ orabooks_json_error($result->get_error_message, 400);
  }
 
  orabooks_json_success([], 'Partner code approved and organization activated.');
@@ -1221,7 +1221,7 @@ class OraBooks_Partner {
  /**
  * AJAX: Reject a pending partner code
  */
- public function ajax_admin_reject_partner() {
+ public function ajax_admin_reject_partner {
  if (!current_user_can('manage_options')) {
  orabooks_json_error('Permission denied', 403);
  }
@@ -1237,7 +1237,7 @@ class OraBooks_Partner {
  $result = self::reject_partner_code($partner_code_id, $admin_id, $reason);
 
  if (is_wp_error($result)) {
- orabooks_json_error($result->get_error_message(), 400);
+ orabooks_json_error($result->get_error_message, 400);
  }
 
  orabooks_json_success([], 'Partner code rejected.');
@@ -1246,43 +1246,43 @@ class OraBooks_Partner {
  /**
  * AJAX: List pending partner codes for admin
  */
- public function ajax_admin_list_pending_partners() {
+ public function ajax_admin_list_pending_partners {
  if (!current_user_can('manage_options')) {
  orabooks_json_error('Permission denied', 403);
  }
 
- $partners = self::get_pending_partners();
+ $partners = self::get_pending_partners;
  orabooks_json_success($partners);
  }
 
  /**
  * AJAX: List active partners for admin
  */
- public function ajax_admin_list_active_partners() {
+ public function ajax_admin_list_active_partners {
  if (!current_user_can('manage_options')) {
  orabooks_json_error('Permission denied', 403);
  }
 
- $partners = self::get_active_partners();
+ $partners = self::get_active_partners;
  orabooks_json_success($partners);
  }
 
  /**
  * AJAX: List pending reactivation requests for admin
  */
- public function ajax_admin_list_reactivation_requests() {
+ public function ajax_admin_list_reactivation_requests {
  if (!current_user_can('manage_options')) {
  orabooks_json_error('Permission denied', 403);
  }
 
- $requests = self::get_reactivation_requests();
+ $requests = self::get_reactivation_requests;
  orabooks_json_success($requests);
  }
 
  /**
  * AJAX: Review (approve/deny) a reactivation request
  */
- public function ajax_admin_review_reactivation() {
+ public function ajax_admin_review_reactivation {
  if (!current_user_can('manage_options')) {
  orabooks_json_error('Permission denied', 403);
  }
@@ -1327,7 +1327,7 @@ class OraBooks_Partner {
  $result = OraBooks_Organization::review_reactivation($review_id, $admin_id, $decision, $notes);
 
  if (is_wp_error($result)) {
- orabooks_json_error($result->get_error_message(), 400);
+ orabooks_json_error($result->get_error_message, 400);
  }
 
  orabooks_json_success([], 'Reactivation request '. ($decision === 'approved' ? 'approved.': 'denied.'));

@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 /**
  * OraBooks Event Bus & Domain Events
  *
@@ -29,7 +29,7 @@ class OraBooks_EventBus {
  /** Registered consumers: event_type => [handler,...] */
  private static $consumers = [];
 
- public static function init() {
+ public static function init {
  if (self::$instance === null) {
  self::$instance = new self;
 
@@ -66,7 +66,7 @@ class OraBooks_EventBus {
  * Register all known consumers for OraBooks domain events.
  * Called during plugin init.
  */
- public static function register_consumers() {
+ public static function register_consumers {
  // journal_posted → updates read models, triggers notifications
  self::register_consumer('journal_posted', function($event, $payload) {
  orabooks_log_event('eventbus_consumer_journal', 'Journal posted event consumed', 'info', [
@@ -143,11 +143,11 @@ class OraBooks_EventBus {
  });
 
  if (class_exists('OraBooks_Classification')) {
- OraBooks_Classification::register_event_consumer();
+ OraBooks_Classification::register_event_consumer;
  }
 
  if (class_exists('OraBooks_Expenses')) {
- OraBooks_Expenses::register_event_consumer();
+ OraBooks_Expenses::register_event_consumer;
  }
  }
 
@@ -204,7 +204,7 @@ class OraBooks_EventBus {
  'created_at' => current_time('mysql', true),
  ], ['%s', '%d', '%s', '%s', '%s']);
 
- $id = $wpdb->insert_id();
+ $id = $wpdb->insert_id;
 
  if ($id) {
  orabooks_log_event('event_published', "Event {$event_type} published (outbox #{$id})", 'info', [
@@ -229,7 +229,7 @@ class OraBooks_EventBus {
  * Process pending outbox events.
  * Runs every minute via WordPress cron.
  */
- public function process_outbox() {
+ public function process_outbox {
  global $wpdb;
 
  $table = OraBooks_Database::table(self::OUTBOX_TABLE);
@@ -290,7 +290,7 @@ class OraBooks_EventBus {
  $consumer_name = self::consumer_name($event->event_type, $handler, $consumer_index);
 
  // Idempotency check
- $event_key = 'outbox:'. (int) $event->id();
+ $event_key = 'outbox:'. (int) $event->id;
  $already_processed = $wpdb->get_var($wpdb->prepare(
  "SELECT COUNT(*) FROM {$track_table} WHERE event_key = %s AND consumer = %s",
  $event_key, $consumer_name
@@ -330,7 +330,7 @@ class OraBooks_EventBus {
  [
  'status' => 'dead_letter',
  'retry_count' => $new_retry,
- 'last_error' => $e->getMessage(),
+ 'last_error' => $e->getMessage,
  'last_attempt_at' => current_time('mysql', true),
  ],
  ['id' => $event->id],
@@ -341,7 +341,7 @@ class OraBooks_EventBus {
  orabooks_log_event('event_dead_letter', "Event {$event->event_type} moved to dead_letter after {$new_retry} retries", 'warning', [
  'outbox_id' => $event->id,
  'consumer' => $consumer_name,
- 'error' => $e->getMessage(),
+ 'error' => $e->getMessage,
  ]);
  } else {
  $delay = self::BACKOFF_INITIAL * pow(self::BACKOFF_FACTOR, $new_retry - 1);
@@ -350,9 +350,9 @@ class OraBooks_EventBus {
  [
  'status' => 'pending',
  'retry_count' => $new_retry,
- 'last_error' => $e->getMessage(),
+ 'last_error' => $e->getMessage,
  'last_attempt_at'=> current_time('mysql', true),
- 'next_retry_at' => date('Y-m-d H:i:s', time() + $delay),
+ 'next_retry_at' => date('Y-m-d H:i:s', time + $delay),
  ],
  ['id' => $event->id],
  ['%s', '%d', '%s', '%s', '%s'],
@@ -369,7 +369,7 @@ class OraBooks_EventBus {
  } catch (\Exception $e) {
  $wpdb->query("ROLLBACK");
  $failed++;
- orabooks_log_event('event_bus_error', "Outbox processing error: ". $e->getMessage(), 'warning', [
+ orabooks_log_event('event_bus_error', "Outbox processing error: ". $e->getMessage, 'warning', [
  'outbox_id' => $event->id,
  ]);
  }
@@ -393,13 +393,13 @@ class OraBooks_EventBus {
  /**
  * Retry dead-letter events — resets status to pending.
  */
- public function retry_dead_letter() {
+ public function retry_dead_letter {
  global $wpdb;
 
  $table = OraBooks_Database::table(self::OUTBOX_TABLE);
 
  // Reset dead-letter events older than 1 hour back to pending
- $cutoff = date('Y-m-d H:i:s', time() - 3600);
+ $cutoff = date('Y-m-d H:i:s', time - 3600);
  $updated = $wpdb->query($wpdb->prepare(
  "UPDATE {$table}
  SET status = 'pending', retry_count = 0, last_error = NULL, next_retry_at = NOW
@@ -421,7 +421,7 @@ class OraBooks_EventBus {
  /**
  * Monitor event bus health and alert via if needed.
  */
- public function monitor_health() {
+ public function monitor_health {
  global $wpdb;
 
  $table = OraBooks_Database::table(self::OUTBOX_TABLE);
@@ -465,9 +465,9 @@ class OraBooks_EventBus {
  * Get CREATE TABLE SQL for the consumer_event_tracking table.
  * (outbox_messages table is already created by )
  */
- public static function get_create_table_sql() {
+ public static function get_create_table_sql {
  global $wpdb;
- $charset_collate = $wpdb->get_charset_collate();
+ $charset_collate = $wpdb->get_charset_collate;
  $tables = [];
 
  // Consumer event tracking for idempotency

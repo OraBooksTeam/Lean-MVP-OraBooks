@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 /**
  * OraBooks RBAC / ABAC
  *
@@ -15,10 +15,10 @@ class OraBooks_RBAC {
  private static $instance = null;
  private static $permissions = [];
 
- public static function init() {
+ public static function init {
  if (self::$instance === null) {
  self::$instance = new self;
- self::define_permissions();
+ self::define_permissions;
  }
  return self::$instance;
  }
@@ -26,7 +26,7 @@ class OraBooks_RBAC {
  /**
  * Define all system permissions and their allowed roles
  */
- private static function define_permissions() {
+ private static function define_permissions {
  self::$permissions = [
  'view_reports' => ['owner', 'admin', 'approver', 'staff', 'viewer'],
  'view_financial_reports' => ['owner', 'admin', 'approver', 'staff', 'viewer'],
@@ -186,8 +186,8 @@ class OraBooks_RBAC {
  'role' => $role,
  'user_id' => $user_id,
  'org_id' => $org_id,
- 'ip_address' => orabooks_get_client_ip(),
- 'user_agent' => orabooks_get_user_agent()
+ 'ip_address' => orabooks_get_client_ip,
+ 'user_agent' => orabooks_get_user_agent
  ], $user_id, $org_id);
 
  return false;
@@ -240,14 +240,14 @@ class OraBooks_RBAC {
  /**
  * Get all roles
  */
- public static function get_roles() {
+ public static function get_roles {
  return ['owner', 'admin', 'approver', 'staff', 'viewer'];
  }
 
  /**
  * Get all defined permissions
  */
- public static function get_all_permissions() {
+ public static function get_all_permissions {
  return self::$permissions;
  }
 

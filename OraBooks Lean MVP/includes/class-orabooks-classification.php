@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 /**
  * OraBooks Smart Classification & Tax Hints
  *
@@ -52,7 +52,7 @@ class OraBooks_Classification {
  ['rule_type' => 'vendor', 'match_value' => 'uber', 'account_code' => '5300', 'priority' => 20],
  ];
 
- public static function init() {
+ public static function init {
  if (self::$instance === null) {
  self::$instance = new self;
 
@@ -81,7 +81,7 @@ class OraBooks_Classification {
  return self::$instance;
  }
 
- public static function register_event_consumer() {
+ public static function register_event_consumer {
  if (!class_exists('OraBooks_EventBus')) {
  return;
  }
@@ -100,9 +100,9 @@ class OraBooks_Classification {
  });
  }
 
- public static function get_create_table_sql() {
+ public static function get_create_table_sql {
  global $wpdb;
- $charset = $wpdb->get_charset_collate();
+ $charset = $wpdb->get_charset_collate;
  $table = OraBooks_Database::table('classification_rules');
  $orgs = OraBooks_Database::table('organizations');
 
@@ -126,7 +126,7 @@ class OraBooks_Classification {
  /**
  * Add classification columns to transaction tables (idempotent).
  */
- public static function ensure_schema() {
+ public static function ensure_schema {
  global $wpdb;
 
  $columns_sql = "
@@ -256,7 +256,7 @@ class OraBooks_Classification {
  return self::request($record_type, $record_id, $org_id, $context);
  }
 
- public static function rule_precedence_over_ai_enabled() {
+ public static function rule_precedence_over_ai_enabled {
  if (get_option('orabooks_rule_precedence_over_ai', null) !== null) {
  return (bool) get_option('orabooks_rule_precedence_over_ai', 1);
  }
@@ -388,8 +388,8 @@ class OraBooks_Classification {
  $result = self::run($record_type, $record_id, $org_id);
 
  if (is_wp_error($result)) {
- self::mark_failed($record_type, $record_id, $org_id, $result->get_error_message());
- return $result->get_error_message();
+ self::mark_failed($record_type, $record_id, $org_id, $result->get_error_message);
+ return $result->get_error_message;
  }
 
  return true;
@@ -421,7 +421,7 @@ class OraBooks_Classification {
 
  self::seed_default_rules($org_id);
  $rule_result = self::match_rules($org_id, $record, $text);
- $use_rules = self::rule_precedence_over_ai_enabled();
+ $use_rules = self::rule_precedence_over_ai_enabled;
  $suggestion = ($use_rules && $rule_result)
  ? $rule_result
 : OraBooks_Ai_Providers::classify_record($record_type, $record, $text, $amount, $org_id);
@@ -468,7 +468,7 @@ class OraBooks_Classification {
  }
 
  $rule_result = self::match_rules($org_id, $record, $text);
- $use_rules = self::rule_precedence_over_ai_enabled();
+ $use_rules = self::rule_precedence_over_ai_enabled;
 
  if ($use_rules && $rule_result) {
  $suggestion = $rule_result;
@@ -647,7 +647,7 @@ class OraBooks_Classification {
  }
 
  $wpdb->insert($table, $payload);
- $rule_id = (int) $wpdb->insert_id();
+ $rule_id = (int) $wpdb->insert_id;
  orabooks_log_event('classification_rule_created', 'Classification rule created', 'info', [
  'rule_id' => $rule_id,
  ], (int) $user_id, $org_id);
@@ -692,7 +692,7 @@ class OraBooks_Classification {
  if (!empty($tax_hints['tax_rate'])) {
  $updates['tax_rate'] = (float) $tax_hints['tax_rate'];
  if ($record->total_amount) {
- $total = (float) $record->total_amount();
+ $total = (float) $record->total_amount;
  $rate = (float) $tax_hints['tax_rate'];
  $tax_amount = round($total * ($rate / 100) / (1 + ($rate / 100)), 2);
  $updates['tax_amount'] = $tax_amount;
@@ -848,8 +848,8 @@ class OraBooks_Classification {
  ];
  }
 
- public function ajax_run() {
- $user_id = orabooks_get_current_user_id();
+ public function ajax_run {
+ $user_id = orabooks_get_current_user_id;
  $org_id = orabooks_get_current_org_id($user_id);
 
  if (!$user_id || !$org_id) {
@@ -871,14 +871,14 @@ class OraBooks_Classification {
 
  if (is_wp_error($result)) {
  $status = (int) ($result->get_error_data['status'] ?? 400);
- orabooks_json_error($result->get_error_message(), $status);
+ orabooks_json_error($result->get_error_message, $status);
  }
 
  orabooks_json_success(['classification' => is_array($result) ? $result: self::format_classification($result)]);
  }
 
- public function ajax_apply() {
- $user_id = orabooks_get_current_user_id();
+ public function ajax_apply {
+ $user_id = orabooks_get_current_user_id;
  $org_id = orabooks_get_current_org_id($user_id);
 
  if (!$user_id || !$org_id) {
@@ -894,14 +894,14 @@ class OraBooks_Classification {
  $result = self::apply_suggestions($record_type, $record_id, $org_id, $user_id);
 
  if (is_wp_error($result)) {
- orabooks_json_error($result->get_error_message(), 400);
+ orabooks_json_error($result->get_error_message, 400);
  }
 
  orabooks_json_success(['classification' => self::format_classification($result)]);
  }
 
- public function ajax_override() {
- $user_id = orabooks_get_current_user_id();
+ public function ajax_override {
+ $user_id = orabooks_get_current_user_id;
  $org_id = orabooks_get_current_org_id($user_id);
 
  if (!$user_id || !$org_id) {
@@ -920,14 +920,14 @@ class OraBooks_Classification {
  $result = self::override($record_type, $record_id, $org_id, $user_id, $account_code, $tax_rate);
 
  if (is_wp_error($result)) {
- orabooks_json_error($result->get_error_message(), 400);
+ orabooks_json_error($result->get_error_message, 400);
  }
 
  orabooks_json_success(['classification' => self::format_classification($result)]);
  }
 
- public function ajax_status() {
- $user_id = orabooks_get_current_user_id();
+ public function ajax_status {
+ $user_id = orabooks_get_current_user_id;
  $org_id = orabooks_get_current_org_id($user_id);
 
  if (!$user_id || !$org_id) {
@@ -943,14 +943,14 @@ class OraBooks_Classification {
  $result = self::get_status($record_type, $record_id, $org_id);
 
  if (is_wp_error($result)) {
- orabooks_json_error($result->get_error_message(), 400);
+ orabooks_json_error($result->get_error_message, 400);
  }
 
  orabooks_json_success(['classification' => $result]);
  }
 
- public function ajax_rules_list() {
- $user_id = orabooks_get_current_user_id();
+ public function ajax_rules_list {
+ $user_id = orabooks_get_current_user_id;
  $org_id = orabooks_get_current_org_id($user_id);
 
  if (!$user_id || !$org_id) {
@@ -968,8 +968,8 @@ class OraBooks_Classification {
  ]);
  }
 
- public function ajax_rules_save() {
- $user_id = orabooks_get_current_user_id();
+ public function ajax_rules_save {
+ $user_id = orabooks_get_current_user_id;
  $org_id = orabooks_get_current_org_id($user_id);
 
  if (!$user_id || !$org_id) {
@@ -997,7 +997,7 @@ class OraBooks_Classification {
  if ($data['match_value'] !== '' || $data['account_code'] !== '') {
  $result = self::save_rule($org_id, $data, $user_id);
  if (is_wp_error($result)) {
- orabooks_json_error($result->get_error_message(), 400);
+ orabooks_json_error($result->get_error_message, 400);
  }
  }
 
@@ -1007,8 +1007,8 @@ class OraBooks_Classification {
  ], 'Classification rules saved');
  }
 
- public function ajax_rules_delete() {
- $user_id = orabooks_get_current_user_id();
+ public function ajax_rules_delete {
+ $user_id = orabooks_get_current_user_id;
  $org_id = orabooks_get_current_org_id($user_id);
  $rule_id = (int) ($_POST['rule_id'] ?? 0);
 
@@ -1022,7 +1022,7 @@ class OraBooks_Classification {
 
  $result = self::delete_rule($org_id, $rule_id, $user_id);
  if (is_wp_error($result)) {
- orabooks_json_error($result->get_error_message(), 400);
+ orabooks_json_error($result->get_error_message, 400);
  }
 
  orabooks_json_success([
@@ -1525,8 +1525,8 @@ class OraBooks_Classification {
  ];
  }
 
- public function ajax_live_check() {
- $user_id = orabooks_get_current_user_id();
+ public function ajax_live_check {
+ $user_id = orabooks_get_current_user_id;
  $org_id = orabooks_get_current_org_id($user_id);
 
  if (!$user_id || !$org_id) {

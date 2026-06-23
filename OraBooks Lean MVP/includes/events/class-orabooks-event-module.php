@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 /**
  * Event Bus MVP module.
  *
@@ -17,8 +17,8 @@ class OraBooks_Event_Module {
  private static $consumers = [];
  private static $processing = false;
 
- public static function init() {
- self::register_default_consumers();
+ public static function init {
+ self::register_default_consumers;
 
  add_action('orabooks_events_process_outbox', [__CLASS__, 'process_outbox']);
  add_action('shutdown', [__CLASS__, 'shutdown_poll']);
@@ -37,7 +37,7 @@ class OraBooks_Event_Module {
  }
  }
 
- public static function canonical_event_types() {
+ public static function canonical_event_types {
  return [
  'journal_posted',
  'sale_delivered',
@@ -52,9 +52,9 @@ class OraBooks_Event_Module {
  return $wpdb->prefix. 'gob_'. $name. '_tob';
  }
 
- public static function get_create_table_sql() {
+ public static function get_create_table_sql {
  global $wpdb;
- $charset_collate = $wpdb->get_charset_collate();
+ $charset_collate = $wpdb->get_charset_collate;
 
  $outbox = self::table('event_outbox');
  $consumer_log = self::table('event_consumer_log');
@@ -149,9 +149,9 @@ class OraBooks_Event_Module {
  ];
  }
 
- public static function schedule() {
+ public static function schedule {
  if (!wp_next_scheduled('orabooks_events_process_outbox')) {
- wp_schedule_event(time(), 'every_minute', 'orabooks_events_process_outbox');
+ wp_schedule_event(time, 'every_minute', 'orabooks_events_process_outbox');
  }
  }
 
@@ -182,7 +182,7 @@ class OraBooks_Event_Module {
  'created_at' => current_time('mysql', true),
  ], ['%s', '%d', '%s', '%s', '%s', '%d', '%s', '%s']);
 
- $id = (int) $wpdb->insert_id();
+ $id = (int) $wpdb->insert_id;
  if ($id > 0) {
  orabooks_log_event('event_outbox_recorded', "Event {$event_type} recorded in outbox", 'info', [
  'outbox_id' => $id,
@@ -219,7 +219,7 @@ class OraBooks_Event_Module {
  self::$consumers[$event_type][$consumer_key] = $handler;
  }
 
- public static function register_default_consumers() {
+ public static function register_default_consumers {
  self::register_consumer('journal_posted', 'journal_read_model', [__CLASS__, 'consume_journal_read_model']);
 
  foreach (self::canonical_event_types as $event_type) {
@@ -243,7 +243,7 @@ class OraBooks_Event_Module {
  self::$processing = true;
  global $wpdb;
 
- self::recover_stale_processing_locks();
+ self::recover_stale_processing_locks;
  $outbox = self::table('event_outbox');
  $events = $wpdb->get_results($wpdb->prepare(
  "SELECT * FROM {$outbox}
@@ -290,13 +290,13 @@ class OraBooks_Event_Module {
  try {
  $result = call_user_func($handler, $event, $payload);
  if ($result === false || is_wp_error($result)) {
- $message = is_wp_error($result) ? $result->get_error_message(): 'Consumer returned false.';
+ $message = is_wp_error($result) ? $result->get_error_message: 'Consumer returned false.';
  throw new RuntimeException($message);
  }
  self::record_consumer_success($event, $consumer_key);
  } catch (Throwable $e) {
  $event_failed = true;
- self::mark_failed($event, $e->getMessage());
+ self::mark_failed($event, $e->getMessage);
  break;
  }
  }
@@ -363,7 +363,7 @@ class OraBooks_Event_Module {
  'status' => 'pending',
  'retry_count' => $retry_count,
  'last_error' => $message,
- 'available_at' => gmdate('Y-m-d H:i:s', time() + $delay),
+ 'available_at' => gmdate('Y-m-d H:i:s', time + $delay),
  'lock_token' => null,
  'locked_at' => null,
  ], ['id' => (int) $event->id], ['%s', '%d', '%s', '%s', '%s', '%s'], ['%d']);
@@ -388,10 +388,10 @@ class OraBooks_Event_Module {
  ], ['%d', '%s', '%d', '%s', '%s', '%d', '%s', '%s', '%s']);
  }
 
- public static function recover_stale_processing_locks() {
+ public static function recover_stale_processing_locks {
  global $wpdb;
  $outbox = self::table('event_outbox');
- $cutoff = gmdate('Y-m-d H:i:s', time() - self::LOCK_TTL_SECONDS);
+ $cutoff = gmdate('Y-m-d H:i:s', time - self::LOCK_TTL_SECONDS);
  return $wpdb->query($wpdb->prepare(
  "UPDATE {$outbox}
  SET status = 'pending', lock_token = NULL, locked_at = NULL
@@ -400,7 +400,7 @@ class OraBooks_Event_Module {
  ));
  }
 
- public static function maybe_poll_pending_events() {
+ public static function maybe_poll_pending_events {
  if (is_admin || wp_doing_ajax || wp_doing_cron) {
  return;
  }
@@ -412,7 +412,7 @@ class OraBooks_Event_Module {
  }
  }
 
- public static function shutdown_poll() {
+ public static function shutdown_poll {
  if (self::$processing || wp_doing_ajax || wp_doing_cron) {
  return;
  }
@@ -449,14 +449,14 @@ class OraBooks_Event_Module {
  ));
  }
 
- public static function resolve_event_org_scope() {
+ public static function resolve_event_org_scope {
  if (current_user_can('manage_options')) {
  return 0;
  }
- if (!function_exists('orabooks_get_current_user_id()')) {
+ if (!function_exists('orabooks_get_current_user_id')) {
  return 0;
  }
- $user_id = (int) orabooks_get_current_user_id();
+ $user_id = (int) orabooks_get_current_user_id;
  if ($user_id <= 0) {
  return 0;
  }
@@ -561,11 +561,11 @@ class OraBooks_Event_Module {
  return true;
  }
 
- public static function render_dead_letter_replay_page() {
+ public static function render_dead_letter_replay_page {
  if (!self::current_user_can_manage_events) {
  wp_die(__('You do not have permission to view this page.', 'orabooks'));
  }
- $org_scope = self::resolve_event_org_scope();
+ $org_scope = self::resolve_event_org_scope;
  $health = self::get_health($org_scope);
  $dead_letters = self::get_dead_letters(50, $org_scope);
  include ORABOOKS_PLUGIN_DIR. 'templates/events/dead-letter-replay.php';
@@ -575,22 +575,22 @@ class OraBooks_Event_Module {
  if (!is_wp_error($result)) {
  return;
  }
- $code = $result->get_error_code() === 'forbidden' ? 403: 404;
- orabooks_json_error($result->get_error_message(), $code);
+ $code = $result->get_error_code === 'forbidden' ? 403: 404;
+ orabooks_json_error($result->get_error_message, $code);
  }
 
- public static function ajax_dead_letters() {
- self::require_owner_ajax();
- $org_scope = self::resolve_event_org_scope();
+ public static function ajax_dead_letters {
+ self::require_owner_ajax;
+ $org_scope = self::resolve_event_org_scope;
  orabooks_json_success([
  'health' => self::get_health($org_scope),
  'dead_letters' => self::get_dead_letters(50, $org_scope),
  ]);
  }
 
- public static function ajax_replay() {
- self::require_owner_ajax();
- $org_scope = self::resolve_event_org_scope();
+ public static function ajax_replay {
+ self::require_owner_ajax;
+ $org_scope = self::resolve_event_org_scope;
  $scope = $org_scope > 0 ? $org_scope: null;
  $result = self::replay_dead_letter((int) ($_POST['dead_letter_id'] ?? 0), get_current_user_id, $scope);
  if (is_wp_error($result)) {
@@ -599,9 +599,9 @@ class OraBooks_Event_Module {
  orabooks_json_success(['health' => self::get_health($org_scope)]);
  }
 
- public static function ajax_replay_all() {
- self::require_owner_ajax();
- $org_scope = self::resolve_event_org_scope();
+ public static function ajax_replay_all {
+ self::require_owner_ajax;
+ $org_scope = self::resolve_event_org_scope;
  $scope = $org_scope > 0 ? $org_scope: null;
  $count = 0;
  foreach (self::get_dead_letters(200, $org_scope) as $dead) {
@@ -613,9 +613,9 @@ class OraBooks_Event_Module {
  orabooks_json_success(['replayed' => $count, 'health' => self::get_health($org_scope)]);
  }
 
- public static function ajax_discard() {
- self::require_owner_ajax();
- $org_scope = self::resolve_event_org_scope();
+ public static function ajax_discard {
+ self::require_owner_ajax;
+ $org_scope = self::resolve_event_org_scope;
  $scope = $org_scope > 0 ? $org_scope: null;
  $result = self::discard_dead_letter((int) ($_POST['dead_letter_id'] ?? 0), get_current_user_id, $scope);
  if (is_wp_error($result)) {
@@ -624,28 +624,28 @@ class OraBooks_Event_Module {
  orabooks_json_success(['health' => self::get_health($org_scope)]);
  }
 
- public static function ajax_poll_now() {
- self::require_owner_ajax();
- $org_scope = self::resolve_event_org_scope();
+ public static function ajax_poll_now {
+ self::require_owner_ajax;
+ $org_scope = self::resolve_event_org_scope;
  orabooks_json_success(['result' => self::process_outbox(50), 'health' => self::get_health($org_scope)]);
  }
 
- private static function require_owner_ajax() {
+ private static function require_owner_ajax {
  if (!self::current_user_can_manage_events) {
  orabooks_json_error('Permission denied', 403);
  }
  }
 
- private static function current_user_can_manage_events() {
+ private static function current_user_can_manage_events {
  if (current_user_can('manage_options')) {
  return true;
  }
 
- if (!function_exists('orabooks_get_current_user_id()') || !function_exists('orabooks_get_current_org_id')) {
+ if (!function_exists('orabooks_get_current_user_id') || !function_exists('orabooks_get_current_org_id')) {
  return false;
  }
 
- $user_id = (int) orabooks_get_current_user_id();
+ $user_id = (int) orabooks_get_current_user_id;
  if ($user_id <= 0) {
  return false;
  }
