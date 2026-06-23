@@ -56,9 +56,11 @@ export default function AuditLogPage() {
     void load();
   }, []);
 
-  const applyFilters = () => {
-    setApplied(filters);
-    void load(filters);
+  const applyFilters = (next?: AuditLogFilters) => {
+    const f = next ?? filters;
+    if (next) setFilters(next);
+    setApplied(f);
+    void load(f);
   };
 
   const clearFilters = () => {

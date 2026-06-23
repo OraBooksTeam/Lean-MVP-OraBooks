@@ -17,7 +17,7 @@ type AuditLogPanelProps = {
   error: string;
   filters: AuditLogFilters;
   onFiltersChange: (filters: AuditLogFilters) => void;
-  onApplyFilters: () => void;
+  onApplyFilters: (nextFilters?: AuditLogFilters) => void;
   onClearFilters?: () => void;
   onRefresh: () => void;
   onExport: () => Promise<{ error?: string } | void>;
@@ -63,8 +63,9 @@ export default function AuditLogPanel({
   };
 
   const filterByCorrelation = (correlationId: string) => {
-    onFiltersChange({ ...filters, correlation_id: correlationId });
-    onApplyFilters();
+    const next = { ...filters, correlation_id: correlationId };
+    onFiltersChange(next);
+    onApplyFilters(next);
   };
 
   const colSpan = 7 + (showOrgColumn ? 1 : 0) + 1;
