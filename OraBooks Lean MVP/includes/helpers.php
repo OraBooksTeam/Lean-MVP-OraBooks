@@ -469,7 +469,7 @@ function orabooks_get_table_prefix() {
  */
 function orabooks_with_data_blog(callable $callback) {
  $switched = false;
- $target_blog = orabooks_get_data_blog_id;
+ $target_blog = orabooks_get_data_blog_id();
 
  if (function_exists('is_multisite()') && is_multisite() && function_exists('switch_to_blog')) {
  if ((int) get_current_blog_id() !== $target_blog) {
