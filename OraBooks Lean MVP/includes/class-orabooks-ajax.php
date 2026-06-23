@@ -402,7 +402,8 @@ class OraBooks_Ajax {
             orabooks_json_error('Partner accounts cannot perform accounting operations.', 403);
         }
 
-        if (!OraBooks_RBAC::require_permission($context['user_id'], $org_id, 'view_reports')) {
+        if (!OraBooks_RBAC::require_permission($context['user_id'], $org_id, 'view_bank_reconciliation')
+            && !OraBooks_RBAC::require_permission($context['user_id'], $org_id, 'view_reports')) {
             orabooks_json_error('Permission denied', 403);
         }
 

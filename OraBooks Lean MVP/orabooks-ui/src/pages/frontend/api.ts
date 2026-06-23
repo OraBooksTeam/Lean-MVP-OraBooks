@@ -534,6 +534,48 @@ export const api = {
       force: force ? 1 : 0,
       note,
     }),
+  bankImportCsv: (orgId: number, bankAccountId: number, file: File) => {
+    const formData = new FormData();
+    formData.set('org_id', String(orgId));
+    formData.set('bank_account_id', String(bankAccountId));
+    formData.set('csv_file', file);
+    return uploadRequest('orabooks_bank_import_csv', formData);
+  },
+  bankConfirmMatch: (orgId: number, bankTransactionId: number, matchId: number) =>
+    api.post('orabooks_bank_confirm_match', {
+      org_id: orgId,
+      bank_transaction_id: bankTransactionId,
+      match_id: matchId,
+    }),
+  bankCreateTransaction: (
+    orgId: number,
+    bankTransactionId: number,
+    transactionType: 'expense' | 'invoice',
+    extra: Record<string, unknown> = {}
+  ) =>
+    api.post('orabooks_bank_create_transaction', {
+      org_id: orgId,
+      bank_transaction_id: bankTransactionId,
+      transaction_type: transactionType,
+      ...extra,
+    }),
+  bankConnectFeed: (orgId: number, bankAccountId: number, provider: 'plaid' | 'yodlee') =>
+    api.post('orabooks_bank_connect_feed', {
+      org_id: orgId,
+      bank_account_id: bankAccountId,
+      provider,
+    }),
+  bankFeedsList: (orgId: number, bankAccountId = 0) =>
+    api.get('orabooks_bank_feeds_list', {
+      org_id: orgId,
+      ...(bankAccountId ? { bank_account_id: bankAccountId } : {}),
+    }),
+  bankAccountSummary: (orgId: number, bankAccountId: number, statementDate?: string) =>
+    api.get('orabooks_bank_account_summary', {
+      org_id: orgId,
+      bank_account_id: bankAccountId,
+      ...(statementDate ? { statement_date: statementDate } : {}),
+    }),
   reportsDashboard: () =>
     api.get('orabooks_reports_dashboard'),
   csvImportsDashboard: () =>
