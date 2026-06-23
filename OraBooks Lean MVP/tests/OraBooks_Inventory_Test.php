@@ -239,4 +239,87 @@ class OraBooks_Inventory_Test extends TestCase
         $this->assertEquals('Widget', $movements[0]->product_name);
         $this->assertEquals('SKU-001', $movements[0]->sku);
     }
+
+    #[Test]
+    public function test_validate_sale_items_blocks_insufficient_stock()
+    {
+        global $wpdb;
+
+        $wpdb->test_get_row_callback = function ($query) {
+            if (stripos($query, 'orabooks_products') !== false) {
+                return $this->mockProduct(['current_stock' => '2.0000']);
+            }
+            return null;
+        };
+
+        $result = OraBooks_Inventory::validate_sale_items(5, [
+            ['product_id' => 10, 'quantity' => 5],
+        ]);
+
+        $this->assertInstanceOf(WP_Error::class, $result);
+        $this->assertEquals('negative_stock', $result->get_error_code());
+    }
+
+    #[Test]
+    public function test_validate_sale_items_skips_service_products()
+    {
+        global $wpdb;
+
+        $wpdb->test_get_row_callback = function ($query) {
+            if (stripos($query, 'orabooks_products') !== false) {
+                return $this->mockProduct(['item_type' => 'service', 'current_stock' => '0.0000']);
+            }
+            return null;
+        };
+
+        $result = OraBooks_Inventory::validate_sale_items(5, [
+            ['product_id' => 10, 'quantity' => 100],
+        ]);
+
+        $this->assertTrue($result);
+    }
+
+    #[Test]
+    public function test_get_inventory_items_for_bill_returns_product_lines()
+    {
+        global $wpdb;
+
+        $wpdb->test_get_results_callback = function ($query) {
+            if (stripos($query, 'bill_line_items') !== false) {
+                return [
+                    (object) ['product_id' => 10, 'quantity' => '5.0000', 'unit_cost' => '4.000000', 'line_total' => '20.00'],
+                    (object) ['product_id' => null, 'quantity' => '1.0000', 'unit_cost' => '10.000000', 'line_total' => '10.00'],
+                ];
+            }
+            return [];
+        };
+
+        $items = OraBooks_Vendors::get_inventory_items_for_bill(200, 5);
+
+        $this->assertCount(1, $items);
+        $this->assertEquals(10, $items[0]['product_id']);
+        $this->assertEquals(5.0, $items[0]['quantity']);
+        $this->assertEquals(4.0, $items[0]['unit_cost']);
+    }
+
+    #[Test]
+    public function test_get_inventory_items_for_invoice_returns_product_lines()
+    {
+        global $wpdb;
+
+        $wpdb->test_get_results_callback = function ($query) {
+            if (stripos($query, 'invoice_line_items') !== false) {
+                return [
+                    (object) ['product_id' => 12, 'quantity' => '3.0000', 'unit_price' => '9.990000', 'line_total' => '29.97'],
+                ];
+            }
+            return [];
+        };
+
+        $items = OraBooks_Customers::get_inventory_items_for_invoice(300, 5);
+
+        $this->assertCount(1, $items);
+        $this->assertEquals(12, $items[0]['product_id']);
+        $this->assertEquals(3.0, $items[0]['quantity']);
+    }
 }
