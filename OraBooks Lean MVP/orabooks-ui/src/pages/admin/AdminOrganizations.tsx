@@ -3,10 +3,9 @@ import AdminPageShell from '@/components/AdminPageShell';
 import { api } from '../api';
 import Button from '@/components/Button';
 import { ShieldCheck, ShieldOff } from 'lucide-react';
+import { RESIDENCY_REGIONS } from '@/lib/residency/sl004';
 
-const REGIONS = ['us-east', 'eu-west-1', 'ap-southeast-1'] as const;
-
-interface Org {
+function adminLink(page: string) {
   id: number;
   name: string;
   subdomain: string;
@@ -25,7 +24,7 @@ function adminLink(page: string) {
   return `${base}?page=${page}`;
 }
 
-export default function AdminOrganizations() {
+interface Org {
   const [orgs, setOrgs] = useState<Org[]>([]);
   const [loading, setLoading] = useState(true);
   const [typeFilter, setTypeFilter] = useState('');

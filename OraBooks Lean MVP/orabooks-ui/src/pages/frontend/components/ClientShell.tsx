@@ -28,6 +28,7 @@ import {
   X,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { formatRegionLabel } from '@/lib/residency/sl004';
 import { getCurrentAppRoute, normalizeAppRoute } from '../lib/wp-routing';
 import { api } from '../api';
 import { performLogout } from '../lib/auth-routing';
@@ -41,6 +42,8 @@ interface ClientShellProps {
     name?: string;
     tier?: string;
     status?: string;
+    region?: string;
+    subdomain?: string;
     organization_type?: string;
   } | null;
   role?: string | null;
@@ -286,6 +289,11 @@ export default function ClientShell({
         )}
         {userRole && <span className="badge bg-white/90 text-ink">Role: {userRole}</span>}
         {!isPartner && organization?.tier && <span className="badge bg-white text-primary">{organization.tier}</span>}
+        {organization?.region && (
+          <span className="badge border border-white/30 bg-white/15 text-white" title="Data residency region (SL-004)">
+            {formatRegionLabel(organization.region)}
+          </span>
+        )}
         {organization?.status && <span className="badge bg-accent text-white">{organization.status}</span>}
       </div>
     </div>
