@@ -389,15 +389,21 @@ class OraBooks_AP {
         if (!empty($note->bill_id)) {
             $bill = OraBooks_Vendors::get_bill((int) $note->bill_id, (int) $org_id);
             if ($bill) {
-                $new_paid = max(0, round((float) ($bill->paid_amount ?? 0) + (float) $note->amount, 2));
-                $new_status = ($new_paid >= (float) $bill->total_amount) ? 'paid' : 'partial';
+                $new_paid = min(
+                    (float) $bill->total_amount,
+                    max(0, round((float) ($bill->paid_amount ?? 0) + (float) $note->amount, 2))
+                );
                 if ($new_paid >= (float) $bill->total_amount) {
                     $new_status = 'credited';
+                } elseif ($new_paid > 0) {
+                    $new_status = 'partial';
+                } else {
+                    $new_status = 'unpaid';
                 }
                 $wpdb->update(
                     OraBooks_Database::table('bills'),
                     [
-                        'paid_amount' => min((float) $bill->total_amount, $new_paid),
+                        'paid_amount' => $new_paid,
                         'payment_status' => $new_status,
                     ],
                     ['id' => (int) $note->bill_id],
