@@ -329,20 +329,18 @@ function orabooks_activate($network_wide = false) {
  */
 function orabooks_ensure_database() {
  orabooks_with_data_blog(function {
- global $wpdb;
-
- if (class_exists('OraBooks_Customers')) {
- OraBooks_Customers::ensure_schema;
- }
- if (class_exists('OraBooks_Vendors')) {
- OraBooks_Vendors::ensure_schema;
- }
- if (class_exists('OraBooks_Bank_Reconciliation')) {
- OraBooks_Bank_Reconciliation::ensure_schema;
- }
- if (class_exists('OraBooks_AP')) {
- OraBooks_AP::ensure_schema;
- }
+ global $wpdb;	if (class_exists('OraBooks_Customers')) {
+		OraBooks_Customers::ensure_schema();
+	}
+	if (class_exists('OraBooks_Vendors')) {
+		OraBooks_Vendors::ensure_schema();
+	}
+	if (class_exists('OraBooks_Bank_Reconciliation')) {
+		OraBooks_Bank_Reconciliation::ensure_schema();
+	}
+	if (class_exists('OraBooks_AP')) {
+		OraBooks_AP::ensure_schema();
+	}
 
  $table_users = OraBooks_Database::table('users');
  $table_exists = $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table_users));
