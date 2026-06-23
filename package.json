@@ -5,7 +5,10 @@
   "main": "index.js",
   "scripts": {
     "generate:stack-doc": "node generate_stack_plan_doc.mjs",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "npm run test:ui && npm run test:js",
+    "test:ui": "npm --prefix \"OraBooks Lean MVP/orabooks-ui\" run build",
+    "test:js": "npm --prefix \"OraBooks Lean MVP/tests/js\" test",
+    "test:php": "cd \"OraBooks Lean MVP/tests\" && php ../../phpunit.phar --configuration phpunit.xml"
   },
   "devDependencies": {
     "docx": "^9.5.0"
