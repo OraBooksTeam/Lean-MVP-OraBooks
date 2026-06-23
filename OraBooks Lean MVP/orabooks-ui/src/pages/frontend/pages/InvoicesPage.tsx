@@ -191,37 +191,84 @@ export default function InvoicesPage() {
   }, [invoices]);
 
   const canOverride = (invoice: Invoice) =>
-    canOverrideTax && ['draft', 'sent'].includes(invoice.workflow_status || '');
+    canOverrideTax && ['draft', 'sent', 'submitted'].includes(invoice.workflow_status || '');
   const canPay = (invoice: Invoice) =>
     canRecordPayment &&
-    !['paid', 'cancelled'].includes(invoice.payment_status || '') &&
+    !['paid', 'cancelled', 'credited'].includes(invoice.payment_status || '') &&
     invoice.workflow_status !== 'cancelled';
+
+  const canSubmit = (invoice: Invoice) =>
+    canCreateInvoice && invoice.workflow_status === 'draft';
+
+  const canApprove = (invoice: Invoice) =>
+    canCreateInvoice && ['submitted', 'sent'].includes(invoice.workflow_status || '');
 
   const canSend = (invoice: Invoice) =>
     canCreateInvoice && invoice.workflow_status === 'draft';
 
   const canPost = (invoice: Invoice) =>
-    canCreateInvoice && ['draft', 'sent'].includes(invoice.workflow_status || '');
-
-  const canCancel = (invoice: Invoice) =>
     canCreateInvoice
-    && ['draft', 'sent'].includes(invoice.workflow_status || '')
-    && !['paid', 'partial'].includes(invoice.payment_status || '')
-    && Number(invoice.paid_amount || 0) <= 0;
+    && !Number(arConfig?.auto_post_on_approve ?? 1)
+    && ['approved', 'submitted', 'sent'].includes(invoice.workflow_status || '');
 
-  const runInvoiceAction = async (action: 'send' | 'post', invoiceId: number) => {
+  const canCreditNote = (invoice: Invoice) =>
+    canCreateInvoice && invoice.workflow_status === 'posted';
+
+  const runInvoiceAction = async (action: 'send' | 'post' | 'submit' | 'approve', invoiceId: number) => {
     if (!orgId) return;
     setActionInvoiceId(invoiceId);
     setError('');
-    const res = action === 'send'
-      ? await api.invoiceSend(orgId, invoiceId)
-      : await api.invoicePost(orgId, invoiceId);
+    let res;
+    if (action === 'send') res = await api.invoiceSend(orgId, invoiceId);
+    else if (action === 'post') res = await api.invoicePost(orgId, invoiceId);
+    else if (action === 'submit') res = await api.invoiceSubmit(orgId, invoiceId);
+    else res = await api.invoiceApprove(orgId, invoiceId);
+
     if (res.error) setError(res.error);
     else {
-      setSuccess(action === 'send' ? 'Invoice sent.' : 'Invoice posted to AR.');
+      const labels = {
+        send: 'Invoice sent.',
+        post: 'Invoice posted to AR.',
+        submit: 'Invoice submitted for approval.',
+        approve: Number(arConfig?.auto_post_on_approve ?? 1) ? 'Invoice approved and posted.' : 'Invoice approved.',
+      };
+      setSuccess(labels[action]);
       await load();
+      if (selectedInvoice?.id === invoiceId) {
+        await loadInvoiceDetail(invoiceId);
+      }
     }
     setActionInvoiceId(null);
+  };
+
+  const openCreditNote = async (invoice: Invoice) => {
+    if (!orgId) return;
+    setCreditNoteInvoice(invoice);
+    setCreditNoteForm({ amount: String(remainingBalance(invoice) || invoice.total_amount || ''), reason: '', is_write_off: false });
+    setError('');
+    const res = await api.creditNotesList(orgId, invoice.customer_id || 0);
+    if (!res.error) setCreditNotes((res as any).data?.credit_notes || []);
+  };
+
+  const handleCreateCreditNote = async () => {
+    if (!orgId || !creditNoteInvoice) return;
+    setSaving(true);
+    setError('');
+    const res = await api.creditNoteCreate({
+      org_id: orgId,
+      customer_id: creditNoteInvoice.customer_id,
+      invoice_id: creditNoteInvoice.id,
+      amount: parseFloat(creditNoteForm.amount) || 0,
+      reason: creditNoteForm.reason,
+      is_write_off: creditNoteForm.is_write_off ? 1 : 0,
+    });
+    if (res.error) setError(res.error);
+    else {
+      setSuccess('Credit note created.');
+      setCreditNoteInvoice(null);
+      await load();
+    }
+    setSaving(false);
   };
 
   const handleCancelInvoice = async () => {
