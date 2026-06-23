@@ -32,7 +32,13 @@ export default function ProfilePage() {
   };
 
   return (
-    <ClientShell title="Profile" eyebrow="User and role" organization={org} isPartner={isPartner}>
+    <ClientShell
+      title="Profile"
+      eyebrow="User and role"
+      organization={org}
+      role={context?.role}
+      isPartner={isPartner}
+    >
       <div className="space-y-5">
         <div className="flex justify-end">
           <Button onClick={load} variant="secondary" size="sm">

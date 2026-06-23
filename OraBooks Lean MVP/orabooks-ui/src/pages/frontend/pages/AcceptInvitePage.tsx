@@ -27,7 +27,28 @@ export default function AcceptInvitePage() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [needsLogin, setNeedsLogin] = useState(false);
+  const [accepting, setAccepting] = useState(false);
   const [preview, setPreview] = useState<InvitePreview | null>(null);
+
+  const acceptInvitation = async () => {
+    if (!token) return;
+    setAccepting(true);
+    setError('');
+    setSuccess('');
+    const res = await api.acceptInvite(token);
+    if (res.error) {
+      const message = typeof res.error === 'string' ? res.error : 'Unable to accept invitation.';
+      if (message.toLowerCase().includes('log in')) {
+        setNeedsLogin(true);
+      } else {
+        setError(message);
+      }
+    } else {
+      setSuccess('Invitation accepted. Redirecting to your workspace…');
+      redirectAfterAuth((res as any).data);
+    }
+    setAccepting(false);
+  };
 
   useEffect(() => {
     if (!token) {

@@ -57,8 +57,37 @@ export default function AdminUsers() {
     setRecoveringId(null);
   };
 
+  const requestExport = async (format: 'csv' | 'pdf') => {
+    setExportingFormat(format);
+    setError('');
+    setMessage('');
+    const res = await api.exportRequest('users_data', format);
+    if (res.error) {
+      setError(typeof res.error === 'string' ? res.error : 'Export request failed.');
+    } else {
+      setMessage(`Users ${format.toUpperCase()} export queued. You will be notified when it is ready.`);
+    }
+    setExportingFormat(null);
+  };
+
   return (
-    <AdminPageShell title="Users & Teams" description="Platform user accounts, verification, and security posture." actions={<Button variant="secondary" onClick={load}>Refresh</Button>}>
+    <AdminPageShell
+      title="Users & Teams"
+      description="Platform user accounts, verification, and security posture."
+      actions={
+        <div className="flex flex-wrap gap-2">
+          <Button variant="secondary" size="sm" loading={exportingFormat === 'csv'} onClick={() => void requestExport('csv')}>
+            <Download className="h-4 w-4" />
+            Export CSV
+          </Button>
+          <Button variant="secondary" size="sm" loading={exportingFormat === 'pdf'} onClick={() => void requestExport('pdf')}>
+            <Download className="h-4 w-4" />
+            Export PDF
+          </Button>
+          <Button variant="secondary" onClick={load}>Refresh</Button>
+        </div>
+      }
+    >
       {message && <p className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">{message}</p>}
       {error && <p className="mb-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
       <div className="glass-panel overflow-hidden">

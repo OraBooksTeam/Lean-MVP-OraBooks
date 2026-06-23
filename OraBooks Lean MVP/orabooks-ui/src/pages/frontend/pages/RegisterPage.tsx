@@ -73,10 +73,10 @@ export default function RegisterPage() {
       const res = await api.register({
         email,
         password,
-        user_type: userType,
-        partner_type: partnerType,
-        organization_name: orgName,
-        partner_code: partnerCode,
+        user_type: invitedFlow ? 'customer' : userType,
+        partner_type: invitedFlow ? 'individual' : partnerType,
+        organization_name: invitedFlow ? '' : orgName,
+        partner_code: invitedFlow ? '' : partnerCode,
         accept_terms: acceptTerms ? 1 : 0,
         terms_version: '1.0',
       });
