@@ -102,7 +102,10 @@ function orabooks_get_lean_mvp_page_definitions() {
         'audit-log' => ['Audit Log', '[orabooks_audit_log]'],
         'notifications' => ['Notifications', '[orabooks_notification_center]'],
         'notification-preferences' => ['Notification Preferences', '[orabooks_notification_preferences]'],
+        'notification-admin' => ['Notification Settings (Admin)', '[orabooks_notification_admin]'],
         'webhook-settings' => ['Webhook Settings', '[orabooks_webhook_settings]'],
+        'observability' => ['Observability', '[orabooks_observability_dashboard]'],
+        'commission-admin' => ['Commission Admin', '[orabooks_commission_admin]'],
         'my-exports' => ['My Exports', '[orabooks_export_status]'],
     ];
 }
@@ -241,7 +244,51 @@ function orabooks_render_merged_accounting_workspace($view = '') {
         return OraBooks_Views::require_login_message();
     }
 
-    return OraBooks_Views::render('react-app', ['initial_route' => '/dashboard']);
+    return OraBooks_Views::render('frontend/react-app', ['initial_route' => '/dashboard']);
+}
+
+/**
+ * Mount the Lean MVP React SPA from PHP templates/shortcodes.
+ */
+function orabooks_render_react_app_page($initial_route = '/dashboard', $require_login = true) {
+    if (!class_exists('OraBooks_Views')) {
+        return '<div class="orabooks-message error" style="display:block;">' .
+            esc_html__('OraBooks view renderer is unavailable.', 'orabooks') .
+            '</div>';
+    }
+
+    return OraBooks_Views::render('frontend/react-app', [
+        'initial_route' => $initial_route,
+        'require_login' => (bool) $require_login,
+    ]);
+}
+
+/**
+ * Build Gutenberg shortcode block content for an OraBooks page.
+ */
+function orabooks_build_page_shortcode_content($shortcode) {
+    $shortcode = trim((string) $shortcode);
+    if ($shortcode === '') {
+        return '';
+    }
+
+    return '<!-- wp:shortcode -->' . $shortcode . '<!-- /wp:shortcode -->';
+}
+
+/**
+ * Whether page content already contains a given shortcode tag.
+ */
+function orabooks_page_contains_shortcode($content, $shortcode) {
+    $shortcode = trim((string) $shortcode);
+    if ($shortcode === '') {
+        return true;
+    }
+
+    if (preg_match('/\[([^\]\s]+)/', $shortcode, $matches)) {
+        return has_shortcode((string) $content, $matches[1]);
+    }
+
+    return strpos((string) $content, $shortcode) !== false;
 }
 
 /**
