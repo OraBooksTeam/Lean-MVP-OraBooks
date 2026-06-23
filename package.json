@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "generate:stack-doc": "node generate_stack_plan_doc.mjs",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "npm --prefix \"OraBooks Lean MVP/tests/js\" test"
   },
   "devDependencies": {
     "docx": "^9.5.0"
