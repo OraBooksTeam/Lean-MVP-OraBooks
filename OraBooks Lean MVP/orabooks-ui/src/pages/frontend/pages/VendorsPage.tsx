@@ -848,17 +848,114 @@ export default function VendorsPage() {
         )}
 
         {creditNoteVendor && (
-          <Modal title="Create vendor credit note" onClose={() => setCreditNoteVendor(null)}>
+          <Modal title="Vendor credit note" onClose={() => setCreditNoteVendor(null)}>
             <p className="mb-4 text-sm text-slate-600">{creditNoteVendor.name}</p>
             {error && <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div>}
             <div className="grid gap-4">
               <Field label="Amount"><Input type="number" min="0" step="0.01" value={creditNoteForm.amount} onChange={(e) => setCreditNoteForm((p) => ({ ...p, amount: e.target.value }))} /></Field>
               <Field label="Credit date"><Input type="date" value={creditNoteForm.credit_date} onChange={(e) => setCreditNoteForm((p) => ({ ...p, credit_date: e.target.value }))} /></Field>
+              <Field label="Linked bill (optional)">
+                <select value={creditNoteForm.bill_id} onChange={(e) => setCreditNoteForm((p) => ({ ...p, bill_id: e.target.value }))} className="w-full rounded-lg border border-border px-3 py-2.5 text-sm">
+                  <option value="">No specific bill</option>
+                  {bills.filter((b) => b.vendor_id === creditNoteVendor.id && b.workflow_status === 'posted').map((b) => (
+                    <option key={b.id} value={b.id}>{b.bill_number || `#${b.id}`}</option>
+                  ))}
+                </select>
+              </Field>
               <Field label="Reason"><Input value={creditNoteForm.reason} onChange={(e) => setCreditNoteForm((p) => ({ ...p, reason: e.target.value }))} placeholder="Return, adjustment, etc." /></Field>
+              <label className="flex items-start gap-2 text-sm text-slate-700" title="Uses company's vendor adjustment account (configurable).">
+                <input type="checkbox" checked={creditNoteForm.is_adjustment} onChange={(e) => setCreditNoteForm((p) => ({ ...p, is_adjustment: e.target.checked }))} className="mt-1" />
+                <span>
+                  Treat as adjustment
+                  <span className="mt-0.5 block text-xs text-amber-700">Uses company vendor adjustment account when posted.</span>
+                </span>
+              </label>
             </div>
             <div className="mt-6 flex justify-end gap-2">
-              <Button variant="secondary" onClick={() => setCreditNoteVendor(null)}>Cancel</Button>
+              <Button variant="secondary" onClick={() => setCreditNoteVendor(null)}>Close</Button>
               <Button onClick={handleCreateCreditNote} disabled={saving}>Create credit note</Button>
+            </div>
+            {vendorCreditNotes.length > 0 && (
+              <div className="mt-4 border-t border-border pt-4">
+                <h4 className="mb-2 text-sm font-semibold text-ink">Credit notes</h4>
+                <CreditNoteList
+                  notes={vendorCreditNotes}
+                  actionId={actionCreditNoteId}
+                  onSubmit={(id) => void runCreditNoteAction('submit', id)}
+                  onApprove={(id) => void runCreditNoteAction('approve', id)}
+                  onPost={(id) => void runCreditNoteAction('post', id)}
+                  onVoid={(note) => { setVoidCreditNote(note); setVoidCreditReason(''); }}
+                />
+              </div>
+            )}
+          </Modal>
+        )}
+
+        {detailBill && (
+          <Modal title={`Bill ${detailBill.bill_number || `#${detailBill.id}`}`} onClose={() => setDetailBill(null)}>
+            <div className="space-y-2 text-sm text-slate-600">
+              <p>Vendor: {detailBill.vendor_name}</p>
+              <p>Due: {detailBill.due_date}</p>
+              <p>Total: {money(detailBill.total_amount, detailBill.currency)}</p>
+              <p>Paid: {money(detailBill.paid_amount, detailBill.currency)}</p>
+              <div className="flex gap-2 pt-1">
+                <WorkflowBadge value={detailBill.workflow_status || 'draft'} />
+                <WorkflowBadge value={detailBill.payment_status || 'unpaid'} />
+              </div>
+            </div>
+            {detailBill.workflow_status === 'posted' && (
+              <div className="mt-4">
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => {
+                    setCreditNoteVendor(vendors.find((v) => v.id === detailBill.vendor_id) || null);
+                    setCreditNoteForm((p) => ({ ...p, bill_id: String(detailBill.id) }));
+                    if (detailBill.vendor_id) void loadVendorCreditNotes(detailBill.vendor_id);
+                  }}
+                >
+                  Issue credit note
+                </Button>
+              </div>
+            )}
+            {billPayments.length > 0 && (
+              <div className="mt-4 border-t border-border pt-4">
+                <h4 className="mb-2 text-sm font-semibold text-ink">Payments</h4>
+                <ul className="space-y-2 text-sm">
+                  {billPayments.map((payment) => (
+                    <li key={payment.id} className="rounded-lg border border-border px-3 py-2">
+                      {money(payment.amount, detailBill.currency)} · {payment.payment_date} · {payment.type || 'payment'}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {billCreditNotes.length > 0 && (
+              <div className="mt-4 border-t border-border pt-4">
+                <h4 className="mb-2 text-sm font-semibold text-ink">Credit notes</h4>
+                <CreditNoteList
+                  notes={billCreditNotes}
+                  actionId={actionCreditNoteId}
+                  onSubmit={(id) => void runCreditNoteAction('submit', id, 'bill')}
+                  onApprove={(id) => void runCreditNoteAction('approve', id, 'bill')}
+                  onPost={(id) => void runCreditNoteAction('post', id, 'bill')}
+                  onVoid={(note) => { setVoidCreditNote(note); setVoidCreditReason(''); }}
+                />
+              </div>
+            )}
+          </Modal>
+        )}
+
+        {voidCreditNote && (
+          <Modal title="Void credit note" onClose={() => setVoidCreditNote(null)}>
+            <p className="mb-4 text-sm text-slate-600">Void credit note {voidCreditNote.credit_note_number}?</p>
+            {error && <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div>}
+            <Field label="Reason (optional)">
+              <Input value={voidCreditReason} onChange={(e) => setVoidCreditReason(e.target.value)} />
+            </Field>
+            <div className="mt-6 flex justify-end gap-2">
+              <Button variant="secondary" onClick={() => setVoidCreditNote(null)}>Keep</Button>
+              <Button onClick={() => void handleVoidCreditNote()} disabled={actionCreditNoteId === voidCreditNote.id}>Confirm void</Button>
             </div>
           </Modal>
         )}
@@ -964,6 +1061,57 @@ function StatusBadge({ active }: { active: boolean }) {
 
 function WorkflowBadge({ value }: { value: string }) {
   return <span className="badge border border-border bg-slate-50 text-slate-700">{value}</span>;
+}
+
+function CreditNoteList({
+  notes,
+  actionId,
+  onSubmit,
+  onApprove,
+  onPost,
+  onVoid,
+}: {
+  notes: VendorCreditNote[];
+  actionId: number | null;
+  onSubmit: (id: number) => void;
+  onApprove: (id: number) => void;
+  onPost: (id: number) => void;
+  onVoid: (note: VendorCreditNote) => void;
+}) {
+  return (
+    <ul className="space-y-2 text-sm">
+      {notes.map((note) => (
+        <li key={note.id} className="rounded-lg border border-border px-3 py-2">
+          <div className="flex flex-wrap items-start justify-between gap-2">
+            <div>
+              <p className="font-medium text-ink">{note.credit_note_number}</p>
+              <p className="text-slate-600">{money(note.amount)} · {note.credit_date}</p>
+              {Number(note.is_adjustment) === 1 && <p className="text-xs text-amber-700">Adjustment</p>}
+              {Number(note.requires_second_approval) === 1 && <p className="text-xs text-amber-700">Requires second approval</p>}
+            </div>
+            <WorkflowBadge value={note.workflow_status} />
+          </div>
+          <div className="mt-2 flex flex-wrap gap-1">
+            {note.workflow_status === 'draft' && (
+              <>
+                <Button size="sm" variant="secondary" disabled={actionId === note.id} onClick={() => onSubmit(note.id)}>Submit</Button>
+                <Button size="sm" variant="secondary" disabled={actionId === note.id} onClick={() => onVoid(note)}>Void</Button>
+              </>
+            )}
+            {note.workflow_status === 'submitted' && (
+              <>
+                <Button size="sm" variant="secondary" disabled={actionId === note.id} onClick={() => onApprove(note.id)}>Approve</Button>
+                <Button size="sm" variant="secondary" disabled={actionId === note.id} onClick={() => onVoid(note)}>Void</Button>
+              </>
+            )}
+            {note.workflow_status === 'approved' && (
+              <Button size="sm" variant="secondary" disabled={actionId === note.id} onClick={() => onPost(note.id)}>Post</Button>
+            )}
+          </div>
+        </li>
+      ))}
+    </ul>
+  );
 }
 
 function money(value?: string | number, currency = 'USD') {
