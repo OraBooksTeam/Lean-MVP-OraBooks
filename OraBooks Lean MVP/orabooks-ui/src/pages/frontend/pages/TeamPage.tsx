@@ -237,8 +237,8 @@ export default function TeamPage() {
               ) : (
                 members.map((member: any) => {
                   const isSelf = member.id === currentUserId;
-                  const canEdit = caps.change_role && !isSelf;
-                  const canRemove = caps.remove_user && !isSelf;
+                  const canEdit = canEditMemberRole(caps, member, currentUserId);
+                  const canRemove = canRemoveMember(caps, member, currentUserId);
 
                   return (
                     <tr key={member.id} className="hover:bg-slate-50/70">
@@ -254,7 +254,7 @@ export default function TeamPage() {
                             disabled={actionUserId === member.id}
                             onChange={(e) => void handleRoleChange(member.id, e.target.value)}
                           >
-                            {(data?.member_roles || []).map((role: any) => (
+                            {assignableRoles.map((role) => (
                               <option key={role.id} value={role.id}>
                                 {role.label}
                               </option>
@@ -265,7 +265,7 @@ export default function TeamPage() {
                         )}
                       </td>
                       <td className="px-5 py-3 text-slate-600">{formatDate(member.joined_at)}</td>
-                      {(caps.change_role || caps.remove_user) && (
+                      {showActionsColumn && (
                         <td className="px-5 py-3">
                           {canRemove && (
                             <Button

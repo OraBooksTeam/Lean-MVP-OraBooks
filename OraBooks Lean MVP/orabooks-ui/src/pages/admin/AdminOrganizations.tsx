@@ -30,25 +30,44 @@ export default function AdminOrganizations() {
   const [loading, setLoading] = useState(true);
   const [typeFilter, setTypeFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const [error, setError] = useState('');
 
   const load = () => {
     setLoading(true);
+    setError('');
     api.listOrgs(typeFilter, statusFilter).then((res) => {
-      if (!res.error) setOrgs((res as any).data || []);
+      if (res.error) {
+        setError(typeof res.error === 'string' ? res.error : 'Unable to load organizations.');
+        setOrgs([]);
+      } else {
+        setOrgs((res as any).data || []);
+      }
       setLoading(false);
     });
   };
 
   useEffect(() => { load(); }, [typeFilter, statusFilter]);
 
-  const suspend = (id: number) => {
+  const suspend = async (id: number) => {
     if (!confirm('Suspend this organization?')) return;
-    api.suspendOrg(id).then(() => load());
+    setError('');
+    const res = await api.suspendOrg(id);
+    if (res.error) {
+      setError(typeof res.error === 'string' ? res.error : 'Unable to suspend organization.');
+      return;
+    }
+    load();
   };
 
-  const activate = (id: number) => {
+  const activate = async (id: number) => {
     if (!confirm('Activate this organization?')) return;
-    api.activateOrg(id).then(() => load());
+    setError('');
+    const res = await api.activateOrg(id);
+    if (res.error) {
+      setError(typeof res.error === 'string' ? res.error : 'Unable to activate organization.');
+      return;
+    }
+    load();
   };
 
   const changeRegion = (id: number, region: string) => {
@@ -68,6 +87,9 @@ export default function AdminOrganizations() {
       description="Manage customer and partner organizations across the platform. Partner approvals are handled separately in Partner Management."
       actions={<Button variant="secondary" onClick={load}>Refresh</Button>}
     >
+      {error && (
+        <p className="mb-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>
+      )}
       <div className="flex flex-wrap gap-2">
         <select
           value={typeFilter}

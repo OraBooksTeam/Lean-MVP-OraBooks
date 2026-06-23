@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import AdminPageShell from '@/components/AdminPageShell';
 import { api } from '../api';
 import Button from '@/components/Button';
-import { UserCheck, Mail, Shield } from 'lucide-react';
+import { Download } from 'lucide-react';
 
 interface User {
   id: number;
@@ -18,13 +18,20 @@ export default function AdminUsers() {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [recoveringId, setRecoveringId] = useState<number | null>(null);
+  const [exportingFormat, setExportingFormat] = useState<'csv' | 'pdf' | null>(null);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
 
   const load = () => {
     setLoading(true);
+    setError('');
     api.listUsers().then((res) => {
-      if (!res.error) setUsers((res as any).data || []);
+      if (res.error) {
+        setError(typeof res.error === 'string' ? res.error : 'Unable to load users.');
+        setUsers([]);
+      } else {
+        setUsers((res as any).data || []);
+      }
       setLoading(false);
     });
   };
