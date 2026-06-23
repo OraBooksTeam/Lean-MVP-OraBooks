@@ -54,7 +54,7 @@ export default function BankReconciliationPage() {
 
   const [matchTxn, setMatchTxn] = useState<any | null>(null);
   const [matchForm, setMatchForm] = useState({
-    transaction_type: 'payment' as 'payment' | 'expense' | 'journal',
+    transaction_type: 'payment' as 'payment' | 'expense' | 'journal' | 'vendor_payment' | 'invoice',
     transaction_id: '',
   });
 
@@ -127,7 +127,6 @@ export default function BankReconciliationPage() {
 
   const orgId = context?.organization?.id;
   const permissions: string[] = context?.permissions || [];
-  const canView = permissions.includes('view_bank_reconciliation') || permissions.includes('view_reports');
   const canMatch = permissions.includes('match_transaction') || permissions.includes('submit_transaction') || permissions.includes('approve_journal');
   const canReconcile = permissions.includes('reconcile_bank') || permissions.includes('manage_org_settings') || permissions.includes('approve_journal');
   const unmatched = stats?.unmatched_count ?? 0;
@@ -797,11 +796,13 @@ export default function BankReconciliationPage() {
               <Field label="Transaction type">
                 <select
                   value={matchForm.transaction_type}
-                  onChange={(e) => setMatchForm((p) => ({ ...p, transaction_type: e.target.value as 'payment' | 'expense' | 'journal' }))}
+                  onChange={(e) => setMatchForm((p) => ({ ...p, transaction_type: e.target.value as typeof matchForm.transaction_type }))}
                   className="w-full rounded-lg border border-border px-3 py-2.5 text-sm"
                 >
-                  <option value="payment">Payment</option>
+                  <option value="payment">Payment (AR)</option>
+                  <option value="vendor_payment">Vendor payment (AP)</option>
                   <option value="expense">Expense</option>
+                  <option value="invoice">Invoice</option>
                   <option value="journal">Journal</option>
                 </select>
               </Field>

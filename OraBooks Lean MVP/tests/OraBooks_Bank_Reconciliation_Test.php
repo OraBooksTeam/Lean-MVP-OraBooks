@@ -252,4 +252,91 @@ class OraBooks_Bank_Reconciliation_Test extends TestCase
         $this->assertCount(2, $rows);
         $this->assertStringContainsString('WHERE org_id =', $seen_query);
     }
+
+    #[Test]
+    public function test_parse_csv_content_parses_header_and_rows()
+    {
+        $csv = "date,amount,description,reference\n2026-06-01,100.50,Deposit,REF-1\n2026-06-02,-25.00,Fee,";
+        $rows = OraBooks_Bank_Reconciliation::parse_csv_content($csv);
+
+        $this->assertIsArray($rows);
+        $this->assertCount(2, $rows);
+        $this->assertEquals('2026-06-01', $rows[0]['date']);
+        $this->assertEquals('100.50', $rows[0]['amount']);
+        $this->assertEquals('Deposit', $rows[0]['description']);
+    }
+
+    #[Test]
+    public function test_parse_csv_content_rejects_empty_file()
+    {
+        $result = OraBooks_Bank_Reconciliation::parse_csv_content('');
+        $this->assertInstanceOf(WP_Error::class, $result);
+    }
+
+    #[Test]
+    public function test_confirm_suggested_match_updates_status()
+    {
+        global $wpdb;
+
+        $wpdb->test_get_row_callback = function ($query) {
+            if (stripos($query, 'bank_transactions') !== false && stripos($query, 'reconciliation_matches') === false) {
+                return $this->mockBankTransaction();
+            }
+            if (stripos($query, 'reconciliation_matches') !== false) {
+                return (object) [
+                    'id' => 7,
+                    'bank_transaction_id' => 100,
+                    'transaction_type' => 'payment',
+                    'transaction_id' => 55,
+                    'match_status' => 'suggested',
+                ];
+            }
+            return null;
+        };
+
+        $result = OraBooks_Bank_Reconciliation::confirm_suggested_match(5, 100, 7, 1);
+
+        $this->assertEquals('matched', $result['status']);
+        $this->assertEquals(7, $result['match_id']);
+    }
+
+    #[Test]
+    public function test_suggest_match_uses_expense_candidate()
+    {
+        global $wpdb;
+
+        $wpdb->test_get_row_callback = function ($query) {
+            if (stripos($query, 'bank_transactions') !== false && stripos($query, 'FROM') !== false) {
+                return $this->mockBankTransaction(['amount' => '-45.00', 'description' => 'Office supplies']);
+            }
+            if (stripos($query, 'orabooks_payments') !== false) {
+                return null;
+            }
+            if (stripos($query, 'vendor_payments') !== false) {
+                return null;
+            }
+            if (stripos($query, 'expenses') !== false) {
+                return (object) [
+                    'id' => 33,
+                    'vendor' => 'Office Depot',
+                    'description' => 'Office supplies',
+                ];
+            }
+            return null;
+        };
+        $wpdb->test_get_var_callback = function () {
+            return 0;
+        };
+        $GLOBALS['orabooks_test_use_insert_id'] = 88;
+
+        $result = OraBooks_Bank_Reconciliation::suggest_match(5, 100, [
+            'transaction_date' => '2026-06-15',
+            'amount' => -45,
+            'description' => 'Office supplies purchase',
+            'reference' => '',
+        ]);
+
+        $this->assertTrue($result['suggested']);
+        $this->assertEquals('expense', $result['candidate']['transaction_type']);
+    }
 }

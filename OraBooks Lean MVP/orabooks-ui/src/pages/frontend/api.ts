@@ -503,7 +503,7 @@ export const api = {
   bankManualMatch: (
     orgId: number,
     bankTransactionId: number,
-    transactionType: 'payment' | 'expense' | 'journal',
+    transactionType: 'payment' | 'expense' | 'journal' | 'vendor_payment' | 'invoice',
     transactionId: number
   ) =>
     api.post('orabooks_bank_match', {
