@@ -1,6 +1,6 @@
 <?php
 /**
- * Unit Tests for OraBooks_Expenses (SL-028)
+ * Unit Tests for OraBooks_Expenses
  */
 
 use PHPUnit\Framework\Attributes\Test;
@@ -8,272 +8,272 @@ use PHPUnit\Framework\TestCase;
 
 class OraBooks_Expenses_Test extends TestCase
 {
-    #[Test]
-    public function test_schema_defines_sl028_tables()
-    {
-        $sql = implode("\n", OraBooks_Expenses::get_create_table_sql());
+ #[Test]
+ public function test_schema_defines_sl028_tables
+ {
+ $sql = implode("\n", OraBooks_Expenses::get_create_table_sql);
 
-        $this->assertStringContainsString('orabooks_expenses', $sql);
-        $this->assertStringContainsString('orabooks_ocr_processing_queue', $sql);
-        $this->assertStringContainsString('orabooks_expense_line_items', $sql);
-        $this->assertStringContainsString('orabooks_expense_settings', $sql);
-        $this->assertStringContainsString("ENUM('draft','submitted','ai_review','approved','posted','locked')", $sql);
-    }
+ $this->assertStringContainsString('orabooks_expenses', $sql);
+ $this->assertStringContainsString('orabooks_ocr_processing_queue', $sql);
+ $this->assertStringContainsString('orabooks_expense_line_items', $sql);
+ $this->assertStringContainsString('orabooks_expense_settings', $sql);
+ $this->assertStringContainsString("ENUM('draft','submitted','ai_review','approved','posted','locked')", $sql);
+ }
 
-    #[Test]
-    public function test_ocr_stub_returns_structured_fields()
-    {
-        $ocr = OraBooks_Expenses::run_ocr_stub('office-supplies-receipt.pdf', 42);
+ #[Test]
+ public function test_ocr_stub_returns_structured_fields
+ {
+ $ocr = OraBooks_Expenses::run_ocr_stub('office-supplies-receipt.pdf', 42);
 
-        $this->assertNotEmpty($ocr['vendor']);
-        $this->assertGreaterThan(0, $ocr['total_amount']);
-        $this->assertArrayHasKey('ocr_confidence', $ocr);
-        $this->assertArrayHasKey('ocr_risk_level', $ocr);
-        $this->assertContains($ocr['ocr_risk_level'], ['low', 'medium', 'high']);
-        $this->assertNotEmpty($ocr['line_items']);
-    }
+ $this->assertNotEmpty($ocr['vendor']);
+ $this->assertGreaterThan(0, $ocr['total_amount']);
+ $this->assertArrayHasKey('ocr_confidence', $ocr);
+ $this->assertArrayHasKey('ocr_risk_level', $ocr);
+ $this->assertContains($ocr['ocr_risk_level'], ['low', 'medium', 'high']);
+ $this->assertNotEmpty($ocr['line_items']);
+ }
 
-    #[Test]
-    public function test_ocr_stub_elevates_risk_for_high_value_expense()
-    {
-        $ocr = OraBooks_Expenses::run_ocr_stub('enterprise-vendor-invoice.pdf', 95000);
+ #[Test]
+ public function test_ocr_stub_elevates_risk_for_high_value_expense
+ {
+ $ocr = OraBooks_Expenses::run_ocr_stub('enterprise-vendor-invoice.pdf', 95000);
 
-        $this->assertGreaterThanOrEqual(5000, $ocr['total_amount']);
-        $this->assertSame('high', $ocr['ocr_risk_level']);
-    }
+ $this->assertGreaterThanOrEqual(5000, $ocr['total_amount']);
+ $this->assertSame('high', $ocr['ocr_risk_level']);
+ }
 
-    #[Test]
-    public function test_format_expense_maps_core_fields()
-    {
-        $row = (object) [
-            'id' => 7,
-            'org_id' => 1,
-            'vendor' => 'Acme Supplies',
-            'vendor_tax_id' => null,
-            'invoice_number' => 'RCP-000123',
-            'transaction_date' => '2026-06-18',
-            'due_date' => null,
-            'subtotal' => 95.00,
-            'tax_amount' => 5.00,
-            'tax_rate' => 5.00,
-            'total_amount' => 100.00,
-            'currency' => 'USD',
-            'payment_method' => 'Credit Card',
-            'category' => 'Office Supplies',
-            'merchant_address' => null,
-            'description' => 'Test expense',
-            'ocr_confidence' => 88.5,
-            'ocr_risk_level' => 'low',
-            'ocr_data' => wp_json_encode(['fields' => []]),
-            'ocr_provider' => 'mvp-stub',
-            'ocr_model_version' => 'mvp-stub-1.0',
-            'ocr_snapshot_hash' => 'abc123',
-            'workflow_status' => 'draft',
-            'payment_status' => 'unpaid',
-            'lock_status' => 'unlocked',
-            'attachment_id' => 3,
-            'journal_id' => null,
-            'created_by' => 1,
-            'approved_by' => null,
-            'posted_by' => null,
-            'approved_at' => null,
-            'posted_at' => null,
-            'created_at' => '2026-06-18 09:00:00',
-            'updated_at' => '2026-06-18 09:00:00',
-        ];
+ #[Test]
+ public function test_format_expense_maps_core_fields
+ {
+ $row = (object) [
+ 'id' => 7,
+ 'org_id' => 1,
+ 'vendor' => 'Acme Supplies',
+ 'vendor_tax_id' => null,
+ 'invoice_number' => 'RCP-000123',
+ 'transaction_date' => '2026-06-18',
+ 'due_date' => null,
+ 'subtotal' => 95.00,
+ 'tax_amount' => 5.00,
+ 'tax_rate' => 5.00,
+ 'total_amount' => 100.00,
+ 'currency' => 'USD',
+ 'payment_method' => 'Credit Card',
+ 'category' => 'Office Supplies',
+ 'merchant_address' => null,
+ 'description' => 'Test expense',
+ 'ocr_confidence' => 88.5,
+ 'ocr_risk_level' => 'low',
+ 'ocr_data' => wp_json_encode(['fields' => []]),
+ 'ocr_provider' => 'mvp-stub',
+ 'ocr_model_version' => 'mvp-stub-1.0',
+ 'ocr_snapshot_hash' => 'abc123',
+ 'workflow_status' => 'draft',
+ 'payment_status' => 'unpaid',
+ 'lock_status' => 'unlocked',
+ 'attachment_id' => 3,
+ 'journal_id' => null,
+ 'created_by' => 1,
+ 'approved_by' => null,
+ 'posted_by' => null,
+ 'approved_at' => null,
+ 'posted_at' => null,
+ 'created_at' => '2026-06-18 09:00:00',
+ 'updated_at' => '2026-06-18 09:00:00',
+ ];
 
-        $formatted = OraBooks_Expenses::format_expense($row);
+ $formatted = OraBooks_Expenses::format_expense($row);
 
-        $this->assertSame(7, $formatted['id']);
-        $this->assertSame('Acme Supplies', $formatted['vendor']);
-        $this->assertSame(100.0, $formatted['total_amount']);
-        $this->assertSame('low', $formatted['ocr_risk_level']);
-        $this->assertSame(88.5, $formatted['ocr_confidence']);
-    }
+ $this->assertSame(7, $formatted['id']);
+ $this->assertSame('Acme Supplies', $formatted['vendor']);
+ $this->assertSame(100.0, $formatted['total_amount']);
+ $this->assertSame('low', $formatted['ocr_risk_level']);
+ $this->assertSame(88.5, $formatted['ocr_confidence']);
+ }
 
-    #[Test]
-    public function test_format_expense_hides_ocr_risk_until_confidence_exists()
-    {
-        $row = (object) [
-            'id' => 8,
-            'org_id' => 1,
-            'vendor' => null,
-            'vendor_tax_id' => null,
-            'invoice_number' => null,
-            'transaction_date' => null,
-            'due_date' => null,
-            'subtotal' => null,
-            'tax_amount' => null,
-            'tax_rate' => null,
-            'total_amount' => null,
-            'currency' => 'USD',
-            'payment_method' => null,
-            'category' => null,
-            'merchant_address' => null,
-            'description' => null,
-            'ocr_confidence' => null,
-            'ocr_risk_level' => 'low',
-            'ocr_data' => null,
-            'ocr_provider' => null,
-            'ocr_model_version' => null,
-            'ocr_snapshot_hash' => null,
-            'workflow_status' => 'draft',
-            'payment_status' => 'unpaid',
-            'lock_status' => 'unlocked',
-            'attachment_id' => null,
-            'journal_id' => null,
-            'created_by' => 1,
-            'approved_by' => null,
-            'posted_by' => null,
-            'approved_at' => null,
-            'posted_at' => null,
-            'created_at' => '2026-06-18 09:00:00',
-            'updated_at' => '2026-06-18 09:00:00',
-        ];
+ #[Test]
+ public function test_format_expense_hides_ocr_risk_until_confidence_exists
+ {
+ $row = (object) [
+ 'id' => 8,
+ 'org_id' => 1,
+ 'vendor' => null,
+ 'vendor_tax_id' => null,
+ 'invoice_number' => null,
+ 'transaction_date' => null,
+ 'due_date' => null,
+ 'subtotal' => null,
+ 'tax_amount' => null,
+ 'tax_rate' => null,
+ 'total_amount' => null,
+ 'currency' => 'USD',
+ 'payment_method' => null,
+ 'category' => null,
+ 'merchant_address' => null,
+ 'description' => null,
+ 'ocr_confidence' => null,
+ 'ocr_risk_level' => 'low',
+ 'ocr_data' => null,
+ 'ocr_provider' => null,
+ 'ocr_model_version' => null,
+ 'ocr_snapshot_hash' => null,
+ 'workflow_status' => 'draft',
+ 'payment_status' => 'unpaid',
+ 'lock_status' => 'unlocked',
+ 'attachment_id' => null,
+ 'journal_id' => null,
+ 'created_by' => 1,
+ 'approved_by' => null,
+ 'posted_by' => null,
+ 'approved_at' => null,
+ 'posted_at' => null,
+ 'created_at' => '2026-06-18 09:00:00',
+ 'updated_at' => '2026-06-18 09:00:00',
+ ];
 
-        $formatted = OraBooks_Expenses::format_expense($row);
+ $formatted = OraBooks_Expenses::format_expense($row);
 
-        $this->assertNull($formatted['ocr_risk_level']);
-        $this->assertArrayNotHasKey('classification', $formatted);
-    }
+ $this->assertNull($formatted['ocr_risk_level']);
+ $this->assertArrayNotHasKey('classification', $formatted);
+ }
 
-    #[Test]
-    public function test_ocr_stub_includes_extended_sl028_fields()
-    {
-        $ocr = OraBooks_Expenses::run_ocr_stub('vendor-receipt.pdf', 10);
+ #[Test]
+ public function test_ocr_stub_includes_extended_sl028_fields
+ {
+ $ocr = OraBooks_Expenses::run_ocr_stub('vendor-receipt.pdf', 10);
 
-        $this->assertArrayHasKey('vendor_tax_id', $ocr);
-        $this->assertArrayHasKey('due_date', $ocr);
-        $this->assertArrayHasKey('merchant_address', $ocr);
-    }
+ $this->assertArrayHasKey('vendor_tax_id', $ocr);
+ $this->assertArrayHasKey('due_date', $ocr);
+ $this->assertArrayHasKey('merchant_address', $ocr);
+ }
 
-    #[Test]
-    public function test_run_live_checks_returns_expected_shape()
-    {
-        $result = OraBooks_Expenses::run_live_checks(0);
+ #[Test]
+ public function test_run_live_checks_returns_expected_shape
+ {
+ $result = OraBooks_Expenses::run_live_checks(0);
 
-        $this->assertArrayHasKey('ok', $result);
-        $this->assertArrayHasKey('checks', $result);
-        $this->assertArrayHasKey('environment', $result);
-        $this->assertArrayHasKey('manual_steps', $result);
-        $this->assertIsArray($result['checks']);
-        $this->assertNotEmpty($result['checks']);
-        $this->assertSame(70.0, $result['environment']['confidence_threshold']);
-        $this->assertSame(10, $result['environment']['rate_limit_per_min']);
-    }
+ $this->assertArrayHasKey('ok', $result);
+ $this->assertArrayHasKey('checks', $result);
+ $this->assertArrayHasKey('environment', $result);
+ $this->assertArrayHasKey('manual_steps', $result);
+ $this->assertIsArray($result['checks']);
+ $this->assertNotEmpty($result['checks']);
+ $this->assertSame(70.0, $result['environment']['confidence_threshold']);
+ $this->assertSame(10, $result['environment']['rate_limit_per_min']);
+ }
 
-    #[Test]
-    public function test_get_ocr_queue_state_returns_latest_row()
-    {
-        global $wpdb;
+ #[Test]
+ public function test_get_ocr_queue_state_returns_latest_row
+ {
+ global $wpdb;
 
-        $wpdb->test_get_row_callback = function ($query) {
-            if (stripos($query, 'ocr_processing_queue') !== false) {
-                return (object) ['status' => 'pending', 'error_message' => null];
-            }
-            return null;
-        };
+ $wpdb->test_get_row_callback = function ($query) {
+ if (stripos($query, 'ocr_processing_queue') !== false) {
+ return (object) ['status' => 'pending', 'error_message' => null];
+ }
+ return null;
+ };
 
-        $state = OraBooks_Expenses::get_ocr_queue_state(12);
+ $state = OraBooks_Expenses::get_ocr_queue_state(12);
 
-        $this->assertIsArray($state);
-        $this->assertSame('pending', $state['status']);
-    }
+ $this->assertIsArray($state);
+ $this->assertSame('pending', $state['status']);
+ }
 
-    #[Test]
-    public function test_resolve_submit_route_matrix()
-    {
-        $submitted = OraBooks_Expenses::resolve_submit_route(80, 'low');
-        $this->assertSame('submitted', $submitted['target_status']);
+ #[Test]
+ public function test_resolve_submit_route_matrix
+ {
+ $submitted = OraBooks_Expenses::resolve_submit_route(80, 'low');
+ $this->assertSame('submitted', $submitted['target_status']);
 
-        $review = OraBooks_Expenses::resolve_submit_route(80, 'high');
-        $this->assertSame('ai_review', $review['target_status']);
-    }
+ $review = OraBooks_Expenses::resolve_submit_route(80, 'high');
+ $this->assertSame('ai_review', $review['target_status']);
+ }
 
-    #[Test]
-    public function test_async_ocr_handler_is_registered()
-    {
-        if (!class_exists('OraBooks_AsyncQueue')) {
-            $this->markTestSkipped('OraBooks_AsyncQueue not loaded');
-        }
+ #[Test]
+ public function test_async_ocr_handler_is_registered
+ {
+ if (!class_exists('OraBooks_AsyncQueue')) {
+ $this->markTestSkipped('OraBooks_AsyncQueue not loaded');
+ }
 
-        OraBooks_Expenses::init();
-        $handler = OraBooks_AsyncQueue::get_handler('process_expense_ocr');
-        $this->assertTrue(is_callable($handler));
-    }
+ OraBooks_Expenses::init;
+ $handler = OraBooks_AsyncQueue::get_handler('process_expense_ocr');
+ $this->assertTrue(is_callable($handler));
+ }
 
-    #[Test]
-    public function test_get_org_settings_falls_back_to_global_option()
-    {
-        global $wpdb;
+ #[Test]
+ public function test_get_org_settings_falls_back_to_global_option
+ {
+ global $wpdb;
 
-        $settings_table = OraBooks_Database::table('expense_settings');
-        $wpdb->test_get_var_callback = static function ($query) use ($settings_table) {
-            if (stripos($query, 'SHOW TABLES LIKE') !== false) {
-                return $settings_table;
-            }
-            if (stripos($query, 'SELECT org_id FROM') !== false && stripos($query, 'expense_settings') !== false) {
-                return null;
-            }
-            return null;
-        };
-        $wpdb->test_get_row_callback = static function ($query) {
-            if (stripos($query, 'expense_settings') !== false) {
-                return null;
-            }
-            return null;
-        };
+ $settings_table = OraBooks_Database::table('expense_settings');
+ $wpdb->test_get_var_callback = static function ($query) use ($settings_table) {
+ if (stripos($query, 'SHOW TABLES LIKE') !== false) {
+ return $settings_table;
+ }
+ if (stripos($query, 'SELECT org_id FROM') !== false && stripos($query, 'expense_settings') !== false) {
+ return null;
+ }
+ return null;
+ };
+ $wpdb->test_get_row_callback = static function ($query) {
+ if (stripos($query, 'expense_settings') !== false) {
+ return null;
+ }
+ return null;
+ };
 
-        $GLOBALS['orabooks_test_options']['orabooks_expense_auto_post_on_approve'] = 0;
+ $GLOBALS['orabooks_test_options']['orabooks_expense_auto_post_on_approve'] = 0;
 
-        $settings = OraBooks_Expenses::get_org_settings(9);
+ $settings = OraBooks_Expenses::get_org_settings(9);
 
-        $this->assertSame(9, (int) $settings->org_id);
-        $this->assertSame(0, (int) $settings->auto_post_on_approve);
-        $this->assertFalse(OraBooks_Expenses::auto_post_on_approve_enabled(9));
-    }
+ $this->assertSame(9, (int) $settings->org_id);
+ $this->assertSame(0, (int) $settings->auto_post_on_approve);
+ $this->assertFalse(OraBooks_Expenses::auto_post_on_approve_enabled(9));
+ }
 
-    #[Test]
-    public function test_save_org_settings_persists_auto_post_flag()
-    {
-        global $wpdb;
+ #[Test]
+ public function test_save_org_settings_persists_auto_post_flag
+ {
+ global $wpdb;
 
-        $settings_table = OraBooks_Database::table('expense_settings');
-        $saved = null;
+ $settings_table = OraBooks_Database::table('expense_settings');
+ $saved = null;
 
-        $wpdb->test_get_var_callback = static function ($query) use ($settings_table) {
-            if (stripos($query, 'SHOW TABLES LIKE') !== false) {
-                return $settings_table;
-            }
-            if (stripos($query, 'SELECT org_id FROM') !== false && stripos($query, 'expense_settings') !== false) {
-                return null;
-            }
-            return null;
-        };
-        $wpdb->test_get_row_callback = static function ($query) use (&$saved) {
-            if (stripos($query, 'expense_settings') !== false && stripos($query, 'WHERE org_id') !== false) {
-                return $saved;
-            }
-            return null;
-        };
-        $wpdb->test_insert_callback = static function ($table, $data) use (&$saved) {
-            $saved = (object) $data;
-        };
-        $wpdb->test_update_callback = static function ($table, $data, $where) use (&$saved) {
-            if (!$saved) {
-                $saved = (object) array_merge(['org_id' => (int) ($where['org_id'] ?? 0)], $data);
-            } else {
-                foreach ($data as $key => $value) {
-                    $saved->$key = $value;
-                }
-            }
-            return 1;
-        };
+ $wpdb->test_get_var_callback = static function ($query) use ($settings_table) {
+ if (stripos($query, 'SHOW TABLES LIKE') !== false) {
+ return $settings_table;
+ }
+ if (stripos($query, 'SELECT org_id FROM') !== false && stripos($query, 'expense_settings') !== false) {
+ return null;
+ }
+ return null;
+ };
+ $wpdb->test_get_row_callback = static function ($query) use (&$saved) {
+ if (stripos($query, 'expense_settings') !== false && stripos($query, 'WHERE org_id') !== false) {
+ return $saved;
+ }
+ return null;
+ };
+ $wpdb->test_insert_callback = static function ($table, $data) use (&$saved) {
+ $saved = (object) $data;
+ };
+ $wpdb->test_update_callback = static function ($table, $data, $where) use (&$saved) {
+ if (!$saved) {
+ $saved = (object) array_merge(['org_id' => (int) ($where['org_id'] ?? 0)], $data);
+ } else {
+ foreach ($data as $key => $value) {
+ $saved->$key = $value;
+ }
+ }
+ return 1;
+ };
 
-        $formatted = OraBooks_Expenses::save_org_settings(9, ['auto_post_on_approve' => 1]);
+ $formatted = OraBooks_Expenses::save_org_settings(9, ['auto_post_on_approve' => 1]);
 
-        $this->assertSame(9, $formatted['org_id']);
-        $this->assertSame(1, $formatted['auto_post_on_approve']);
-        $this->assertTrue(OraBooks_Expenses::auto_post_on_approve_enabled(9));
-    }
+ $this->assertSame(9, $formatted['org_id']);
+ $this->assertSame(1, $formatted['auto_post_on_approve']);
+ $this->assertTrue(OraBooks_Expenses::auto_post_on_approve_enabled(9));
+ }
 }
