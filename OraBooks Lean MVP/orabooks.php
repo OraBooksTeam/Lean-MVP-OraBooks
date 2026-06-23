@@ -84,60 +84,55 @@ add_action('plugins_loaded', 'orabooks_init');
 
 function orabooks_init() {
  // Load text domain
- load_plugin_textdomain('orabooks', false, dirname(plugin_basename(__FILE__)). '/languages');
+ load_plugin_textdomain('orabooks', false, dirname(plugin_basename(__FILE__)). '/languages');	orabooks_ensure_database();
+	orabooks_ensure_mvp_cron_schedules();
 
- orabooks_ensure_database;
- orabooks_ensure_mvp_cron_schedules;
-
- // Initialize core classes
- OraBooks_Database::init;
- OraBooks_Secrets::init;
- if (!OraBooks_Secrets::is_ready) {
+ // Initialize core classes	OraBooks_Database::init();
+	OraBooks_Secrets::init();	if (!OraBooks_Secrets::is_ready()) {
  return;
- }
- OraBooks_Organization::init;
- OraBooks_Auth::init;
- OraBooks_TwoFactor::init;
- OraBooks_RBAC::init;
- OBN_Access_Control::init;
- OraBooks_Team::init;
- OraBooks_Audit::init;
- OraBooks_Partner::init;
- OraBooks_COA::init;
- OraBooks_Fiscal::init;
- OraBooks_Tax::init;
- OraBooks_Workflow::init;
- OraBooks_Posting::init;
- OraBooks_Approval::init;
- OraBooks_Ajax::init;
- OraBooks_Shortcodes::init;
- OraBooks_Commission::init;
- OraBooks_Notifications::init;
- OraBooks_EventBus::init;
- OraBooks_EventBus::register_consumers;
- OraBooks_Event_Module::init;
- OraBooks_Event_Module::schedule;
- OraBooks_AsyncQueue::init;
- OraBooks_AsyncQueue::register_default_handlers;
- OraBooks_Exports::init;
- OraBooks_Customers::init;
- OraBooks_AR::init;
- OraBooks_Vendors::init;
- OraBooks_AP::init;
- OraBooks_Inventory::init;
- OraBooks_Bank_Reconciliation::init;
- OraBooks_Financial_Reports::init;
- OraBooks_Operational_Reports::init;
- OraBooks_Observability::init;
- OraBooks_Csv_Imports::init;
- OraBooks_Attachments::init;
- OraBooks_Ai_Review::init;
- OraBooks_Classification::init;
- OraBooks_Expenses::init;
- OraBooks_Voice::init;
- OraBooks_Security::init;
- OraBooks_Pwa::init;
- OraBooks_Rest_Api::init;
+ }	OraBooks_Organization::init();
+	OraBooks_Auth::init();
+	OraBooks_TwoFactor::init();
+	OraBooks_RBAC::init();
+	OBN_Access_Control::init();
+	OraBooks_Team::init();
+	OraBooks_Audit::init();
+	OraBooks_Partner::init();
+	OraBooks_COA::init();
+	OraBooks_Fiscal::init();
+	OraBooks_Tax::init();
+	OraBooks_Workflow::init();
+	OraBooks_Posting::init();
+	OraBooks_Approval::init();
+	OraBooks_Ajax::init();
+	OraBooks_Shortcodes::init();
+	OraBooks_Commission::init();
+	OraBooks_Notifications::init();
+	OraBooks_EventBus::init();
+	OraBooks_EventBus::register_consumers();
+	OraBooks_Event_Module::init();
+	OraBooks_Event_Module::schedule();
+	OraBooks_AsyncQueue::init();
+	OraBooks_AsyncQueue::register_default_handlers();
+	OraBooks_Exports::init();
+	OraBooks_Customers::init();
+	OraBooks_AR::init();
+	OraBooks_Vendors::init();
+	OraBooks_AP::init();
+	OraBooks_Inventory::init();
+	OraBooks_Bank_Reconciliation::init();
+	OraBooks_Financial_Reports::init();
+	OraBooks_Operational_Reports::init();
+	OraBooks_Observability::init();
+	OraBooks_Csv_Imports::init();
+	OraBooks_Attachments::init();
+	OraBooks_Ai_Review::init();
+	OraBooks_Classification::init();
+	OraBooks_Expenses::init();
+	OraBooks_Voice::init();
+	OraBooks_Security::init();
+	OraBooks_Pwa::init();
+	OraBooks_Rest_Api::init();
  OraBooks_Exports::register_report_provider('coa', function($params) {
  // Reuse OraBooks_COA if available
  if (class_exists('OraBooks_COA') && method_exists('OraBooks_COA', 'get_accounts')) {
@@ -152,8 +147,7 @@ function orabooks_init() {
  // Register the generate_export handler with async queue
  // Register notification_log report provider for export
  OraBooks_Exports::register_report_provider('notification_log', function($params) {
- if (class_exists('OraBooks_Notifications') && method_exists('OraBooks_Notifications', 'get_notifications')) {
- $user_id = intval($params['user_id'] ?? get_current_user_id);
+ if (class_exists('OraBooks_Notifications') && method_exists('OraBooks_Notifications', 'get_notifications')) {	$user_id = intval($params['user_id'] ?? get_current_user_id());
  $org_id = intval($params['org_id'] ?? 0);
  $args = [];
  if (!empty($params['from_date'])) $args['from_date'] = $params['from_date'];
@@ -168,8 +162,7 @@ function orabooks_init() {
  });
  // Register commission_data report provider
  OraBooks_Exports::register_report_provider('commission_data', function($params) {
- if (class_exists('OraBooks_Commission') && method_exists('OraBooks_Commission', 'get_earned_commissions')) {
- $user_id = intval($params['user_id'] ?? get_current_user_id);
+ if (class_exists('OraBooks_Commission') && method_exists('OraBooks_Commission', 'get_earned_commissions')) {	$user_id = intval($params['user_id'] ?? get_current_user_id());
  $org_id = intval($params['org_id'] ?? 0);
  try {
  $data = OraBooks_Commission::get_earned_commissions($user_id, $org_id);
@@ -190,8 +183,7 @@ function orabooks_init() {
  // Register async_queue_data report provider
  OraBooks_Exports::register_report_provider('async_queue_data', function($params) {
  if (class_exists('OraBooks_AsyncQueue') && method_exists('OraBooks_AsyncQueue', 'get_queue_stats')) {
- try {
- $stats = OraBooks_AsyncQueue::get_queue_stats;
+ try {	$stats = OraBooks_AsyncQueue::get_queue_stats();
  return $stats;
  } catch (\Exception $e) {
  return null;
@@ -202,8 +194,7 @@ function orabooks_init() {
  // Register commission_config report provider for export
  OraBooks_Exports::register_report_provider('commission_config', function($params) {
  if (class_exists('OraBooks_Commission') && method_exists('OraBooks_Commission', 'get_config')) {
- try {
- $config = OraBooks_Commission::get_config;
+ try {	$config = OraBooks_Commission::get_config();
  if (is_object($config)) {
  $config = (array) $config;
  }
@@ -215,8 +206,7 @@ function orabooks_init() {
  return null;
  });
  // Register partner_onboarding report provider ( / export)
- OraBooks_Exports::register_report_provider('partner_onboarding', function($params) {
- $user_id = intval($params['user_id'] ?? get_current_user_id);
+ OraBooks_Exports::register_report_provider('partner_onboarding', function($params) {	$user_id = intval($params['user_id'] ?? get_current_user_id());
  if (!$user_id || !class_exists('OraBooks_Partner')) {
  return null;
  }
@@ -227,16 +217,13 @@ function orabooks_init() {
  OraBooks_AsyncQueue::register_handler('generate_export', ['OraBooks_Exports', 'generate_export_job']);
  OraBooks_AsyncQueue::register_handler('parse_csv_import', ['OraBooks_Csv_Imports', 'parse_csv_import_job']);
 
- if (class_exists('OraBooks_Accounting') && apply_filters('orabooks_enable_legacy_accounting', false)) {
- OraBooks_Accounting::init;
+ if (class_exists('OraBooks_Accounting') && apply_filters('orabooks_enable_legacy_accounting', false)) {	OraBooks_Accounting::init();
  }
 
  /**
  * Allow optional extensions to register additional features.
  */
- do_action('orabooks_register_addons');
-
- orabooks_mirror_jwt_ajax_nopriv_handlers;
+ do_action('orabooks_register_addons');	orabooks_mirror_jwt_ajax_nopriv_handlers();
 }
 
 add_action('init', 'orabooks_mirror_jwt_ajax_nopriv_handlers', 999);
@@ -283,7 +270,7 @@ function orabooks_create_page($slug, $title, $shortcode, $parent_slug = '') {
  * Create all required OraBooks frontend pages on activation
  */
 function orabooks_create_required_pages() {
- $pages = orabooks_get_lean_mvp_page_definitions;
+ $pages = orabooks_get_lean_mvp_page_definitions();
 
  // Create a parent page "OraBooks" if needed (optional)
  $created_ids = [];
@@ -302,8 +289,7 @@ function orabooks_create_required_pages() {
 /**
  * Ensure frontend pages exist on existing installs (idempotent).
  */
-function orabooks_ensure_frontend_pages() {
- orabooks_create_required_pages;
+function orabooks_ensure_frontend_pages() {	orabooks_create_required_pages();
 }
 
 add_action('init', 'orabooks_ensure_frontend_pages', 20);
@@ -313,16 +299,13 @@ register_activation_hook(__FILE__, 'orabooks_activate');
 function orabooks_activate($network_wide = false) {
  require_once ORABOOKS_PLUGIN_DIR. 'includes/class-orabooks-database.php';
 
- orabooks_with_data_blog(function {
- OraBooks_Database::install;
+ orabooks_with_data_blog(function {	OraBooks_Database::install();
  });
 
- // Flush rewrite rules so OIDC routes (/orabooks-google-login, /orabooks-google-callback) work
- orabooks_oidc_rewrite_rules;
- flush_rewrite_rules;
+ // Flush rewrite rules so OIDC routes (/orabooks-google-login, /orabooks-google-callback) work	orabooks_oidc_rewrite_rules();
+	flush_rewrite_rules();
 
- // Create required frontend pages with shortcodes
- orabooks_create_required_pages;
+ // Create required frontend pages with shortcodes	orabooks_create_required_pages();
 
  if (class_exists('OraBooks_Accounting')) {
  OraBooks_Accounting::activate((bool) $network_wide);
@@ -333,10 +316,9 @@ function orabooks_activate($network_wide = false) {
  add_option('orabooks_block_same_email_domain', 0);
  add_option('orabooks_partner_commission_for_staff_viewer', 0);
  add_option('orabooks_audit_retention_days', 365);
- if (class_exists('OraBooks_Secrets')) {
- OraBooks_Secrets::bootstrap;
- OraBooks_Secrets::get_jwt_secret;
- OraBooks_Secrets::get_encryption_key;
+ if (class_exists('OraBooks_Secrets')) {	OraBooks_Secrets::bootstrap();
+	OraBooks_Secrets::get_jwt_secret();
+	OraBooks_Secrets::get_encryption_key();
  }
  add_option('orabooks_jwt_expiry', 900); // 15 min
  add_option('orabooks_refresh_token_expiry', 604800); // 7 days
@@ -365,8 +347,7 @@ function orabooks_ensure_database() {
  $table_users = OraBooks_Database::table('users');
  $table_exists = $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table_users));
 
- if ($table_exists !== $table_users || get_option('orabooks_db_version') !== ORABOOKS_DB_VERSION) {
- OraBooks_Database::install;
+ if ($table_exists !== $table_users || get_option('orabooks_db_version') !== ORABOOKS_DB_VERSION) {	OraBooks_Database::install();
  }
  });
 }
@@ -375,8 +356,7 @@ function orabooks_ensure_database() {
  * Ensure MVP cron schedules exist after FTP upload (no re-activation required).
  */
 function orabooks_ensure_mvp_cron_schedules() {
- if (class_exists('OraBooks_DeployChecks')) {
- OraBooks_DeployChecks::ensure_mvp_cron_schedules;
+ if (class_exists('OraBooks_DeployChecks')) {	OraBooks_DeployChecks::ensure_mvp_cron_schedules();
  }
 }
 
@@ -624,9 +604,7 @@ function orabooks_admin_menu() {
 function orabooks_user_can_see_partner_program() {
  if (current_user_can('manage_options')) {
  return true;
- }
-
- $user_id = orabooks_get_current_user_id;
+ }	$user_id = orabooks_get_current_user_id();
  if (!$user_id) {
  return false;
  }
@@ -839,10 +817,8 @@ function orabooks_oidc_route_handler() {
  }
 
  if ($action === 'initiate') {
- // Redirect user to Google OAuth authorization URL
- $url = OraBooks_Auth::initiate_google_oauth;
- if (is_wp_error($url)) {
- wp_die($url->get_error_message);
+ // Redirect user to Google OAuth authorization URL	$url = OraBooks_Auth::initiate_google_oauth();
+ if (is_wp_error($url)) {	wp_die($url->get_error_message());
  }
  wp_redirect($url);
  exit;
@@ -858,11 +834,8 @@ function orabooks_oidc_route_handler() {
 
  $result = OraBooks_Auth::handle_google_callback($code, $state);
 
- if (is_wp_error($result)) {
- if ($result->get_error_code === 'oidc_email_conflict') {
- wp_die($result->get_error_message, '', ['response' => 409]);
- }
- wp_die($result->get_error_message);
+ if (is_wp_error($result)) {	if ($result->get_error_code() === 'oidc_email_conflict') {	wp_die($result->get_error_message(), '', ['response' => 409]);
+ }	wp_die($result->get_error_message());
  }
 
  // Login successful — redirect to org workspace with auth cookies set
@@ -881,9 +854,8 @@ function orabooks_oidc_route_handler() {
 
 // Flush rewrite rules on activation
 add_action('after_switch_theme', 'orabooks_flush_rewrites');
-function orabooks_flush_rewrites() {
- orabooks_oidc_rewrite_rules;
- flush_rewrite_rules;
+function orabooks_flush_rewrites() {	orabooks_oidc_rewrite_rules();
+	flush_rewrite_rules();
 }
 
 // Enqueue admin assets
@@ -912,9 +884,7 @@ add_action('wp_enqueue_scripts', 'orabooks_frontend_enqueue');
 function orabooks_frontend_enqueue() {
  if (!is_singular('page')) {
  return;
- }
-
- $post = get_post;
+ }	$post = get_post();
  if (!$post || !orabooks_page_needs_frontend_assets($post)) {
  return;
  }
@@ -925,10 +895,7 @@ function orabooks_frontend_enqueue() {
 
  if (OraBooks_Assets::should_enqueue_frontend_react($post->post_content, $post)) {
  OraBooks_Assets::enqueue_frontend_react($ajax_config);
- } else {
- OraBooks_Assets::enqueue_theme_compat;
- if (function_exists('orabooks_is_divi_theme') && orabooks_is_divi_theme) {
- OraBooks_Assets::enqueue_divi_compat;
+ } else {	OraBooks_Assets::enqueue_theme_compat();	if (function_exists('orabooks_is_divi_theme') && orabooks_is_divi_theme()) {	OraBooks_Assets::enqueue_divi_compat();
  }
  }
 
@@ -945,16 +912,13 @@ add_filter('body_class', 'orabooks_body_class');
 function orabooks_body_class($classes) {
  if (!is_singular('page')) {
  return $classes;
- }
-
- $post = get_post;
+ }	$post = get_post();
  if (!$post || !orabooks_page_needs_frontend_assets($post)) {
  return $classes;
  }
 
  $classes[] = 'orabooks-page';
-
- if (function_exists('orabooks_is_divi_theme') && orabooks_is_divi_theme) {
+	if (function_exists('orabooks_is_divi_theme') && orabooks_is_divi_theme()) {
  $classes[] = 'orabooks-divi-theme';
  }
 
