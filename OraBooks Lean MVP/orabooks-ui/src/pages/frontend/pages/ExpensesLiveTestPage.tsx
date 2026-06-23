@@ -104,6 +104,11 @@ export default function ExpensesLiveTestPage() {
               Job Queue
             </Button>
           </WpLink>
+          <WpLink to="/observability">
+            <Button variant="secondary" size="sm">
+              Observability
+            </Button>
+          </WpLink>
         </div>
 
         {error && (
@@ -130,6 +135,13 @@ export default function ExpensesLiveTestPage() {
                   {String(result.environment.confidence_threshold ?? '—')}% · Rate limit:{' '}
                   {String(result.environment.rate_limit_per_min ?? '—')}/min · UI bundle:{' '}
                   {String(result.environment.react_bundle_at ?? 'unknown')}
+                  {result.environment.ocr_observability != null && (
+                    <>
+                      {' '}
+                      · OCR queue: {String((result.environment.ocr_observability as any).queue_depth ?? '—')} · Failed
+                      24h: {String((result.environment.ocr_observability as any).failed_24h ?? '—')}
+                    </>
+                  )}
                 </p>
               )}
             </div>

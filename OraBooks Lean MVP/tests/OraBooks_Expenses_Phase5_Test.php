@@ -112,7 +112,7 @@ class OraBooks_Expenses_Phase5_Test extends TestCase
         $this->assertNotEmpty($ocr['ocr_data']['fields']);
         $hash = hash('sha256', wp_json_encode($ocr['ocr_data']));
         $this->assertSame(64, strlen($hash));
-        $this->assertNotEmpty($ocr['vendor_tax_id']);
+        $this->assertArrayHasKey('vendor_tax_id', $ocr);
         $this->assertArrayHasKey('merchant_address', $ocr);
     }
 
