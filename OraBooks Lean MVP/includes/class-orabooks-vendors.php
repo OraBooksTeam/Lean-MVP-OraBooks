@@ -210,6 +210,24 @@ class OraBooks_Vendors {
             INDEX idx_org_month (org_id, statement_month)
         ) {$charset_collate};";
 
+        $table_bill_lines = OraBooks_Database::table('bill_line_items');
+        $tables[] = "CREATE TABLE IF NOT EXISTS {$table_bill_lines} (
+            id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            org_id BIGINT UNSIGNED NOT NULL,
+            bill_id BIGINT UNSIGNED NOT NULL,
+            product_id BIGINT UNSIGNED NULL,
+            description TEXT NULL,
+            quantity DECIMAL(20,4) NOT NULL DEFAULT 0,
+            unit_cost DECIMAL(20,6) NOT NULL DEFAULT 0,
+            line_total DECIMAL(20,2) NOT NULL DEFAULT 0,
+            sort_order INT NOT NULL DEFAULT 0,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (org_id) REFERENCES {$wpdb->prefix}orabooks_organizations(id) ON DELETE CASCADE,
+            FOREIGN KEY (bill_id) REFERENCES {$table_bills}(id) ON DELETE CASCADE,
+            INDEX idx_bill (bill_id),
+            INDEX idx_product (product_id)
+        ) {$charset_collate};";
+
         return $tables;
     }
 
