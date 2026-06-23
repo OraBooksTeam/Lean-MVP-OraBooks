@@ -32,6 +32,7 @@
         </testsuite>
         <testsuite name="OraBooks SL-021 Customers Tests">
             <file>OraBooks_Customers_Test.php</file>
+            <file>OraBooks_AR_Test.php</file>
         </testsuite>
         <testsuite name="OraBooks SL-027 Vendors Tests">
             <file>OraBooks_Vendors_Test.php</file>
