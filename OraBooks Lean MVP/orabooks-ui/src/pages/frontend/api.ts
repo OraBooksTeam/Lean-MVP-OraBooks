@@ -1,11 +1,11 @@
+import { parseSubdomainFromHost } from '@/lib/residency/sl004';
+
 type AjaxConfig = {
   ajax_url?: string;
   nonce?: string;
   current_user_id?: number | null;
   login_url?: string;
 };
-
-import { parseSubdomainFromHost } from '@/lib/residency/sl004';
 
 function getAjaxConfig(): Required<Pick<AjaxConfig, 'ajax_url' | 'nonce'>> & AjaxConfig {
   const cfg = ((window as any).orabooks_ajax || {}) as AjaxConfig;
@@ -311,8 +311,14 @@ export const api = {
   establishSession: (token: string, refreshToken = '') => establishSession(token, refreshToken),
 
   // Auth
-  login: (email: string, password: string) =>
-    api.post('orabooks_login', { email, password }),
+  login: (email: string, password: string) => {
+    const subdomain = parseSubdomainFromHost();
+    return api.post('orabooks_login', {
+      email,
+      password,
+      ...(subdomain ? { subdomain } : {}),
+    });
+  },
   register: (data: Record<string, any>) =>
     api.post('orabooks_register', data),
   oidcInitiate: (stateData: Record<string, unknown> = {}) => {
