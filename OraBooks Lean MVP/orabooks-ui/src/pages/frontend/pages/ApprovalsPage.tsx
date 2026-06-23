@@ -25,11 +25,12 @@ export default function ApprovalsPage() {
     journalId: null,
     reason: '',
   });
-  const [mfaModal, setMfaModal] = useState<{ open: boolean; journalId: number | null; amount: number; code: string }>({
+  const [mfaModal, setMfaModal] = useState<{ open: boolean; journalId: number | null; amount: number; code: string; error: string }>({
     open: false,
     journalId: null,
     amount: 0,
     code: '',
+    error: '',
   });
 
   const caps = data?.capabilities || {};
@@ -93,17 +94,25 @@ export default function ApprovalsPage() {
 
   const handleApprove = async (journalId: number, amount = 0, mfaThreshold = 10000, mfaOtp?: string) => {
     if (amount >= mfaThreshold && !mfaOtp) {
-      setMfaModal({ open: true, journalId, amount, code: '' });
+      setMfaModal({ open: true, journalId, amount, code: '', error: '' });
       return;
     }
 
     setActionId(journalId);
     setError('');
     const res = await api.approveJournal(journalId, mfaOtp);
-    if (res.error) setError(res.error);
-    else {
+    if (res.error) {
+      if (mfaOtp) {
+        setMfaModal((prev) => ({
+          ...prev,
+          error: res.error || 'Invalid 2FA code. Try again.',
+        }));
+      } else {
+        setError(res.error);
+      }
+    } else {
       setSuccess('Journal approved.');
-      setMfaModal({ open: false, journalId: null, amount: 0, code: '' });
+      setMfaModal({ open: false, journalId: null, amount: 0, code: '', error: '' });
       await refreshAfterAction(journalId);
     }
     setActionId(null);
