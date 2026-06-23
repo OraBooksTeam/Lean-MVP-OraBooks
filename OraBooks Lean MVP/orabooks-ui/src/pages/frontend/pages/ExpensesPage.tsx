@@ -502,10 +502,16 @@ export default function ExpensesPage() {
                 )}
               </div>
               <div className="flex flex-wrap gap-2">
+                <PaymentStatusBadge status={selectedExpense.payment_status} />
                 {selectedExpense.ocr_confidence != null && (
                   <ConfidenceBadge value={selectedExpense.ocr_confidence} threshold={threshold} />
                 )}
                 {selectedExpense.ocr_risk_level && <RiskBadge level={selectedExpense.ocr_risk_level} />}
+                {selectedExpense.ocr_provider && (
+                  <span className="inline-flex items-center rounded-full border border-border bg-white px-2 py-0.5 text-xs text-slate-600">
+                    {selectedExpense.ocr_provider}
+                  </span>
+                )}
                 {selectedExpense.tax_rate != null && (
                   <span className="inline-flex items-center gap-1 rounded-full border border-border bg-white px-2 py-0.5 text-xs text-slate-600">
                     <Percent className="h-3 w-3" />
@@ -515,32 +521,137 @@ export default function ExpensesPage() {
               </div>
             </div>
 
-            {selectedExpense.workflow_status === 'draft' && selectedExpense.ocr_confidence != null ? (
+            <OcrProcessingBanner
+              ocrConfidence={selectedExpense.ocr_confidence}
+              ocrQueue={selectedExpense.ocr_queue}
+            />
+
+            {canEditDraft ? (
               <div className="mt-4 grid gap-4 md:grid-cols-2">
-                {(['vendor', 'invoice_number', 'transaction_date', 'total_amount', 'tax_amount', 'category', 'account_code'] as const).map(
-                  (field) => (
-                    <label key={field} className="block text-sm">
-                      <span className="mb-1 block font-semibold capitalize text-slate-700">
-                        {field.replace('_', ' ')}
-                      </span>
-                      <input
-                        className={fieldClass}
-                        value={editFields[field] || ''}
-                        onChange={(e) => setEditFields((prev) => ({ ...prev, [field]: e.target.value }))}
-                      />
-                    </label>
-                  )
-                )}
+                <ExpenseOcrField
+                  label="Vendor"
+                  fieldKey="vendor"
+                  value={editFields.vendor || ''}
+                  threshold={threshold}
+                  fieldConfidence={fieldConfidence(selectedExpense, 'vendor')}
+                  onChange={(value) => setEditFields((prev) => ({ ...prev, vendor: value }))}
+                />
+                <ExpenseOcrField
+                  label="Invoice number"
+                  fieldKey="invoice_number"
+                  value={editFields.invoice_number || ''}
+                  threshold={threshold}
+                  fieldConfidence={fieldConfidence(selectedExpense, 'invoice_number')}
+                  onChange={(value) => setEditFields((prev) => ({ ...prev, invoice_number: value }))}
+                />
+                <ExpenseOcrField
+                  label="Transaction date"
+                  fieldKey="transaction_date"
+                  type="date"
+                  value={editFields.transaction_date || ''}
+                  threshold={threshold}
+                  fieldConfidence={fieldConfidence(selectedExpense, 'transaction_date')}
+                  onChange={(value) => setEditFields((prev) => ({ ...prev, transaction_date: value }))}
+                />
+                <ExpenseOcrField
+                  label="Due date"
+                  fieldKey="due_date"
+                  type="date"
+                  value={editFields.due_date || ''}
+                  threshold={threshold}
+                  fieldConfidence={fieldConfidence(selectedExpense, 'due_date')}
+                  onChange={(value) => setEditFields((prev) => ({ ...prev, due_date: value }))}
+                />
+                <ExpenseOcrField
+                  label="Subtotal"
+                  fieldKey="subtotal"
+                  type="number"
+                  value={editFields.subtotal || ''}
+                  threshold={threshold}
+                  fieldConfidence={fieldConfidence(selectedExpense, 'subtotal')}
+                  onChange={(value) => setEditFields((prev) => ({ ...prev, subtotal: value }))}
+                />
+                <ExpenseOcrField
+                  label="Tax amount"
+                  fieldKey="tax_amount"
+                  type="number"
+                  value={editFields.tax_amount || ''}
+                  threshold={threshold}
+                  fieldConfidence={fieldConfidence(selectedExpense, 'tax_amount')}
+                  onChange={(value) => setEditFields((prev) => ({ ...prev, tax_amount: value }))}
+                />
+                <ExpenseOcrField
+                  label="Total amount"
+                  fieldKey="total_amount"
+                  type="number"
+                  value={editFields.total_amount || ''}
+                  threshold={threshold}
+                  fieldConfidence={fieldConfidence(selectedExpense, 'total_amount')}
+                  onChange={(value) => setEditFields((prev) => ({ ...prev, total_amount: value }))}
+                />
+                <ExpenseOcrField
+                  label="Category"
+                  fieldKey="category"
+                  value={editFields.category || ''}
+                  threshold={threshold}
+                  fieldConfidence={fieldConfidence(selectedExpense, 'category')}
+                  onChange={(value) => setEditFields((prev) => ({ ...prev, category: value }))}
+                />
+                <ExpenseOcrField
+                  label="Payment method"
+                  fieldKey="payment_method"
+                  value={editFields.payment_method || ''}
+                  threshold={threshold}
+                  onChange={(value) => setEditFields((prev) => ({ ...prev, payment_method: value }))}
+                />
+                <ExpenseOcrField
+                  label="Account code"
+                  fieldKey="account_code"
+                  value={editFields.account_code || ''}
+                  threshold={threshold}
+                  onChange={(value) => setEditFields((prev) => ({ ...prev, account_code: value }))}
+                />
+                <label className="block text-sm">
+                  <span className="mb-1 block font-semibold text-slate-700">Payment status</span>
+                  <select
+                    className={fieldClass}
+                    value={editFields.payment_status || 'unpaid'}
+                    onChange={(e) => setEditFields((prev) => ({ ...prev, payment_status: e.target.value }))}
+                  >
+                    {PAYMENT_STATUS_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <ExpenseOcrField
+                  label="Vendor tax ID"
+                  fieldKey="vendor_tax_id"
+                  value={editFields.vendor_tax_id || ''}
+                  threshold={threshold}
+                  onChange={(value) => setEditFields((prev) => ({ ...prev, vendor_tax_id: value }))}
+                />
+                <label className="block text-sm md:col-span-2">
+                  <span className="mb-1 block font-semibold text-slate-700">Merchant address</span>
+                  <textarea
+                    className={fieldClass}
+                    rows={2}
+                    value={editFields.merchant_address || ''}
+                    onChange={(e) => setEditFields((prev) => ({ ...prev, merchant_address: e.target.value }))}
+                  />
+                </label>
                 <label className="block text-sm md:col-span-2">
                   <span className="mb-1 block font-semibold text-slate-700">Description</span>
-                  <input
+                  <textarea
                     className={fieldClass}
+                    rows={2}
                     value={editFields.description || ''}
                     onChange={(e) => setEditFields((prev) => ({ ...prev, description: e.target.value }))}
                   />
                 </label>
               </div>
-            ) : (
+            ) : selectedExpense.workflow_status === 'draft' ? null : (
               <div className="mt-4 grid gap-2 text-sm text-slate-700 md:grid-cols-2">
                 <p>
                   <strong>Vendor:</strong> {selectedExpense.vendor || '—'}
@@ -554,8 +665,13 @@ export default function ExpensesPage() {
                 <p>
                   <strong>Category:</strong> {selectedExpense.category || '—'}
                 </p>
+                <p>
+                  <strong>Payment:</strong> {selectedExpense.payment_status || 'unpaid'}
+                </p>
               </div>
             )}
+
+            <ExpenseLineItemsPanel lineItems={selectedExpense.line_items} threshold={threshold} />
 
             {selectedExpense.classification && (
               <ClassificationPanel
@@ -640,10 +756,10 @@ export default function ExpensesPage() {
                   </Button>
                 </WpLink>
               )}
-              {caps.submit && selectedExpense.workflow_status === 'draft' && selectedExpense.ocr_confidence != null && (
+              {canConfirmSubmit && (
                 <Button onClick={() => void handleConfirm()} disabled={confirming}>
                   <CheckCircle2 className="h-4 w-4" />
-                  {confirming ? 'Submitting...' : 'Confirm & Submit'}
+                  {confirming ? 'Submitting...' : ocrFailed ? 'Submit manually' : 'Confirm & Submit'}
                 </Button>
               )}
               {selectedExpense.workflow_status === 'draft' && (caps.submit || caps.approve) && (
@@ -769,6 +885,7 @@ function ExpenseTable({
             <th className="px-5 py-3 font-semibold">Date</th>
             <th className="px-5 py-3 text-right font-semibold">Amount</th>
             <th className="px-5 py-3 font-semibold">Workflow</th>
+            <th className="px-5 py-3 font-semibold">Payment</th>
             <th className="px-5 py-3 font-semibold">Risk</th>
             <th className="px-5 py-3 font-semibold">Confidence</th>
             <th className="px-5 py-3 font-semibold">Actions</th>
@@ -777,7 +894,7 @@ function ExpenseTable({
         <tbody className="divide-y divide-border">
           {loading ? (
             <tr>
-              <td colSpan={7} className="px-5 py-8 text-center text-slate-500">
+              <td colSpan={8} className="px-5 py-8 text-center text-slate-500">
                 Loading...
               </td>
             </tr>
@@ -805,6 +922,12 @@ function ExpenseTable({
                 <td className="px-5 py-3 text-right font-bold text-ink">{money(expense.total_amount)}</td>
                 <td className="px-5 py-3">
                   <StatusBadge status={expense.workflow_status} />
+                  {expense.workflow_status === 'draft' && expense.ocr_confidence == null && (
+                    <span className="mt-1 block text-xs text-blue-700">OCR pending</span>
+                  )}
+                </td>
+                <td className="px-5 py-3">
+                  <PaymentStatusBadge status={expense.payment_status} />
                 </td>
                 <td className="px-5 py-3">
                   {expense.ocr_risk_level ? <RiskBadge level={expense.ocr_risk_level} /> : '—'}

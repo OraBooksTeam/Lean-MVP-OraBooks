@@ -329,4 +329,50 @@ class OraBooks_Expenses_Workflow_Test extends TestCase
         $this->assertInstanceOf(WP_Error::class, $result);
         $this->assertSame('invalid_status', $result->get_error_code());
     }
+
+    #[Test]
+    public function test_confirm_submit_allows_manual_entry_after_ocr_failure()
+    {
+        global $wpdb;
+
+        $expense = $this->expense([
+            'ocr_confidence' => null,
+            'vendor'         => 'Manual Vendor',
+            'total_amount'   => 150.00,
+            'transaction_date' => '2026-06-18',
+        ]);
+
+        $side_effects = $this->mock_expense_db($expense);
+        $wpdb->test_get_var_callback = function ($query) {
+            if (stripos($query, 'ocr_processing_queue') !== false && stripos($query, 'SELECT status') !== false) {
+                return null;
+            }
+            if (stripos($query, 'idempotency_key') !== false) {
+                return null;
+            }
+            if (stripos($query, 'classification_rules') !== false && stripos($query, 'COUNT') !== false) {
+                return 1;
+            }
+            if (stripos($query, 'ai_review_queue') !== false) {
+                return null;
+            }
+            return null;
+        };
+
+        $wpdb->test_get_row_callback = function ($query) use (&$expense) {
+            if (stripos($query, 'ocr_processing_queue') !== false && stripos($query, 'ORDER BY id DESC') !== false) {
+                return (object) ['status' => 'failed', 'error_message' => 'Provider timeout'];
+            }
+            if (stripos($query, 'expenses') !== false) {
+                return $expense;
+            }
+            return null;
+        };
+
+        $result = OraBooks_Expenses::confirm_submit(55, 9, 1, 'idem-manual-fail');
+
+        $this->assertIsArray($result);
+        $this->assertSame('ai_review', $result['workflow_status']);
+        $this->assertCount(1, $side_effects['ai_review_inserts']);
+    }
 }
