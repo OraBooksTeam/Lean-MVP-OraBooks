@@ -737,12 +737,18 @@ export const api = {
     api.post('orabooks_payment_reverse', { org_id: orgId, payment_id: paymentId, reason }),
   creditNoteCreate: (data: Record<string, unknown>) =>
     api.post('orabooks_credit_note_create', data),
+  creditNoteSubmit: (orgId: number, creditNoteId: number) =>
+    api.post('orabooks_credit_note_submit', { org_id: orgId, credit_note_id: creditNoteId }),
+  creditNoteApprove: (orgId: number, creditNoteId: number) =>
+    api.post('orabooks_credit_note_approve', { org_id: orgId, credit_note_id: creditNoteId }),
   creditNotePost: (orgId: number, creditNoteId: number) =>
     api.post('orabooks_credit_note_post', { org_id: orgId, credit_note_id: creditNoteId }),
   creditNoteVoid: (orgId: number, creditNoteId: number, reason = '') =>
     api.post('orabooks_credit_note_void', { org_id: orgId, credit_note_id: creditNoteId, reason }),
-  creditNotesList: (orgId: number, customerId = 0) =>
-    api.get('orabooks_credit_notes_list', { org_id: orgId, customer_id: customerId }),
+  creditNotesList: (orgId: number, filters: { customer_id?: number; invoice_id?: number } = {}) =>
+    api.get('orabooks_credit_notes_list', { org_id: orgId, ...filters }),
+  paymentsList: (orgId: number, filters: { customer_id?: number; invoice_id?: number } = {}) =>
+    api.get('orabooks_payments_list', { org_id: orgId, ...filters }),
   arConfigGet: (orgId: number) =>
     api.get('orabooks_ar_config_get', { org_id: orgId }),
   arConfigSave: (orgId: number, data: Record<string, unknown>) =>
