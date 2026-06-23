@@ -500,7 +500,7 @@ class OraBooks_Secrets {
  } else {
  $encrypted = self::encrypt($value);
  }
- self::with_shared_options(function use ($option_key, $encrypted) {
+ self::with_shared_options(function() use ($option_key, $encrypted) {
  update_option($option_key, $encrypted);
  });
  self::$secrets_cache[$key] = $value;
@@ -527,7 +527,7 @@ class OraBooks_Secrets {
 
  if ($key === 'jwt_secret') {
  $grace_seconds = $grace_seconds ?? self::JWT_ROTATION_GRACE_SECONDS();
- self::with_shared_options(function use ($grace_seconds) {
+ self::with_shared_options(function() use ($grace_seconds) {
  update_option('orabooks_jwt_secret_grace_until', time() + max(300, (int) $grace_seconds));
  update_option('orabooks_secrets_last_rotated', current_time('mysql', true));
  });
@@ -652,7 +652,7 @@ class OraBooks_Secrets {
  if (!$secret) {
  $secret = wp_generate_password(64, true, true);
  self::set('jwt_secret', $secret);
- self::with_shared_options(function use ($secret) {
+ self::with_shared_options(function() use ($secret) {
  if (!get_option('orabooks_secrets_last_rotated')) {
  update_option('orabooks_secrets_last_rotated', current_time('mysql', true));
  }
