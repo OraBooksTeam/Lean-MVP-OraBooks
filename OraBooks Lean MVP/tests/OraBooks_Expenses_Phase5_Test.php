@@ -267,8 +267,8 @@ class OraBooks_Expenses_Phase5_Test extends TestCase
         $result = OraBooks_Observability::evaluate_thresholds($snapshots);
 
         $types = array_column($result['alerts'], 'event_type');
-        $this->assertContains('expense_ocr_lag', $types);
-        $this->assertContains('expense_ocr_failures', $types);
+        $this->assertContains('platform_expense_ocr_lag', $types);
+        $this->assertContains('platform_expense_ocr_failures', $types);
     }
 
     #[Test]
