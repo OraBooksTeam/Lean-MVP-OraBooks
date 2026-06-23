@@ -3,6 +3,7 @@ import Button from '@/components/Button';
 import Input from '@/components/Input';
 import ClientShell from '../components/ClientShell';
 import { api } from '../api';
+import { formatBudgetAmount } from '@/lib/notifications/sl250';
 import { RefreshCw } from 'lucide-react';
 
 const ORABOOKS_AJAX = (window as any).orabooks_ajax || {};
@@ -27,6 +28,7 @@ export default function NotificationAdminPage() {
     return d.toISOString().slice(0, 10);
   });
   const [auditEnd, setAuditEnd] = useState(() => new Date().toISOString().slice(0, 10));
+  const [monthlyCostUsed, setMonthlyCostUsed] = useState(0);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
