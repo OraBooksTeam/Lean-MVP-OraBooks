@@ -36,6 +36,9 @@ class OraBooks_Inventory {
             add_action('wp_ajax_orabooks_inventory_lookup_code', [self::$instance, 'ajax_lookup_code']);
             add_action('wp_ajax_nopriv_orabooks_inventory_lookup_code', [self::$instance, 'ajax_lookup_code']);
 
+            add_action('wp_ajax_orabooks_inventory_product_get', [self::$instance, 'ajax_product_get']);
+            add_action('wp_ajax_nopriv_orabooks_inventory_product_get', [self::$instance, 'ajax_product_get']);
+
             add_action('orabooks_vendor_bill_posted', [self::$instance, 'on_vendor_bill_posted'], 10, 2);
             add_action('orabooks_invoice_posted', [self::$instance, 'on_invoice_posted'], 10, 2);
         }
@@ -619,6 +622,14 @@ class OraBooks_Inventory {
         $params[] = $limit;
         $params[] = $offset;
 
+        $count_params = $params;
+        array_pop($count_params);
+        array_pop($count_params);
+        $total = (int) $wpdb->get_var($wpdb->prepare(
+            "SELECT COUNT(*) FROM {$table} WHERE {$where}",
+            $count_params
+        ));
+
         $products = $wpdb->get_results($wpdb->prepare(
             "SELECT * FROM {$table} WHERE {$where} ORDER BY sku ASC LIMIT %d OFFSET %d",
             $params
@@ -626,7 +637,7 @@ class OraBooks_Inventory {
 
         return [
             'products' => $products,
-            'total' => count($products),
+            'total' => $total,
             'page' => ($limit > 0) ? floor($offset / $limit) + 1 : 1,
             'per_page' => $limit,
         ];
@@ -1099,10 +1110,4 @@ class OraBooks_Inventory {
     public function ajax_lookup_code() {
         $user_id = $this->current_user_id();
         $org_id = intval($_GET['org_id'] ?? 0);
-        $this->require_inventory_permission($user_id, $org_id, ['view_reports']);
-        $lookup_type = sanitize_key($_GET['lookup_type'] ?? '');
-        orabooks_json_success([
-            'code' => self::generate_lookup_code($org_id, $lookup_type),
-        ]);
-    }
-}
+        $this->require_inventory_permission($user_id, $org
