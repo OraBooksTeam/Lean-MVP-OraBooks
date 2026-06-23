@@ -192,6 +192,15 @@ export default function CustomersPage() {
   const [customerForm, setCustomerForm] = useState<CustomerFormState>(emptyCustomerForm());
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState('');
+  const [walletCustomer, setWalletCustomer] = useState<Customer | null>(null);
+  const [customerPaymentForm, setCustomerPaymentForm] = useState({
+    amount: '',
+    payment_date: new Date().toISOString().slice(0, 10),
+    payment_method: 'bank_transfer',
+    reference: '',
+    allocation_method: 'FIFO',
+  });
+  const [statements, setStatements] = useState<any[]>([]);
 
   const permissions: string[] = context?.permissions || [];
   const canManageCustomers = permissions.includes('create_invoice');

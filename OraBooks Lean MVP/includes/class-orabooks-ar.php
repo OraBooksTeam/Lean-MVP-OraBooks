@@ -1089,7 +1089,7 @@ class OraBooks_AR {
         ]);
     }
 
-    public function ajax_ar_config_save_full() {
+    public function ajax_ar_config_save() {
         $user_id = orabooks_get_current_user_id();
         $org_id = (int) ($_POST['org_id'] ?? 0);
         $this->require_ar_access($user_id, $org_id, 'manage_org_settings');
