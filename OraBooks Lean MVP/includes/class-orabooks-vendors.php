@@ -732,6 +732,18 @@ class OraBooks_Vendors {
             );
         }
 
+        $allocated = round($amount - $remaining, 2);
+        if (class_exists('OraBooks_AP') && $allocated > 0) {
+            OraBooks_AP::create_payment_journal_for_ap(
+                $org_id,
+                $payment_id,
+                $allocated,
+                $data['payment_date'] ?? current_time('Y-m-d'),
+                sanitize_text_field($data['reference'] ?? 'Vendor payment'),
+                (int) ($data['user_id'] ?? orabooks_get_current_user_id())
+            );
+        }
+
         orabooks_log_event('vendor_payment_recorded', 'Vendor payment recorded', 'info', [
             'payment_id' => $payment_id,
             'vendor_id' => $vendor_id,
@@ -741,7 +753,7 @@ class OraBooks_Vendors {
 
         return [
             'payment_id' => $payment_id,
-            'allocated_amount' => round($amount - $remaining, 2),
+            'allocated_amount' => $allocated,
             'unapplied_amount' => round($remaining, 2),
         ];
     }
@@ -758,10 +770,12 @@ class OraBooks_Vendors {
             return new WP_Error('invalid_credit_note', 'Vendor, amount, and reason are required');
         }
 
-        $config = self::get_ap_config($org_id);
-        $adjustment_account = !empty($data['adjustment_account_code'])
-            ? sanitize_text_field($data['adjustment_account_code'])
-            : $config->vendor_adjustment_account;
+        $config = class_exists('OraBooks_AP') ? OraBooks_AP::get_ap_config($org_id) : self::get_ap_config($org_id);
+        $is_adjustment = !empty($data['is_adjustment']);
+        $adjustment_account = $is_adjustment
+            ? sanitize_text_field($data['adjustment_account_code'] ?? $config->vendor_adjustment_account)
+            : null;
+        $requires_second = $is_adjustment && $amount > (float) $config->adjustment_threshold;
 
         $number = !empty($data['credit_note_number'])
             ? sanitize_text_field($data['credit_note_number'])
@@ -777,12 +791,13 @@ class OraBooks_Vendors {
                 'credit_date' => $data['credit_date'] ?? current_time('Y-m-d'),
                 'amount' => $amount,
                 'reason' => $reason,
-                'is_adjustment' => !empty($data['is_adjustment']) ? 1 : 0,
-                'adjustment_account_code' => !empty($data['is_adjustment']) ? $adjustment_account : null,
+                'is_adjustment' => $is_adjustment ? 1 : 0,
+                'adjustment_account_code' => $adjustment_account,
+                'requires_second_approval' => $requires_second ? 1 : 0,
                 'workflow_status' => 'draft',
                 'created_by' => orabooks_get_current_user_id(),
             ],
-            ['%d', '%d', '%d', '%s', '%s', '%f', '%s', '%d', '%s', '%s', '%d']
+            ['%d', '%d', '%d', '%s', '%s', '%f', '%s', '%d', '%s', '%d', '%s', '%d']
         );
 
         $credit_note_id = intval($wpdb->insert_id);
@@ -790,13 +805,17 @@ class OraBooks_Vendors {
             'credit_note_id' => $credit_note_id,
             'vendor_id' => $vendor_id,
             'amount' => $amount,
-            'is_adjustment' => !empty($data['is_adjustment']),
+            'is_adjustment' => $is_adjustment,
         ], orabooks_get_current_user_id(), $org_id);
+
+        if (class_exists('OraBooks_AP')) {
+            return OraBooks_AP::format_credit_note(OraBooks_AP::get_credit_note($credit_note_id, $org_id));
+        }
 
         return [
             'credit_note_id' => $credit_note_id,
             'credit_note_number' => $number,
-            'requires_second_approval' => $amount > floatval($config->adjustment_threshold),
+            'requires_second_approval' => $requires_second,
         ];
     }
 
@@ -838,32 +857,10 @@ class OraBooks_Vendors {
         return $buckets;
     }
 
-    public function daily_ap_aging_snapshot() {
-        global $wpdb;
-
-        $table_vendors = OraBooks_Database::table('vendors');
-        $table_snapshots = OraBooks_Database::table('vendor_statement_snapshots');
-        $month = current_time('Y-m');
-        $vendors = $wpdb->get_results("SELECT * FROM {$table_vendors} WHERE is_active = 1");
-
-        foreach ($vendors as $vendor) {
-            $aging = self::get_ap_aging($vendor->org_id);
-            $wpdb->insert(
-                $table_snapshots,
-                [
-                    'org_id' => $vendor->org_id,
-                    'vendor_id' => $vendor->id,
-                    'statement_month' => $month,
-                    'payable_balance' => $vendor->payable_balance,
-                    'credit_balance' => $vendor->credit_balance,
-                    'aging_json' => wp_json_encode($aging),
-                ],
-                ['%d', '%d', '%s', '%f', '%f', '%s']
-            );
-        }
-    }
-
     private static function get_ap_config($org_id) {
+        if (class_exists('OraBooks_AP')) {
+            return OraBooks_AP::get_ap_config($org_id);
+        }
         global $wpdb;
 
         $table = OraBooks_Database::table('vendor_ap_configs');
