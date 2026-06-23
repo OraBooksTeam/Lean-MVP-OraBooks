@@ -258,8 +258,8 @@ class OraBooks_Vendors_Test extends TestCase
             'is_adjustment' => true,
         ]);
 
-        $this->assertEquals(321, $result['credit_note_id']);
-        $this->assertTrue($result['requires_second_approval']);
+        $this->assertEquals(321, $result['credit_note_id'] ?? $result['id']);
+        $this->assertTrue((bool) ($result['requires_second_approval'] ?? false));
         $this->assertStringStartsWith('VCN-', $result['credit_note_number']);
     }
 

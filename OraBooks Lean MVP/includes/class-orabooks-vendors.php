@@ -809,13 +809,20 @@ class OraBooks_Vendors {
         ], orabooks_get_current_user_id(), $org_id);
 
         if (class_exists('OraBooks_AP')) {
-            return OraBooks_AP::format_credit_note(OraBooks_AP::get_credit_note($credit_note_id, $org_id));
+            $note = OraBooks_AP::get_credit_note($credit_note_id, $org_id);
+            if ($note) {
+                return OraBooks_AP::format_credit_note($note);
+            }
         }
 
         return [
+            'id' => $credit_note_id,
             'credit_note_id' => $credit_note_id,
             'credit_note_number' => $number,
-            'requires_second_approval' => $requires_second,
+            'requires_second_approval' => $requires_second ? 1 : 0,
+            'is_adjustment' => $is_adjustment ? 1 : 0,
+            'workflow_status' => 'draft',
+            'amount' => $amount,
         ];
     }
 
