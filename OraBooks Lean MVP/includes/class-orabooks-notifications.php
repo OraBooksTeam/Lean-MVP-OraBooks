@@ -1550,6 +1550,23 @@ class OraBooks_Notifications {
     }
 
     /**
+     * AJAX: Manually retry failed or dead-letter notification delivery.
+     */
+    public function ajax_retry_delivery() {
+        $user_id = $this->require_notification_user();
+        $notification_id = intval($_POST['notification_id'] ?? 0);
+
+        $result = self::retry_delivery($notification_id, $user_id);
+        if (is_wp_error($result)) {
+            $code = $result->get_error_code();
+            $status = $code === 'forbidden' ? 403 : ($code === 'not_found' ? 404 : 400);
+            orabooks_json_error($result->get_error_message(), $status);
+        }
+
+        orabooks_json_success($result, 'Delivery retry completed');
+    }
+
+    /**
      * AJAX: Get user notification preferences.
      */
     public function ajax_get_preferences() {
@@ -1592,7 +1609,7 @@ class OraBooks_Notifications {
         $this->require_org_notification_admin($org_id);
 
         $policy = self::get_org_policy($org_id);
-        orabooks_json_success($policy ?: []);
+        orabooks_json_success(self::format_org_policy_for_api($org_id, $policy));
     }
 
     /**
