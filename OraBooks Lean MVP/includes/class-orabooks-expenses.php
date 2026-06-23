@@ -289,6 +289,30 @@ class OraBooks_Expenses {
         ));
     }
 
+    /**
+     * Latest OCR queue row for an expense (async/cron processing state).
+     *
+     * @return array{status:string,error_message:?string}|null
+     */
+    public static function get_ocr_queue_state($expense_id) {
+        global $wpdb;
+
+        $row = $wpdb->get_row($wpdb->prepare(
+            "SELECT status, error_message FROM " . OraBooks_Database::table(self::TABLE_OCR_QUEUE) . "
+             WHERE expense_id = %d ORDER BY id DESC LIMIT 1",
+            (int) $expense_id
+        ));
+
+        if (!$row) {
+            return null;
+        }
+
+        return [
+            'status'        => (string) $row->status,
+            'error_message' => $row->error_message ? (string) $row->error_message : null,
+        ];
+    }
+
     public static function format_expense($row, $include_lines = false) {
         $ocr_data = [];
         if (!empty($row->ocr_data)) {
