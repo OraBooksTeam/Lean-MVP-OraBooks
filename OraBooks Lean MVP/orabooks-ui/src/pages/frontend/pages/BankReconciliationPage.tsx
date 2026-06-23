@@ -638,6 +638,114 @@ export default function BankReconciliationPage() {
           </Modal>
         )}
 
+        {showCsvImport && (
+          <Modal title="Upload bank statement (CSV)" onClose={() => setShowCsvImport(false)}>
+            <p className="mb-4 text-sm text-slate-600">CSV columns: date, amount, description, reference (optional). Max 10MB.</p>
+            <div className="grid gap-4">
+              <Field label="Bank account">
+                <select
+                  value={importForm.bank_account_id}
+                  onChange={(e) => setImportForm((p) => ({ ...p, bank_account_id: e.target.value }))}
+                  className="w-full rounded-lg border border-border px-3 py-2.5 text-sm"
+                >
+                  <option value="">Select account...</option>
+                  {accounts.map((a) => (
+                    <option key={a.id} value={a.id}>{a.account_name}</option>
+                  ))}
+                </select>
+              </Field>
+              <Field label="CSV file">
+                <input type="file" accept=".csv,text/csv" onChange={(e) => setCsvFile(e.target.files?.[0] || null)} className="w-full text-sm" />
+              </Field>
+            </div>
+            <div className="mt-6 flex justify-end gap-2">
+              <Button variant="secondary" onClick={() => setShowCsvImport(false)}>Cancel</Button>
+              <Button onClick={handleImportCsv} disabled={saving || !csvFile}>Upload</Button>
+            </div>
+          </Modal>
+        )}
+
+        {showConnectFeed && (
+          <Modal title="Connect bank feed" onClose={() => setShowConnectFeed(false)}>
+            <p className="mb-4 text-sm text-slate-600">Initialize Plaid or Yodlee connection. OAuth credentials must be configured server-side.</p>
+            <div className="grid gap-4">
+              <Field label="Bank account">
+                <select
+                  value={feedForm.bank_account_id}
+                  onChange={(e) => setFeedForm((p) => ({ ...p, bank_account_id: e.target.value }))}
+                  className="w-full rounded-lg border border-border px-3 py-2.5 text-sm"
+                >
+                  <option value="">Select account...</option>
+                  {accounts.map((a) => (
+                    <option key={a.id} value={a.id}>{a.account_name}</option>
+                  ))}
+                </select>
+              </Field>
+              <Field label="Provider">
+                <select
+                  value={feedForm.provider}
+                  onChange={(e) => setFeedForm((p) => ({ ...p, provider: e.target.value as 'plaid' | 'yodlee' }))}
+                  className="w-full rounded-lg border border-border px-3 py-2.5 text-sm"
+                >
+                  <option value="plaid">Plaid</option>
+                  <option value="yodlee">Yodlee</option>
+                </select>
+              </Field>
+            </div>
+            <div className="mt-6 flex justify-end gap-2">
+              <Button variant="secondary" onClick={() => setShowConnectFeed(false)}>Cancel</Button>
+              <Button onClick={handleConnectFeed} disabled={saving}>Connect</Button>
+            </div>
+          </Modal>
+        )}
+
+        {createTxn && (
+          <Modal title="Create linked transaction" onClose={() => setCreateTxn(null)}>
+            <p className="mb-4 text-sm text-slate-600">
+              Create a draft {createTxnForm.transaction_type} for `{createTxn.description || createTxn.reference || `Txn #${createTxn.id}`}` and auto-match.
+            </p>
+            <div className="grid gap-4">
+              <Field label="Type">
+                <select
+                  value={createTxnForm.transaction_type}
+                  onChange={(e) => setCreateTxnForm((p) => ({ ...p, transaction_type: e.target.value as 'expense' | 'invoice' }))}
+                  className="w-full rounded-lg border border-border px-3 py-2.5 text-sm"
+                >
+                  <option value="expense">Expense</option>
+                  <option value="invoice">Invoice</option>
+                </select>
+              </Field>
+              {createTxnForm.transaction_type === 'expense' ? (
+                <>
+                  <Field label="Vendor">
+                    <Input value={createTxnForm.vendor} onChange={(e) => setCreateTxnForm((p) => ({ ...p, vendor: e.target.value }))} />
+                  </Field>
+                  <Field label="Category">
+                    <Input value={createTxnForm.category} onChange={(e) => setCreateTxnForm((p) => ({ ...p, category: e.target.value }))} />
+                  </Field>
+                </>
+              ) : (
+                <Field label="Customer">
+                  <select
+                    value={createTxnForm.customer_id}
+                    onChange={(e) => setCreateTxnForm((p) => ({ ...p, customer_id: e.target.value }))}
+                    className="w-full rounded-lg border border-border px-3 py-2.5 text-sm"
+                  >
+                    <option value="">Select customer...</option>
+                    {customers.map((c) => (
+                      <option key={c.id} value={c.id}>{c.display_name || c.contact_email || `Customer #${c.id}`}</option>
+                    ))}
+                  </select>
+                </Field>
+              )}
+            </div>
+            <div className="mt-6 flex justify-end gap-2">
+              <Button variant="secondary" onClick={() => setCreateTxn(null)}>Cancel</Button>
+              <Button onClick={handleCreateLinkedTransaction} disabled={saving}>Create & match</Button>
+            </div>
+          </Modal>
+        )}
+
         {showImportForm && (
           <Modal title="Import Statement Row" onClose={() => setShowImportForm(false)}>
             <div className="grid gap-4">
@@ -775,6 +883,16 @@ function Metric({ label, value, tone = 'default' }: { label: string; value: stri
       <p className="text-xs font-bold uppercase tracking-wide text-slate-500">{label}</p>
       <p className={`mt-2 text-3xl font-black ${tone === 'warning' ? 'text-amber-700' : 'text-ink'}`}>{value}</p>
     </div>
+  );
+}
+
+function ConfidenceBadge({ score }: { score: number }) {
+  const label = score >= 90 ? 'High' : score >= 75 ? 'Medium' : 'Low';
+  const tone = score >= 90 ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : score >= 75 ? 'border-sky-200 bg-sky-50 text-sky-800' : 'border-amber-200 bg-amber-50 text-amber-800';
+  return (
+    <span className={`badge border ${tone}`} title={`AI confidence: ${score.toFixed(0)}%`}>
+      {score.toFixed(0)}% {label}
+    </span>
   );
 }
 
