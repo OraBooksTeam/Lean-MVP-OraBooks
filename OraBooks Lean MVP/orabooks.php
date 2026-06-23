@@ -282,7 +282,7 @@ function orabooks_create_page($slug, $title, $shortcode, $parent_slug = '') {
 /**
  * Create all required OraBooks frontend pages on activation
  */
-function orabooks_create_required_pages {
+function orabooks_create_required_pages() {
  $pages = orabooks_get_lean_mvp_page_definitions;
 
  // Create a parent page "OraBooks" if needed (optional)
@@ -302,7 +302,7 @@ function orabooks_create_required_pages {
 /**
  * Ensure frontend pages exist on existing installs (idempotent).
  */
-function orabooks_ensure_frontend_pages {
+function orabooks_ensure_frontend_pages() {
  orabooks_create_required_pages;
 }
 
@@ -345,7 +345,7 @@ function orabooks_activate($network_wide = false) {
 /**
  * Ensure database tables exist (e.g. plugin uploaded without re-activation).
  */
-function orabooks_ensure_database {
+function orabooks_ensure_database() {
  orabooks_with_data_blog(function {
  global $wpdb;
 
@@ -374,7 +374,7 @@ function orabooks_ensure_database {
 /**
  * Ensure MVP cron schedules exist after FTP upload (no re-activation required).
  */
-function orabooks_ensure_mvp_cron_schedules {
+function orabooks_ensure_mvp_cron_schedules() {
  if (class_exists('OraBooks_DeployChecks')) {
  OraBooks_DeployChecks::ensure_mvp_cron_schedules;
  }
@@ -382,7 +382,7 @@ function orabooks_ensure_mvp_cron_schedules {
 
 // Deactivation hook
 register_deactivation_hook(__FILE__, 'orabooks_deactivate');
-function orabooks_deactivate {
+function orabooks_deactivate() {
  // Cleanup if needed
  wp_clear_scheduled_hook('orabooks_daily_cleanup');
  wp_clear_scheduled_hook('orabooks_partner_activity_check');
@@ -452,7 +452,7 @@ function orabooks_cron_schedules($schedules) {
 
 // Admin menu
 add_action('admin_menu', 'orabooks_admin_menu');
-function orabooks_admin_menu {
+function orabooks_admin_menu() {
  add_menu_page(
  'OraBooks',
  'OraBooks',
@@ -621,7 +621,7 @@ function orabooks_admin_menu {
 /**
  * Nav items for React admin subnav (capability-filtered).
  */
-function orabooks_user_can_see_partner_program {
+function orabooks_user_can_see_partner_program() {
  if (current_user_can('manage_options')) {
  return true;
  }
@@ -662,7 +662,7 @@ function orabooks_user_can_see_partner_program {
  return false;
 }
 
-function orabooks_get_admin_nav_items {
+function orabooks_get_admin_nav_items() {
  $items = [];
 
  if (current_user_can('manage_options')) {
@@ -714,7 +714,7 @@ function orabooks_get_admin_nav_items {
 }
 
 add_action('admin_menu', 'orabooks_admin_menu_tweaks', 999);
-function orabooks_admin_menu_tweaks {
+function orabooks_admin_menu_tweaks() {
  global $submenu;
  if (isset($submenu['orabooks'][0][0])) {
  $submenu['orabooks'][0][0] = __('Dashboard', 'orabooks');
@@ -760,38 +760,38 @@ function orabooks_admin_react_page($route) {
  ]);
 }
 
-function orabooks_admin_commissions {
+function orabooks_admin_commissions() {
  orabooks_admin_react_page('/admin/commissions');
 }
-function orabooks_admin_notifications {
+function orabooks_admin_notifications() {
  orabooks_admin_react_page('/admin/notifications');
 }
-function orabooks_admin_job_queue {
+function orabooks_admin_job_queue() {
  orabooks_admin_react_page('/admin/job-queue');
 }
-function orabooks_admin_webhook_settings {
+function orabooks_admin_webhook_settings() {
  orabooks_admin_react_page('/admin/webhook-settings');
 }
-function orabooks_admin_observability {
+function orabooks_admin_observability() {
  orabooks_admin_react_page('/admin/observability');
 }
-function orabooks_admin_security {
+function orabooks_admin_security() {
  orabooks_admin_react_page('/admin/security');
 }
-function orabooks_admin_exports {
+function orabooks_admin_exports() {
  orabooks_admin_react_page('/admin/exports');
 }
-function orabooks_admin_csv_imports {
+function orabooks_admin_csv_imports() {
  orabooks_admin_react_page('/admin/csv-imports');
 }
-function orabooks_admin_coa {
+function orabooks_admin_coa() {
  orabooks_admin_react_page('/admin/coa');
 }
 
-function orabooks_admin_customers {
+function orabooks_admin_customers() {
  orabooks_admin_react_page('/admin/customers');
 }
-function orabooks_admin_dashboard {
+function orabooks_admin_dashboard() {
  if (current_user_can('manage_options')) {
  orabooks_admin_react_page('/admin/dashboard');
  } elseif (orabooks_user_can_see_partner_program) {
@@ -801,23 +801,23 @@ function orabooks_admin_dashboard {
  }
 }
 
-function orabooks_admin_partners {
+function orabooks_admin_partners() {
  orabooks_admin_react_page('/admin/partners');
 }
 
-function orabooks_admin_orgs {
+function orabooks_admin_orgs() {
  orabooks_admin_react_page('/admin/organizations');
 }
 
-function orabooks_admin_users {
+function orabooks_admin_users() {
  orabooks_admin_react_page('/admin/users');
 }
 
-function orabooks_admin_audit {
+function orabooks_admin_audit() {
  orabooks_admin_react_page('/admin/audit');
 }
 
-function orabooks_admin_settings {
+function orabooks_admin_settings() {
  orabooks_admin_react_page('/admin/settings');
 }
 
@@ -825,14 +825,14 @@ function orabooks_admin_settings {
 //: Google OIDC Rewrite Rules
 // ============================================
 add_action('init', 'orabooks_oidc_rewrite_rules');
-function orabooks_oidc_rewrite_rules {
+function orabooks_oidc_rewrite_rules() {
  add_rewrite_tag('%orabooks_oidc%', '([^&]+)');
  add_rewrite_rule('^orabooks-google-login/?$', 'index.php?orabooks_oidc=initiate', 'top');
  add_rewrite_rule('^orabooks-google-callback/?$', 'index.php?orabooks_oidc=callback', 'top');
 }
 
 add_action('template_redirect', 'orabooks_oidc_route_handler');
-function orabooks_oidc_route_handler {
+function orabooks_oidc_route_handler() {
  $action = get_query_var('orabooks_oidc');
  if (!$action) {
  return;
@@ -881,7 +881,7 @@ function orabooks_oidc_route_handler {
 
 // Flush rewrite rules on activation
 add_action('after_switch_theme', 'orabooks_flush_rewrites');
-function orabooks_flush_rewrites {
+function orabooks_flush_rewrites() {
  orabooks_oidc_rewrite_rules;
  flush_rewrite_rules;
 }
@@ -909,7 +909,7 @@ function orabooks_admin_enqueue($hook) {
 
 // Enqueue frontend assets
 add_action('wp_enqueue_scripts', 'orabooks_frontend_enqueue');
-function orabooks_frontend_enqueue {
+function orabooks_frontend_enqueue() {
  if (!is_singular('page')) {
  return;
  }
