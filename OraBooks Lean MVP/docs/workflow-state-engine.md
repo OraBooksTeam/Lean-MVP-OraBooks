@@ -1,8 +1,8 @@
-# SL-301 — Workflow State Engine
+# — Workflow State Engine
 
-Central state machine for business records. All workflow status changes should go through `OraBooks_Workflow::transition()`.
+Central state machine for business records. All workflow status changes should go through `OraBooks_Workflow::transition`.
 
-> **Completion report:** [SL-301-completion-report.md](./SL-301-completion-report.md) — full delivery summary, sign-off checklist, live verification guide.
+> **Completion report:** [-completion-report.md](./-completion-report.md) — full delivery summary, sign-off checklist, live verification guide.
 
 ## Supported record types
 
@@ -30,9 +30,9 @@ draft|approved --edit--> draft
 
 ```php
 $result = OraBooks_Workflow::transition('bill', $bill_id, 'submit', [
-    'user_id' => $user_id,
-    'org_id'  => $org_id,
-    'reason'  => optional,
+ 'user_id' => $user_id,
+ 'org_id' => $org_id,
+ 'reason' => optional,
 ]);
 
 $events = OraBooks_Workflow::allowed_events('journal', 'draft'); // ['submit', 'edit']
@@ -52,28 +52,28 @@ $events = OraBooks_Workflow::allowed_events('journal', 'draft'); // ['submit', '
 - `orabooks_invoice_cancel` — cancel draft/sent invoice
 - `orabooks_bill_void` — void draft/submitted/approved bill
 
-### REST (SL-304)
+### REST
 
 - `POST /wp-json/api/internal/state/transition` — guarded workflow transition (record_type, record_id, event, org_id)
 
 ## Migration status (Phase 2 — complete)
 
-All modules now use `OraBooks_Workflow::transition()`. See git history for Phase 2 caller migration.
+All modules now use `OraBooks_Workflow::transition`. See git history for Phase 2 caller migration.
 
 ## Phase 3 — Events & observability (complete)
 
-- `state_transition` SL-302 consumers:
-  - `workflow_read_model` — read model dues bump
-  - `workflow_notifications` — org admin notifications (non-journal)
-  - `job_enqueue_bridge` — webhook async dispatch
+- `state_transition` consumers:
+ - `workflow_read_model` — read model dues bump
+ - `workflow_notifications` — org admin notifications (non-journal)
+ - `job_enqueue_bridge` — webhook async dispatch
 - RBAC/fiscal preconditions: `class-orabooks-workflow-integration.php`
 - Metrics: `workflow.transition_success_24h`, `workflow.transition_failure_24h`
 - Org health AJAX: `orabooks_workflow_health`
 - Platform dashboard: observability snapshot includes `workflow`
 
-## Definition of done (SL-301 MVP)
+## Definition of done ( MVP)
 
-- [x] No production path updates workflow fields without `OraBooks_Workflow::transition()`
+- [x] No production path updates workflow fields without `OraBooks_Workflow::transition`
 - [x] Invalid transition → 409 + `invalid_state_transition` audit
 - [x] FOR UPDATE + DB transaction on transition
 - [x] Preconditions hook + after_transition hook
@@ -90,7 +90,7 @@ All modules now use `OraBooks_Workflow::transition()`. See git history for Phase
 
 ## Dependencies
 
-- SL-009 Audit log
-- SL-302 Event bus (`state_transition` publish + consumers)
-- SL-003 RBAC (preconditions + AJAX guards)
-- SL-093 Observability (workflow metrics)
+- Audit log
+- Event bus (`state_transition` publish + consumers)
+- RBAC (preconditions + AJAX guards)
+- Observability (workflow metrics)

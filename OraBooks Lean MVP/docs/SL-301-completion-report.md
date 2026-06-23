@@ -1,9 +1,9 @@
-# SL-301 — Workflow State Engine  
+# — Workflow State Engine
 ## Completion Report
 
 | Field | Detail |
 |-------|--------|
-| **Ticket** | SL-301 — Workflow State Engine |
+| **Ticket** | — Workflow State Engine |
 | **Project** | OraBooks Lean MVP |
 | **Status** | **Complete — MVP sign-off ready** |
 | **Report date** | 20 June 2026 |
@@ -13,25 +13,25 @@
 
 ## 1. Executive Summary
 
-SL-301 delivers a **central workflow state engine** for OraBooks. Every business-record status change now flows through a single entry point — `OraBooks_Workflow::transition()` — with validation, database locking, audit logging, and event publishing built in.
+ delivers a **central workflow state engine** for OraBooks. Every business-record status change now flows through a single entry point — `OraBooks_Workflow::transition` — with validation, database locking, audit logging, and event publishing built in.
 
 The implementation spans **five record types** (journal, invoice, bill, expense, commission), **three API surfaces** (PHP, guarded AJAX, REST), **RBAC/fiscal preconditions**, **observability metrics**, and **React UI** for all user-facing transitions including invoice cancel and bill void.
 
-**Bottom line:** SL-301 is functionally complete for Lean MVP. All Definition-of-Done items are checked. The only intentional deferral is a dynamic `state_machine_config` database table — the spec allows hard-coded machines for MVP.
+**Bottom line:** is functionally complete for Lean MVP. All Definition-of-Done items are checked. The only intentional deferral is a dynamic `state_machine_config` database table — the spec allows hard-coded machines for MVP.
 
 ---
 
 ## 2. Problem Statement
 
-Before SL-301, workflow status fields (`status`, `workflow_status`) were updated directly in module code. That led to:
+Before, workflow status fields (`status`, `workflow_status`) were updated directly in module code. That led to:
 
-- Inconsistent validation across modules  
-- No unified audit trail for state changes  
-- Race conditions under concurrent requests  
-- Difficult tenant-scoped traceability  
-- No single place for RBAC/fiscal guards  
+- Inconsistent validation across modules
+- No unified audit trail for state changes
+- Race conditions under concurrent requests
+- Difficult tenant-scoped traceability
+- No single place for RBAC/fiscal guards
 
-SL-301 solves this by introducing a **state machine engine** with explicit transitions, hooks, and observability.
+ solves this by introducing a **state machine engine** with explicit transitions, hooks, and observability.
 
 ---
 
@@ -39,33 +39,33 @@ SL-301 solves this by introducing a **state machine engine** with explicit trans
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                        Callers (UI / AJAX / REST)                │
-│  Journal · Invoice · Bill · Expense · Commission modules         │
+│ Callers (UI / AJAX / REST) │
+│ Journal · Invoice · Bill · Expense · Commission modules │
 └────────────────────────────┬────────────────────────────────────┘
-                             │
-                             ▼
+ │
+ ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│              OraBooks_Workflow::transition()                     │
-│  ┌─────────────┐  ┌──────────────┐  ┌─────────────────────────┐ │
-│  │ Validate    │→ │ Preconditions│→ │ DB TX + FOR UPDATE lock │ │
-│  │ transition  │  │ (RBAC/MFA/   │  │ Update status + row     │ │
-│  │             │  │  fiscal)     │  │ Persist transition log  │ │
-│  └─────────────┘  └──────────────┘  └───────────┬─────────────┘ │
-│                                                  │               │
-│                     Commit ──→ Audit + state_transition event    │
+│ OraBooks_Workflow::transition │
+│ ┌─────────────┐ ┌──────────────┐ ┌─────────────────────────┐ │
+│ │ Validate │→ │ Preconditions│→ │ DB TX + FOR UPDATE lock │ │
+│ │ transition │ │ (RBAC/MFA/ │ │ Update status + row │ │
+│ │ │ │ fiscal) │ │ Persist transition log │ │
+│ └─────────────┘ └──────────────┘ └───────────┬─────────────┘ │
+│ │ │
+│ Commit ──→ Audit + state_transition event │
 └─────────────────────────────────────────────────────────────────┘
-                             │
-         ┌───────────────────┼───────────────────┐
-         ▼                   ▼                   ▼
-   SL-009 Audit        SL-302 Event Bus     SL-093 Observability
-   state_changed       read_model /         workflow metrics
-   invalid_transition  notifications /
-                       webhook bridge
+ │
+ ┌───────────────────┼───────────────────┐
+ ▼ ▼ ▼
+ Audit Event Bus Observability
+ state_changed read_model / workflow metrics
+ invalid_transition notifications /
+ webhook bridge
 ```
 
 ### Core design principles
 
-1. **Single write path** — No production code updates workflow columns without `OraBooks_Workflow::transition()`.
+1. **Single write path** — No production code updates workflow columns without `OraBooks_Workflow::transition`.
 2. **Atomic transitions** — `START TRANSACTION` → `SELECT … FOR UPDATE` → validate → update → persist → `COMMIT` (or `ROLLBACK` on failure).
 3. **Fail closed** — Invalid transitions return error (409) and log `invalid_state_transition`.
 4. **Tenant traceability** — `state_machine_transitions.org_id` on every transition row.
@@ -79,7 +79,7 @@ SL-301 solves this by introducing a **state machine engine** with explicit trans
 |-------|-------|--------|
 | **Phase 0** | Inventory, state matrices, migration backlog, DoD checklist | ✅ Complete |
 | **Phase 1** | Core engine: transactions, FOR UPDATE, hooks, AJAX, `org_id` column | ✅ Complete |
-| **Phase 2** | Caller migration — all 5 record types use `transition()` | ✅ Complete |
+| **Phase 2** | Caller migration — all 5 record types use `transition` | ✅ Complete |
 | **Phase 3** | Events, RBAC/fiscal preconditions, observability, health AJAX | ✅ Complete |
 | **Phase 4** | Gap closure: cancel, void, expense lock, REST, MFA centralization | ✅ Complete |
 
@@ -95,12 +95,12 @@ SL-301 solves this by introducing a **state machine engine** with explicit trans
 
 ```
 draft ──submit──► review_pending ──approve──► approved ──post──► posted ──lock──► locked
-                      │ reject ▼                    │ reverse (from posted/locked)
-                      └──► draft                    └──► reversed
+ │ reject ▼ │ reverse (from posted/locked)
+ └──► draft └──► reversed
 draft/approved ──edit──► draft
 ```
 
-**Wired via:** `class-orabooks-posting.php`, `class-orabooks-approval.php`  
+**Wired via:** `class-orabooks-posting.php`, `class-orabooks-approval.php`
 **Note:** Post automatically chains `lock` (same pattern as expense).
 
 ---
@@ -113,11 +113,11 @@ draft/approved ──edit──► draft
 
 ```
 draft ──send──► sent ──post──► posted
-  │               │
-  └── cancel ─────┴── cancel ──► cancelled
+ │ │
+ └── cancel ─────┴── cancel ──► cancelled
 ```
 
-**Wired via:** `send_invoice()`, `post_invoice()`, `cancel_invoice()`  
+**Wired via:** `send_invoice`, `post_invoice`, `cancel_invoice`
 **UI:** Invoices page — Send · Post · Pay · **Cancel**
 
 ---
@@ -130,11 +130,11 @@ draft ──send──► sent ──post──► posted
 
 ```
 draft ──submit──► submitted ──approve──► approved ──post──► posted
-   │                  │                      │
-   └──── void ────────┴──── void ───────────┘ ──► void
+ │ │ │
+ └──── void ────────┴──── void ───────────┘ ──► void
 ```
 
-**Wired via:** `submit_bill()`, `approve_bill()`, `post_bill()`, `void_bill()`  
+**Wired via:** `submit_bill`, `approve_bill`, `post_bill`, `void_bill`
 **UI:** Vendors page — Submit · Approve · Post · **Void**
 
 ---
@@ -147,11 +147,11 @@ draft ──submit──► submitted ──approve──► approved ──post
 
 ```
 draft ──submit──► submitted ──approve──► approved ──post──► posted ──lock──► locked
-         │              │ ai_review ▲        │ reject ▼
-         └── ai_review ─┴────────────┘        └──► draft
+ │ │ ai_review ▲ │ reject ▼
+ └── ai_review ─┴────────────┘ └──► draft
 ```
 
-**Wired via:** `class-orabooks-expenses.php` — submit, ai_review, approve, reject, post + auto lock  
+**Wired via:** `class-orabooks-expenses.php` — submit, ai_review, approve, reject, post + auto lock
 **Note:** Post chains `lock` transition (journal pattern).
 
 ---
@@ -164,8 +164,8 @@ draft ──submit──► submitted ──approve──► approved ──post
 
 ```
 earned ──pay──► paid
-   │
-   └── expire ──► expired
+ │
+ └── expire ──► expired
 ```
 
 **Wired via:** `class-orabooks-commission.php`
@@ -178,7 +178,7 @@ earned ──pay──► paid
 
 | File | Role |
 |------|------|
-| `includes/class-orabooks-workflow.php` | State machines, `transition()`, AJAX endpoints, health |
+| `includes/class-orabooks-workflow.php` | State machines, `transition`, AJAX endpoints, health |
 | `includes/class-orabooks-workflow-integration.php` | RBAC, fiscal, MFA, maker-checker preconditions |
 | `includes/class-orabooks-database.php` | `state_machine_transitions` table + `org_id` migration |
 | `includes/class-orabooks-rest-api.php` | `POST /api/internal/state/transition` |
@@ -195,7 +195,7 @@ earned ──pay──► paid
 | Expense | `class-orabooks-expenses.php` | submit, ai_review, approve, reject, post, **lock** |
 | Commission | `class-orabooks-commission.php` | pay, expire |
 
-### 6.3 Events (SL-302 consumers)
+### 6.3 Events ( consumers)
 
 | File | Consumers |
 |------|-----------|
@@ -214,7 +214,7 @@ earned ──pay──► paid
 | File | Purpose |
 |------|---------|
 | `docs/workflow-state-engine.md` | Technical reference + DoD checklist |
-| `docs/SL-301-completion-report.md` | This report |
+| `docs/-completion-report.md` | This report |
 
 ### 6.6 Tests
 
@@ -236,10 +236,10 @@ earned ──pay──► paid
 
 ```php
 $result = OraBooks_Workflow::transition('invoice', $invoice_id, 'cancel', [
-    'user_id' => $user_id,
-    'org_id'  => $org_id,
-    'reason'  => 'Customer request',
-    'row_updates' => [ /* optional extra columns */ ],
+ 'user_id' => $user_id,
+ 'org_id' => $org_id,
+ 'reason' => 'Customer request',
+ 'row_updates' => [ /* optional extra columns */ ],
 ]);
 
 $allowed = OraBooks_Workflow::allowed_events('bill', 'submitted');
@@ -252,13 +252,13 @@ $allowed = OraBooks_Workflow::allowed_events('bill', 'submitted');
 
 | Method | AJAX action | Permission |
 |--------|-------------|------------|
-| `OraBooks_Customers::cancel_invoice()` | `orabooks_invoice_cancel` | `create_invoice` |
-| `OraBooks_Vendors::void_bill()` | `orabooks_bill_void` | `submit_transaction` / `manage_org_settings` |
-| `OraBooks_Customers::send_invoice()` | `orabooks_invoice_send` | `create_invoice` |
-| `OraBooks_Customers::post_invoice()` | `orabooks_invoice_post` | `create_invoice` |
-| `OraBooks_Vendors::submit_bill()` | `orabooks_bill_submit` | `submit_transaction` |
-| `OraBooks_Vendors::approve_bill()` | `orabooks_bill_approve` | `approve_journal` |
-| `OraBooks_Vendors::post_bill()` | `orabooks_bill_post` | `approve_journal` / `manage_org_settings` |
+| `OraBooks_Customers::cancel_invoice` | `orabooks_invoice_cancel` | `create_invoice` |
+| `OraBooks_Vendors::void_bill` | `orabooks_bill_void` | `submit_transaction` / `manage_org_settings` |
+| `OraBooks_Customers::send_invoice` | `orabooks_invoice_send` | `create_invoice` |
+| `OraBooks_Customers::post_invoice` | `orabooks_invoice_post` | `create_invoice` |
+| `OraBooks_Vendors::submit_bill` | `orabooks_bill_submit` | `submit_transaction` |
+| `OraBooks_Vendors::approve_bill` | `orabooks_bill_approve` | `approve_journal` |
+| `OraBooks_Vendors::post_bill` | `orabooks_bill_post` | `approve_journal` / `manage_org_settings` |
 
 ### 7.3 Generic workflow AJAX
 
@@ -269,12 +269,12 @@ $allowed = OraBooks_Workflow::allowed_events('bill', 'submitted');
 | `orabooks_workflow_transition` | Execute transition (guarded) |
 | `orabooks_workflow_health` | Org-scoped workflow health snapshot |
 
-### 7.4 REST (SL-304)
+### 7.4 REST
 
 ```
 POST /wp-json/api/internal/state/transition
 Headers: X-OraBooks-Org-Id: {org_id}
-Body:    record_type, record_id, event, reason?, mfa_otp?, mfa_verified?
+Body: record_type, record_id, event, reason?, mfa_otp?, mfa_verified?
 ```
 
 Requires: `manage_settings` OR `submit_transaction` OR `approve_journal`
@@ -283,7 +283,7 @@ Requires: `manage_settings` OR `submit_transaction` OR `approve_journal`
 
 ## 8. Cross-Cutting Concerns
 
-### 8.1 Audit (SL-009)
+### 8.1 Audit
 
 | Event | When |
 |-------|------|
@@ -291,7 +291,7 @@ Requires: `manage_settings` OR `submit_transaction` OR `approve_journal`
 | `invalid_state_transition` | Rejected transition (409) |
 | `workflow_transition_failed` | Precondition or publish failure |
 
-### 8.2 Event bus (SL-302)
+### 8.2 Event bus
 
 Every successful transition publishes `state_transition` with payload:
 
@@ -305,17 +305,17 @@ Every successful transition publishes `state_transition` with payload:
 | `workflow_notifications` | Org admin notifications (non-journal) |
 | `job_enqueue_bridge` | Async webhook dispatch |
 
-### 8.3 RBAC & security (SL-003)
+### 8.3 RBAC & security
 
-Centralized in `OraBooks_Workflow_Integration::apply_preconditions()`:
+Centralized in `OraBooks_Workflow_Integration::apply_preconditions`:
 
-- Journal: submit/approve/reject/post/reverse permissions + fiscal period checks  
-- Journal approve: **maker-checker** + **MFA for high-value** (threshold from approval policy)  
-- Expense: manage_expenses / approve_expense per event  
-- Invoice/Bill: create_invoice / manage_settings; cancel & void guarded  
+- Journal: submit/approve/reject/post/reverse permissions + fiscal period checks
+- Journal approve: **maker-checker** + **MFA for high-value** (threshold from approval policy)
+- Expense: manage_expenses / approve_expense per event
+- Invoice/Bill: create_invoice / manage_settings; cancel & void guarded
 - Expense lock: internal post-step (no extra RBAC, matches journal lock)
 
-### 8.4 Observability (SL-093)
+### 8.4 Observability
 
 | Metric | Description |
 |--------|-------------|
@@ -336,7 +336,7 @@ Stores immutable transition history:
 
 | Column | Purpose |
 |--------|---------|
-| `org_id` | Tenant traceability (SL-301 migration) |
+| `org_id` | Tenant traceability ( migration) |
 | `record_type` | journal, invoice, bill, expense, commission |
 | `record_id` | Primary key of business record |
 | `from_state` / `to_state` | State change |
@@ -372,7 +372,7 @@ Verified in post-deploy checks (`OraBooks_DeployChecks`).
 
 ## 11. Testing Summary
 
-### SL-301 focused tests
+### focused tests
 
 | Area | Tests | Result |
 |------|-------|--------|
@@ -390,11 +390,11 @@ Verified in post-deploy checks (`OraBooks_DeployChecks`).
 php tests/vendor/bin/phpunit -c tests/phpunit.xml
 ```
 
-**SL-301 filter (32 tests):**
+** filter (32 tests):**
 
 ```bash
 php tests/vendor/bin/phpunit -c tests/phpunit.xml \
-  --filter "OraBooks_Workflow|OraBooks_Customers_Test::test_cancel|OraBooks_Vendors_Test::test_void|OraBooks_Approval_Test|OraBooks_Rest_Api_Test::test_rest_state|OraBooks_Workflow_Integration"
+ --filter "OraBooks_Workflow|OraBooks_Customers_Test::test_cancel|OraBooks_Vendors_Test::test_void|OraBooks_Approval_Test|OraBooks_Rest_Api_Test::test_rest_state|OraBooks_Workflow_Integration"
 ```
 
 ---
@@ -426,7 +426,7 @@ After auto-deploy from shared folder:
 
 | # | Criterion | Status |
 |---|-----------|--------|
-| 1 | All workflow updates via `OraBooks_Workflow::transition()` | ✅ |
+| 1 | All workflow updates via `OraBooks_Workflow::transition` | ✅ |
 | 2 | Invalid transition → 409 + audit | ✅ |
 | 3 | FOR UPDATE + DB transaction | ✅ |
 | 4 | Preconditions + after_transition hooks | ✅ |
@@ -450,29 +450,29 @@ After auto-deploy from shared folder:
 |------|--------|--------|
 | `state_machine_config` DB table | Spec allows hard-coded machines for MVP; filter hook `orabooks_workflow_state_machines` available for extension | Low — no user impact |
 | Dynamic per-org machine editing UI | Future admin feature | Low |
-| Reconciliation workflow | Out of SL-301 scope | N/A |
+| Reconciliation workflow | Out of scope | N/A |
 
 ---
 
 ## 15. Dependency Map
 
 ```
-SL-301 Workflow State Engine
- ├── SL-003 RBAC          (preconditions, AJAX guards)
- ├── SL-009 Audit Log     (state_changed, invalid_state_transition)
- ├── SL-002 Approval      (journal approve, MFA, maker-checker)
- ├── SL-302 Event Bus     (state_transition publish + 3 consumers)
- ├── SL-093 Observability (workflow metrics, health dashboard)
- ├── SL-021 Invoices      (send, post, cancel)
- ├── SL-027 Vendors/AP    (submit, approve, post, void)
- └── SL-304 REST API      (internal state transition route)
+ Workflow State Engine
+ ├── RBAC (preconditions, AJAX guards)
+ ├── Audit Log (state_changed, invalid_state_transition)
+ ├── Approval (journal approve, MFA, maker-checker)
+ ├── Event Bus (state_transition publish + 3 consumers)
+ ├── Observability (workflow metrics, health dashboard)
+ ├── Invoices (send, post, cancel)
+ ├── Vendors/AP (submit, approve, post, void)
+ └── REST API (internal state transition route)
 ```
 
 ---
 
 ## 16. Sign-Off Recommendation
 
-**SL-301 is recommended for MVP sign-off.**
+** is recommended for MVP sign-off.**
 
 All core engine requirements, caller migrations, event integration, observability, gap-closure items (cancel, void, expense lock, REST, MFA), tests, and documentation are complete. Remaining items are optional future enhancements explicitly allowed by the MVP spec.
 
@@ -485,8 +485,8 @@ All core engine requirements, caller migrations, event integration, observabilit
 | Technical reference | [docs/workflow-state-engine.md](./workflow-state-engine.md) |
 | Core engine | `includes/class-orabooks-workflow.php` |
 | Preconditions | `includes/class-orabooks-workflow-integration.php` |
-| This report | `docs/SL-301-completion-report.md` |
+| This report | `docs/-completion-report.md` |
 
 ---
 
-*Generated for OraBooks Lean MVP — SL-301 Workflow State Engine delivery.*
+*Generated for OraBooks Lean MVP — Workflow State Engine delivery.*

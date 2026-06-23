@@ -1,691 +1,691 @@
 {
-  "openapi": "3.0.3",
-  "info": {
-    "title": "OraBooks API",
-    "version": "1.0.0",
-    "description": "REST API for OraBooks Lean MVP. Authenticated WordPress session or application password required. Pass org context via org_id query parameter or X-OraBooks-Org-Id header."
-  },
-  "servers": [
-    {
-      "url": "/wp-json/api"
-    }
-  ],
-  "tags": [
-    { "name": "Meta", "description": "API discovery" },
-    { "name": "Fiscal", "description": "SL-304 fiscal period governance" },
-    { "name": "Journals", "description": "SL-001 canonical posting and journal workflow" },
-    { "name": "Expenses", "description": "SL-028 receipt OCR and expense workflow" },
-    { "name": "PWA", "description": "Progressive Web App metadata" },
-    { "name": "Auth", "description": "SL-013 two-factor authentication" }
-  ],
-  "paths": {
-    "/openapi.json": {
-      "get": {
-        "tags": ["Meta"],
-        "summary": "OpenAPI specification",
-        "responses": {
-          "200": { "description": "This document" }
-        }
-      }
-    },
-    "/pwa/manifest": {
-      "get": {
-        "tags": ["PWA"],
-        "summary": "Web app manifest",
-        "responses": {
-          "200": { "description": "PWA manifest JSON" }
-        }
-      }
-    },
-    "/pwa/service-worker": {
-      "get": {
-        "tags": ["PWA"],
-        "summary": "Service worker script",
-        "responses": {
-          "200": { "description": "JavaScript service worker with Service-Worker-Allowed header" }
-        }
-      }
-    },
-    "/fiscal-periods": {
-      "get": {
-        "tags": ["Fiscal"],
-        "summary": "List fiscal periods",
-        "parameters": [
-          { "in": "query", "name": "org_id", "required": true, "schema": { "type": "integer" } },
-          { "in": "query", "name": "status", "schema": { "type": "string", "enum": ["OPEN", "SOFT_CLOSED", "HARD_CLOSED"] } },
-          { "in": "query", "name": "year", "schema": { "type": "integer" } },
-          { "in": "query", "name": "month", "schema": { "type": "integer", "minimum": 1, "maximum": 12 } },
-          { "in": "query", "name": "page", "schema": { "type": "integer", "minimum": 1, "default": 1 } },
-          { "in": "query", "name": "per_page", "schema": { "type": "integer", "minimum": 1, "maximum": 100, "default": 20 } }
-        ],
-        "responses": {
-          "200": { "description": "Paged fiscal periods" },
-          "403": { "description": "Forbidden" }
-        }
-      },
-      "post": {
-        "tags": ["Fiscal"],
-        "summary": "Create fiscal period",
-        "parameters": [
-          { "in": "query", "name": "org_id", "required": true, "schema": { "type": "integer" } }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": { "$ref": "#/components/schemas/FiscalPeriodCreate" }
-            }
-          }
-        },
-        "responses": {
-          "200": { "description": "Created" },
-          "422": { "description": "Duplicate or overlapping fiscal period" }
-        }
-      }
-    },
-    "/fiscal-periods/{id}": {
-      "get": {
-        "tags": ["Fiscal"],
-        "summary": "Get fiscal period",
-        "parameters": [
-          { "$ref": "#/components/parameters/PeriodId" },
-          { "in": "query", "name": "org_id", "required": true, "schema": { "type": "integer" } }
-        ],
-        "responses": {
-          "200": { "description": "Fiscal period" },
-          "404": { "description": "Not found or cross-tenant access blocked" }
-        }
-      }
-    },
-    "/fiscal-periods/{id}/close": {
-      "post": {
-        "tags": ["Fiscal"],
-        "summary": "Close fiscal period",
-        "parameters": [
-          { "$ref": "#/components/parameters/PeriodId" },
-          { "in": "query", "name": "org_id", "required": true, "schema": { "type": "integer" } }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": ["closeType"],
-                "properties": {
-                  "closeType": { "type": "string", "enum": ["soft", "hard"] },
-                  "note": { "type": "string" }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": { "description": "Closed" },
-          "409": { "description": "Period is not open or transition is illegal" }
-        }
-      }
-    },
-    "/fiscal-periods/{id}/reopen": {
-      "post": {
-        "tags": ["Fiscal"],
-        "summary": "Reopen soft-closed fiscal period",
-        "parameters": [
-          { "$ref": "#/components/parameters/PeriodId" },
-          { "in": "query", "name": "org_id", "required": true, "schema": { "type": "integer" } }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": ["reason"],
-                "properties": {
-                  "reason": { "type": "string" }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": { "description": "Reopened" },
-          "409": { "description": "Only soft-closed periods can be reopened here" }
-        }
-      }
-    },
-    "/fiscal-periods/{id}/override-reopen": {
-      "post": {
-        "tags": ["Fiscal"],
-        "summary": "Super Admin override reopen for hard-closed fiscal period",
-        "parameters": [
-          { "$ref": "#/components/parameters/PeriodId" },
-          { "in": "query", "name": "org_id", "required": true, "schema": { "type": "integer" } }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": ["justification"],
-                "properties": {
-                  "justification": { "type": "string" }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": { "description": "Override reopened" },
-          "403": { "description": "Super Admin permission required" },
-          "422": { "description": "Justification missing" }
-        }
-      }
-    },
-    "/journals": {
-      "get": {
-        "tags": ["Journals"],
-        "summary": "List journals",
-        "parameters": [
-          { "in": "query", "name": "org_id", "required": true, "schema": { "type": "integer" } },
-          { "in": "query", "name": "status", "schema": { "type": "string" } },
-          { "in": "query", "name": "from_date", "schema": { "type": "string", "format": "date" } },
-          { "in": "query", "name": "to_date", "schema": { "type": "string", "format": "date" } },
-          { "in": "query", "name": "account_code", "schema": { "type": "string" } }
-        ],
-        "responses": {
-          "200": { "description": "Journal list" },
-          "403": { "description": "Forbidden" }
-        }
-      },
-      "post": {
-        "tags": ["Journals"],
-        "summary": "Create draft journal",
-        "parameters": [
-          { "in": "query", "name": "org_id", "required": true, "schema": { "type": "integer" } },
-          { "in": "header", "name": "Idempotency-Key", "schema": { "type": "string" } }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "transaction_date": { "type": "string", "format": "date" },
-                  "source_type": { "type": "string" },
-                  "lines": {
-                    "type": "array",
-                    "items": {
-                      "type": "object",
-                      "properties": {
-                        "account_code": { "type": "string" },
-                        "debit_amount": { "type": "number" },
-                        "credit_amount": { "type": "number" },
-                        "description": { "type": "string" }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": { "description": "Draft journal created" },
-          "422": { "description": "Validation error" }
-        }
-      }
-    },
-    "/journals/{id}": {
-      "get": {
-        "tags": ["Journals"],
-        "summary": "Get journal detail",
-        "parameters": [
-          { "in": "path", "name": "id", "required": true, "schema": { "type": "integer" } },
-          { "in": "query", "name": "org_id", "required": true, "schema": { "type": "integer" } }
-        ],
-        "responses": {
-          "200": { "description": "Journal with lines and approval history" },
-          "404": { "description": "Not found" }
-        }
-      }
-    },
-    "/journals/{id}/post": {
-      "post": {
-        "tags": ["Journals"],
-        "summary": "Post approved journal to ledger",
-        "parameters": [
-          { "in": "path", "name": "id", "required": true, "schema": { "type": "integer" } },
-          { "in": "query", "name": "org_id", "required": true, "schema": { "type": "integer" } }
-        ],
-        "responses": {
-          "200": { "description": "Posted and locked" },
-          "409": { "description": "Invalid status or fiscal closed" }
-        }
-      }
-    },
-    "/expenses": {
-      "get": {
-        "tags": ["Expenses"],
-        "summary": "List expenses",
-        "parameters": [
-          { "in": "query", "name": "org_id", "required": true, "schema": { "type": "integer" } },
-          { "in": "query", "name": "workflow_status", "schema": { "type": "string" } },
-          { "in": "query", "name": "page", "schema": { "type": "integer", "minimum": 1, "default": 1 } },
-          { "in": "query", "name": "per_page", "schema": { "type": "integer", "minimum": 1, "maximum": 100, "default": 20 } }
-        ],
-        "responses": {
-          "200": { "description": "Paged expenses" }
-        }
-      }
-    },
-    "/expenses/upload-receipt": {
-      "post": {
-        "tags": ["Expenses"],
-        "summary": "Upload receipt and start OCR",
-        "parameters": [
-          { "in": "query", "name": "org_id", "required": true, "schema": { "type": "integer" } }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "multipart/form-data": {
-              "schema": {
-                "type": "object",
-                "required": ["receipt_file"],
-                "properties": {
-                  "receipt_file": { "type": "string", "format": "binary" },
-                  "idempotency_key": { "type": "string" }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": { "description": "Draft expense created and OCR queued" },
-          "400": { "description": "Invalid file" }
-        }
-      }
-    },
-    "/expenses/{id}": {
-      "get": {
-        "tags": ["Expenses"],
-        "summary": "Get expense",
-        "parameters": [
-          { "$ref": "#/components/parameters/ExpenseId" },
-          { "in": "query", "name": "org_id", "required": true, "schema": { "type": "integer" } }
-        ],
-        "responses": {
-          "200": { "description": "Expense with OCR fields" },
-          "404": { "description": "Not found" }
-        }
-      }
-    },
-    "/expenses/{id}/confirm-submit": {
-      "post": {
-        "tags": ["Expenses"],
-        "summary": "Confirm OCR result and submit for approval or AI review",
-        "parameters": [
-          { "$ref": "#/components/parameters/ExpenseId" },
-          { "in": "query", "name": "org_id", "required": true, "schema": { "type": "integer" } }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": ["idempotency_key"],
-                "properties": {
-                  "idempotency_key": { "type": "string" },
-                  "edited_fields": { "type": "object", "additionalProperties": true }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": { "description": "Submitted or escalated to AI review" },
-          "409": { "description": "Duplicate idempotency key" }
-        }
-      }
-    },
-    "/expenses/settings": {
-      "get": {
-        "tags": ["Expenses"],
-        "summary": "Get org expense workflow settings",
-        "parameters": [
-          { "in": "query", "name": "org_id", "required": true, "schema": { "type": "integer" } }
-        ],
-        "responses": {
-          "200": { "description": "Settings including auto_post_on_approve" }
-        }
-      },
-      "put": {
-        "tags": ["Expenses"],
-        "summary": "Save org expense workflow settings",
-        "parameters": [
-          { "in": "query", "name": "org_id", "required": true, "schema": { "type": "integer" } }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "auto_post_on_approve": { "type": "integer", "enum": [0, 1] }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": { "description": "Updated settings" },
-          "403": { "description": "Insufficient permissions" }
-        }
-      }
-    },
-    "/expenses/{id}/approve": {
-      "post": {
-        "tags": ["Expenses"],
-        "summary": "Approve expense (auto-posts when org setting enabled)",
-        "parameters": [
-          { "$ref": "#/components/parameters/ExpenseId" },
-          { "in": "query", "name": "org_id", "required": true, "schema": { "type": "integer" } }
-        ],
-        "responses": {
-          "200": { "description": "Approved expense" },
-          "400": { "description": "Invalid workflow state" },
-          "404": { "description": "Not found" }
-        }
-      }
-    },
-    "/expenses/{id}/reject": {
-      "post": {
-        "tags": ["Expenses"],
-        "summary": "Reject expense with reason",
-        "parameters": [
-          { "$ref": "#/components/parameters/ExpenseId" },
-          { "in": "query", "name": "org_id", "required": true, "schema": { "type": "integer" } }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": ["reason"],
-                "properties": {
-                  "reason": { "type": "string" }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": { "description": "Rejected expense" },
-          "400": { "description": "Missing reason or invalid state" },
-          "404": { "description": "Not found" }
-        }
-      }
-    },
-    "/expenses/{id}/post": {
-      "post": {
-        "tags": ["Expenses"],
-        "summary": "Post approved expense to ledger",
-        "parameters": [
-          { "$ref": "#/components/parameters/ExpenseId" },
-          { "in": "query", "name": "org_id", "required": true, "schema": { "type": "integer" } }
-        ],
-        "responses": {
-          "200": { "description": "Posted expense" },
-          "400": { "description": "Invalid workflow state" },
-          "404": { "description": "Not found" }
-        }
-      }
-    },
-    "/auth/2fa/setup": {
-      "post": {
-        "tags": ["Auth"],
-        "summary": "Start 2FA setup (TOTP secret, QR, backup codes)",
-        "responses": {
-          "200": { "description": "Setup payload with secret, qr_code_url, backup_codes" },
-          "400": { "description": "Already enabled or setup blocked" }
-        }
-      }
-    },
-    "/auth/2fa/verify-setup": {
-      "post": {
-        "tags": ["Auth"],
-        "summary": "Verify OTP and enable 2FA",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": ["otp_code"],
-                "properties": { "otp_code": { "type": "string" } }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": { "description": "2FA enabled" },
-          "400": { "description": "Invalid OTP" }
-        }
-      }
-    },
-    "/auth/2fa/challenge": {
-      "post": {
-        "tags": ["Auth"],
-        "summary": "Complete login with TOTP or backup code",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": ["temp_token"],
-                "properties": {
-                  "temp_token": { "type": "string" },
-                  "otp_code": { "type": "string" },
-                  "backup_code": { "type": "string" }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": { "description": "Session issued" },
-          "401": { "description": "Invalid verification" }
-        }
-      }
-    },
-    "/auth/2fa/disable": {
-      "post": {
-        "tags": ["Auth"],
-        "summary": "Disable 2FA (requires OTP; blocked when org requires 2FA)",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": ["otp_code"],
-                "properties": { "otp_code": { "type": "string" } }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": { "description": "2FA disabled" },
-          "403": { "description": "Organization requires 2FA" }
-        }
-      }
-    },
-    "/auth/2fa/regenerate-backup-codes": {
-      "post": {
-        "tags": ["Auth"],
-        "summary": "Regenerate backup codes (requires OTP)",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": ["otp_code"],
-                "properties": { "otp_code": { "type": "string" } }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": { "description": "New backup codes (shown once)" }
-        }
-      }
-    },
-    "/auth/2fa/reveal-backup-codes": {
-      "post": {
-        "tags": ["Auth"],
-        "summary": "View unused backup codes without regenerating (requires OTP)",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": ["otp_code"],
-                "properties": { "otp_code": { "type": "string" } }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": { "description": "Unused backup codes" },
-          "404": { "description": "No codes available to reveal" }
-        }
-      }
-    },
-    "/auth/2fa/status": {
-      "get": {
-        "tags": ["Auth"],
-        "summary": "2FA status for current user",
-        "responses": {
-          "200": { "description": "is_2fa_enabled, remaining_backup_codes, org policy flags" }
-        }
-      }
-    },
-    "/auth/2fa/admin-recover": {
-      "post": {
-        "tags": ["Auth"],
-        "summary": "Admin reset 2FA for a user (audit logged)",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": ["target_user_id", "justification"],
-                "properties": {
-                  "target_user_id": { "type": "integer" },
-                  "justification": { "type": "string" }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": { "description": "2FA reset" },
-          "403": { "description": "Permission denied" }
-        }
-      }
-    },
-    "/org/security/2fa-policy": {
-      "get": {
-        "tags": ["Auth"],
-        "summary": "Get organization mandatory 2FA policy",
-        "parameters": [
-          { "in": "query", "name": "org_id", "required": true, "schema": { "type": "integer" } }
-        ],
-        "responses": {
-          "200": { "description": "require_2fa flag" }
-        }
-      },
-      "put": {
-        "tags": ["Auth"],
-        "summary": "Set organization mandatory 2FA policy",
-        "parameters": [
-          { "in": "query", "name": "org_id", "required": true, "schema": { "type": "integer" } }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": ["require_2fa"],
-                "properties": { "require_2fa": { "type": "boolean" } }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": { "description": "Policy updated" }
-        }
-      }
-    }
-  },
-  "components": {
-    "parameters": {
-      "PeriodId": {
-        "in": "path",
-        "name": "id",
-        "required": true,
-        "schema": { "type": "integer" }
-      },
-      "ExpenseId": {
-        "in": "path",
-        "name": "id",
-        "required": true,
-        "schema": { "type": "integer" }
-      }
-    },
-    "schemas": {
-      "FiscalPeriodCreate": {
-        "type": "object",
-        "required": ["period_start", "period_end"],
-        "properties": {
-          "period_name": { "type": "string" },
-          "period_start": { "type": "string", "format": "date" },
-          "period_end": { "type": "string", "format": "date" }
-        }
-      },
-      "FiscalPeriod": {
-        "type": "object",
-        "properties": {
-          "id": { "type": "integer" },
-          "org_id": { "type": "integer" },
-          "period_start": { "type": "string", "format": "date" },
-          "period_end": { "type": "string", "format": "date" },
-          "status": { "type": "string", "enum": ["OPEN", "SOFT_CLOSED", "HARD_CLOSED"] }
-        }
-      },
-      "Expense": {
-        "type": "object",
-        "properties": {
-          "id": { "type": "integer" },
-          "org_id": { "type": "integer" },
-          "vendor": { "type": "string" },
-          "total_amount": { "type": "number" },
-          "workflow_status": { "type": "string" },
-          "ocr_confidence": { "type": "number" },
-          "ocr_risk_level": { "type": "string" }
-        }
-      }
-    }
-  }
+ "openapi": "3.0.3",
+ "info": {
+ "title": "OraBooks API",
+ "version": "1.0.0",
+ "description": "REST API for OraBooks Lean MVP. Authenticated WordPress session or application password required. Pass org context via org_id query parameter or X-OraBooks-Org-Id header."
+ },
+ "servers": [
+ {
+ "url": "/wp-json/api"
+ }
+ ],
+ "tags": [
+ { "name": "Meta", "description": "API discovery" },
+ { "name": "Fiscal", "description": " fiscal period governance" },
+ { "name": "Journals", "description": " canonical posting and journal workflow" },
+ { "name": "Expenses", "description": " receipt OCR and expense workflow" },
+ { "name": "PWA", "description": "Progressive Web App metadata" },
+ { "name": "Auth", "description": " two-factor authentication" }
+ ],
+ "paths": {
+ "/openapi.json": {
+ "get": {
+ "tags": ["Meta"],
+ "summary": "OpenAPI specification",
+ "responses": {
+ "200": { "description": "This document" }
+ }
+ }
+ },
+ "/pwa/manifest": {
+ "get": {
+ "tags": ["PWA"],
+ "summary": "Web app manifest",
+ "responses": {
+ "200": { "description": "PWA manifest JSON" }
+ }
+ }
+ },
+ "/pwa/service-worker": {
+ "get": {
+ "tags": ["PWA"],
+ "summary": "Service worker script",
+ "responses": {
+ "200": { "description": "JavaScript service worker with Service-Worker-Allowed header" }
+ }
+ }
+ },
+ "/fiscal-periods": {
+ "get": {
+ "tags": ["Fiscal"],
+ "summary": "List fiscal periods",
+ "parameters": [
+ { "in": "query", "name": "org_id", "required": true, "schema": { "type": "integer" } },
+ { "in": "query", "name": "status", "schema": { "type": "string", "enum": ["OPEN", "SOFT_CLOSED", "HARD_CLOSED"] } },
+ { "in": "query", "name": "year", "schema": { "type": "integer" } },
+ { "in": "query", "name": "month", "schema": { "type": "integer", "minimum": 1, "maximum": 12 } },
+ { "in": "query", "name": "page", "schema": { "type": "integer", "minimum": 1, "default": 1 } },
+ { "in": "query", "name": "per_page", "schema": { "type": "integer", "minimum": 1, "maximum": 100, "default": 20 } }
+ ],
+ "responses": {
+ "200": { "description": "Paged fiscal periods" },
+ "403": { "description": "Forbidden" }
+ }
+ },
+ "post": {
+ "tags": ["Fiscal"],
+ "summary": "Create fiscal period",
+ "parameters": [
+ { "in": "query", "name": "org_id", "required": true, "schema": { "type": "integer" } }
+ ],
+ "requestBody": {
+ "required": true,
+ "content": {
+ "application/json": {
+ "schema": { "$ref": "#/components/schemas/FiscalPeriodCreate" }
+ }
+ }
+ },
+ "responses": {
+ "200": { "description": "Created" },
+ "422": { "description": "Duplicate or overlapping fiscal period" }
+ }
+ }
+ },
+ "/fiscal-periods/{id}": {
+ "get": {
+ "tags": ["Fiscal"],
+ "summary": "Get fiscal period",
+ "parameters": [
+ { "$ref": "#/components/parameters/PeriodId" },
+ { "in": "query", "name": "org_id", "required": true, "schema": { "type": "integer" } }
+ ],
+ "responses": {
+ "200": { "description": "Fiscal period" },
+ "404": { "description": "Not found or cross-tenant access blocked" }
+ }
+ }
+ },
+ "/fiscal-periods/{id}/close": {
+ "post": {
+ "tags": ["Fiscal"],
+ "summary": "Close fiscal period",
+ "parameters": [
+ { "$ref": "#/components/parameters/PeriodId" },
+ { "in": "query", "name": "org_id", "required": true, "schema": { "type": "integer" } }
+ ],
+ "requestBody": {
+ "required": true,
+ "content": {
+ "application/json": {
+ "schema": {
+ "type": "object",
+ "required": ["closeType"],
+ "properties": {
+ "closeType": { "type": "string", "enum": ["soft", "hard"] },
+ "note": { "type": "string" }
+ }
+ }
+ }
+ }
+ },
+ "responses": {
+ "200": { "description": "Closed" },
+ "409": { "description": "Period is not open or transition is illegal" }
+ }
+ }
+ },
+ "/fiscal-periods/{id}/reopen": {
+ "post": {
+ "tags": ["Fiscal"],
+ "summary": "Reopen soft-closed fiscal period",
+ "parameters": [
+ { "$ref": "#/components/parameters/PeriodId" },
+ { "in": "query", "name": "org_id", "required": true, "schema": { "type": "integer" } }
+ ],
+ "requestBody": {
+ "required": true,
+ "content": {
+ "application/json": {
+ "schema": {
+ "type": "object",
+ "required": ["reason"],
+ "properties": {
+ "reason": { "type": "string" }
+ }
+ }
+ }
+ }
+ },
+ "responses": {
+ "200": { "description": "Reopened" },
+ "409": { "description": "Only soft-closed periods can be reopened here" }
+ }
+ }
+ },
+ "/fiscal-periods/{id}/override-reopen": {
+ "post": {
+ "tags": ["Fiscal"],
+ "summary": "Super Admin override reopen for hard-closed fiscal period",
+ "parameters": [
+ { "$ref": "#/components/parameters/PeriodId" },
+ { "in": "query", "name": "org_id", "required": true, "schema": { "type": "integer" } }
+ ],
+ "requestBody": {
+ "required": true,
+ "content": {
+ "application/json": {
+ "schema": {
+ "type": "object",
+ "required": ["justification"],
+ "properties": {
+ "justification": { "type": "string" }
+ }
+ }
+ }
+ }
+ },
+ "responses": {
+ "200": { "description": "Override reopened" },
+ "403": { "description": "Super Admin permission required" },
+ "422": { "description": "Justification missing" }
+ }
+ }
+ },
+ "/journals": {
+ "get": {
+ "tags": ["Journals"],
+ "summary": "List journals",
+ "parameters": [
+ { "in": "query", "name": "org_id", "required": true, "schema": { "type": "integer" } },
+ { "in": "query", "name": "status", "schema": { "type": "string" } },
+ { "in": "query", "name": "from_date", "schema": { "type": "string", "format": "date" } },
+ { "in": "query", "name": "to_date", "schema": { "type": "string", "format": "date" } },
+ { "in": "query", "name": "account_code", "schema": { "type": "string" } }
+ ],
+ "responses": {
+ "200": { "description": "Journal list" },
+ "403": { "description": "Forbidden" }
+ }
+ },
+ "post": {
+ "tags": ["Journals"],
+ "summary": "Create draft journal",
+ "parameters": [
+ { "in": "query", "name": "org_id", "required": true, "schema": { "type": "integer" } },
+ { "in": "header", "name": "Idempotency-Key", "schema": { "type": "string" } }
+ ],
+ "requestBody": {
+ "required": true,
+ "content": {
+ "application/json": {
+ "schema": {
+ "type": "object",
+ "properties": {
+ "transaction_date": { "type": "string", "format": "date" },
+ "source_type": { "type": "string" },
+ "lines": {
+ "type": "array",
+ "items": {
+ "type": "object",
+ "properties": {
+ "account_code": { "type": "string" },
+ "debit_amount": { "type": "number" },
+ "credit_amount": { "type": "number" },
+ "description": { "type": "string" }
+ }
+ }
+ }
+ }
+ }
+ }
+ }
+ },
+ "responses": {
+ "200": { "description": "Draft journal created" },
+ "422": { "description": "Validation error" }
+ }
+ }
+ },
+ "/journals/{id}": {
+ "get": {
+ "tags": ["Journals"],
+ "summary": "Get journal detail",
+ "parameters": [
+ { "in": "path", "name": "id", "required": true, "schema": { "type": "integer" } },
+ { "in": "query", "name": "org_id", "required": true, "schema": { "type": "integer" } }
+ ],
+ "responses": {
+ "200": { "description": "Journal with lines and approval history" },
+ "404": { "description": "Not found" }
+ }
+ }
+ },
+ "/journals/{id}/post": {
+ "post": {
+ "tags": ["Journals"],
+ "summary": "Post approved journal to ledger",
+ "parameters": [
+ { "in": "path", "name": "id", "required": true, "schema": { "type": "integer" } },
+ { "in": "query", "name": "org_id", "required": true, "schema": { "type": "integer" } }
+ ],
+ "responses": {
+ "200": { "description": "Posted and locked" },
+ "409": { "description": "Invalid status or fiscal closed" }
+ }
+ }
+ },
+ "/expenses": {
+ "get": {
+ "tags": ["Expenses"],
+ "summary": "List expenses",
+ "parameters": [
+ { "in": "query", "name": "org_id", "required": true, "schema": { "type": "integer" } },
+ { "in": "query", "name": "workflow_status", "schema": { "type": "string" } },
+ { "in": "query", "name": "page", "schema": { "type": "integer", "minimum": 1, "default": 1 } },
+ { "in": "query", "name": "per_page", "schema": { "type": "integer", "minimum": 1, "maximum": 100, "default": 20 } }
+ ],
+ "responses": {
+ "200": { "description": "Paged expenses" }
+ }
+ }
+ },
+ "/expenses/upload-receipt": {
+ "post": {
+ "tags": ["Expenses"],
+ "summary": "Upload receipt and start OCR",
+ "parameters": [
+ { "in": "query", "name": "org_id", "required": true, "schema": { "type": "integer" } }
+ ],
+ "requestBody": {
+ "required": true,
+ "content": {
+ "multipart/form-data": {
+ "schema": {
+ "type": "object",
+ "required": ["receipt_file"],
+ "properties": {
+ "receipt_file": { "type": "string", "format": "binary" },
+ "idempotency_key": { "type": "string" }
+ }
+ }
+ }
+ }
+ },
+ "responses": {
+ "200": { "description": "Draft expense created and OCR queued" },
+ "400": { "description": "Invalid file" }
+ }
+ }
+ },
+ "/expenses/{id}": {
+ "get": {
+ "tags": ["Expenses"],
+ "summary": "Get expense",
+ "parameters": [
+ { "$ref": "#/components/parameters/ExpenseId" },
+ { "in": "query", "name": "org_id", "required": true, "schema": { "type": "integer" } }
+ ],
+ "responses": {
+ "200": { "description": "Expense with OCR fields" },
+ "404": { "description": "Not found" }
+ }
+ }
+ },
+ "/expenses/{id}/confirm-submit": {
+ "post": {
+ "tags": ["Expenses"],
+ "summary": "Confirm OCR result and submit for approval or AI review",
+ "parameters": [
+ { "$ref": "#/components/parameters/ExpenseId" },
+ { "in": "query", "name": "org_id", "required": true, "schema": { "type": "integer" } }
+ ],
+ "requestBody": {
+ "required": true,
+ "content": {
+ "application/json": {
+ "schema": {
+ "type": "object",
+ "required": ["idempotency_key"],
+ "properties": {
+ "idempotency_key": { "type": "string" },
+ "edited_fields": { "type": "object", "additionalProperties": true }
+ }
+ }
+ }
+ }
+ },
+ "responses": {
+ "200": { "description": "Submitted or escalated to AI review" },
+ "409": { "description": "Duplicate idempotency key" }
+ }
+ }
+ },
+ "/expenses/settings": {
+ "get": {
+ "tags": ["Expenses"],
+ "summary": "Get org expense workflow settings",
+ "parameters": [
+ { "in": "query", "name": "org_id", "required": true, "schema": { "type": "integer" } }
+ ],
+ "responses": {
+ "200": { "description": "Settings including auto_post_on_approve" }
+ }
+ },
+ "put": {
+ "tags": ["Expenses"],
+ "summary": "Save org expense workflow settings",
+ "parameters": [
+ { "in": "query", "name": "org_id", "required": true, "schema": { "type": "integer" } }
+ ],
+ "requestBody": {
+ "required": true,
+ "content": {
+ "application/json": {
+ "schema": {
+ "type": "object",
+ "properties": {
+ "auto_post_on_approve": { "type": "integer", "enum": [0, 1] }
+ }
+ }
+ }
+ }
+ },
+ "responses": {
+ "200": { "description": "Updated settings" },
+ "403": { "description": "Insufficient permissions" }
+ }
+ }
+ },
+ "/expenses/{id}/approve": {
+ "post": {
+ "tags": ["Expenses"],
+ "summary": "Approve expense (auto-posts when org setting enabled)",
+ "parameters": [
+ { "$ref": "#/components/parameters/ExpenseId" },
+ { "in": "query", "name": "org_id", "required": true, "schema": { "type": "integer" } }
+ ],
+ "responses": {
+ "200": { "description": "Approved expense" },
+ "400": { "description": "Invalid workflow state" },
+ "404": { "description": "Not found" }
+ }
+ }
+ },
+ "/expenses/{id}/reject": {
+ "post": {
+ "tags": ["Expenses"],
+ "summary": "Reject expense with reason",
+ "parameters": [
+ { "$ref": "#/components/parameters/ExpenseId" },
+ { "in": "query", "name": "org_id", "required": true, "schema": { "type": "integer" } }
+ ],
+ "requestBody": {
+ "required": true,
+ "content": {
+ "application/json": {
+ "schema": {
+ "type": "object",
+ "required": ["reason"],
+ "properties": {
+ "reason": { "type": "string" }
+ }
+ }
+ }
+ }
+ },
+ "responses": {
+ "200": { "description": "Rejected expense" },
+ "400": { "description": "Missing reason or invalid state" },
+ "404": { "description": "Not found" }
+ }
+ }
+ },
+ "/expenses/{id}/post": {
+ "post": {
+ "tags": ["Expenses"],
+ "summary": "Post approved expense to ledger",
+ "parameters": [
+ { "$ref": "#/components/parameters/ExpenseId" },
+ { "in": "query", "name": "org_id", "required": true, "schema": { "type": "integer" } }
+ ],
+ "responses": {
+ "200": { "description": "Posted expense" },
+ "400": { "description": "Invalid workflow state" },
+ "404": { "description": "Not found" }
+ }
+ }
+ },
+ "/auth/2fa/setup": {
+ "post": {
+ "tags": ["Auth"],
+ "summary": "Start 2FA setup (TOTP secret, QR, backup codes)",
+ "responses": {
+ "200": { "description": "Setup payload with secret, qr_code_url, backup_codes" },
+ "400": { "description": "Already enabled or setup blocked" }
+ }
+ }
+ },
+ "/auth/2fa/verify-setup": {
+ "post": {
+ "tags": ["Auth"],
+ "summary": "Verify OTP and enable 2FA",
+ "requestBody": {
+ "required": true,
+ "content": {
+ "application/json": {
+ "schema": {
+ "type": "object",
+ "required": ["otp_code"],
+ "properties": { "otp_code": { "type": "string" } }
+ }
+ }
+ }
+ },
+ "responses": {
+ "200": { "description": "2FA enabled" },
+ "400": { "description": "Invalid OTP" }
+ }
+ }
+ },
+ "/auth/2fa/challenge": {
+ "post": {
+ "tags": ["Auth"],
+ "summary": "Complete login with TOTP or backup code",
+ "requestBody": {
+ "required": true,
+ "content": {
+ "application/json": {
+ "schema": {
+ "type": "object",
+ "required": ["temp_token"],
+ "properties": {
+ "temp_token": { "type": "string" },
+ "otp_code": { "type": "string" },
+ "backup_code": { "type": "string" }
+ }
+ }
+ }
+ }
+ },
+ "responses": {
+ "200": { "description": "Session issued" },
+ "401": { "description": "Invalid verification" }
+ }
+ }
+ },
+ "/auth/2fa/disable": {
+ "post": {
+ "tags": ["Auth"],
+ "summary": "Disable 2FA (requires OTP; blocked when org requires 2FA)",
+ "requestBody": {
+ "required": true,
+ "content": {
+ "application/json": {
+ "schema": {
+ "type": "object",
+ "required": ["otp_code"],
+ "properties": { "otp_code": { "type": "string" } }
+ }
+ }
+ }
+ },
+ "responses": {
+ "200": { "description": "2FA disabled" },
+ "403": { "description": "Organization requires 2FA" }
+ }
+ }
+ },
+ "/auth/2fa/regenerate-backup-codes": {
+ "post": {
+ "tags": ["Auth"],
+ "summary": "Regenerate backup codes (requires OTP)",
+ "requestBody": {
+ "required": true,
+ "content": {
+ "application/json": {
+ "schema": {
+ "type": "object",
+ "required": ["otp_code"],
+ "properties": { "otp_code": { "type": "string" } }
+ }
+ }
+ }
+ },
+ "responses": {
+ "200": { "description": "New backup codes (shown once)" }
+ }
+ }
+ },
+ "/auth/2fa/reveal-backup-codes": {
+ "post": {
+ "tags": ["Auth"],
+ "summary": "View unused backup codes without regenerating (requires OTP)",
+ "requestBody": {
+ "required": true,
+ "content": {
+ "application/json": {
+ "schema": {
+ "type": "object",
+ "required": ["otp_code"],
+ "properties": { "otp_code": { "type": "string" } }
+ }
+ }
+ }
+ },
+ "responses": {
+ "200": { "description": "Unused backup codes" },
+ "404": { "description": "No codes available to reveal" }
+ }
+ }
+ },
+ "/auth/2fa/status": {
+ "get": {
+ "tags": ["Auth"],
+ "summary": "2FA status for current user",
+ "responses": {
+ "200": { "description": "is_2fa_enabled, remaining_backup_codes, org policy flags" }
+ }
+ }
+ },
+ "/auth/2fa/admin-recover": {
+ "post": {
+ "tags": ["Auth"],
+ "summary": "Admin reset 2FA for a user (audit logged)",
+ "requestBody": {
+ "required": true,
+ "content": {
+ "application/json": {
+ "schema": {
+ "type": "object",
+ "required": ["target_user_id", "justification"],
+ "properties": {
+ "target_user_id": { "type": "integer" },
+ "justification": { "type": "string" }
+ }
+ }
+ }
+ }
+ },
+ "responses": {
+ "200": { "description": "2FA reset" },
+ "403": { "description": "Permission denied" }
+ }
+ }
+ },
+ "/org/security/2fa-policy": {
+ "get": {
+ "tags": ["Auth"],
+ "summary": "Get organization mandatory 2FA policy",
+ "parameters": [
+ { "in": "query", "name": "org_id", "required": true, "schema": { "type": "integer" } }
+ ],
+ "responses": {
+ "200": { "description": "require_2fa flag" }
+ }
+ },
+ "put": {
+ "tags": ["Auth"],
+ "summary": "Set organization mandatory 2FA policy",
+ "parameters": [
+ { "in": "query", "name": "org_id", "required": true, "schema": { "type": "integer" } }
+ ],
+ "requestBody": {
+ "required": true,
+ "content": {
+ "application/json": {
+ "schema": {
+ "type": "object",
+ "required": ["require_2fa"],
+ "properties": { "require_2fa": { "type": "boolean" } }
+ }
+ }
+ }
+ },
+ "responses": {
+ "200": { "description": "Policy updated" }
+ }
+ }
+ }
+ },
+ "components": {
+ "parameters": {
+ "PeriodId": {
+ "in": "path",
+ "name": "id",
+ "required": true,
+ "schema": { "type": "integer" }
+ },
+ "ExpenseId": {
+ "in": "path",
+ "name": "id",
+ "required": true,
+ "schema": { "type": "integer" }
+ }
+ },
+ "schemas": {
+ "FiscalPeriodCreate": {
+ "type": "object",
+ "required": ["period_start", "period_end"],
+ "properties": {
+ "period_name": { "type": "string" },
+ "period_start": { "type": "string", "format": "date" },
+ "period_end": { "type": "string", "format": "date" }
+ }
+ },
+ "FiscalPeriod": {
+ "type": "object",
+ "properties": {
+ "id": { "type": "integer" },
+ "org_id": { "type": "integer" },
+ "period_start": { "type": "string", "format": "date" },
+ "period_end": { "type": "string", "format": "date" },
+ "status": { "type": "string", "enum": ["OPEN", "SOFT_CLOSED", "HARD_CLOSED"] }
+ }
+ },
+ "Expense": {
+ "type": "object",
+ "properties": {
+ "id": { "type": "integer" },
+ "org_id": { "type": "integer" },
+ "vendor": { "type": "string" },
+ "total_amount": { "type": "number" },
+ "workflow_status": { "type": "string" },
+ "ocr_confidence": { "type": "number" },
+ "ocr_risk_level": { "type": "string" }
+ }
+ }
+ }
+ }
 }

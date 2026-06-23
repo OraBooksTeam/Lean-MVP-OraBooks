@@ -1,13 +1,13 @@
 <?php
 /**
- * SL-303 maintenance facade.
+ * maintenance facade.
  */
 if (!defined('ABSPATH')) {
-    exit;
+ exit;
 }
 
 class OraBooks_Job_Maintenance {
-    public static function archive_completed_jobs() {
-        return OraBooks_AsyncQueue::archive_completed_jobs();
-    }
+ public static function archive_completed_jobs {
+ return OraBooks_AsyncQueue::archive_completed_jobs;
+ }
 }
