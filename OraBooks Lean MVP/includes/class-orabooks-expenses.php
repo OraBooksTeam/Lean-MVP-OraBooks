@@ -344,6 +344,78 @@ class OraBooks_Expenses {
         return $stats;
     }
 
+    /**
+     * OCR pipeline metrics for SL-093 observability (SL-028 Phase 5).
+     */
+    public static function get_observability_stats($org_id = 0) {
+        global $wpdb;
+
+        $org_id = (int) $org_id;
+        $since = gmdate('Y-m-d H:i:s', time() - 86400);
+        $queue_table = OraBooks_Database::table(self::TABLE_OCR_QUEUE);
+        $expenses_table = OraBooks_Database::table(self::TABLE_EXPENSES);
+
+        $scope = $org_id > 0 ? $wpdb->prepare(' AND org_id = %d', $org_id) : '';
+
+        $pending = (int) $wpdb->get_var(
+            "SELECT COUNT(*) FROM {$queue_table} WHERE status = 'pending'{$scope}"
+        );
+        $processing = (int) $wpdb->get_var(
+            "SELECT COUNT(*) FROM {$queue_table} WHERE status = 'processing'{$scope}"
+        );
+
+        if ($org_id > 0) {
+            $completed_24h = (int) $wpdb->get_var($wpdb->prepare(
+                "SELECT COUNT(*) FROM {$queue_table}
+                 WHERE status = 'completed' AND updated_at >= %s AND org_id = %d",
+                $since,
+                $org_id
+            ));
+            $failed_24h = (int) $wpdb->get_var($wpdb->prepare(
+                "SELECT COUNT(*) FROM {$queue_table}
+                 WHERE status = 'failed' AND updated_at >= %s AND org_id = %d",
+                $since,
+                $org_id
+            ));
+            $avg_confidence = $wpdb->get_var($wpdb->prepare(
+                "SELECT AVG(ocr_confidence) FROM {$expenses_table}
+                 WHERE ocr_confidence IS NOT NULL AND updated_at >= %s AND org_id = %d",
+                $since,
+                $org_id
+            ));
+        } else {
+            $completed_24h = (int) $wpdb->get_var($wpdb->prepare(
+                "SELECT COUNT(*) FROM {$queue_table}
+                 WHERE status = 'completed' AND updated_at >= %s",
+                $since
+            ));
+            $failed_24h = (int) $wpdb->get_var($wpdb->prepare(
+                "SELECT COUNT(*) FROM {$queue_table}
+                 WHERE status = 'failed' AND updated_at >= %s",
+                $since
+            ));
+            $avg_confidence = $wpdb->get_var($wpdb->prepare(
+                "SELECT AVG(ocr_confidence) FROM {$expenses_table}
+                 WHERE ocr_confidence IS NOT NULL AND updated_at >= %s",
+                $since
+            ));
+        }
+
+        $terminal = $completed_24h + $failed_24h;
+
+        return [
+            'org_id'              => $org_id > 0 ? $org_id : null,
+            'queue_depth'         => $pending + $processing,
+            'pending_count'       => $pending,
+            'processing_count'    => $processing,
+            'completed_24h'       => $completed_24h,
+            'failed_24h'          => $failed_24h,
+            'success_rate_24h'    => $terminal > 0 ? round($completed_24h / $terminal, 4) : 1.0,
+            'avg_confidence_24h'  => $avg_confidence !== null ? round((float) $avg_confidence, 2) : null,
+            'window_hours'        => 24,
+        ];
+    }
+
     public static function list_expenses($org_id, $args = []) {
         global $wpdb;
 
@@ -1111,11 +1183,12 @@ class OraBooks_Expenses {
 
         if (function_exists('orabooks_publish_event')) {
             orabooks_publish_event($event, intval($expense_id), [
-                'expense_id'  => intval($expense_id),
-                'org_id'      => intval($org_id),
-                'confidence'  => $confidence,
-                'risk_level'  => $risk,
-                'total_amount'=> (float) $expense->total_amount,
+                'expense_id'        => intval($expense_id),
+                'org_id'            => intval($org_id),
+                'confidence'        => $confidence,
+                'risk_level'        => $risk,
+                'ocr_snapshot_hash' => (string) ($expense->ocr_snapshot_hash ?? ''),
+                'total_amount'      => (float) $expense->total_amount,
             ]);
         }
 
@@ -1137,9 +1210,10 @@ class OraBooks_Expenses {
         }
 
         orabooks_log_event($log_event, "Expense #{$expense_id} routed to {$target_status}", 'info', [
-            'expense_id' => intval($expense_id),
-            'confidence' => $confidence,
-            'risk_level' => $risk,
+            'expense_id'        => intval($expense_id),
+            'confidence'        => $confidence,
+            'risk_level'        => $risk,
+            'ocr_snapshot_hash' => (string) ($expense->ocr_snapshot_hash ?? ''),
         ], $user_id, $org_id);
 
         $updated = self::get_expense($expense_id, $org_id);
