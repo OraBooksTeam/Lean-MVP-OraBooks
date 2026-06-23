@@ -443,7 +443,7 @@ export default function ExpensesPage() {
               </div>
               <Button onClick={() => void handleUpload()} disabled={uploading || !selectedFile}>
                 <Receipt className="h-4 w-4" />
-                {uploading ? 'Processing...' : 'Upload Receipt'}
+                {uploading ? 'Uploading...' : 'Upload Receipt'}
               </Button>
               {showMobileCamera && (
                 <Button
