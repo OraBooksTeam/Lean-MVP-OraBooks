@@ -145,6 +145,115 @@ class OraBooks_Bank_Reconciliation {
         ];
     }
 
+    /**
+     * Idempotent schema upgrades for existing installs.
+     */
+    public static function ensure_schema() {
+        if (self::get_schema_flag('orabooks_sl031_bank_schema_v1') === '1') {
+            return;
+        }
+
+        global $wpdb;
+        $upgrade = ABSPATH . 'wp-admin/includes/upgrade.php';
+        if (file_exists($upgrade)) {
+            require_once $upgrade;
+            foreach (self::get_create_table_sql() as $sql) {
+                dbDelta($sql);
+            }
+        }
+
+        $table = OraBooks_Database::table('bank_transactions');
+        if ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table)) === $table) {
+            $columns = $wpdb->get_col("SHOW COLUMNS FROM {$table}", 0);
+            if (!in_array('external_id', $columns, true)) {
+                $wpdb->query("ALTER TABLE {$table} ADD COLUMN external_id VARCHAR(128) NULL AFTER reference");
+                $wpdb->query("ALTER TABLE {$table} ADD INDEX idx_external_id (bank_account_id, external_id)");
+            }
+        }
+
+        self::set_schema_flag('orabooks_sl031_bank_schema_v1', '1');
+    }
+
+    private static function get_schema_flag($key) {
+        if (function_exists('is_multisite') && is_multisite() && function_exists('get_site_option')) {
+            return get_site_option($key);
+        }
+        return get_option($key);
+    }
+
+    private static function set_schema_flag($key, $value) {
+        if (function_exists('is_multisite') && is_multisite() && function_exists('update_site_option')) {
+            update_site_option($key, $value);
+            return;
+        }
+        update_option($key, $value, false);
+    }
+
+    public static function parse_csv_content($content) {
+        $content = trim((string) $content);
+        if ($content === '') {
+            return new WP_Error('empty_csv', 'CSV file is empty');
+        }
+
+        if (strlen($content) > 10485760) {
+            return new WP_Error('file_too_large', 'CSV file exceeds 10MB limit');
+        }
+
+        $lines = preg_split('/\r\n|\r|\n/', $content);
+        $rows = [];
+        $header = null;
+
+        foreach ($lines as $line) {
+            $line = trim($line);
+            if ($line === '') {
+                continue;
+            }
+            $fields = str_getcsv($line);
+            if ($header === null) {
+                $normalized = array_map(function ($value) {
+                    return strtolower(trim((string) $value));
+                }, $fields);
+                if (in_array('date', $normalized, true) || in_array('transaction_date', $normalized, true)) {
+                    $header = $normalized;
+                    continue;
+                }
+            }
+            if ($header) {
+                $mapped = [];
+                foreach ($header as $index => $column) {
+                    $mapped[$column] = $fields[$index] ?? '';
+                }
+                $rows[] = [
+                    'date' => $mapped['date'] ?? $mapped['transaction_date'] ?? '',
+                    'amount' => $mapped['amount'] ?? '',
+                    'description' => $mapped['description'] ?? $mapped['memo'] ?? '',
+                    'reference' => $mapped['reference'] ?? $mapped['ref'] ?? '',
+                ];
+            } else {
+                $rows[] = [
+                    'date' => $fields[0] ?? '',
+                    'amount' => $fields[1] ?? '',
+                    'description' => $fields[2] ?? '',
+                    'reference' => $fields[3] ?? '',
+                ];
+            }
+        }
+
+        if (empty($rows)) {
+            return new WP_Error('invalid_csv', 'No data rows found in CSV');
+        }
+
+        return $rows;
+    }
+
+    public static function import_csv($org_id, $bank_account_id, $csv_content, $user_id = null) {
+        $rows = self::parse_csv_content($csv_content);
+        if (is_wp_error($rows)) {
+            return $rows;
+        }
+        return self::import_rows($org_id, $bank_account_id, $rows, $user_id);
+    }
+
     public static function create_bank_account($org_id, $data) {
         global $wpdb;
 
@@ -283,7 +392,14 @@ class OraBooks_Bank_Reconciliation {
 
         $candidate = self::find_rule_based_candidate($org_id, $bank_transaction);
         if (!$candidate) {
+            $candidate = self::find_ai_candidate($org_id, $bank_transaction);
+        }
+        if (!$candidate) {
             return ['suggested' => false];
+        }
+
+        if (self::has_suggested_match(intval($bank_transaction_id))) {
+            return ['suggested' => false, 'duplicate' => true];
         }
 
         $wpdb->insert(
@@ -326,7 +442,7 @@ class OraBooks_Bank_Reconciliation {
         }
 
         $transaction_type = sanitize_text_field($transaction_type);
-        if (!in_array($transaction_type, ['payment', 'expense', 'journal', 'commission_payout'], true)) {
+        if (!in_array($transaction_type, ['payment', 'expense', 'journal', 'commission_payout', 'vendor_payment'], true)) {
             return new WP_Error('invalid_transaction_type', 'Invalid transaction type');
         }
 
