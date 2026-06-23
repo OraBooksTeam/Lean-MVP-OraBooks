@@ -21,6 +21,8 @@ type Invoice = {
   due_date?: string;
   workflow_status?: string;
   payment_status?: string;
+  lock_status?: string;
+  dunning_stage?: string;
   total_amount?: string | number;
   paid_amount?: string | number;
   tax_amount?: string | number;
@@ -28,6 +30,17 @@ type Invoice = {
   tax_override_reason?: string | null;
   currency?: string;
   classification?: any;
+  rendered_copy?: Record<string, unknown> | null;
+  payments?: { id: number; amount: number; payment_date: string; payment_method: string }[];
+};
+
+type CreditNote = {
+  id: number;
+  credit_note_number: string;
+  amount: number;
+  workflow_status: string;
+  reason: string;
+  invoice_id?: number | null;
 };
 
 type Customer = { id: number; display_name?: string | null; email?: string };
@@ -78,6 +91,10 @@ export default function InvoicesPage() {
   const [classifying, setClassifying] = useState(false);
   const [showClassOverride, setShowClassOverride] = useState(false);
   const classificationThreshold = 70;
+  const [arConfig, setArConfig] = useState<{ auto_post_on_approve?: number } | null>(null);
+  const [creditNoteInvoice, setCreditNoteInvoice] = useState<Invoice | null>(null);
+  const [creditNoteForm, setCreditNoteForm] = useState({ amount: '', reason: '', is_write_off: false });
+  const [creditNotes, setCreditNotes] = useState<CreditNote[]>([]);
 
   const orgId = context?.organization?.id;
   const permissions: string[] = context?.permissions || [];
@@ -109,7 +126,7 @@ export default function InvoicesPage() {
 
     const customerFilter = Number(getSearchParam('customer_id') || 0);
 
-    const [invoicesRes, taxRes, customersRes] = await Promise.all([
+    const [invoicesRes, taxRes, customersRes, arConfigRes] = await Promise.all([
       api.invoicesList(nextOrgId, {
         limit: 100,
         customer_id: customerFilter > 0 ? customerFilter : undefined,
@@ -118,6 +135,7 @@ export default function InvoicesPage() {
         ? api.taxOverrideReasons(nextOrgId)
         : api.taxListConfigs(nextOrgId),
       api.customersList(nextOrgId, { limit: 100 }),
+      api.arConfigGet(nextOrgId).catch(() => ({ data: { config: { auto_post_on_approve: 1 } } })),
     ]);
 
     if (invoicesRes.error) setError(invoicesRes.error || 'Unable to load invoices.');
@@ -130,6 +148,10 @@ export default function InvoicesPage() {
       if (customerFilter > 0) {
         setCreateForm((prev) => ({ ...prev, customer_id: String(customerFilter) }));
       }
+    }
+
+    if (!arConfigRes.error) {
+      setArConfig((arConfigRes as any).data?.config || null);
     }
 
     setLoading(false);
