@@ -100,6 +100,7 @@
             <file>OraBooks_Ai_Providers_Test.php</file>
             <file>OraBooks_Expenses_Test.php</file>
             <file>OraBooks_Expenses_Workflow_Test.php</file>
+            <file>OraBooks_Expenses_Phase5_Test.php</file>
             <file>OraBooks_Voice_Test.php</file>
         </testsuite>
     </testsuites>

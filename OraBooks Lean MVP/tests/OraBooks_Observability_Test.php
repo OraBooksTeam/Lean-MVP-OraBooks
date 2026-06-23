@@ -92,6 +92,7 @@ class OraBooks_Observability_Test extends TestCase
         $this->assertArrayHasKey('notifications', $result['snapshots']);
         $this->assertArrayHasKey('exports', $result['snapshots']);
         $this->assertArrayHasKey('workflow', $result['snapshots']);
+        $this->assertArrayHasKey('expense_ocr', $result['snapshots']);
         $this->assertContains($result['snapshots']['eventbus']['status'], ['healthy', 'degraded', 'critical']);
     }
 
@@ -110,6 +111,7 @@ class OraBooks_Observability_Test extends TestCase
             'notifications' => ['pending' => 10, 'dead_letter' => 30, 'status' => 'critical'],
             'exports' => ['pending' => 5, 'failed_24h' => 20, 'status' => 'critical'],
             'workflow' => ['transitions_24h' => 100, 'failures_24h' => 25, 'status' => 'degraded'],
+            'expense_ocr' => ['queue_depth' => 0, 'failed_24h' => 0, 'status' => 'healthy'],
         ];
 
         $result = OraBooks_Observability::evaluate_thresholds($snapshots);
