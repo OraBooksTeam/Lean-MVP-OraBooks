@@ -184,6 +184,19 @@ export default function InvoicesPage() {
 
   useEffect(() => { void load(); }, []);
 
+  const invoiceLinesSubtotal = () => invoiceLineItems.reduce((sum, line) => {
+    const qty = parseFloat(line.quantity) || 0;
+    const price = parseFloat(line.unit_price) || 0;
+    return sum + qty * price;
+  }, 0);
+
+  useEffect(() => {
+    if (!showCreate || !orgId) return;
+    void api.inventoryProductsList(orgId, { limit: 200, is_active: 1 }).then((res) => {
+      if (!res.error) setInventoryProducts((res as any).data?.products || []);
+    });
+  }, [showCreate, orgId]);
+
   const loadInvoiceDetail = async (invoiceId: number) => {
     const res = await api.invoiceGet(invoiceId);
     if (res.error) {
@@ -377,13 +390,20 @@ export default function InvoicesPage() {
     Math.max(0, Number(invoice.total_amount || 0) - Number(invoice.paid_amount || 0));
 
   const previewCreateTax = async () => {
-    if (!orgId || !createForm.subtotal_amount) {
+    if (!orgId) {
+      setCreatePreview(null);
+      return;
+    }
+    const subtotal = useInventoryLines && invoiceLineItems.length > 0
+      ? invoiceLinesSubtotal()
+      : parseFloat(createForm.subtotal_amount) || 0;
+    if (subtotal <= 0) {
       setCreatePreview(null);
       return;
     }
     const res = await api.taxCalculate({
       org_id: orgId,
-      amount: parseFloat(createForm.subtotal_amount) || 0,
+      amount: subtotal,
       jurisdiction: createForm.jurisdiction,
     });
     if (!res.error) {
@@ -957,6 +977,62 @@ export default function InvoicesPage() {
                   <Input type="number" min="1" value={createForm.due_days} onChange={(e) => setCreateForm((p) => ({ ...p, due_days: e.target.value }))} />
                 </Field>
               )}
+              <label className="flex items-center gap-2 text-sm text-slate-700">
+                <input
+                  type="checkbox"
+                  checked={useInventoryLines}
+                  onChange={(e) => {
+                    setUseInventoryLines(e.target.checked);
+                    if (e.target.checked && invoiceLineItems.length === 0) {
+                      setInvoiceLineItems([{ product_id: '', quantity: '1', unit_price: '' }]);
+                    }
+                  }}
+                />
+                Add inventory products (reduces stock on post)
+              </label>
+              {useInventoryLines ? (
+                <div className="space-y-2 rounded-lg border border-border p-3">
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm font-semibold text-ink">Product lines</p>
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={() => setInvoiceLineItems((lines) => [...lines, { product_id: '', quantity: '1', unit_price: '' }])}
+                    >
+                      Add line
+                    </Button>
+                  </div>
+                  {invoiceLineItems.map((line, idx) => (
+                    <div key={idx} className="grid gap-2 sm:grid-cols-[2fr_1fr_1fr_auto]">
+                      <select
+                        value={line.product_id}
+                        onChange={(e) => {
+                          const productId = e.target.value;
+                          const product = inventoryProducts.find((p) => String(p.id) === productId);
+                          const defaultPrice = product?.sales_price ?? product?.price;
+                          setInvoiceLineItems((lines) => lines.map((l, i) => i === idx ? {
+                            ...l,
+                            product_id: productId,
+                            unit_price: l.unit_price || (defaultPrice != null ? String(defaultPrice) : ''),
+                          } : l));
+                        }}
+                        className="rounded-lg border border-border px-3 py-2 text-sm"
+                      >
+                        <option value="">Select product…</option>
+                        {inventoryProducts.map((p) => (
+                          <option key={p.id} value={p.id}>
+                            {p.sku} — {p.name}{p.current_stock != null ? ` (stock ${p.current_stock})` : ''}
+                          </option>
+                        ))}
+                      </select>
+                      <Input type="number" min="0" step="0.0001" placeholder="Qty" value={line.quantity} onChange={(e) => setInvoiceLineItems((lines) => lines.map((l, i) => i === idx ? { ...l, quantity: e.target.value } : l))} />
+                      <Input type="number" min="0" step="0.01" placeholder="Unit price" value={line.unit_price} onChange={(e) => setInvoiceLineItems((lines) => lines.map((l, i) => i === idx ? { ...l, unit_price: e.target.value } : l))} />
+                      <Button size="sm" variant="secondary" onClick={() => setInvoiceLineItems((lines) => lines.filter((_, i) => i !== idx))}>Remove</Button>
+                    </div>
+                  ))}
+                  <p className="text-sm text-slate-600">Lines subtotal: {money(invoiceLinesSubtotal())}</p>
+                </div>
+              ) : (
               <div className="grid gap-4 sm:grid-cols-2">
                 <Field label="Subtotal">
                   <Input type="number" min="0" step="0.01" value={createForm.subtotal_amount} onChange={(e) => setCreateForm((p) => ({ ...p, subtotal_amount: e.target.value }))} />
@@ -973,6 +1049,20 @@ export default function InvoicesPage() {
                   </select>
                 </Field>
               </div>
+              )}
+              {useInventoryLines && (
+              <Field label="Jurisdiction">
+                <select
+                  value={createForm.jurisdiction}
+                  onChange={(e) => setCreateForm((p) => ({ ...p, jurisdiction: e.target.value }))}
+                  className="w-full rounded-lg border border-border px-3 py-2.5 text-sm"
+                >
+                  {(taxConfigs.length ? taxConfigs : [{ jurisdiction: 'US' }]).map((c) => (
+                    <option key={c.jurisdiction} value={c.jurisdiction}>{c.jurisdiction}</option>
+                  ))}
+                </select>
+              </Field>
+              )}
               <Field label="Description">
                 <Input value={createForm.description} onChange={(e) => setCreateForm((p) => ({ ...p, description: e.target.value }))} />
               </Field>
