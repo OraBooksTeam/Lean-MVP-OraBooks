@@ -90,10 +90,14 @@ export default function BankReconciliationPage() {
       return;
     }
 
-    const [dash, accountsRes, txnsRes] = await Promise.all([
+    const accountFilter = selectedAccountId ? Number(selectedAccountId) : 0;
+
+    const [dash, accountsRes, txnsRes, feedsRes, customersRes] = await Promise.all([
       api.bankDashboard(),
       api.bankAccountsList(orgId),
-      api.bankTransactionsList(orgId, 0, { limit: 100 }),
+      api.bankTransactionsList(orgId, accountFilter, { limit: 100 }),
+      api.bankFeedsList(orgId, accountFilter),
+      api.customersList(orgId, { limit: 100 }),
     ]);
 
     if (dash.error) {
@@ -105,12 +109,27 @@ export default function BankReconciliationPage() {
     }
     if (!accountsRes.error) setAccounts((accountsRes as any).data?.accounts || []);
     if (!txnsRes.error) setTransactions((txnsRes as any).data?.transactions || []);
+    if (!feedsRes.error) setFeeds((feedsRes as any).data?.feeds || []);
+    if (!customersRes.error) setCustomers((customersRes as any).data?.customers || []);
+
+    if (accountFilter > 0) {
+      const summaryRes = await api.bankAccountSummary(orgId, accountFilter);
+      if (!summaryRes.error) setAccountSummary((summaryRes as any).data?.summary || null);
+      else setAccountSummary(null);
+    } else {
+      setAccountSummary(null);
+    }
+
     setLoading(false);
   };
 
-  useEffect(() => { void load(); }, []);
+  useEffect(() => { void load(); }, [selectedAccountId]);
 
   const orgId = context?.organization?.id;
+  const permissions: string[] = context?.permissions || [];
+  const canView = permissions.includes('view_bank_reconciliation') || permissions.includes('view_reports');
+  const canMatch = permissions.includes('match_transaction') || permissions.includes('submit_transaction') || permissions.includes('approve_journal');
+  const canReconcile = permissions.includes('reconcile_bank') || permissions.includes('manage_org_settings') || permissions.includes('approve_journal');
   const unmatched = stats?.unmatched_count ?? 0;
   const selectedImportAccount = useMemo(
     () => accounts.find((a) => String(a.id) === importForm.bank_account_id),
@@ -172,6 +191,76 @@ export default function BankReconciliationPage() {
     setSaving(false);
   };
 
+  const handleImportCsv = async () => {
+    if (!orgId || !importForm.bank_account_id || !csvFile) {
+      setError('Account and CSV file are required.');
+      return;
+    }
+    setSaving(true);
+    setError('');
+    const res = await api.bankImportCsv(orgId, Number(importForm.bank_account_id), csvFile);
+    if (res.error) setError(res.error);
+    else {
+      const result = (res as any).data || {};
+      setSuccess(`Imported ${result.inserted || 0} row(s), ${result.duplicates || 0} duplicate(s), ${result.suggested_matches || 0} suggestion(s).`);
+      setShowCsvImport(false);
+      setCsvFile(null);
+      await load();
+    }
+    setSaving(false);
+  };
+
+  const handleConfirmSuggestion = async (txn: any, suggestion: BankSuggestion) => {
+    if (!orgId) return;
+    setSaving(true);
+    setError('');
+    const res = await api.bankConfirmMatch(orgId, Number(txn.id), suggestion.id);
+    if (res.error) setError(res.error);
+    else {
+      setSuccess('Suggested match confirmed.');
+      await load();
+    }
+    setSaving(false);
+  };
+
+  const handleCreateLinkedTransaction = async () => {
+    if (!orgId || !createTxn) return;
+    setSaving(true);
+    setError('');
+    const payload: Record<string, unknown> = {};
+    if (createTxnForm.transaction_type === 'expense') {
+      payload.vendor = createTxnForm.vendor || createTxn.description || 'Bank transaction';
+      payload.category = createTxnForm.category;
+    } else {
+      payload.customer_id = parseInt(createTxnForm.customer_id, 10);
+    }
+    const res = await api.bankCreateTransaction(orgId, Number(createTxn.id), createTxnForm.transaction_type, payload);
+    if (res.error) setError(res.error);
+    else {
+      setSuccess('Linked transaction created and matched.');
+      setCreateTxn(null);
+      await load();
+    }
+    setSaving(false);
+  };
+
+  const handleConnectFeed = async () => {
+    if (!orgId || !feedForm.bank_account_id) {
+      setError('Bank account is required.');
+      return;
+    }
+    setSaving(true);
+    setError('');
+    const res = await api.bankConnectFeed(orgId, Number(feedForm.bank_account_id), feedForm.provider);
+    if (res.error) setError(res.error);
+    else {
+      setSuccess('Bank feed connection initialized. OAuth setup will complete when provider credentials are configured.');
+      setShowConnectFeed(false);
+      await load();
+    }
+    setSaving(false);
+  };
+
   const handleManualMatch = async () => {
     if (!orgId || !matchTxn || !matchForm.transaction_id) {
       setError('Transaction type and transaction ID are required.');
@@ -197,10 +286,7 @@ export default function BankReconciliationPage() {
   };
 
   const handleSkip = async () => {
-    if (!orgId || !skipTxn || !skipReason.trim()) {
-      setError('Skip reason is required.');
-      return;
-    }
+    if (!orgId || !skipTxn) return;
     setSaving(true);
     setError('');
     const res = await api.bankSkip(orgId, Number(skipTxn.id), skipReason.trim());
