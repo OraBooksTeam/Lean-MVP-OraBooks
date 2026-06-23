@@ -20,7 +20,7 @@ export default function AdminNotifications() {
   const [filters, setFilters] = useState<NotificationFilters>(EMPTY_NOTIFICATION_FILTERS);
   const [applied, setApplied] = useState<NotificationFilters>(EMPTY_NOTIFICATION_FILTERS);
 
-  const load = useCallback(async (f = applied) => {
+  const load = async (f = applied) => {
     setLoading(true);
     setError('');
     const res = await api.notificationsList(buildNotificationQueryParams(f));
@@ -32,11 +32,11 @@ export default function AdminNotifications() {
       setUnread(count);
     }
     setLoading(false);
-  }, [applied]);
+  };
 
   useEffect(() => {
     void load();
-  }, [load]);
+  }, []);
 
   const applyFilters = (next?: NotificationFilters) => {
     const f = next ?? filters;
