@@ -1051,6 +1051,156 @@ class OraBooks_Vendors {
             return $journal_id;
         }
 
+        $inventory_total = self::get_bill_inventory_total(intval($bill->id), intval($bill->org_id));
+        $expense_debit = max(0, round(floatval($bill->subtotal_amount) - $inventory_total + floatval($bill->tax_amount), 2));
+        $journal_lines = [];
+
+        if ($inventory_total > 0) {
+            $journal_lines[] = [
+                'account_code' => '1200',
+                'debit' => $inventory_total,
+                'credit' => 0,
+                'description' => 'Inventory purchase ' . $bill->bill_number,
+            ];
+        }
+        if ($expense_debit > 0) {
+            $journal_lines[] = [
+                'account_code' => '5000',
+                'debit' => $expense_debit,
+                'credit' => 0,
+                'description' => 'Vendor bill expense ' . $bill->bill_number,
+            ];
+        }
+        if (empty($journal_lines)) {
+            $journal_lines[] = [
+                'account_code' => '5000',
+                'debit' => floatval($bill->subtotal_amount) + floatval($bill->tax_amount),
+                'credit' => 0,
+                'description' => 'Vendor bill ' . $bill->bill_number,
+            ];
+        }
+        $journal_lines[] = [
+            'account_code' => '2000',
+            'debit' => 0,
+            'credit' => floatval($bill->total_amount),
+            'description' => 'AP for ' . $bill->bill_number,
+        ];
+
+        OraBooks_Posting::add_lines($journal_id, $journal_lines);
+
+        return $journal_id;
+    }
+
+    public static function parse_line_items($data) {
+        $lines = $data['line_items'] ?? [];
+        if (is_string($lines)) {
+            $decoded = json_decode(wp_unslash($lines), true);
+            $lines = is_array($decoded) ? $decoded : [];
+        }
+        return is_array($lines) ? $lines : [];
+    }
+
+    private static function calculate_line_items_subtotal(array $lines, $cost_field = 'unit_cost') {
+        $subtotal = 0.0;
+        foreach ($lines as $line) {
+            if (!is_array($line)) {
+                continue;
+            }
+            $qty = floatval($line['quantity'] ?? 0);
+            $unit = floatval($line[$cost_field] ?? $line['unit_price'] ?? 0);
+            $subtotal += round($qty * $unit, 2);
+        }
+        return round($subtotal, 2);
+    }
+
+    public static function save_bill_line_items($org_id, $bill_id, array $lines) {
+        global $wpdb;
+
+        $table = OraBooks_Database::table('bill_line_items');
+        $wpdb->delete($table, ['bill_id' => (int) $bill_id, 'org_id' => (int) $org_id], ['%d', '%d']);
+
+        $sort = 0;
+        foreach ($lines as $line) {
+            if (!is_array($line)) {
+                continue;
+            }
+            $qty = round(floatval($line['quantity'] ?? 0), 4);
+            if ($qty <= 0) {
+                continue;
+            }
+            $unit_cost = round(floatval($line['unit_cost'] ?? 0), 6);
+            $line_total = round(floatval($line['line_total'] ?? ($qty * $unit_cost)), 2);
+            $wpdb->insert(
+                $table,
+                [
+                    'org_id' => (int) $org_id,
+                    'bill_id' => (int) $bill_id,
+                    'product_id' => !empty($line['product_id']) ? (int) $line['product_id'] : null,
+                    'description' => isset($line['description']) ? sanitize_textarea_field($line['description']) : null,
+                    'quantity' => $qty,
+                    'unit_cost' => $unit_cost,
+                    'line_total' => $line_total,
+                    'sort_order' => $sort++,
+                ],
+                ['%d', '%d', '%d', '%s', '%f', '%f', '%f', '%d']
+            );
+        }
+    }
+
+    public static function get_bill_line_items($bill_id, $org_id) {
+        global $wpdb;
+
+        return $wpdb->get_results($wpdb->prepare(
+            "SELECT * FROM " . OraBooks_Database::table('bill_line_items') . "
+             WHERE bill_id = %d AND org_id = %d
+             ORDER BY sort_order ASC, id ASC",
+            (int) $bill_id,
+            (int) $org_id
+        )) ?: [];
+    }
+
+    public static function get_bill_inventory_total($bill_id, $org_id) {
+        $total = 0.0;
+        foreach (self::get_bill_line_items($bill_id, $org_id) as $line) {
+            if (!empty($line->product_id)) {
+                $total += floatval($line->line_total);
+            }
+        }
+        return round($total, 2);
+    }
+
+    public static function get_inventory_items_for_bill($bill_id, $org_id) {
+        $items = [];
+        foreach (self::get_bill_line_items($bill_id, $org_id) as $line) {
+            if (empty($line->product_id)) {
+                continue;
+            }
+            $items[] = [
+                'product_id' => (int) $line->product_id,
+                'quantity' => floatval($line->quantity),
+                'unit_cost' => floatval($line->unit_cost),
+            ];
+        }
+        return $items;
+    }
+
+    private static function create_bill_journal_legacy($bill, $user_id) {
+        if (!class_exists('OraBooks_Posting')) {
+            return null;
+        }
+
+        $journal_id = OraBooks_Posting::create_journal([
+            'org_id' => intval($bill->org_id),
+            'transaction_date' => $bill->transaction_date,
+            'source_type' => 'vendor_bill',
+            'source_id' => intval($bill->id),
+            'metadata' => ['bill_number' => $bill->bill_number],
+        ], intval($user_id));
+
+        if (is_wp_error($journal_id)) {
+            return $journal_id;
+        }
+
         OraBooks_Posting::add_lines($journal_id, [
             [
                 'account_code' => '5000',
