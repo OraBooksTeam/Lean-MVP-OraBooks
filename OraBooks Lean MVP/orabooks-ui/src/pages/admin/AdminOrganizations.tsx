@@ -167,7 +167,7 @@ function RegionCell({
   const canChange = org.organization_type === 'customer' && org.tier === 'enterprise' && org.status !== 'fraud_freeze';
 
   if (!canChange) {
-    return <span className="font-mono text-xs text-slate-600">{region}</span>;
+    return <span className="font-mono text-xs text-slate-600" title={region}>{formatRegionLabel(region)}</span>;
   }
 
   return (
@@ -177,8 +177,8 @@ function RegionCell({
       className="rounded border border-border bg-white px-2 py-1 font-mono text-xs"
       title="Enterprise data residency (SL-004)"
     >
-      {REGIONS.map((r) => (
-        <option key={r} value={r}>{r}</option>
+      {RESIDENCY_REGIONS.map((r) => (
+        <option key={r.id} value={r.id}>{r.label}</option>
       ))}
     </select>
   );
