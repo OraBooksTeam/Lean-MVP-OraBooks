@@ -15,6 +15,7 @@ import TaxOverrideModal, { type TaxConfig } from '@/components/tax/TaxOverrideMo
 
 type Invoice = {
   id: number;
+  org_id?: number;
   customer_id?: number;
   invoice_number?: string;
   invoice_date?: string;

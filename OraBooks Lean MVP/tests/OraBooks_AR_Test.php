@@ -96,4 +96,44 @@ class OraBooks_AR_Test extends TestCase
         $this->assertSame(50.0, $formatted['amount']);
         $this->assertSame('draft', $formatted['workflow_status']);
     }
+
+    {
+        global $wpdb;
+        $note = (object) [
+            'id' => 5,
+            'org_id' => 1,
+            'credit_note_number' => 'CN-2026-000001',
+            'workflow_status' => 'draft',
+        ];
+        $wpdb->test_get_row_callback = static function ($query) use ($note) {
+            if (strpos($query, 'credit_notes') !== false) {
+                return $note;
+            }
+            return null;
+        };
+
+        $result = OraBooks_AR::submit_credit_note(1, 5, 10);
+        $this->assertSame('submitted', $result['workflow_status']);
+    }
+
+    #[Test]
+    public function format_payment_marks_reversal_type(): void
+    {
+        $row = (object) [
+            'id' => 3,
+            'org_id' => 1,
+            'customer_id' => 2,
+            'invoice_id' => 10,
+            'payment_date' => '2026-06-01',
+            'amount' => -50.0,
+            'payment_method' => 'bank_transfer',
+            'type' => 'reversal',
+            'reference' => 'Correction',
+            'notes' => '',
+            'reverses_payment_id' => 2,
+        ];
+        $formatted = OraBooks_AR::format_payment($row);
+        $this->assertSame('reversal', $formatted['type']);
+        $this->assertFalse($formatted['can_reverse']);
+    }
 }
