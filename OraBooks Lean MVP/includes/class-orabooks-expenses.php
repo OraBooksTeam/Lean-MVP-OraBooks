@@ -1463,4 +1463,223 @@ class OraBooks_Expenses {
 
         orabooks_json_success(['expense' => $result], 'Tax override cleared');
     }
+
+    /**
+     * Live readiness checks for SL-028 (production smoke test).
+     *
+     * @return array{ok:bool,checks:array<int,array<string,mixed>>,environment:array<string,mixed>,manual_steps:array<int,array<string,string>>}
+     */
+    public static function run_live_checks($org_id = 0) {
+        global $wpdb;
+
+        $org_id = (int) $org_id;
+        $checks = [];
+        $ok = true;
+
+        $add = function ($id, $label, $passed, $detail = '', $action = '') use (&$checks, &$ok) {
+            $passed = (bool) $passed;
+            if (!$passed) {
+                $ok = false;
+            }
+            $row = [
+                'id'     => (string) $id,
+                'label'  => (string) $label,
+                'ok'     => $passed,
+                'detail' => (string) $detail,
+            ];
+            if ($action !== '') {
+                $row['action_url'] = (string) $action;
+            }
+            $checks[] = $row;
+        };
+
+        $expenses_table = OraBooks_Database::table(self::TABLE_EXPENSES);
+        $queue_table = OraBooks_Database::table(self::TABLE_OCR_QUEUE);
+        $lines_table = OraBooks_Database::table(self::TABLE_LINE_ITEMS);
+
+        $add('table_expenses', 'Expenses table', $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $expenses_table)) === $expenses_table, $expenses_table);
+        $add('table_ocr_queue', 'OCR processing queue table', $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $queue_table)) === $queue_table, $queue_table);
+        $add('table_line_items', 'Expense line items table', $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $lines_table)) === $lines_table, $lines_table);
+
+        $exp_cols = $wpdb->get_col("SHOW COLUMNS FROM {$expenses_table}", 0);
+        $add(
+            'expenses_ocr_columns',
+            'Expenses OCR metadata columns',
+            is_array($exp_cols)
+                && in_array('ocr_confidence', $exp_cols, true)
+                && in_array('ocr_snapshot_hash', $exp_cols, true),
+            is_array($exp_cols) ? implode(', ', array_intersect($exp_cols, ['ocr_confidence', 'ocr_risk_level', 'ocr_snapshot_hash'])) : 'n/a'
+        );
+
+        $ocr_handler = class_exists('OraBooks_AsyncQueue')
+            ? OraBooks_AsyncQueue::get_handler('process_expense_ocr')
+            : null;
+        $add('async_ocr_handler', 'Async handler: process_expense_ocr (SL-303)', is_callable($ocr_handler));
+
+        $ocr_provider = class_exists('OraBooks_Ai_Providers')
+            ? OraBooks_Ai_Providers::provider_name('ocr')
+            : 'missing';
+        $add(
+            'ocr_provider',
+            'OCR provider (SL-008)',
+            true,
+            $ocr_provider === OraBooks_Ai_Providers::STUB_PROVIDER
+                ? 'Using MVP stub — configure Azure Document Intelligence for live OCR'
+                : 'Active provider: ' . $ocr_provider
+        );
+
+        $cron_scheduled = wp_next_scheduled('orabooks_expenses_ocr_process') !== false;
+        $add('ocr_cron', 'OCR queue cron scheduled', $cron_scheduled, $cron_scheduled ? gmdate('c', wp_next_scheduled('orabooks_expenses_ocr_process')) : 'not scheduled');
+
+        $manifest = class_exists('OraBooks_Assets') ? OraBooks_Assets::get_react_manifest() : [];
+        $generated = $manifest['generated_at'] ?? '';
+        $add(
+            'react_ui_bundle',
+            'React UI bundle deployed',
+            !empty($manifest['files']),
+            $generated ? 'Built at ' . $generated : 'Run orabooks-ui/build-live.cmd after UI changes'
+        );
+
+        if ($org_id > 0) {
+            if (class_exists('OraBooks_Attachments')) {
+                $attachments_table = OraBooks_Database::table('attachments');
+                $has_attachments = $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $attachments_table)) === $attachments_table;
+                $add('attachments_module', 'Attachments storage (SL-203)', $has_attachments);
+            }
+
+            if (class_exists('OraBooks_COA')) {
+                $accounts = OraBooks_COA::get_accounts($org_id);
+                $add(
+                    'org_coa_loaded',
+                    'Chart of accounts loaded (SL-017)',
+                    !empty($accounts),
+                    empty($accounts) ? 'Import or seed COA first' : count($accounts) . ' account(s)',
+                    '/chart-of-accounts'
+                );
+            }
+
+            $pending_ocr = (int) $wpdb->get_var($wpdb->prepare(
+                "SELECT COUNT(*) FROM {$queue_table} q
+                 INNER JOIN {$expenses_table} e ON e.id = q.expense_id
+                 WHERE e.org_id = %d AND q.status IN ('pending','processing')",
+                $org_id
+            ));
+            $add(
+                'ocr_queue_depth',
+                'OCR queue pending items',
+                true,
+                (string) $pending_ocr . ' in queue',
+                '/expenses'
+            );
+
+            $sample = $wpdb->get_row($wpdb->prepare(
+                "SELECT id, workflow_status, ocr_confidence, ocr_risk_level, ocr_snapshot_hash
+                 FROM {$expenses_table} WHERE org_id = %d ORDER BY id DESC LIMIT 1",
+                $org_id
+            ));
+            $add(
+                'sample_expense',
+                'Latest expense record',
+                (bool) $sample,
+                $sample
+                    ? sprintf(
+                        '#%d status=%s conf=%s risk=%s',
+                        (int) $sample->id,
+                        $sample->workflow_status,
+                        $sample->ocr_confidence ?? 'pending',
+                        $sample->ocr_risk_level ?? 'n/a'
+                    )
+                    : 'Upload a receipt on the Expenses page',
+                '/expenses'
+            );
+        }
+
+        $manual_steps = [
+            [
+                'step'   => '1',
+                'title'  => 'Run system check',
+                'detail' => 'Click Run live check on this page. All rows should pass (OCR stub is acceptable for MVP).',
+            ],
+            [
+                'step'   => '2',
+                'title'  => 'Upload receipt',
+                'detail' => 'Go to Expenses, upload a PDF/JPG/PNG receipt, and wait for OCR fields to populate.',
+                'url'    => '/expenses',
+            ],
+            [
+                'step'   => '3',
+                'title'  => 'Confirm and submit',
+                'detail' => 'Review extracted fields, edit if needed, then Confirm and Submit.',
+                'url'    => '/expenses',
+            ],
+            [
+                'step'   => '4',
+                'title'  => 'Approval routing',
+                'detail' => 'High confidence and low risk routes to approval queue. Low confidence or elevated risk routes to AI Review.',
+                'url'    => '/ai-review',
+            ],
+            [
+                'step'   => '5',
+                'title'  => 'Approve and post',
+                'detail' => 'Approver approves the expense. Auto-post creates the journal entry and locks the record.',
+                'url'    => '/approvals',
+            ],
+        ];
+
+        return [
+            'ok'           => $ok,
+            'checks'       => $checks,
+            'environment'  => [
+                'org_id'               => $org_id > 0 ? $org_id : null,
+                'confidence_threshold' => self::CONFIDENCE_THRESHOLD,
+                'rate_limit_per_min'   => self::RATE_LIMIT_MAX,
+                'ocr_provider'         => $ocr_provider,
+                'react_bundle_at'      => $generated ?: null,
+                'auto_post_on_approve' => (bool) get_option('orabooks_expense_auto_post_on_approve', true),
+            ],
+            'manual_steps' => $manual_steps,
+        ];
+    }
+
+    public function ajax_live_check() {
+        $user_id = orabooks_get_current_user_id();
+        $org_id = orabooks_get_current_org_id($user_id);
+
+        if (!$user_id || !$org_id) {
+            orabooks_json_error('Authentication required', 401);
+        }
+
+        if (!OraBooks_RBAC::require_permission($user_id, $org_id, 'view_expenses')) {
+            orabooks_json_error('Permission denied', 403);
+        }
+
+        orabooks_json_success(self::run_live_checks($org_id));
+    }
+
+    private static function notify_ocr_failure($org_id, $expense_id, $message) {
+        orabooks_log_event('ocr_processing_failed', 'OCR processing failed', 'warning', [
+            'expense_id' => (int) $expense_id,
+            'error'      => (string) $message,
+        ], 0, (int) $org_id);
+
+        if (!class_exists('OraBooks_Notifications')) {
+            return;
+        }
+
+        global $wpdb;
+        $table_user_org = OraBooks_Database::table('user_org');
+        $admins = $wpdb->get_results($wpdb->prepare(
+            "SELECT user_id FROM {$table_user_org} WHERE org_id = %d AND role IN ('owner', 'admin')",
+            (int) $org_id
+        ));
+
+        $payload = [
+            'expense_id' => (int) $expense_id,
+            'message'    => (string) $message,
+        ];
+
+        foreach ($admins ?: [] as $admin) {
+            OraBooks_Notifications::send_notification((int) $admin->user_id, 'ocr_processing_failed', $payload, (int) $org_id);
+        }
+    }
 }
