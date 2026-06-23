@@ -747,8 +747,6 @@ export const api = {
     api.get('orabooks_ar_aging', { org_id: orgId }),
   customerStatementsList: (orgId: number, customerId: number) =>
     api.get('orabooks_customer_statements_list', { org_id: orgId, customer_id: customerId }),
-  customerStats: (orgId: number) =>
-    api.get('orabooks_customer_stats', { org_id: orgId }),
 
   // CoA / Audit
   coaGet: (orgId: number) =>
