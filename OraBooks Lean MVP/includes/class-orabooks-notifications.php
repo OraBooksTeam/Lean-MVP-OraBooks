@@ -1273,6 +1273,131 @@ class OraBooks_Notifications {
         );
     }
 
+    /**
+     * Manually retry delivery for failed or dead-letter notifications.
+     */
+    public static function retry_delivery($notification_id, $user_id) {
+        global $wpdb;
+        $table = OraBooks_Database::table('notifications');
+        $notification_id = (int) $notification_id;
+        $user_id = (int) $user_id;
+
+        $notif = $wpdb->get_row($wpdb->prepare(
+            "SELECT * FROM {$table} WHERE id = %d",
+            $notification_id
+        ));
+
+        if (!$notif) {
+            return new WP_Error('not_found', 'Notification not found');
+        }
+
+        if ((int) $notif->user_id !== $user_id) {
+            return new WP_Error('forbidden', 'Notification does not belong to this user');
+        }
+
+        if (!in_array($notif->status, ['failed', 'dead_letter'], true)) {
+            return new WP_Error('invalid_status', 'Only failed or dead-letter notifications can be retried');
+        }
+
+        $payload = json_decode($notif->payload, true) ?: [];
+        $channels = self::resolve_channels(
+            $notif->event_type,
+            self::get_user_preferences($notif->user_id),
+            self::get_org_policy((int) $notif->org_id)
+        );
+        $org_policy = self::get_org_policy((int) $notif->org_id);
+        $max_escalation = !empty($org_policy) ? (int) $org_policy->max_escalation_attempts : 3;
+
+        $wpdb->update(
+            $table,
+            ['status' => 'delivering'],
+            ['id' => $notification_id],
+            ['%s'],
+            ['%d']
+        );
+
+        $delivered = false;
+        $attempted_channels = [];
+        foreach ($channels as $channel) {
+            if (count($attempted_channels) >= $max_escalation) {
+                break;
+            }
+            $attempted_channels[] = $channel;
+            $provider = self::select_provider($channel, (int) $notif->org_id);
+            $result = self::attempt_delivery(
+                $notification_id,
+                $channel,
+                $provider,
+                (int) $notif->user_id,
+                $notif->title,
+                $notif->message,
+                $payload,
+                (int) $notif->org_id
+            );
+
+            if ($result['success']) {
+                self::log_delivery_cost((int) $notif->org_id, $notification_id, $channel, $provider, true);
+                $wpdb->update(
+                    $table,
+                    [
+                        'status'           => 'delivered',
+                        'delivered_at'     => current_time('mysql', true),
+                        'delivery_channel' => $channel,
+                        'delivery_proof'   => json_encode($result['proof']),
+                    ],
+                    ['id' => $notification_id],
+                    ['%s', '%s', '%s', '%s'],
+                    ['%d']
+                );
+                $delivered = true;
+                break;
+            }
+
+            self::log_delivery_cost((int) $notif->org_id, $notification_id, $channel, $provider, false);
+        }
+
+        if (!$delivered) {
+            $wpdb->update(
+                $table,
+                ['status' => 'dead_letter'],
+                ['id' => $notification_id],
+                ['%s'],
+                ['%d']
+            );
+            return new WP_Error('delivery_failed', 'Delivery retry failed. Notification remains in dead letter.');
+        }
+
+        orabooks_log_event('notification_sent', "Notification {$notif->event_type} retried for user {$user_id}", 'info', [
+            'notification_id' => $notification_id,
+            'priority'        => $notif->priority,
+            'correlation_id'  => $notif->correlation_id,
+            'channel'         => end($attempted_channels) ?: null,
+            'manual_retry'    => true,
+        ], null, (int) $notif->org_id, $notif->correlation_id);
+
+        return self::format_notification_for_api($wpdb->get_row($wpdb->prepare(
+            "SELECT * FROM {$table} WHERE id = %d",
+            $notification_id
+        )));
+    }
+
+    private static function format_org_policy_for_api($org_id, $policy) {
+        $data = [];
+        if ($policy) {
+            $data = [
+                'org_id'                    => (int) $policy->org_id,
+                'monthly_budget'            => $policy->monthly_budget !== null ? (float) $policy->monthly_budget : null,
+                'mandatory_event_types'     => !empty($policy->mandatory_event_types) ? json_decode($policy->mandatory_event_types, true) : [],
+                'prohibited_channels'       => !empty($policy->prohibited_channels) ? json_decode($policy->prohibited_channels, true) : [],
+                'retention_override_days'   => $policy->retention_override_days !== null ? (int) $policy->retention_override_days : null,
+                'max_escalation_attempts'   => $policy->max_escalation_attempts !== null ? (int) $policy->max_escalation_attempts : 3,
+                'escalation_fallback_chain' => !empty($policy->escalation_fallback_chain) ? json_decode($policy->escalation_fallback_chain, true) : [],
+            ];
+        }
+        $data['monthly_cost_used'] = self::get_monthly_cost((int) $org_id);
+        return $data;
+    }
+
     // ============================================================
     // AJAX HANDLERS
     // ============================================================
