@@ -314,6 +314,41 @@ class OraBooks_Customers {
         if (self::schema_is_ready()) {
             self::set_schema_flag('orabooks_sl021_schema_v2', '1');
         }
+
+        self::ensure_invoice_line_items_schema();
+    }
+
+    /**
+     * SL-034: invoice line items for inventory integration.
+     */
+    private static function ensure_invoice_line_items_schema() {
+        if (self::get_schema_flag('orabooks_sl034_invoice_line_items_v1') === '1') {
+            return;
+        }
+
+        global $wpdb;
+        $table = OraBooks_Database::table('invoice_line_items');
+        if ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table)) === $table) {
+            self::set_schema_flag('orabooks_sl034_invoice_line_items_v1', '1');
+            return;
+        }
+
+        $upgrade = ABSPATH . 'wp-admin/includes/upgrade.php';
+        if (!file_exists($upgrade)) {
+            return;
+        }
+
+        require_once $upgrade;
+        foreach (self::get_create_table_sql() as $sql) {
+            if (strpos($sql, 'invoice_line_items') !== false) {
+                dbDelta($sql);
+                break;
+            }
+        }
+
+        if ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table)) === $table) {
+            self::set_schema_flag('orabooks_sl034_invoice_line_items_v1', '1');
+        }
     }
 
     /**

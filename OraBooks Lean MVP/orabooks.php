@@ -352,6 +352,9 @@ function orabooks_ensure_database() {
         if (class_exists('OraBooks_Customers')) {
             OraBooks_Customers::ensure_schema();
         }
+        if (class_exists('OraBooks_Vendors')) {
+            OraBooks_Vendors::ensure_schema();
+        }
         if (class_exists('OraBooks_AP')) {
             OraBooks_AP::ensure_schema();
         }

@@ -222,6 +222,12 @@ export default function VendorsPage() {
 
   useEffect(() => { void load(); }, []);
 
+  const billLinesSubtotal = () => billLineItems.reduce((sum, line) => {
+    const qty = parseFloat(line.quantity) || 0;
+    const cost = parseFloat(line.unit_cost) || 0;
+    return sum + qty * cost;
+  }, 0);
+
   useEffect(() => {
     if (!showBillForm || !orgId) return;
     void api.inventoryProductsList(orgId, { limit: 200, is_active: 1 }).then((res) => {
@@ -294,12 +300,6 @@ export default function VendorsPage() {
     }
     setSaving(false);
   };
-
-  const billLinesSubtotal = () => billLineItems.reduce((sum, line) => {
-    const qty = parseFloat(line.quantity) || 0;
-    const cost = parseFloat(line.unit_cost) || 0;
-    return sum + qty * cost;
-  }, 0);
 
   const handleCreateBill = async () => {
     if (!orgId || !billForm.vendor_id) {

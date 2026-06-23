@@ -231,6 +231,54 @@ class OraBooks_Vendors {
         return $tables;
     }
 
+    /**
+     * Idempotent line-item table for existing installs (SL-034 integration).
+     */
+    public static function ensure_schema() {
+        if (self::get_schema_flag('orabooks_sl027_bill_line_items_v1') === '1') {
+            return;
+        }
+
+        global $wpdb;
+        $table = OraBooks_Database::table('bill_line_items');
+        if ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table)) === $table) {
+            self::set_schema_flag('orabooks_sl027_bill_line_items_v1', '1');
+            return;
+        }
+
+        $upgrade = ABSPATH . 'wp-admin/includes/upgrade.php';
+        if (!file_exists($upgrade)) {
+            return;
+        }
+
+        require_once $upgrade;
+        foreach (self::get_create_table_sql() as $sql) {
+            if (strpos($sql, 'bill_line_items') !== false) {
+                dbDelta($sql);
+                break;
+            }
+        }
+
+        if ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table)) === $table) {
+            self::set_schema_flag('orabooks_sl027_bill_line_items_v1', '1');
+        }
+    }
+
+    private static function get_schema_flag($key) {
+        if (function_exists('is_multisite') && is_multisite() && function_exists('get_site_option')) {
+            return get_site_option($key);
+        }
+        return get_option($key);
+    }
+
+    private static function set_schema_flag($key, $value) {
+        if (function_exists('is_multisite') && is_multisite() && function_exists('update_site_option')) {
+            update_site_option($key, $value);
+            return;
+        }
+        update_option($key, $value, false);
+    }
+
     public static function create_vendor($org_id, $data) {
         global $wpdb;
 
