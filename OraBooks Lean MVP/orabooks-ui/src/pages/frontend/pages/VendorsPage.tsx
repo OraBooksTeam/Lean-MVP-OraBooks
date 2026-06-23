@@ -788,6 +788,59 @@ export default function VendorsPage() {
               ) : (
                 <Field label="Due days"><Input type="number" min="1" value={billForm.due_days} onChange={(e) => setBillForm((p) => ({ ...p, due_days: e.target.value }))} /></Field>
               )}
+              <label className="flex items-center gap-2 text-sm text-slate-700">
+                <input
+                  type="checkbox"
+                  checked={useInventoryLines}
+                  onChange={(e) => {
+                    setUseInventoryLines(e.target.checked);
+                    if (e.target.checked && billLineItems.length === 0) {
+                      setBillLineItems([{ product_id: '', quantity: '1', unit_cost: '' }]);
+                    }
+                  }}
+                />
+                Add inventory products (updates stock on post)
+              </label>
+              {useInventoryLines ? (
+                <div className="space-y-2 rounded-lg border border-border p-3">
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm font-semibold text-ink">Inventory lines</p>
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={() => setBillLineItems((lines) => [...lines, { product_id: '', quantity: '1', unit_cost: '' }])}
+                    >
+                      Add line
+                    </Button>
+                  </div>
+                  {billLineItems.map((line, idx) => (
+                    <div key={idx} className="grid gap-2 sm:grid-cols-[2fr_1fr_1fr_auto]">
+                      <select
+                        value={line.product_id}
+                        onChange={(e) => {
+                          const productId = e.target.value;
+                          const product = inventoryProducts.find((p) => String(p.id) === productId);
+                          setBillLineItems((lines) => lines.map((l, i) => i === idx ? {
+                            ...l,
+                            product_id: productId,
+                            unit_cost: l.unit_cost || (product?.average_cost != null ? String(product.average_cost) : ''),
+                          } : l));
+                        }}
+                        className="rounded-lg border border-border px-3 py-2 text-sm"
+                      >
+                        <option value="">Select product…</option>
+                        {inventoryProducts.map((p) => (
+                          <option key={p.id} value={p.id}>{p.sku} — {p.name}</option>
+                        ))}
+                      </select>
+                      <Input type="number" min="0" step="0.0001" placeholder="Qty" value={line.quantity} onChange={(e) => setBillLineItems((lines) => lines.map((l, i) => i === idx ? { ...l, quantity: e.target.value } : l))} />
+                      <Input type="number" min="0" step="0.01" placeholder="Unit cost" value={line.unit_cost} onChange={(e) => setBillLineItems((lines) => lines.map((l, i) => i === idx ? { ...l, unit_cost: e.target.value } : l))} />
+                      <Button size="sm" variant="secondary" onClick={() => setBillLineItems((lines) => lines.filter((_, i) => i !== idx))}>Remove</Button>
+                    </div>
+                  ))}
+                  <p className="text-sm text-slate-600">Lines subtotal: {money(billLinesSubtotal())}</p>
+                </div>
+              ) : (
               <div className="grid gap-4 sm:grid-cols-2">
                 <Field label="Subtotal"><Input type="number" min="0" step="0.01" value={billForm.subtotal_amount} onChange={(e) => setBillForm((p) => ({ ...p, subtotal_amount: e.target.value }))} /></Field>
                 <Field label="Jurisdiction">
@@ -798,6 +851,25 @@ export default function VendorsPage() {
                   </select>
                 </Field>
               </div>
+              )}
+              {!useInventoryLines && (
+              <Field label="Jurisdiction">
+                <select value={billForm.jurisdiction} onChange={(e) => setBillForm((p) => ({ ...p, jurisdiction: e.target.value }))} className="w-full rounded-lg border border-border px-3 py-2.5 text-sm">
+                  {(taxConfigs.length ? taxConfigs : [{ jurisdiction: 'US' }]).map((c) => (
+                    <option key={c.jurisdiction} value={c.jurisdiction}>{c.jurisdiction}</option>
+                  ))}
+                </select>
+              </Field>
+              )}
+              {useInventoryLines && (
+              <Field label="Jurisdiction">
+                <select value={billForm.jurisdiction} onChange={(e) => setBillForm((p) => ({ ...p, jurisdiction: e.target.value }))} className="w-full rounded-lg border border-border px-3 py-2.5 text-sm">
+                  {(taxConfigs.length ? taxConfigs : [{ jurisdiction: 'US' }]).map((c) => (
+                    <option key={c.jurisdiction} value={c.jurisdiction}>{c.jurisdiction}</option>
+                  ))}
+                </select>
+              </Field>
+              )}
               <Field label="Description"><Input value={billForm.description} onChange={(e) => setBillForm((p) => ({ ...p, description: e.target.value }))} /></Field>
               {billPreview && (
                 <div className="rounded-lg border border-border bg-slate-50 p-3 text-sm">
