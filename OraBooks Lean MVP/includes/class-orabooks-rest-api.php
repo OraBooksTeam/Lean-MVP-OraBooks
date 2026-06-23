@@ -97,6 +97,37 @@ class OraBooks_Rest_Api {
             'permission_callback' => [__CLASS__, 'can_manage_expenses'],
         ]);
 
+        register_rest_route(self::NAMESPACE, '/expenses/settings', [
+            [
+                'methods'             => WP_REST_Server::READABLE,
+                'callback'            => [__CLASS__, 'rest_get_expense_settings'],
+                'permission_callback' => [__CLASS__, 'can_view_expenses'],
+            ],
+            [
+                'methods'             => WP_REST_Server::EDITABLE,
+                'callback'            => [__CLASS__, 'rest_save_expense_settings'],
+                'permission_callback' => [__CLASS__, 'can_manage_expense_settings'],
+            ],
+        ]);
+
+        register_rest_route(self::NAMESPACE, '/expenses/(?P<id>\d+)/approve', [
+            'methods'             => WP_REST_Server::CREATABLE,
+            'callback'            => [__CLASS__, 'rest_approve_expense'],
+            'permission_callback' => [__CLASS__, 'can_approve_expenses'],
+        ]);
+
+        register_rest_route(self::NAMESPACE, '/expenses/(?P<id>\d+)/reject', [
+            'methods'             => WP_REST_Server::CREATABLE,
+            'callback'            => [__CLASS__, 'rest_reject_expense'],
+            'permission_callback' => [__CLASS__, 'can_approve_expenses'],
+        ]);
+
+        register_rest_route(self::NAMESPACE, '/expenses/(?P<id>\d+)/post', [
+            'methods'             => WP_REST_Server::CREATABLE,
+            'callback'            => [__CLASS__, 'rest_post_expense'],
+            'permission_callback' => [__CLASS__, 'can_approve_expenses'],
+        ]);
+
         register_rest_route(self::NAMESPACE, '/journals', [
             [
                 'methods'             => WP_REST_Server::READABLE,
@@ -341,6 +372,14 @@ class OraBooks_Rest_Api {
 
     public static function can_manage_expenses($request) {
         return !is_wp_error(self::require_org_access($request, 'manage_expenses'));
+    }
+
+    public static function can_approve_expenses($request) {
+        return !is_wp_error(self::require_org_access($request, 'approve_expense'));
+    }
+
+    public static function can_manage_expense_settings($request) {
+        return !is_wp_error(self::require_org_access($request, 'manage_org_settings'));
     }
 
     public static function can_view_journals($request) {
