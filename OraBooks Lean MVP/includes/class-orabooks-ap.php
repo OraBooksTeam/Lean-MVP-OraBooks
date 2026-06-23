@@ -660,7 +660,7 @@ class OraBooks_AP {
             'approved_at' => $row->approved_at ?? null,
             'workflow_status' => $row->workflow_status,
             'journal_id' => !empty($row->journal_id) ? (int) $row->journal_id : null,
-            'created_at' => $row->created_at,
+            'created_at' => $row->created_at ?? null,
         ];
     }
 
