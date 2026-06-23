@@ -291,8 +291,6 @@ class OraBooks_Expenses {
             $wpdb->insert($table, $payload, ['%d', '%d']);
         }
 
-        update_option('orabooks_expense_auto_post_on_approve', $payload['auto_post_on_approve'], false);
-
         return self::format_org_settings(self::get_org_settings($org_id));
     }
 
@@ -1184,7 +1182,7 @@ class OraBooks_Expenses {
             OraBooks_Ai_Review::resolve_ai_review_by_resource(intval($org_id), 'expense', intval($expense_id), $user_id);
         }
 
-        $auto_post = (bool) get_option('orabooks_expense_auto_post_on_approve', true);
+        $auto_post = self::auto_post_on_approve_enabled((int) $org_id);
         if ($auto_post) {
             return self::post_expense($expense_id, $org_id, $user_id);
         }
