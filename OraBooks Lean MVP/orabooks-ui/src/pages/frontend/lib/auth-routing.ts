@@ -17,6 +17,42 @@ export function consumePendingInviteToken() {
   return token;
 }
 
+export function clearPendingInviteToken() {
+  window.sessionStorage.removeItem(PENDING_INVITE_TOKEN_KEY);
+}
+
+export function peekPendingInviteToken() {
+  return window.sessionStorage.getItem(PENDING_INVITE_TOKEN_KEY) || '';
+}
+
+/** Post-login routing that respects invite auto-accept and existing org sessions. */
+export function redirectAfterLogin(data: {
+  needs_accept_invite?: boolean;
+  invite_onboarded?: boolean;
+  org_id?: number;
+  token?: string;
+  [key: string]: unknown;
+}) {
+  if (data?.invite_onboarded || data?.org_id) {
+    clearPendingInviteToken();
+    redirectAfterAuth(data);
+    return;
+  }
+
+  if (data?.needs_accept_invite) {
+    redirectAfterAuth(data);
+    return;
+  }
+
+  const pendingInvite = consumePendingInviteToken();
+  if (pendingInvite) {
+    window.location.replace(getAcceptInviteUrl(pendingInvite));
+    return;
+  }
+
+  redirectAfterAuth(data);
+}
+
 export function getAcceptInviteUrl(token: string) {
   const cfg = (window as any).orabooks_ajax || {};
   const base = typeof cfg.accept_invite_url === 'string' && cfg.accept_invite_url.trim() !== ''
