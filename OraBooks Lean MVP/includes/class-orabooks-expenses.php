@@ -524,6 +524,7 @@ class OraBooks_Expenses {
                     'retry_count'   => $retry,
                     'error_message' => $e->getMessage(),
                 ], ['id' => (int) $item->id], ['%s', '%d', '%s'], ['%d']);
+                self::notify_ocr_failure((int) $item->org_id, (int) $item->expense_id, $e->getMessage());
             } else {
                 $wpdb->update($queue_table, [
                     'status'      => 'pending',
@@ -537,8 +538,10 @@ class OraBooks_Expenses {
 
         $wpdb->update($expense_table, [
             'vendor'             => sanitize_text_field($ocr['vendor']),
+            'vendor_tax_id'      => sanitize_text_field($ocr['vendor_tax_id'] ?? ''),
             'invoice_number'     => sanitize_text_field($ocr['invoice_number']),
             'transaction_date'   => $ocr['transaction_date'],
+            'due_date'           => !empty($ocr['due_date']) ? $ocr['due_date'] : null,
             'subtotal'           => $ocr['subtotal'],
             'tax_amount'         => $ocr['tax_amount'],
             'tax_rate'           => $ocr['tax_rate'],
@@ -546,6 +549,7 @@ class OraBooks_Expenses {
             'currency'           => sanitize_text_field($ocr['currency']),
             'payment_method'     => sanitize_text_field($ocr['payment_method']),
             'category'           => sanitize_text_field($ocr['category']),
+            'merchant_address'   => sanitize_textarea_field($ocr['merchant_address'] ?? ''),
             'description'        => sanitize_textarea_field($ocr['description']),
             'ocr_confidence'     => $ocr['ocr_confidence'],
             'ocr_risk_level'     => $ocr['ocr_risk_level'],
@@ -626,8 +630,10 @@ class OraBooks_Expenses {
 
         return [
             'vendor'           => ucwords($base),
+            'vendor_tax_id'    => '',
             'invoice_number'   => 'RCP-' . str_pad((string) ($seed % 999999), 6, '0', STR_PAD_LEFT),
             'transaction_date'   => current_time('Y-m-d'),
+            'due_date'           => null,
             'subtotal'           => $subtotal,
             'tax_amount'         => $tax_amount,
             'tax_rate'           => $tax_rate,
@@ -635,6 +641,7 @@ class OraBooks_Expenses {
             'currency'           => 'USD',
             'payment_method'     => 'Credit Card',
             'category'           => $category,
+            'merchant_address'   => '',
             'description'        => 'OCR extracted expense from ' . $filename,
             'ocr_confidence'     => round($avg, 2),
             'ocr_risk_level'     => $risk,
@@ -1239,10 +1246,12 @@ class OraBooks_Expenses {
         );
 
         if (is_wp_error($result)) {
-            orabooks_json_error($result->get_error_message(), 400);
+            $status = $result->get_error_code() === 'rate_limit' ? 429
+                : ($result->get_error_code() === 'duplicate' ? 409 : 400);
+            orabooks_json_error($result->get_error_message(), $status);
         }
 
-        orabooks_json_success(['expense' => $result], 'Receipt uploaded and processed');
+        orabooks_json_success(['expense' => $result], 'Receipt uploaded and queued for OCR');
     }
 
     public function ajax_get() {
