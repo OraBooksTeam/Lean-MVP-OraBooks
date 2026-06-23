@@ -917,6 +917,7 @@ function ExpenseTable({
   onOverride,
   canOverride,
   actionId,
+  approveLabel = 'Approve',
 }: {
   title: string;
   expenses: any[];
@@ -927,6 +928,7 @@ function ExpenseTable({
   onOverride?: (expense: any) => void;
   canOverride?: boolean;
   actionId: number | null;
+  approveLabel?: string;
 }) {
   return (
     <div className="glass-panel overflow-hidden">
@@ -1016,7 +1018,7 @@ function ExpenseTable({
                     {onApprove && ['submitted', 'ai_review'].includes(expense.workflow_status) && (
                       <>
                         <Button size="sm" disabled={actionId === expense.id} onClick={() => onApprove(expense.id)}>
-                          Approve
+                          {approveLabel}
                         </Button>
                         <Button
                           size="sm"

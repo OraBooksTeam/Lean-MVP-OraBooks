@@ -32,9 +32,15 @@ type TeamMember = {
   role?: string;
 };
 
+type ExpenseSettings = {
+  org_id?: number;
+  auto_post_on_approve?: number;
+};
+
 export default function ApprovalSettingsPage() {
   const [context, setContext] = useState<any>(null);
   const [policy, setPolicy] = useState<Policy>({});
+  const [expenseSettings, setExpenseSettings] = useState<ExpenseSettings>({});
   const [delegations, setDelegations] = useState<Delegation[]>([]);
   const [members, setMembers] = useState<TeamMember[]>([]);
   const [loading, setLoading] = useState(true);
@@ -71,14 +77,19 @@ export default function ApprovalSettingsPage() {
       return;
     }
 
-    const [policyRes, delegationRes, teamRes] = await Promise.all([
+    const [policyRes, delegationRes, teamRes, expenseSettingsRes] = await Promise.all([
       api.approvalPolicyGet(nextOrgId),
       api.approvalDelegationsList(nextOrgId),
       api.teamDashboard(),
+      api.expenseSettingsGet(nextOrgId),
     ]);
 
     if (policyRes.error) setError(policyRes.error);
     else setPolicy((policyRes as any).data?.policy || {});
+
+    if (!expenseSettingsRes.error) {
+      setExpenseSettings((expenseSettingsRes as any).data?.settings || {});
+    }
 
     if (!delegationRes.error) {
       setDelegations((delegationRes as any).data?.delegations || []);
@@ -114,6 +125,20 @@ export default function ApprovalSettingsPage() {
     else {
       setSuccess('Approval policy saved.');
       setPolicy((res as any).data?.policy || policy);
+    }
+    setSaving(false);
+  };
+
+  const saveExpenseSettings = async () => {
+    if (!orgId) return;
+    setSaving(true);
+    setError('');
+    setSuccess('');
+    const res = await api.expenseSettingsSave(orgId, Boolean(expenseSettings.auto_post_on_approve ?? 1));
+    if (res.error) setError(res.error);
+    else {
+      setSuccess('Expense workflow settings saved.');
+      setExpenseSettings((res as any).data?.settings || expenseSettings);
     }
     setSaving(false);
   };
@@ -249,6 +274,33 @@ export default function ApprovalSettingsPage() {
               </div>
             </div>
           )}
+        </section>
+
+        <section className="glass-panel p-5">
+          <div className="mb-4 flex items-center gap-2">
+            <ShieldCheck className="h-5 w-5 text-accent" />
+            <h2 className="text-lg font-bold text-ink">Expense Workflow</h2>
+          </div>
+          <p className="mb-4 text-sm text-slate-600">
+            Control whether approved expenses are posted to the ledger automatically.
+          </p>
+          <label className="flex items-center gap-2 text-sm font-medium text-ink">
+            <input
+              type="checkbox"
+              checked={Boolean(expenseSettings.auto_post_on_approve ?? 1)}
+              onChange={(e) =>
+                setExpenseSettings((s) => ({ ...s, auto_post_on_approve: e.target.checked ? 1 : 0 }))
+              }
+              className="h-4 w-4 rounded border-border text-accent focus:ring-accent/30"
+            />
+            Auto-post on approve
+          </label>
+          <div className="mt-4">
+            <Button onClick={() => void saveExpenseSettings()} loading={saving}>
+              <Save className="h-4 w-4" />
+              Save Expense Settings
+            </Button>
+          </div>
         </section>
 
         <section className="glass-panel p-5">
