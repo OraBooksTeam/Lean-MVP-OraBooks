@@ -930,7 +930,10 @@ class OraBooks_Expenses {
             return new WP_Error('invalid_status', 'Only draft expenses can be submitted');
         }
 
-        if ($expense->ocr_confidence === null) {
+        $ocr_queue = self::get_ocr_queue_state((int) $expense_id);
+        $ocr_failed = is_array($ocr_queue) && ($ocr_queue['status'] ?? '') === 'failed';
+
+        if ($expense->ocr_confidence === null && !$ocr_failed) {
             return new WP_Error('ocr_pending', 'OCR processing is not complete yet');
         }
 
