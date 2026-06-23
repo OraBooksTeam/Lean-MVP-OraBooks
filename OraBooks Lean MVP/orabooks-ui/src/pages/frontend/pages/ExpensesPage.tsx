@@ -31,6 +31,38 @@ import { useExpenseOcrPolling } from '@/components/expenses/useExpenseOcrPolling
 const fieldClass =
   'w-full rounded-lg border border-border bg-white px-3.5 py-2.5 text-sm text-ink shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20';
 
+const PAYMENT_STATUS_OPTIONS = [
+  { value: 'unpaid', label: 'Unpaid' },
+  { value: 'paid', label: 'Paid' },
+  { value: 'reimbursable', label: 'Reimbursable' },
+] as const;
+
+function buildEditFields(expense: any): Record<string, string> {
+  return {
+    vendor: expense?.vendor || '',
+    vendor_tax_id: expense?.vendor_tax_id || '',
+    invoice_number: expense?.invoice_number || '',
+    transaction_date: expense?.transaction_date || '',
+    due_date: expense?.due_date || '',
+    subtotal: expense?.subtotal != null ? String(expense.subtotal) : '',
+    total_amount: expense?.total_amount != null ? String(expense.total_amount) : '',
+    tax_amount: expense?.tax_amount != null ? String(expense.tax_amount) : '',
+    category: expense?.category || '',
+    payment_method: expense?.payment_method || '',
+    payment_status: expense?.payment_status || 'unpaid',
+    merchant_address: expense?.merchant_address || '',
+    description: expense?.description || '',
+    account_code:
+      expense?.account_code ||
+      (expense?.classification?.status === 'processed' ? expense?.classification?.suggested_account_code || '' : ''),
+  };
+}
+
+function fieldConfidence(expense: any, fieldKey: string): number | null {
+  const value = expense?.ocr_data?.fields?.[fieldKey]?.confidence;
+  return value != null ? Number(value) : null;
+}
+
 export default function ExpensesPage() {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -209,22 +241,26 @@ export default function ExpensesPage() {
     else {
       const expense = (res as any).data?.expense;
       setSelectedExpense(expense);
-      setEditFields({
-        vendor: expense?.vendor || '',
-        invoice_number: expense?.invoice_number || '',
-        transaction_date: expense?.transaction_date || '',
-        total_amount: expense?.total_amount != null ? String(expense.total_amount) : '',
-        tax_amount: expense?.tax_amount != null ? String(expense.tax_amount) : '',
-        category: expense?.category || '',
-        description: expense?.description || '',
-        account_code:
-          expense?.account_code ||
-          (expense?.classification?.status === 'processed'
-            ? expense?.classification?.suggested_account_code || ''
-            : ''),
-      });
+      setEditFields(buildEditFields(expense));
     }
   };
+
+  const applyExpenseUpdate = useCallback((expense: Record<string, unknown>) => {
+    setSelectedExpense(expense);
+    setEditFields(buildEditFields(expense));
+  }, []);
+
+  const ocrPollingEnabled =
+    selectedExpense?.workflow_status === 'draft' &&
+    selectedExpense?.ocr_confidence == null &&
+    selectedExpense?.ocr_queue?.status !== 'failed';
+
+  useExpenseOcrPolling({
+    orgId,
+    expenseId: selectedExpense?.id,
+    enabled: ocrPollingEnabled,
+    onUpdate: applyExpenseUpdate,
+  });
 
   useClassificationPolling({
     recordType: 'expense',
@@ -273,7 +309,7 @@ export default function ExpensesPage() {
       setSelectedFile(null);
       if (fileInputRef.current) fileInputRef.current.value = '';
       if (cameraInputRef.current) cameraInputRef.current.value = '';
-      setSuccess('Receipt uploaded. OCR fields extracted.');
+      setSuccess('Receipt uploaded. OCR extraction has started — fields will appear shortly.');
       await load();
       const expense = (res as any).data?.expense;
       if (expense?.id) void loadExpense(expense.id);
@@ -301,6 +337,7 @@ export default function ExpensesPage() {
 
     const res = await api.expenseConfirm(orgId, selectedExpense.id, idempotencyKey, {
       ...editFields,
+      subtotal: editFields.subtotal ? parseFloat(editFields.subtotal) : undefined,
       total_amount: parseFloat(editFields.total_amount || '0'),
       tax_amount: parseFloat(editFields.tax_amount || '0'),
     });
@@ -352,6 +389,12 @@ export default function ExpensesPage() {
   const expenses = data?.expenses || [];
   const pending = data?.pending_approval || [];
   const stats = data?.stats || {};
+
+  const ocrFailed = selectedExpense?.ocr_queue?.status === 'failed';
+  const canEditDraft =
+    selectedExpense?.workflow_status === 'draft' &&
+    (selectedExpense?.ocr_confidence != null || ocrFailed);
+  const canConfirmSubmit = caps.submit && canEditDraft;
 
   return (
     <ClientShell title="Expenses" eyebrow="Receipt OCR & approval" organization={data?.context?.organization}>
