@@ -350,6 +350,8 @@ export default function VendorsPage() {
         description: '',
       });
       setBillPreview(null);
+      setBillLineItems([]);
+      setUseInventoryLines(false);
       await load();
     }
     setSaving(false);
