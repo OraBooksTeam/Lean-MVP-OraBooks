@@ -344,7 +344,7 @@ class OraBooks_Secrets {
  * Migrate plaintext legacy options into encrypted secret storage.
  */
  private static function migrate_legacy_secrets() {
- $legacy_jwt = self::with_shared_options(function {
+ $legacy_jwt = self::with_shared_options(function() {
  return get_option('orabooks_jwt_secret', '');
  });
 
