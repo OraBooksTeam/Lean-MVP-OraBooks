@@ -353,24 +353,74 @@ export default function BankReconciliationPage() {
           </div>
         )}
 
-        <div className="flex flex-wrap justify-end gap-2">
-          <Button size="sm" onClick={() => { setShowAccountForm(true); setError(''); setSuccess(''); }}>
-            <Plus className="h-4 w-4" />
-            Add account
-          </Button>
-          <Button size="sm" onClick={() => { setShowImportForm(true); setError(''); setSuccess(''); }}>
-            <Plus className="h-4 w-4" />
-            Import row
-          </Button>
-          <Button size="sm" onClick={() => { setShowReconcileForm(true); setError(''); setSuccess(''); }}>
-            <ShieldCheck className="h-4 w-4" />
-            Reconcile
-          </Button>
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="min-w-[220px] flex-1">
+            <select
+              value={selectedAccountId}
+              onChange={(e) => setSelectedAccountId(e.target.value)}
+              className="w-full rounded-lg border border-border px-3 py-2.5 text-sm"
+              title="Select bank account to reconcile."
+            >
+              <option value="">All bank accounts</option>
+              {accounts.map((a) => (
+                <option key={a.id} value={a.id}>{a.account_name}</option>
+              ))}
+            </select>
+          </div>
+          {canMatch && (
+            <>
+              <Button size="sm" onClick={() => { setShowCsvImport(true); setError(''); setSuccess(''); }} title="CSV format: date, amount, description. Max 10MB.">
+                <Upload className="h-4 w-4" />
+                Upload statement
+              </Button>
+              <Button size="sm" variant="secondary" onClick={() => { setShowImportForm(true); setError(''); setSuccess(''); }}>
+                Import row
+              </Button>
+            </>
+          )}
+          {canReconcile && (
+            <>
+              <Button size="sm" variant="secondary" onClick={() => { setShowConnectFeed(true); setError(''); setSuccess(''); }} title="Plaid / Yodlee integration. Automatic sync.">
+                <Link2 className="h-4 w-4" />
+                Connect bank
+              </Button>
+              <Button size="sm" onClick={() => { setShowAccountForm(true); setError(''); setSuccess(''); }}>
+                <Plus className="h-4 w-4" />
+                Add account
+              </Button>
+              <Button size="sm" onClick={() => { setShowReconcileForm(true); setError(''); setSuccess(''); }}>
+                <ShieldCheck className="h-4 w-4" />
+                Reconcile now
+              </Button>
+            </>
+          )}
           <Button onClick={load} variant="secondary" size="sm">
             <RefreshCw className="h-4 w-4" />
             Refresh
           </Button>
         </div>
+
+        {accountSummary && (
+          <div className="rounded-xl border border-border bg-slate-50 p-4 text-sm">
+            <p className="font-semibold text-ink">{accountSummary.account_name}</p>
+            <div className="mt-2 flex flex-wrap gap-4 text-slate-700">
+              <span>Bank balance: {money(accountSummary.bank_balance)}</span>
+              <span>System balance: {money(accountSummary.system_balance)}</span>
+              <span className={Math.abs(Number(accountSummary.difference)) < 0.01 ? 'text-success' : 'text-amber-700'}>
+                Difference: {money(accountSummary.difference)}
+              </span>
+              <span>{accountSummary.unmatched_count} unmatched</span>
+            </div>
+          </div>
+        )}
+
+        {feeds.length > 0 && (
+          <div className="rounded-xl border border-sky-200 bg-sky-50/80 p-4 text-sm text-sky-900">
+            {feeds.map((feed) => (
+              <p key={feed.id}>{feed.provider} feed — status {feed.status}{feed.last_sync_at ? ` · last sync ${String(feed.last_sync_at).slice(0, 10)}` : ''}</p>
+            ))}
+          </div>
+        )}
 
         {error && (
           <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-medium text-red-700">{error}</div>
@@ -435,16 +485,17 @@ export default function BankReconciliationPage() {
                 <th className="px-5 py-3 font-semibold">Description</th>
                 <th className="px-5 py-3 font-semibold">Reference</th>
                 <th className="px-5 py-3 font-semibold">Status</th>
+                <th className="px-5 py-3 font-semibold">Suggested match</th>
                 <th className="px-5 py-3 text-right font-semibold">Amount</th>
                 <th className="px-5 py-3 font-semibold">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
               {loading ? (
-                <tr><td colSpan={7} className="px-5 py-8 text-center text-slate-500">Loading transactions...</td></tr>
+                <tr><td colSpan={8} className="px-5 py-8 text-center text-slate-500">Loading transactions...</td></tr>
               ) : transactions.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-5 py-10 text-center text-sm text-slate-500">No bank transactions imported yet.</td>
+                  <td colSpan={8} className="px-5 py-10 text-center text-sm text-slate-500">No bank transactions imported yet.</td>
                 </tr>
               ) : transactions.map((txn: any) => (
                 <tr key={txn.id} className="hover:bg-slate-50/70">
@@ -453,15 +504,44 @@ export default function BankReconciliationPage() {
                   <td className="px-5 py-3 text-ink">{txn.description || '—'}</td>
                   <td className="px-5 py-3 font-mono text-xs text-slate-500">{txn.reference || '—'}</td>
                   <td className="px-5 py-3"><StatusBadge status={txn.status} /></td>
+                  <td className="px-5 py-3">
+                    {(txn.suggestions || []).length > 0 && (
+                      <div className="mb-2 space-y-1">
+                        {(txn.suggestions as BankSuggestion[]).slice(0, 2).map((s) => (
+                          <div key={s.id} className="flex flex-wrap items-center gap-2 text-xs">
+                            <ConfidenceBadge score={s.confidence_score} />
+                            <span className="text-slate-600">{s.transaction_type} #{s.transaction_id}</span>
+                            {canMatch && txn.status === 'unmatched' && (
+                              <Button size="sm" variant="secondary" disabled={saving} onClick={() => void handleConfirmSuggestion(txn, s)}>
+                                Match
+                              </Button>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </td>
                   <td className={`px-5 py-3 text-right font-bold ${Number(txn.amount) >= 0 ? 'text-success' : 'text-red-600'}`}>
                     {money(txn.amount)}
                   </td>
                   <td className="px-5 py-3">
                     <div className="flex flex-wrap gap-1">
-                      {txn.status === 'unmatched' ? (
+                      {txn.status === 'unmatched' && canMatch ? (
                         <>
                           <Button size="sm" variant="secondary" onClick={() => { setMatchTxn(txn); setError(''); }}>
-                            Match
+                            Manual
+                          </Button>
+                          <Button size="sm" variant="secondary" onClick={() => {
+                            setCreateTxn(txn);
+                            setCreateTxnForm({
+                              transaction_type: Number(txn.amount) >= 0 ? 'invoice' : 'expense',
+                              vendor: txn.description || '',
+                              category: 'General',
+                              customer_id: '',
+                            });
+                            setError('');
+                          }}>
+                            Create
                           </Button>
                           <Button size="sm" variant="secondary" onClick={() => { setSkipTxn(txn); setError(''); }}>
                             Skip
