@@ -1,5 +1,5 @@
 import { isSecureOrigin, shouldEnforceTls, upgradeToHttpsIfRequired } from '@/lib/security/sl008';
-import { getTenantDomainSuffix } from '@/lib/utils';
+import { buildOrgUrl } from '@/lib/residency/sl004';
 import { AUTH_TOKEN_STORAGE_KEY, clearPersistedAuthTokens } from '../api';
 import { normalizeAppRoute, toWpUrl } from './wp-routing';
 
@@ -168,11 +168,9 @@ function appendCrossOriginAuthParams(url: string) {
 }
 
 export function redirectToOrgSubdomain(subdomain: string, wpPath = '/dashboard/') {
-  const suffix = getTenantDomainSuffix();
   const path = normalizeWpAppPath(wpPath);
-  const raw = `${window.location.protocol}//${subdomain}${suffix}${path}`;
   const destination = appendCrossOriginAuthParams(
-    upgradeToHttpsIfRequired(new URL(raw, window.location.href)).toString()
+    upgradeToHttpsIfRequired(new URL(buildOrgUrl(subdomain, path), window.location.href)).toString()
   );
   window.location.replace(destination);
 }
