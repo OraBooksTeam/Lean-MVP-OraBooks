@@ -230,19 +230,26 @@ export default function VendorsPage() {
   }, [showBillForm, orgId]);
 
   useEffect(() => {
+    if (!showBillForm || !orgId) {
+      setBillPreview(null);
+      return;
+    }
+    const subtotal = useInventoryLines && billLineItems.length > 0
+      ? billLinesSubtotal()
+      : parseFloat(billForm.subtotal_amount) || 0;
+    if (subtotal <= 0) {
       setBillPreview(null);
       return;
     }
     const timer = setTimeout(async () => {
       const res = await api.taxCalculate({
         org_id: orgId,
-        amount: parseFloat(billForm.subtotal_amount) || 0,
+        amount: subtotal,
         jurisdiction: billForm.jurisdiction,
       });
       if (!res.error) {
         const data = (res as any).data;
         const tax = Number(data.tax_amount || 0);
-        const subtotal = parseFloat(billForm.subtotal_amount) || 0;
         setBillPreview({
           tax_rate: Number(data.tax_rate || 0),
           tax_amount: tax,
@@ -251,7 +258,7 @@ export default function VendorsPage() {
       }
     }, 300);
     return () => clearTimeout(timer);
-  }, [showBillForm, billForm.subtotal_amount, billForm.jurisdiction, orgId]);
+  }, [showBillForm, billForm.subtotal_amount, billForm.jurisdiction, orgId, useInventoryLines, billLineItems]);
 
   const handleCreateVendor = async () => {
     if (!orgId || !vendorForm.name.trim()) {
