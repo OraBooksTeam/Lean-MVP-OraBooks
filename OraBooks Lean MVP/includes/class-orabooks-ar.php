@@ -1048,6 +1048,29 @@ class OraBooks_AR {
         ];
     }
 
+    public static function format_credit_note($row) {
+        if (!$row) {
+            return null;
+        }
+        return [
+            'id' => (int) $row->id,
+            'org_id' => (int) $row->org_id,
+            'customer_id' => (int) $row->customer_id,
+            'invoice_id' => !empty($row->invoice_id) ? (int) $row->invoice_id : null,
+            'credit_note_number' => $row->credit_note_number,
+            'credit_date' => $row->credit_date,
+            'amount' => (float) $row->amount,
+            'reason' => $row->reason,
+            'is_write_off' => (int) ($row->is_write_off ?? 0),
+            'requires_second_approval' => (int) ($row->requires_second_approval ?? 0),
+            'approved_by' => !empty($row->approved_by) ? (int) $row->approved_by : null,
+            'approved_at' => $row->approved_at ?? null,
+            'workflow_status' => $row->workflow_status,
+            'journal_id' => !empty($row->journal_id) ? (int) $row->journal_id : null,
+            'created_at' => $row->created_at,
+        ];
+    }
+
     private static function generate_credit_note_number($org_id, $date) {
         global $wpdb;
         $year = date('Y', strtotime($date));
@@ -1116,7 +1139,7 @@ class OraBooks_AR {
         $user_id = orabooks_get_current_user_id();
         $org_id = (int) ($_POST['org_id'] ?? 0);
         $payment_id = (int) ($_POST['payment_id'] ?? 0);
-        $this->require_ar_access($user_id, $org_id, 'manage_org_settings');
+        $this->require_ar_access($user_id, $org_id, 'create_invoice');
         $result = self::reverse_payment($org_id, $payment_id, $user_id, sanitize_text_field($_POST['reason'] ?? ''));
         if (is_wp_error($result)) {
             orabooks_json_error($result->get_error_message(), 400);
