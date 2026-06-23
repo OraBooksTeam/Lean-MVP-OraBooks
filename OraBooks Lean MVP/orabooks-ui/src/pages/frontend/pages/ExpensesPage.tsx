@@ -309,7 +309,7 @@ export default function ExpensesPage() {
       setSelectedFile(null);
       if (fileInputRef.current) fileInputRef.current.value = '';
       if (cameraInputRef.current) cameraInputRef.current.value = '';
-      setSuccess('Receipt uploaded. OCR extraction has started — fields will appear shortly.');
+      setSuccess('Receipt uploaded. OCR fields extracted.');
       await load();
       const expense = (res as any).data?.expense;
       if (expense?.id) void loadExpense(expense.id);
@@ -931,10 +931,18 @@ function ExpenseTable({
                   )}
                 </td>
                 <td className="px-5 py-3">
-                  <PaymentStatusBadge status={expense.payment_status} />
+                  {expense.ocr_confidence != null ? (
+                    <PaymentStatusBadge status={expense.payment_status} />
+                  ) : (
+                    '—'
+                  )}
                 </td>
                 <td className="px-5 py-3">
-                  {expense.ocr_risk_level ? <RiskBadge level={expense.ocr_risk_level} /> : '—'}
+                  {expense.ocr_confidence != null && expense.ocr_risk_level ? (
+                    <RiskBadge level={expense.ocr_risk_level} />
+                  ) : (
+                    '—'
+                  )}
                 </td>
                 <td className="px-5 py-3">
                   {expense.ocr_confidence != null ? `${Number(expense.ocr_confidence).toFixed(1)}%` : '—'}
