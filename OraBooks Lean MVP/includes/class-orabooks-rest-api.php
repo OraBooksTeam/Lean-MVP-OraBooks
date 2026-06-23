@@ -374,6 +374,14 @@ class OraBooks_Rest_Api {
         return !is_wp_error(self::require_org_access($request, 'manage_expenses'));
     }
 
+    public static function can_approve_expenses($request) {
+        return !is_wp_error(self::require_org_access($request, 'approve_expense'));
+    }
+
+    public static function can_manage_expense_settings($request) {
+        return !is_wp_error(self::require_org_access($request, 'manage_org_settings'));
+    }
+
     public static function can_view_journals($request) {
         return !is_wp_error(self::require_org_access($request, 'view_reports'));
     }
@@ -806,6 +814,35 @@ class OraBooks_Rest_Api {
         if (is_wp_error($result)) {
             $code = $result->get_error_code();
             $status = $code === 'duplicate' ? 409 : ($code === 'rate_limit' ? 429 : 400);
+            $result->add_data(['status' => $status]);
+            return $result;
+        }
+
+        return rest_ensure_response(['expense' => $result]);
+    }
+
+    public static function rest_confirm_expense(WP_REST_Request $request) {
+        $context = self::require_org_access($request, 'manage_expenses');
+        if (is_wp_error($context)) {
+            return $context;
+        }
+
+        $idempotency_key = sanitize_text_field($request->get_param('idempotency_key') ?? '');
+        $edited = $request->get_param('edited_fields');
+        if (!is_array($edited)) {
+            $edited = [];
+        }
+
+        $result = OraBooks_Expenses::confirm_submit(
+            (int) $request['id'],
+            $context['org_id'],
+            $context['user_id'],
+            $idempotency_key,
+            $edited
+        );
+
+        if (is_wp_error($result)) {
+            $status = $result->get_error_code() === 'duplicate' ? 409 : 400;
             $result->add_data(['status' => $status]);
             return $result;
         }
