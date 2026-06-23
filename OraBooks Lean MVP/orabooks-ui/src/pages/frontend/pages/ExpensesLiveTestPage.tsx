@@ -65,7 +65,7 @@ export default function ExpensesLiveTestPage {
 
  return (
  <ClientShell
- title=" Live Test"
+ title="Live Test"
  eyebrow="Expenses OCR — production smoke test"
  organization={context?.organization}
  >

@@ -323,7 +323,7 @@ export default function TaxSettingsPage {
  return (
  <ClientShell
  title="Tax Settings"
- eyebrow=" Tax governance"
+ eyebrow="Tax governance"
  organization={context?.organization}
  isPartner={context?.organization?.organization_type === 'partner'}
  >

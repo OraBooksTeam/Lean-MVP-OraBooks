@@ -186,7 +186,7 @@ export default function ApprovalSettingsPage {
  }
 
  return (
- <ClientShell title="Approval Settings" eyebrow=" policy & delegation" organization={context?.organization}>
+ <ClientShell title="Approval Settings" eyebrow="policy & delegation" organization={context?.organization}>
  <div className="space-y-5">
  <div className="flex justify-end">
  <Button variant="secondary" size="sm" onClick={ => void load}>

@@ -65,7 +65,7 @@ export default function ClassificationLiveTestPage {
 
  return (
  <ClientShell
- title=" Live Test"
+ title="Live Test"
  eyebrow="Smart Classification — production smoke test"
  organization={context?.organization}
  >
