@@ -1834,7 +1834,7 @@ class OraBooks_Expenses {
                 'rate_limit_per_min'   => self::RATE_LIMIT_MAX,
                 'ocr_provider'         => $ocr_provider,
                 'react_bundle_at'      => $generated ?: null,
-                'auto_post_on_approve' => (bool) get_option('orabooks_expense_auto_post_on_approve', true),
+                'auto_post_on_approve' => self::auto_post_on_approve_enabled($org_id),
             ],
             'manual_steps' => $manual_steps,
         ];
