@@ -33,6 +33,18 @@ class OraBooks_Bank_Reconciliation {
             add_action('wp_ajax_nopriv_orabooks_bank_skip', [self::$instance, 'ajax_skip_transaction']);
             add_action('wp_ajax_orabooks_bank_reconcile', [self::$instance, 'ajax_finalize_reconciliation']);
             add_action('wp_ajax_nopriv_orabooks_bank_reconcile', [self::$instance, 'ajax_finalize_reconciliation']);
+            add_action('wp_ajax_orabooks_bank_import_csv', [self::$instance, 'ajax_import_csv']);
+            add_action('wp_ajax_nopriv_orabooks_bank_import_csv', [self::$instance, 'ajax_import_csv']);
+            add_action('wp_ajax_orabooks_bank_confirm_match', [self::$instance, 'ajax_confirm_match']);
+            add_action('wp_ajax_nopriv_orabooks_bank_confirm_match', [self::$instance, 'ajax_confirm_match']);
+            add_action('wp_ajax_orabooks_bank_create_transaction', [self::$instance, 'ajax_create_transaction']);
+            add_action('wp_ajax_nopriv_orabooks_bank_create_transaction', [self::$instance, 'ajax_create_transaction']);
+            add_action('wp_ajax_orabooks_bank_connect_feed', [self::$instance, 'ajax_connect_feed']);
+            add_action('wp_ajax_nopriv_orabooks_bank_connect_feed', [self::$instance, 'ajax_connect_feed']);
+            add_action('wp_ajax_orabooks_bank_feeds_list', [self::$instance, 'ajax_feeds_list']);
+            add_action('wp_ajax_nopriv_orabooks_bank_feeds_list', [self::$instance, 'ajax_feeds_list']);
+            add_action('wp_ajax_orabooks_bank_account_summary', [self::$instance, 'ajax_account_summary']);
+            add_action('wp_ajax_nopriv_orabooks_bank_account_summary', [self::$instance, 'ajax_account_summary']);
         }
         return self::$instance;
     }
