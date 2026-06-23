@@ -29,6 +29,10 @@ class OraBooks_Rest_Api_Test extends TestCase
         $this->assertArrayHasKey('/auth/2fa/setup', $spec['paths'] ?? []);
         $this->assertArrayHasKey('/org/security/2fa-policy', $spec['paths'] ?? []);
         $this->assertArrayHasKey('/expenses/upload-receipt', $spec['paths'] ?? []);
+        $this->assertArrayHasKey('/expenses/settings', $spec['paths'] ?? []);
+        $this->assertArrayHasKey('/expenses/{id}/approve', $spec['paths'] ?? []);
+        $this->assertArrayHasKey('/expenses/{id}/reject', $spec['paths'] ?? []);
+        $this->assertArrayHasKey('/expenses/{id}/post', $spec['paths'] ?? []);
         $this->assertArrayHasKey('/openapi.json', $spec['paths'] ?? []);
     }
 

@@ -201,4 +201,79 @@ class OraBooks_Expenses_Test extends TestCase
         $handler = OraBooks_AsyncQueue::get_handler('process_expense_ocr');
         $this->assertTrue(is_callable($handler));
     }
+
+    #[Test]
+    public function test_get_org_settings_falls_back_to_global_option()
+    {
+        global $wpdb;
+
+        $settings_table = OraBooks_Database::table('expense_settings');
+        $wpdb->test_get_var_callback = static function ($query) use ($settings_table) {
+            if (stripos($query, 'SHOW TABLES LIKE') !== false) {
+                return $settings_table;
+            }
+            if (stripos($query, 'SELECT org_id FROM') !== false && stripos($query, 'expense_settings') !== false) {
+                return null;
+            }
+            return null;
+        };
+        $wpdb->test_get_row_callback = static function ($query) {
+            if (stripos($query, 'expense_settings') !== false) {
+                return null;
+            }
+            return null;
+        };
+
+        $GLOBALS['orabooks_test_options']['orabooks_expense_auto_post_on_approve'] = 0;
+
+        $settings = OraBooks_Expenses::get_org_settings(9);
+
+        $this->assertSame(9, (int) $settings->org_id);
+        $this->assertSame(0, (int) $settings->auto_post_on_approve);
+        $this->assertFalse(OraBooks_Expenses::auto_post_on_approve_enabled(9));
+    }
+
+    #[Test]
+    public function test_save_org_settings_persists_auto_post_flag()
+    {
+        global $wpdb;
+
+        $settings_table = OraBooks_Database::table('expense_settings');
+        $saved = null;
+
+        $wpdb->test_get_var_callback = static function ($query) use ($settings_table) {
+            if (stripos($query, 'SHOW TABLES LIKE') !== false) {
+                return $settings_table;
+            }
+            if (stripos($query, 'SELECT org_id FROM') !== false && stripos($query, 'expense_settings') !== false) {
+                return null;
+            }
+            return null;
+        };
+        $wpdb->test_get_row_callback = static function ($query) use (&$saved) {
+            if (stripos($query, 'expense_settings') !== false && stripos($query, 'WHERE org_id') !== false) {
+                return $saved;
+            }
+            return null;
+        };
+        $wpdb->test_insert_callback = static function ($table, $data) use (&$saved) {
+            $saved = (object) $data;
+        };
+        $wpdb->test_update_callback = static function ($table, $data, $where) use (&$saved) {
+            if (!$saved) {
+                $saved = (object) array_merge(['org_id' => (int) ($where['org_id'] ?? 0)], $data);
+            } else {
+                foreach ($data as $key => $value) {
+                    $saved->$key = $value;
+                }
+            }
+            return 1;
+        };
+
+        $formatted = OraBooks_Expenses::save_org_settings(9, ['auto_post_on_approve' => 1]);
+
+        $this->assertSame(9, $formatted['org_id']);
+        $this->assertSame(1, $formatted['auto_post_on_approve']);
+        $this->assertTrue(OraBooks_Expenses::auto_post_on_approve_enabled(9));
+    }
 }
