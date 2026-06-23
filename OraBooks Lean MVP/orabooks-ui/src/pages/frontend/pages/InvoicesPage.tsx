@@ -615,6 +615,101 @@ export default function InvoicesPage() {
                 </p>
               </div>
             )}
+
+            {(selectedInvoice.payments?.length ?? 0) > 0 && (
+              <div className="mt-4 border-t border-border pt-4">
+                <h3 className="mb-3 text-sm font-semibold text-ink">Payments</h3>
+                <div className="overflow-hidden rounded-lg border border-border">
+                  <table className="min-w-full text-left text-sm">
+                    <thead>
+                      <tr className="border-b border-border bg-slate-50/70 text-xs uppercase text-slate-500">
+                        <th className="px-3 py-2">Date</th>
+                        <th className="px-3 py-2">Method</th>
+                        <th className="px-3 py-2">Type</th>
+                        <th className="px-3 py-2 text-right">Amount</th>
+                        <th className="px-3 py-2">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border">
+                      {selectedInvoice.payments?.map((payment) => (
+                        <tr key={payment.id}>
+                          <td className="px-3 py-2 text-slate-600">{payment.payment_date}</td>
+                          <td className="px-3 py-2 text-slate-600">{payment.payment_method}</td>
+                          <td className="px-3 py-2"><Badge value={payment.type || 'payment'} /></td>
+                          <td className="px-3 py-2 text-right font-medium">{money(payment.amount, selectedInvoice.currency)}</td>
+                          <td className="px-3 py-2">
+                            {canCreateInvoice && payment.can_reverse && (
+                              <Button
+                                size="sm"
+                                variant="secondary"
+                                onClick={() => {
+                                  setReversePayment(payment);
+                                  setReverseReason('');
+                                  setError('');
+                                }}
+                              >
+                                Reverse
+                              </Button>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {creditNotes.length > 0 && (
+              <div className="mt-4 border-t border-border pt-4">
+                <h3 className="mb-3 text-sm font-semibold text-ink">Credit notes</h3>
+                <div className="space-y-2">
+                  {creditNotes.map((note) => (
+                    <div key={note.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border px-3 py-2 text-sm">
+                      <div>
+                        <p className="font-medium text-ink">{note.credit_note_number}</p>
+                        <p className="text-slate-600">{money(note.amount, selectedInvoice.currency)} · {note.reason}</p>
+                        <div className="mt-1 flex flex-wrap gap-1">
+                          <Badge value={note.workflow_status} />
+                          {Number(note.is_write_off) === 1 && <Badge value="write-off" />}
+                          {Number(note.requires_second_approval) === 1 && !note.approved_by && (
+                            <span className="text-xs text-amber-700">Requires manager approval</span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex flex-wrap gap-1">
+                        {canCreateInvoice && note.workflow_status === 'draft' && (
+                          <>
+                            <Button size="sm" variant="secondary" disabled={actionCreditNoteId === note.id} onClick={() => void runCreditNoteAction('submit', note)}>
+                              Submit
+                            </Button>
+                            <Button size="sm" variant="secondary" disabled={actionCreditNoteId === note.id} onClick={() => { setVoidCreditNote(note); setVoidReason(''); }}>
+                              Void
+                            </Button>
+                          </>
+                        )}
+                        {canApproveJournal && note.workflow_status === 'submitted' && (
+                          <>
+                            <Button size="sm" disabled={actionCreditNoteId === note.id} onClick={() => void runCreditNoteAction('approve', note)}>
+                              Approve
+                            </Button>
+                            <Button size="sm" variant="secondary" disabled={actionCreditNoteId === note.id} onClick={() => { setVoidCreditNote(note); setVoidReason(''); }}>
+                              Void
+                            </Button>
+                          </>
+                        )}
+                        {canApproveJournal && note.workflow_status === 'approved' && (
+                          <Button size="sm" disabled={actionCreditNoteId === note.id} onClick={() => void runCreditNoteAction('post', note)}>
+                            Post
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div className="mt-4">
               <ResourceAttachmentsPanel
                 orgId={orgId}
@@ -931,6 +1026,40 @@ export default function InvoicesPage() {
           onApply={() => void handleApplyOverride()}
           onClear={() => void handleClearOverride()}
         />
+
+        {reversePayment && (
+          <Modal title="Reverse payment" onClose={() => setReversePayment(null)}>
+            <p className="mb-4 text-sm text-slate-600">
+              Reverse payment of {money(reversePayment.amount)} on {reversePayment.payment_date}?
+            </p>
+            {error && <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div>}
+            <Field label="Reason">
+              <Input value={reverseReason} onChange={(e) => setReverseReason(e.target.value)} placeholder="Why is this payment being reversed?" />
+            </Field>
+            <div className="mt-6 flex justify-end gap-2">
+              <Button variant="secondary" onClick={() => setReversePayment(null)}>Cancel</Button>
+              <Button onClick={() => void handleReversePayment()} loading={saving} disabled={!reverseReason.trim()}>Confirm reversal</Button>
+            </div>
+          </Modal>
+        )}
+
+        {voidCreditNote && (
+          <Modal title="Void credit note" onClose={() => setVoidCreditNote(null)}>
+            <p className="mb-4 text-sm text-slate-600">
+              Void credit note {voidCreditNote.credit_note_number}?
+            </p>
+            {error && <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div>}
+            <Field label="Reason">
+              <Input value={voidReason} onChange={(e) => setVoidReason(e.target.value)} placeholder="Optional reason" />
+            </Field>
+            <div className="mt-6 flex justify-end gap-2">
+              <Button variant="secondary" onClick={() => setVoidCreditNote(null)}>Cancel</Button>
+              <Button onClick={() => void runCreditNoteAction('void', voidCreditNote)} disabled={actionCreditNoteId === voidCreditNote.id}>
+                Confirm void
+              </Button>
+            </div>
+          </Modal>
+        )}
 
         {creditNoteInvoice && (
           <Modal title="Issue credit note" onClose={() => setCreditNoteInvoice(null)}>
