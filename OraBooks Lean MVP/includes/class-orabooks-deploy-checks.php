@@ -161,7 +161,7 @@ class OraBooks_DeployChecks {
  );
 
  $table_prefix = '';
- $run_table_checks = function use (&$table_prefix, $add_check) {
+ $run_table_checks = function() use (&$table_prefix, $add_check) {
  global $wpdb;
 
  $table_prefix = function_exists('orabooks_get_table_prefix')
