@@ -187,7 +187,27 @@ export default function NotificationAdminPage() {
       {loading ? (
         <div className="h-48 animate-pulse rounded-2xl border border-border bg-white" />
       ) : tab === 'policy' ? (
-        <form onSubmit={savePolicy} className="glass-panel space-y-4 p-6">
+        <div className="space-y-4">
+          {budgetLimit > 0 && (
+            <section className="glass-panel p-5">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="text-sm font-semibold text-ink">Notification cost budget</p>
+                <p className={`text-sm ${budgetExceeded ? 'font-semibold text-red-700' : 'text-slate-600'}`}>
+                  {formatBudgetAmount(monthlyCostUsed)} / {formatBudgetAmount(budgetLimit)} this month
+                </p>
+              </div>
+              <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-100">
+                <div
+                  className={`h-full rounded-full transition-all ${budgetExceeded ? 'bg-red-500' : 'bg-primary'}`}
+                  style={{ width: `${budgetProgress}%` }}
+                />
+              </div>
+              <p className="mt-2 text-xs text-slate-500">
+                Critical notifications bypass budget. Non-critical delivery may throttle when the limit is exceeded.
+              </p>
+            </section>
+          )}
+          <form onSubmit={savePolicy} className="glass-panel space-y-4 p-6">
           <Input
             label="Monthly Budget ($)"
             type="number"
@@ -261,6 +281,7 @@ export default function NotificationAdminPage() {
           {message && <p className="text-sm text-emerald-700">{message}</p>}
           <Button type="submit">Save Policy</Button>
         </form>
+        </div>
       ) : tab === 'health' ? (
         <div className="space-y-4">
           <Button variant="secondary" size="sm" onClick={() => orgId && loadHealth(orgId)}>
