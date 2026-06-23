@@ -374,7 +374,7 @@ export default function ApprovalsPage() {
         confirmLabel="Verify & Approve"
         loading={actionId === mfaModal.journalId}
         confirmDisabled={mfaModal.code.trim().length < 6}
-        onClose={() => setMfaModal({ open: false, journalId: null, amount: 0, code: '' })}
+        onClose={() => setMfaModal({ open: false, journalId: null, amount: 0, code: '', error: '' })}
         onConfirm={() => {
           if (mfaModal.journalId) {
             void handleApprove(
@@ -389,11 +389,12 @@ export default function ApprovalsPage() {
         <Input
           label="6-digit code"
           value={mfaModal.code}
-          onChange={(e) => setMfaModal((prev) => ({ ...prev, code: e.target.value.replace(/\D/g, '').slice(0, 6) }))}
+          onChange={(e) => setMfaModal((prev) => ({ ...prev, code: e.target.value.replace(/\D/g, '').slice(0, 6), error: '' }))}
           placeholder="000000"
           inputMode="numeric"
           autoComplete="one-time-code"
         />
+        {mfaModal.error && <p className="text-sm text-danger">{mfaModal.error}</p>}
       </WorkflowModal>
     </ClientShell>
   );
