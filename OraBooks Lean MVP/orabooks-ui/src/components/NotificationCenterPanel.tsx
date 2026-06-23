@@ -31,6 +31,7 @@ type NotificationCenterPanelProps = {
   onMarkAllRead: () => Promise<void>;
   onRetry?: (id: number) => Promise<{ error?: string } | void>;
   showOwnerAdminLink?: boolean;
+  showPreferencesLink?: boolean;
   highlightId?: number | null;
   showStats?: boolean;
 };
@@ -49,6 +50,7 @@ export default function NotificationCenterPanel({
   onMarkAllRead,
   onRetry,
   showOwnerAdminLink = false,
+  showPreferencesLink = true,
   highlightId = null,
   showStats = false,
 }: NotificationCenterPanelProps) {
@@ -118,6 +120,7 @@ export default function NotificationCenterPanel({
           >
             Preferences
           </WpLink>
+          )}
           <Button onClick={onRefresh} variant="secondary" size="sm" disabled={loading}>
             <RefreshCw className="h-4 w-4" />
             Refresh
