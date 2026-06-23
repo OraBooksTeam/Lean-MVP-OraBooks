@@ -3,6 +3,7 @@ import Button from '@/components/Button';
 import Input from '@/components/Input';
 import { api } from '../api';
 import TwoFactorQrCode from './TwoFactorQrCode';
+import { isValidTotpCode, normalizeTotpCode } from '@/lib/two-factor';
 import { ShieldCheck } from 'lucide-react';
 
 export type TwoFactorContext = {
@@ -78,8 +79,13 @@ export default function TwoFactorSetupPanel({
   const verify2faSetup = async (e: FormEvent) => {
     e.preventDefault();
     setSecurityError('');
+    const normalizedOtp = normalizeTotpCode(otp);
+    if (!isValidTotpCode(normalizedOtp)) {
+      setSecurityError('Enter the 6-digit code from your authenticator app.');
+      return;
+    }
     setVerifyLoading(true);
-    const res = await api.verify2faSetup(otp);
+    const res = await api.verify2faSetup(normalizedOtp);
     if (res.error) {
       setSecurityError(typeof res.error === 'string' ? res.error : 'Invalid code.');
     } else {
@@ -100,8 +106,13 @@ export default function TwoFactorSetupPanel({
   const disable2fa = async (e: FormEvent) => {
     e.preventDefault();
     setSecurityError('');
+    const normalizedOtp = normalizeTotpCode(disableOtp);
+    if (!isValidTotpCode(normalizedOtp)) {
+      setSecurityError('Enter the 6-digit code from your authenticator app.');
+      return;
+    }
     setDisableLoading(true);
-    const res = await api.disable2fa(disableOtp);
+    const res = await api.disable2fa(normalizedOtp);
     if (res.error) {
       setSecurityError(typeof res.error === 'string' ? res.error : 'Unable to disable 2FA.');
     } else {
@@ -116,8 +127,13 @@ export default function TwoFactorSetupPanel({
   const regenerateBackupCodes = async (e: FormEvent) => {
     e.preventDefault();
     setSecurityError('');
+    const normalizedOtp = normalizeTotpCode(regenOtp);
+    if (!isValidTotpCode(normalizedOtp)) {
+      setSecurityError('Enter the 6-digit code from your authenticator app.');
+      return;
+    }
     setRegenLoading(true);
-    const res = await api.regenerate2faBackupCodes(regenOtp);
+    const res = await api.regenerate2faBackupCodes(normalizedOtp);
     if (res.error) {
       setSecurityError(typeof res.error === 'string' ? res.error : 'Unable to regenerate backup codes.');
     } else {
@@ -133,8 +149,13 @@ export default function TwoFactorSetupPanel({
   const revealBackupCodes = async (e: FormEvent) => {
     e.preventDefault();
     setSecurityError('');
+    const normalizedOtp = normalizeTotpCode(revealOtp);
+    if (!isValidTotpCode(normalizedOtp)) {
+      setSecurityError('Enter the 6-digit code from your authenticator app.');
+      return;
+    }
     setRevealLoading(true);
-    const res = await api.reveal2faBackupCodes(revealOtp);
+    const res = await api.reveal2faBackupCodes(normalizedOtp);
     if (res.error) {
       setSecurityError(typeof res.error === 'string' ? res.error : 'Unable to retrieve backup codes.');
     } else {
@@ -236,10 +257,11 @@ export default function TwoFactorSetupPanel({
               <Input
                 label="Authentication code"
                 value={otp}
-                onChange={(e) => setOtp(e.target.value)}
+                onChange={(e) => setOtp(normalizeTotpCode(e.target.value))}
                 placeholder="000000"
                 inputMode="numeric"
                 maxLength={6}
+                autoComplete="one-time-code"
                 required
               />
               <Button type="submit" loading={verifyLoading}>Verify and enable</Button>
@@ -271,10 +293,11 @@ export default function TwoFactorSetupPanel({
                 <Input
                   label="Authentication code"
                   value={revealOtp}
-                  onChange={(e) => setRevealOtp(e.target.value)}
+                  onChange={(e) => setRevealOtp(normalizeTotpCode(e.target.value))}
                   placeholder="000000"
                   inputMode="numeric"
                   maxLength={6}
+                  autoComplete="one-time-code"
                   required
                 />
                 <Button type="submit" variant="secondary" loading={revealLoading}>Show backup codes</Button>
@@ -286,10 +309,11 @@ export default function TwoFactorSetupPanel({
                 <Input
                   label="Authentication code"
                   value={regenOtp}
-                  onChange={(e) => setRegenOtp(e.target.value)}
+                  onChange={(e) => setRegenOtp(normalizeTotpCode(e.target.value))}
                   placeholder="000000"
                   inputMode="numeric"
                   maxLength={6}
+                  autoComplete="one-time-code"
                   required
                 />
                 <Button type="submit" variant="secondary" loading={regenLoading}>Generate new codes</Button>
@@ -302,10 +326,11 @@ export default function TwoFactorSetupPanel({
                   <Input
                     label="Authentication code"
                     value={disableOtp}
-                    onChange={(e) => setDisableOtp(e.target.value)}
+                    onChange={(e) => setDisableOtp(normalizeTotpCode(e.target.value))}
                     placeholder="000000"
                     inputMode="numeric"
                     maxLength={6}
+                    autoComplete="one-time-code"
                     required
                   />
                   <Button type="submit" variant="secondary" loading={disableLoading}>Disable 2FA</Button>
