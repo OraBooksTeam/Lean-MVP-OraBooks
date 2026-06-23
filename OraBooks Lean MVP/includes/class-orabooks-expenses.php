@@ -61,9 +61,63 @@ class OraBooks_Expenses {
             add_action('wp_ajax_nopriv_orabooks_expense_clear_tax_override', [self::$instance, 'ajax_clear_tax_override']);
             add_action('wp_ajax_orabooks_expenses_list', [self::$instance, 'ajax_list']);
             add_action('wp_ajax_nopriv_orabooks_expenses_list', [self::$instance, 'ajax_list']);
+            add_action('wp_ajax_orabooks_expenses_live_check', [self::$instance, 'ajax_live_check']);
+            add_action('wp_ajax_nopriv_orabooks_expenses_live_check', [self::$instance, 'ajax_live_check']);
+
+            if (class_exists('OraBooks_AsyncQueue')) {
+                OraBooks_AsyncQueue::register_handler('process_expense_ocr', [self::class, 'handle_async_ocr_job']);
+            }
         }
 
         return self::$instance;
+    }
+
+    public static function register_event_consumer() {
+        if (!class_exists('OraBooks_EventBus')) {
+            return;
+        }
+
+        OraBooks_EventBus::register_consumer('ocr_requested', function ($event, $payload) {
+            if (!class_exists('OraBooks_AsyncQueue')) {
+                return;
+            }
+
+            OraBooks_AsyncQueue::enqueue('process_expense_ocr', [
+                'queue_id'   => (int) ($payload['queue_id'] ?? 0),
+                'expense_id' => (int) ($payload['expense_id'] ?? ($event->aggregate_id ?? 0)),
+                'org_id'     => (int) ($payload['org_id'] ?? 0),
+            ], ['priority' => 5]);
+        });
+    }
+
+    public static function handle_async_ocr_job($job, $payload) {
+        $queue_id = (int) ($payload['queue_id'] ?? 0);
+        if ($queue_id <= 0) {
+            return 'Missing OCR queue id';
+        }
+
+        self::init()->process_ocr_item_by_id($queue_id);
+        return true;
+    }
+
+    private static function dispatch_ocr_job($queue_id, $expense_id, $org_id) {
+        $payload = [
+            'queue_id'   => (int) $queue_id,
+            'expense_id' => (int) $expense_id,
+            'org_id'     => (int) $org_id,
+        ];
+
+        if (function_exists('orabooks_publish_event')) {
+            orabooks_publish_event('ocr_requested', (int) $expense_id, $payload);
+            return;
+        }
+
+        if (class_exists('OraBooks_AsyncQueue')) {
+            OraBooks_AsyncQueue::enqueue('process_expense_ocr', $payload, ['priority' => 5]);
+            return;
+        }
+
+        self::init()->process_ocr_item_by_id($queue_id);
     }
 
     public static function get_create_table_sql() {
@@ -313,6 +367,10 @@ class OraBooks_Expenses {
         $org_id = intval($org_id);
         $user_id = intval($user_id);
 
+        if (!orabooks_check_rate_limit("expense_upload_{$user_id}", self::RATE_LIMIT_MAX, self::RATE_LIMIT_PERIOD)) {
+            return new WP_Error('rate_limit', 'Too many receipt uploads. Please try again later.', ['status' => 429]);
+        }
+
         if ($content === '' || strlen($content) > self::MAX_RECEIPT_SIZE) {
             return new WP_Error('invalid_file', 'Receipt is empty or exceeds 10MB limit');
         }
@@ -367,20 +425,13 @@ class OraBooks_Expenses {
         $wpdb->update($table, ['attachment_id' => $attachment_id], ['id' => $expense_id], ['%d'], ['%d']);
 
         $queue_id = self::enqueue_ocr($expense_id, $org_id, $attachment_id);
-        self::init()->process_ocr_item_by_id($queue_id);
+        self::dispatch_ocr_job($queue_id, $expense_id, $org_id);
 
         orabooks_log_event('expense_receipt_uploaded', "Receipt uploaded for expense #{$expense_id}", 'info', [
             'expense_id'    => $expense_id,
             'attachment_id' => $attachment_id,
+            'queue_id'      => $queue_id,
         ], $user_id, $org_id);
-
-        if (function_exists('orabooks_publish_event')) {
-            orabooks_publish_event('ocr_requested', $expense_id, [
-                'expense_id'    => $expense_id,
-                'org_id'        => $org_id,
-                'attachment_id' => $attachment_id,
-            ]);
-        }
 
         $expense = self::get_expense($expense_id, $org_id);
         return self::format_expense($expense, true);
