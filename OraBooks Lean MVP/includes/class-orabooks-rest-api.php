@@ -904,15 +904,15 @@ class OraBooks_Rest_Api {
             return $context;
         }
 
+        $reason = sanitize_textarea_field($request->get_param('reason') ?? '');
+        if ($reason === '') {
+            return new WP_Error('reason_required', 'Rejection reason is required.', ['status' => 400]);
+        }
+
         $expense_id = self::resolve_route_id($request);
         $expense = OraBooks_Expenses::get_expense($expense_id, $context['org_id']);
         if (!$expense) {
             return new WP_Error('not_found', 'Expense not found.', ['status' => 404]);
-        }
-
-        $reason = sanitize_textarea_field($request->get_param('reason') ?? '');
-        if ($reason === '') {
-            return new WP_Error('reason_required', 'Rejection reason is required.', ['status' => 400]);
         }
 
         $result = OraBooks_Expenses::reject_expense($expense_id, $context['org_id'], $context['user_id'], $reason);
