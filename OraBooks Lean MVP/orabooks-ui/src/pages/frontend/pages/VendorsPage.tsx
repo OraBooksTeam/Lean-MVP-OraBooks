@@ -606,7 +606,7 @@ export default function VendorsPage() {
                           Pay
                         </Button>
                       )}
-                      <Button size="sm" variant="secondary" onClick={() => { setCreditNoteVendor(vendor); setError(''); }}>
+                      <Button size="sm" variant="secondary" onClick={() => { setCreditNoteVendor(vendor); setError(''); void loadVendorCreditNotes(vendor.id); }}>
                         Credit note
                       </Button>
                       <WpLink to={`/attachments?resource_type=vendor&resource_id=${vendor.id}`}>
@@ -679,6 +679,9 @@ export default function VendorsPage() {
                           Void
                         </Button>
                       )}
+                      <Button size="sm" variant="secondary" onClick={() => void openBillDetail(bill)}>
+                        View
+                      </Button>
                       <WpLink to={`/attachments?resource_type=bill&resource_id=${bill.id}`}>
                         <Button size="sm" variant="secondary">
                           <Paperclip className="h-3.5 w-3.5" />
@@ -791,6 +794,55 @@ export default function VendorsPage() {
             <div className="mt-6 flex justify-end gap-2">
               <Button variant="secondary" onClick={() => setPaymentVendor(null)}>Cancel</Button>
               <Button onClick={handleRecordPayment} disabled={saving}>Record payment</Button>
+            </div>
+            {walletPayments.length > 0 && (
+              <div className="mt-4 border-t border-border pt-4">
+                <h4 className="mb-2 text-sm font-semibold text-ink">Recent payments</h4>
+                <ul className="space-y-2 text-sm">
+                  {walletPayments.map((payment) => (
+                    <li key={payment.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border px-3 py-2">
+                      <div>
+                        <p className="font-medium text-ink">{money(payment.amount, paymentVendor.default_currency)}</p>
+                        <p className="text-slate-600">{payment.payment_date} · {payment.payment_method} · {payment.type || 'payment'}</p>
+                      </div>
+                      {payment.can_reverse && (
+                        <Button size="sm" variant="secondary" onClick={() => { setReversePayment(payment); setReverseReason(''); }}>
+                          Reverse
+                        </Button>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {statements.length > 0 && (
+              <div className="mt-4 border-t border-border pt-4">
+                <h4 className="mb-2 text-sm font-semibold text-ink">Monthly statements</h4>
+                <ul className="space-y-2 text-sm text-slate-600">
+                  {statements.map((row) => (
+                    <li key={row.id} className="flex justify-between rounded-lg border border-border px-3 py-2">
+                      <span>{row.statement_month}</span>
+                      <span>{money(row.payable_balance, paymentVendor.default_currency)}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </Modal>
+        )}
+
+        {reversePayment && paymentVendor && (
+          <Modal title="Reverse payment" onClose={() => setReversePayment(null)}>
+            <p className="mb-4 text-sm text-slate-600">
+              Reverse {money(reversePayment.amount, paymentVendor.default_currency)} payment on {reversePayment.payment_date}?
+            </p>
+            {error && <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div>}
+            <Field label="Reason">
+              <Input value={reverseReason} onChange={(e) => setReverseReason(e.target.value)} placeholder="Why is this payment being reversed?" />
+            </Field>
+            <div className="mt-6 flex justify-end gap-2">
+              <Button variant="secondary" onClick={() => setReversePayment(null)}>Cancel</Button>
+              <Button onClick={() => void handleReversePayment()} disabled={saving || !reverseReason.trim()}>Confirm reversal</Button>
             </div>
           </Modal>
         )}
