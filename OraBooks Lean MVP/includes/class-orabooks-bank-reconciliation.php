@@ -442,7 +442,7 @@ class OraBooks_Bank_Reconciliation {
         }
 
         $transaction_type = sanitize_text_field($transaction_type);
-        if (!in_array($transaction_type, ['payment', 'expense', 'journal', 'commission_payout', 'vendor_payment'], true)) {
+        if (!in_array($transaction_type, ['payment', 'expense', 'journal', 'commission_payout', 'vendor_payment', 'invoice'], true)) {
             return new WP_Error('invalid_transaction_type', 'Invalid transaction type');
         }
 
@@ -597,7 +597,7 @@ class OraBooks_Bank_Reconciliation {
                 return $created;
             }
             $created_id = is_object($created) ? (int) ($created->id ?? 0) : (int) ($created['id'] ?? 0);
-            $match_type = 'payment';
+            $match_type = 'invoice';
         } else {
             return new WP_Error('invalid_transaction_type', 'Supported types: expense, invoice');
         }
@@ -893,6 +893,11 @@ class OraBooks_Bank_Reconciliation {
         ));
     }
 
+    public static function get_transactions_with_suggestions($org_id, $bank_account_id, $args = []) {
+        $transactions = self::get_transactions_list($org_id, $bank_account_id, $args);
+        return self::enrich_transactions_with_suggestions($transactions ?: []);
+    }
+
     public static function get_recent_transactions($org_id, $args = []) {
         global $wpdb;
 
@@ -912,6 +917,10 @@ class OraBooks_Bank_Reconciliation {
             $limit,
             $offset
         ));
+    }
+
+    public static function get_recent_transactions_with_suggestions($org_id, $args = []) {
+        return self::enrich_transactions_with_suggestions(self::get_recent_transactions($org_id, $args) ?: []);
     }
 
     public static function get_recent_reconciliation_log($org_id, $args = []) {
