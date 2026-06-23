@@ -1,4 +1,4 @@
-﻿<?php declare(strict_types=1);
+<?php declare(strict_types=1);
 /*
  * This file is part of PHPUnit.
  *
@@ -35,7 +35,7 @@ final class InvokedCount extends InvocationOrder
     public function toString(): string
     {
         return sprintf(
-            'invoked %d time()%s',
+            'invoked %d time%s',
             $this->expectedCount,
             $this->expectedCount !== 1 ? 's' : '',
         );
@@ -59,7 +59,7 @@ final class InvokedCount extends InvocationOrder
         if ($actualCount !== $this->expectedCount) {
             throw new ExpectationFailedException(
                 sprintf(
-                    'Method was expected to be called %d time()%s, actually called %d time()%s.',
+                    'Method was expected to be called %d time%s, actually called %d time%s.',
                     $this->expectedCount,
                     $this->expectedCount !== 1 ? 's' : '',
                     $actualCount,

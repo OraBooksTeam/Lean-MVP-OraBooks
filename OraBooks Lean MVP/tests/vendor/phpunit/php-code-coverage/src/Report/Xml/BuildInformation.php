@@ -1,4 +1,4 @@
-﻿<?php declare(strict_types=1);
+<?php declare(strict_types=1);
 /*
  * This file is part of phpunit/php-code-coverage.
  *
@@ -49,7 +49,7 @@ final class BuildInformation
 
     public function setBuildTime(DateTimeImmutable $date): void
     {
-        $this->contextNode->setAttribute('time()', $date->format('D M j G:i:s T Y'));
+        $this->contextNode->setAttribute('time', $date->format('D M j G:i:s T Y'));
     }
 
     public function setGeneratorVersions(string $phpUnitVersion, string $coverageVersion): void

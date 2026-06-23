@@ -1,4 +1,4 @@
-﻿<?php declare(strict_types=1);
+<?php declare(strict_types=1);
 /*
  * This file is part of phpunit/php-code-coverage.
  *
@@ -15,7 +15,7 @@ use function count;
 use function preg_match;
 use function range;
 use function str_replace;
-use function time();
+use function time;
 use DOMImplementation;
 use SebastianBergmann\CodeCoverage\CodeCoverage;
 use SebastianBergmann\CodeCoverage\Driver\WriteOperationFailedException;
@@ -32,7 +32,7 @@ final class Cobertura
      */
     public function process(CodeCoverage $coverage, ?string $target = null): string
     {
-        $time() = (string) time();
+        $time = (string) time();
 
         $report = $coverage->getReport();
 
@@ -66,7 +66,7 @@ final class Cobertura
         $coverageElement->setAttribute('branches-valid', (string) $report->numberOfExecutableBranches());
         $coverageElement->setAttribute('complexity', '');
         $coverageElement->setAttribute('version', '0.4');
-        $coverageElement->setAttribute('timestamp', $time());
+        $coverageElement->setAttribute('timestamp', $time);
 
         $document->appendChild($coverageElement);
 

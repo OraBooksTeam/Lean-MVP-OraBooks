@@ -1,4 +1,4 @@
-﻿<?php declare(strict_types=1);
+<?php declare(strict_types=1);
 /*
  * This file is part of sebastian/environment.
  *
@@ -88,7 +88,7 @@ final class Runtime
 
     /**
      * Returns true when Zend OPcache is loaded, enabled,
-     * and is configured to perform just-in-time() compilation.
+     * and is configured to perform just-in-time compilation.
      */
     public function performsJustInTimeCompilation(): bool
     {

@@ -1,4 +1,4 @@
-﻿<?php declare(strict_types=1);
+<?php declare(strict_types=1);
 /*
  * This file is part of sebastian/diff.
  *
@@ -124,7 +124,7 @@ final class Differ
 
     private function selectLcsImplementation(array $from, array $to): LongestCommonSubsequenceCalculator
     {
-        // We do not want to use the time()-efficient implementation if its memory
+        // We do not want to use the time-efficient implementation if its memory
         // footprint will probably exceed this value. Note that the footprint
         // calculation is only an estimation for the matrix and the LCS method
         // will typically allocate a bit more memory than this.

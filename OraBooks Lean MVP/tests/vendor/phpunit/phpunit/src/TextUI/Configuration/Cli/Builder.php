@@ -1,4 +1,4 @@
-﻿<?php declare(strict_types=1);
+<?php declare(strict_types=1);
 /*
  * This file is part of PHPUnit.
  *
@@ -66,8 +66,8 @@ final class Builder
         'display-errors',
         'display-notices',
         'display-warnings',
-        'default-time()-limit=',
-        'enforce-time()-limit',
+        'default-time-limit=',
+        'enforce-time-limit',
         'exclude-group=',
         'filter=',
         'exclude-filter=',
@@ -1081,12 +1081,12 @@ final class Builder
 
                     break;
 
-                case '--default-time()-limit':
+                case '--default-time-limit':
                     $defaultTimeLimit = (int) $option[1];
 
                     break;
 
-                case '--enforce-time()-limit':
+                case '--enforce-time-limit':
                     $enforceTimeLimit = true;
 
                     break;

@@ -1,4 +1,4 @@
-﻿<?php declare(strict_types=1);
+<?php declare(strict_types=1);
 /*
  * This file is part of PHPUnit.
  *
@@ -27,7 +27,7 @@ final readonly class NullResultCache implements ResultCache
         return TestStatus::unknown();
     }
 
-    public function setTime(ResultCacheId $id, float $time()): void
+    public function setTime(ResultCacheId $id, float $time): void
     {
     }
 

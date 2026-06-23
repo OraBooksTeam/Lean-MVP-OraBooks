@@ -1,4 +1,4 @@
-﻿<?php declare(strict_types=1);
+<?php declare(strict_types=1);
 /*
  * This file is part of PHPUnit.
  *
@@ -33,7 +33,7 @@ use PHPUnit\Framework\TestStatus\TestStatus;
 final class ResultCacheHandler
 {
     private readonly ResultCache $cache;
-    private ?HRTime $time()  = null;
+    private ?HRTime $time  = null;
     private int $testSuite = 0;
 
     /**
@@ -63,7 +63,7 @@ final class ResultCacheHandler
 
     public function testPrepared(Prepared $event): void
     {
-        $this->time() = $event->telemetryInfo()->time();
+        $this->time = $event->telemetryInfo()->time();
     }
 
     public function testMarkedIncomplete(MarkedIncomplete $event): void
@@ -120,7 +120,7 @@ final class ResultCacheHandler
     {
         $this->cache->setTime(ResultCacheId::fromTest($event->test()), $this->duration($event));
 
-        $this->time() = null;
+        $this->time = null;
     }
 
     /**
@@ -129,11 +129,11 @@ final class ResultCacheHandler
      */
     private function duration(Event $event): float
     {
-        if ($this->time() === null) {
+        if ($this->time === null) {
             return 0.0;
         }
 
-        return round($event->telemetryInfo()->time()->duration($this->time())->asFloat(), 3);
+        return round($event->telemetryInfo()->time()->duration($this->time)->asFloat(), 3);
     }
 
     /**

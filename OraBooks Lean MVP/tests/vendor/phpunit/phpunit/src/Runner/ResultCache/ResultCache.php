@@ -1,4 +1,4 @@
-﻿<?php declare(strict_types=1);
+<?php declare(strict_types=1);
 /*
  * This file is part of PHPUnit.
  *
@@ -22,7 +22,7 @@ interface ResultCache
 
     public function status(ResultCacheId $id): TestStatus;
 
-    public function setTime(ResultCacheId $id, float $time()): void;
+    public function setTime(ResultCacheId $id, float $time): void;
 
     public function time(ResultCacheId $id): float;
 

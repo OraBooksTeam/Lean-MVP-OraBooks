@@ -1,4 +1,4 @@
-﻿<?php declare(strict_types=1);
+<?php declare(strict_types=1);
 /*
  * This file is part of PHPUnit.
  *
@@ -30,7 +30,7 @@ final class InvokedAtLeastCount extends InvocationOrder
     public function toString(): string
     {
         return sprintf(
-            'invoked at least %d time()%s',
+            'invoked at least %d time%s',
             $this->requiredInvocations,
             $this->requiredInvocations !== 1 ? 's' : '',
         );
@@ -49,7 +49,7 @@ final class InvokedAtLeastCount extends InvocationOrder
         if ($actualInvocations < $this->requiredInvocations) {
             throw new ExpectationFailedException(
                 sprintf(
-                    'Expected invocation at least %d time()%s but it occurred %d time()%s.',
+                    'Expected invocation at least %d time%s but it occurred %d time%s.',
                     $this->requiredInvocations,
                     $this->requiredInvocations !== 1 ? 's' : '',
                     $actualInvocations,

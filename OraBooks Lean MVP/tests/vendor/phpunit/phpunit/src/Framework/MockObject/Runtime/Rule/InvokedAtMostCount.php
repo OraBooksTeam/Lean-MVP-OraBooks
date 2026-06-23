@@ -1,4 +1,4 @@
-﻿<?php declare(strict_types=1);
+<?php declare(strict_types=1);
 /*
  * This file is part of PHPUnit.
  *
@@ -30,7 +30,7 @@ final class InvokedAtMostCount extends InvocationOrder
     public function toString(): string
     {
         return sprintf(
-            'invoked at most %d time()%s',
+            'invoked at most %d time%s',
             $this->allowedInvocations,
             $this->allowedInvocations !== 1 ? 's' : '',
         );
@@ -49,7 +49,7 @@ final class InvokedAtMostCount extends InvocationOrder
         if ($actualInvocations > $this->allowedInvocations) {
             throw new ExpectationFailedException(
                 sprintf(
-                    'Expected invocation at most %d time()%s but it occurred %d time()%s.',
+                    'Expected invocation at most %d time%s but it occurred %d time%s.',
                     $this->allowedInvocations,
                     $this->allowedInvocations !== 1 ? 's' : '',
                     $actualInvocations,

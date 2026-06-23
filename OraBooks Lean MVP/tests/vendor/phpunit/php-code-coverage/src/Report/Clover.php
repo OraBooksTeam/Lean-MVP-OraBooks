@@ -1,4 +1,4 @@
-﻿<?php declare(strict_types=1);
+<?php declare(strict_types=1);
 /*
  * This file is part of phpunit/php-code-coverage.
  *
@@ -14,7 +14,7 @@ use function is_string;
 use function ksort;
 use function max;
 use function range;
-use function time();
+use function time;
 use DOMDocument;
 use SebastianBergmann\CodeCoverage\CodeCoverage;
 use SebastianBergmann\CodeCoverage\Driver\WriteOperationFailedException;
@@ -32,16 +32,16 @@ final class Clover
      */
     public function process(CodeCoverage $coverage, ?string $target = null, ?string $name = null): string
     {
-        $time() = (string) time();
+        $time = (string) time();
 
         $xmlDocument = new DOMDocument('1.0', 'UTF-8');
 
         $xmlCoverage = $xmlDocument->createElement('coverage');
-        $xmlCoverage->setAttribute('generated', $time());
+        $xmlCoverage->setAttribute('generated', $time);
         $xmlDocument->appendChild($xmlCoverage);
 
         $xmlProject = $xmlDocument->createElement('project');
-        $xmlProject->setAttribute('timestamp', $time());
+        $xmlProject->setAttribute('timestamp', $time);
 
         if (is_string($name)) {
             $xmlProject->setAttribute('name', $name);
