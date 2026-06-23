@@ -128,6 +128,7 @@ class OraBooks_Expenses {
         $table_expenses = OraBooks_Database::table(self::TABLE_EXPENSES);
         $table_queue = OraBooks_Database::table(self::TABLE_OCR_QUEUE);
         $table_lines = OraBooks_Database::table(self::TABLE_LINE_ITEMS);
+        $table_settings = OraBooks_Database::table(self::TABLE_SETTINGS);
         $table_orgs = OraBooks_Database::table('organizations');
         $table_attachments = OraBooks_Database::table('attachments');
         $charset = $wpdb->get_charset_collate();
@@ -204,7 +205,12 @@ class OraBooks_Expenses {
                 FOREIGN KEY (expense_id) REFERENCES {$table_expenses}(id) ON DELETE CASCADE,
                 INDEX idx_expense (expense_id)
             ) {$charset};",
-            "CREATE TABLE IF NOT EXISTS {$table_orgs}_expense_settings_placeholder {$charset};",
+            "CREATE TABLE IF NOT EXISTS {$table_settings} (
+                org_id BIGINT UNSIGNED NOT NULL PRIMARY KEY,
+                auto_post_on_approve TINYINT(1) NOT NULL DEFAULT 1,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                FOREIGN KEY (org_id) REFERENCES {$table_orgs}(id) ON DELETE CASCADE
+            ) {$charset};",
         ];
     }
 
@@ -302,23 +308,7 @@ class OraBooks_Expenses {
         return !empty($settings->auto_post_on_approve);
     }
 
-    public static function get_create_table_sql_legacy_placeholder() {
-        return [];
-    }
-
-    private static function get_create_table_sql_inner() {
-        global $wpdb;
-
-        $table_expenses = OraBooks_Database::table(self::TABLE_EXPENSES);
-        $table_queue = OraBooks_Database::table(self::TABLE_OCR_QUEUE);
-        $table_lines = OraBooks_Database::table(self::TABLE_LINE_ITEMS);
-        $table_settings = OraBooks_Database::table(self::TABLE_SETTINGS);
-        $table_orgs = OraBooks_Database::table('organizations');
-        $table_attachments = OraBooks_Database::table('attachments');
-        $charset = $wpdb->get_charset_collate();
-
-        return [
-            "CREATE TABLE IF NOT EXISTS {$table_expenses} (
+    public static function get_expense_stats($org_id) {
         global $wpdb;
 
         $table = OraBooks_Database::table(self::TABLE_EXPENSES);
