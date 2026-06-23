@@ -109,14 +109,11 @@ class OraBooks_Expenses {
 
         if (function_exists('orabooks_publish_event')) {
             orabooks_publish_event('ocr_requested', (int) $expense_id, $payload);
-            return;
-        }
-
-        if (class_exists('OraBooks_AsyncQueue')) {
+        } elseif (class_exists('OraBooks_AsyncQueue')) {
             OraBooks_AsyncQueue::enqueue('process_expense_ocr', $payload, ['priority' => 5]);
-            return;
         }
 
+        // Run OCR inline on upload so fields populate immediately; async/cron remain as retry/backfill.
         self::init()->process_ocr_item_by_id($queue_id);
     }
 
@@ -340,7 +337,7 @@ class OraBooks_Expenses {
             'merchant_address' => $row->merchant_address,
             'description'      => $row->description,
             'ocr_confidence'   => $row->ocr_confidence !== null ? (float) $row->ocr_confidence : null,
-            'ocr_risk_level'   => $row->ocr_risk_level,
+            'ocr_risk_level'   => $row->ocr_confidence !== null ? $row->ocr_risk_level : null,
             'ocr_data'         => $ocr_data,
             'ocr_provider'     => $row->ocr_provider,
             'ocr_model_version'=> $row->ocr_model_version,
@@ -366,7 +363,7 @@ class OraBooks_Expenses {
             $formatted['ocr_queue'] = self::get_ocr_queue_state((int) $row->id);
         }
 
-        if (class_exists('OraBooks_Classification')) {
+        if (class_exists('OraBooks_Classification') && $row->ocr_confidence !== null) {
             $formatted['classification'] = OraBooks_Classification::format_classification($row);
         }
 
@@ -1308,7 +1305,7 @@ class OraBooks_Expenses {
             orabooks_json_error($result->get_error_message(), $status);
         }
 
-        orabooks_json_success(['expense' => $result], 'Receipt uploaded and queued for OCR');
+        orabooks_json_success(['expense' => $result], 'Receipt uploaded and OCR processed');
     }
 
     public function ajax_get() {
