@@ -2255,28 +2255,51 @@ class OraBooks_Customers {
     private static function create_payment_journal_entry($org_id, $payment_id, $amount, $payment_date, $invoice_number, $user_id) {
         return self::create_payment_journal_for_ar($org_id, $payment_id, $amount, $payment_date, $invoice_number, $user_id);
     }
-                'Payment journal posting failed: ' . $post->get_error_message(),
-                'warning', ['journal_id' => $journal_id, 'error' => $post->get_error_message()], $user_id, $org_id);
-            return $post;
+
+    /**
+     * Validate customer credit hold and credit limit before creating an invoice.
+     */
+    public static function validate_customer_credit_for_invoice($invoice_like) {
+        global $wpdb;
+
+        $customer_id = (int) ($invoice_like->customer_id ?? 0);
+        if ($customer_id <= 0) {
+            return new WP_Error('missing_field', 'Customer ID is required');
         }
 
-        orabooks_log_event('payment_journal_posted',
-            sprintf(__('Payment journal #%s posted: Dr Cash $%s, Cr Sales Revenue $%s for invoice %s', 'orabooks'),
-                $post['journal_number'],
-                number_format((float)$amount, 2),
-                number_format((float)$amount, 2),
-                $invoice_number
-            ),
-            'info', [
-                'journal_id'     => $journal_id,
-                'journal_number' => $post['journal_number'] ?? '',
-                'journal_hash'   => $post['journal_hash'] ?? '',
-                'payment_id'     => $payment_id,
-                'amount'         => $amount,
-                'org_id'         => $org_id,
-            ], $user_id, $org_id);
+        $customer = self::get_by_id($customer_id);
+        if (!$customer) {
+            return new WP_Error('not_found', 'Customer not found');
+        }
 
-        return $post;
+        if (!empty($customer->credit_hold)) {
+            return new WP_Error('credit_hold', 'New invoices blocked until credit hold is removed.');
+        }
+
+        $credit_limit = isset($customer->credit_limit) ? (float) $customer->credit_limit : 0.0;
+        if ($credit_limit <= 0) {
+            return true;
+        }
+
+        $table_invoices = OraBooks_Database::table('invoices');
+        $outstanding = (float) $wpdb->get_var($wpdb->prepare(
+            "SELECT COALESCE(SUM(total_amount - COALESCE(paid_amount, 0)), 0)
+             FROM {$table_invoices}
+             WHERE customer_id = %d
+               AND payment_status IN ('unpaid', 'partial', 'overdue')
+               AND workflow_status IN ('sent', 'posted', 'approved', 'submitted')",
+            $customer_id
+        ));
+
+        $new_amount = (float) ($invoice_like->total_amount ?? 0);
+        if ($outstanding + $new_amount > $credit_limit) {
+            return new WP_Error(
+                'credit_limit_exceeded',
+                sprintf('Invoice would exceed customer credit limit of %s.', number_format($credit_limit, 2))
+            );
+        }
+
+        return true;
     }
 
     /**
