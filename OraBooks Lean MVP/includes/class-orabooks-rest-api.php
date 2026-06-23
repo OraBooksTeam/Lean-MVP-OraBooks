@@ -772,14 +772,14 @@ class OraBooks_Rest_Api {
             return $context;
         }
 
-        $expense = OraBooks_Expenses::get_expense((int) $request['id'], $context['org_id']);
+        $expense = OraBooks_Expenses::get_expense(self::resolve_route_id($request), $context['org_id']);
         if (!$expense) {
             return new WP_Error('not_found', 'Expense not found.', ['status' => 404]);
         }
 
         if ($expense->workflow_status === 'draft' && $expense->ocr_confidence === null) {
-            OraBooks_Expenses::maybe_process_pending_ocr((int) $request['id'], $context['org_id']);
-            $expense = OraBooks_Expenses::get_expense((int) $request['id'], $context['org_id']);
+            OraBooks_Expenses::maybe_process_pending_ocr(self::resolve_route_id($request), $context['org_id']);
+            $expense = OraBooks_Expenses::get_expense(self::resolve_route_id($request), $context['org_id']);
         }
 
         return rest_ensure_response(['expense' => OraBooks_Expenses::format_expense($expense, true)]);
@@ -834,7 +834,7 @@ class OraBooks_Rest_Api {
         }
 
         $result = OraBooks_Expenses::confirm_submit(
-            (int) $request['id'],
+            self::resolve_route_id($request),
             $context['org_id'],
             $context['user_id'],
             $idempotency_key,
@@ -883,7 +883,7 @@ class OraBooks_Rest_Api {
             return $context;
         }
 
-        $expense_id = (int) $request['id'];
+        $expense_id = self::resolve_route_id($request);
         $expense = OraBooks_Expenses::get_expense($expense_id, $context['org_id']);
         if (!$expense) {
             return new WP_Error('not_found', 'Expense not found.', ['status' => 404]);
