@@ -14,7 +14,7 @@ class OraBooks_Organization {
 
  private static $instance = null;
 
- public static function init {
+	public static function init() {
  if (self::$instance === null) {
  self::$instance = new self;
  }
