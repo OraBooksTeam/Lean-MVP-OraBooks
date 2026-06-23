@@ -441,7 +441,7 @@ class OraBooks_Ajax {
             : [];
 
         $recent_transactions = class_exists('OraBooks_Bank_Reconciliation')
-            ? OraBooks_Bank_Reconciliation::get_recent_transactions($org_id, ['limit' => 25, 'offset' => 0])
+            ? OraBooks_Bank_Reconciliation::get_recent_transactions_with_suggestions($org_id, ['limit' => 25, 'offset' => 0])
             : [];
 
         $recent_reconciliations = class_exists('OraBooks_Bank_Reconciliation')
