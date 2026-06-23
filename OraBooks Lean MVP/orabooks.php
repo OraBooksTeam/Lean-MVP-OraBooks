@@ -120,6 +120,7 @@ function orabooks_init() {
     OraBooks_AsyncQueue::register_default_handlers();
     OraBooks_Exports::init();
     OraBooks_Customers::init();
+    OraBooks_AR::init();
     OraBooks_Vendors::init();
     OraBooks_Inventory::init();
     OraBooks_Bank_Reconciliation::init();
