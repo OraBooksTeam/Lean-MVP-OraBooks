@@ -69,18 +69,7 @@ export default function AcceptInvitePage() {
         return;
       }
 
-      const res = await api.acceptInvite(token);
-      if (res.error) {
-        const message = typeof res.error === 'string' ? res.error : 'Unable to accept invitation.';
-        if (message.toLowerCase().includes('log in')) {
-          setNeedsLogin(true);
-        } else {
-          setError(message);
-        }
-      } else {
-        setSuccess('Invitation accepted. Redirecting to your workspace…');
-        redirectAfterAuth((res as any).data);
-      }
+      await acceptInvitation();
       setLoading(false);
     })();
   }, [token]);
@@ -121,7 +110,16 @@ export default function AcceptInvitePage() {
             </div>
           </>
         ) : error ? (
-          <p className="mt-4 text-sm text-danger">{error}</p>
+          <>
+            <p className="mt-4 text-sm text-danger">{error}</p>
+            {hasStoredAuthToken() && (
+              <div className="mt-6">
+                <Button type="button" loading={accepting} onClick={() => void acceptInvitation()}>
+                  Try again
+                </Button>
+              </div>
+            )}
+          </>
         ) : (
           <p className="mt-4 text-sm text-emerald-700">{success}</p>
         )}
