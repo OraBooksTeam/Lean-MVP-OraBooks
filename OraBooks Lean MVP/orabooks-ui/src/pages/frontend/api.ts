@@ -1101,6 +1101,8 @@ export const api = {
     api.post('orabooks_notifications_mark_read', { notification_id: notificationId }),
   notificationsMarkAllRead: () =>
     api.post('orabooks_notifications_mark_all_read'),
+  notificationsRetryDelivery: (notificationId: number) =>
+    api.post('orabooks_notifications_retry_delivery', { notification_id: notificationId }),
   notificationPrefsGet: () =>
     api.get('orabooks_notification_preferences_get'),
   notificationPrefsSave: (data: Record<string, any>) =>
