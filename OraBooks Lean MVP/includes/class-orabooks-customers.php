@@ -1623,59 +1623,6 @@ class OraBooks_Customers {
     }
 
     /**
-     * Block send/post when customer is on credit hold or over credit limit.
-     */
-    private static function validate_customer_credit_for_invoice($invoice) {
-        global $wpdb;
-
-        $table = OraBooks_Database::table('customers');
-        $fields = self::get_table_column_names($table);
-        if (!in_array('credit_hold', $fields, true)) {
-            return true;
-        }
-
-        $customer = $wpdb->get_row($wpdb->prepare(
-            "SELECT credit_hold, credit_limit FROM {$table} WHERE id = %d",
-            (int) $invoice->customer_id
-        ));
-
-        if (!$customer) {
-            return true;
-        }
-
-        if ((int) $customer->credit_hold === 1) {
-            return new WP_Error('credit_hold', 'Customer is on credit hold. Invoices cannot be sent or posted.');
-        }
-
-        $credit_limit = floatval($customer->credit_limit ?? 0);
-        if ($credit_limit > 0) {
-            $table_invoices = OraBooks_Database::table('invoices');
-            $outstanding = (float) $wpdb->get_var($wpdb->prepare(
-                "SELECT COALESCE(SUM(total_amount - COALESCE(paid_amount, 0)), 0)
-                 FROM {$table_invoices}
-                 WHERE customer_id = %d
-                   AND payment_status IN ('unpaid', 'partial', 'overdue')
-                   AND workflow_status != 'cancelled'
-                   AND id != %d",
-                (int) $invoice->customer_id,
-                (int) $invoice->id
-            ));
-            $projected = $outstanding + floatval($invoice->total_amount) - floatval($invoice->paid_amount ?? 0);
-            if ($projected > $credit_limit) {
-                return new WP_Error(
-                    'credit_limit',
-                    sprintf(
-                        'Invoice would exceed customer credit limit (%s).',
-                        number_format($credit_limit, 2)
-                    )
-                );
-            }
-        }
-
-        return true;
-    }
-
-    /**
      * AR journal on invoice post: Dr AR, Cr Revenue (+ tax liability when configured).
      */
     private static function create_invoice_journal($invoice, $user_id) {
@@ -2270,7 +2217,7 @@ class OraBooks_Customers {
     }
 
     /**
-     * Validate customer credit hold and credit limit before creating an invoice.
+     * Validate customer credit hold and credit limit before creating, sending, or posting an invoice.
      */
     public static function validate_customer_credit_for_invoice($invoice_like) {
         global $wpdb;
@@ -2278,6 +2225,12 @@ class OraBooks_Customers {
         $customer_id = (int) ($invoice_like->customer_id ?? 0);
         if ($customer_id <= 0) {
             return new WP_Error('missing_field', 'Customer ID is required');
+        }
+
+        $table = OraBooks_Database::table('customers');
+        $fields = self::get_table_column_names($table);
+        if (!in_array('credit_hold', $fields, true)) {
+            return true;
         }
 
         $customer = self::get_by_id($customer_id);
@@ -2295,17 +2248,32 @@ class OraBooks_Customers {
         }
 
         $table_invoices = OraBooks_Database::table('invoices');
-        $outstanding = (float) $wpdb->get_var($wpdb->prepare(
-            "SELECT COALESCE(SUM(total_amount - COALESCE(paid_amount, 0)), 0)
-             FROM {$table_invoices}
-             WHERE customer_id = %d
-               AND payment_status IN ('unpaid', 'partial', 'overdue')
-               AND workflow_status IN ('sent', 'posted', 'approved', 'submitted')",
-            $customer_id
-        ));
+        $invoice_id = (int) ($invoice_like->id ?? 0);
+        if ($invoice_id > 0) {
+            $outstanding = (float) $wpdb->get_var($wpdb->prepare(
+                "SELECT COALESCE(SUM(total_amount - COALESCE(paid_amount, 0)), 0)
+                 FROM {$table_invoices}
+                 WHERE customer_id = %d
+                   AND payment_status IN ('unpaid', 'partial', 'overdue')
+                   AND workflow_status != 'cancelled'
+                   AND id != %d",
+                $customer_id,
+                $invoice_id
+            ));
+            $projected = $outstanding + (float) ($invoice_like->total_amount ?? 0) - (float) ($invoice_like->paid_amount ?? 0);
+        } else {
+            $outstanding = (float) $wpdb->get_var($wpdb->prepare(
+                "SELECT COALESCE(SUM(total_amount - COALESCE(paid_amount, 0)), 0)
+                 FROM {$table_invoices}
+                 WHERE customer_id = %d
+                   AND payment_status IN ('unpaid', 'partial', 'overdue')
+                   AND workflow_status IN ('sent', 'posted', 'approved', 'submitted')",
+                $customer_id
+            ));
+            $projected = $outstanding + (float) ($invoice_like->total_amount ?? 0);
+        }
 
-        $new_amount = (float) ($invoice_like->total_amount ?? 0);
-        if ($outstanding + $new_amount > $credit_limit) {
+        if ($projected > $credit_limit) {
             return new WP_Error(
                 'credit_limit_exceeded',
                 sprintf('Invoice would exceed customer credit limit of %s.', number_format($credit_limit, 2))
