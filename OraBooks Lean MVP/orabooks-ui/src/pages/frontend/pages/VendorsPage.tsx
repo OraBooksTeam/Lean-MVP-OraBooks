@@ -73,11 +73,41 @@ type Bill = {
   due_date?: string;
   workflow_status?: string;
   payment_status?: string;
+  lock_status?: string;
   subtotal_amount?: string | number;
   tax_amount?: string | number;
   total_amount?: string | number;
   paid_amount?: string | number;
   currency?: string;
+};
+
+type VendorCreditNote = {
+  id: number;
+  credit_note_number: string;
+  amount: number;
+  reason: string;
+  credit_date: string;
+  workflow_status: string;
+  is_adjustment?: number;
+  requires_second_approval?: number;
+  bill_id?: number | null;
+};
+
+type VendorPayment = {
+  id: number;
+  payment_date: string;
+  amount: number;
+  payment_method: string;
+  type?: string;
+  reference?: string;
+  can_reverse?: boolean;
+};
+
+type VendorStatement = {
+  id: number;
+  statement_month: string;
+  payable_balance: number | string;
+  credit_balance?: number | string;
 };
 
 export default function VendorsPage() {

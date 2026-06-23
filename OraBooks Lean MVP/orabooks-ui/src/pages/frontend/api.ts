@@ -404,6 +404,30 @@ export const api = {
     api.post('orabooks_bill_void', { org_id: orgId, bill_id: billId, reason }),
   vendorPaymentRecord: (orgId: number, data: Record<string, unknown>) =>
     api.post('orabooks_vendor_payment_record', { org_id: orgId, ...data }),
+  vendorPaymentReverse: (orgId: number, paymentId: number, reason = '') =>
+    api.post('orabooks_vendor_payment_reverse', { org_id: orgId, payment_id: paymentId, reason }),
+  vendorGet: (orgId: number, vendorId: number) =>
+    api.get('orabooks_vendor_get', { org_id: orgId, vendor_id: vendorId }),
+  billGet: (orgId: number, billId: number) =>
+    api.get('orabooks_bill_get', { org_id: orgId, bill_id: billId }),
+  vendorCreditNoteSubmit: (orgId: number, creditNoteId: number) =>
+    api.post('orabooks_vendor_credit_note_submit', { org_id: orgId, credit_note_id: creditNoteId }),
+  vendorCreditNoteApprove: (orgId: number, creditNoteId: number) =>
+    api.post('orabooks_vendor_credit_note_approve', { org_id: orgId, credit_note_id: creditNoteId }),
+  vendorCreditNotePost: (orgId: number, creditNoteId: number) =>
+    api.post('orabooks_vendor_credit_note_post', { org_id: orgId, credit_note_id: creditNoteId }),
+  vendorCreditNoteVoid: (orgId: number, creditNoteId: number, reason = '') =>
+    api.post('orabooks_vendor_credit_note_void', { org_id: orgId, credit_note_id: creditNoteId, reason }),
+  vendorCreditNotesList: (orgId: number, filters: { vendor_id?: number; bill_id?: number } = {}) =>
+    api.get('orabooks_vendor_credit_notes_list', { org_id: orgId, ...filters }),
+  vendorPaymentsList: (orgId: number, filters: { vendor_id?: number; bill_id?: number } = {}) =>
+    api.get('orabooks_vendor_payments_list', { org_id: orgId, ...filters }),
+  apConfigGet: (orgId: number) =>
+    api.get('orabooks_ap_config_get', { org_id: orgId }),
+  apConfigSave: (orgId: number, data: Record<string, unknown>) =>
+    api.post('orabooks_ap_config_save', { org_id: orgId, ...data }),
+  vendorStatementsList: (orgId: number, vendorId: number) =>
+    api.get('orabooks_vendor_statements_list', { org_id: orgId, vendor_id: vendorId }),
   apAging: (orgId: number, asOfDate?: string) =>
     api.get('orabooks_ap_aging', { org_id: orgId, ...(asOfDate ? { as_of_date: asOfDate } : {}) }),
   inventoryDashboard: () =>
