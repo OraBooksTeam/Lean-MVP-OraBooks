@@ -32,7 +32,7 @@ export default function NotificationsPage() {
   const isOwner = context?.user?.role === 'owner';
   const isPartner = context?.organization?.organization_type === 'partner' || context?.user?.is_partner;
 
-  const load = useCallback(async (f = applied) => {
+  const load = async (f = applied) => {
     setLoading(true);
     setError('');
     const res = await api.notificationsList(buildNotificationQueryParams(f));
@@ -44,17 +44,14 @@ export default function NotificationsPage() {
       setUnread(count);
     }
     setLoading(false);
-  }, [applied]);
+  };
 
   useEffect(() => {
     api.frontendContext().then((res) => {
       if (!res.error) setContext((res as any).data);
     });
-  }, []);
-
-  useEffect(() => {
     void load();
-  }, [load]);
+  }, []);
 
   useEffect(() => {
     if (!highlightId) return;

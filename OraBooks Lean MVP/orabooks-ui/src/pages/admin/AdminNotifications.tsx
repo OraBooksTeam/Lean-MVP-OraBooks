@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import AdminPageShell from '@/components/AdminPageShell';
 import NotificationCenterPanel from '@/components/NotificationCenterPanel';
 import NotificationPreferencesForm from '@/components/NotificationPreferencesForm';
