@@ -1979,11 +1979,11 @@ class OraBooks_Customers {
 
         do_action('orabooks_customer_active_status_changed', $customer->user_id ?? 0, $customer_is_active, $org_id);
 
-        // Create journal entry via SL-001 posting engine
-        self::create_payment_journal_entry(
+        // Create journal entry via SL-001 posting engine (Dr Cash / Cr AR)
+        self::create_payment_journal_for_ar(
             $org_id,
             $payment_id,
-            $payment_amount,
+            min($payment_amount, max(0, (float) $invoice->total_amount - ((float) ($invoice->paid_amount ?? 0)))),
             $payment_date,
             $invoice->invoice_number,
             orabooks_get_current_user_id()
@@ -2190,58 +2190,26 @@ class OraBooks_Customers {
     // ================================================================
 
     /**
-     * Create a journal entry for an invoice payment.
-     *
-     * Double-entry:
-     *   Dr Cash (1000) — payment amount
-     *   Cr Sales Revenue (4000) — payment amount
-     *
-     * Uses the SL-001 posting engine, auto-approves, and posts.
-     * Gracefully skips if the posting engine accounts are not available.
-     *
-     * @param int    $org_id        Organization ID.
-     * @param int    $payment_id    Payment record ID.
-     * @param float  $amount        Payment amount.
-     * @param string $payment_date  Payment date (Y-m-d).
-     * @param string $invoice_number Invoice number for description.
-     * @param int    $user_id       User performing the action.
-     * @return array|WP_Error|null
+     * Create a journal entry for an invoice payment (Dr Cash / Cr AR).
      */
-    private static function create_payment_journal_entry($org_id, $payment_id, $amount, $payment_date, $invoice_number, $user_id) {
-        // Use system user (0) for auto-posted journals to bypass maker-checker policy.
-        // System journals are self-approved since they are system-initiated, not user-initiated.
+    public static function create_payment_journal_for_ar($org_id, $payment_id, $amount, $payment_date, $reference, $user_id) {
         $system_user = 0;
-        if (!class_exists('OraBooks_Posting')) {
-            orabooks_log_event('journal_skipped_no_engine',
-                'Payment journal entry skipped: SL-001 posting engine not available',
-                'info', ['payment_id' => $payment_id, 'org_id' => $org_id], $user_id, $org_id);
+        if (!class_exists('OraBooks_Posting') || $amount <= 0) {
             return null;
         }
 
         if (!class_exists('OraBooks_COA') || !method_exists('OraBooks_COA', 'get_account_by_code')) {
-            orabooks_log_event('journal_skipped_no_coa',
-                'Payment journal entry skipped: SL-017 COA not available',
-                'info', ['payment_id' => $payment_id, 'org_id' => $org_id], $user_id, $org_id);
             return null;
         }
 
-        // Verify required COA accounts exist for this org
         $cash_account = OraBooks_COA::get_account_by_code($org_id, '1000');
-        $revenue_account = OraBooks_COA::get_account_by_code($org_id, '4000');
+        $ar_code = OraBooks_COA::get_account_by_code($org_id, '1100') ? '1100' : '1000';
+        $ar_account = OraBooks_COA::get_account_by_code($org_id, $ar_code);
 
-        if (!$cash_account || !$revenue_account) {
-            orabooks_log_event('journal_skipped_missing_accounts',
-                'Payment journal entry skipped: Cash (1000) or Sales Revenue (4000) account not found',
-                'warning', [
-                    'payment_id' => $payment_id,
-                    'org_id' => $org_id,
-                    'cash_found' => (bool)$cash_account,
-                    'revenue_found' => (bool)$revenue_account,
-                ], $user_id, $org_id);
+        if (!$cash_account || !$ar_account) {
             return null;
         }
 
-        // Create draft journal (use system user for auto-posting)
         $journal_id = OraBooks_Posting::create_journal([
             'org_id'           => $org_id,
             'transaction_date' => $payment_date,
@@ -2249,70 +2217,44 @@ class OraBooks_Customers {
             'source_id'        => $payment_id,
             'idempotency_key'  => 'payment_' . $payment_id,
             'metadata'         => [
-                'payment_id'       => $payment_id,
-                'invoice_number'   => $invoice_number,
-                'amount'           => $amount,
-                'source'           => 'SL-021 invoice payment',
-                'recorded_by_user' => $user_id,
+                'payment_id' => $payment_id,
+                'reference'  => $reference,
+                'amount'     => $amount,
             ],
         ], $system_user);
 
         if (is_wp_error($journal_id)) {
-            orabooks_log_event('journal_creation_failed',
-                'Payment journal creation failed: ' . $journal_id->get_error_message(),
-                'warning', ['payment_id' => $payment_id, 'error' => $journal_id->get_error_message()], $user_id, $org_id);
             return $journal_id;
         }
 
-        // Add double-entry lines: Dr Cash, Cr Revenue
-        $description = sprintf(
-            __('Payment of $%s for invoice %s', 'orabooks'),
-            number_format((float)$amount, 2),
-            $invoice_number
-        );
-
-        $result = OraBooks_Posting::add_lines($journal_id, [
-            [
-                'account_code' => '1000', // Cash
-                'debit'        => (float)$amount,
-                'credit'       => 0,
-                'description'  => $description,
-            ],
-            [
-                'account_code' => '4000', // Sales Revenue
-                'debit'        => 0,
-                'credit'       => (float)$amount,
-                'description'  => $description,
-            ],
+        $description = sprintf('Payment for %s', $reference);
+        OraBooks_Posting::add_lines($journal_id, [
+            ['account_code' => '1000', 'debit' => (float) $amount, 'credit' => 0, 'description' => $description],
+            ['account_code' => $ar_code, 'debit' => 0, 'credit' => (float) $amount, 'description' => $description],
         ]);
 
-        if (is_wp_error($result)) {
-            orabooks_log_event('journal_lines_failed',
-                'Payment journal lines failed: ' . $result->get_error_message(),
-                'warning', ['journal_id' => $journal_id, 'error' => $result->get_error_message()], $user_id, $org_id);
-            return $result;
-        }
+        OraBooks_Posting::submit_journal($journal_id, $system_user);
+        OraBooks_Posting::approve_journal($journal_id, $system_user);
+        OraBooks_Posting::post_journal($journal_id, $system_user);
 
-        // Auto-submit, approve, and post (system journal — use system user to bypass maker-checker)
-        $submit = OraBooks_Posting::submit_journal($journal_id, $system_user);
-        if (is_wp_error($submit)) {
-            orabooks_log_event('journal_submit_failed',
-                'Payment journal submit failed: ' . $submit->get_error_message(),
-                'warning', ['journal_id' => $journal_id, 'error' => $submit->get_error_message()], $user_id, $org_id);
-            return $submit;
-        }
+        global $wpdb;
+        $wpdb->update(
+            OraBooks_Database::table('payments'),
+            ['journal_id' => (int) $journal_id],
+            ['id' => (int) $payment_id],
+            ['%d'],
+            ['%d']
+        );
 
-        $approve = OraBooks_Posting::approve_journal($journal_id, $system_user);
-        if (is_wp_error($approve)) {
-            orabooks_log_event('journal_approve_failed',
-                'Payment journal approval failed: ' . $approve->get_error_message(),
-                'warning', ['journal_id' => $journal_id, 'error' => $approve->get_error_message()], $user_id, $org_id);
-            return $approve;
-        }
+        return $journal_id;
+    }
 
-        $post = OraBooks_Posting::post_journal($journal_id, $system_user);
-        if (is_wp_error($post)) {
-            orabooks_log_event('journal_post_failed',
+    /**
+     * @deprecated Use create_payment_journal_for_ar()
+     */
+    private static function create_payment_journal_entry($org_id, $payment_id, $amount, $payment_date, $invoice_number, $user_id) {
+        return self::create_payment_journal_for_ar($org_id, $payment_id, $amount, $payment_date, $invoice_number, $user_id);
+    }
                 'Payment journal posting failed: ' . $post->get_error_message(),
                 'warning', ['journal_id' => $journal_id, 'error' => $post->get_error_message()], $user_id, $org_id);
             return $post;
