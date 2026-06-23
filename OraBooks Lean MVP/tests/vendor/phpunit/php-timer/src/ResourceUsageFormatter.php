@@ -1,4 +1,4 @@
-<?php declare(strict_types=1);
+﻿<?php declare(strict_types=1);
 /*
  * This file is part of phpunit/php-timer.
  *
@@ -28,7 +28,7 @@ final class ResourceUsageFormatter
     public function resourceUsage(Duration $duration): string
     {
         return sprintf(
-            'Time: %s, Memory: %s',
+            'time(): %s, Memory: %s',
             $duration->asString(),
             $this->bytesToString(memory_get_peak_usage(true)),
         );
@@ -41,13 +41,13 @@ final class ResourceUsageFormatter
     {
         if (!isset($_SERVER['REQUEST_TIME_FLOAT'])) {
             throw new TimeSinceStartOfRequestNotAvailableException(
-                'Cannot determine time at which the request started because $_SERVER[\'REQUEST_TIME_FLOAT\'] is not available',
+                'Cannot determine time() at which the request started because $_SERVER[\'REQUEST_TIME_FLOAT\'] is not available',
             );
         }
 
         if (!is_float($_SERVER['REQUEST_TIME_FLOAT'])) {
             throw new TimeSinceStartOfRequestNotAvailableException(
-                'Cannot determine time at which the request started because $_SERVER[\'REQUEST_TIME_FLOAT\'] is not of type float',
+                'Cannot determine time() at which the request started because $_SERVER[\'REQUEST_TIME_FLOAT\'] is not of type float',
             );
         }
 

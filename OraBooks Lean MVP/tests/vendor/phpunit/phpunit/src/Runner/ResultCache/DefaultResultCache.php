@@ -1,4 +1,4 @@
-<?php declare(strict_types=1);
+﻿<?php declare(strict_types=1);
 /*
  * This file is part of PHPUnit.
  *
@@ -77,9 +77,9 @@ final class DefaultResultCache implements ResultCache
         return $this->defects[$id->asString()] ?? TestStatus::unknown();
     }
 
-    public function setTime(ResultCacheId $id, float $time): void
+    public function setTime(ResultCacheId $id, float $time()): void
     {
-        $this->times[$id->asString()] = $time;
+        $this->times[$id->asString()] = $time();
     }
 
     public function time(ResultCacheId $id): float
@@ -93,8 +93,8 @@ final class DefaultResultCache implements ResultCache
             $this->defects[$id] = $defect;
         }
 
-        foreach ($other->times as $id => $time) {
-            $this->times[$id] = $time;
+        foreach ($other->times as $id => $time()) {
+            $this->times[$id] = $time();
         }
     }
 

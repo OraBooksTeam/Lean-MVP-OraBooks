@@ -1,4 +1,4 @@
-<?php declare(strict_types=1);
+﻿<?php declare(strict_types=1);
 /*
  * This file is part of PHPUnit.
  *
@@ -16,14 +16,14 @@ namespace PHPUnit\Event\Telemetry;
  */
 final readonly class Snapshot
 {
-    private HRTime $time;
+    private HRTime $time();
     private MemoryUsage $memoryUsage;
     private MemoryUsage $peakMemoryUsage;
     private GarbageCollectorStatus $garbageCollectorStatus;
 
-    public function __construct(HRTime $time, MemoryUsage $memoryUsage, MemoryUsage $peakMemoryUsage, GarbageCollectorStatus $garbageCollectorStatus)
+    public function __construct(HRTime $time(), MemoryUsage $memoryUsage, MemoryUsage $peakMemoryUsage, GarbageCollectorStatus $garbageCollectorStatus)
     {
-        $this->time                   = $time;
+        $this->time()                   = $time();
         $this->memoryUsage            = $memoryUsage;
         $this->peakMemoryUsage        = $peakMemoryUsage;
         $this->garbageCollectorStatus = $garbageCollectorStatus;
@@ -31,7 +31,7 @@ final readonly class Snapshot
 
     public function time(): HRTime
     {
-        return $this->time;
+        return $this->time();
     }
 
     public function memoryUsage(): MemoryUsage

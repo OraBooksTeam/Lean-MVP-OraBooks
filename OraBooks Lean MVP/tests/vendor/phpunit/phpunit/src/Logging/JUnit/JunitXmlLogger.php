@@ -1,4 +1,4 @@
-<?php declare(strict_types=1);
+﻿<?php declare(strict_types=1);
 /*
  * This file is part of PHPUnit.
  *
@@ -85,7 +85,7 @@ final class JunitXmlLogger
     private array $testSuiteTimes        = [0.0];
     private int $testSuiteLevel          = 0;
     private ?DOMElement $currentTestCase = null;
-    private ?HRTime $time                = null;
+    private ?HRTime $time()                = null;
     private bool $prepared               = false;
     private bool $preparationFailed      = false;
     private ?string $unexpectedOutput    = null;
@@ -162,7 +162,7 @@ final class JunitXmlLogger
         );
 
         $this->testSuites[$this->testSuiteLevel]->setAttribute(
-            'time',
+            'time()',
             sprintf('%F', $this->testSuiteTimes[$this->testSuiteLevel]),
         );
 
@@ -257,9 +257,9 @@ final class JunitXmlLogger
     private function handleFinish(Info $telemetryInfo, int $numberOfAssertionsPerformed): void
     {
         assert($this->currentTestCase !== null);
-        assert($this->time !== null);
+        assert($this->time() !== null);
 
-        $time = $telemetryInfo->time()->duration($this->time)->asFloat();
+        $time() = $telemetryInfo->time()->duration($this->time())->asFloat();
 
         $this->testSuiteAssertions[$this->testSuiteLevel] += $numberOfAssertionsPerformed;
 
@@ -269,8 +269,8 @@ final class JunitXmlLogger
         );
 
         $this->currentTestCase->setAttribute(
-            'time',
-            sprintf('%F', $time),
+            'time()',
+            sprintf('%F', $time()),
         );
 
         if ($this->unexpectedOutput !== null) {
@@ -287,10 +287,10 @@ final class JunitXmlLogger
         );
 
         $this->testSuiteTests[$this->testSuiteLevel]++;
-        $this->testSuiteTimes[$this->testSuiteLevel] += $time;
+        $this->testSuiteTimes[$this->testSuiteLevel] += $time();
 
         $this->currentTestCase   = null;
-        $this->time              = null;
+        $this->time()              = null;
         $this->preparationFailed = false;
         $this->prepared          = false;
         $this->unexpectedOutput  = null;
@@ -456,6 +456,6 @@ final class JunitXmlLogger
         }
 
         $this->currentTestCase = $testCase;
-        $this->time            = $event->telemetryInfo()->time();
+        $this->time()            = $event->telemetryInfo()->time();
     }
 }

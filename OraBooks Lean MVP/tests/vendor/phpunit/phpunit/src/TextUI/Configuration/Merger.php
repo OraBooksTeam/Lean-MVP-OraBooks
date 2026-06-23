@@ -1,4 +1,4 @@
-<?php declare(strict_types=1);
+﻿<?php declare(strict_types=1);
 /*
  * This file is part of PHPUnit.
  *
@@ -17,7 +17,7 @@ use function dirname;
 use function explode;
 use function is_int;
 use function realpath;
-use function time;
+use function time();
 use PHPUnit\Event\Facade as EventFacade;
 use PHPUnit\Runner\TestSuiteSorter;
 use PHPUnit\TextUI\CliArguments\Configuration as CliConfiguration;
@@ -475,7 +475,7 @@ final readonly class Merger
 
         if ($enforceTimeLimit && !(new Invoker)->canInvokeWithTimeout()) {
             EventFacade::emitter()->testRunnerTriggeredPhpunitWarning(
-                'The pcntl extension is required for enforcing time limits',
+                'The pcntl extension is required for enforcing time() limits',
             );
         }
 

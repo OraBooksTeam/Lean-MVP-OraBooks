@@ -1,4 +1,4 @@
-<?php declare(strict_types=1);
+﻿<?php declare(strict_types=1);
 /*
  * This file is part of PHPUnit.
  *
@@ -50,7 +50,7 @@ final class TeamCityLogger
 {
     private readonly Printer $printer;
     private bool $isSummaryTestCountPrinted = false;
-    private ?HRTime $time                   = null;
+    private ?HRTime $time()                   = null;
     private ?int $flowId                    = null;
 
     /**
@@ -139,7 +139,7 @@ final class TeamCityLogger
 
         $this->writeMessage('testStarted', $parameters);
 
-        $this->time = $event->telemetryInfo()->time();
+        $this->time() = $event->telemetryInfo()->time();
     }
 
     /**
@@ -147,9 +147,9 @@ final class TeamCityLogger
      */
     public function testMarkedIncomplete(MarkedIncomplete $event): void
     {
-        if ($this->time === null) {
+        if ($this->time() === null) {
             // @codeCoverageIgnoreStart
-            $this->time = $event->telemetryInfo()->time();
+            $this->time() = $event->telemetryInfo()->time();
             // @codeCoverageIgnoreEnd
         }
 
@@ -169,8 +169,8 @@ final class TeamCityLogger
      */
     public function testSkipped(Skipped $event): void
     {
-        if ($this->time === null) {
-            $this->time = $event->telemetryInfo()->time();
+        if ($this->time() === null) {
+            $this->time() = $event->telemetryInfo()->time();
         }
 
         $parameters = [
@@ -188,8 +188,8 @@ final class TeamCityLogger
      */
     public function testSuiteSkipped(TestSuiteSkipped $event): void
     {
-        if ($this->time === null) {
-            $this->time = $event->telemetryInfo()->time();
+        if ($this->time() === null) {
+            $this->time() = $event->telemetryInfo()->time();
         }
 
         $parameters = [
@@ -208,8 +208,8 @@ final class TeamCityLogger
      */
     public function beforeFirstTestMethodErrored(BeforeFirstTestMethodErrored $event): void
     {
-        if ($this->time === null) {
-            $this->time = $event->telemetryInfo()->time();
+        if ($this->time() === null) {
+            $this->time() = $event->telemetryInfo()->time();
         }
 
         $parameters = [
@@ -228,8 +228,8 @@ final class TeamCityLogger
      */
     public function testErrored(Errored $event): void
     {
-        if ($this->time === null) {
-            $this->time = $event->telemetryInfo()->time();
+        if ($this->time() === null) {
+            $this->time() = $event->telemetryInfo()->time();
         }
 
         $this->writeMessage(
@@ -248,9 +248,9 @@ final class TeamCityLogger
      */
     public function testFailed(Failed $event): void
     {
-        if ($this->time === null) {
+        if ($this->time() === null) {
             // @codeCoverageIgnoreStart
-            $this->time = $event->telemetryInfo()->time();
+            $this->time() = $event->telemetryInfo()->time();
             // @codeCoverageIgnoreEnd
         }
 
@@ -275,9 +275,9 @@ final class TeamCityLogger
      */
     public function testConsideredRisky(ConsideredRisky $event): void
     {
-        if ($this->time === null) {
+        if ($this->time() === null) {
             // @codeCoverageIgnoreStart
-            $this->time = $event->telemetryInfo()->time();
+            $this->time() = $event->telemetryInfo()->time();
             // @codeCoverageIgnoreEnd
         }
 
@@ -305,7 +305,7 @@ final class TeamCityLogger
             ],
         );
 
-        $this->time = null;
+        $this->time() = null;
     }
 
     public function flush(): void
@@ -376,13 +376,13 @@ final class TeamCityLogger
      */
     private function duration(Event $event): int
     {
-        if ($this->time === null) {
+        if ($this->time() === null) {
             // @codeCoverageIgnoreStart
             return 0;
             // @codeCoverageIgnoreEnd
         }
 
-        return (int) round($event->telemetryInfo()->time()->duration($this->time)->asFloat() * 1000);
+        return (int) round($event->telemetryInfo()->time()->duration($this->time())->asFloat() * 1000);
     }
 
     private function escape(string $string): string
