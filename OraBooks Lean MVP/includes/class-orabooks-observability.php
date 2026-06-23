@@ -257,6 +257,25 @@ class OraBooks_Observability {
         self::record_health_check('classification', $classification_status, $classification_health);
         $snapshots['classification'] = array_merge($classification_health, ['status' => $classification_status]);
 
+        if (class_exists('OraBooks_Expenses') && method_exists('OraBooks_Expenses', 'get_observability_stats')) {
+            $ocr_health = OraBooks_Expenses::get_observability_stats();
+            self::record_metric('expense_ocr', 'queue_depth', (float) ($ocr_health['queue_depth'] ?? 0));
+            self::record_metric('expense_ocr', 'failed_24h', (float) ($ocr_health['failed_24h'] ?? 0));
+            self::record_metric('expense_ocr', 'completed_24h', (float) ($ocr_health['completed_24h'] ?? 0));
+            self::record_metric('expense_ocr', 'success_rate_24h', (float) ($ocr_health['success_rate_24h'] ?? 1));
+            if ($ocr_health['avg_confidence_24h'] !== null) {
+                self::record_metric('expense_ocr', 'avg_confidence_24h', (float) $ocr_health['avg_confidence_24h']);
+            }
+            $ocr_status = 'healthy';
+            if (($ocr_health['failed_24h'] ?? 0) >= self::$thresholds['expense_ocr_failed_24h']) {
+                $ocr_status = 'critical';
+            } elseif (($ocr_health['queue_depth'] ?? 0) >= self::$thresholds['expense_ocr_pending']) {
+                $ocr_status = 'degraded';
+            }
+            self::record_health_check('expense_ocr', $ocr_status, $ocr_health);
+            $snapshots['expense_ocr'] = array_merge($ocr_health, ['status' => $ocr_status]);
+        }
+
         orabooks_log_event('observability_metrics_collected', 'Platform metrics collected', 'info', [
             'services' => array_keys($snapshots),
         ]);
@@ -296,6 +315,12 @@ class OraBooks_Observability {
         }
         if (($snapshots['workflow']['failures_24h'] ?? 0) > $thresholds['workflow_failures_24h']) {
             $alerts[] = self::build_alert('workflow_failures', 'Workflow transition failure rate elevated', $snapshots['workflow']);
+        }
+        if (($snapshots['expense_ocr']['queue_depth'] ?? 0) > $thresholds['expense_ocr_pending']) {
+            $alerts[] = self::build_alert('expense_ocr_lag', 'Expense OCR queue backlog', $snapshots['expense_ocr']);
+        }
+        if (($snapshots['expense_ocr']['failed_24h'] ?? 0) > $thresholds['expense_ocr_failed_24h']) {
+            $alerts[] = self::build_alert('expense_ocr_failures', 'Expense OCR failure rate elevated', $snapshots['expense_ocr']);
         }
 
         $slo_alerts = self::evaluate_error_budgets();
