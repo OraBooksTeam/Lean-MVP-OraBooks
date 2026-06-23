@@ -82,7 +82,7 @@ add_filter('script_loader_tag', ['OraBooks_Assets', 'filter_react_script_tag'], 
 // Initialize plugin
 add_action('plugins_loaded', 'orabooks_init');
 
-function orabooks_init {
+function orabooks_init() {
  // Load text domain
  load_plugin_textdomain('orabooks', false, dirname(plugin_basename(__FILE__)). '/languages');
 
