@@ -15,7 +15,7 @@ function orabooks_is_divi_theme() {
  return true;
  }
 
- $theme = wp_get_theme;
+ $theme = wp_get_theme();
  if (!$theme) {
  return false;
  }
@@ -123,7 +123,7 @@ function orabooks_get_allowed_regions() {
  * System-assigned region for non-enterprise customer tiers.
  */
 function orabooks_get_default_region_for_tier($tier) {
- $regions = orabooks_get_allowed_regions;
+ $regions = orabooks_get_allowed_regions();
  return $regions[0];
 }
 
@@ -132,7 +132,7 @@ function orabooks_get_default_region_for_tier($tier) {
  */
 function orabooks_validate_org_region($region, $tier) {
  $region = strtolower(trim((string) $region));
- $allowed = orabooks_get_allowed_regions;
+ $allowed = orabooks_get_allowed_regions();
 
  if ($tier === 'enterprise') {
  if ($region === '') {
@@ -398,7 +398,7 @@ function orabooks_get_tenant_base_domain($host = '') {
  * Build a full organization URL from a stored subdomain identifier.
  */
 function orabooks_build_org_url($subdomain, $path = '/') {
- $base_domain = orabooks_get_tenant_base_domain;
+ $base_domain = orabooks_get_tenant_base_domain();
  if ($base_domain === '') {
  return home_url(ltrim($path, '/'));
  }
@@ -610,7 +610,7 @@ function orabooks_multisite_subdomain_taken($subdomain) {
  return false;
  }
 
- $base_domain = orabooks_get_tenant_base_domain;
+ $base_domain = orabooks_get_tenant_base_domain();
  if ($base_domain === '') {
  return false;
  }
@@ -703,7 +703,7 @@ function orabooks_resolve_wp_user_link_for_orabooks_user($orabooks_user_id, $cre
  }
  }
 
- $current = get_current_user_id;
+ $current = get_current_user_id();
  if ($current > 0) {
  $current_user = get_userdata($current);
  $matches = $current_user && (
@@ -770,7 +770,7 @@ function orabooks_provision_org_multisite($org_id, $subdomain, $title, $owner_us
  $org_id = (int) $org_id;
  $subdomain = strtolower(trim((string) $subdomain));
  $title = $title !== '' ? $title: $subdomain;
- $base_domain = orabooks_get_tenant_base_domain;
+ $base_domain = orabooks_get_tenant_base_domain();
 
  if ($subdomain === '' || $base_domain === '') {
  return new WP_Error('invalid_subdomain', __('Unable to provision organization site.', 'orabooks'));
@@ -1441,7 +1441,7 @@ function orabooks_get_verified_jwt_payload() {
 function orabooks_get_auth_cookie_domains() {
  $domains = [''];
 
- $configured = orabooks_get_auth_cookie_domain;
+ $configured = orabooks_get_auth_cookie_domain();
  if ($configured !== '') {
  $domains[] = $configured;
  }
@@ -1461,7 +1461,7 @@ function orabooks_get_auth_cookie_domains() {
  * Resolve an OraBooks user from WordPress auth or a verified OraBooks JWT.
  */
 function orabooks_resolve_authenticated_user_id() {
- $wp_user_id = get_current_user_id;
+ $wp_user_id = get_current_user_id();
  if ($wp_user_id) {
  $resolved = orabooks_resolve_user_id((int) $wp_user_id);
  if ($resolved > 0) {
@@ -1469,7 +1469,7 @@ function orabooks_resolve_authenticated_user_id() {
  }
  }
 
- $payload = orabooks_get_verified_jwt_payload;
+ $payload = orabooks_get_verified_jwt_payload();
  if ($payload) {
  return (int) $payload['user_id'];
  }
@@ -1531,7 +1531,7 @@ function orabooks_get_auth_cookie_domain() {
  }
 
  if (function_exists('is_multisite()') && is_multisite()) {
- $base_domain = orabooks_get_tenant_base_domain;
+ $base_domain = orabooks_get_tenant_base_domain();
  if ($base_domain !== '') {
  return '.'. ltrim($base_domain, '.');
  }
@@ -2460,7 +2460,7 @@ function orabooks_assert_tenant_access($user_id, $org_id, $require_active = fals
  return new WP_Error('tenant_isolation', __('You do not have access to this organization.', 'orabooks'));
  }
 
- $payload = orabooks_get_verified_jwt_payload;
+ $payload = orabooks_get_verified_jwt_payload();
  if ($payload && !empty($payload['org_id']) && (int) $payload['org_id'] !== $org_id) {
  $allow_localhost_org_switch = false;
  if (class_exists('OraBooks_Auth')) {
@@ -2718,7 +2718,7 @@ function orabooks_resolve_primary_org_id($user_id, $stored_org_id = 0) {
  return 0;
  }
 
- $payload = orabooks_get_verified_jwt_payload;
+ $payload = orabooks_get_verified_jwt_payload();
  if ($payload && !empty($payload['org_id'])) {
  $jwt_org_id = (int) $payload['org_id'];
  if (orabooks_user_belongs_to_org($user_id, $jwt_org_id)) {
@@ -2863,7 +2863,7 @@ function orabooks_get_addons() {
  */
 function orabooks_is_feature_enabled($feature_id) {
  $feature_id = sanitize_key($feature_id);
- $addons = orabooks_get_addons;
+ $addons = orabooks_get_addons();
 
  foreach ($addons as $addon) {
  if (empty($addon['features']) || !is_array($addon['features'])) {
