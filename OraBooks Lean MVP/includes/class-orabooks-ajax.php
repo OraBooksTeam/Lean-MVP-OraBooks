@@ -152,7 +152,7 @@ class OraBooks_Ajax {
  }
 
  public function ajax_frontend_context() {
- $context = $this->get_current_orabooks_context;
+ $context = $this->get_current_orabooks_context();
  if (is_wp_error($context)) {
  orabooks_json_error($context->get_error_message(), 401);
  }
@@ -163,7 +163,7 @@ class OraBooks_Ajax {
  public function ajax_customer_dashboard() {
  global $wpdb;
 
- $context = $this->get_current_orabooks_context;
+ $context = $this->get_current_orabooks_context();
  if (is_wp_error($context)) {
  orabooks_json_error($context->get_error_message(), 401);
  }
@@ -186,7 +186,7 @@ class OraBooks_Ajax {
  if (function_exists('orabooks_with_data_blog')) {
  orabooks_with_data_blog(['OraBooks_Customers', 'ensure_schema']);
  } else {
- OraBooks_Customers::ensure_schema;
+ OraBooks_Customers::ensure_schema();
  }
  }
 
@@ -254,7 +254,7 @@ class OraBooks_Ajax {
  public function ajax_vendor_dashboard() {
  global $wpdb;
 
- $context = $this->get_current_orabooks_context;
+ $context = $this->get_current_orabooks_context();
  if (is_wp_error($context)) {
  orabooks_json_error($context->get_error_message(), 401);
  }
@@ -326,7 +326,7 @@ class OraBooks_Ajax {
  public function ajax_inventory_dashboard() {
  global $wpdb;
 
- $context = $this->get_current_orabooks_context;
+ $context = $this->get_current_orabooks_context();
  if (is_wp_error($context)) {
  orabooks_json_error($context->get_error_message(), 401);
  }
@@ -387,7 +387,7 @@ class OraBooks_Ajax {
  public function ajax_bank_dashboard() {
  global $wpdb;
 
- $context = $this->get_current_orabooks_context;
+ $context = $this->get_current_orabooks_context();
  if (is_wp_error($context)) {
  orabooks_json_error($context->get_error_message(), 401);
  }
@@ -434,7 +434,7 @@ class OraBooks_Ajax {
  'skipped' => 0,
  ];
  foreach ($transaction_stats ?: [] as $row) {
- $status_counts[$row->status] = (int) $row->total;
+ $status_counts[$row->status] = (int) $row->total();
  }
 
  $accounts = class_exists('OraBooks_Bank_Reconciliation')
@@ -467,7 +467,7 @@ class OraBooks_Ajax {
  }
 
  public function ajax_reports_dashboard() {
- $context = $this->get_current_orabooks_context;
+ $context = $this->get_current_orabooks_context();
  if (is_wp_error($context)) {
  orabooks_json_error($context->get_error_message(), 401);
  }
@@ -602,7 +602,7 @@ class OraBooks_Ajax {
  return;
  }
 
- $context = $this->get_current_orabooks_context;
+ $context = $this->get_current_orabooks_context();
  if (is_wp_error($context)) {
  orabooks_json_error($context->get_error_message(), 401);
  }
@@ -674,7 +674,7 @@ class OraBooks_Ajax {
  }
 
  public function ajax_team_dashboard() {
- $context = $this->get_current_orabooks_context;
+ $context = $this->get_current_orabooks_context();
  if (is_wp_error($context)) {
  orabooks_json_error($context->get_error_message(), 401);
  }
@@ -756,7 +756,7 @@ class OraBooks_Ajax {
  }
 
  public function ajax_attachments_dashboard() {
- $context = $this->get_current_orabooks_context;
+ $context = $this->get_current_orabooks_context();
  if (is_wp_error($context)) {
  orabooks_json_error($context->get_error_message(), 401);
  }
@@ -830,7 +830,7 @@ class OraBooks_Ajax {
  }
 
  public function ajax_approval_dashboard() {
- $context = $this->get_current_orabooks_context;
+ $context = $this->get_current_orabooks_context();
  if (is_wp_error($context)) {
  orabooks_json_error($context->get_error_message(), 401);
  }
@@ -911,7 +911,7 @@ class OraBooks_Ajax {
  }
 
  public function ajax_ai_review_dashboard() {
- $context = $this->get_current_orabooks_context;
+ $context = $this->get_current_orabooks_context();
  if (is_wp_error($context)) {
  orabooks_json_error($context->get_error_message(), 401);
  }
@@ -963,7 +963,7 @@ class OraBooks_Ajax {
  }
 
  public function ajax_expenses_dashboard() {
- $context = $this->get_current_orabooks_context;
+ $context = $this->get_current_orabooks_context();
  if (is_wp_error($context)) {
  orabooks_json_error($context->get_error_message(), 401);
  }
@@ -1033,7 +1033,7 @@ class OraBooks_Ajax {
  }
 
  public function ajax_voice_dashboard() {
- $context = $this->get_current_orabooks_context;
+ $context = $this->get_current_orabooks_context();
  if (is_wp_error($context)) {
  orabooks_json_error($context->get_error_message(), 401);
  }
@@ -1400,7 +1400,7 @@ class OraBooks_Ajax {
  orabooks_json_error('Permission denied', 403);
  }
 
- $repaired = OraBooks_DeployChecks::ensure_mvp_cron_schedules;
+ $repaired = OraBooks_DeployChecks::ensure_mvp_cron_schedules();
 
  orabooks_json_success([
  'repaired' => $repaired,

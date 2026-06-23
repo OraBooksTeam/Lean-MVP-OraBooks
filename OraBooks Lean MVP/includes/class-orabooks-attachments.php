@@ -77,7 +77,7 @@ class OraBooks_Attachments {
  $table_attachments = OraBooks_Database::table(self::TABLE_ATTACHMENTS);
  $table_versions = OraBooks_Database::table(self::TABLE_VERSIONS);
  $table_orgs = OraBooks_Database::table('organizations');
- $charset = $wpdb->get_charset_collate;
+ $charset = $wpdb->get_charset_collate();
 
  return [
  "CREATE TABLE IF NOT EXISTS {$table_attachments} (
@@ -208,7 +208,7 @@ class OraBooks_Attachments {
  'resource_id' => $resource_id,
  ], ['%d', '%s', '%d']);
 
- $attachment_id = (int) $wpdb->insert_id;
+ $attachment_id = (int) $wpdb->insert_id();
  if (!$attachment_id) {
  return new WP_Error('db_error', 'Failed to create attachment record');
  }
@@ -237,7 +237,7 @@ class OraBooks_Attachments {
  'virus_scan_status' => 'clean',
  ], ['%d', '%d', '%s', '%d', '%s', '%s', '%s', '%d', '%s', '%s']);
 
- $version_id = (int) $wpdb->insert_id;
+ $version_id = (int) $wpdb->insert_id();
  if (!$version_id) {
  return new WP_Error('db_error', 'Failed to create attachment version');
  }
@@ -437,7 +437,7 @@ class OraBooks_Attachments {
  }
 
  if ($version_id <= 0) {
- $version_id = (int) $attachment->current_version_id;
+ $version_id = (int) $attachment->current_version_id();
  }
 
  $version = self::get_version($version_id, $org_id);
@@ -570,21 +570,21 @@ class OraBooks_Attachments {
 
  private static function encrypt_content($data) {
  $method = 'aes-256-cbc';
- $key = self::get_file_encryption_key;
+ $key = self::get_file_encryption_key();
  $iv = substr(hash('sha256', $key. '_attachment_iv'), 0, 16);
  return openssl_encrypt($data, $method, $key, 0, $iv);
  }
 
  private static function decrypt_content($data) {
  $method = 'aes-256-cbc';
- $key = self::get_file_encryption_key;
+ $key = self::get_file_encryption_key();
  $iv = substr(hash('sha256', $key. '_attachment_iv'), 0, 16);
  return openssl_decrypt($data, $method, $key, 0, $iv);
  }
 
  private static function get_file_encryption_key() {
  if (class_exists('OraBooks_Secrets')) {
- return OraBooks_Secrets::get_encryption_key;
+ return OraBooks_Secrets::get_encryption_key();
  }
 
  return wp_salt('auth');
@@ -648,7 +648,7 @@ class OraBooks_Attachments {
  }
 
  public function ajax_upload() {
- $user_id = $this->current_user_id;
+ $user_id = $this->current_user_id();
  $org_id = intval($_POST['org_id'] ?? 0);
  $resource_type = sanitize_text_field($_POST['resource_type'] ?? 'general');
  $resource_id = intval($_POST['resource_id'] ?? 0);
@@ -690,7 +690,7 @@ class OraBooks_Attachments {
  }
 
  public function ajax_list() {
- $user_id = $this->current_user_id;
+ $user_id = $this->current_user_id();
  $org_id = intval($_POST['org_id'] ?? $_GET['org_id'] ?? 0);
  $resource_type = sanitize_text_field($_POST['resource_type'] ?? $_GET['resource_type'] ?? '');
  $resource_id = intval($_POST['resource_id'] ?? $_GET['resource_id'] ?? 0);
@@ -712,7 +712,7 @@ class OraBooks_Attachments {
  }
 
  public function ajax_get() {
- $user_id = $this->current_user_id;
+ $user_id = $this->current_user_id();
  $org_id = intval($_POST['org_id'] ?? $_GET['org_id'] ?? 0);
  $attachment_id = intval($_POST['attachment_id'] ?? $_GET['attachment_id'] ?? 0);
 
@@ -754,7 +754,7 @@ class OraBooks_Attachments {
  }
 
  public function ajax_delete() {
- $user_id = $this->current_user_id;
+ $user_id = $this->current_user_id();
  $org_id = intval($_POST['org_id'] ?? 0);
  $attachment_id = intval($_POST['attachment_id'] ?? 0);
 
@@ -773,7 +773,7 @@ class OraBooks_Attachments {
  }
 
  public function ajax_download() {
- $user_id = $this->current_user_id;
+ $user_id = $this->current_user_id();
  $org_id = intval($_GET['org_id'] ?? 0);
  $attachment_id = intval($_GET['attachment_id'] ?? 0);
  $version_id = intval($_GET['version_id'] ?? 0);
@@ -789,7 +789,7 @@ class OraBooks_Attachments {
  orabooks_json_error($download->get_error_message(), 400);
  }
 
- nocache_headers;
+ nocache_headers();
  header('Content-Type: '. $download['mime_type']);
  header('Content-Disposition: attachment; filename="'. sanitize_file_name($download['filename']). '"');
  header('Content-Length: '. strlen($download['content']));

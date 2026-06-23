@@ -131,7 +131,7 @@ class OraBooks_Expenses {
  $table_settings = OraBooks_Database::table(self::TABLE_SETTINGS);
  $table_orgs = OraBooks_Database::table('organizations');
  $table_attachments = OraBooks_Database::table('attachments');
- $charset = $wpdb->get_charset_collate;
+ $charset = $wpdb->get_charset_collate();
 
  return [
  "CREATE TABLE IF NOT EXISTS {$table_expenses} (
@@ -228,7 +228,7 @@ class OraBooks_Expenses {
 
  $table_orgs = OraBooks_Database::table('organizations');
  $table = OraBooks_Database::table(self::TABLE_SETTINGS);
- $charset = $wpdb->get_charset_collate;
+ $charset = $wpdb->get_charset_collate();
 
  if ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table)) !== $table) {
  $wpdb->query(
@@ -245,7 +245,7 @@ class OraBooks_Expenses {
  public static function get_org_settings($org_id) {
  global $wpdb;
 
- self::ensure_settings_schema;
+ self::ensure_settings_schema();
 
  $table = OraBooks_Database::table(self::TABLE_SETTINGS);
  $row = $wpdb->get_row($wpdb->prepare(
@@ -266,7 +266,7 @@ class OraBooks_Expenses {
  public static function save_org_settings($org_id, array $data) {
  global $wpdb;
 
- self::ensure_settings_schema;
+ self::ensure_settings_schema();
 
  $table = OraBooks_Database::table(self::TABLE_SETTINGS);
  $payload = [
@@ -326,11 +326,11 @@ class OraBooks_Expenses {
  ];
 
  foreach ($rows ?: [] as $row) {
- $key = $row->workflow_status;
+ $key = $row->workflow_status();
  if (isset($stats[$key])) {
- $stats[$key] = (int) $row->total;
+ $stats[$key] = (int) $row->total();
  }
- $stats['total'] += (int) $row->total;
+ $stats['total'] += (int) $row->total();
  }
 
  $queue_table = OraBooks_Database::table(self::TABLE_OCR_QUEUE);
@@ -592,7 +592,7 @@ class OraBooks_Expenses {
  'currency' => 'USD',
  ], ['%d', '%s', '%s', '%s', '%d', '%s']);
 
- $expense_id = (int) $wpdb->insert_id;
+ $expense_id = (int) $wpdb->insert_id();
  if (!$expense_id) {
  return new WP_Error('db_error', 'Failed to create expense draft');
  }
@@ -649,7 +649,7 @@ class OraBooks_Expenses {
  'status' => 'pending',
  ], ['%d', '%d', '%d', '%s']);
 
- return (int) $wpdb->insert_id;
+ return (int) $wpdb->insert_id();
  }
 
  public function cron_process_ocr_queue() {
@@ -702,7 +702,7 @@ class OraBooks_Expenses {
  if ($attachment && $attachment->current_version_id) {
  $version = OraBooks_Attachments::get_version((int) $attachment->current_version_id);
  if ($version) {
- $filename = $version->file_name;
+ $filename = $version->file_name();
  }
  }
  }
@@ -908,7 +908,7 @@ class OraBooks_Expenses {
  'created_by' => intval($user_id),
  ]);
 
- $expense_id = (int) $wpdb->insert_id;
+ $expense_id = (int) $wpdb->insert_id();
  if (!$expense_id) {
  return new WP_Error('db_error', 'Failed to create expense from voice input');
  }
@@ -1341,7 +1341,7 @@ class OraBooks_Expenses {
  return new WP_Error('journal_error', 'Failed to create journal for expense');
  }
 
- $amount = (float) $expense->total_amount;
+ $amount = (float) $expense->total_amount();
  $desc = 'Expense: '. ($expense->vendor ?: 'Receipt');
 
  $lines_result = OraBooks_Posting::add_lines($journal_id, [
@@ -1411,7 +1411,7 @@ class OraBooks_Expenses {
  if (!empty($posted->tax_override_reason)) {
  $payload['override'] = true;
  $payload['override_tax_rate'] = (float) ($posted->tax_rate ?? 0);
- $payload['override_reason'] = $posted->tax_override_reason;
+ $payload['override_reason'] = $posted->tax_override_reason();
  }
  OraBooks_Tax::create_snapshot(array_merge($payload, [
  'transaction_id' => (int) $expense_id,
@@ -1775,7 +1775,7 @@ class OraBooks_Expenses {
  $add('async_ocr_handler', 'Async handler: process_expense_ocr ', is_callable($ocr_handler));
 
  if (class_exists('OraBooks_Workflow')) {
- $machines = OraBooks_Workflow::get_machines;
+ $machines = OraBooks_Workflow::get_machines();
  $expense_machine = $machines['expense'] ?? null;
  $has_ai_review_state = is_array($expense_machine)
  && in_array('ai_review', $expense_machine['states'] ?? [], true);

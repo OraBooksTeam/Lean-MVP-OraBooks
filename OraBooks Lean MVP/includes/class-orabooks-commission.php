@@ -63,7 +63,7 @@ class OraBooks_Commission {
  public static function get_create_table_sql() {
  global $wpdb;
 
- $charset_collate = $wpdb->get_charset_collate;
+ $charset_collate = $wpdb->get_charset_collate();
  $tables = [];
  $table_orgs = OraBooks_Database::table('organizations');
  $table_users = OraBooks_Database::table('users');
@@ -292,7 +292,7 @@ class OraBooks_Commission {
  $table_active = OraBooks_Database::table('customer_active_status');
  $table_customers = OraBooks_Database::table('customers');
  $table_invoices = OraBooks_Database::table('invoices');
- $config = self::get_config;
+ $config = self::get_config();
  $window_days = $config ? $config->customer_active_window_days: 30;
 
  $is_active = 0;
@@ -307,8 +307,8 @@ class OraBooks_Commission {
  ));
 
  if ($customer) {
- $is_active = (int) $customer->is_active;
- $last_paid_date = $customer->last_paid_invoice_date;
+ $is_active = (int) $customer->is_active();
+ $last_paid_date = $customer->last_paid_invoice_date();
  } else {
  $invoice = $wpdb->get_row($wpdb->prepare(
  "SELECT MAX(i.transaction_date) as last_paid
@@ -324,7 +324,7 @@ class OraBooks_Commission {
 
  if ($invoice && $invoice->last_paid) {
  $is_active = 1;
- $last_paid_date = $invoice->last_paid;
+ $last_paid_date = $invoice->last_paid();
  }
  }
  } else {
@@ -455,13 +455,13 @@ class OraBooks_Commission {
  return true; // Already processed
  }
 
- $config = self::get_config;
+ $config = self::get_config();
  if (!$config) {
  return new WP_Error('no_config', 'Commission configuration not found');
  }
 
- $partner_user_id = $attribution_data->partner_user_id;
- $customer_user_id = $attribution_data->customer_user_id;
+ $partner_user_id = $attribution_data->partner_user_id();
+ $customer_user_id = $attribution_data->customer_user_id();
 
  // Find partner's org_id
  $table_users = OraBooks_Database::table('users');
@@ -487,7 +487,7 @@ class OraBooks_Commission {
  }
 
  // Calculate total commission based on yearly percentages
- $yearly_pcts = $config->yearly_percentages;
+ $yearly_pcts = $config->yearly_percentages();
  if (!is_array($yearly_pcts)) {
  $yearly_pcts = json_decode(json_encode($yearly_pcts), true);
  }
@@ -514,7 +514,7 @@ class OraBooks_Commission {
  ['%d', '%d', '%d', '%f', '%f', '%f', '%s', '%s']
  );
 
- $escrow_id = $wpdb->insert_id;
+ $escrow_id = $wpdb->insert_id();
 
  // Precompute monthly release schedule
  $table_release = OraBooks_Database::table('commission_release_schedule');
@@ -592,7 +592,7 @@ class OraBooks_Commission {
  $table_active = OraBooks_Database::table('customer_active_status');
  $table_users = OraBooks_Database::table('users');
 
- $config = self::get_config;
+ $config = self::get_config();
 
  // Find pending releases where release_month <= last month
  $releases = $wpdb->get_results(
@@ -623,9 +623,9 @@ class OraBooks_Commission {
  continue;
  }
 
- $org_id = $partner->org_id;
- $amount = $release->amount;
- $release_month = $release->release_month;
+ $org_id = $partner->org_id();
+ $amount = $release->amount();
+ $release_month = $release->release_month();
 
  // Begin transaction for journal entry
  $wpdb->query("START TRANSACTION");
@@ -763,7 +763,7 @@ class OraBooks_Commission {
 
  if ($system_org) {
  self::ensure_system_accounts((int) $system_org->id);
- return (int) $system_org->id;
+ return (int) $system_org->id();
  }
 
  // Create system org for platform accounting
@@ -780,7 +780,7 @@ class OraBooks_Commission {
  ['%s', '%s', '%s', '%d', '%s', '%s']
  );
 
- $system_org_id = $wpdb->insert_id;
+ $system_org_id = $wpdb->insert_id();
 
  self::ensure_system_accounts($system_org_id);
 
@@ -834,7 +834,7 @@ class OraBooks_Commission {
  ['%d', '%s', '%s', '%s', '%s', '%d', '%d']
  );
 
- $account_id = $wpdb->insert_id;
+ $account_id = $wpdb->insert_id();
  $wpdb->insert(
  $table_balances,
  ['org_id' => $system_org_id, 'account_id' => $account_id, 'balance' => 0],
@@ -960,7 +960,7 @@ class OraBooks_Commission {
  return $entry;
  }
 
- $system_org_id = self::get_or_create_system_org;
+ $system_org_id = self::get_or_create_system_org();
  self::ensure_system_accounts($system_org_id);
 
  if (!class_exists('OraBooks_Posting') || !method_exists('OraBooks_Posting', 'create_journal')) {
@@ -1050,12 +1050,12 @@ class OraBooks_Commission {
  $table_orgs = OraBooks_Database::table('organizations');
  $table_users = OraBooks_Database::table('users');
 
- $config = self::get_config;
+ $config = self::get_config();
  if (!$config) {
  return new WP_Error('no_config', 'Commission config not found');
  }
 
- $min_threshold = (float) $config->min_payout_threshold;
+ $min_threshold = (float) $config->min_payout_threshold();
 
  // Group earned commissions by partner
  $earned_summary = $wpdb->get_results(
@@ -1071,8 +1071,8 @@ class OraBooks_Commission {
  $skipped_below_threshold = 0;
 
  foreach ($earned_summary as $summary) {
- $partner_user_id = $summary->partner_user_id;
- $total_pending = (float) $summary->total_pending;
+ $partner_user_id = $summary->partner_user_id();
+ $total_pending = (float) $summary->total_pending();
 
  if ($total_pending < $min_threshold) {
  orabooks_log_event('commission_payout_skipped_threshold',
@@ -1127,7 +1127,7 @@ class OraBooks_Commission {
  ['%d', '%d', '%f', '%f', '%s', '%s']
  );
 
- $payout_id = $wpdb->insert_id;
+ $payout_id = $wpdb->insert_id();
 
  // Link earned commissions to this payout
  $earned_ids = $wpdb->get_col($wpdb->prepare(
@@ -1231,8 +1231,8 @@ class OraBooks_Commission {
  }
 
  $settlement_date = $settlement_date ?: current_time('Y-m-d');
- $gross_amount = (float) $payout->gross_amount;
- $fee_amount = (float) $payout->fee_amount;
+ $gross_amount = (float) $payout->gross_amount();
+ $fee_amount = (float) $payout->fee_amount();
 
  $journal_result = self::post_system_journal(
  $settlement_date,
@@ -1341,7 +1341,7 @@ class OraBooks_Commission {
  return new WP_Error('invalid_status', 'Gateway fee can only be recorded for settled payouts');
  }
 
- $fee_amount = (float) $payout->fee_amount;
+ $fee_amount = (float) $payout->fee_amount();
  if ($fee_amount <= 0) {
  return true;
  }
@@ -1393,7 +1393,7 @@ class OraBooks_Commission {
  $table_escrow = OraBooks_Database::table('commission_escrow_schedule');
  $table_release = OraBooks_Database::table('commission_release_schedule');
 
- $config = self::get_config;
+ $config = self::get_config();
  $expiry_action = ($config && $config->expiry_accounting_action === 'income') ? 'income': 'reverse_expense';
 
  // PART A: Expire earned commissions where expires_at has passed
@@ -1439,7 +1439,7 @@ class OraBooks_Commission {
 
  // PART B: Expire escrow remaining amounts
  if ($config) {
- $max_years = $config->max_years;
+ $max_years = $config->max_years();
  $expired_escrow = $wpdb->get_results($wpdb->prepare(
  "SELECT * FROM {$table_escrow}
  WHERE remaining_amount > 0
@@ -1707,7 +1707,7 @@ class OraBooks_Commission {
  $table_escrow = OraBooks_Database::table('commission_escrow_schedule');
  $table_earned = OraBooks_Database::table('commissions_earned');
  $table_users = OraBooks_Database::table('users');
- $config = self::get_config;
+ $config = self::get_config();
 
  $rows = $wpdb->get_results($wpdb->prepare(
  "SELECT
@@ -1943,15 +1943,15 @@ class OraBooks_Commission {
  $partner_user_id = $this->resolve_partner_user_id($context);
 
  $stats = self::get_commission_stats($partner_user_id);
- $config = self::get_config;
+ $config = self::get_config();
 
  if ($config) {
- $stats['min_payout_threshold'] = $config->min_payout_threshold;
- $stats['yearly_percentages'] = $config->yearly_percentages;
- $stats['max_years'] = $config->max_years;
- $stats['currency'] = $config->currency;
- $stats['payout_fee_type'] = $config->payout_fee_type;
- $stats['payout_fee_rate'] = $config->payout_fee_rate;
+ $stats['min_payout_threshold'] = $config->min_payout_threshold();
+ $stats['yearly_percentages'] = $config->yearly_percentages();
+ $stats['max_years'] = $config->max_years();
+ $stats['currency'] = $config->currency();
+ $stats['payout_fee_type'] = $config->payout_fee_type();
+ $stats['payout_fee_rate'] = $config->payout_fee_rate();
  $stats['yearly_breakdown_template'] = self::build_yearly_breakdown($config, 0);
  }
 
@@ -2025,7 +2025,7 @@ class OraBooks_Commission {
  orabooks_json_error('Permission denied', 403);
  }
 
- $config = self::get_config;
+ $config = self::get_config();
  orabooks_json_success($config);
  }
 

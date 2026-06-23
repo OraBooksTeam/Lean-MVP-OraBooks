@@ -18,7 +18,7 @@ class OraBooks_Event_Module {
  private static $processing = false;
 
  public static function init() {
- self::register_default_consumers;
+ self::register_default_consumers();
 
  add_action('orabooks_events_process_outbox', [__CLASS__, 'process_outbox']);
  add_action('shutdown', [__CLASS__, 'shutdown_poll']);
@@ -54,7 +54,7 @@ class OraBooks_Event_Module {
 
  public static function get_create_table_sql() {
  global $wpdb;
- $charset_collate = $wpdb->get_charset_collate;
+ $charset_collate = $wpdb->get_charset_collate();
 
  $outbox = self::table('event_outbox');
  $consumer_log = self::table('event_consumer_log');
@@ -182,7 +182,7 @@ class OraBooks_Event_Module {
  'created_at' => current_time('mysql', true),
  ], ['%s', '%d', '%s', '%s', '%s', '%d', '%s', '%s']);
 
- $id = (int) $wpdb->insert_id;
+ $id = (int) $wpdb->insert_id();
  if ($id > 0) {
  orabooks_log_event('event_outbox_recorded', "Event {$event_type} recorded in outbox", 'info', [
  'outbox_id' => $id,
@@ -243,7 +243,7 @@ class OraBooks_Event_Module {
  self::$processing = true;
  global $wpdb;
 
- self::recover_stale_processing_locks;
+ self::recover_stale_processing_locks();
  $outbox = self::table('event_outbox');
  $events = $wpdb->get_results($wpdb->prepare(
  "SELECT * FROM {$outbox}
@@ -565,7 +565,7 @@ class OraBooks_Event_Module {
  if (!self::current_user_can_manage_events) {
  wp_die(__('You do not have permission to view this page.', 'orabooks'));
  }
- $org_scope = self::resolve_event_org_scope;
+ $org_scope = self::resolve_event_org_scope();
  $health = self::get_health($org_scope);
  $dead_letters = self::get_dead_letters(50, $org_scope);
  include ORABOOKS_PLUGIN_DIR. 'templates/events/dead-letter-replay.php';
@@ -580,8 +580,8 @@ class OraBooks_Event_Module {
  }
 
  public static function ajax_dead_letters() {
- self::require_owner_ajax;
- $org_scope = self::resolve_event_org_scope;
+ self::require_owner_ajax();
+ $org_scope = self::resolve_event_org_scope();
  orabooks_json_success([
  'health' => self::get_health($org_scope),
  'dead_letters' => self::get_dead_letters(50, $org_scope),
@@ -589,8 +589,8 @@ class OraBooks_Event_Module {
  }
 
  public static function ajax_replay() {
- self::require_owner_ajax;
- $org_scope = self::resolve_event_org_scope;
+ self::require_owner_ajax();
+ $org_scope = self::resolve_event_org_scope();
  $scope = $org_scope > 0 ? $org_scope: null;
  $result = self::replay_dead_letter((int) ($_POST['dead_letter_id'] ?? 0), get_current_user_id, $scope);
  if (is_wp_error($result)) {
@@ -600,8 +600,8 @@ class OraBooks_Event_Module {
  }
 
  public static function ajax_replay_all() {
- self::require_owner_ajax;
- $org_scope = self::resolve_event_org_scope;
+ self::require_owner_ajax();
+ $org_scope = self::resolve_event_org_scope();
  $scope = $org_scope > 0 ? $org_scope: null;
  $count = 0;
  foreach (self::get_dead_letters(200, $org_scope) as $dead) {
@@ -614,8 +614,8 @@ class OraBooks_Event_Module {
  }
 
  public static function ajax_discard() {
- self::require_owner_ajax;
- $org_scope = self::resolve_event_org_scope;
+ self::require_owner_ajax();
+ $org_scope = self::resolve_event_org_scope();
  $scope = $org_scope > 0 ? $org_scope: null;
  $result = self::discard_dead_letter((int) ($_POST['dead_letter_id'] ?? 0), get_current_user_id, $scope);
  if (is_wp_error($result)) {
@@ -625,8 +625,8 @@ class OraBooks_Event_Module {
  }
 
  public static function ajax_poll_now() {
- self::require_owner_ajax;
- $org_scope = self::resolve_event_org_scope;
+ self::require_owner_ajax();
+ $org_scope = self::resolve_event_org_scope();
  orabooks_json_success(['result' => self::process_outbox(50), 'health' => self::get_health($org_scope)]);
  }
 

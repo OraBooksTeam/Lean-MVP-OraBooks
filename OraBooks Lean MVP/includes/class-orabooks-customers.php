@@ -69,7 +69,7 @@ class OraBooks_Customers {
  public static function get_create_table_sql() {
  global $wpdb;
 
- $charset_collate = $wpdb->get_charset_collate;
+ $charset_collate = $wpdb->get_charset_collate();
  $tables = [];
  $table_users = OraBooks_Database::table('users');
  $table_orgs = OraBooks_Database::table('organizations');
@@ -226,20 +226,20 @@ class OraBooks_Customers {
 
  $upgrade = ABSPATH. 'wp-admin/includes/upgrade.php';
  if (!file_exists($upgrade)) {
- self::ensure_customer_contact_schema;
- self::ensure_customer_credit_schema;
- self::ensure_customer_profile_schema;
+ self::ensure_customer_contact_schema();
+ self::ensure_customer_credit_schema();
+ self::ensure_customer_profile_schema();
  return;
  }
 
  require_once $upgrade;
 
- self::ensure_payments_table;
- self::ensure_customer_contact_schema;
- self::ensure_customer_credit_schema;
- self::ensure_customer_profile_schema;
+ self::ensure_payments_table();
+ self::ensure_customer_contact_schema();
+ self::ensure_customer_credit_schema();
+ self::ensure_customer_profile_schema();
  if (class_exists('OraBooks_AR')) {
- OraBooks_AR::ensure_schema;
+ OraBooks_AR::ensure_schema();
  }
 
  $table_invoices = OraBooks_Database::table('invoices');
@@ -315,7 +315,7 @@ class OraBooks_Customers {
  self::set_schema_flag('orabooks_sl021_schema_v2', '1');
  }
 
- self::ensure_invoice_line_items_schema;
+ self::ensure_invoice_line_items_schema();
  }
 
  /**
@@ -380,7 +380,7 @@ class OraBooks_Customers {
  return;
  }
 
- self::ensure_schema;
+ self::ensure_schema();
  }
 
  /**
@@ -552,7 +552,7 @@ class OraBooks_Customers {
  return;
  }
 
- $charset_collate = $wpdb->get_charset_collate;
+ $charset_collate = $wpdb->get_charset_collate();
  $wpdb->query(
  "CREATE TABLE IF NOT EXISTS {$table_payments} (
  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -791,7 +791,7 @@ class OraBooks_Customers {
  public static function create_customer($org_id, $data) {
  global $wpdb;
 
- self::maybe_ensure_schema;
+ self::maybe_ensure_schema();
 
  $org_id = (int) $org_id;
  $display_name = sanitize_text_field($data['display_name'] ?? $data['name'] ?? '');
@@ -877,7 +877,7 @@ class OraBooks_Customers {
  return new WP_Error('db_error', 'Unable to create customer profile.');
  }
 
- $customer_id = (int) $wpdb->insert_id;
+ $customer_id = (int) $wpdb->insert_id();
 
  orabooks_log_event(
  'customer_created',
@@ -931,7 +931,7 @@ class OraBooks_Customers {
  public static function get_list($org_id, $args = []) {
  global $wpdb;
 
- self::maybe_ensure_schema;
+ self::maybe_ensure_schema();
 
  $table = OraBooks_Database::table('customers');
  $table_users = OraBooks_Database::table('users');
@@ -1027,7 +1027,7 @@ class OraBooks_Customers {
  $window_days = 30;
  $config = $wpdb->get_row("SELECT customer_active_window_days FROM {$config_table} WHERE id = 1");
  if ($config && !empty($config->customer_active_window_days)) {
- $window_days = (int) $config->customer_active_window_days;
+ $window_days = (int) $config->customer_active_window_days();
  }
 
  $last_paid = null;
@@ -1082,7 +1082,7 @@ class OraBooks_Customers {
  return new WP_Error('not_found', 'Customer not found');
  }
 
- $old_status = (bool) $customer->is_active;
+ $old_status = (bool) $customer->is_active();
 
  $update_data = ['is_active' => $is_active ? 1: 0];
  $update_format = ['%d'];
@@ -1112,7 +1112,7 @@ class OraBooks_Customers {
  if ($old_status !== (bool) $is_active) {
  $customer_ref = !empty($customer->user_id)
  ? (int) $customer->user_id
-: (int) $customer->id;
+: (int) $customer->id();
 
  orabooks_log_event(
  $is_active ? 'customer_activated': 'customer_deactivated',
@@ -1249,7 +1249,7 @@ class OraBooks_Customers {
  ['%d', '%d', '%s', '%s', '%s', '%s', '%s', '%f', '%f', '%f', '%s', '%s', '%s', '%d', '%s', '%s', '%s', '%s', '%s']
  );
 
- $invoice_id = $wpdb->insert_id;
+ $invoice_id = $wpdb->insert_id();
 
  if (!empty($line_items)) {
  self::save_invoice_line_items((int) $org_id, (int) $invoice_id, $line_items);
@@ -1773,7 +1773,7 @@ class OraBooks_Customers {
  return null;
  }
 
- $org_id = (int) $invoice->org_id;
+ $org_id = (int) $invoice->org_id();
  $total = round(floatval($invoice->total_amount), 2);
  $tax = round(floatval($invoice->tax_amount ?? 0), 2);
  $revenue = round(max(0, $total - $tax), 2);
@@ -1886,7 +1886,7 @@ class OraBooks_Customers {
  public static function get_invoices_list($org_id, $args = []) {
  global $wpdb;
 
- self::maybe_ensure_schema;
+ self::maybe_ensure_schema();
 
  $table = OraBooks_Database::table('invoices');
  $table_customers = OraBooks_Database::table('customers');
@@ -2011,7 +2011,7 @@ class OraBooks_Customers {
  ['%d', '%d', '%d', '%s', '%f', '%s', '%s', '%s', '%s', '%s']
  );
 
- $payment_id = $wpdb->insert_id;
+ $payment_id = $wpdb->insert_id();
 
  $applied_to_invoice = min(
  $payment_amount,
@@ -2141,7 +2141,7 @@ class OraBooks_Customers {
  public static function get_customer_stats($org_id) {
  global $wpdb;
 
- self::maybe_ensure_schema;
+ self::maybe_ensure_schema();
 
  $table_customers = OraBooks_Database::table('customers');
  $table_invoices = OraBooks_Database::table('invoices');
@@ -2252,7 +2252,7 @@ class OraBooks_Customers {
 
  // Sync with commission engine read model
  if (class_exists('OraBooks_Commission') && method_exists('OraBooks_Commission', 'refresh_all_customer_active_status')) {
- OraBooks_Commission::refresh_all_customer_active_status;
+ OraBooks_Commission::refresh_all_customer_active_status();
  }
 
  return $inactive_count;
@@ -2999,7 +2999,7 @@ class OraBooks_Customers {
  $result = self::cancel_invoice($org_id, $invoice_id, $user_id, $reason);
  if (is_wp_error($result)) {
  $status = 400;
- $data = $result->get_error_data;
+ $data = $result->get_error_data();
  if (is_array($data) && isset($data['status'])) {
  $status = (int) $data['status'];
  }

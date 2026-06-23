@@ -35,7 +35,7 @@ class OraBooks_Exports {
  /** Registered report data providers: export_type => callable */
  private static $report_providers = [];
 
- public static function init {
+ public static function init() {
  if (self::$instance === null) {
  self::$instance = new self;
 
@@ -58,7 +58,7 @@ class OraBooks_Exports {
  add_action('wp_ajax_orabooks_exports_stats', [self::$instance, 'ajax_exports_stats']);
 
  // Register default report data providers
- self::register_default_providers;
+ self::register_default_providers();
  }
  return self::$instance;
  }
@@ -70,7 +70,7 @@ class OraBooks_Exports {
  /**
  * Get CREATE TABLE SQL statements.
  */
- public static function get_create_table_sql {
+ public static function get_create_table_sql() {
  global $wpdb;
 
  $table_requests = OraBooks_Database::table(self::TABLE_REQUESTS);
@@ -147,7 +147,7 @@ class OraBooks_Exports {
  /**
  * Register default report providers that leverage existing OraBooks classes.
  */
- public static function register_default_providers {
+ public static function register_default_providers() {
  // Chart of Accounts export
  self::register_report_provider('coa', function($params) {
  if (class_exists('OraBooks_COA') && method_exists('OraBooks_COA', 'export_csv')) {
@@ -239,7 +239,7 @@ class OraBooks_Exports {
  'created_at' => current_time('mysql', true),
  ], ['%d', '%d', '%s', '%s', '%s', '%s', '%s', '%s']);
 
- $export_id = $wpdb->insert_id;
+ $export_id = $wpdb->insert_id();
  if (!$export_id) {
  return new \WP_Error('db_error', 'Failed to create export record');
  }
@@ -476,7 +476,7 @@ class OraBooks_Exports {
  'error' => $e->getMessage,
  ]);
 
- return $e->getMessage;
+ return $e->getMessage();
  }
  }
 
@@ -922,7 +922,7 @@ HTML;
  /**
  * Clean up expired exports — delete files and mark as expired.
  */
- public function cleanup_expired {
+ public function cleanup_expired() {
  global $wpdb;
 
  $table_requests = OraBooks_Database::table(self::TABLE_REQUESTS);
@@ -944,7 +944,7 @@ HTML;
  // Delete physical file
  if (!empty($item->storage_key)) {
  $upload_dir = wp_upload_dir;
- $full_path = $upload_dir['basedir']. '/'. $item->storage_key;
+ $full_path = $upload_dir['basedir']. '/'. $item->storage_key();
  if (file_exists($full_path)) {
  @unlink($full_path);
  $deleted_count++;
@@ -1006,7 +1006,7 @@ HTML;
  /**
  * Get export statistics for admin dashboard.
  */
- public static function get_export_stats {
+ public static function get_export_stats() {
  global $wpdb;
 
  $table = OraBooks_Database::table(self::TABLE_REQUESTS);
@@ -1018,7 +1018,7 @@ HTML;
  "SELECT status, COUNT(*) as count FROM {$table} GROUP BY status"
  );
  foreach ($status_counts as $row) {
- $stats[$row->status. '_count'] = (int)$row->count;
+ $stats[$row->status. '_count'] = (int)$row->count();
  }
 
  // Total exports
@@ -1062,7 +1062,7 @@ HTML;
  * AJAX: Request a new export.
  * Expects: export_type, format, [parameters]
  */
- public function ajax_request_export {
+ public function ajax_request_export() {
  $user_id = orabooks_get_current_user_id;
  if (!$user_id) {
  orabooks_json_error('Authentication required', 401);
@@ -1098,7 +1098,7 @@ HTML;
  /**
  * AJAX: List exports for current user.
  */
- public function ajax_exports_list {
+ public function ajax_exports_list() {
  $user_id = orabooks_get_current_user_id;
  if (!$user_id) {
  orabooks_json_error('Authentication required', 401);
@@ -1147,7 +1147,7 @@ HTML;
  /**
  * AJAX: Download an export.
  */
- public function ajax_download_export {
+ public function ajax_download_export() {
  $user_id = orabooks_get_current_user_id;
  if (!$user_id) {
  orabooks_json_error('Authentication required', 401);
@@ -1174,7 +1174,7 @@ HTML;
  /**
  * AJAX: Cancel an export.
  */
- public function ajax_cancel_export {
+ public function ajax_cancel_export() {
  $user_id = orabooks_get_current_user_id;
  if (!$user_id) {
  orabooks_json_error('Authentication required', 401);
@@ -1196,12 +1196,12 @@ HTML;
  /**
  * AJAX: Get export stats (admin only).
  */
- public function ajax_exports_stats {
+ public function ajax_exports_stats() {
  if (!current_user_can('manage_options')) {
  orabooks_json_error('Permission denied', 403);
  }
 
- $stats = self::get_export_stats;
+ $stats = self::get_export_stats();
  orabooks_json_success($stats);
  }
 

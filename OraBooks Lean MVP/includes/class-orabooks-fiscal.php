@@ -243,7 +243,7 @@ class OraBooks_Fiscal {
  return new WP_Error('db_error', 'Failed to create fiscal period.');
  }
 
- return (int) $wpdb->insert_id;
+ return (int) $wpdb->insert_id();
  }
 
  public static function update_period($period_id, $org_id, $data, $user_id) {

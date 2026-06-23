@@ -42,7 +42,7 @@ class OraBooks_Financial_Reports {
  public static function get_create_table_sql() {
  global $wpdb;
 
- $charset_collate = $wpdb->get_charset_collate;
+ $charset_collate = $wpdb->get_charset_collate();
  $table_orgs = OraBooks_Database::table('organizations');
  $table_accounts = OraBooks_Database::table('accounts');
  $tables = [];
@@ -402,7 +402,7 @@ class OraBooks_Financial_Reports {
  $has_ledger_activity = self::posted_ledger_has_activity($org_id);
 
  foreach ($closing_rows as $row) {
- $account_id = (int) $row->account_id;
+ $account_id = (int) $row->account_id();
  $closing_balance = self::account_amount($row);
  $opening_balance = (float) ($opening_map[$account_id] ?? 0);
  $columns = self::trial_balance_columns($row, $closing_balance);
@@ -872,8 +872,8 @@ class OraBooks_Financial_Reports {
  ));
 
  foreach ($lines as $line) {
- $debit = (float) $line->debit_sum;
- $credit = (float) $line->credit_sum;
+ $debit = (float) $line->debit_sum();
+ $credit = (float) $line->credit_sum();
  $wpdb->query($wpdb->prepare(
  "INSERT INTO {$table_summary} (org_id, account_id, period_date, debit_sum, credit_sum, balance, schema_version, last_event_id)
  VALUES (%d, %d, %s, %f, %f, %f, %d, %d)
@@ -1279,13 +1279,13 @@ class OraBooks_Financial_Reports {
  $rows = $wpdb->get_results("SELECT projection_name, depends_on, rebuild_order FROM {$table} ORDER BY rebuild_order ASC");
 
  if (empty($rows)) {
- self::seed_projection_dependencies;
+ self::seed_projection_dependencies();
  $rows = $wpdb->get_results("SELECT projection_name, depends_on, rebuild_order FROM {$table} ORDER BY rebuild_order ASC");
  }
 
  $graph = [];
  foreach ($rows as $row) {
- $graph[$row->projection_name] = $row->depends_on;
+ $graph[$row->projection_name] = $row->depends_on();
  }
  if (!isset($graph[$projection_name]) && $projection_name === 'ledger_summary') {
  return ['ledger_summary'];
@@ -1369,9 +1369,9 @@ class OraBooks_Financial_Reports {
  }
 
  foreach ($entries as $entry) {
- $debit = (float) $entry->debit_amount;
- $credit = (float) $entry->credit_amount;
- $event_id = (int) $entry->event_id;
+ $debit = (float) $entry->debit_amount();
+ $credit = (float) $entry->credit_amount();
+ $event_id = (int) $entry->event_id();
  $last_event_id = max($last_event_id, $event_id);
 
  $wpdb->query($wpdb->prepare(
@@ -1444,7 +1444,7 @@ class OraBooks_Financial_Reports {
 
  private static function get_snapshot_dek($org_id) {
  if (class_exists('OraBooks_Secrets') && method_exists('OraBooks_Secrets', 'get_encryption_key')) {
- return OraBooks_Secrets::get_encryption_key;
+ return OraBooks_Secrets::get_encryption_key();
  }
  if (function_exists('wp_salt')) {
  return wp_salt('auth');
@@ -1688,7 +1688,7 @@ class OraBooks_Financial_Reports {
  }
 
  public function ajax_generate_report() {
- $user_id = $this->current_user_id;
+ $user_id = $this->current_user_id();
  $org_id = intval($_REQUEST['org_id'] ?? 0);
  $this->require_customer_org_access($user_id, $org_id);
  if (!OraBooks_RBAC::require_permission($user_id, $org_id, 'view_financial_reports')) {
@@ -1715,7 +1715,7 @@ class OraBooks_Financial_Reports {
  }
 
  public function ajax_request_export() {
- $user_id = $this->current_user_id;
+ $user_id = $this->current_user_id();
  $org_id = intval($_POST['org_id'] ?? 0);
  $this->require_customer_org_access($user_id, $org_id);
  if (!OraBooks_RBAC::require_permission($user_id, $org_id, 'export_reports')) {
@@ -1746,7 +1746,7 @@ class OraBooks_Financial_Reports {
  }
 
  public function ajax_sign_report() {
- $user_id = $this->current_user_id;
+ $user_id = $this->current_user_id();
  $org_id = intval($_POST['org_id'] ?? 0);
  $this->require_customer_org_access($user_id, $org_id);
  if (!OraBooks_RBAC::require_permission($user_id, $org_id, 'sign_report')) {

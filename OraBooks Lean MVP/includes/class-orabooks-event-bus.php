@@ -143,11 +143,11 @@ class OraBooks_EventBus {
  });
 
  if (class_exists('OraBooks_Classification')) {
- OraBooks_Classification::register_event_consumer;
+ OraBooks_Classification::register_event_consumer();
  }
 
  if (class_exists('OraBooks_Expenses')) {
- OraBooks_Expenses::register_event_consumer;
+ OraBooks_Expenses::register_event_consumer();
  }
  }
 
@@ -204,7 +204,7 @@ class OraBooks_EventBus {
  'created_at' => current_time('mysql', true),
  ], ['%s', '%d', '%s', '%s', '%s']);
 
- $id = $wpdb->insert_id;
+ $id = $wpdb->insert_id();
 
  if ($id) {
  orabooks_log_event('event_published', "Event {$event_type} published (outbox #{$id})", 'info', [
@@ -290,7 +290,7 @@ class OraBooks_EventBus {
  $consumer_name = self::consumer_name($event->event_type, $handler, $consumer_index);
 
  // Idempotency check
- $event_key = 'outbox:'. (int) $event->id;
+ $event_key = 'outbox:'. (int) $event->id();
  $already_processed = $wpdb->get_var($wpdb->prepare(
  "SELECT COUNT(*) FROM {$track_table} WHERE event_key = %s AND consumer = %s",
  $event_key, $consumer_name
@@ -467,7 +467,7 @@ class OraBooks_EventBus {
  */
  public static function get_create_table_sql() {
  global $wpdb;
- $charset_collate = $wpdb->get_charset_collate;
+ $charset_collate = $wpdb->get_charset_collate();
  $tables = [];
 
  // Consumer event tracking for idempotency

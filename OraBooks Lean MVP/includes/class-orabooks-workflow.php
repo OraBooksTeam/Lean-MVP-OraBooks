@@ -48,7 +48,7 @@ class OraBooks_Workflow {
  public static function init() {
  if (self::$instance === null) {
  self::$instance = new self;
- self::register_default_machines;
+ self::register_default_machines();
 
  add_action('wp_ajax_orabooks_workflow_transitions', [self::$instance, 'ajax_get_transitions']);
  add_action('wp_ajax_orabooks_workflow_allowed_events', [self::$instance, 'ajax_allowed_events']);
@@ -57,7 +57,7 @@ class OraBooks_Workflow {
  }
 
  if (class_exists('OraBooks_Workflow_Integration')) {
- OraBooks_Workflow_Integration::init;
+ OraBooks_Workflow_Integration::init();
  }
 
  return self::$instance;
@@ -123,7 +123,7 @@ class OraBooks_Workflow {
 
  public static function get_machines() {
  if (empty(self::$machines)) {
- self::register_default_machines;
+ self::register_default_machines();
  }
  return self::$machines;
  }
@@ -134,7 +134,7 @@ class OraBooks_Workflow {
  * @return string[]
  */
  public static function allowed_events($record_type, $current_state) {
- $machines = self::get_machines;
+ $machines = self::get_machines();
  $sm = $machines[$record_type] ?? null;
  if (!$sm) {
  return [];
@@ -157,7 +157,7 @@ class OraBooks_Workflow {
  * @return true|WP_Error
  */
  public static function validate_transition($record_type, $current_state, $event) {
- $machines = self::get_machines;
+ $machines = self::get_machines();
  $sm = $machines[$record_type] ?? null;
 
  if (!$sm) {
@@ -253,7 +253,7 @@ class OraBooks_Workflow {
  return $preconditions;
  }
 
- $machines = self::get_machines;
+ $machines = self::get_machines();
  $to_state = $machines[$record_type]['transitions'][$event]['to'];
 
  $row_updates = apply_filters(
@@ -506,7 +506,7 @@ class OraBooks_Workflow {
 
  if (is_wp_error($result)) {
  $status = 400;
- $data = $result->get_error_data;
+ $data = $result->get_error_data();
  if (is_array($data) && isset($data['status'])) {
  $status = (int) $data['status'];
  }
@@ -687,7 +687,7 @@ class OraBooks_Workflow {
  return 0;
  }
 
- return (int) $wpdb->insert_id;
+ return (int) $wpdb->insert_id();
  }
 
  /**

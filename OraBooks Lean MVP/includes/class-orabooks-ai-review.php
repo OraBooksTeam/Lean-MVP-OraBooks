@@ -26,7 +26,7 @@ class OraBooks_Ai_Review {
  public static function active_model_version() {
  return class_exists('OraBooks_Ai_Providers')
  ? OraBooks_Ai_Providers::model_version('classification')
-: self::MODEL_VERSION;
+: self::MODEL_VERSION();
  }
 
  private static $instance = null;
@@ -58,7 +58,7 @@ class OraBooks_Ai_Review {
  $table_models = OraBooks_Database::table(self::TABLE_MODELS);
  $table_orgs = OraBooks_Database::table('organizations');
  $table_journals = OraBooks_Database::table('journals');
- $charset = $wpdb->get_charset_collate;
+ $charset = $wpdb->get_charset_collate();
 
  return [
  "CREATE TABLE IF NOT EXISTS {$table_queue} (
@@ -176,7 +176,7 @@ class OraBooks_Ai_Review {
  }
  }
 
- $amount = (float) $journal->total_amount;
+ $amount = (float) $journal->total_amount();
  if ($amount >= 50000) {
  $confidence = min($confidence, 64.0);
  $risk = $amount >= 100000 ? 'high': 'medium';
@@ -236,7 +236,7 @@ class OraBooks_Ai_Review {
  'status' => 'pending',
  ], ['%d', '%s', '%d', '%d', '%f', '%s', '%s', '%s', '%s', '%f', '%d', '%s']);
 
- $queue_id = (int) $wpdb->insert_id;
+ $queue_id = (int) $wpdb->insert_id();
  if (!$queue_id) {
  return new WP_Error('db_error', 'Failed to enqueue AI review item');
  }
@@ -356,7 +356,7 @@ class OraBooks_Ai_Review {
 
  foreach ($rows ?: [] as $row) {
  if (isset($stats[$row->status])) {
- $stats[$row->status] = (int) $row->total;
+ $stats[$row->status] = (int) $row->total();
  }
  }
 
@@ -595,7 +595,7 @@ class OraBooks_Ai_Review {
  }
 
  public function ajax_list() {
- $user_id = $this->current_user_id;
+ $user_id = $this->current_user_id();
  $org_id = intval($_POST['org_id'] ?? $_GET['org_id'] ?? 0);
 
  $this->require_queue_access($user_id, $org_id);
@@ -613,7 +613,7 @@ class OraBooks_Ai_Review {
  }
 
  public function ajax_resolve() {
- $user_id = $this->current_user_id;
+ $user_id = $this->current_user_id();
  $org_id = intval($_POST['org_id'] ?? $_GET['org_id'] ?? 0);
  $queue_id = intval($_POST['queue_id'] ?? $_GET['queue_id'] ?? 0);
  $journal_id = intval($_POST['journal_id'] ?? $_GET['journal_id'] ?? 0);

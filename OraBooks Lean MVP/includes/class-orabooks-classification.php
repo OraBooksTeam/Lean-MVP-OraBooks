@@ -102,7 +102,7 @@ class OraBooks_Classification {
 
  public static function get_create_table_sql() {
  global $wpdb;
- $charset = $wpdb->get_charset_collate;
+ $charset = $wpdb->get_charset_collate();
  $table = OraBooks_Database::table('classification_rules');
  $orgs = OraBooks_Database::table('organizations');
 
@@ -421,7 +421,7 @@ class OraBooks_Classification {
 
  self::seed_default_rules($org_id);
  $rule_result = self::match_rules($org_id, $record, $text);
- $use_rules = self::rule_precedence_over_ai_enabled;
+ $use_rules = self::rule_precedence_over_ai_enabled();
  $suggestion = ($use_rules && $rule_result)
  ? $rule_result
 : OraBooks_Ai_Providers::classify_record($record_type, $record, $text, $amount, $org_id);
@@ -468,7 +468,7 @@ class OraBooks_Classification {
  }
 
  $rule_result = self::match_rules($org_id, $record, $text);
- $use_rules = self::rule_precedence_over_ai_enabled;
+ $use_rules = self::rule_precedence_over_ai_enabled();
 
  if ($use_rules && $rule_result) {
  $suggestion = $rule_result;
@@ -647,7 +647,7 @@ class OraBooks_Classification {
  }
 
  $wpdb->insert($table, $payload);
- $rule_id = (int) $wpdb->insert_id;
+ $rule_id = (int) $wpdb->insert_id();
  orabooks_log_event('classification_rule_created', 'Classification rule created', 'info', [
  'rule_id' => $rule_id,
  ], (int) $user_id, $org_id);
@@ -692,7 +692,7 @@ class OraBooks_Classification {
  if (!empty($tax_hints['tax_rate'])) {
  $updates['tax_rate'] = (float) $tax_hints['tax_rate'];
  if ($record->total_amount) {
- $total = (float) $record->total_amount;
+ $total = (float) $record->total_amount();
  $rate = (float) $tax_hints['tax_rate'];
  $tax_amount = round($total * ($rate / 100) / (1 + ($rate / 100)), 2);
  $updates['tax_amount'] = $tax_amount;

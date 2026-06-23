@@ -28,18 +28,18 @@ class OraBooks_Ai_Providers {
  case 'ocr':
  return self::is_document_intelligence_configured
  ? self::PROVIDER_AZURE_DI
-: self::STUB_PROVIDER;
+: self::STUB_PROVIDER();
  case 'speech':
  case 'classification':
  if (self::is_azure_openai_configured) {
- return self::PROVIDER_AZURE_OAI;
+ return self::PROVIDER_AZURE_OAI();
  }
  if (self::is_openai_configured) {
- return self::PROVIDER_OPENAI;
+ return self::PROVIDER_OPENAI();
  }
- return self::STUB_PROVIDER;
+ return self::STUB_PROVIDER();
  default:
- return self::STUB_PROVIDER;
+ return self::STUB_PROVIDER();
  }
  }
 
@@ -54,7 +54,7 @@ class OraBooks_Ai_Providers {
  case self::PROVIDER_AZURE_OAI:
  return self::config('azure_openai_deployment', 'gpt-4o-mini');
  default:
- return self::STUB_MODEL_VERSION;
+ return self::STUB_MODEL_VERSION();
  }
  }
 

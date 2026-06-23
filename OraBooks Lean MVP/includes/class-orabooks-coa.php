@@ -272,7 +272,7 @@ class OraBooks_COA {
  return new WP_Error('db_error', 'Failed to create account.');
  }
 
- $account_id = (int) $wpdb->insert_id;
+ $account_id = (int) $wpdb->insert_id();
  $table_balances = OraBooks_Database::table('account_balances');
  $wpdb->insert($table_balances, [
  'org_id' => (int) $org_id,

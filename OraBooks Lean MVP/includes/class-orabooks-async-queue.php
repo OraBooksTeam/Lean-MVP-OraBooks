@@ -119,7 +119,7 @@ class OraBooks_AsyncQueue {
 
  $queue_name = !empty($opts['queue_name']) ? $opts['queue_name']: 'default';
  $priority = isset($opts['priority']) ? max(0, min(10, (int)$opts['priority'])): 5;
- $max_retries = isset($opts['max_retries']) ? (int)$opts['max_retries']: self::DEFAULT_MAX_RETRIES;
+ $max_retries = isset($opts['max_retries']) ? (int)$opts['max_retries']: self::DEFAULT_MAX_RETRIES();
  $delay = isset($opts['delay_seconds']) ? (int)$opts['delay_seconds']: 0;
  $idempotency_key = !empty($opts['idempotency_key']) ? sanitize_text_field($opts['idempotency_key']): '';
 
@@ -162,7 +162,7 @@ class OraBooks_AsyncQueue {
  'created_at' => current_time('mysql', true),
  ], ['%s', '%s', '%s', '%s', '%d', '%d', '%s', '%s', '%s']);
 
- $job_id = $wpdb->insert_id;
+ $job_id = $wpdb->insert_id();
 
  if ($job_id) {
  orabooks_log_event('job_enqueued', "Job {$job_type} enqueued (job #{$job_id})", 'info', [
@@ -678,7 +678,7 @@ class OraBooks_AsyncQueue {
  "SELECT status, COUNT(*) as count FROM {$table} WHERE 1=1{$org_filter} GROUP BY status"
  );
  foreach ($status_counts as $row) {
- $stats[$row->status. '_count'] = (int)$row->count;
+ $stats[$row->status. '_count'] = (int)$row->count();
  }
 
  $stats['total'] = array_sum([
@@ -886,7 +886,7 @@ class OraBooks_AsyncQueue {
  orabooks_json_error('Job ID required', 400);
  }
 
- $org_scope = self::resolve_queue_org_scope;
+ $org_scope = self::resolve_queue_org_scope();
  $scope = $org_scope > 0 ? $org_scope: null;
  $result = self::retry_job($job_id, $scope);
  if (is_wp_error($result)) {
@@ -904,7 +904,7 @@ class OraBooks_AsyncQueue {
  if (!$job_id) {
  orabooks_json_error('Job ID required', 400);
  }
- $org_scope = self::resolve_queue_org_scope;
+ $org_scope = self::resolve_queue_org_scope();
  $scope = $org_scope > 0 ? $org_scope: null;
  $result = self::discard_job($job_id, $scope);
  if (is_wp_error($result)) {
@@ -921,7 +921,7 @@ class OraBooks_AsyncQueue {
  if (!$job_id) {
  orabooks_json_error('Job ID required', 400);
  }
- $org_scope = self::resolve_queue_org_scope;
+ $org_scope = self::resolve_queue_org_scope();
  $scope = $org_scope > 0 ? $org_scope: null;
  $result = self::cancel_job($job_id, $scope);
  if (is_wp_error($result)) {
@@ -934,7 +934,7 @@ class OraBooks_AsyncQueue {
  if (!self::current_user_can_manage_queue) {
  orabooks_json_error('Permission denied', 403);
  }
- $result = $this->process_queue;
+ $result = $this->process_queue();
  orabooks_json_success($result, 'Queue worker ran successfully');
  }
 
@@ -946,7 +946,7 @@ class OraBooks_AsyncQueue {
  orabooks_json_error('Permission denied', 403);
  }
 
- $org_scope = self::resolve_queue_org_scope;
+ $org_scope = self::resolve_queue_org_scope();
  $stats = self::get_queue_stats($org_scope);
  $stats['jobs'] = self::list_jobs([
  'org_id' => $org_scope,
@@ -962,7 +962,7 @@ class OraBooks_AsyncQueue {
  if (!self::current_user_can_manage_webhooks) {
  orabooks_json_error('Permission denied', 403);
  }
- $org_id = self::resolve_webhook_org_id;
+ $org_id = self::resolve_webhook_org_id();
  orabooks_json_success([
  'urls' => implode("\n", self::get_webhook_urls($org_id)),
  'localhost_warning' => 'Localhost URLs are useful for tests only; hosted webhooks cannot call your local machine/port.',
@@ -973,7 +973,7 @@ class OraBooks_AsyncQueue {
  if (!self::current_user_can_manage_webhooks) {
  orabooks_json_error('Permission denied', 403);
  }
- $org_id = self::resolve_webhook_org_id;
+ $org_id = self::resolve_webhook_org_id();
  $urls = self::save_webhook_urls(wp_unslash($_POST['urls'] ?? ''), $org_id);
  orabooks_json_success(['urls' => implode("\n", $urls)], 'Webhook settings saved');
  }
@@ -1032,7 +1032,7 @@ class OraBooks_AsyncQueue {
  return 'OraBooks_Partner not available';
  }
 
- OraBooks_Partner::process_partner_activity;
+ OraBooks_Partner::process_partner_activity();
 
  orabooks_log_event('partner_activity_job_completed', 'Partner activity check completed', 'info', [
  'job_id' => $job->id ?? null,
@@ -1266,7 +1266,7 @@ class OraBooks_AsyncQueue {
  foreach (self::get_alert_user_ids as $user_id) {
  $user = get_userdata((int) $user_id);
  if ($user && !empty($user->user_email)) {
- $emails[] = $user->user_email;
+ $emails[] = $user->user_email();
  }
  }
  if (!empty($emails)) {

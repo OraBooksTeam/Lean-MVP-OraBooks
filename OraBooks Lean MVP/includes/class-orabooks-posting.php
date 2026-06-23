@@ -109,7 +109,7 @@ class OraBooks_Posting {
  return new WP_Error('db_error', 'Failed to create journal.');
  }
 
- return (int) $wpdb->insert_id;
+ return (int) $wpdb->insert_id();
  }
 
  /**
@@ -418,16 +418,16 @@ class OraBooks_Posting {
  public static function post_journal($journal_id, $user_id) {
  global $wpdb;
 
- self::begin_transaction;
+ self::begin_transaction();
 
  $result = self::post_journal_atomic($journal_id, $user_id);
  if (is_wp_error($result)) {
- self::rollback_transaction;
+ self::rollback_transaction();
  self::maybe_enqueue_posting_retry($journal_id, $result->get_error_message());
  return $result;
  }
 
- self::commit_transaction;
+ self::commit_transaction();
  return $result;
  }
 
@@ -506,7 +506,7 @@ class OraBooks_Posting {
  'year' => $year,
  'batch_number' => $batch_number
  ], ['%d', '%d', '%d']);
- $batch_id = $wpdb->insert_id;
+ $batch_id = $wpdb->insert_id();
 
  // Generate journal number and hash
  $journal_number = "JE-{$year}-". str_pad($batch_number, 6, '0', STR_PAD_LEFT);
@@ -663,7 +663,7 @@ class OraBooks_Posting {
  return new WP_Error('no_lines', 'Journal has no lines to reverse.');
  }
 
- self::begin_transaction;
+ self::begin_transaction();
 
  $reversal_id = self::create_journal([
  'org_id' => (int) $journal->org_id,
@@ -679,7 +679,7 @@ class OraBooks_Posting {
  ], $user_id);
 
  if (!$reversal_id) {
- self::rollback_transaction;
+ self::rollback_transaction();
  return new WP_Error('reversal_failed', 'Failed to create reversal journal.');
  }
 
@@ -694,7 +694,7 @@ class OraBooks_Posting {
 
  $line_result = self::add_lines($reversal_id, $reversal_lines);
  if (is_wp_error($line_result)) {
- self::rollback_transaction;
+ self::rollback_transaction();
  return $line_result;
  }
 
@@ -704,7 +704,7 @@ class OraBooks_Posting {
  'skip_transaction' => true,
  ]);
  if (is_wp_error($reverse_transition)) {
- self::rollback_transaction;
+ self::rollback_transaction();
  return $reverse_transition;
  }
 
@@ -725,7 +725,7 @@ class OraBooks_Posting {
  'reason' => $reason,
  ], $user_id, $org_id);
 
- self::commit_transaction;
+ self::commit_transaction();
 
  return [
  'reversal_journal_id' => (int) $reversal_id,
@@ -968,7 +968,7 @@ class OraBooks_Posting {
  'computed_hash' => $computed_hash,
  ];
  }
- $expected_previous = $journal->journal_hash;
+ $expected_previous = $journal->journal_hash();
  }
 
  $accounts = $wpdb->get_results($wpdb->prepare(
@@ -1095,7 +1095,7 @@ class OraBooks_Posting {
  public static function list_read_model_versions() {
  global $wpdb;
 
- self::seed_read_model_versions;
+ self::seed_read_model_versions();
  $table = OraBooks_Database::table('read_model_versions');
  return $wpdb->get_results("SELECT * FROM {$table} ORDER BY projection_name ASC");
  }
@@ -1254,7 +1254,7 @@ class OraBooks_Posting {
 
  $balances = [];
  foreach ($rows as $row) {
- $balances[(int) $row->account_id] = (float) $row->balance;
+ $balances[(int) $row->account_id] = (float) $row->balance();
  }
 
  return [
@@ -1299,7 +1299,7 @@ class OraBooks_Posting {
  ));
 
  foreach ($entries as $entry) {
- $account_id = (int) $entry->account_id;
+ $account_id = (int) $entry->account_id();
  if (!isset($balances[$account_id])) {
  $balances[$account_id] = 0.0;
  }
@@ -1345,7 +1345,7 @@ class OraBooks_Posting {
 
  $stored_map = [];
  foreach ($stored as $row) {
- $stored_map[(int) $row->account_id] = (float) $row->balance;
+ $stored_map[(int) $row->account_id] = (float) $row->balance();
  }
 
  $account_ids = array_unique(array_merge(array_keys($replay['balances']), array_keys($stored_map)));
@@ -1492,9 +1492,9 @@ class OraBooks_Posting {
  $user_id = 0;
  if ($journal) {
  if (!empty($journal->approved_by)) {
- $user_id = (int) $journal->approved_by;
+ $user_id = (int) $journal->approved_by();
  } elseif (!empty($journal->created_by)) {
- $user_id = (int) $journal->created_by;
+ $user_id = (int) $journal->created_by();
  }
  }
 
@@ -1539,7 +1539,7 @@ class OraBooks_Posting {
  }
 
  private static function maybe_emit_fraud_hooks($journal, $lines) {
- $total = (float) $journal->total_amount;
+ $total = (float) $journal->total_amount();
  if ($total >= 100000) {
  self::publish_fraud_event((int) $journal->id, 'unusual_amount', [
  'amount' => $total,
@@ -1847,7 +1847,7 @@ class OraBooks_Posting {
  orabooks_json_error($isolation->get_error_message(), 403);
  }
 
- return (int) $journal->org_id;
+ return (int) $journal->org_id();
  }
 
  // AJAX handlers
@@ -1883,7 +1883,7 @@ class OraBooks_Posting {
  }
 
  public function ajax_submit_journal() {
- $user_id = $this->current_user_id;
+ $user_id = $this->current_user_id();
  $journal_id = intval($_POST['journal_id'] ?? 0);
  $org_id = $this->require_journal_access($user_id, $journal_id);
 
@@ -1902,7 +1902,7 @@ class OraBooks_Posting {
  }
 
  public function ajax_approve_journal() {
- $user_id = $this->current_user_id;
+ $user_id = $this->current_user_id();
  $journal_id = intval($_POST['journal_id'] ?? 0);
  $org_id = $this->require_journal_access($user_id, $journal_id);
 
@@ -1928,7 +1928,7 @@ class OraBooks_Posting {
  }
 
  public function ajax_reject_journal() {
- $user_id = $this->current_user_id;
+ $user_id = $this->current_user_id();
  $journal_id = intval($_POST['journal_id'] ?? 0);
  $reason = sanitize_textarea_field($_POST['reason'] ?? '');
  $org_id = $this->require_journal_access($user_id, $journal_id);
@@ -1947,7 +1947,7 @@ class OraBooks_Posting {
  }
 
  public function ajax_post_journal() {
- $user_id = $this->current_user_id;
+ $user_id = $this->current_user_id();
  $journal_id = intval($_POST['journal_id'] ?? 0);
  $org_id = $this->require_journal_access($user_id, $journal_id);
 
@@ -1963,7 +1963,7 @@ class OraBooks_Posting {
  }
 
  public function ajax_get_journals() {
- $user_id = $this->current_user_id;
+ $user_id = $this->current_user_id();
  $org_id = intval($_GET['org_id'] ?? $_POST['org_id'] ?? 0);
 
  $isolation = OraBooks_Auth::require_customer_org($user_id, $org_id);
@@ -1989,7 +1989,7 @@ class OraBooks_Posting {
  }
 
  public function ajax_get_journal() {
- $user_id = $this->current_user_id;
+ $user_id = $this->current_user_id();
  $org_id = intval($_GET['org_id'] ?? $_POST['org_id'] ?? 0);
  $journal_id = intval($_GET['journal_id'] ?? $_POST['journal_id'] ?? 0);
 
@@ -2018,7 +2018,7 @@ class OraBooks_Posting {
  }
 
  public function ajax_reverse_journal() {
- $user_id = $this->current_user_id;
+ $user_id = $this->current_user_id();
  $journal_id = intval($_POST['journal_id'] ?? 0);
  $reason = sanitize_textarea_field($_POST['reason'] ?? '');
  $org_id = $this->require_journal_access($user_id, $journal_id);

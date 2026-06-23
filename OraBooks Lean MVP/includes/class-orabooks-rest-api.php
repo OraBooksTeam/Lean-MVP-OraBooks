@@ -271,7 +271,7 @@ class OraBooks_Rest_Api {
 
  public static function rest_manifest() {
  if (class_exists('OraBooks_Pwa')) {
- return OraBooks_Pwa::rest_manifest;
+ return OraBooks_Pwa::rest_manifest();
  }
 
  return rest_ensure_response([]);
@@ -279,7 +279,7 @@ class OraBooks_Rest_Api {
 
  public static function rest_service_worker() {
  if (class_exists('OraBooks_Pwa')) {
- return OraBooks_Pwa::rest_service_worker;
+ return OraBooks_Pwa::rest_service_worker();
  }
 
  return new WP_Error('orabooks_pwa_unavailable', 'PWA service worker unavailable.', ['status' => 503]);
@@ -290,7 +290,7 @@ class OraBooks_Rest_Api {
  }
 
  public static function load_openapi_spec() {
- $path = self::openapi_spec_path;
+ $path = self::openapi_spec_path();
  if (!file_exists($path)) {
  return [];
  }
@@ -300,7 +300,7 @@ class OraBooks_Rest_Api {
  }
 
  public static function rest_openapi() {
- $spec = self::load_openapi_spec;
+ $spec = self::load_openapi_spec();
  if (empty($spec)) {
  return new WP_Error('openapi_missing', 'OpenAPI specification is not available.', ['status' => 404]);
  }
@@ -324,7 +324,7 @@ class OraBooks_Rest_Api {
  }
 
  public static function require_org_access($request, $permission) {
- $user_id = self::current_user_id;
+ $user_id = self::current_user_id();
  if ($user_id <= 0) {
  return new WP_Error('unauthorized', 'Not authenticated.', ['status' => 401]);
  }
@@ -362,7 +362,7 @@ class OraBooks_Rest_Api {
  }
 
  public static function can_override_fiscal($request) {
- $user_id = self::current_user_id;
+ $user_id = self::current_user_id();
  return $user_id > 0 && current_user_can('manage_options');
  }
 
@@ -710,7 +710,7 @@ class OraBooks_Rest_Api {
  }
 
  public static function rest_override_reopen_fiscal_period(WP_REST_Request $request) {
- $user_id = self::current_user_id;
+ $user_id = self::current_user_id();
  if ($user_id <= 0) {
  return new WP_Error('unauthorized', 'Not authenticated.', ['status' => 401]);
  }
@@ -791,7 +791,7 @@ class OraBooks_Rest_Api {
  return $context;
  }
 
- $files = $request->get_file_params;
+ $files = $request->get_file_params();
  if (empty($files['receipt_file'])) {
  return new WP_Error('file_required', 'receipt_file is required.', ['status' => 400]);
  }
@@ -944,7 +944,7 @@ class OraBooks_Rest_Api {
  }
 
  public static function can_execute_state_transition($request) {
- $user_id = self::current_user_id;
+ $user_id = self::current_user_id();
  if ($user_id <= 0) {
  return new WP_Error('unauthorized', 'Not authenticated.', ['status' => 401]);
  }
@@ -979,7 +979,7 @@ class OraBooks_Rest_Api {
  return new WP_Error('workflow_unavailable', 'Workflow engine unavailable.', ['status' => 503]);
  }
 
- $user_id = self::current_user_id;
+ $user_id = self::current_user_id();
  $org_id = self::resolve_org_id($request);
  $record_type = sanitize_text_field($request->get_param('record_type') ?? '');
  $record_id = (int) $request->get_param('record_id');
@@ -1007,7 +1007,7 @@ class OraBooks_Rest_Api {
  $result = OraBooks_Workflow::transition($record_type, $record_id, $event, $context);
  if (is_wp_error($result)) {
  $status = 400;
- $data = $result->get_error_data;
+ $data = $result->get_error_data();
  if (is_array($data) && isset($data['status'])) {
  $status = (int) $data['status'];
  }
@@ -1026,7 +1026,7 @@ class OraBooks_Rest_Api {
  }
 
  public static function can_admin_recover_2fa($request) {
- $user_id = self::current_user_id;
+ $user_id = self::current_user_id();
  if ($user_id <= 0) {
  return new WP_Error('unauthorized', 'Not authenticated.', ['status' => 401]);
  }

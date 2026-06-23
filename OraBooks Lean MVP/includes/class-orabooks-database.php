@@ -27,7 +27,7 @@ class OraBooks_Database {
  require_once(ABSPATH. 'wp-admin/includes/upgrade.php');
 
  $charset_collate = $wpdb->get_charset_collate();
- $table_prefix = function_exists('orabooks_get_table_prefix') ? orabooks_get_table_prefix() : $wpdb->prefix;
+ $table_prefix = function_exists('orabooks_get_table_prefix') ? orabooks_get_table_prefix() : $wpdb->prefix();
 
  // ============================================================
  //: organizations table (Foundation)

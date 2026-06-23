@@ -70,7 +70,7 @@ class OraBooks_DeployChecks {
  $secrets_detail = '';
 
  if (class_exists('OraBooks_Secrets')) {
- $status = OraBooks_Secrets::get_status;
+ $status = OraBooks_Secrets::get_status();
  $secrets_ok = !empty($status['jwt_secret_configured'])
  && !empty($status['encryption_key_configured']);
 
@@ -125,7 +125,7 @@ class OraBooks_DeployChecks {
  );
 
  if (class_exists('OraBooks_Secrets')) {
- $db_tls = OraBooks_Secrets::check_database_tls;
+ $db_tls = OraBooks_Secrets::check_database_tls();
  $db_tls_ok = !empty($db_tls['ok']) || !empty($db_tls['skipped']);
  $db_tls_detail = '';
  if (!$db_tls_ok) {
@@ -166,7 +166,7 @@ class OraBooks_DeployChecks {
 
  $table_prefix = function_exists('orabooks_get_table_prefix')
  ? orabooks_get_table_prefix
-: $wpdb->prefix;
+: $wpdb->prefix();
  $add_check('table_prefix', 'Shared table prefix resolved', $table_prefix !== '', $table_prefix);
 
  $required_tables = [

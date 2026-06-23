@@ -53,7 +53,7 @@ class OraBooks_Voice {
  $table = OraBooks_Database::table(self::TABLE_VOICE);
  $table_orgs = OraBooks_Database::table('organizations');
  $table_attachments = OraBooks_Database::table('attachments');
- $charset = $wpdb->get_charset_collate;
+ $charset = $wpdb->get_charset_collate();
 
  return [
  "CREATE TABLE IF NOT EXISTS {$table} (
@@ -109,9 +109,9 @@ class OraBooks_Voice {
 
  foreach ($rows ?: [] as $row) {
  if (isset($stats[$row->status])) {
- $stats[$row->status] = (int) $row->total;
+ $stats[$row->status] = (int) $row->total();
  }
- $stats['total'] += (int) $row->total;
+ $stats['total'] += (int) $row->total();
  }
 
  return $stats;
@@ -230,7 +230,7 @@ class OraBooks_Voice {
  'status' => 'pending',
  ], ['%d', '%d', '%s', '%s']);
 
- $voice_id = (int) $wpdb->insert_id;
+ $voice_id = (int) $wpdb->insert_id();
  if (!$voice_id) {
  return new WP_Error('db_error', 'Failed to create voice input record');
  }

@@ -104,7 +104,7 @@ class OraBooks_Partner {
  }
  }
 
- self::process_partner_activity;
+ self::process_partner_activity();
  }
 
  /**
@@ -674,15 +674,15 @@ class OraBooks_Partner {
  return null;
  }
 
- $org_id = $partner->org_id;
+ $org_id = $partner->org_id();
 
  // APPLY ACCESS RULES
  $is_blocked = false;
  $read_only = false;
  $payout_disabled = false;
  $can_reactivate = false;
- $org_status = $partner->org_status;
- $code_status = $partner->status;
+ $org_status = $partner->org_status();
+ $code_status = $partner->status();
 
  switch ($org_status) {
  case 'fraud_freeze':
@@ -1251,7 +1251,7 @@ class OraBooks_Partner {
  orabooks_json_error('Permission denied', 403);
  }
 
- $partners = self::get_pending_partners;
+ $partners = self::get_pending_partners();
  orabooks_json_success($partners);
  }
 
@@ -1263,7 +1263,7 @@ class OraBooks_Partner {
  orabooks_json_error('Permission denied', 403);
  }
 
- $partners = self::get_active_partners;
+ $partners = self::get_active_partners();
  orabooks_json_success($partners);
  }
 
@@ -1275,7 +1275,7 @@ class OraBooks_Partner {
  orabooks_json_error('Permission denied', 403);
  }
 
- $requests = self::get_reactivation_requests;
+ $requests = self::get_reactivation_requests();
  orabooks_json_success($requests);
  }
 

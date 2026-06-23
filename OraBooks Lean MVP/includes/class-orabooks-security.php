@@ -184,7 +184,7 @@ class OraBooks_Security {
 
  public static function get_create_table_sql() {
  global $wpdb;
- $charset_collate = $wpdb->get_charset_collate;
+ $charset_collate = $wpdb->get_charset_collate();
  $tables = [];
 
  $controls = OraBooks_Database::table('security_controls');
@@ -234,7 +234,7 @@ class OraBooks_Security {
  global $wpdb;
 
  $table = OraBooks_Database::table('security_controls');
- $catalog = self::get_owasp_catalog;
+ $catalog = self::get_owasp_catalog();
 
  foreach ($catalog as $owasp_id => $meta) {
  $existing = $wpdb->get_var($wpdb->prepare(
@@ -303,7 +303,7 @@ class OraBooks_Security {
  }
 
  if ($send) {
- self::send_security_headers;
+ self::send_security_headers();
  }
  }
 
@@ -419,10 +419,10 @@ class OraBooks_Security {
  );
 
  if ($incident_type === 'access_denied') {
- self::evaluate_access_denied_threshold;
+ self::evaluate_access_denied_threshold();
  }
 
- return (int) $wpdb->insert_id;
+ return (int) $wpdb->insert_id();
  }
 
  /**
@@ -521,7 +521,7 @@ class OraBooks_Security {
 
  $by_type = [];
  foreach ($incident_counts as $row) {
- $by_type[$row->incident_type] = (int) $row->cnt;
+ $by_type[$row->incident_type] = (int) $row->cnt();
  }
 
  $audit_volume = (int) $wpdb->get_var($wpdb->prepare(
@@ -545,7 +545,7 @@ class OraBooks_Security {
  ORDER BY owasp_id ASC"
  );
 
- $catalog = self::get_owasp_catalog;
+ $catalog = self::get_owasp_catalog();
  $merged_controls = [];
  $controls_by_id = [];
  foreach ($controls as $row) {
@@ -629,7 +629,7 @@ class OraBooks_Security {
  'scanned_at' => current_time('mysql', true),
  ], ['%s', '%s', '%s', '%s', '%s']);
 
- return (int) $wpdb->insert_id;
+ return (int) $wpdb->insert_id();
  }
 
  public static function get_headers_status() {
@@ -651,7 +651,7 @@ class OraBooks_Security {
  }
 
  public function cron_dependency_scan() {
- $inventory = self::collect_dependency_inventory;
+ $inventory = self::collect_dependency_inventory();
  $vulnerabilities = (int) ($inventory['vulnerabilities'] ?? 0);
  $status = $vulnerabilities > 0 ? 'fail': 'pass';
  $summary = $vulnerabilities > 0
@@ -716,12 +716,12 @@ class OraBooks_Security {
  }
 
  public function cron_header_check() {
- $status = self::get_headers_status;
+ $status = self::get_headers_status();
  $all_ok = !in_array(false, $status['configured'], true);
  $scan_status = $all_ok ? 'pass': 'warn';
 
  if (class_exists('OraBooks_Secrets') && method_exists('OraBooks_Secrets', 'check_tls_certificate')) {
- $tls = OraBooks_Secrets::check_tls_certificate;
+ $tls = OraBooks_Secrets::check_tls_certificate();
  $status['tls_certificate'] = $tls;
 
  if (!empty($tls['expired'])) {
@@ -813,7 +813,7 @@ class OraBooks_Security {
  }
 
  $days_since = (int) floor((time() - strtotime($last_rotated)) / DAY_IN_SECONDS);
- $due = $days_since >= self::SECRET_ROTATION_DAYS;
+ $due = $days_since >= self::SECRET_ROTATION_DAYS();
  $status = $due ? 'warn': 'pass';
  $summary = $due
  ? sprintf('Secret rotation overdue (%d days since last rotation)', $days_since)
@@ -900,7 +900,7 @@ class OraBooks_Security {
  && method_exists('OraBooks_Posting', 'validate_ledger_integrity');
  return ['pass' => $pass, 'note' => $pass ? 'Central posting engine + hash chain present': 'Posting engine missing'];
  case 'A05':
- $headers = self::get_headers_status;
+ $headers = self::get_headers_status();
  $pass = !in_array(false, $headers['configured'], true);
  return ['pass' => $pass, 'note' => $pass ? 'Security headers configured': 'Header misconfiguration'];
  case 'A06':

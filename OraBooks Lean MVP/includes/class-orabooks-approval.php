@@ -173,7 +173,7 @@ class OraBooks_Approval {
  'created_by' => (int) $created_by,
  ], ['%d', '%d', '%d', '%s', '%s', '%d']);
 
- $id = (int) $wpdb->insert_id;
+ $id = (int) $wpdb->insert_id();
  orabooks_log_event('approval_delegation_created', 'Approval delegation created', 'info', [
  'delegation_id' => $id,
  'org_id' => (int) $org_id,
@@ -678,7 +678,7 @@ class OraBooks_Approval {
  );
 
  foreach ($rows as $journal) {
- $reminder_key = 'orabooks_appr_rem_'. (int) $journal->id;
+ $reminder_key = 'orabooks_appr_rem_'. (int) $journal->id();
  if (get_transient($reminder_key)) {
  continue;
  }
@@ -821,7 +821,7 @@ class OraBooks_Approval {
  orabooks_json_error($isolation->get_error_message(), 403);
  }
 
- return (int) $journal->org_id;
+ return (int) $journal->org_id();
  }
 
  public function ajax_resubmit_journal() {

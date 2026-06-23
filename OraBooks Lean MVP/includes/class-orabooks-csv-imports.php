@@ -40,7 +40,7 @@ class OraBooks_Csv_Imports {
 
  private static $instance = null;
 
- public static function init {
+ public static function init() {
  if (self::$instance === null) {
  self::$instance = new self;
 
@@ -64,13 +64,13 @@ class OraBooks_Csv_Imports {
  // DATABASE SCHEMA
  // ================================================================
 
- public static function get_create_table_sql {
+ public static function get_create_table_sql() {
  global $wpdb;
 
  $table_imports = OraBooks_Database::table(self::TABLE_IMPORTS);
  $table_rows = OraBooks_Database::table(self::TABLE_ROWS);
  $table_orgs = OraBooks_Database::table('organizations');
- $charset = $wpdb->get_charset_collate;
+ $charset = $wpdb->get_charset_collate();
 
  return [
  "CREATE TABLE IF NOT EXISTS {$table_imports} (
@@ -196,7 +196,7 @@ class OraBooks_Csv_Imports {
  'idempotency_key' => $idempotency_key,
  ], ['%d', '%d', '%s', '%s', '%s', '%s', '%s', '%s']);
 
- $import_id = (int) $wpdb->insert_id;
+ $import_id = (int) $wpdb->insert_id();
  if (!$import_id) {
  return new WP_Error('db_error', 'Failed to create import record');
  }
@@ -220,7 +220,7 @@ class OraBooks_Csv_Imports {
  $attachment_id = (int) ($attachment['attachment_id'] ?? 0);
  $version = OraBooks_Attachments::get_version((int) ($attachment['version_id'] ?? 0), $org_id);
  if ($version && !empty($version->storage_path)) {
- $storage_key = $version->storage_path;
+ $storage_key = $version->storage_path();
  }
  }
  }
@@ -307,7 +307,7 @@ class OraBooks_Csv_Imports {
  'user_id' => (int) $import->user_id,
  'reason' => $content->get_error_message,
  ]);
- return $content->get_error_message;
+ return $content->get_error_message();
  }
 
  $parsed = self::parse_csv_content($content);
@@ -319,7 +319,7 @@ class OraBooks_Csv_Imports {
  'user_id' => (int) $import->user_id,
  'reason' => $parsed->get_error_message,
  ]);
- return $parsed->get_error_message;
+ return $parsed->get_error_message();
  }
 
  if ($parsed['row_count'] > self::MAX_ROWS) {
@@ -852,7 +852,7 @@ class OraBooks_Csv_Imports {
  if (is_wp_error($vendor)) {
  return $vendor;
  }
- $vendor_id = (int) $vendor->id;
+ $vendor_id = (int) $vendor->id();
  }
 
  $bill = OraBooks_Vendors::create_bill($org_id, [
@@ -1109,7 +1109,7 @@ class OraBooks_Csv_Imports {
  ];
 
  foreach ($rows ?: [] as $row) {
- $count = (int) $row->total;
+ $count = (int) $row->total();
  $stats['total'] += $count;
  if (isset($stats[$row->status])) {
  $stats[$row->status] = $count;
@@ -1314,7 +1314,7 @@ class OraBooks_Csv_Imports {
  return $data;
  }
  $method = 'aes-256-cbc';
- $key = self::get_file_encryption_key;
+ $key = self::get_file_encryption_key();
  $iv = substr(hash('sha256', $key. '_csv_import_iv'), 0, 16);
  return openssl_encrypt($data, $method, $key, 0, $iv);
  }
@@ -1324,14 +1324,14 @@ class OraBooks_Csv_Imports {
  return $data;
  }
  $method = 'aes-256-cbc';
- $key = self::get_file_encryption_key;
+ $key = self::get_file_encryption_key();
  $iv = substr(hash('sha256', $key. '_csv_import_iv'), 0, 16);
  return openssl_decrypt($data, $method, $key, 0, $iv);
  }
 
- private static function get_file_encryption_key {
+ private static function get_file_encryption_key() {
  if (class_exists('OraBooks_Secrets')) {
- return OraBooks_Secrets::get_encryption_key;
+ return OraBooks_Secrets::get_encryption_key();
  }
  return wp_salt('auth');
  }
@@ -1359,7 +1359,7 @@ class OraBooks_Csv_Imports {
  /**
  * Purge import files past retention (respects legal_hold).
  */
- public function cron_purge_old_imports {
+ public function cron_purge_old_imports() {
  global $wpdb;
 
  $table = OraBooks_Database::table(self::TABLE_IMPORTS);
@@ -1396,7 +1396,7 @@ class OraBooks_Csv_Imports {
  // AJAX
  // ================================================================
 
- private function current_user_id {
+ private function current_user_id() {
  return orabooks_get_current_user_id;
  }
 
@@ -1418,8 +1418,8 @@ class OraBooks_Csv_Imports {
  }
  }
 
- public function ajax_upload {
- $user_id = $this->current_user_id;
+ public function ajax_upload() {
+ $user_id = $this->current_user_id();
  $org_id = intval($_POST['org_id'] ?? 0);
  $resource_type = sanitize_text_field($_POST['resource_type'] ?? '');
  $idempotency_key = sanitize_text_field($_POST['idempotency_key'] ?? '');
@@ -1442,8 +1442,8 @@ class OraBooks_Csv_Imports {
  orabooks_json_success($result);
  }
 
- public function ajax_get_import {
- $user_id = $this->current_user_id;
+ public function ajax_get_import() {
+ $user_id = $this->current_user_id();
  $org_id = intval($_POST['org_id'] ?? $_GET['org_id'] ?? 0);
  $import_id = intval($_POST['import_id'] ?? $_GET['import_id'] ?? 0);
 
@@ -1470,8 +1470,8 @@ class OraBooks_Csv_Imports {
  orabooks_json_success($preview);
  }
 
- public function ajax_confirm {
- $user_id = $this->current_user_id;
+ public function ajax_confirm() {
+ $user_id = $this->current_user_id();
  $org_id = intval($_POST['org_id'] ?? 0);
  $import_id = intval($_POST['import_id'] ?? 0);
  $confirm_key = sanitize_text_field($_POST['idempotency_key'] ?? '');
@@ -1502,8 +1502,8 @@ class OraBooks_Csv_Imports {
  orabooks_json_success($result);
  }
 
- public function ajax_list_imports {
- $user_id = $this->current_user_id;
+ public function ajax_list_imports() {
+ $user_id = $this->current_user_id();
  $org_id = intval($_POST['org_id'] ?? $_GET['org_id'] ?? 0);
 
  $this->require_customer_org_access($user_id, $org_id);

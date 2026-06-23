@@ -99,7 +99,7 @@ class OraBooks_Organization {
  ['%s', '%s', '%s', '%d', '%s', '%s', '%s']
  );
 
- $org_id = $wpdb->insert_id;
+ $org_id = $wpdb->insert_id();
  if (!$org_id) {
  return new WP_Error('creation_failed', 'Failed to create organization');
  }
@@ -266,7 +266,7 @@ class OraBooks_Organization {
  return true;
  }
 
- $old_region = $org->region;
+ $old_region = $org->region();
  $wpdb->update(
  OraBooks_Database::table('organizations'),
  ['region' => $region],
@@ -302,7 +302,7 @@ class OraBooks_Organization {
  return new WP_Error('invalid_type', 'Only customer orgs can change tier');
  }
 
- $old_tier = $org->tier;
+ $old_tier = $org->tier();
  $wpdb->update(
  OraBooks_Database::table('organizations'),
  ['tier' => $new_tier],
@@ -430,7 +430,7 @@ class OraBooks_Organization {
  'reason' => $reason
  ], $requested_by, $org_id);
 
- return $wpdb->insert_id;
+ return $wpdb->insert_id();
  }
 
  /**

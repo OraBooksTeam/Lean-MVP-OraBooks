@@ -169,7 +169,7 @@ class OraBooks_Auth {
 
  $wpdb->insert($table_users, $insert_data, $insert_format);
 
- $user_id = $wpdb->insert_id;
+ $user_id = $wpdb->insert_id();
  if (!$user_id) {
  $db_error = $wpdb->last_error ? ' Database: '. $wpdb->last_error: '';
  return new WP_Error(
@@ -279,7 +279,7 @@ class OraBooks_Auth {
  ? OraBooks_Organization::get((int) $pending_invite->org_id)
 : null;
  $response['has_pending_invite'] = true;
- $response['pending_invite_role'] = $pending_invite->role;
+ $response['pending_invite_role'] = $pending_invite->role();
  $response['pending_invite_org_name'] = $invite_org ? $invite_org->name: '';
  $response['message'] = $email_warning
  ? $response['message']
@@ -762,7 +762,7 @@ class OraBooks_Auth {
  ?? '';
 
  // Create partner org
- $org_name = !empty($organization_name) ? $organization_name: 'Partner '. $user->id;
+ $org_name = !empty($organization_name) ? $organization_name: 'Partner '. $user->id();
  $org_result = OraBooks_Organization::create([
  'owner_id' => $user->id,
  'organization_type' => 'partner',
@@ -1648,7 +1648,7 @@ class OraBooks_Auth {
 
  if ($existing) {
  // User exists ΓÇö log them in
- $user_id = $existing->id;
+ $user_id = $existing->id();
  $expected_subdomain = self::detect_subdomain_from_host();
 
  if ($existing->auth_provider === 'local' && !empty($existing->password_hash)) {
@@ -1726,7 +1726,7 @@ class OraBooks_Auth {
 
  $wpdb->insert($table_users, $insert_data, $insert_format);
 
- $user_id = $wpdb->insert_id;
+ $user_id = $wpdb->insert_id();
  if (!$user_id) {
  return new WP_Error('creation_failed', 'Failed to create account from Google profile.');
  }

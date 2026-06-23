@@ -18,7 +18,7 @@ class OraBooks_RBAC {
  public static function init() {
  if (self::$instance === null) {
  self::$instance = new self;
- self::define_permissions;
+ self::define_permissions();
  }
  return self::$instance;
  }

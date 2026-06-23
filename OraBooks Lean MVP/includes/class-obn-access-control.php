@@ -42,7 +42,7 @@ class OBN_Access_Control {
 
  public static function init() {
  if (class_exists('OraBooks_RBAC')) {
- OraBooks_RBAC::init;
+ OraBooks_RBAC::init();
  }
  }
 

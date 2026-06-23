@@ -77,7 +77,7 @@ class OraBooks_Tax {
  public static function get_create_table_sql() {
  global $wpdb;
 
- $charset_collate = $wpdb->get_charset_collate;
+ $charset_collate = $wpdb->get_charset_collate();
  $tables = [];
 
  $table_configs = OraBooks_Database::table('tax_configs');
@@ -184,7 +184,7 @@ class OraBooks_Tax {
  }
 
  public static function calculate($data) {
- self::maybe_ensure_tax_schema;
+ self::maybe_ensure_tax_schema();
  $org_id = intval($data['org_id'] ?? 0);
  $amount = round(floatval($data['amount'] ?? 0), 2);
  $jurisdiction = strtoupper(sanitize_text_field($data['jurisdiction'] ?? 'US'));
@@ -207,7 +207,7 @@ class OraBooks_Tax {
  $config = self::get_active_config($org_id, $jurisdiction);
  if ($config) {
  $rate = floatval($config->default_tax_rate);
- $tax_type = $config->tax_type;
+ $tax_type = $config->tax_type();
  $rule_id = 'org_config_'. intval($config->id);
  } else {
  $jurisdiction_rule = self::get_jurisdiction_rule($jurisdiction);
@@ -247,7 +247,7 @@ class OraBooks_Tax {
 
  public static function save_config($org_id, $data, $user_id = null) {
  global $wpdb;
- self::maybe_ensure_tax_schema;
+ self::maybe_ensure_tax_schema();
 
  $org_id = intval($org_id);
  $user_id = $user_id ? intval($user_id): get_current_user_id;
@@ -423,7 +423,7 @@ class OraBooks_Tax {
  if (!empty($invoice->tax_override_reason)) {
  $payload['override'] = true;
  $payload['override_tax_rate'] = floatval($invoice->tax_rate ?? 0);
- $payload['override_reason'] = $invoice->tax_override_reason;
+ $payload['override_reason'] = $invoice->tax_override_reason();
  } else {
  $payload['override'] = false;
  }
@@ -457,7 +457,7 @@ class OraBooks_Tax {
  if (!empty($expense->tax_override_reason)) {
  $payload['override'] = true;
  $payload['override_tax_rate'] = (float) ($expense->tax_rate ?? 0);
- $payload['override_reason'] = $expense->tax_override_reason;
+ $payload['override_reason'] = $expense->tax_override_reason();
  } else {
  $payload['override'] = false;
  }
@@ -467,7 +467,7 @@ class OraBooks_Tax {
 
  public static function list_snapshots($org_id, $limit = 25) {
  global $wpdb;
- self::maybe_ensure_tax_schema;
+ self::maybe_ensure_tax_schema();
 
  $table = OraBooks_Database::table('tax_snapshots');
  $limit = max(1, min(100, (int) $limit));
@@ -484,7 +484,7 @@ class OraBooks_Tax {
  }
 
  private static function normalize_override_reasons($raw) {
- $allowed = self::DEFAULT_OVERRIDE_REASONS;
+ $allowed = self::DEFAULT_OVERRIDE_REASONS();
  $reasons = [];
 
  if (is_string($raw) && $raw !== '') {
@@ -510,7 +510,7 @@ class OraBooks_Tax {
 
  public static function list_configs($org_id) {
  global $wpdb;
- self::maybe_ensure_tax_schema;
+ self::maybe_ensure_tax_schema();
 
  $table = OraBooks_Database::table('tax_configs');
  $rows = $wpdb->get_results($wpdb->prepare(
@@ -570,7 +570,7 @@ class OraBooks_Tax {
  }
 
  public static function format_config($config) {
- $override_reasons = self::DEFAULT_OVERRIDE_REASONS;
+ $override_reasons = self::DEFAULT_OVERRIDE_REASONS();
  if (!empty($config->override_reasons)) {
  $decoded = json_decode($config->override_reasons, true);
  if (is_array($decoded) && $decoded) {
@@ -689,7 +689,7 @@ class OraBooks_Tax {
  }
  }
 
- return self::DEFAULT_OVERRIDE_REASONS;
+ return self::DEFAULT_OVERRIDE_REASONS();
  }
 
  /**
@@ -714,7 +714,7 @@ class OraBooks_Tax {
  public static function get_override_reasons($org_id, $jurisdiction = null) {
  $org_id = (int) $org_id;
  if ($org_id <= 0) {
- return self::DEFAULT_OVERRIDE_REASONS;
+ return self::DEFAULT_OVERRIDE_REASONS();
  }
 
  if ($jurisdiction !== null && $jurisdiction !== '') {
@@ -729,7 +729,7 @@ class OraBooks_Tax {
  }
  }
 
- return $reasons ? array_keys($reasons): self::DEFAULT_OVERRIDE_REASONS;
+ return $reasons ? array_keys($reasons): self::DEFAULT_OVERRIDE_REASONS();
  }
 
  public static function validate_override($org_id, $jurisdiction, $tax_rate, $reason_code) {

@@ -70,7 +70,7 @@ class OraBooks_Audit {
  ['%d', '%d', '%s', '%s', '%s', '%s', '%s', '%s', '%s']
  );
 
- return $wpdb->insert_id;
+ return $wpdb->insert_id();
  }
 
  /**

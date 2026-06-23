@@ -193,7 +193,7 @@ class OraBooks_Team {
  ['%d', '%s', '%s', '%s', '%s']
  );
 
- $invite_id = $wpdb->insert_id;
+ $invite_id = $wpdb->insert_id();
 
  $org = OraBooks_Organization::get($org_id);
 
@@ -319,7 +319,7 @@ class OraBooks_Team {
  ));
 
  if ($existing) {
- $role = orabooks_get_user_role((int) $user->id, (int) $invite->org_id) ?: $invite->role;
+ $role = orabooks_get_user_role((int) $user->id, (int) $invite->org_id) ?: $invite->role();
  $wpdb->update($table_users, ['org_id' => $invite->org_id], ['id' => $user->id], ['%d'], ['%d']);
  $wpdb->update($table_invites, ['used' => 1], ['id' => $invite->id], ['%d'], ['%d']);
  $wpdb->query('COMMIT');
@@ -568,7 +568,7 @@ class OraBooks_Team {
  }
 
  public function ajax_invite_user() {
- $user_id = $this->current_user_id;
+ $user_id = $this->current_user_id();
  $org_id = intval($_POST['org_id'] ?? 0);
  $email = sanitize_email($_POST['email'] ?? '');
  $role = sanitize_text_field($_POST['role'] ?? 'staff');
@@ -587,7 +587,7 @@ class OraBooks_Team {
  }
 
  public function ajax_list_members() {
- $user_id = $this->current_user_id;
+ $user_id = $this->current_user_id();
  $org_id = intval($_POST['org_id'] ?? $_GET['org_id'] ?? 0);
 
  $this->require_org_member_access($user_id, $org_id);
@@ -599,7 +599,7 @@ class OraBooks_Team {
  }
 
  public function ajax_update_role() {
- $user_id = $this->current_user_id;
+ $user_id = $this->current_user_id();
  $org_id = intval($_POST['org_id'] ?? 0);
  $target_user_id = intval($_POST['user_id'] ?? 0);
  $new_role = sanitize_text_field($_POST['role'] ?? '');
@@ -625,7 +625,7 @@ class OraBooks_Team {
  }
 
  public function ajax_remove_user() {
- $user_id = $this->current_user_id;
+ $user_id = $this->current_user_id();
  $org_id = intval($_POST['org_id'] ?? 0);
  $target_user_id = intval($_POST['user_id'] ?? 0);
 
@@ -643,7 +643,7 @@ class OraBooks_Team {
  }
 
  public function ajax_list_pending_invites() {
- $user_id = $this->current_user_id;
+ $user_id = $this->current_user_id();
  $org_id = intval($_POST['org_id'] ?? $_GET['org_id'] ?? 0);
 
  $this->require_org_member_access($user_id, $org_id);
@@ -663,7 +663,7 @@ class OraBooks_Team {
 
  $invite_id = intval($_POST['invite_id'] ?? 0);
  $org_id = intval($_POST['org_id'] ?? 0);
- $user_id = $this->current_user_id;
+ $user_id = $this->current_user_id();
 
  $this->require_org_member_access($user_id, $org_id);
 
@@ -708,7 +708,7 @@ class OraBooks_Team {
 
  $invite_id = intval($_POST['invite_id'] ?? 0);
  $org_id = intval($_POST['org_id'] ?? 0);
- $user_id = $this->current_user_id;
+ $user_id = $this->current_user_id();
 
  $this->require_org_member_access($user_id, $org_id);
 
@@ -778,11 +778,11 @@ class OraBooks_Team {
  $has_post_token = sanitize_text_field($raw_token) !== '';
 
  if ($method === 'GET' && !$has_post_token) {
- $this->ajax_accept_invite_legacy_redirect;
+ $this->ajax_accept_invite_legacy_redirect();
  return;
  }
 
- $this->ajax_accept_invite;
+ $this->ajax_accept_invite();
  }
 
  /**

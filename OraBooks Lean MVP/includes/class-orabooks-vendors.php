@@ -48,7 +48,7 @@ class OraBooks_Vendors {
  public static function get_create_table_sql() {
  global $wpdb;
 
- $charset_collate = $wpdb->get_charset_collate;
+ $charset_collate = $wpdb->get_charset_collate();
  $tables = [];
 
  $table_vendors = OraBooks_Database::table('vendors');
@@ -854,7 +854,7 @@ class OraBooks_Vendors {
  $adjustment_account = $is_adjustment
  ? sanitize_text_field($data['adjustment_account_code'] ?? $config->vendor_adjustment_account)
 : null;
- $requires_second = $is_adjustment && $amount > (float) $config->adjustment_threshold;
+ $requires_second = $is_adjustment && $amount > (float) $config->adjustment_threshold();
 
  $number = !empty($data['credit_note_number'])
  ? sanitize_text_field($data['credit_note_number'])
@@ -1299,14 +1299,14 @@ class OraBooks_Vendors {
  }
 
  public function ajax_vendors_list() {
- $user_id = $this->current_user_id;
+ $user_id = $this->current_user_id();
  $org_id = intval($_GET['org_id'] ?? 0);
  $this->require_ap_permission($user_id, $org_id, ['view_reports']);
  orabooks_json_success(self::get_vendors_list($org_id, $_GET));
  }
 
  public function ajax_vendor_create() {
- $user_id = $this->current_user_id;
+ $user_id = $this->current_user_id();
  $org_id = intval($_POST['org_id'] ?? 0);
  $this->require_ap_permission($user_id, $org_id, ['manage_org_settings']);
  $result = self::create_vendor($org_id, $_POST);
@@ -1317,7 +1317,7 @@ class OraBooks_Vendors {
  }
 
  public function ajax_vendor_update() {
- $user_id = $this->current_user_id;
+ $user_id = $this->current_user_id();
  $org_id = intval($_POST['org_id'] ?? 0);
  $vendor_id = intval($_POST['vendor_id'] ?? 0);
  $this->require_ap_permission($user_id, $org_id, ['manage_org_settings']);
@@ -1329,14 +1329,14 @@ class OraBooks_Vendors {
  }
 
  public function ajax_bills_list() {
- $user_id = $this->current_user_id;
+ $user_id = $this->current_user_id();
  $org_id = intval($_GET['org_id'] ?? 0);
  $this->require_ap_permission($user_id, $org_id, ['view_reports']);
  orabooks_json_success(self::get_bills_list($org_id, $_GET));
  }
 
  public function ajax_bill_create() {
- $user_id = $this->current_user_id;
+ $user_id = $this->current_user_id();
  $org_id = intval($_POST['org_id'] ?? 0);
  $this->require_ap_permission($user_id, $org_id, ['submit_transaction']);
  $result = self::create_bill($org_id, $_POST);
@@ -1347,7 +1347,7 @@ class OraBooks_Vendors {
  }
 
  public function ajax_bill_submit() {
- $user_id = $this->current_user_id;
+ $user_id = $this->current_user_id();
  $org_id = intval($_POST['org_id'] ?? 0);
  $this->require_ap_permission($user_id, $org_id, ['submit_transaction']);
  $result = self::submit_bill($org_id, intval($_POST['bill_id'] ?? 0), $user_id);
@@ -1358,7 +1358,7 @@ class OraBooks_Vendors {
  }
 
  public function ajax_bill_approve() {
- $user_id = $this->current_user_id;
+ $user_id = $this->current_user_id();
  $org_id = intval($_POST['org_id'] ?? 0);
  $this->require_ap_permission($user_id, $org_id, ['approve_journal']);
  $result = self::approve_bill($org_id, intval($_POST['bill_id'] ?? 0), $user_id);
@@ -1369,7 +1369,7 @@ class OraBooks_Vendors {
  }
 
  public function ajax_bill_post() {
- $user_id = $this->current_user_id;
+ $user_id = $this->current_user_id();
  $org_id = intval($_POST['org_id'] ?? 0);
  $this->require_ap_permission($user_id, $org_id, ['approve_journal', 'manage_org_settings']);
  $result = self::post_bill($org_id, intval($_POST['bill_id'] ?? 0), $user_id);
@@ -1380,14 +1380,14 @@ class OraBooks_Vendors {
  }
 
  public function ajax_bill_void() {
- $user_id = $this->current_user_id;
+ $user_id = $this->current_user_id();
  $org_id = intval($_POST['org_id'] ?? 0);
  $reason = isset($_POST['reason']) ? sanitize_textarea_field(wp_unslash($_POST['reason'])): null;
  $this->require_ap_permission($user_id, $org_id, ['submit_transaction', 'manage_org_settings']);
  $result = self::void_bill($org_id, intval($_POST['bill_id'] ?? 0), $user_id, $reason);
  if (is_wp_error($result)) {
  $status = 400;
- $data = $result->get_error_data;
+ $data = $result->get_error_data();
  if (is_array($data) && isset($data['status'])) {
  $status = (int) $data['status'];
  }
@@ -1397,7 +1397,7 @@ class OraBooks_Vendors {
  }
 
  public function ajax_record_payment() {
- $user_id = $this->current_user_id;
+ $user_id = $this->current_user_id();
  $org_id = intval($_POST['org_id'] ?? 0);
  $this->require_ap_permission($user_id, $org_id, ['manage_org_settings', 'approve_journal', 'submit_transaction', 'manage_billing']);
  $result = self::record_payment($org_id, intval($_POST['vendor_id'] ?? 0), $_POST);
@@ -1408,7 +1408,7 @@ class OraBooks_Vendors {
  }
 
  public function ajax_create_credit_note() {
- $user_id = $this->current_user_id;
+ $user_id = $this->current_user_id();
  $org_id = intval($_POST['org_id'] ?? 0);
  $this->require_ap_permission($user_id, $org_id, ['manage_org_settings', 'approve_journal', 'manage_billing']);
  $result = self::create_credit_note($org_id, $_POST);
@@ -1419,7 +1419,7 @@ class OraBooks_Vendors {
  }
 
  public function ajax_ap_aging() {
- $user_id = $this->current_user_id;
+ $user_id = $this->current_user_id();
  $org_id = intval($_GET['org_id'] ?? 0);
  $this->require_ap_permission($user_id, $org_id, ['view_reports']);
  orabooks_json_success(self::get_ap_aging($org_id, $_GET['as_of_date'] ?? null));

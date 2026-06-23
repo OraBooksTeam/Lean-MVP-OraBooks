@@ -88,7 +88,7 @@ class OraBooks_Observability {
 
  public static function get_create_table_sql() {
  global $wpdb;
- $charset_collate = $wpdb->get_charset_collate;
+ $charset_collate = $wpdb->get_charset_collate();
  $tables = [];
 
  $table_metrics = OraBooks_Database::table('platform_metrics');
@@ -134,7 +134,7 @@ class OraBooks_Observability {
  'recorded_at' => current_time('mysql', true),
  ], ['%d', '%s', '%s', '%f', '%s', '%s']);
 
- return (int) $wpdb->insert_id;
+ return (int) $wpdb->insert_id();
  }
 
  /**
@@ -153,7 +153,7 @@ class OraBooks_Observability {
  'recorded_at' => current_time('mysql', true),
  ], ['%s', '%s', '%s', '%s']);
 
- return (int) $wpdb->insert_id;
+ return (int) $wpdb->insert_id();
  }
 
  /**
@@ -166,7 +166,7 @@ class OraBooks_Observability {
 
  // Event bus
  if (class_exists('OraBooks_Event_Module')) {
- $event_health = OraBooks_Event_Module::get_health;
+ $event_health = OraBooks_Event_Module::get_health();
  $event_pending = (int) ($event_health['pending'] ?? 0);
  $event_dead = (int) ($event_health['dead_letter'] ?? 0);
  } else {
@@ -189,7 +189,7 @@ class OraBooks_Observability {
  $async_failure_rate = 0;
  $async_latency = 0;
  if (class_exists('OraBooks_AsyncQueue') && method_exists('OraBooks_AsyncQueue', 'get_queue_stats')) {
- $queue_stats = OraBooks_AsyncQueue::get_queue_stats;
+ $queue_stats = OraBooks_AsyncQueue::get_queue_stats();
  $async_pending = (int) ($queue_stats['pending_count'] ?? 0);
  $async_dead = (int) ($queue_stats['dead_letter_count'] ?? 0);
  $async_failure_rate = (float) ($queue_stats['failure_rate_24h'] ?? 0);
@@ -243,14 +243,14 @@ class OraBooks_Observability {
  $snapshots['exports'] = ['pending' => $export_pending, 'failed_24h' => $export_failed_24h, 'status' => $export_status];
 
  // Workflow engine
- $workflow_health = self::get_workflow_health;
+ $workflow_health = self::get_workflow_health();
  self::record_metric('workflow', 'transition_success_24h', (float) ($workflow_health['transitions_24h'] ?? 0));
  self::record_metric('workflow', 'transition_failure_24h', (float) ($workflow_health['failures_24h'] ?? 0));
  $workflow_status = ($workflow_health['failures_24h'] ?? 0) >= self::$thresholds['workflow_failures_24h'] ? 'degraded': 'healthy';
  self::record_health_check('workflow', $workflow_status, $workflow_health);
  $snapshots['workflow'] = array_merge($workflow_health, ['status' => $workflow_status]);
 
- $classification_health = self::get_classification_health;
+ $classification_health = self::get_classification_health();
  self::record_metric('classification', 'processed_24h', (float) ($classification_health['processed_24h'] ?? 0));
  self::record_metric('classification', 'override_rate_24h', (float) ($classification_health['override_rate'] ?? 0));
  $classification_status = ($classification_health['failed_24h'] ?? 0) >= 5 ? 'degraded': 'healthy';
@@ -258,7 +258,7 @@ class OraBooks_Observability {
  $snapshots['classification'] = array_merge($classification_health, ['status' => $classification_status]);
 
  if (class_exists('OraBooks_Expenses') && method_exists('OraBooks_Expenses', 'get_observability_stats')) {
- $ocr_health = OraBooks_Expenses::get_observability_stats;
+ $ocr_health = OraBooks_Expenses::get_observability_stats();
  self::record_metric('expense_ocr', 'queue_depth', (float) ($ocr_health['queue_depth'] ?? 0));
  self::record_metric('expense_ocr', 'failed_24h', (float) ($ocr_health['failed_24h'] ?? 0));
  self::record_metric('expense_ocr', 'completed_24h', (float) ($ocr_health['completed_24h'] ?? 0));
@@ -288,7 +288,7 @@ class OraBooks_Observability {
  */
  public static function evaluate_thresholds($snapshots = null) {
  if ($snapshots === null) {
- $result = self::collect_platform_metrics;
+ $result = self::collect_platform_metrics();
  $snapshots = $result['snapshots'];
  }
 
@@ -323,7 +323,7 @@ class OraBooks_Observability {
  $alerts[] = self::build_alert('expense_ocr_failures', 'Expense OCR failure rate elevated', $snapshots['expense_ocr']);
  }
 
- $slo_alerts = self::evaluate_error_budgets;
+ $slo_alerts = self::evaluate_error_budgets();
  foreach ($slo_alerts as $slo_alert) {
  $alerts[] = $slo_alert;
  }
@@ -366,7 +366,7 @@ class OraBooks_Observability {
  $since
  ));
 
- $collection = self::collect_platform_metrics;
+ $collection = self::collect_platform_metrics();
 
  return [
  'collected_at' => $collection['collected_at'],
@@ -388,7 +388,7 @@ class OraBooks_Observability {
  * Compute SLO compliance and error budget for all platform objectives.
  */
  public static function get_slo_dashboard($window_days = null) {
- $definitions = self::get_slo_definitions;
+ $definitions = self::get_slo_definitions();
  $results = [];
 
  foreach ($definitions as $slo_id => $definition) {
@@ -405,7 +405,7 @@ class OraBooks_Observability {
  }
 
  public static function evaluate_error_budgets() {
- $dashboard = self::get_slo_dashboard;
+ $dashboard = self::get_slo_dashboard();
  $thresholds = apply_filters('orabooks_observability_thresholds', self::$thresholds);
  $min_budget = (float) ($thresholds['slo_error_budget_min'] ?? 10);
  $alerts = [];
@@ -486,7 +486,7 @@ class OraBooks_Observability {
  ));
  return self::normalize_sli_row($row);
  }
- return self::empty_sli;
+ return self::empty_sli();
 
  case 'workflow_transitions':
  $health = self::get_workflow_health(0);
@@ -532,7 +532,7 @@ class OraBooks_Observability {
  return self::normalize_sli_row($row);
 
  default:
- return self::empty_sli;
+ return self::empty_sli();
  }
  }
 
@@ -706,11 +706,11 @@ class OraBooks_Observability {
 
  foreach ($rows ?: [] as $row) {
  if ($row->event_type === 'classification_suggested') {
- $counts['processed'] = (int) $row->total;
+ $counts['processed'] = (int) $row->total();
  } elseif ($row->event_type === 'classification_failed') {
- $counts['failed'] = (int) $row->total;
+ $counts['failed'] = (int) $row->total();
  } elseif ($row->event_type === 'classification_override') {
- $counts['overridden'] = (int) $row->total;
+ $counts['overridden'] = (int) $row->total();
  }
  }
 
@@ -749,11 +749,11 @@ class OraBooks_Observability {
  }
 
  public function cron_collect_metrics() {
- self::collect_platform_metrics;
+ self::collect_platform_metrics();
  }
 
  public function cron_evaluate_thresholds() {
- self::evaluate_thresholds;
+ self::evaluate_thresholds();
  }
 
  public function cron_purge_old_metrics() {

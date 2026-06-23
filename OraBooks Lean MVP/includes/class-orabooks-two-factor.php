@@ -67,11 +67,11 @@ class OraBooks_TwoFactor {
  );
  }
 
- $secret = OraBooks_Secrets::generate_totp_secret;
+ $secret = OraBooks_Secrets::generate_totp_secret();
  orabooks_set_2fa_temp_secret($wp_user_id, $secret);
 
- $email = get_userdata($wp_user_id)->user_email ?? (string) $user->email;
- $backup_codes = OraBooks_Secrets::generate_backup_codes;
+ $email = get_userdata($wp_user_id)->user_email ?? (string) $user->email();
+ $backup_codes = OraBooks_Secrets::generate_backup_codes();
  orabooks_set_2fa_temp_backup_codes($wp_user_id, $backup_codes);
 
  return [
@@ -329,7 +329,7 @@ class OraBooks_TwoFactor {
  return new WP_Error('invalid_otp', 'Invalid OTP code', ['status' => 400]);
  }
 
- $backup_codes = OraBooks_Secrets::generate_backup_codes;
+ $backup_codes = OraBooks_Secrets::generate_backup_codes();
  self::persist_backup_codes($orabooks_user_id, $backup_codes);
 
  orabooks_log_event(

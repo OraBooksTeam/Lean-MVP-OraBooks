@@ -42,7 +42,7 @@ class OraBooks_Operational_Reports {
  public static function get_create_table_sql() {
  global $wpdb;
 
- $charset_collate = $wpdb->get_charset_collate;
+ $charset_collate = $wpdb->get_charset_collate();
  $tables = [];
  $table_orgs = OraBooks_Database::table('organizations');
 
@@ -239,7 +239,7 @@ class OraBooks_Operational_Reports {
  ];
  }
  $bucket = self::normalize_bucket($row->bucket);
- $amount = (float) $row->amount;
+ $amount = (float) $row->amount();
  $result[$id][$bucket] += $amount;
  $result[$id]['total_due'] += $amount;
  }
@@ -249,7 +249,7 @@ class OraBooks_Operational_Reports {
  private static function aging_totals($rows) {
  $totals = ['current' => 0.0, '30' => 0.0, '60' => 0.0, '90_plus' => 0.0];
  foreach ($rows as $row) {
- $totals[self::normalize_bucket($row->bucket)] += (float) $row->amount;
+ $totals[self::normalize_bucket($row->bucket)] += (float) $row->amount();
  }
  return $totals;
  }
@@ -283,8 +283,8 @@ class OraBooks_Operational_Reports {
 
  $low_count = 0;
  foreach ($rows as $row) {
- $row->current_stock = (float) $row->current_stock;
- $row->reorder_level = (float) $row->reorder_level;
+ $row->current_stock = (float) $row->current_stock();
+ $row->reorder_level = (float) $row->reorder_level();
  $row->status = $row->current_stock < $row->reorder_level ? 'low': 'ok';
  if ($row->status === 'low') {
  $low_count++;
@@ -415,7 +415,7 @@ class OraBooks_Operational_Reports {
 
  $table = OraBooks_Database::table('report_inventory_status');
  $reorder_level = isset($product->low_stock_threshold) && $product->low_stock_threshold !== null ? (float) $product->low_stock_threshold: 10.0;
- $current_stock = (float) $product->current_stock;
+ $current_stock = (float) $product->current_stock();
  $status = $current_stock < $reorder_level ? 'low': 'ok';
 
  $wpdb->query($wpdb->prepare(
@@ -485,7 +485,7 @@ class OraBooks_Operational_Reports {
 
  $table = OraBooks_Database::table('report_sales_summary');
  $date = sanitize_text_field($invoice->transaction_date);
- $total_sales = (float) $invoice->total_amount;
+ $total_sales = (float) $invoice->total_amount();
  $returns = $invoice->payment_status === 'cancelled' ? $total_sales: 0.0;
  $net = $total_sales - $returns;
 
