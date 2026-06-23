@@ -832,7 +832,7 @@ class OraBooks_Rest_Api {
         }
 
         $result = OraBooks_Expenses::confirm_submit(
-            (int) $request['id'],
+            self::resolve_route_id($request),
             $context['org_id'],
             $context['user_id'],
             $idempotency_key,
@@ -842,6 +842,101 @@ class OraBooks_Rest_Api {
         if (is_wp_error($result)) {
             $status = $result->get_error_code() === 'duplicate' ? 409 : 400;
             $result->add_data(['status' => $status]);
+            return $result;
+        }
+
+        return rest_ensure_response(['expense' => $result]);
+    }
+
+    public static function rest_get_expense_settings(WP_REST_Request $request) {
+        $context = self::require_org_access($request, 'view_expenses');
+        if (is_wp_error($context)) {
+            return $context;
+        }
+
+        return rest_ensure_response([
+            'settings' => OraBooks_Expenses::format_org_settings(
+                OraBooks_Expenses::get_org_settings($context['org_id'])
+            ),
+        ]);
+    }
+
+    public static function rest_save_expense_settings(WP_REST_Request $request) {
+        $context = self::require_org_access($request, 'manage_org_settings');
+        if (is_wp_error($context)) {
+            return $context;
+        }
+
+        $auto_post = $request->get_param('auto_post_on_approve');
+        $settings = OraBooks_Expenses::save_org_settings($context['org_id'], [
+            'auto_post_on_approve' => $auto_post === null ? 1 : (int) $auto_post,
+        ]);
+
+        return rest_ensure_response(['settings' => $settings]);
+    }
+
+    public static function rest_approve_expense(WP_REST_Request $request) {
+        $context = self::require_org_access($request, 'approve_expense');
+        if (is_wp_error($context)) {
+            return $context;
+        }
+
+        $expense_id = self::resolve_route_id($request);
+        $expense = OraBooks_Expenses::get_expense($expense_id, $context['org_id']);
+        if (!$expense) {
+            return new WP_Error('not_found', 'Expense not found.', ['status' => 404]);
+        }
+
+        $result = OraBooks_Expenses::approve_expense($expense_id, $context['org_id'], $context['user_id']);
+        if (is_wp_error($result)) {
+            $result->add_data(['status' => 400]);
+            return $result;
+        }
+
+        return rest_ensure_response(['expense' => $result]);
+    }
+
+    public static function rest_reject_expense(WP_REST_Request $request) {
+        $context = self::require_org_access($request, 'approve_expense');
+        if (is_wp_error($context)) {
+            return $context;
+        }
+
+        $reason = sanitize_textarea_field($request->get_param('reason') ?? '');
+        if ($reason === '') {
+            return new WP_Error('reason_required', 'Rejection reason is required.', ['status' => 400]);
+        }
+
+        $expense_id = self::resolve_route_id($request);
+        $expense = OraBooks_Expenses::get_expense($expense_id, $context['org_id']);
+        if (!$expense) {
+            return new WP_Error('not_found', 'Expense not found.', ['status' => 404]);
+        }
+
+        $result = OraBooks_Expenses::reject_expense($expense_id, $context['org_id'], $context['user_id'], $reason);
+        if (is_wp_error($result)) {
+            $result->add_data(['status' => 400]);
+            return $result;
+        }
+
+        return rest_ensure_response(['expense' => $result]);
+    }
+
+    public static function rest_post_expense(WP_REST_Request $request) {
+        $context = self::require_org_access($request, 'approve_expense');
+        if (is_wp_error($context)) {
+            return $context;
+        }
+
+        $expense_id = self::resolve_route_id($request);
+        $expense = OraBooks_Expenses::get_expense($expense_id, $context['org_id']);
+        if (!$expense) {
+            return new WP_Error('not_found', 'Expense not found.', ['status' => 404]);
+        }
+
+        $result = OraBooks_Expenses::post_expense($expense_id, $context['org_id'], $context['user_id']);
+        if (is_wp_error($result)) {
+            $result->add_data(['status' => 400]);
             return $result;
         }
 

@@ -1012,6 +1012,9 @@ class OraBooks_Ajax {
             'expenses' => $expenses,
             'pending_approval' => $pending_approval,
             'threshold' => OraBooks_Expenses::CONFIDENCE_THRESHOLD,
+            'expense_settings' => OraBooks_Expenses::format_org_settings(
+                OraBooks_Expenses::get_org_settings($org_id)
+            ),
             'capabilities' => [
                 'upload'  => OraBooks_RBAC::require_permission($context['user_id'], $org_id, 'manage_expenses'),
                 'submit'  => OraBooks_RBAC::require_permission($context['user_id'], $org_id, 'manage_expenses'),
