@@ -16,6 +16,7 @@ class OraBooks_Expenses_Test extends TestCase
         $this->assertStringContainsString('orabooks_expenses', $sql);
         $this->assertStringContainsString('orabooks_ocr_processing_queue', $sql);
         $this->assertStringContainsString('orabooks_expense_line_items', $sql);
+        $this->assertStringContainsString('orabooks_expense_settings', $sql);
         $this->assertStringContainsString("ENUM('draft','submitted','ai_review','approved','posted','locked')", $sql);
     }
 
