@@ -81,11 +81,14 @@ class OraBooks_Workflow {
                 ],
             ],
             'invoice' => [
-                'states' => ['draft', 'sent', 'posted', 'cancelled'],
+                'states' => ['draft', 'submitted', 'approved', 'sent', 'posted', 'cancelled'],
                 'transitions' => [
-                    'send'     => ['from' => 'draft', 'to' => 'sent'],
-                    'post'     => ['from' => ['draft', 'sent'], 'to' => 'posted'],
-                    'cancel'   => ['from' => ['draft', 'sent'], 'to' => 'cancelled'],
+                    'submit'  => ['from' => 'draft', 'to' => 'submitted'],
+                    'approve' => ['from' => ['submitted', 'sent'], 'to' => 'approved'],
+                    'send'    => ['from' => 'draft', 'to' => 'sent'],
+                    'post'    => ['from' => ['draft', 'sent', 'submitted', 'approved'], 'to' => 'posted'],
+                    'cancel'  => ['from' => ['draft', 'submitted', 'approved', 'sent'], 'to' => 'cancelled'],
+                    'lock'    => ['from' => 'posted', 'to' => 'posted'],
                 ],
             ],
             'bill' => [
