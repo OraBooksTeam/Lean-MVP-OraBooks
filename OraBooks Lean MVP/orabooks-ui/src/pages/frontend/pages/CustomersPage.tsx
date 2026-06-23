@@ -44,7 +44,7 @@ type Customer = {
   notes?: string | null;
 };
 
-type Customer = {
+type CustomerFormState = {
   customer_code: string;
   name: string;
   email: string;
@@ -77,6 +77,16 @@ type Customer = {
 type CountryStateOption = {
   name: string;
   states: string[];
+};
+
+type WalletPayment = {
+  id: number;
+  payment_date: string;
+  amount: number;
+  payment_method: string;
+  type?: string;
+  reference?: string;
+  can_reverse?: boolean;
 };
 
 const selectClassName = 'w-full rounded-lg border border-border bg-white px-3.5 py-2.5 text-sm text-ink shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20';
@@ -201,6 +211,9 @@ export default function CustomersPage() {
     allocation_method: 'FIFO',
   });
   const [statements, setStatements] = useState<any[]>([]);
+  const [walletPayments, setWalletPayments] = useState<WalletPayment[]>([]);
+  const [reversePayment, setReversePayment] = useState<WalletPayment | null>(null);
+  const [reverseReason, setReverseReason] = useState('');
 
   const permissions: string[] = context?.permissions || [];
   const canManageCustomers = permissions.includes('create_invoice');
@@ -307,9 +320,30 @@ export default function CustomersPage() {
       allocation_method: 'FIFO',
     });
     setError('');
-    const res = await api.customerStatementsList(orgId, customer.id);
-    if (!res.error) setStatements((res as any).data?.statements || []);
+    const [stmtRes, payRes] = await Promise.all([
+      api.customerStatementsList(orgId, customer.id),
+      api.paymentsList(orgId, { customer_id: customer.id }),
+    ]);
+    if (!stmtRes.error) setStatements((stmtRes as any).data?.statements || []);
     else setStatements([]);
+    if (!payRes.error) setWalletPayments((payRes as any).data?.payments || []);
+    else setWalletPayments([]);
+  };
+
+  const handleReverseWalletPayment = async () => {
+    if (!orgId || !reversePayment) return;
+    setSaving(true);
+    setError('');
+    const res = await api.paymentReverse(orgId, reversePayment.id, reverseReason.trim());
+    if (res.error) setError(res.error);
+    else {
+      setSuccess('Payment reversed.');
+      setReversePayment(null);
+      setReverseReason('');
+      if (walletCustomer) await openWallet(walletCustomer);
+      await load();
+    }
+    setSaving(false);
   };
 
   const recordCustomerPayment = async () => {
@@ -519,6 +553,33 @@ export default function CustomersPage() {
                 </div>
               </div>
             )}
+            {walletPayments.length > 0 && (
+              <div className="mt-4 border-t border-border pt-4">
+                <h4 className="mb-2 text-sm font-semibold text-ink">Recent payments</h4>
+                <ul className="space-y-2 text-sm">
+                  {walletPayments.map((payment) => (
+                    <li key={payment.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border px-3 py-2">
+                      <div>
+                        <p className="font-medium text-ink">{money(payment.amount, walletCustomer.default_currency)}</p>
+                        <p className="text-slate-600">{payment.payment_date} · {payment.payment_method} · {payment.type || 'payment'}</p>
+                      </div>
+                      {canManageCustomers && payment.can_reverse && (
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          onClick={() => {
+                            setReversePayment(payment);
+                            setReverseReason('');
+                          }}
+                        >
+                          Reverse
+                        </Button>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
             {statements.length > 0 && (
               <div className="mt-4 border-t border-border pt-4">
                 <h4 className="mb-2 text-sm font-semibold text-ink">Monthly statements</h4>
@@ -532,6 +593,22 @@ export default function CustomersPage() {
                 </ul>
               </div>
             )}
+          </Modal>
+        )}
+
+        {reversePayment && walletCustomer && (
+          <Modal title="Reverse payment" onClose={() => setReversePayment(null)}>
+            <p className="mb-4 text-sm text-slate-600">
+              Reverse {money(reversePayment.amount, walletCustomer.default_currency)} payment on {reversePayment.payment_date}?
+            </p>
+            {error && <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div>}
+            <Field label="Reason">
+              <Input value={reverseReason} onChange={(e) => setReverseReason(e.target.value)} placeholder="Why is this payment being reversed?" />
+            </Field>
+            <div className="mt-6 flex justify-end gap-2">
+              <Button variant="secondary" onClick={() => setReversePayment(null)}>Cancel</Button>
+              <Button onClick={() => void handleReverseWalletPayment()} loading={saving} disabled={!reverseReason.trim()}>Confirm reversal</Button>
+            </div>
           </Modal>
         )}
 
