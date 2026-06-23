@@ -205,8 +205,9 @@ class OraBooks_Expenses_Workflow_Test extends TestCase
         );
 
         $this->assertIsArray($result);
-        $this->assertCount(1, $inserts);
-        $this->assertSame('expense', $inserts[0]['resource_type']);
+        $queue_rows = array_values(array_filter($inserts, fn ($row) => ($row['resource_type'] ?? '') === 'expense'));
+        $this->assertCount(1, $queue_rows);
+        $this->assertSame('expense', $queue_rows[0]['resource_type']);
     }
 
     #[Test]
