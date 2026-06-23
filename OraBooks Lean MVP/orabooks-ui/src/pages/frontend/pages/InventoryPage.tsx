@@ -175,6 +175,7 @@ export default function InventoryPage() {
 
   const [adjustProduct, setAdjustProduct] = useState<Product | null>(null);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [productMovements, setProductMovements] = useState<any[]>([]);
   const [adjustForm, setAdjustForm] = useState({
     quantity_change: '',
     reason: 'PHYSICAL_COUNT',
@@ -365,6 +366,21 @@ export default function InventoryPage() {
     setSaving(false);
   };
 
+  const openProductDetail = async (product: Product) => {
+    if (!orgId) return;
+    setSelectedProduct(product);
+    setError('');
+    const res = await api.inventoryProductGet(orgId, product.id);
+    if (!res.error) {
+      const data = (res as any).data;
+      if (data?.product) setSelectedProduct({ ...product, ...data.product });
+      setProductMovements(data?.movements || []);
+    } else {
+      const movRes = await api.inventoryMovements(orgId, product.id, { limit: 50 });
+      if (!movRes.error) setProductMovements((movRes as any).data?.movements || []);
+    }
+  };
+
   const openAdjust = (product: Product) => {
     setAdjustProduct(product);
     setAdjustForm({ quantity_change: '', reason: 'PHYSICAL_COUNT', note: '' });
@@ -535,7 +551,7 @@ export default function InventoryPage() {
                     </td>
                     <td className="px-5 py-3">
                       <div className="flex flex-wrap gap-1">
-                        <Button size="sm" variant="secondary" onClick={() => setSelectedProduct(product)}>
+                        <Button size="sm" variant="secondary" onClick={() => void openProductDetail(product)}>
                           View
                         </Button>
                         <Button size="sm" variant="secondary" onClick={() => openAdjust(product)}>
