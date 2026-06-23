@@ -104,8 +104,17 @@ class OraBooks_AR_Test extends TestCase
         $note = (object) [
             'id' => 5,
             'org_id' => 1,
+            'customer_id' => 2,
+            'invoice_id' => 10,
             'credit_note_number' => 'CN-2026-000001',
+            'credit_date' => '2026-06-01',
+            'amount' => 25.0,
+            'reason' => 'Return',
+            'is_write_off' => 0,
+            'requires_second_approval' => 0,
             'workflow_status' => 'draft',
+            'journal_id' => null,
+            'created_at' => '2026-06-01 12:00:00',
         ];
         $calls = 0;
         $wpdb->test_get_row_callback = static function ($query) use ($note, &$calls) {
