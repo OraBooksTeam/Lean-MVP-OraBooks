@@ -1840,6 +1840,46 @@ class OraBooks_Expenses {
         ];
     }
 
+    public function ajax_settings_get() {
+        $user_id = orabooks_get_current_user_id();
+        $org_id = orabooks_get_current_org_id($user_id);
+
+        if (!$user_id || !$org_id) {
+            orabooks_json_error('Authentication required', 401);
+        }
+
+        if (!OraBooks_RBAC::require_permission($user_id, $org_id, 'view_expenses')) {
+            orabooks_json_error('Permission denied', 403);
+        }
+
+        orabooks_json_success([
+            'settings' => self::format_org_settings(self::get_org_settings($org_id)),
+        ]);
+    }
+
+    public function ajax_settings_save() {
+        $user_id = orabooks_get_current_user_id();
+        $org_id = orabooks_get_current_org_id($user_id);
+
+        if (!$user_id || !$org_id) {
+            orabooks_json_error('Authentication required', 401);
+        }
+
+        if (!OraBooks_RBAC::require_permission($user_id, $org_id, 'manage_org_settings')) {
+            orabooks_json_error('Permission denied', 403);
+        }
+
+        $auto_post = isset($_POST['auto_post_on_approve'])
+            ? (int) $_POST['auto_post_on_approve']
+            : 0;
+
+        $settings = self::save_org_settings($org_id, [
+            'auto_post_on_approve' => $auto_post,
+        ]);
+
+        orabooks_json_success(['settings' => $settings], 'Expense settings saved');
+    }
+
     public function ajax_live_check() {
         $user_id = orabooks_get_current_user_id();
         $org_id = orabooks_get_current_org_id($user_id);

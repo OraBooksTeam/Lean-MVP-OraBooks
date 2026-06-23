@@ -97,6 +97,37 @@ class OraBooks_Rest_Api {
             'permission_callback' => [__CLASS__, 'can_manage_expenses'],
         ]);
 
+        register_rest_route(self::NAMESPACE, '/expenses/settings', [
+            [
+                'methods'             => WP_REST_Server::READABLE,
+                'callback'            => [__CLASS__, 'rest_get_expense_settings'],
+                'permission_callback' => [__CLASS__, 'can_view_expenses'],
+            ],
+            [
+                'methods'             => WP_REST_Server::EDITABLE,
+                'callback'            => [__CLASS__, 'rest_save_expense_settings'],
+                'permission_callback' => [__CLASS__, 'can_manage_expense_settings'],
+            ],
+        ]);
+
+        register_rest_route(self::NAMESPACE, '/expenses/(?P<id>\d+)/approve', [
+            'methods'             => WP_REST_Server::CREATABLE,
+            'callback'            => [__CLASS__, 'rest_approve_expense'],
+            'permission_callback' => [__CLASS__, 'can_approve_expenses'],
+        ]);
+
+        register_rest_route(self::NAMESPACE, '/expenses/(?P<id>\d+)/reject', [
+            'methods'             => WP_REST_Server::CREATABLE,
+            'callback'            => [__CLASS__, 'rest_reject_expense'],
+            'permission_callback' => [__CLASS__, 'can_approve_expenses'],
+        ]);
+
+        register_rest_route(self::NAMESPACE, '/expenses/(?P<id>\d+)/post', [
+            'methods'             => WP_REST_Server::CREATABLE,
+            'callback'            => [__CLASS__, 'rest_post_expense'],
+            'permission_callback' => [__CLASS__, 'can_approve_expenses'],
+        ]);
+
         register_rest_route(self::NAMESPACE, '/journals', [
             [
                 'methods'             => WP_REST_Server::READABLE,
@@ -736,6 +767,11 @@ class OraBooks_Rest_Api {
         $expense = OraBooks_Expenses::get_expense((int) $request['id'], $context['org_id']);
         if (!$expense) {
             return new WP_Error('not_found', 'Expense not found.', ['status' => 404]);
+        }
+
+        if ($expense->workflow_status === 'draft' && $expense->ocr_confidence === null) {
+            OraBooks_Expenses::maybe_process_pending_ocr((int) $request['id'], $context['org_id']);
+            $expense = OraBooks_Expenses::get_expense((int) $request['id'], $context['org_id']);
         }
 
         return rest_ensure_response(['expense' => OraBooks_Expenses::format_expense($expense, true)]);
