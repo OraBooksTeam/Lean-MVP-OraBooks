@@ -93,6 +93,12 @@ export default function ExpensesPage() {
   const caps = data?.capabilities || {};
   const threshold = data?.threshold ?? 70;
   const maxMb = Math.round((data?.limits?.max_file_size || 10485760) / 1048576);
+  const expenseSettings = data?.expense_settings || {};
+  const autoPostOnApprove = Number(expenseSettings.auto_post_on_approve ?? 1);
+  const approveLabel = autoPostOnApprove ? 'Approve & Post' : 'Approve';
+  const canManageSettings =
+    data?.context?.permissions?.includes('manage_org_settings') || data?.context?.role === 'owner';
+  const [savingSettings, setSavingSettings] = useState(false);
 
   const load = async () => {
     setLoading(true);
