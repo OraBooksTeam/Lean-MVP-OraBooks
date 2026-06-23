@@ -398,13 +398,20 @@ export default function InvoicesPage() {
 
   useEffect(() => {
     if (!showCreate) return;
-    const timer = setTimeout(() => { void previewCreateTax(); }, 300);
-    return () => clearTimeout(timer);
-  }, [showCreate, createForm.subtotal_amount, createForm.jurisdiction, orgId]);
+    void previewCreateTax();
+  }, [showCreate, createForm.subtotal_amount, createForm.jurisdiction, orgId, useInventoryLines, invoiceLineItems]);
 
   const handleCreateInvoice = async () => {
-    if (!orgId || !createForm.customer_id || !createForm.subtotal_amount) {
-      setError('Customer and subtotal are required.');
+    if (!orgId || !createForm.customer_id) {
+      setError('Customer is required.');
+      return;
+    }
+    const linesSubtotal = useInventoryLines ? invoiceLinesSubtotal() : 0;
+    const subtotal = useInventoryLines && linesSubtotal > 0
+      ? linesSubtotal
+      : parseFloat(createForm.subtotal_amount) || 0;
+    if (subtotal <= 0) {
+      setError('Subtotal or inventory lines are required.');
       return;
     }
 
@@ -414,12 +421,23 @@ export default function InvoicesPage() {
       org_id: orgId,
       customer_id: parseInt(createForm.customer_id, 10),
       invoice_date: createForm.invoice_date,
-      subtotal_amount: parseFloat(createForm.subtotal_amount) || 0,
+      subtotal_amount: subtotal,
       jurisdiction: createForm.jurisdiction,
       currency: createForm.currency || 'USD',
       description: createForm.description,
       workflow_status: 'draft',
     };
+    if (useInventoryLines && invoiceLineItems.length > 0) {
+      payload.line_items = JSON.stringify(
+        invoiceLineItems
+          .filter((l) => l.product_id && parseFloat(l.quantity) > 0)
+          .map((l) => ({
+            product_id: parseInt(l.product_id, 10),
+            quantity: parseFloat(l.quantity) || 0,
+            unit_price: parseFloat(l.unit_price) || 0,
+          }))
+      );
+    }
 
     if (createForm.use_due_date && createForm.due_date) {
       payload.due_date = createForm.due_date;
@@ -446,6 +464,8 @@ export default function InvoicesPage() {
         description: '',
       });
       setCreatePreview(null);
+      setInvoiceLineItems([]);
+      setUseInventoryLines(false);
       await load();
     }
     setSaving(false);
