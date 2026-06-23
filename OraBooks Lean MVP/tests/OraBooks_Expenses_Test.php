@@ -116,6 +116,16 @@ class OraBooks_Expenses_Test extends TestCase
     }
 
     #[Test]
+    public function test_resolve_submit_route_matrix()
+    {
+        $submitted = OraBooks_Expenses::resolve_submit_route(80, 'low');
+        $this->assertSame('submitted', $submitted['target_status']);
+
+        $review = OraBooks_Expenses::resolve_submit_route(80, 'high');
+        $this->assertSame('ai_review', $review['target_status']);
+    }
+
+    #[Test]
     public function test_async_ocr_handler_is_registered()
     {
         if (!class_exists('OraBooks_AsyncQueue')) {
