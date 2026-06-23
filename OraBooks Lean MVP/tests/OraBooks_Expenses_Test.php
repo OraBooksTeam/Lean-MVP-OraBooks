@@ -91,6 +91,52 @@ class OraBooks_Expenses_Test extends TestCase
     }
 
     #[Test]
+    public function test_format_expense_hides_ocr_risk_until_confidence_exists()
+    {
+        $row = (object) [
+            'id' => 8,
+            'org_id' => 1,
+            'vendor' => null,
+            'vendor_tax_id' => null,
+            'invoice_number' => null,
+            'transaction_date' => null,
+            'due_date' => null,
+            'subtotal' => null,
+            'tax_amount' => null,
+            'tax_rate' => null,
+            'total_amount' => null,
+            'currency' => 'USD',
+            'payment_method' => null,
+            'category' => null,
+            'merchant_address' => null,
+            'description' => null,
+            'ocr_confidence' => null,
+            'ocr_risk_level' => 'low',
+            'ocr_data' => null,
+            'ocr_provider' => null,
+            'ocr_model_version' => null,
+            'ocr_snapshot_hash' => null,
+            'workflow_status' => 'draft',
+            'payment_status' => 'unpaid',
+            'lock_status' => 'unlocked',
+            'attachment_id' => null,
+            'journal_id' => null,
+            'created_by' => 1,
+            'approved_by' => null,
+            'posted_by' => null,
+            'approved_at' => null,
+            'posted_at' => null,
+            'created_at' => '2026-06-18 09:00:00',
+            'updated_at' => '2026-06-18 09:00:00',
+        ];
+
+        $formatted = OraBooks_Expenses::format_expense($row);
+
+        $this->assertNull($formatted['ocr_risk_level']);
+        $this->assertArrayNotHasKey('classification', $formatted);
+    }
+
+    #[Test]
     public function test_ocr_stub_includes_extended_sl028_fields()
     {
         $ocr = OraBooks_Expenses::run_ocr_stub('vendor-receipt.pdf', 10);
