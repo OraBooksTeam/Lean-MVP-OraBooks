@@ -5,7 +5,7 @@ $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $Root = Split-Path -Parent $ScriptDir
 $Parent = Split-Path -Parent $Root
 $SearchRoots = @($Root, $Parent)
-$Exts = @('.php', '.ts', '.tsx', '.md', '.txt', '.json', '.jsx', '.js', '.css', '.html')
+$Exts = @('.php', '.ts', '.tsx', '.md', '.txt', '.json', '.jsx', '.js', '.css', '.html', '.xml', '.mjs', '.ps1', '.doc')
 $SkipDirs = @('node_modules', 'vendor', '.git', 'dist', 'build', '.next', 'coverage')
 
 function Test-SkipPath {
@@ -24,8 +24,8 @@ function Clean-SlText {
     if ($Text -notmatch 'SL-\d+') { return $Text }
 
     $Text = [regex]::Replace($Text, '\(\s*SL-\d+(?:\s+through\s+SL-\d+)?\s*\)', '', 'IgnoreCase')
-    $Text = [regex]::Replace($Text, '\bSL-\d+\s+through\s+SL-\d+\b', '', 'IgnoreCase')
-    $Text = [regex]::Replace($Text, '\bSL-\d+\b', '', 'IgnoreCase')
+    $Text = [regex]::Replace($Text, 'SL-\d+\s+through\s+SL-\d+', '', 'IgnoreCase')
+    $Text = [regex]::Replace($Text, 'SL-\d+', '', 'IgnoreCase')
 
     $Text = [regex]::Replace($Text, '\(\s*\)', '')
     $Text = [regex]::Replace($Text, '[ \t]+([,.;:])', '$1')

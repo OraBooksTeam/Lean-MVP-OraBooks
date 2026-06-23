@@ -11,7 +11,7 @@ ROOT = Path(__file__).resolve().parents[1]
 PARENT = ROOT.parent
 
 SEARCH_ROOTS = [ROOT, PARENT]
-EXTS = {".php", ".ts", ".tsx", ".md", ".txt", ".json", ".jsx", ".js", ".css", ".html"}
+EXTS = {".php", ".ts", ".tsx", ".md", ".txt", ".json", ".jsx", ".js", ".css", ".html", ".xml", ".mjs", ".ps1", ".doc"}
 SKIP_DIRS = {"node_modules", "vendor", ".git", "dist", "build", ".next", "coverage"}
 
 SL_RE = re.compile(r"SL-\d+", re.IGNORECASE)
@@ -31,8 +31,8 @@ def clean_text(text: str) -> str:
 
     # Range and parenthetical forms first.
     text = re.sub(r"\(\s*SL-\d+(?:\s+through\s+SL-\d+)?\s*\)", "", text, flags=re.I)
-    text = re.sub(r"\bSL-\d+\s+through\s+SL-\d+\b", "", text, flags=re.I)
-    text = re.sub(r"\bSL-\d+\b", "", text, flags=re.I)
+    text = re.sub(r"SL-\d+\s+through\s+SL-\d+", "", text, flags=re.I)
+    text = re.sub(r"SL-\d+", "", text, flags=re.I)
 
     # Light punctuation/whitespace cleanup after removal.
     text = re.sub(r"\(\s*\)", "", text)
