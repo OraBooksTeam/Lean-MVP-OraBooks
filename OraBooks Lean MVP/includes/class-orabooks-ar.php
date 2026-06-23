@@ -37,7 +37,7 @@ class OraBooks_AR {
             add_action('wp_ajax_orabooks_ar_config_get', [self::$instance, 'ajax_ar_config_get']);
             add_action('wp_ajax_nopriv_orabooks_ar_config_get', [self::$instance, 'ajax_ar_config_get']);
             add_action('wp_ajax_orabooks_ar_config_save', [self::$instance, 'ajax_ar_config_save']);
-            add_action('wp_ajax_orabooks_ar_config_save', [self::$instance, 'ajax_ar_config_save']);
+            add_action('wp_ajax_nopriv_orabooks_ar_config_save', [self::$instance, 'ajax_ar_config_save']);
             add_action('wp_ajax_orabooks_ar_aging', [self::$instance, 'ajax_ar_aging']);
             add_action('wp_ajax_nopriv_orabooks_ar_aging', [self::$instance, 'ajax_ar_aging']);
             add_action('wp_ajax_orabooks_customer_statements_list', [self::$instance, 'ajax_statements_list']);
@@ -409,7 +409,7 @@ class OraBooks_AR {
             [
                 'org_id' => (int) $org_id,
                 'customer_id' => (int) $customer_id,
-                'invoice_id' => $invoice_id > 0 ? $invoice_id : 0,
+                'invoice_id' => $invoice_id > 0 ? $invoice_id : null,
                 'payment_date' => $data['payment_date'] ?? current_time('Y-m-d'),
                 'amount' => $amount,
                 'unapplied_amount' => 0,
