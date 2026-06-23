@@ -41,8 +41,6 @@ class OraBooks_Vendors {
             add_action('wp_ajax_nopriv_orabooks_vendor_credit_note_create', [self::$instance, 'ajax_create_credit_note']);
             add_action('wp_ajax_orabooks_ap_aging', [self::$instance, 'ajax_ap_aging']);
             add_action('wp_ajax_nopriv_orabooks_ap_aging', [self::$instance, 'ajax_ap_aging']);
-
-            add_action('orabooks_daily_ap_aging_snapshot', [self::$instance, 'daily_ap_aging_snapshot']);
         }
         return self::$instance;
     }
@@ -353,6 +351,14 @@ class OraBooks_Vendors {
         $params[] = $limit;
         $params[] = $offset;
 
+        $count_params = $params;
+        array_pop($count_params);
+        array_pop($count_params);
+        $total = (int) $wpdb->get_var($wpdb->prepare(
+            "SELECT COUNT(*) FROM {$table} WHERE {$where}",
+            $count_params
+        ));
+
         $vendors = $wpdb->get_results($wpdb->prepare(
             "SELECT * FROM {$table} WHERE {$where} ORDER BY name ASC LIMIT %d OFFSET %d",
             $params
@@ -360,7 +366,7 @@ class OraBooks_Vendors {
 
         return [
             'vendors' => $vendors,
-            'total' => count($vendors),
+            'total' => $total,
             'page' => ($limit > 0) ? floor($offset / $limit) + 1 : 1,
             'per_page' => $limit,
         ];
@@ -495,6 +501,17 @@ class OraBooks_Vendors {
         $params[] = $limit;
         $params[] = $offset;
 
+        $count_params = $params;
+        array_pop($count_params);
+        array_pop($count_params);
+        $total = (int) $wpdb->get_var($wpdb->prepare(
+            "SELECT COUNT(*)
+             FROM {$table_bills} b
+             JOIN {$table_vendors} v ON b.vendor_id = v.id
+             WHERE {$where}",
+            $count_params
+        ));
+
         $bills = $wpdb->get_results($wpdb->prepare(
             "SELECT b.*, v.name as vendor_name
              FROM {$table_bills} b
@@ -507,7 +524,7 @@ class OraBooks_Vendors {
 
         return [
             'bills' => $bills,
-            'total' => count($bills),
+            'total' => $total,
             'page' => ($limit > 0) ? floor($offset / $limit) + 1 : 1,
             'per_page' => $limit,
         ];
@@ -568,7 +585,7 @@ class OraBooks_Vendors {
             'bill_id' => intval($bill_id),
         ], intval($user_id), intval($org_id));
 
-        $config = self::get_ap_config($org_id);
+        $config = class_exists('OraBooks_AP') ? OraBooks_AP::get_ap_config($org_id) : self::get_ap_config($org_id);
         if (!empty($config->auto_post_bill_on_approve)) {
             return self::post_bill($org_id, $bill_id, $user_id);
         }
@@ -633,6 +650,10 @@ class OraBooks_Vendors {
             return new WP_Error('workflow_unavailable', 'Workflow engine unavailable');
         }
 
+        $rendered_copy = class_exists('OraBooks_AP')
+            ? OraBooks_AP::build_bill_rendered_copy($bill)
+            : null;
+
         $result = OraBooks_Workflow::transition('bill', $bill_id, 'post', [
             'user_id' => (int) $user_id,
             'org_id'  => (int) $org_id,
@@ -641,6 +662,7 @@ class OraBooks_Vendors {
                 'journal_id'      => is_wp_error($journal_id) ? null : (int) $journal_id,
                 'tax_snapshot_id' => is_wp_error($tax_snapshot_id) ? null : (int) $tax_snapshot_id,
                 'posted_at'       => current_time('mysql'),
+                'rendered_copy'   => $rendered_copy ? wp_json_encode($rendered_copy) : null,
             ],
         ]);
         if (is_wp_error($result)) {
@@ -648,6 +670,10 @@ class OraBooks_Vendors {
         }
 
         self::adjust_vendor_balance($bill->vendor_id, $org_id, floatval($bill->total_amount), 0);
+
+        if (class_exists('OraBooks_AP')) {
+            OraBooks_AP::apply_vendor_credit_to_bill((int) $org_id, (int) $bill->vendor_id, (int) $bill_id, (int) $user_id);
+        }
 
         orabooks_log_event('vendor_bill_posted', "Bill {$bill->bill_number} posted", 'info', [
             'bill_id' => intval($bill_id),
