@@ -344,6 +344,67 @@ class OraBooks_Expenses {
         return $stats;
     }
 
+    /**
+     * OCR pipeline metrics for SL-093 observability (SL-028 Phase 5).
+     *
+     * @return array{
+     *   org_id:?int,
+     *   queue_depth:int,
+     *   pending_count:int,
+     *   processing_count:int,
+     *   completed_24h:int,
+     *   failed_24h:int,
+     *   success_rate_24h:float,
+     *   avg_confidence_24h:?float,
+     *   window_hours:int
+     * }
+     */
+    public static function get_observability_stats($org_id = 0) {
+        global $wpdb;
+
+        $org_id = (int) $org_id;
+        $since = gmdate('Y-m-d H:i:s', time() - 86400);
+        $queue_table = OraBooks_Database::table(self::TABLE_OCR_QUEUE);
+        $expenses_table = OraBooks_Database::table(self::TABLE_EXPENSES);
+
+        $scope = $org_id > 0 ? $wpdb->prepare(' AND org_id = %d', $org_id) : '';
+
+        $pending = (int) $wpdb->get_var(
+            "SELECT COUNT(*) FROM {$queue_table} WHERE status = 'pending'{$scope}"
+        );
+        $processing = (int) $wpdb->get_var(
+            "SELECT COUNT(*) FROM {$queue_table} WHERE status = 'processing'{$scope}"
+        );
+        $completed_24h = (int) $wpdb->get_var(
+            "SELECT COUNT(*) FROM {$queue_table}
+             WHERE status = 'completed' AND updated_at >= '{$since}'{$scope}"
+        );
+        $failed_24h = (int) $wpdb->get_var(
+            "SELECT COUNT(*) FROM {$queue_table}
+             WHERE status = 'failed' AND updated_at >= '{$since}'{$scope}"
+        );
+
+        $expense_scope = $org_id > 0 ? $wpdb->prepare(' AND org_id = %d', $org_id) : '';
+        $avg_confidence = $wpdb->get_var(
+            "SELECT AVG(ocr_confidence) FROM {$expenses_table}
+             WHERE ocr_confidence IS NOT NULL AND updated_at >= '{$since}'{$expense_scope}"
+        );
+
+        $terminal = $completed_24h + $failed_24h;
+
+        return [
+            'org_id'              => $org_id > 0 ? $org_id : null,
+            'queue_depth'         => $pending + $processing,
+            'pending_count'       => $pending,
+            'processing_count'    => $processing,
+            'completed_24h'       => $completed_24h,
+            'failed_24h'          => $failed_24h,
+            'success_rate_24h'    => $terminal > 0 ? round($completed_24h / $terminal, 4) : 1.0,
+            'avg_confidence_24h'  => $avg_confidence !== null ? round((float) $avg_confidence, 2) : null,
+            'window_hours'        => 24,
+        ];
+    }
+
     public static function list_expenses($org_id, $args = []) {
         global $wpdb;
 
@@ -1111,11 +1172,12 @@ class OraBooks_Expenses {
 
         if (function_exists('orabooks_publish_event')) {
             orabooks_publish_event($event, intval($expense_id), [
-                'expense_id'  => intval($expense_id),
-                'org_id'      => intval($org_id),
-                'confidence'  => $confidence,
-                'risk_level'  => $risk,
-                'total_amount'=> (float) $expense->total_amount,
+                'expense_id'        => intval($expense_id),
+                'org_id'            => intval($org_id),
+                'confidence'        => $confidence,
+                'risk_level'        => $risk,
+                'ocr_snapshot_hash' => (string) ($expense->ocr_snapshot_hash ?? ''),
+                'total_amount'      => (float) $expense->total_amount,
             ]);
         }
 
@@ -1137,9 +1199,10 @@ class OraBooks_Expenses {
         }
 
         orabooks_log_event($log_event, "Expense #{$expense_id} routed to {$target_status}", 'info', [
-            'expense_id' => intval($expense_id),
-            'confidence' => $confidence,
-            'risk_level' => $risk,
+            'expense_id'        => intval($expense_id),
+            'confidence'        => $confidence,
+            'risk_level'        => $risk,
+            'ocr_snapshot_hash' => (string) ($expense->ocr_snapshot_hash ?? ''),
         ], $user_id, $org_id);
 
         $updated = self::get_expense($expense_id, $org_id);
@@ -1678,10 +1741,12 @@ class OraBooks_Expenses {
         $expenses_table = OraBooks_Database::table(self::TABLE_EXPENSES);
         $queue_table = OraBooks_Database::table(self::TABLE_OCR_QUEUE);
         $lines_table = OraBooks_Database::table(self::TABLE_LINE_ITEMS);
+        $settings_table = OraBooks_Database::table(self::TABLE_SETTINGS);
 
         $add('table_expenses', 'Expenses table', $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $expenses_table)) === $expenses_table, $expenses_table);
         $add('table_ocr_queue', 'OCR processing queue table', $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $queue_table)) === $queue_table, $queue_table);
         $add('table_line_items', 'Expense line items table', $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $lines_table)) === $lines_table, $lines_table);
+        $add('table_expense_settings', 'Expense settings table (Phase 4)', $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $settings_table)) === $settings_table, $settings_table);
 
         $exp_cols = $wpdb->get_col("SHOW COLUMNS FROM {$expenses_table}", 0);
         $add(
