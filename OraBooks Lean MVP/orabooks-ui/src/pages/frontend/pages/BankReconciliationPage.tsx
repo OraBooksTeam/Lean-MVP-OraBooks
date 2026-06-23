@@ -499,7 +499,7 @@ export default function BankReconciliationPage() {
               ) : transactions.map((txn: any) => (
                 <tr key={txn.id} className="hover:bg-slate-50/70">
                   <td className="px-5 py-3 text-slate-600">{txn.transaction_date || '—'}</td>
-                  <td className="px-5 py-3 text-slate-600">{txn.account_name || '—'}</td>
+                  <td className="px-5 py-3 text-slate-600">{txn.account_name || accounts.find((a) => a.id === txn.bank_account_id)?.account_name || '—'}</td>
                   <td className="px-5 py-3 text-ink">{txn.description || '—'}</td>
                   <td className="px-5 py-3 font-mono text-xs text-slate-500">{txn.reference || '—'}</td>
                   <td className="px-5 py-3"><StatusBadge status={txn.status} /></td>
@@ -822,7 +822,7 @@ export default function BankReconciliationPage() {
             <p className="mb-4 text-sm text-slate-600">
               Provide a reason to skip this transaction from matching.
             </p>
-            <Field label="Reason">
+            <Field label="Reason (optional)">
               <Input value={skipReason} onChange={(e) => setSkipReason(e.target.value)} />
             </Field>
             <div className="mt-6 flex justify-end gap-2">
