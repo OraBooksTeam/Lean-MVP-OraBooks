@@ -15,6 +15,7 @@ class OraBooks_Expenses {
     const TABLE_EXPENSES     = 'expenses';
     const TABLE_OCR_QUEUE    = 'ocr_processing_queue';
     const TABLE_LINE_ITEMS   = 'expense_line_items';
+    const TABLE_SETTINGS     = 'expense_settings';
 
     const CONFIDENCE_THRESHOLD = 70.0;
     const MAX_RECEIPT_SIZE     = 10485760; // 10 MB
@@ -63,6 +64,10 @@ class OraBooks_Expenses {
             add_action('wp_ajax_nopriv_orabooks_expenses_list', [self::$instance, 'ajax_list']);
             add_action('wp_ajax_orabooks_expenses_live_check', [self::$instance, 'ajax_live_check']);
             add_action('wp_ajax_nopriv_orabooks_expenses_live_check', [self::$instance, 'ajax_live_check']);
+            add_action('wp_ajax_orabooks_expense_settings_get', [self::$instance, 'ajax_settings_get']);
+            add_action('wp_ajax_nopriv_orabooks_expense_settings_get', [self::$instance, 'ajax_settings_get']);
+            add_action('wp_ajax_orabooks_expense_settings_save', [self::$instance, 'ajax_settings_save']);
+            add_action('wp_ajax_nopriv_orabooks_expense_settings_save', [self::$instance, 'ajax_settings_save']);
 
             if (class_exists('OraBooks_AsyncQueue')) {
                 OraBooks_AsyncQueue::register_handler('process_expense_ocr', [self::class, 'handle_async_ocr_job']);
