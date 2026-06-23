@@ -14,20 +14,20 @@ class OraBooks_Database {
 
  private static $instance = null;
 
- public static function init {
+ public static function init() {
  if (self::$instance === null) {
  self::$instance = new self;
  }
  return self::$instance;
  }
 
- public static function install {
+ public static function install() {
  global $wpdb;
 
  require_once(ABSPATH. 'wp-admin/includes/upgrade.php');
 
- $charset_collate = $wpdb->get_charset_collate;
- $table_prefix = function_exists('orabooks_get_table_prefix') ? orabooks_get_table_prefix: $wpdb->prefix;
+ $charset_collate = $wpdb->get_charset_collate();
+ $table_prefix = function_exists('orabooks_get_table_prefix') ? orabooks_get_table_prefix() : $wpdb->prefix;
 
  // ============================================================
  //: organizations table (Foundation)
@@ -52,7 +52,8 @@ class OraBooks_Database {
  dbDelta($sql);
  self::ensure_async_queue_schema($table_jobs);
 
- $existing_partner_check = $wpdb->get_var("SELECT CONSTRAINT_NAME FROM information_schema.TABLE_CONSTRAINTS WHERE TABLE_SCHEMA = DATABASE AND TABLE_NAME = '{$table_organizations}' AND CONSTRAINT_NAME = 'chk_partner_consistency'");
+ $existing_partner_check = $wpdb->get_var("SELECT CONSTRAINT_NAME FROM information_schema.TABLE_CONSTRAINTS WHERETABLE_SCHEMA = DATABASE()
+                        AND TABLE_NAME = '{$table_organizations}' AND CONSTRAINT_NAME = 'chk_partner_consistency'");
  if (!$existing_partner_check) {
  $wpdb->query("ALTER TABLE {$table_organizations} ADD CONSTRAINT chk_partner_consistency CHECK ((organization_type = 'partner' AND tier = 'partner') OR (organization_type = 'customer' AND tier != 'partner'))");
  }
@@ -189,8 +190,8 @@ class OraBooks_Database {
  // Add unique constraint for active code per user
  $existing_constraint = $wpdb->get_var($wpdb->prepare(
  "SELECT CONSTRAINT_NAME FROM information_schema.TABLE_CONSTRAINTS
- WHERE TABLE_SCHEMA = DATABASE
- AND TABLE_NAME = %s
+ WHERETABLE_SCHEMA = DATABASE()
+            AND TABLE_NAME = %s
  AND CONSTRAINT_NAME = 'uk_user_active_code'",
  $table_partner_codes
  ));
@@ -347,42 +348,42 @@ class OraBooks_Database {
  // ============================================================
  //: Commission Engine Tables
  // ============================================================
- $commission_tables = OraBooks_Commission::get_create_table_sql;
+ $commission_tables = OraBooks_Commission::get_create_table_sql();
  foreach ($commission_tables as $sql) {
  dbDelta($sql);
  }
 
  // Seed default commission config
- OraBooks_Commission::seed_default_config;
+ OraBooks_Commission::seed_default_config();
 
  // Schedule cron jobs
  if (!wp_next_scheduled('orabooks_daily_cleanup')) {
- wp_schedule_event(time, 'daily', 'orabooks_daily_cleanup');
+ wp_schedule_event(time(), 'daily', 'orabooks_daily_cleanup');
  }
  if (!wp_next_scheduled('orabooks_partner_activity_check')) {
- wp_schedule_event(time, 'daily', 'orabooks_partner_activity_check');
+ wp_schedule_event(time(), 'daily', 'orabooks_partner_activity_check');
  }
 
  // ============================================================
  //: Tax Governance & Compliance Engine
  // ============================================================
- $tax_tables = OraBooks_Tax::get_create_table_sql;
+ $tax_tables = OraBooks_Tax::get_create_table_sql();
  foreach ($tax_tables as $sql) {
  dbDelta($sql);
  }
- OraBooks_Tax::seed_default_jurisdictions;
+ OraBooks_Tax::seed_default_jurisdictions();
 
  if (!wp_next_scheduled('orabooks_monthly_commission_release')) {
- wp_schedule_event(time, 'daily', 'orabooks_monthly_commission_release');
+ wp_schedule_event(time(), 'daily', 'orabooks_monthly_commission_release');
  }
  if (!wp_next_scheduled('orabooks_monthly_payout_batch')) {
- wp_schedule_event(time, 'daily', 'orabooks_monthly_payout_batch');
+ wp_schedule_event(time(), 'daily', 'orabooks_monthly_payout_batch');
  }
  if (!wp_next_scheduled('orabooks_daily_commission_expiry')) {
- wp_schedule_event(time, 'daily', 'orabooks_daily_commission_expiry');
+ wp_schedule_event(time(), 'daily', 'orabooks_daily_commission_expiry');
  }
  if (!wp_next_scheduled('orabooks_daily_active_status_refresh')) {
- wp_schedule_event(time, 'daily', 'orabooks_daily_active_status_refresh');
+ wp_schedule_event(time(), 'daily', 'orabooks_daily_active_status_refresh');
  }
 
  // ============================================================
@@ -556,40 +557,40 @@ class OraBooks_Database {
  dbDelta($sql);
 
  if (!wp_next_scheduled('orabooks_monthly_fiscal_period_rollover')) {
- wp_schedule_event(time, 'monthly', 'orabooks_monthly_fiscal_period_rollover');
+ wp_schedule_event(time(), 'monthly', 'orabooks_monthly_fiscal_period_rollover');
  }
  if (!wp_next_scheduled('orabooks_daily_ledger_integrity_check')) {
- wp_schedule_event(time, 'daily', 'orabooks_daily_ledger_integrity_check');
+ wp_schedule_event(time(), 'daily', 'orabooks_daily_ledger_integrity_check');
  }
  if (!wp_next_scheduled('orabooks_posting_retry_process')) {
- wp_schedule_event(time, 'every_5_minutes', 'orabooks_posting_retry_process');
+ wp_schedule_event(time(), 'every_5_minutes', 'orabooks_posting_retry_process');
  }
 
  // ============================================================
  //: Core Financial Statements / Reporting Read Models
  // ============================================================
- $report_tables = OraBooks_Financial_Reports::get_create_table_sql;
+ $report_tables = OraBooks_Financial_Reports::get_create_table_sql();
  foreach ($report_tables as $sql) {
  dbDelta($sql);
  }
- OraBooks_Financial_Reports::seed_projection_dependencies;
+ OraBooks_Financial_Reports::seed_projection_dependencies();
 
  if (!wp_next_scheduled('orabooks_monthly_report_snapshot_archive')) {
- wp_schedule_event(time, 'monthly', 'orabooks_monthly_report_snapshot_archive');
+ wp_schedule_event(time(), 'monthly', 'orabooks_monthly_report_snapshot_archive');
  }
  if (!wp_next_scheduled('orabooks_daily_projection_integrity_check')) {
- wp_schedule_event(time, 'daily', 'orabooks_daily_projection_integrity_check');
+ wp_schedule_event(time(), 'daily', 'orabooks_daily_projection_integrity_check');
  }
 
  // ============================================================
  //: Operational Reports Read Models
  // ============================================================
- $operational_report_tables = OraBooks_Operational_Reports::get_create_table_sql;
+ $operational_report_tables = OraBooks_Operational_Reports::get_create_table_sql();
  foreach ($operational_report_tables as $sql) {
  dbDelta($sql);
  }
  if (!wp_next_scheduled('orabooks_daily_low_stock_check')) {
- wp_schedule_event(time, 'daily', 'orabooks_daily_low_stock_check');
+ wp_schedule_event(time(), 'daily', 'orabooks_daily_low_stock_check');
  }
 
  // ============================================================
@@ -638,11 +639,11 @@ class OraBooks_Database {
  dbDelta($sql);
 
  if (class_exists('OraBooks_Posting')) {
- OraBooks_Posting::seed_read_model_versions;
+ OraBooks_Posting::seed_read_model_versions();
  }
 
  if (!wp_next_scheduled('orabooks_monthly_balance_snapshot')) {
- wp_schedule_event(time, 'monthly', 'orabooks_monthly_balance_snapshot');
+ wp_schedule_event(time(), 'monthly', 'orabooks_monthly_balance_snapshot');
  }
 
  // ============================================================
@@ -699,17 +700,17 @@ class OraBooks_Database {
  dbDelta($sql);
 
  if (class_exists('OraBooks_Approval')) {
- OraBooks_Approval::install_history_guards;
+ OraBooks_Approval::install_history_guards();
  }
 
  if (!wp_next_scheduled('orabooks_approval_expire_stale')) {
- wp_schedule_event(time, 'hourly', 'orabooks_approval_expire_stale');
+ wp_schedule_event(time(), 'hourly', 'orabooks_approval_expire_stale');
  }
  if (!wp_next_scheduled('orabooks_approval_escalate_overdue')) {
- wp_schedule_event(time, 'hourly', 'orabooks_approval_escalate_overdue');
+ wp_schedule_event(time(), 'hourly', 'orabooks_approval_escalate_overdue');
  }
  if (!wp_next_scheduled('orabooks_approval_expiry_reminders')) {
- wp_schedule_event(time, 'hourly', 'orabooks_approval_expiry_reminders');
+ wp_schedule_event(time(), 'hourly', 'orabooks_approval_expiry_reminders');
  }
 
  // ============================================================
@@ -816,108 +817,107 @@ class OraBooks_Database {
  // ============================================================
  //: Event Bus consumer_event_tracking table
  // ============================================================
- $eventbus_tables = OraBooks_EventBus::get_create_table_sql;
+ $eventbus_tables = OraBooks_EventBus::get_create_table_sql();
  foreach ($eventbus_tables as $sql) {
  dbDelta($sql);
  }
 
  if (class_exists('OraBooks_Event_Module')) {
- foreach (OraBooks_Event_Module::get_create_table_sql as $sql) {
+ foreach (OraBooks_Event_Module::get_create_table_sql() as $sql) {
  dbDelta($sql);
  }
  }
 
  // Schedule EventBus cron jobs
  if (!wp_next_scheduled('orabooks_eventbus_process_outbox')) {
- wp_schedule_event(time, 'every_minute', 'orabooks_eventbus_process_outbox');
+ wp_schedule_event(time(), 'every_minute', 'orabooks_eventbus_process_outbox');
  }
  if (!wp_next_scheduled('orabooks_eventbus_retry_deadletter')) {
- wp_schedule_event(time, 'hourly', 'orabooks_eventbus_retry_deadletter');
+ wp_schedule_event(time(), 'hourly', 'orabooks_eventbus_retry_deadletter');
  }
  if (!wp_next_scheduled('orabooks_eventbus_monitor')) {
- wp_schedule_event(time, 'hourly', 'orabooks_eventbus_monitor');
+ wp_schedule_event(time(), 'hourly', 'orabooks_eventbus_monitor');
  }
  if (class_exists('OraBooks_Event_Module')) {
- OraBooks_Event_Module::schedule;
+ OraBooks_Event_Module::schedule();
  }
 
  // Schedule Async Queue cron jobs
  if (!wp_next_scheduled('orabooks_async_queue_process')) {
- wp_schedule_event(time, 'every_minute', 'orabooks_async_queue_process');
+ wp_schedule_event(time(), 'every_minute', 'orabooks_async_queue_process');
  }
  if (!wp_next_scheduled('orabooks_async_queue_heartbeat')) {
- wp_schedule_event(time, 'every_5_minutes', 'orabooks_async_queue_heartbeat');
+ wp_schedule_event(time(), 'every_5_minutes', 'orabooks_async_queue_heartbeat');
  }
  if (!wp_next_scheduled('orabooks_async_queue_monitor')) {
- wp_schedule_event(time, 'hourly', 'orabooks_async_queue_monitor');
+ wp_schedule_event(time(), 'hourly', 'orabooks_async_queue_monitor');
  }
  if (!wp_next_scheduled('orabooks_async_queue_archive')) {
- wp_schedule_event(time, 'daily', 'orabooks_async_queue_archive');
+ wp_schedule_event(time(), 'daily', 'orabooks_async_queue_archive');
  }
 
  // ============================================================
  //: Export Tables
  // ============================================================
- $export_tables = OraBooks_Exports::get_create_table_sql;
+ $export_tables = OraBooks_Exports::get_create_table_sql();
  foreach ($export_tables as $sql) {
  dbDelta($sql);
  }
 
  // Schedule Export cleanup cron
  if (!wp_next_scheduled('orabooks_exports_cleanup')) {
- wp_schedule_event(time, 'daily', 'orabooks_exports_cleanup');
+ wp_schedule_event(time(), 'daily', 'orabooks_exports_cleanup');
  }
 
  // ============================================================
  //: Customers / Invoices / AR Module
  // ============================================================
- $customer_tables = OraBooks_Customers::get_create_table_sql;
+ $customer_tables = OraBooks_Customers::get_create_table_sql();
  foreach ($customer_tables as $sql) {
  dbDelta($sql);
  }
 
  // Seed customer records for existing users in partner_attributions
- OraBooks_Customers::seed_default_customers;
+ OraBooks_Customers::seed_default_customers();
 
  // Schedule cron jobs
  if (!wp_next_scheduled('orabooks_daily_customer_status_check')) {
- wp_schedule_event(time, 'daily', 'orabooks_daily_customer_status_check');
+ wp_schedule_event(time(), 'daily', 'orabooks_daily_customer_status_check');
  }
- OraBooks_Customers::ensure_schema;
+ OraBooks_Customers::ensure_schema();
  if (class_exists('OraBooks_AR')) {
- foreach (OraBooks_AR::get_create_table_sql as $sql) {
+ foreach (OraBooks_AR::get_create_table_sql() as $sql) {
  dbDelta($sql);
- }
- OraBooks_AR::ensure_schema;
+ }        OraBooks_AR::ensure_schema();
  }
 
  if (!wp_next_scheduled('orabooks_daily_customer_statement_snapshot')) {
- wp_schedule_event(time, 'daily', 'orabooks_daily_customer_statement_snapshot');
+ wp_schedule_event(time(), 'daily', 'orabooks_daily_customer_statement_snapshot');
  }
  if (!wp_next_scheduled('orabooks_daily_invoice_dunning_check')) {
- wp_schedule_event(time, 'daily', 'orabooks_daily_invoice_dunning_check');
+ wp_schedule_event(time(), 'daily', 'orabooks_daily_invoice_dunning_check');
  }
 
  if (!wp_next_scheduled('orabooks_daily_invoice_overdue_check')) {
- wp_schedule_event(time, 'daily', 'orabooks_daily_invoice_overdue_check');
+ wp_schedule_event(time(), 'daily', 'orabooks_daily_invoice_overdue_check');
  }
 
  // ============================================================
  //: Vendors / Bills / AP Module
  // ============================================================
- $vendor_tables = OraBooks_Vendors::get_create_table_sql;
+ $vendor_tables = OraBooks_Vendors::get_create_table_sql();
  foreach ($vendor_tables as $sql) {
  dbDelta($sql);
  }
 
  if (!wp_next_scheduled('orabooks_daily_ap_aging_snapshot')) {
- wp_schedule_event(time, 'daily', 'orabooks_daily_ap_aging_snapshot');
+ wp_schedule_event(time(), 'daily', 'orabooks_daily_ap_aging_snapshot');
  }
 
  // ============================================================
  //: Inventory Lite
  // ============================================================
- $inventory_tables = OraBooks_Inventory::get_create_table_sql;
+ $inventory_tables = OraBooks_Inventory::get_create_table_sql();
  foreach ($inventory_tables as $sql) {
  dbDelta($sql);
  }
@@ -925,7 +925,7 @@ class OraBooks_Database {
  // ============================================================
  //: Bank Feeds / Rules / Reconcile
  // ============================================================
- $bank_tables = OraBooks_Bank_Reconciliation::get_create_table_sql;
+ $bank_tables = OraBooks_Bank_Reconciliation::get_create_table_sql();
  foreach ($bank_tables as $sql) {
  dbDelta($sql);
  }
@@ -933,53 +933,53 @@ class OraBooks_Database {
  // ============================================================
  //: Notification Center Tables
  // ============================================================
- $notification_tables = OraBooks_Notifications::get_create_table_sql;
+ $notification_tables = OraBooks_Notifications::get_create_table_sql();
  foreach ($notification_tables as $sql) {
  dbDelta($sql);
  }
 
  // Seed default notification dependencies
- OraBooks_Notifications::seed_dependencies;
+ OraBooks_Notifications::seed_dependencies();
 
  // Schedule notification cron jobs
  if (!wp_next_scheduled('orabooks_notification_provider_health_update')) {
- wp_schedule_event(time, 'hourly', 'orabooks_notification_provider_health_update');
+ wp_schedule_event(time(), 'hourly', 'orabooks_notification_provider_health_update');
  }
  if (!wp_next_scheduled('orabooks_notification_sla_check')) {
- wp_schedule_event(time, 'daily', 'orabooks_notification_sla_check');
+ wp_schedule_event(time(), 'daily', 'orabooks_notification_sla_check');
  }
  if (!wp_next_scheduled('orabooks_notification_device_cleanup')) {
- wp_schedule_event(time, 'daily', 'orabooks_notification_device_cleanup');
+ wp_schedule_event(time(), 'daily', 'orabooks_notification_device_cleanup');
  }
  if (!wp_next_scheduled('orabooks_notification_delivery_retry')) {
- wp_schedule_event(time, 'twicedaily', 'orabooks_notification_delivery_retry');
+ wp_schedule_event(time(), 'twicedaily', 'orabooks_notification_delivery_retry');
  }
  if (!wp_next_scheduled('orabooks_daily_overdue_digest')) {
- wp_schedule_event(time, 'daily', 'orabooks_daily_overdue_digest');
+ wp_schedule_event(time(), 'daily', 'orabooks_daily_overdue_digest');
  }
 
  // ============================================================
  //: Observability & Monitoring
  // ============================================================
- $observability_tables = OraBooks_Observability::get_create_table_sql;
+ $observability_tables = OraBooks_Observability::get_create_table_sql();
  foreach ($observability_tables as $sql) {
  dbDelta($sql);
  }
 
  if (!wp_next_scheduled('orabooks_observability_collect')) {
- wp_schedule_event(time, 'hourly', 'orabooks_observability_collect');
+ wp_schedule_event(time(), 'hourly', 'orabooks_observability_collect');
  }
  if (!wp_next_scheduled('orabooks_observability_evaluate')) {
- wp_schedule_event(time, 'hourly', 'orabooks_observability_evaluate');
+ wp_schedule_event(time(), 'hourly', 'orabooks_observability_evaluate');
  }
  if (!wp_next_scheduled('orabooks_observability_purge')) {
- wp_schedule_event(time, 'daily', 'orabooks_observability_purge');
+ wp_schedule_event(time(), 'daily', 'orabooks_observability_purge');
  }
 
  // ============================================================
  //: CSV Imports
  // ============================================================
- $csv_import_tables = OraBooks_Csv_Imports::get_create_table_sql;
+ $csv_import_tables = OraBooks_Csv_Imports::get_create_table_sql();
  foreach ($csv_import_tables as $sql) {
  dbDelta($sql);
  }
@@ -994,41 +994,41 @@ class OraBooks_Database {
  }
 
  if (!wp_next_scheduled('orabooks_csv_imports_purge')) {
- wp_schedule_event(time, 'monthly', 'orabooks_csv_imports_purge');
+ wp_schedule_event(time(), 'monthly', 'orabooks_csv_imports_purge');
  }
 
  // ============================================================
  //: Attachments & Versioning
  // ============================================================
- $attachment_tables = OraBooks_Attachments::get_create_table_sql;
+ $attachment_tables = OraBooks_Attachments::get_create_table_sql();
  foreach ($attachment_tables as $sql) {
  dbDelta($sql);
  }
 
  if (!wp_next_scheduled('orabooks_attachments_purge')) {
- wp_schedule_event(time, 'monthly', 'orabooks_attachments_purge');
+ wp_schedule_event(time(), 'monthly', 'orabooks_attachments_purge');
  }
 
  // ============================================================
  //: AI Review Queue
  // ============================================================
- $ai_review_tables = OraBooks_Ai_Review::get_create_table_sql;
+ $ai_review_tables = OraBooks_Ai_Review::get_create_table_sql();
  foreach ($ai_review_tables as $sql) {
  dbDelta($sql);
  }
 
  if (!wp_next_scheduled('orabooks_ai_review_process')) {
- wp_schedule_event(time, 'every_5_minutes', 'orabooks_ai_review_process');
+ wp_schedule_event(time(), 'every_5_minutes', 'orabooks_ai_review_process');
  }
 
  if (!wp_next_scheduled('orabooks_ai_review_purge')) {
- wp_schedule_event(time, 'daily', 'orabooks_ai_review_purge');
+ wp_schedule_event(time(), 'daily', 'orabooks_ai_review_purge');
  }
 
  // ============================================================
  //: Expenses OCR
  // ============================================================
- $expense_tables = OraBooks_Expenses::get_create_table_sql;
+ $expense_tables = OraBooks_Expenses::get_create_table_sql();
  foreach ($expense_tables as $sql) {
  dbDelta($sql);
  }
@@ -1056,48 +1056,48 @@ class OraBooks_Database {
  }
 
  if (!wp_next_scheduled('orabooks_expenses_ocr_process')) {
- wp_schedule_event(time, 'every_5_minutes', 'orabooks_expenses_ocr_process');
+ wp_schedule_event(time(), 'every_5_minutes', 'orabooks_expenses_ocr_process');
  }
 
  // ============================================================
  //: Voice-to-Text
  // ============================================================
- $voice_tables = OraBooks_Voice::get_create_table_sql;
+ $voice_tables = OraBooks_Voice::get_create_table_sql();
  foreach ($voice_tables as $sql) {
  dbDelta($sql);
  }
 
  if (!wp_next_scheduled('orabooks_voice_transcription_process')) {
- wp_schedule_event(time, 'every_5_minutes', 'orabooks_voice_transcription_process');
+ wp_schedule_event(time(), 'every_5_minutes', 'orabooks_voice_transcription_process');
  }
 
  if (!wp_next_scheduled('orabooks_voice_purge')) {
- wp_schedule_event(time, 'daily', 'orabooks_voice_purge');
+ wp_schedule_event(time(), 'daily', 'orabooks_voice_purge');
  }
 
  // ============================================================
  //: OWASP Security Controls
  // ============================================================
- $security_tables = OraBooks_Security::get_create_table_sql;
+ $security_tables = OraBooks_Security::get_create_table_sql();
  foreach ($security_tables as $sql) {
  dbDelta($sql);
  }
- OraBooks_Security::seed_owasp_controls;
+ OraBooks_Security::seed_owasp_controls();
 
  if (!wp_next_scheduled('orabooks_security_dependency_scan')) {
- wp_schedule_event(time, 'weekly', 'orabooks_security_dependency_scan');
+ wp_schedule_event(time(), 'weekly', 'orabooks_security_dependency_scan');
  }
  if (!wp_next_scheduled('orabooks_security_header_check')) {
- wp_schedule_event(time, 'daily', 'orabooks_security_header_check');
+ wp_schedule_event(time(), 'daily', 'orabooks_security_header_check');
  }
  if (!wp_next_scheduled('orabooks_security_audit_integrity')) {
- wp_schedule_event(time, 'every_6_hours', 'orabooks_security_audit_integrity');
+ wp_schedule_event(time(), 'every_6_hours', 'orabooks_security_audit_integrity');
  }
  if (!wp_next_scheduled('orabooks_security_secret_rotation_reminder')) {
- wp_schedule_event(time, 'monthly', 'orabooks_security_secret_rotation_reminder');
+ wp_schedule_event(time(), 'monthly', 'orabooks_security_secret_rotation_reminder');
  }
  if (!wp_next_scheduled('orabooks_security_purge')) {
- wp_schedule_event(time, 'daily', 'orabooks_security_purge');
+ wp_schedule_event(time(), 'daily', 'orabooks_security_purge');
  }
 
  if (!get_option('orabooks_installed_at')) {
@@ -1107,11 +1107,11 @@ class OraBooks_Database {
  // ============================================================
  //: Smart Classification & Tax Hints
  // ============================================================
- $classification_tables = OraBooks_Classification::get_create_table_sql;
+ $classification_tables = OraBooks_Classification::get_create_table_sql();
  foreach ($classification_tables as $sql) {
  dbDelta($sql);
  }
- OraBooks_Classification::ensure_schema;
+ OraBooks_Classification::ensure_schema();
 
  update_option('orabooks_db_version', ORABOOKS_DB_VERSION);
  }
@@ -1359,6 +1359,6 @@ class OraBooks_Database {
  * Get table name with prefix
  */
  public static function table($name) {
- return orabooks_get_table_prefix. 'orabooks_'. $name;
+ return orabooks_get_table_prefix() . 'orabooks_' . $name;
  }
 }
