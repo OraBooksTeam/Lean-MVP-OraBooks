@@ -55,8 +55,11 @@ class OraBooks_Workflow_Test extends TestCase
 
         $this->assertArrayHasKey('journal', $machines);
         $this->assertArrayHasKey('bill', $machines);
+        $this->assertArrayHasKey('expense', $machines);
         $this->assertContains('review_pending', $machines['journal']['states']);
+        $this->assertContains('ai_review', $machines['expense']['states']);
         $this->assertArrayHasKey('submit', $machines['bill']['transitions']);
+        $this->assertArrayHasKey('ai_review', $machines['expense']['transitions']);
     }
 
     #[Test]
@@ -403,5 +406,86 @@ class OraBooks_Workflow_Test extends TestCase
 
         $this->assertIsArray($result);
         $this->assertEquals('cancelled', $result['to_state']);
+    }
+
+    #[Test]
+    public function test_expense_submit_transition_from_draft()
+    {
+        global $wpdb;
+
+        $expense = (object) [
+            'id'              => 30,
+            'org_id'          => 4,
+            'workflow_status' => 'draft',
+        ];
+
+        $wpdb->test_query_callback = function () {
+            return true;
+        };
+        $wpdb->test_get_row_callback = function ($query) use ($expense) {
+            if (stripos($query, 'FOR UPDATE') !== false) {
+                return $expense;
+            }
+            return null;
+        };
+        $wpdb->test_update_callback = function ($table, $data, $where) use ($expense) {
+            if (isset($data['workflow_status'])) {
+                $expense->workflow_status = $data['workflow_status'];
+            }
+            return 1;
+        };
+        $wpdb->test_insert_callback = function () {
+            return true;
+        };
+        $GLOBALS['orabooks_test_use_insert_id'] = 904;
+
+        $result = OraBooks_Workflow::transition('expense', 30, 'submit', [
+            'user_id' => 1,
+            'org_id'  => 4,
+        ]);
+
+        $this->assertIsArray($result);
+        $this->assertEquals('submitted', $result['to_state']);
+        $this->assertEquals('submitted', $expense->workflow_status);
+    }
+
+    #[Test]
+    public function test_expense_ai_review_transition_from_draft()
+    {
+        global $wpdb;
+
+        $expense = (object) [
+            'id'              => 31,
+            'org_id'          => 4,
+            'workflow_status' => 'draft',
+        ];
+
+        $wpdb->test_query_callback = function () {
+            return true;
+        };
+        $wpdb->test_get_row_callback = function ($query) use ($expense) {
+            if (stripos($query, 'FOR UPDATE') !== false) {
+                return $expense;
+            }
+            return null;
+        };
+        $wpdb->test_update_callback = function ($table, $data) use ($expense) {
+            if (isset($data['workflow_status'])) {
+                $expense->workflow_status = $data['workflow_status'];
+            }
+            return 1;
+        };
+        $wpdb->test_insert_callback = function () {
+            return true;
+        };
+        $GLOBALS['orabooks_test_use_insert_id'] = 905;
+
+        $result = OraBooks_Workflow::transition('expense', 31, 'ai_review', [
+            'user_id' => 1,
+            'org_id'  => 4,
+        ]);
+
+        $this->assertIsArray($result);
+        $this->assertEquals('ai_review', $result['to_state']);
     }
 }
