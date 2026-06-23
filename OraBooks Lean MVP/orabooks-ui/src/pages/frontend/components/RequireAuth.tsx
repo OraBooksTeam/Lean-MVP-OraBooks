@@ -7,7 +7,8 @@ import {
   isLogoutLanding,
   redirectToLogin,
 } from '../lib/auth-routing';
-import { toWpUrl } from '../lib/wp-routing';
+import { routeRequires2faSetupRedirect } from '@/lib/two-factor';
+import { getCurrentAppRoute, toWpUrl } from '../lib/wp-routing';
 
 export default function RequireAuth({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(false);
@@ -38,6 +39,13 @@ export default function RequireAuth({ children }: { children: ReactNode }) {
         }
 
         if (!res.error) {
+          const needs2faSetup = Boolean((res as any).data?.security?.needs_2fa_setup);
+          const route = getCurrentAppRoute();
+          if (routeRequires2faSetupRedirect(route, needs2faSetup)) {
+            window.location.replace(toWpUrl('/security/2fa/'));
+            return;
+          }
+
           clearRedirectGuard();
           setReady(true);
           return;

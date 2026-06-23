@@ -144,6 +144,7 @@ export function redirectToOrgSubdomain(subdomain: string, wpPath = '/dashboard/'
 export function redirectAfterAuth(data: {
   needs_tier_selection?: boolean;
   needs_accept_invite?: boolean;
+  needs_2fa_setup?: boolean;
   invite_onboarded?: boolean;
   tier_selection_token?: string;
   redirect_to?: string;
@@ -170,6 +171,16 @@ export function redirectAfterAuth(data: {
       storeTierSelectionToken(String(data.tier_selection_token));
     }
     window.location.replace(normalizeWpAppPath(getNetworkAuthUrl('tier-selection')));
+    return;
+  }
+
+  if (data?.needs_2fa_setup) {
+    const securityPath = normalizeWpAppPath('/security/2fa/');
+    if (data?.subdomain) {
+      redirectToOrgSubdomain(data.subdomain, securityPath);
+      return;
+    }
+    window.location.replace(securityPath);
     return;
   }
 
