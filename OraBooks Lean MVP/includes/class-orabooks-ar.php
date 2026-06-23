@@ -499,6 +499,15 @@ class OraBooks_AR {
             return new WP_Error('not_found', 'Payment not found');
         }
 
+        $existing_reversal = $wpdb->get_var($wpdb->prepare(
+            "SELECT id FROM {$table} WHERE org_id = %d AND reverses_payment_id = %d LIMIT 1",
+            (int) $org_id,
+            (int) $payment_id
+        ));
+        if ($existing_reversal) {
+            return new WP_Error('already_reversed', 'This payment has already been reversed');
+        }
+
         $amount = (float) $payment->amount;
         $wpdb->insert(
             $table,
@@ -1022,7 +1031,22 @@ class OraBooks_AR {
         $sql = "SELECT * FROM {$table} WHERE " . implode(' AND ', $where) . " ORDER BY payment_date DESC, id DESC LIMIT 100";
         $rows = $wpdb->get_results($wpdb->prepare($sql, $params));
 
-        return array_map([self::class, 'format_payment'], $rows ?: []);
+        $reversed_ids = [];
+        if ($rows) {
+            $reversed_ids = array_map('intval', $wpdb->get_col($wpdb->prepare(
+                "SELECT DISTINCT reverses_payment_id FROM {$table}
+                 WHERE org_id = %d AND reverses_payment_id IS NOT NULL",
+                (int) $org_id
+            )) ?: []);
+        }
+
+        return array_map(static function ($row) use ($reversed_ids) {
+            $formatted = self::format_payment($row);
+            if ($formatted && in_array((int) $formatted['id'], $reversed_ids, true)) {
+                $formatted['can_reverse'] = false;
+            }
+            return $formatted;
+        }, $rows ?: []);
     }
 
     public static function format_payment($row) {
@@ -1158,6 +1182,30 @@ class OraBooks_AR {
         orabooks_json_success(['credit_note' => $result]);
     }
 
+    public function ajax_submit_credit_note() {
+        $user_id = orabooks_get_current_user_id();
+        $org_id = (int) ($_POST['org_id'] ?? 0);
+        $credit_note_id = (int) ($_POST['credit_note_id'] ?? 0);
+        $this->require_ar_access($user_id, $org_id);
+        $result = self::submit_credit_note($org_id, $credit_note_id, $user_id);
+        if (is_wp_error($result)) {
+            orabooks_json_error($result->get_error_message(), 400);
+        }
+        orabooks_json_success(['credit_note' => $result]);
+    }
+
+    public function ajax_approve_credit_note() {
+        $user_id = orabooks_get_current_user_id();
+        $org_id = (int) ($_POST['org_id'] ?? 0);
+        $credit_note_id = (int) ($_POST['credit_note_id'] ?? 0);
+        $this->require_ar_access($user_id, $org_id, 'approve_journal');
+        $result = self::approve_credit_note($org_id, $credit_note_id, $user_id);
+        if (is_wp_error($result)) {
+            orabooks_json_error($result->get_error_message(), 400);
+        }
+        orabooks_json_success(['credit_note' => $result]);
+    }
+
     public function ajax_post_credit_note() {
         $user_id = orabooks_get_current_user_id();
         $org_id = (int) ($_POST['org_id'] ?? 0);
@@ -1186,8 +1234,20 @@ class OraBooks_AR {
         $user_id = orabooks_get_current_user_id();
         $org_id = (int) ($_GET['org_id'] ?? $_POST['org_id'] ?? 0);
         $customer_id = (int) ($_GET['customer_id'] ?? $_POST['customer_id'] ?? 0);
+        $invoice_id = (int) ($_GET['invoice_id'] ?? $_POST['invoice_id'] ?? 0);
         $this->require_ar_access($user_id, $org_id, 'view_invoices');
-        orabooks_json_success(['credit_notes' => self::list_credit_notes($org_id, $customer_id)]);
+        orabooks_json_success(['credit_notes' => self::list_credit_notes($org_id, $customer_id, $invoice_id)]);
+    }
+
+    public function ajax_payments_list() {
+        $user_id = orabooks_get_current_user_id();
+        $org_id = (int) ($_GET['org_id'] ?? $_POST['org_id'] ?? 0);
+        $this->require_ar_access($user_id, $org_id, 'view_invoices');
+        $payments = self::list_payments($org_id, [
+            'customer_id' => (int) ($_GET['customer_id'] ?? $_POST['customer_id'] ?? 0),
+            'invoice_id' => (int) ($_GET['invoice_id'] ?? $_POST['invoice_id'] ?? 0),
+        ]);
+        orabooks_json_success(['payments' => $payments]);
     }
 
     public function ajax_ar_config_get() {

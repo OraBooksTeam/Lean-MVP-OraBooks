@@ -1263,11 +1263,17 @@ class OraBooks_Customers {
 
         if (!empty($invoice->payments)) {
             $formatted['payments'] = array_map(static function ($payment) {
+                $type = $payment->type ?? 'payment';
                 return [
                     'id'             => (int) $payment->id,
                     'amount'         => (float) $payment->amount,
                     'payment_date'   => $payment->payment_date,
                     'payment_method' => $payment->payment_method,
+                    'type'           => $type,
+                    'reference'      => $payment->reference ?? '',
+                    'notes'          => $payment->notes ?? '',
+                    'reverses_payment_id' => !empty($payment->reverses_payment_id) ? (int) $payment->reverses_payment_id : null,
+                    'can_reverse'    => $type === 'payment' && (float) $payment->amount > 0,
                 ];
             }, $invoice->payments);
         }
