@@ -44,7 +44,7 @@ type Customer = {
   notes?: string | null;
 };
 
-type CustomerFormState = {
+type Customer = {
   customer_code: string;
   name: string;
   email: string;

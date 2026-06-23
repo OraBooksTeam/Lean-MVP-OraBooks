@@ -189,8 +189,9 @@ export default function InvoicesPage() {
     const invoice = (res as any).data?.invoice;
     if (invoice) {
       setSelectedInvoice(invoice);
-      if (orgId) {
-        const cnRes = await api.creditNotesList(orgId, { invoice_id: invoiceId });
+      const noteOrgId = invoice.org_id || orgId;
+      if (noteOrgId) {
+        const cnRes = await api.creditNotesList(noteOrgId, { invoice_id: invoiceId });
         if (!cnRes.error) setCreditNotes((cnRes as any).data?.credit_notes || []);
       }
     }
