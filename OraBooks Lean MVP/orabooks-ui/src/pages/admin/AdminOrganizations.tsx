@@ -3,9 +3,9 @@ import AdminPageShell from '@/components/AdminPageShell';
 import { api } from '../api';
 import Button from '@/components/Button';
 import { ShieldCheck, ShieldOff } from 'lucide-react';
-import { RESIDENCY_REGIONS } from '@/lib/residency/sl004';
+import { RESIDENCY_REGIONS, formatRegionLabel } from '@/lib/residency/sl004';
 
-function adminLink(page: string) {
+interface Org {
   id: number;
   name: string;
   subdomain: string;
@@ -24,7 +24,7 @@ function adminLink(page: string) {
   return `${base}?page=${page}`;
 }
 
-interface Org {
+export default function AdminOrganizations() {
   const [orgs, setOrgs] = useState<Org[]>([]);
   const [loading, setLoading] = useState(true);
   const [typeFilter, setTypeFilter] = useState('');
@@ -69,15 +69,15 @@ interface Org {
     load();
   };
 
-  const changeRegion = (id: number, region: string) => {
-    if (!confirm(`Change data residency to ${region}? This queues an async migration.`)) return;
-    api.changeOrgRegion(id, region).then((res) => {
-      if (res.error) {
-        alert(res.error);
-        return;
-      }
-      load();
-    });
+  const changeRegion = async (id: number, region: string) => {
+    if (!confirm(`Change data residency to ${formatRegionLabel(region)}? This queues an async migration.`)) return;
+    setError('');
+    const res = await api.changeOrgRegion(id, region);
+    if (res.error) {
+      setError(typeof res.error === 'string' ? res.error : 'Unable to change organization region.');
+      return;
+    }
+    load();
   };
 
   return (
