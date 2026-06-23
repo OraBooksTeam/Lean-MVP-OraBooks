@@ -1214,7 +1214,7 @@ class OraBooks_Vendors {
         if (is_wp_error($result)) {
             orabooks_json_error($result->get_error_message(), 400);
         }
-        orabooks_json_success($result);
+        orabooks_json_success(['credit_note' => $result]);
     }
 
     public function ajax_ap_aging() {
