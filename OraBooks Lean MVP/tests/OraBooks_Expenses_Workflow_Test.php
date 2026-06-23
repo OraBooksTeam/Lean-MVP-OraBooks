@@ -336,24 +336,25 @@ class OraBooks_Expenses_Workflow_Test extends TestCase
         global $wpdb;
 
         $expense = $this->expense([
-            'ocr_confidence' => null,
-            'vendor'         => 'Manual Vendor',
-            'total_amount'   => 150.00,
+            'ocr_confidence'   => null,
+            'vendor'           => 'Manual Vendor',
+            'total_amount'     => 150.00,
             'transaction_date' => '2026-06-18',
         ]);
 
         $side_effects = $this->mock_expense_db($expense);
+
         $wpdb->test_get_var_callback = function ($query) {
-            if (stripos($query, 'ocr_processing_queue') !== false && stripos($query, 'SELECT status') !== false) {
-                return null;
-            }
-            if (stripos($query, 'idempotency_key') !== false) {
+            if (stripos($query, 'idempotency_key') !== false && stripos($query, 'classification') === false) {
                 return null;
             }
             if (stripos($query, 'classification_rules') !== false && stripos($query, 'COUNT') !== false) {
                 return 1;
             }
             if (stripos($query, 'ai_review_queue') !== false) {
+                return null;
+            }
+            if (stripos($query, 'classification_idempotency_key') !== false) {
                 return null;
             }
             return null;
@@ -373,6 +374,9 @@ class OraBooks_Expenses_Workflow_Test extends TestCase
 
         $this->assertIsArray($result);
         $this->assertSame('ai_review', $result['workflow_status']);
-        $this->assertCount(1, $side_effects['ai_review_inserts']);
+
+        $event_types = array_column($GLOBALS['orabooks_test_log_events'], 'event_type');
+        $this->assertContains('expense_escalated_to_ai_review', $event_types);
+        $this->assertContains('ai_review_enqueued', $event_types);
     }
 }

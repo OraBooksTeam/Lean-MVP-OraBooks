@@ -116,6 +116,24 @@ class OraBooks_Expenses_Test extends TestCase
     }
 
     #[Test]
+    public function test_get_ocr_queue_state_returns_latest_row()
+    {
+        global $wpdb;
+
+        $wpdb->test_get_row_callback = function ($query) {
+            if (stripos($query, 'ocr_processing_queue') !== false) {
+                return (object) ['status' => 'pending', 'error_message' => null];
+            }
+            return null;
+        };
+
+        $state = OraBooks_Expenses::get_ocr_queue_state(12);
+
+        $this->assertIsArray($state);
+        $this->assertSame('pending', $state['status']);
+    }
+
+    #[Test]
     public function test_resolve_submit_route_matrix()
     {
         $submitted = OraBooks_Expenses::resolve_submit_route(80, 'low');
