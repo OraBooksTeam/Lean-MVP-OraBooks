@@ -491,6 +491,7 @@ class OraBooks_Expenses {
                 'status'        => 'failed',
                 'error_message' => 'Expense not found',
             ], ['id' => (int) $item->id], ['%s', '%s'], ['%d']);
+            self::notify_ocr_failure((int) $item->org_id, (int) $item->expense_id, 'Expense not found');
             return;
         }
 

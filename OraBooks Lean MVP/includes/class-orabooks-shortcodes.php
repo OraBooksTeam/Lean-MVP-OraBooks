@@ -198,6 +198,10 @@ class OraBooks_Shortcodes {
         return $this->customer_react_page('/classification-test');
     }
 
+    public function expenses_test_page() {
+        return $this->customer_react_page('/expenses-test');
+    }
+
     public function expenses_page() {
         return $this->customer_react_page('/expenses');
     }
