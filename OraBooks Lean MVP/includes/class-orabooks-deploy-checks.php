@@ -280,6 +280,10 @@ class OraBooks_DeployChecks {
             $lines_exists = $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $line_items_table)) === $line_items_table;
             $add_check('table_expense_line_items', 'Table exists: expense_line_items', $lines_exists, $line_items_table);
 
+            $settings_table = OraBooks_Database::table('expense_settings');
+            $settings_exists = $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $settings_table)) === $settings_table;
+            $add_check('table_expense_settings', 'Table exists: expense_settings (SL-028 Phase 4)', $settings_exists, $settings_table);
+
             $expenses_table = OraBooks_Database::table('expenses');
             $exp_cols = $wpdb->get_col("SHOW COLUMNS FROM {$expenses_table}", 0);
             $ocr_ok = is_array($exp_cols)
