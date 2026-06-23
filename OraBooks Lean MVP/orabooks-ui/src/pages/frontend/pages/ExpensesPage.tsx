@@ -502,11 +502,15 @@ export default function ExpensesPage() {
                 )}
               </div>
               <div className="flex flex-wrap gap-2">
-                <PaymentStatusBadge status={selectedExpense.payment_status} />
+                {selectedExpense.ocr_confidence != null && (
+                  <PaymentStatusBadge status={selectedExpense.payment_status} />
+                )}
                 {selectedExpense.ocr_confidence != null && (
                   <ConfidenceBadge value={selectedExpense.ocr_confidence} threshold={threshold} />
                 )}
-                {selectedExpense.ocr_risk_level && <RiskBadge level={selectedExpense.ocr_risk_level} />}
+                {selectedExpense.ocr_confidence != null && selectedExpense.ocr_risk_level && (
+                  <RiskBadge level={selectedExpense.ocr_risk_level} />
+                )}
                 {selectedExpense.ocr_provider && (
                   <span className="inline-flex items-center rounded-full border border-border bg-white px-2 py-0.5 text-xs text-slate-600">
                     {selectedExpense.ocr_provider}
@@ -673,7 +677,7 @@ export default function ExpensesPage() {
 
             <ExpenseLineItemsPanel lineItems={selectedExpense.line_items} threshold={threshold} />
 
-            {selectedExpense.classification && (
+            {selectedExpense.classification && selectedExpense.ocr_confidence != null && (
               <ClassificationPanel
                 classification={selectedExpense.classification}
                 threshold={threshold}

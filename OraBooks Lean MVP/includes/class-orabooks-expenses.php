@@ -1320,7 +1320,31 @@ class OraBooks_Expenses {
             orabooks_json_error('Expense not found', 404);
         }
 
+        if ($expense->workflow_status === 'draft' && $expense->ocr_confidence === null) {
+            self::maybe_process_pending_ocr((int) $expense_id, (int) $org_id);
+            $expense = self::get_expense($expense_id, $org_id);
+        }
+
         orabooks_json_success(['expense' => self::format_expense($expense, true)]);
+    }
+
+    /**
+     * Process a pending OCR queue row for an expense (self-heal on poll/view).
+     */
+    public static function maybe_process_pending_ocr($expense_id, $org_id) {
+        global $wpdb;
+
+        $queue_id = (int) $wpdb->get_var($wpdb->prepare(
+            "SELECT id FROM " . OraBooks_Database::table(self::TABLE_OCR_QUEUE) . "
+             WHERE expense_id = %d AND org_id = %d AND status = 'pending'
+             ORDER BY id DESC LIMIT 1",
+            (int) $expense_id,
+            (int) $org_id
+        ));
+
+        if ($queue_id > 0) {
+            self::init()->process_ocr_item_by_id($queue_id);
+        }
     }
 
     public function ajax_confirm() {
