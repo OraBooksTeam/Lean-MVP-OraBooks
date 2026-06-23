@@ -19,6 +19,8 @@ class OraBooks_Expenses {
     const CONFIDENCE_THRESHOLD = 70.0;
     const MAX_RECEIPT_SIZE     = 10485760; // 10 MB
     const MAX_OCR_RETRIES      = 3;
+    const RATE_LIMIT_MAX       = 10;
+    const RATE_LIMIT_PERIOD    = 60;
     const OCR_MODEL_VERSION    = 'mvp-stub-1.0';
     const OCR_PROVIDER         = 'mvp-stub';
 
