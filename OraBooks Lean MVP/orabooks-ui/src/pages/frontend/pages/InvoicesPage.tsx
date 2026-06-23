@@ -1033,24 +1033,10 @@ export default function InvoicesPage() {
                   <p className="text-sm text-slate-600">Lines subtotal: {money(invoiceLinesSubtotal())}</p>
                 </div>
               ) : (
-              <div className="grid gap-4 sm:grid-cols-2">
                 <Field label="Subtotal">
                   <Input type="number" min="0" step="0.01" value={createForm.subtotal_amount} onChange={(e) => setCreateForm((p) => ({ ...p, subtotal_amount: e.target.value }))} />
                 </Field>
-                <Field label="Jurisdiction">
-                  <select
-                    value={createForm.jurisdiction}
-                    onChange={(e) => setCreateForm((p) => ({ ...p, jurisdiction: e.target.value }))}
-                    className="w-full rounded-lg border border-border px-3 py-2.5 text-sm"
-                  >
-                    {(taxConfigs.length ? taxConfigs : [{ jurisdiction: 'US' }]).map((c) => (
-                      <option key={c.jurisdiction} value={c.jurisdiction}>{c.jurisdiction}</option>
-                    ))}
-                  </select>
-                </Field>
-              </div>
               )}
-              {useInventoryLines && (
               <Field label="Jurisdiction">
                 <select
                   value={createForm.jurisdiction}
@@ -1062,7 +1048,6 @@ export default function InvoicesPage() {
                   ))}
                 </select>
               </Field>
-              )}
               <Field label="Description">
                 <Input value={createForm.description} onChange={(e) => setCreateForm((p) => ({ ...p, description: e.target.value }))} />
               </Field>
