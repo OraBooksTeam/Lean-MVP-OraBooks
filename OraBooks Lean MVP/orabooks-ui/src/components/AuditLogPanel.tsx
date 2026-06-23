@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { Fragment, useState } from 'react';
 import Button from '@/components/Button';
 import {
   AUDIT_SEVERITIES,
@@ -18,6 +18,7 @@ type AuditLogPanelProps = {
   filters: AuditLogFilters;
   onFiltersChange: (filters: AuditLogFilters) => void;
   onApplyFilters: () => void;
+  onClearFilters?: () => void;
   onRefresh: () => void;
   onExport: () => Promise<{ error?: string } | void>;
   showOrgFilter?: boolean;
@@ -32,6 +33,7 @@ export default function AuditLogPanel({
   filters,
   onFiltersChange,
   onApplyFilters,
+  onClearFilters,
   onRefresh,
   onExport,
   showOrgFilter = false,
@@ -155,10 +157,7 @@ export default function AuditLogPanel({
         <Button
           size="sm"
           variant="secondary"
-          onClick={() => {
-            onFiltersChange({ ...EMPTY_AUDIT_FILTERS, org_id: filters.org_id });
-            onApplyFilters();
-          }}
+          onClick={() => (onClearFilters ? onClearFilters() : onFiltersChange({ ...EMPTY_AUDIT_FILTERS, org_id: filters.org_id }))}
         >
           Clear
         </Button>
@@ -206,8 +205,8 @@ export default function AuditLogPanel({
                 const expanded = Boolean(expandedRows[rowKey]);
 
                 return (
-                  <>
-                    <tr key={rowKey} className="transition hover:bg-slate-50/60">
+                  <Fragment key={rowKey}>
+                    <tr className="transition hover:bg-slate-50/60">
                       <td className="px-3 py-3">
                         {hasMetadata ? (
                           <button
@@ -249,7 +248,7 @@ export default function AuditLogPanel({
                       </td>
                     </tr>
                     {expanded && hasMetadata && (
-                      <tr key={`${rowKey}-meta`} className="bg-slate-50/40">
+                      <tr className="bg-slate-50/40">
                         <td colSpan={colSpan} className="px-5 py-4">
                           <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Evidence metadata</p>
                           <pre className="mt-2 overflow-x-auto rounded-lg border border-border bg-white p-3 text-xs text-slate-700">
@@ -258,7 +257,7 @@ export default function AuditLogPanel({
                         </td>
                       </tr>
                     )}
-                  </>
+                  </Fragment>
                 );
               })
             )}
