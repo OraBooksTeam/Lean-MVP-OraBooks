@@ -491,6 +491,286 @@ class OraBooks_Bank_Reconciliation {
         return ['match_id' => intval($wpdb->insert_id), 'status' => 'matched'];
     }
 
+    public static function confirm_suggested_match($org_id, $bank_transaction_id, $match_id, $user_id) {
+        global $wpdb;
+
+        $bank_transaction = self::get_bank_transaction($bank_transaction_id, $org_id);
+        if (!$bank_transaction) {
+            return new WP_Error('not_found', 'Bank transaction not found');
+        }
+        if ($bank_transaction->status !== 'unmatched') {
+            return new WP_Error('invalid_status', 'Only unmatched bank transactions can be matched');
+        }
+
+        $match = $wpdb->get_row($wpdb->prepare(
+            "SELECT * FROM " . OraBooks_Database::table('reconciliation_matches') . "
+             WHERE id = %d AND bank_transaction_id = %d AND match_status = 'suggested'",
+            intval($match_id),
+            intval($bank_transaction_id)
+        ));
+        if (!$match) {
+            return new WP_Error('not_found', 'Suggested match not found');
+        }
+
+        $wpdb->update(
+            OraBooks_Database::table('reconciliation_matches'),
+            [
+                'match_status' => 'confirmed',
+                'matched_by' => intval($user_id),
+                'matched_at' => current_time('mysql'),
+            ],
+            ['id' => intval($match_id)],
+            ['%s', '%d', '%s'],
+            ['%d']
+        );
+
+        $wpdb->update(
+            OraBooks_Database::table('bank_transactions'),
+            ['status' => 'matched'],
+            ['id' => intval($bank_transaction_id), 'org_id' => intval($org_id)],
+            ['%s'],
+            ['%d', '%d']
+        );
+
+        orabooks_log_event('match_manual', 'Suggested bank match confirmed', 'info', [
+            'bank_transaction_id' => intval($bank_transaction_id),
+            'match_id' => intval($match_id),
+            'transaction_type' => $match->transaction_type,
+            'transaction_id' => intval($match->transaction_id),
+        ], intval($user_id), intval($org_id));
+
+        return ['match_id' => intval($match_id), 'status' => 'matched'];
+    }
+
+    public static function create_transaction_from_bank($org_id, $bank_transaction_id, $transaction_type, $user_id, $extra = []) {
+        $bank_transaction = self::get_bank_transaction($bank_transaction_id, $org_id);
+        if (!$bank_transaction) {
+            return new WP_Error('not_found', 'Bank transaction not found');
+        }
+        if ($bank_transaction->status !== 'unmatched') {
+            return new WP_Error('invalid_status', 'Only unmatched bank transactions can create linked transactions');
+        }
+
+        $amount = abs(floatval($bank_transaction->amount));
+        $transaction_type = sanitize_key($transaction_type);
+        $created_id = null;
+        $match_type = $transaction_type;
+
+        if ($transaction_type === 'expense') {
+            if (!class_exists('OraBooks_Expenses')) {
+                return new WP_Error('expense_unavailable', 'Expense module unavailable');
+            }
+            $vendor = sanitize_text_field($extra['vendor'] ?? ($bank_transaction->description ?: 'Bank transaction'));
+            $created = OraBooks_Expenses::create_draft_from_voice($org_id, $user_id, [
+                'vendor' => $vendor,
+                'transaction_date' => $bank_transaction->transaction_date,
+                'total_amount' => $amount,
+                'subtotal' => $amount,
+                'tax_amount' => 0,
+                'tax_rate' => 0,
+                'currency' => 'USD',
+                'payment_method' => 'Bank',
+                'category' => sanitize_text_field($extra['category'] ?? 'General'),
+                'description' => sanitize_textarea_field($bank_transaction->description ?: 'Created from bank reconciliation'),
+            ], 100, 'low');
+            if (is_wp_error($created)) {
+                return $created;
+            }
+            $created_id = (int) ($created['id'] ?? 0);
+            $match_type = 'expense';
+        } elseif ($transaction_type === 'invoice') {
+            if (!class_exists('OraBooks_Customers')) {
+                return new WP_Error('invoice_unavailable', 'Invoice module unavailable');
+            }
+            $customer_id = (int) ($extra['customer_id'] ?? 0);
+            if ($customer_id <= 0) {
+                return new WP_Error('missing_customer', 'Customer is required to create an invoice');
+            }
+            $created = OraBooks_Customers::create_invoice($org_id, [
+                'customer_id' => $customer_id,
+                'invoice_date' => $bank_transaction->transaction_date,
+                'subtotal_amount' => $amount,
+                'description' => sanitize_textarea_field($bank_transaction->description ?: 'Created from bank reconciliation'),
+                'workflow_status' => 'draft',
+            ]);
+            if (is_wp_error($created)) {
+                return $created;
+            }
+            $created_id = is_object($created) ? (int) ($created->id ?? 0) : (int) ($created['id'] ?? 0);
+            $match_type = 'payment';
+        } else {
+            return new WP_Error('invalid_transaction_type', 'Supported types: expense, invoice');
+        }
+
+        if ($created_id <= 0) {
+            return new WP_Error('create_failed', 'Failed to create linked transaction');
+        }
+
+        $match = self::manual_match($org_id, $bank_transaction_id, $match_type, $created_id, $user_id);
+        if (is_wp_error($match)) {
+            return $match;
+        }
+
+        orabooks_log_event('bank_transaction_created', 'System transaction created from bank entry', 'info', [
+            'bank_transaction_id' => intval($bank_transaction_id),
+            'transaction_type' => $match_type,
+            'transaction_id' => $created_id,
+        ], intval($user_id), intval($org_id));
+
+        return [
+            'transaction_type' => $match_type,
+            'transaction_id' => $created_id,
+            'match' => $match,
+        ];
+    }
+
+    public static function connect_bank_feed($org_id, $bank_account_id, $provider, $user_id) {
+        global $wpdb;
+
+        $provider = sanitize_key($provider);
+        if (!in_array($provider, ['plaid', 'yodlee'], true)) {
+            return new WP_Error('invalid_provider', 'Supported providers: plaid, yodlee');
+        }
+
+        if (!self::get_bank_account($bank_account_id, $org_id)) {
+            return new WP_Error('not_found', 'Bank account not found');
+        }
+
+        $table = OraBooks_Database::table('bank_feeds');
+        $existing = $wpdb->get_row($wpdb->prepare(
+            "SELECT * FROM {$table} WHERE org_id = %d AND bank_account_id = %d AND provider = %s",
+            intval($org_id),
+            intval($bank_account_id),
+            $provider
+        ));
+
+        if ($existing) {
+            return $existing;
+        }
+
+        $wpdb->insert(
+            $table,
+            [
+                'org_id' => intval($org_id),
+                'bank_account_id' => intval($bank_account_id),
+                'provider' => $provider,
+                'status' => 'pending_oauth',
+            ],
+            ['%d', '%d', '%s', '%s']
+        );
+
+        orabooks_log_event('bank_feed_connect_requested', 'Bank feed connection requested', 'info', [
+            'bank_account_id' => intval($bank_account_id),
+            'provider' => $provider,
+        ], intval($user_id), intval($org_id));
+
+        return $wpdb->get_row($wpdb->prepare(
+            "SELECT * FROM {$table} WHERE id = %d",
+            intval($wpdb->insert_id)
+        ));
+    }
+
+    public static function get_feeds_list($org_id, $bank_account_id = 0) {
+        global $wpdb;
+
+        $table = OraBooks_Database::table('bank_feeds');
+        if (intval($bank_account_id) > 0) {
+            return $wpdb->get_results($wpdb->prepare(
+                "SELECT id, org_id, bank_account_id, provider, last_sync_at, status, created_at
+                 FROM {$table} WHERE org_id = %d AND bank_account_id = %d ORDER BY id DESC",
+                intval($org_id),
+                intval($bank_account_id)
+            ));
+        }
+
+        return $wpdb->get_results($wpdb->prepare(
+            "SELECT id, org_id, bank_account_id, provider, last_sync_at, status, created_at
+             FROM {$table} WHERE org_id = %d ORDER BY id DESC",
+            intval($org_id)
+        ));
+    }
+
+    public static function get_account_reconciliation_summary($org_id, $bank_account_id, $statement_date = null) {
+        $account = self::get_bank_account($bank_account_id, $org_id);
+        if (!$account) {
+            return new WP_Error('not_found', 'Bank account not found');
+        }
+
+        $statement_date = $statement_date ?: current_time('Y-m-d');
+        $system_balance = self::calculate_system_balance($org_id, $bank_account_id, $statement_date);
+
+        return [
+            'bank_account_id' => intval($bank_account_id),
+            'account_name' => $account->account_name,
+            'bank_balance' => round(floatval($account->current_balance), 2),
+            'system_balance' => $system_balance,
+            'difference' => round(floatval($account->current_balance) - $system_balance, 2),
+            'statement_date' => $statement_date,
+            'unmatched_count' => count(self::get_unresolved_transactions($org_id, $bank_account_id, $statement_date)),
+        ];
+    }
+
+    public static function enrich_transactions_with_suggestions(array $transactions) {
+        if (empty($transactions)) {
+            return $transactions;
+        }
+
+        global $wpdb;
+        $ids = array_map(function ($row) {
+            return intval(is_object($row) ? $row->id : ($row['id'] ?? 0));
+        }, $transactions);
+        $ids = array_values(array_filter($ids));
+        if (empty($ids)) {
+            return $transactions;
+        }
+
+        $placeholders = implode(',', array_fill(0, count($ids), '%d'));
+        $matches = $wpdb->get_results($wpdb->prepare(
+            "SELECT * FROM " . OraBooks_Database::table('reconciliation_matches') . "
+             WHERE bank_transaction_id IN ({$placeholders}) AND match_status = 'suggested'
+             ORDER BY confidence_score DESC, id DESC",
+            ...$ids
+        ));
+
+        $grouped = [];
+        foreach ($matches ?: [] as $match) {
+            $grouped[intval($match->bank_transaction_id)][] = self::format_match($match);
+        }
+
+        foreach ($transactions as $index => $transaction) {
+            $txn_id = intval(is_object($transaction) ? $transaction->id : ($transaction['id'] ?? 0));
+            $suggestions = $grouped[$txn_id] ?? [];
+            if (is_object($transaction)) {
+                $transaction->suggestions = $suggestions;
+            } else {
+                $transactions[$index]['suggestions'] = $suggestions;
+            }
+        }
+
+        return $transactions;
+    }
+
+    private static function format_match($match) {
+        return [
+            'id' => (int) $match->id,
+            'transaction_type' => $match->transaction_type,
+            'transaction_id' => (int) $match->transaction_id,
+            'confidence_score' => (float) $match->confidence_score,
+            'match_status' => $match->match_status,
+            'matched_by' => (int) $match->matched_by,
+        ];
+    }
+
+    private static function has_suggested_match($bank_transaction_id) {
+        global $wpdb;
+
+        return (bool) $wpdb->get_var($wpdb->prepare(
+            "SELECT id FROM " . OraBooks_Database::table('reconciliation_matches') . "
+             WHERE bank_transaction_id = %d AND match_status = 'suggested' LIMIT 1",
+            intval($bank_transaction_id)
+        ));
+    }
+
     public static function skip_transaction($org_id, $bank_transaction_id, $reason, $user_id) {
         global $wpdb;
 
