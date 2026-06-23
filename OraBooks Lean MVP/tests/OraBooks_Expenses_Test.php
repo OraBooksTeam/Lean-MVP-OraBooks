@@ -111,7 +111,7 @@ class OraBooks_Expenses_Test extends TestCase
         $this->assertArrayHasKey('manual_steps', $result);
         $this->assertIsArray($result['checks']);
         $this->assertNotEmpty($result['checks']);
-        $this->assertSame(70, $result['environment']['confidence_threshold']);
+        $this->assertSame(70.0, $result['environment']['confidence_threshold']);
         $this->assertSame(10, $result['environment']['rate_limit_per_min']);
     }
 
