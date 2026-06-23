@@ -1184,41 +1184,6 @@ class OraBooks_Vendors {
         return $items;
     }
 
-    private static function create_bill_journal_legacy($bill, $user_id) {
-        if (!class_exists('OraBooks_Posting')) {
-            return null;
-        }
-
-        $journal_id = OraBooks_Posting::create_journal([
-            'org_id' => intval($bill->org_id),
-            'transaction_date' => $bill->transaction_date,
-            'source_type' => 'vendor_bill',
-            'source_id' => intval($bill->id),
-            'metadata' => ['bill_number' => $bill->bill_number],
-        ], intval($user_id));
-
-        if (is_wp_error($journal_id)) {
-            return $journal_id;
-        }
-
-        OraBooks_Posting::add_lines($journal_id, [
-            [
-                'account_code' => '5000',
-                'debit' => floatval($bill->subtotal_amount) + floatval($bill->tax_amount),
-                'credit' => 0,
-                'description' => 'Vendor bill ' . $bill->bill_number,
-            ],
-            [
-                'account_code' => '2000',
-                'debit' => 0,
-                'credit' => floatval($bill->total_amount),
-                'description' => 'AP for ' . $bill->bill_number,
-            ],
-        ]);
-
-        return $journal_id;
-    }
-
     private static function snapshot_bill_tax($bill, $user_id) {
         if (!class_exists('OraBooks_Tax') || floatval($bill->tax_amount) <= 0) {
             return null;
