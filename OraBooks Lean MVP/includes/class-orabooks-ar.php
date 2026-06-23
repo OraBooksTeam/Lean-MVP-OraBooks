@@ -1079,11 +1079,17 @@ class OraBooks_AR {
     public function ajax_ar_config_get() {
         $user_id = orabooks_get_current_user_id();
         $org_id = (int) ($_GET['org_id'] ?? 0);
-        $this->require_ar_access($user_id, $org_id, 'manage_org_settings');
-        orabooks_json_success(['config' => self::get_ar_config($org_id)]);
+        $this->require_ar_access($user_id, $org_id, 'view_invoices');
+        $config = self::get_ar_config($org_id);
+        orabooks_json_success([
+            'config' => [
+                'auto_post_on_approve' => (int) ($config->auto_post_on_approve ?? 1),
+                'auto_apply_customer_credit' => (int) ($config->auto_apply_customer_credit ?? 1),
+            ],
+        ]);
     }
 
-    public function ajax_ar_config_save() {
+    public function ajax_ar_config_save_full() {
         $user_id = orabooks_get_current_user_id();
         $org_id = (int) ($_POST['org_id'] ?? 0);
         $this->require_ar_access($user_id, $org_id, 'manage_org_settings');

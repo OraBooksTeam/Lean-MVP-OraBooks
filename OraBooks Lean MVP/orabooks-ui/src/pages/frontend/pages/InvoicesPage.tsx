@@ -135,7 +135,7 @@ export default function InvoicesPage() {
         ? api.taxOverrideReasons(nextOrgId)
         : api.taxListConfigs(nextOrgId),
       api.customersList(nextOrgId, { limit: 100 }),
-      api.arConfigGet(nextOrgId).catch(() => ({ data: { config: { auto_post_on_approve: 1 } } })),
+      api.arConfigGet(nextOrgId),
     ]);
 
     if (invoicesRes.error) setError(invoicesRes.error || 'Unable to load invoices.');
@@ -855,6 +855,35 @@ export default function InvoicesPage() {
           onApply={() => void handleApplyOverride()}
           onClear={() => void handleClearOverride()}
         />
+
+        {creditNoteInvoice && (
+          <Modal title="Issue credit note" onClose={() => setCreditNoteInvoice(null)}>
+            <p className="mb-4 text-sm text-slate-600">
+              {creditNoteInvoice.invoice_number} — reduce invoice balance or write off per SL-021.
+            </p>
+            {error && <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div>}
+            <div className="grid gap-4">
+              <Field label="Amount">
+                <Input type="number" min="0" step="0.01" value={creditNoteForm.amount} onChange={(e) => setCreditNoteForm((p) => ({ ...p, amount: e.target.value }))} />
+              </Field>
+              <Field label="Reason">
+                <Input value={creditNoteForm.reason} onChange={(e) => setCreditNoteForm((p) => ({ ...p, reason: e.target.value }))} placeholder="Required reason code or note" />
+              </Field>
+              <label className="flex items-center gap-2 text-sm text-slate-700">
+                <input
+                  type="checkbox"
+                  checked={creditNoteForm.is_write_off}
+                  onChange={(e) => setCreditNoteForm((p) => ({ ...p, is_write_off: e.target.checked }))}
+                />
+                Write-off (may require manager approval above threshold)
+              </label>
+            </div>
+            <div className="mt-6 flex justify-end gap-2">
+              <Button variant="secondary" onClick={() => setCreditNoteInvoice(null)}>Cancel</Button>
+              <Button onClick={() => void handleCreateCreditNote()} disabled={saving || !creditNoteForm.reason.trim()}>Create credit note</Button>
+            </div>
+          </Modal>
+        )}
 
         {cancelInvoice && (
           <Modal title="Cancel invoice" onClose={() => setCancelInvoice(null)}>
