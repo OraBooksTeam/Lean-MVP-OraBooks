@@ -37,9 +37,13 @@ class OraBooks_AR_Test extends TestCase
     public function validate_customer_credit_blocks_credit_hold(): void
     {
         global $wpdb;
-        $wpdb->test_get_col_callback = static function ($query) {
+        $wpdb->test_get_results_callback = static function ($query) {
             if (strpos($query, 'SHOW COLUMNS') !== false) {
-                return ['id', 'credit_hold', 'credit_limit'];
+                return [
+                    (object) ['Field' => 'id'],
+                    (object) ['Field' => 'credit_hold'],
+                    (object) ['Field' => 'credit_limit'],
+                ];
             }
             return [];
         };
