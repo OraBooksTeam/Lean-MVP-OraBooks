@@ -60,10 +60,12 @@ class OraBooks_Notifications {
             add_action('wp_ajax_orabooks_notifications_mark_read', [self::$instance, 'ajax_mark_read']);
             add_action('wp_ajax_orabooks_notifications_mark_all_read', [self::$instance, 'ajax_mark_all_read']);
             add_action('wp_ajax_orabooks_notifications_unread_count', [self::$instance, 'ajax_unread_count']);
+            add_action('wp_ajax_orabooks_notifications_retry_delivery', [self::$instance, 'ajax_retry_delivery']);
             add_action('wp_ajax_nopriv_orabooks_notifications_list', [self::$instance, 'ajax_list_notifications']);
             add_action('wp_ajax_nopriv_orabooks_notifications_mark_read', [self::$instance, 'ajax_mark_read']);
             add_action('wp_ajax_nopriv_orabooks_notifications_mark_all_read', [self::$instance, 'ajax_mark_all_read']);
             add_action('wp_ajax_nopriv_orabooks_notifications_unread_count', [self::$instance, 'ajax_unread_count']);
+            add_action('wp_ajax_nopriv_orabooks_notifications_retry_delivery', [self::$instance, 'ajax_retry_delivery']);
 
             // AJAX: Preferences
             add_action('wp_ajax_orabooks_notification_preferences_get', [self::$instance, 'ajax_get_preferences']);
