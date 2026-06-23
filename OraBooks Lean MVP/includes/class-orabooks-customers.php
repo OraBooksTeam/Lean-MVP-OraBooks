@@ -1113,6 +1113,16 @@ class OraBooks_Customers {
             return new WP_Error('missing_field', 'Customer ID is required');
         }
 
+        $line_items = class_exists('OraBooks_Vendors')
+            ? OraBooks_Vendors::parse_line_items($data)
+            : [];
+        if (!empty($line_items)) {
+            $subtotal_from_lines = OraBooks_Vendors::calculate_line_items_subtotal($line_items, 'unit_price');
+            if ($subtotal_from_lines > 0) {
+                $data['subtotal_amount'] = $subtotal_from_lines;
+            }
+        }
+
         $credit_check = self::validate_customer_credit_for_invoice((object) [
             'customer_id' => (int) $data['customer_id'],
             'total_amount' => (float) ($data['total_amount'] ?? $data['subtotal_amount'] ?? 0),
@@ -1205,6 +1215,10 @@ class OraBooks_Customers {
         );
 
         $invoice_id = $wpdb->insert_id;
+
+        if (!empty($line_items)) {
+            self::save_invoice_line_items((int) $org_id, (int) $invoice_id, $line_items);
+        }
 
         // Ensure customer record exists
         $table_customers = OraBooks_Database::table('customers');
