@@ -5,6 +5,8 @@ type AjaxConfig = {
   login_url?: string;
 };
 
+import { parseSubdomainFromHost } from '@/lib/residency/sl004';
+
 function getAjaxConfig(): Required<Pick<AjaxConfig, 'ajax_url' | 'nonce'>> & AjaxConfig {
   const cfg = ((window as any).orabooks_ajax || {}) as AjaxConfig;
   return {

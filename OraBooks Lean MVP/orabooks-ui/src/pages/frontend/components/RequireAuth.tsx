@@ -8,6 +8,7 @@ import {
   redirectToLogin,
 } from '../lib/auth-routing';
 import { routeRequires2faSetupRedirect } from '@/lib/two-factor';
+import { resolveTenantWorkspaceRedirect } from '@/lib/residency/sl004';
 import { getCurrentAppRoute, toWpUrl } from '../lib/wp-routing';
 
 export default function RequireAuth({ children }: { children: ReactNode }) {
@@ -39,8 +40,15 @@ export default function RequireAuth({ children }: { children: ReactNode }) {
         }
 
         if (!res.error) {
-          const needs2faSetup = Boolean((res as any).data?.security?.needs_2fa_setup);
+          const session = (res as any).data;
           const route = getCurrentAppRoute();
+          const tenantRedirect = resolveTenantWorkspaceRedirect(session?.organization?.subdomain, route);
+          if (tenantRedirect) {
+            window.location.replace(tenantRedirect);
+            return;
+          }
+
+          const needs2faSetup = Boolean(session?.security?.needs_2fa_setup);
           if (routeRequires2faSetupRedirect(route, needs2faSetup)) {
             window.location.replace(toWpUrl('/security/2fa/'));
             return;
