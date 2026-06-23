@@ -1004,7 +1004,7 @@ export const api = {
     api.post('orabooks_reverse_journal', { org_id: orgId, journal_id: journalId, reason }),
   auditLogs: (filters = {}) =>
     api.get('orabooks_get_audit_logs', filters),
-  exportAuditLogs: (filters = {}) => {
+  exportAuditLogs: async (filters = {}) => {
     const cfg = getAjaxConfig();
     const qs = new URLSearchParams();
     const token = getStoredToken();
@@ -1015,7 +1015,45 @@ export const api = {
     Object.entries(filters).forEach(([k, v]) => {
       if (v !== undefined && v !== null && v !== '') qs.set(k, String(v));
     });
-    window.location.href = `${cfg.ajax_url}?${qs.toString()}`;
+
+    try {
+      const res = await fetch(`${cfg.ajax_url}?${qs.toString()}`, {
+        credentials: 'include',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      const contentType = res.headers.get('content-type') || '';
+
+      if (!res.ok || contentType.includes('application/json')) {
+        let json: any = null;
+        try {
+          json = await res.json();
+        } catch {
+          // ignore parse failure
+        }
+        return { error: extractError(json, 'Audit export failed.') };
+      }
+
+      const blob = await res.blob();
+      const fallback = `audit_logs_${new Date().toISOString().slice(0, 10)}.csv`;
+      const filename = (() => {
+        const disposition = res.headers.get('content-disposition') || '';
+        const match = disposition.match(/filename\*?=(?:UTF-8''|")?([^";]+)/i);
+        return match?.[1]?.trim().replace(/"/g, '') || fallback;
+      })();
+
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = filename;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      URL.revokeObjectURL(url);
+
+      return { data: { filename } };
+    } catch (error) {
+      return { error: error instanceof Error ? error.message : 'Audit export failed.' };
+    }
   },
   pendingPartners: () =>
     api.get('orabooks_admin_list_pending_partners'),
