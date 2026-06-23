@@ -664,9 +664,7 @@ function orabooks_get_admin_nav_items() {
  ['slug' => 'orabooks-notifications', 'label' => __('Notifications', 'orabooks'), 'route' => '/admin/notifications'],
  ['slug' => 'orabooks-exports', 'label' => __('My Exports', 'orabooks'), 'route' => '/admin/exports'],
  ['slug' => 'orabooks-csv-imports', 'label' => __('CSV Imports', 'orabooks'), 'route' => '/admin/csv-imports'],
- ];
-
- if (orabooks_user_can_see_partner_program) {
+ ];	if (orabooks_user_can_see_partner_program()) {
  $read_items = array_merge([
  ['slug' => 'orabooks-commissions', 'label' => __('Partner Program', 'orabooks'), 'route' => '/admin/commissions'],
  ], $read_items);
