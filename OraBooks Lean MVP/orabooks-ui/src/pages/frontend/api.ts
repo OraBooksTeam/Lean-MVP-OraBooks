@@ -434,6 +434,8 @@ export const api = {
     api.get('orabooks_inventory_dashboard'),
   inventoryProductsList: (orgId: number, filters: Record<string, unknown> = {}) =>
     api.get('orabooks_inventory_products_list', { org_id: orgId, ...filters }),
+  inventoryProductGet: (orgId: number, productId: number) =>
+    api.get('orabooks_inventory_product_get', { org_id: orgId, product_id: productId }),
   inventoryProductCreate: (orgId: number, data: Record<string, unknown>) =>
     api.post('orabooks_inventory_product_create', { org_id: orgId, ...data }),
   inventoryProductCreateUpload: (orgId: number, formData: FormData) => {
