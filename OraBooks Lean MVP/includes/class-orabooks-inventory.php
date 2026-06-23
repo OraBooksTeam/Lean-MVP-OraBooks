@@ -643,6 +643,39 @@ class OraBooks_Inventory {
         ];
     }
 
+    public static function is_trackable_product($product) {
+        if (!$product) {
+            return false;
+        }
+        $type = strtolower((string) ($product->item_type ?? 'Single'));
+        return $type !== 'service';
+    }
+
+    public static function validate_sale_items($org_id, array $items) {
+        foreach ($items as $item) {
+            $product_id = (int) ($item['product_id'] ?? 0);
+            $quantity = round(floatval($item['quantity'] ?? 0), 4);
+            if ($product_id <= 0 || $quantity <= 0) {
+                continue;
+            }
+            $product = self::get_product($product_id, $org_id);
+            if (!$product) {
+                return new WP_Error('product_not_found', 'Inventory product not found');
+            }
+            if (!self::is_trackable_product($product)) {
+                continue;
+            }
+            $stock = round(floatval($product->current_stock), 4);
+            if ($stock - $quantity < 0) {
+                return new WP_Error(
+                    'negative_stock',
+                    sprintf('Insufficient stock for SKU %s (available %s, requested %s)', $product->sku, $stock, $quantity)
+                );
+            }
+        }
+        return true;
+    }
+
     public static function receive_purchase($org_id, $product_id, $quantity, $unit_cost, $reference_id = null, $user_id = null) {
         global $wpdb;
 
@@ -652,6 +685,10 @@ class OraBooks_Inventory {
 
         if (!$product) {
             return new WP_Error('not_found', 'Product not found');
+        }
+
+        if (!self::is_trackable_product($product)) {
+            return new WP_Error('not_trackable', 'Service items do not affect stock');
         }
 
         if ($quantity <= 0 || $unit_cost < 0) {
@@ -715,6 +752,10 @@ class OraBooks_Inventory {
 
         if (!$product) {
             return new WP_Error('not_found', 'Product not found');
+        }
+
+        if (!self::is_trackable_product($product)) {
+            return new WP_Error('not_trackable', 'Service items do not affect stock');
         }
 
         if ($quantity <= 0) {
@@ -884,6 +925,7 @@ class OraBooks_Inventory {
 
     public function on_vendor_bill_posted($bill_id, $payload = []) {
         $org_id = intval($payload['org_id'] ?? 0);
+        $user_id = intval($payload['user_id'] ?? orabooks_get_current_user_id());
         $items = $payload['inventory_items'] ?? [];
         foreach ($items as $item) {
             $product_id = intval($item['product_id'] ?? 0);
@@ -893,7 +935,8 @@ class OraBooks_Inventory {
                     $product_id,
                     floatval($item['quantity'] ?? 0),
                     floatval($item['unit_cost'] ?? 0),
-                    intval($bill_id)
+                    intval($bill_id),
+                    $user_id
                 );
             }
         }
@@ -901,6 +944,7 @@ class OraBooks_Inventory {
 
     public function on_invoice_posted($invoice_id, $payload = []) {
         $org_id = intval($payload['org_id'] ?? 0);
+        $user_id = intval($payload['user_id'] ?? orabooks_get_current_user_id());
         $items = $payload['inventory_items'] ?? [];
         foreach ($items as $item) {
             $product_id = intval($item['product_id'] ?? 0);
@@ -909,7 +953,8 @@ class OraBooks_Inventory {
                     $org_id,
                     $product_id,
                     floatval($item['quantity'] ?? 0),
-                    intval($invoice_id)
+                    intval($invoice_id),
+                    $user_id
                 );
             }
         }
@@ -938,10 +983,99 @@ class OraBooks_Inventory {
             ['%d', '%d', '%f', '%f', '%f', '%f', '%f', '%s', '%d', '%s', '%s', '%d', '%d']
         );
 
-        return intval($wpdb->insert_id);
+        $movement_id = intval($wpdb->insert_id);
+
+        do_action('orabooks_inventory_movement', $movement_id, [
+            'org_id' => intval($data['org_id']),
+            'product_id' => intval($data['product_id']),
+            'reference_type' => $data['reference_type'],
+            'reference_id' => isset($data['reference_id']) ? intval($data['reference_id']) : null,
+            'quantity_change' => floatval($data['quantity_change']),
+        ]);
+
+        return $movement_id;
     }
 
     private static function create_cogs_journal($org_id, $product, $quantity, $cogs_amount, $reference_id, $user_id) {
+        if (!class_exists('OraBooks_Posting') || $cogs_amount <= 0) {
+            return null;
+        }
+
+        $actor = $user_id ?: orabooks_get_current_user_id();
+
+        $journal_id = OraBooks_Posting::create_journal([
+            'org_id' => intval($org_id),
+            'transaction_date' => current_time('Y-m-d'),
+            'source_type' => 'inventory_sale',
+            'source_id' => $reference_id ? intval($reference_id) : null,
+            'idempotency_key' => 'inventory_sale_' . intval($reference_id) . '_' . intval($product->id),
+            'metadata' => [
+                'product_id' => intval($product->id),
+                'sku' => $product->sku,
+                'quantity' => floatval($quantity),
+            ],
+        ], (int) $actor);
+
+        if (is_wp_error($journal_id)) {
+            return $journal_id;
+        }
+
+        OraBooks_Posting::add_lines($journal_id, [
+            [
+                'account_code' => self::COGS_ACCOUNT,
+                'debit' => $cogs_amount,
+                'credit' => 0,
+                'description' => 'COGS for SKU ' . $product->sku,
+            ],
+            [
+                'account_code' => self::INVENTORY_ASSET_ACCOUNT,
+                'debit' => 0,
+                'credit' => $cogs_amount,
+                'description' => 'Inventory reduction for SKU ' . $product->sku,
+            ],
+        ]);
+
+        OraBooks_Posting::submit_journal($journal_id, (int) $actor);
+        OraBooks_Posting::approve_journal($journal_id, (int) $actor);
+        OraBooks_Posting::post_journal($journal_id, (int) $actor);
+
+        return $journal_id;
+    }
+
+    public static function format_product($row) {
+        if (!$row) {
+            return null;
+        }
+        return [
+            'id' => (int) $row->id,
+            'org_id' => (int) $row->org_id,
+            'sku' => $row->sku,
+            'name' => $row->name,
+            'unit' => $row->unit ?? 'piece',
+            'current_stock' => (float) ($row->current_stock ?? 0),
+            'average_cost' => (float) ($row->average_cost ?? 0),
+            'low_stock_threshold' => $row->low_stock_threshold !== null ? (float) $row->low_stock_threshold : null,
+            'is_active' => (int) ($row->is_active ?? 1),
+            'item_type' => $row->item_type ?? 'Single',
+        ];
+    }
+
+    public function ajax_product_get() {
+        $user_id = $this->current_user_id();
+        $org_id = intval($_GET['org_id'] ?? 0);
+        $product_id = intval($_GET['product_id'] ?? 0);
+        $this->require_inventory_access($user_id, $org_id);
+        $product = self::get_product($product_id, $org_id);
+        if (!$product) {
+            orabooks_json_error('Product not found', 404);
+        }
+        orabooks_json_success([
+            'product' => self::format_product($product),
+            'movements' => self::get_movements($org_id, $product_id, ['limit' => 50]),
+        ]);
+    }
+
+    private static function create_cogs_journal_removed_placeholder($org_id, $product, $quantity, $cogs_amount, $reference_id, $user_id) {
         if (!class_exists('OraBooks_Posting') || $cogs_amount <= 0) {
             return null;
         }
@@ -1110,4 +1244,10 @@ class OraBooks_Inventory {
     public function ajax_lookup_code() {
         $user_id = $this->current_user_id();
         $org_id = intval($_GET['org_id'] ?? 0);
-        $this->require_inventory_permission($user_id, $org
+        $this->require_inventory_permission($user_id, $org_id, ['view_reports']);
+        $lookup_type = sanitize_key($_GET['lookup_type'] ?? '');
+        orabooks_json_success([
+            'code' => self::generate_lookup_code($org_id, $lookup_type),
+        ]);
+    }
+}
