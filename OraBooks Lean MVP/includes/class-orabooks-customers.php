@@ -215,7 +215,7 @@ class OraBooks_Customers {
  global $wpdb;
 
  if (
- self::schema_is_ready
+ self::schema_is_ready()
  && self::get_schema_flag('orabooks_sl021_schema_v2') === '1'
  && self::get_schema_flag('orabooks_sl021_customer_contacts_v1') === '1'
  && self::get_schema_flag('orabooks_sl021_customer_credit_v1') === '1'
@@ -226,18 +226,18 @@ class OraBooks_Customers {
 
  $upgrade = ABSPATH. 'wp-admin/includes/upgrade.php';
  if (!file_exists($upgrade)) {
- self::ensure_customer_contact_schema;
- self::ensure_customer_credit_schema;
- self::ensure_customer_profile_schema;
+ self::ensure_customer_contact_schema();
+ self::ensure_customer_credit_schema();
+ self::ensure_customer_profile_schema();
  return;
  }
 
  require_once $upgrade;
 
- self::ensure_payments_table;
- self::ensure_customer_contact_schema;
- self::ensure_customer_credit_schema;
- self::ensure_customer_profile_schema;
+ self::ensure_payments_table();
+ self::ensure_customer_contact_schema();
+ self::ensure_customer_credit_schema();
+ self::ensure_customer_profile_schema();
  if (class_exists('OraBooks_AR')) {
  OraBooks_AR::ensure_schema;
  }
@@ -311,11 +311,11 @@ class OraBooks_Customers {
  $wpdb->query("ALTER TABLE {$table_invoices} ADD INDEX idx_transaction_date (transaction_date)");
  }
 
- if (self::schema_is_ready) {
+ if (self::schema_is_ready()) {
  self::set_schema_flag('orabooks_sl021_schema_v2', '1');
  }
 
- self::ensure_invoice_line_items_schema;
+ self::ensure_invoice_line_items_schema();
  }
 
  /**
@@ -339,7 +339,7 @@ class OraBooks_Customers {
  }
 
  require_once $upgrade;
- foreach (self::get_create_table_sql as $sql) {
+ foreach (self::get_create_table_sql() as $sql) {
  if (strpos($sql, 'invoice_line_items') !== false) {
  dbDelta($sql);
  break;
@@ -362,7 +362,7 @@ class OraBooks_Customers {
  $ran = true;
 
  if (
- self::schema_is_ready
+ self::schema_is_ready()
  && self::get_schema_flag('orabooks_sl021_schema_v2') === '1'
  && self::get_schema_flag('orabooks_sl021_customer_contacts_v1') === '1'
  && self::get_schema_flag('orabooks_sl021_customer_credit_v1') === '1'
@@ -380,7 +380,7 @@ class OraBooks_Customers {
  return;
  }
 
- self::ensure_schema;
+ self::ensure_schema();
  }
 
  /**
@@ -537,7 +537,7 @@ class OraBooks_Customers {
  require_once $upgrade;
 
  $payments_sql = array_values(array_filter(
- self::get_create_table_sql,
+ self::get_create_table_sql(),
  function ($sql) {
  return stripos($sql, 'orabooks_payments') !== false;
  }
