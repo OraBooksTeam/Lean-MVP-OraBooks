@@ -100,7 +100,7 @@ class OraBooks_Exports {
  INDEX idx_org_user_status (org_id, user_id, status),
  INDEX idx_expires (expires_at),
  INDEX idx_status_created (status, created_at)
- ) {$wpdb->get_charset_collate()()};";
+ ) {$wpdb->get_charset_collate()};";
 
  $sql[] = "CREATE TABLE IF NOT EXISTS {$table_files} (
  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -110,7 +110,7 @@ class OraBooks_Exports {
  is_encrypted TINYINT(1) DEFAULT 1,
  retention_days INT DEFAULT 7,
  FOREIGN KEY (export_request_id) REFERENCES {$table_requests}(id) ON DELETE CASCADE
- ) {$wpdb->get_charset_collate()()};";
+ ) {$wpdb->get_charset_collate()};";
 
  return $sql;
  }
@@ -391,7 +391,7 @@ class OraBooks_Exports {
  $storage_key = $relative_path;
 
  // Calculate expiry (7 days from now)
- $expires_at = date('Y-m-d H:i:s', time + (self::DEFAULT_RETENTION_DAYS * 86400));
+ $expires_at = date('Y-m-d H:i:s', time() + (self::DEFAULT_RETENTION_DAYS * 86400));
 
  // Update export request record
  $wpdb->update(
@@ -839,7 +839,7 @@ HTML;
  }
 
  // Check expiry
- if ($export->expires_at && strtotime($export->expires_at) < time) {
+ if ($export->expires_at && strtotime($export->expires_at) < time()) {
  return new \WP_Error('expired', 'Export has expired');
  }
 
@@ -1038,7 +1038,7 @@ HTML;
 
  // Exports in last 24h
  $stats['last_24h'] = (int)$wpdb->get_var(
- "SELECT COUNT(*) FROM {$table} WHERE created_at >= DATE_SUB(NOW, INTERVAL 24 HOUR)"
+ "SELECT COUNT(*) FROM {$table} WHERE created_at >= DATE_SUB(NOW(), INTERVAL 24 HOUR)"
  );
 
  // By format
@@ -1129,7 +1129,7 @@ HTML;
  'error_message' => $export->error_message,
  'generated_at' => $export->generated_at,
  'created_at' => $export->created_at,
- 'can_download' => $export->status === 'ready' && (!$export->expires_at || strtotime($export->expires_at) > time),
+ 'can_download' => $export->status === 'ready' && (!$export->expires_at || strtotime($export->expires_at) > time()),
  'can_cancel' => $export->status === 'pending',
  'time_remaining' => $export->expires_at ? self::time_remaining($export->expires_at): '',
  ];

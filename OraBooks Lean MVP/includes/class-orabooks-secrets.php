@@ -157,7 +157,7 @@ class OraBooks_Secrets {
  * Redirect HTTP to HTTPS in production ( §5.3).
  */
  public static function maybe_enforce_https() {
- if (is_ssl || !self::requires_tls()) {
+ if (is_ssl() || !self::requires_tls()) {
  return;
  }
 
@@ -528,7 +528,7 @@ class OraBooks_Secrets {
  if ($key === 'jwt_secret') {
  $grace_seconds = $grace_seconds ?? self::JWT_ROTATION_GRACE_SECONDS;
  self::with_shared_options(function() use ($grace_seconds) {
- update_option('orabooks_jwt_secret_grace_until', time + max(300, (int) $grace_seconds));
+ update_option('orabooks_jwt_secret_grace_until', time() + max(300, (int) $grace_seconds));
  update_option('orabooks_secrets_last_rotated', current_time('mysql', true));
  });
  }
@@ -667,12 +667,12 @@ class OraBooks_Secrets {
  * @return string[]
  */
  private static function get_jwt_verification_secrets() {
- $secrets = [self::get_jwt_secret];
+ $secrets = [self::get_jwt_secret()];
  $grace_until = (int) self::with_shared_options(function() {
  return (int) get_option('orabooks_jwt_secret_grace_until', 0);
  });
 
- if ($grace_until > time) {
+ if ($grace_until > time()) {
  $previous = self::get('jwt_secret_previous');
  if ($previous) {
  $secrets[] = $previous;
@@ -686,7 +686,7 @@ class OraBooks_Secrets {
  * Check remote TLS certificate expiry for the site host ( §5.5).
  */
  public static function check_tls_certificate($host = null, $port = 443) {
- $host = strtolower(trim((string) ($host ?: parse_url(home_url, PHP_URL_HOST))));
+ $host = strtolower(trim((string) ($host ?: parse_url(home_url(), PHP_URL_HOST))));
  if ($host === '' || in_array($host, ['localhost', '127.0.0.1', '::1'], true)) {
  return [
  'ok' => true,
@@ -752,7 +752,7 @@ class OraBooks_Secrets {
 
  $parsed = openssl_x509_parse($cert);
  $expires_at = isset($parsed['validTo_time_t']) ? (int) $parsed['validTo_time_t']: 0;
- $days_remaining = $expires_at > 0 ? (int) floor(($expires_at - time) / DAY_IN_SECONDS): null;
+ $days_remaining = $expires_at > 0 ? (int) floor(($expires_at - time()) / DAY_IN_SECONDS): null;
  $expired = $days_remaining !== null && $days_remaining < 0;
  $expiring_soon = $days_remaining !== null && $days_remaining >= 0 && $days_remaining <= self::TLS_EXPIRY_WARN_DAYS;
 
@@ -798,7 +798,7 @@ class OraBooks_Secrets {
  'last_rotated' => get_option('orabooks_secrets_last_rotated', ''),
  'tls' => $tls,
  'database_tls' => $db_tls,
- 'https_active' => function_exists('is_ssl') ? is_ssl: false,
+ 'https_active' => function_exists('is_ssl') ? is_ssl(): false,
  ];
  }
 
@@ -830,8 +830,8 @@ class OraBooks_Secrets {
  $jwt_expiry = self::with_shared_options(function() {
  return (int) get_option('orabooks_jwt_expiry', self::get_default_jwt_expiry());
  });
- if (empty($payload['exp']) || (int) $payload['exp'] <= time) {
- $payload['exp'] = time + max(300, $jwt_expiry);
+ if (empty($payload['exp']) || (int) $payload['exp'] <= time()) {
+ $payload['exp'] = time() + max(300, $jwt_expiry);
  }
  $payload_encoded = self::base64url_encode(json_encode($payload));
  $signature = self::base64url_encode(
@@ -869,7 +869,7 @@ class OraBooks_Secrets {
  }
 
  $data = json_decode(self::base64url_decode($payload), true);
- if (!$data || !isset($data['exp']) || $data['exp'] < time) {
+ if (!$data || !isset($data['exp']) || $data['exp'] < time()) {
  return false;
  }
 
@@ -1123,7 +1123,7 @@ class OraBooks_Secrets {
  return false;
  }
 
- if (empty($payload['exp']) || (int) $payload['exp'] < time) {
+ if (empty($payload['exp']) || (int) $payload['exp'] < time()) {
  return false;
  }
 
