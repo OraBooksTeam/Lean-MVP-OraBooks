@@ -1,7 +1,7 @@
 module.exports = {
   testEnvironment: 'jsdom',
-  setupFiles: ['./jest.setup.js'],
-  testMatch: ['**/*.test.js'],
+  setupFiles: ['<rootDir>/jest.setup.js'],
+  testMatch: ['<rootDir>/*.test.js'],
   moduleDirectories: ['node_modules'],
   verbose: true
 };

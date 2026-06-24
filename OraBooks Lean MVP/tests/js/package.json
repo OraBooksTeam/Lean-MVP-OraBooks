@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node node_modules/jest/bin/jest.js --config jest.config.js"
   },
   "keywords": [],
   "author": "",
@@ -14,5 +14,8 @@
     "jest": "^30.4.2",
     "jest-environment-jsdom": "^30.4.1",
     "jquery": "^4.0.0"
+  },
+  "overrides": {
+    "js-yaml": "5.1.0"
   }
 }

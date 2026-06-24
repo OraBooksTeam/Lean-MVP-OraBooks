@@ -146,6 +146,22 @@ if (origLocation) {
   }
 }
 
+// JSDOM logs a "navigation not implemented" error when production code sets
+// window.location.href. That assignment is exactly what redirect handlers do,
+// so filter only this environment limitation and keep all other errors visible.
+const originalConsoleError = global.console.error.bind(global.console);
+global.console.error = function (...args) {
+  const isJSDOMNavigationWarning = args.some((arg) => {
+    const message = arg && (arg.message || String(arg));
+    return typeof message === 'string' &&
+      message.indexOf('Not implemented: navigation') !== -1;
+  });
+
+  if (!isJSDOMNavigationWarning) {
+    originalConsoleError(...args);
+  }
+};
+
 // --- Stub HTMLFormElement.prototype.submit ---
 // JSDOM does not implement form submission. Stub to prevent
 // "Error: Not implemented: HTMLFormElement.prototype.submit"
