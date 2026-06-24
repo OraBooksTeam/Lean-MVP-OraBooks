@@ -227,7 +227,7 @@ class OraBooks_Secrets {
 
  if (function_exists('orabooks_json_error')) {
  orabooks_json_error(
- self::$bootstrap_error ? self::$bootstrap_error->get_error_message: 'OraBooks secrets bootstrap failed.',
+ self::$bootstrap_error ? self::$bootstrap_error->get_error_message(): 'OraBooks secrets bootstrap failed.',
  503
  );
  }
@@ -235,7 +235,7 @@ class OraBooks_Secrets {
  wp_send_json([
  'success' => false,
  'error' => true,
- 'message' => self::$bootstrap_error ? self::$bootstrap_error->get_error_message: 'OraBooks secrets bootstrap failed.',
+ 'message' => self::$bootstrap_error ? self::$bootstrap_error->get_error_message(): 'OraBooks secrets bootstrap failed.',
  ], 503);
  }
 
@@ -826,7 +826,7 @@ class OraBooks_Secrets {
  public static function generate_jwt($payload) {
  $secret = self::get_jwt_secret();
  $header = self::base64url_encode(json_encode(['alg' => 'HS256', 'typ' => 'JWT']));
- $payload['iat'] = time;
+ $payload['iat'] = time();
  $jwt_expiry = self::with_shared_options(function() {
  return (int) get_option('orabooks_jwt_expiry', self::get_default_jwt_expiry());
  });
