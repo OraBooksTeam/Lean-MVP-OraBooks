@@ -1825,17 +1825,15 @@ function orabooks_has_logout_query_flag() {
  * Whether the current request is landing on login after an explicit logout.
  * Query flags only — the orabooks_logout cookie must not block new logins.
  */
-function orabooks_is_explicit_logout_request() {
- return orabooks_has_logout_query_flag;
+function orabooks_is_explicit_logout_request() {	return orabooks_has_logout_query_flag();
 }
 
 /**
  * Whether stale auth should be cleared (query flag or one-shot logout cookie).
  */
-function orabooks_needs_logout_cleanup() {
- if (orabooks_has_logout_query_flag) {
- return true;
- }
+function orabooks_needs_logout_cleanup() {	if (orabooks_has_logout_query_flag()) {
+		return true;
+	}
 
  return !empty($_COOKIE['orabooks_logout']);
 }
@@ -2014,16 +2012,14 @@ function orabooks_establish_wp_session_for_orabooks_user($orabooks_user_id, $pas
 
  if (!empty($user->wp_user_id)) {
  $wp_user = get_user_by('id', (int) $user->wp_user_id);
- if ($wp_user) {
- if (function_exists('is_multisite') && is_multisite && function_exists('add_user_to_blog')) {
- $blog_id = get_current_blog_id;
+ if ($wp_user) {	if (function_exists('is_multisite') && is_multisite() && function_exists('add_user_to_blog')) {
+			$blog_id = get_current_blog_id();
  if ($blog_id > 0 && !is_user_member_of_blog($wp_user->ID, $blog_id)) {
  add_user_to_blog($blog_id, $wp_user->ID, 'subscriber');
  }
  }
 
- wp_set_current_user($wp_user->ID);
- wp_set_auth_cookie($wp_user->ID, true, is_ssl);
+ wp_set_current_user($wp_user->ID);		wp_set_auth_cookie($wp_user->ID, true, is_ssl());
  do_action('wp_login', $wp_user->user_login, $wp_user);
 
  return (int) $wp_user->ID;
@@ -2043,8 +2039,7 @@ function orabooks_establish_wp_session_for_orabooks_user($orabooks_user_id, $pas
  $signed_on = wp_signon([
  'user_login' => $login_name,
  'user_password' => $password,
- 'remember' => true,
- ], is_ssl);
+ 'remember' => true,	], is_ssl());
 
  if (!is_wp_error($signed_on)) {
  if (empty($user->wp_user_id)) {
@@ -2070,11 +2065,9 @@ function orabooks_establish_wp_session_for_orabooks_user($orabooks_user_id, $pas
 function orabooks_persist_login_session($login_result, $password = '') {
  if (!is_array($login_result)) {
  return;
- }
+ }	orabooks_clear_logout_landing_cookie();
 
- orabooks_clear_logout_landing_cookie;
-
- if (!empty($login_result['token'])) {
+	if (!empty($login_result['token'])) {
  orabooks_set_auth_token_cookie($login_result['token']);
  }
 
@@ -2092,16 +2085,15 @@ function orabooks_persist_login_session($login_result, $password = '') {
 /**
  * Sync WordPress auth when a valid OraBooks JWT cookie is present.
  */
-function orabooks_sync_wp_session_from_auth_token() {
- if (orabooks_is_explicit_logout_request) {
- return;
- }
+function orabooks_sync_wp_session_from_auth_token() {	if (orabooks_is_explicit_logout_request()) {
+		return;
+	}
 
- if (is_user_logged_in) {
- return;
- }
+	if (is_user_logged_in()) {
+		return;
+	}
 
- $orabooks_user_id = orabooks_get_current_user_id;
+	$orabooks_user_id = orabooks_get_current_user_id();
  if ($orabooks_user_id > 0) {
  orabooks_establish_wp_session_for_orabooks_user($orabooks_user_id);
  }
@@ -2561,8 +2553,7 @@ function orabooks_get_correlation_id($generate = true) {
  }
  if (!$generate) {
  return '';
- }
- $GLOBALS['orabooks_correlation_id'] = orabooks_uuid;
+ }	$GLOBALS['orabooks_correlation_id'] = orabooks_uuid();
  return $GLOBALS['orabooks_correlation_id'];
 }
 
@@ -2661,11 +2652,10 @@ function orabooks_resolve_primary_org_id($user_id, $stored_org_id = 0) {
  * Prefers the org mapped to the request subdomain, then falls back to the
  * user's primary org membership.
  */
-function orabooks_get_current_org_id($user_id = 0) {
- $user_id = $user_id ?: orabooks_get_current_user_id;
+function orabooks_get_current_org_id($user_id = 0) {	$user_id = $user_id ?: orabooks_get_current_user_id();
 
- if (class_exists('OraBooks_Auth') && class_exists('OraBooks_Organization')) {
- $subdomain = OraBooks_Auth::detect_subdomain_from_host;
+	if (class_exists('OraBooks_Auth') && class_exists('OraBooks_Organization')) {
+		$subdomain = OraBooks_Auth::detect_subdomain_from_host();
  if ($subdomain !== '') {
  $org = OraBooks_Organization::get_by_subdomain($subdomain);
  if ($org && !orabooks_org_allows_subdomain_access($org)) {
@@ -2760,8 +2750,7 @@ function orabooks_get_addons() {
  * Legacy compatibility helper used by addon plugins.
  */
 function orabooks_is_feature_enabled($feature_id) {
- $feature_id = sanitize_key($feature_id);
- $addons = orabooks_get_addons;
+ $feature_id = sanitize_key($feature_id);	$addons = orabooks_get_addons();
 
  foreach ($addons as $addon) {
  if (empty($addon['features']) || !is_array($addon['features'])) {
@@ -2770,10 +2759,8 @@ function orabooks_is_feature_enabled($feature_id) {
 
  if (!isset($addon['features'][$feature_id])) {
  continue;
- }
-
- $user_id = orabooks_get_current_user_id;
- if (!$user_id) {
+ }	$user_id = orabooks_get_current_user_id();
+	if (!$user_id) {
  return false;
  }
 
