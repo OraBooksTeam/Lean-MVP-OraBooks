@@ -17,7 +17,7 @@ export default function VerifyEmailPage() {
 
   useEffect(() => {
     if (!token) {
-      setError('Invalid verification link.');
+      setSuccess('A verification link has been sent to your email address.');
       setLoading(false);
       return;
     }
