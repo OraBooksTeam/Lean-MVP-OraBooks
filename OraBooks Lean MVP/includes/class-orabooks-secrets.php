@@ -705,10 +705,24 @@ class OraBooks_Secrets {
         $context = stream_context_create([
             'ssl' => [
                 'capture_peer_cert' => true,
-                'verify_peer' => false,
-                'verify_peer_name' => false,
+                'capture_peer_chain' => true,
+                'verify_peer' => true,
+                'verify_peer_name' => true,
             ],
         ]);
+
+        // Default CA bundle: use system path, or fall back to WordPress bundled CA.
+        if (defined('WPINC')) {
+            $ca_path = defined('ABSPATH')
+                ? ABSPATH . WPINC . '/certificates/ca-bundle.crt'
+                : '';
+            if ($ca_path && file_exists($ca_path)) {
+                $context_options['ssl']['cafile'] = $ca_path;
+            }
+        }
+
+        stream_context_set_option($context, 'ssl', 'capture_peer_cert', true);
+        stream_context_set_option($context, 'ssl', 'capture_peer_chain', true);
 
         $client = @stream_socket_client(
             'ssl://' . $host . ':' . (int) $port,
