@@ -13,15 +13,13 @@ if (!defined('ABSPATH')) {
 function orabooks_is_divi_theme() {
  if (defined('ET_BUILDER_VERSION')) {
  return true;
- }
+ }	$theme = wp_get_theme();
+	if (!$theme) {
+		return false;
+	}
 
- $theme = wp_get_theme;
- if (!$theme) {
- return false;
- }
-
- $template = $theme->get_template;
- $stylesheet = $theme->get_stylesheet;
+	$template = $theme->get_template();
+	$stylesheet = $theme->get_stylesheet();
 
  return in_array('Divi', [$template, $stylesheet], true);
 }
@@ -122,19 +120,17 @@ function orabooks_get_allowed_regions() {
 /**
  * System-assigned region for non-enterprise customer tiers.
  */
-function orabooks_get_default_region_for_tier($tier) {
- $regions = orabooks_get_allowed_regions;
- return $regions[0];
+function orabooks_get_default_region_for_tier($tier) {	$regions = orabooks_get_allowed_regions();
+	return $regions[0];
 }
 
 /**
  * Validate a residency region for org creation.
  */
 function orabooks_validate_org_region($region, $tier) {
- $region = strtolower(trim((string) $region));
- $allowed = orabooks_get_allowed_regions;
+ $region = strtolower(trim((string) $region));	$allowed = orabooks_get_allowed_regions();
 
- if ($tier === 'enterprise') {
+	if ($tier === 'enterprise') {
  if ($region === '') {
  return __('Please select a data residency region.', 'orabooks');
  }
@@ -171,8 +167,7 @@ function orabooks_org_allows_subdomain_access($org) {
  *
  * @return string[]
  */
-function orabooks_get_required_page_slugs() {
- return array_keys(orabooks_get_lean_mvp_page_definitions);
+function orabooks_get_required_page_slugs() {	return array_keys(orabooks_get_lean_mvp_page_definitions());
 }
 
 /**
@@ -186,20 +181,17 @@ function orabooks_is_registered_frontend_page($post = null) {
  if ($post === null) {
  if (!is_singular('page')) {
  return false;
- }
- $post = get_queried_object;
- }
+ }	$post = get_queried_object();
+	}
 
- if (!$post instanceof WP_Post || $post->post_type !== 'page') {
+	if (!$post instanceof WP_Post || $post->post_type !== 'page') {
  return false;
  }
 
  $content = (string) $post->post_content;
  if ($content !== '' && strpos($content, '[orabooks_') !== false) {
  return true;
- }
-
- if (in_array($post->post_name, orabooks_get_required_page_slugs, true)) {
+ }	if (in_array($post->post_name, orabooks_get_required_page_slugs(), true)) {
  return true;
  }
 
@@ -239,9 +231,8 @@ function orabooks_uses_merged_accounting_workspace($user_id = 0) {
 /**
  * @deprecated
  */
-function orabooks_render_merged_accounting_workspace($view = '') {
- if (!orabooks_is_user_logged_in) {
- return OraBooks_Views::require_login_message;
+function orabooks_render_merged_accounting_workspace($view = '') {	if (!orabooks_is_user_logged_in()) {
+			return OraBooks_Views::require_login_message();
  }
 
  return orabooks_render_react_app_page('/dashboard');
@@ -397,13 +388,10 @@ function orabooks_get_tenant_base_domain($host = '') {
 /**
  * Build a full organization URL from a stored subdomain identifier.
  */
-function orabooks_build_org_url($subdomain, $path = '/') {
- $base_domain = orabooks_get_tenant_base_domain;
- if ($base_domain === '') {
+function orabooks_build_org_url($subdomain, $path = '/') {	$base_domain = orabooks_get_tenant_base_domain();
+	if ($base_domain === '') {
  return home_url(ltrim($path, '/'));
- }
-
- $scheme = is_ssl ? 'https': 'http';
+ }	$scheme = is_ssl() ? 'https': 'http';
  $path = '/'. ltrim($path, '/');
 
  return $scheme. '://'. $subdomain. '.'. $base_domain. $path;
@@ -609,9 +597,8 @@ function orabooks_multisite_subdomain_taken($subdomain) {
  if (!function_exists('is_multisite') || !is_multisite || !function_exists('get_blog_details')) {
  return false;
  }
-
- $base_domain = orabooks_get_tenant_base_domain;
- if ($base_domain === '') {
+	$base_domain = orabooks_get_tenant_base_domain();
+	if ($base_domain === '') {
  return false;
  }
 
