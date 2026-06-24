@@ -91,7 +91,7 @@ export default function ProfilePage() {
                     </p>
                   )}
                   <WpLink
-                    href="/security/2fa"
+                    to="/security/2fa"
                     className="mt-4 inline-flex items-center rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary-dark"
                   >
                     {twoFaEnabled ? 'Manage 2FA settings' : 'Set up two-factor authentication'}
