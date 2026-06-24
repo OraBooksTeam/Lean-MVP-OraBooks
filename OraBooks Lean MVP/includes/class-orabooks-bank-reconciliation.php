@@ -174,15 +174,13 @@ class OraBooks_Bank_Reconciliation {
  self::set_schema_flag('orabooks_sl031_bank_schema_v1', '1');
  }
 
- private static function get_schema_flag($key) {
- if (function_exists('is_multisite') && is_multisite &&&& is_multisite && is_multisite() && function_exists('get_site_option')) {
+ private static function get_schema_flag($key) {	if (function_exists('is_multisite') && is_multisite() && function_exists('get_site_option')) {
  return get_site_option($key);
  }
  return get_option($key);
  }
 
- private static function set_schema_flag($key, $value) {
- if (function_exists('is_multisite') && is_multisite &&&& is_multisite && is_multisite() && function_exists('update_site_option')) {
+ private static function set_schema_flag($key, $value) {	if (function_exists('is_multisite') && is_multisite() && function_exists('update_site_option')) {
  update_site_option($key, $value);
  return;
  }
