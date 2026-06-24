@@ -1903,10 +1903,8 @@ function orabooks_get_logout_redirect_url() {
  */
 function orabooks_clear_wp_auth_cookies() {
  if (function_exists('wp_clear_auth_cookie')) {		wp_clear_auth_cookie();
- }
-
- if (headers_sent) {
- return;
+ }		if (headers_sent()) {
+			return;
  }
 
  $cookie_hash = defined('COOKIEHASH') ? COOKIEHASH: '';
@@ -2348,14 +2346,11 @@ function orabooks_assert_tenant_access($user_id, $org_id, $require_active = fals
  ], $user_id, $org_id);
  }
  return new WP_Error('tenant_isolation', __('You do not have access to this organization.', 'orabooks'));
- }
-
- $payload = orabooks_get_verified_jwt_payload;
- if ($payload && !empty($payload['org_id']) && (int) $payload['org_id'] !== $org_id) {
+ }	$payload = orabooks_get_verified_jwt_payload();
+	if ($payload && !empty($payload['org_id']) && (int) $payload['org_id'] !== $org_id) {
  $allow_localhost_org_switch = false;
- if (class_exists('OraBooks_Auth')) {
- $subdomain = OraBooks_Auth::detect_subdomain_from_host;
- $allow_localhost_org_switch = ($subdomain === '' && orabooks_user_belongs_to_org($user_id, $org_id));
+ if (class_exists('OraBooks_Auth')) {			$subdomain = OraBooks_Auth::detect_subdomain_from_host();
+			$allow_localhost_org_switch = ($subdomain === '' && orabooks_user_belongs_to_org($user_id, $org_id));
  }
 
  if (!$allow_localhost_org_switch) {
@@ -2369,9 +2364,8 @@ function orabooks_assert_tenant_access($user_id, $org_id, $require_active = fals
  }
  }
 
- if (class_exists('OraBooks_Auth') && class_exists('OraBooks_Organization')) {
- $subdomain = OraBooks_Auth::detect_subdomain_from_host;
- if ($subdomain !== '') {
+ if (class_exists('OraBooks_Auth') && class_exists('OraBooks_Organization')) {		$subdomain = OraBooks_Auth::detect_subdomain_from_host();
+			if ($subdomain !== '') {
  $host_org = OraBooks_Organization::get_by_subdomain($subdomain);
  if ($host_org && (int) $host_org->id !== $org_id) {
  if (function_exists('orabooks_log_event')) {
@@ -2605,11 +2599,9 @@ function orabooks_resolve_primary_org_id($user_id, $stored_org_id = 0) {
 
  if ($user_id <= 0) {
  return 0;
- }
-
- $payload = orabooks_get_verified_jwt_payload;
- if ($payload && !empty($payload['org_id'])) {
- $jwt_org_id = (int) $payload['org_id'];
+ }	$payload = orabooks_get_verified_jwt_payload();
+	if ($payload && !empty($payload['org_id'])) {
+		$jwt_org_id = (int) $payload['org_id'];
  if (orabooks_user_belongs_to_org($user_id, $jwt_org_id)) {
  return $jwt_org_id;
  }
