@@ -1,7 +1,7 @@
 <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word">
 <head>
 <meta charset="utf-8">
-<title> AI Entry Approval Gate - Complete Report</title>
+<title>SL-002 AI Entry Approval Gate - Complete Report</title>
 <style>
 body { font-family: Calibri, Arial, sans-serif; margin: 40px; color: #1a1a1a; }
 h1 { color: #1e3a5f; border-bottom: 2px solid #f59e0b; padding-bottom: 8px; }
@@ -12,11 +12,11 @@ li { margin: 6px 0; }
 </style>
 </head>
 <body>
-<h1> AI Entry Approval Gate</h1>
+<h1>SL-002 AI Entry Approval Gate</h1>
 <p class="meta"><strong>OraBooks Lean MVP</strong> - Complete Implementation Report<br>Generated: June 2026</p>
 
 <h2>1. Executive Summary</h2>
-<p> implements the human journal approval workflow. AI never approves entries; it only provides confidence scores via /. This report documents completion of all Phase 0-4 gaps.</p>
+<p>SL-002 implements the human journal approval workflow. AI never approves entries; it only provides confidence scores via SL-022/SL-076. This report documents completion of all Phase 0-4 gaps.</p>
 
 <h2>2. Core Guarantees Delivered</h2>
 <ul>
@@ -25,7 +25,7 @@ li { margin: 6px 0; }
 <li>No rejected status - reject returns journal to draft with immutable history record.</li>
 <li>revision_number tracks content edits; approval_round tracks submit/resubmit cycles.</li>
 <li>Snapshot hash on submit (history) and approve (approved_snapshot_hash).</li>
-<li>Posting requires status=approved and approval_stale=false.</li>
+<li>Posting (SL-001) requires status=approved and approval_stale=false.</li>
 <li>MFA for high-value approvals; maker-checker policy enforced.</li>
 <li>Escalation and expiry crons with idempotency guards.</li>
 </ul>
@@ -37,8 +37,8 @@ li { margin: 6px 0; }
 <li>Expiry reminder cron uses transient to prevent duplicate reminders.</li>
 <li>Delegation create publishes approval_delegated outbox event.</li>
 <li>Expiry publishes approval_expired and journal_approval_expired.</li>
-<li>Invoice post submits journal into review_pending queue.</li>
-<li>Deploy checks include tables and approval crons.</li>
+<li>Invoice post submits journal into SL-002 review_pending queue.</li>
+<li>Deploy checks include SL-002 tables and approval crons.</li>
 </ul>
 
 <h2>4. UI Deliverables</h2>
@@ -66,6 +66,6 @@ li { margin: 6px 0; }
 <p><code>php tests/vendor/bin/phpunit --configuration tests/phpunit.xml tests/OraBooks_Approval_Test.php</code></p>
 
 <h2>8. Status</h2>
-<p class="status"><strong> Lean MVP: COMPLETE</strong> - all checklist gaps addressed.</p>
+<p class="status"><strong>SL-002 Lean MVP: COMPLETE</strong> - all checklist gaps addressed.</p>
 </body>
 </html>

@@ -147,8 +147,8 @@ export default function NotificationPreferencesForm({ compact = false }: { compa
               onChange={(e) => setPrefs((prev) => ({ ...prev, language: e.target.value }))}
             >
               <option value="en">English</option>
-              <option value="bn">Bengali</option>
-              <option value="ar">Arabic</option>
+              <option value="bn">বাংলা</option>
+              <option value="ar">العربية</option>
             </select>
           </label>
         </div>

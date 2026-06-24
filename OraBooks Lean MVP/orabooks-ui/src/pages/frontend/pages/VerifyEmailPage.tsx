@@ -6,29 +6,19 @@ import { api } from '../api';
 import { getNetworkAuthUrl, getAcceptInviteUrl } from '../lib/auth-routing';
 
 export default function VerifyEmailPage() {
-  const params = useMemo(() => new URLSearchParams(window.location.search), []);
-  const token = useMemo(() => params.get('token') || '', [params]);
-  const justRegistered = useMemo(() => params.get('registered') === '1', [params]);
+  const token = useMemo(() => new URLSearchParams(window.location.search).get('token') || '', []);
   const [loading, setLoading] = useState(!!token);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [email, setEmail] = useState(() => {
-    try {
-      return window.sessionStorage.getItem('orabooks_pending_verification_email') || '';
-    } catch {
-      return '';
-    }
-  });
+  const [email, setEmail] = useState('');
   const [resendMsg, setResendMsg] = useState('');
   const [resendError, setResendError] = useState('');
   const [resendLoading, setResendLoading] = useState(false);
 
   useEffect(() => {
     if (!token) {
+      setError('Invalid verification link.');
       setLoading(false);
-      if (justRegistered) {
-        setSuccess('Verification link sent to your email. Check your inbox and spam folder, then click the link to activate your account.');
-      }
       return;
     }
     const pendingInvite = window.sessionStorage.getItem('orabooks_pending_invite_token') || '';
@@ -40,15 +30,10 @@ export default function VerifyEmailPage() {
             ? 'Email verified. Log in to finish joining your team.'
             : 'Email verified successfully. You can now log in.'
         );
-        try {
-          window.sessionStorage.removeItem('orabooks_pending_verification_email');
-        } catch {
-          // ignore
-        }
       }
       setLoading(false);
     });
-  }, [token, justRegistered]);
+  }, [token]);
 
   const pendingInviteToken = window.sessionStorage.getItem('orabooks_pending_invite_token') || '';
   const loginUrl = pendingInviteToken
@@ -75,17 +60,13 @@ export default function VerifyEmailPage() {
         <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-primary">
           <MailCheck className="h-6 w-6 text-white" />
         </div>
-        <h2 className="text-2xl font-bold text-ink">{justRegistered && !token ? 'Check Your Email' : 'Verify Email'}</h2>
+        <h2 className="text-2xl font-bold text-ink">Verify Email</h2>
         {loading ? (
           <p className="mt-4 text-sm text-slate-600">Verifying your email address…</p>
         ) : error ? (
           <p className="mt-4 text-sm text-danger">{error}</p>
-        ) : success ? (
-          <p className="mt-4 text-sm text-emerald-700">{success}</p>
         ) : (
-          <p className="mt-4 text-sm text-slate-600">
-            Open the verification link from your email, or request a new one below.
-          </p>
+          <p className="mt-4 text-sm text-emerald-700">{success}</p>
         )}
 
         <form onSubmit={resend} className="mt-8 space-y-3 text-left">

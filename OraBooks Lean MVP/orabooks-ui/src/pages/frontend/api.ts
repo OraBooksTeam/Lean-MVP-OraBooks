@@ -1,5 +1,3 @@
-import { parseSubdomainFromHost } from '@/lib/residency/sl004';
-
 type AjaxConfig = {
   ajax_url?: string;
   nonce?: string;
@@ -311,14 +309,8 @@ export const api = {
   establishSession: (token: string, refreshToken = '') => establishSession(token, refreshToken),
 
   // Auth
-  login: (email: string, password: string) => {
-    const subdomain = parseSubdomainFromHost();
-    return api.post('orabooks_login', {
-      email,
-      password,
-      ...(subdomain ? { subdomain } : {}),
-    });
-  },
+  login: (email: string, password: string) =>
+    api.post('orabooks_login', { email, password }),
   register: (data: Record<string, any>) =>
     api.post('orabooks_register', data),
   oidcInitiate: (stateData: Record<string, unknown> = {}) => {
@@ -331,11 +323,7 @@ export const api = {
   oidcCallback: (code: string, state: string) =>
     api.post('orabooks_oidc_callback', { code, state }),
   twoFactorChallenge: (tempToken: string, otp: string, backup = '') =>
-    api.post(
-      'orabooks_2fa_challenge',
-      { temp_token: tempToken, otp_code: otp, backup_code: backup },
-      { clearAuthOnFailure: false }
-    ),
+    api.post('orabooks_2fa_challenge', { temp_token: tempToken, otp_code: otp, backup_code: backup }),
   logout: () => api.post('orabooks_logout'),
   forgotPassword: (email: string) =>
     api.post('orabooks_forgot_password', { email }),
@@ -404,38 +392,12 @@ export const api = {
     api.post('orabooks_bill_void', { org_id: orgId, bill_id: billId, reason }),
   vendorPaymentRecord: (orgId: number, data: Record<string, unknown>) =>
     api.post('orabooks_vendor_payment_record', { org_id: orgId, ...data }),
-  vendorPaymentReverse: (orgId: number, paymentId: number, reason = '') =>
-    api.post('orabooks_vendor_payment_reverse', { org_id: orgId, payment_id: paymentId, reason }),
-  vendorGet: (orgId: number, vendorId: number) =>
-    api.get('orabooks_vendor_get', { org_id: orgId, vendor_id: vendorId }),
-  billGet: (orgId: number, billId: number) =>
-    api.get('orabooks_bill_get', { org_id: orgId, bill_id: billId }),
-  vendorCreditNoteSubmit: (orgId: number, creditNoteId: number) =>
-    api.post('orabooks_vendor_credit_note_submit', { org_id: orgId, credit_note_id: creditNoteId }),
-  vendorCreditNoteApprove: (orgId: number, creditNoteId: number) =>
-    api.post('orabooks_vendor_credit_note_approve', { org_id: orgId, credit_note_id: creditNoteId }),
-  vendorCreditNotePost: (orgId: number, creditNoteId: number) =>
-    api.post('orabooks_vendor_credit_note_post', { org_id: orgId, credit_note_id: creditNoteId }),
-  vendorCreditNoteVoid: (orgId: number, creditNoteId: number, reason = '') =>
-    api.post('orabooks_vendor_credit_note_void', { org_id: orgId, credit_note_id: creditNoteId, reason }),
-  vendorCreditNotesList: (orgId: number, filters: { vendor_id?: number; bill_id?: number } = {}) =>
-    api.get('orabooks_vendor_credit_notes_list', { org_id: orgId, ...filters }),
-  vendorPaymentsList: (orgId: number, filters: { vendor_id?: number; bill_id?: number } = {}) =>
-    api.get('orabooks_vendor_payments_list', { org_id: orgId, ...filters }),
-  apConfigGet: (orgId: number) =>
-    api.get('orabooks_ap_config_get', { org_id: orgId }),
-  apConfigSave: (orgId: number, data: Record<string, unknown>) =>
-    api.post('orabooks_ap_config_save', { org_id: orgId, ...data }),
-  vendorStatementsList: (orgId: number, vendorId: number) =>
-    api.get('orabooks_vendor_statements_list', { org_id: orgId, vendor_id: vendorId }),
   apAging: (orgId: number, asOfDate?: string) =>
     api.get('orabooks_ap_aging', { org_id: orgId, ...(asOfDate ? { as_of_date: asOfDate } : {}) }),
   inventoryDashboard: () =>
     api.get('orabooks_inventory_dashboard'),
   inventoryProductsList: (orgId: number, filters: Record<string, unknown> = {}) =>
     api.get('orabooks_inventory_products_list', { org_id: orgId, ...filters }),
-  inventoryProductGet: (orgId: number, productId: number) =>
-    api.get('orabooks_inventory_product_get', { org_id: orgId, product_id: productId }),
   inventoryProductCreate: (orgId: number, data: Record<string, unknown>) =>
     api.post('orabooks_inventory_product_create', { org_id: orgId, ...data }),
   inventoryProductCreateUpload: (orgId: number, formData: FormData) => {
@@ -503,7 +465,7 @@ export const api = {
   bankManualMatch: (
     orgId: number,
     bankTransactionId: number,
-    transactionType: 'payment' | 'expense' | 'journal' | 'vendor_payment' | 'invoice',
+    transactionType: 'payment' | 'expense' | 'journal',
     transactionId: number
   ) =>
     api.post('orabooks_bank_match', {
@@ -533,48 +495,6 @@ export const api = {
       ending_balance: endingBalance,
       force: force ? 1 : 0,
       note,
-    }),
-  bankImportCsv: (orgId: number, bankAccountId: number, file: File) => {
-    const formData = new FormData();
-    formData.set('org_id', String(orgId));
-    formData.set('bank_account_id', String(bankAccountId));
-    formData.set('csv_file', file);
-    return uploadRequest('orabooks_bank_import_csv', formData);
-  },
-  bankConfirmMatch: (orgId: number, bankTransactionId: number, matchId: number) =>
-    api.post('orabooks_bank_confirm_match', {
-      org_id: orgId,
-      bank_transaction_id: bankTransactionId,
-      match_id: matchId,
-    }),
-  bankCreateTransaction: (
-    orgId: number,
-    bankTransactionId: number,
-    transactionType: 'expense' | 'invoice',
-    extra: Record<string, unknown> = {}
-  ) =>
-    api.post('orabooks_bank_create_transaction', {
-      org_id: orgId,
-      bank_transaction_id: bankTransactionId,
-      transaction_type: transactionType,
-      ...extra,
-    }),
-  bankConnectFeed: (orgId: number, bankAccountId: number, provider: 'plaid' | 'yodlee') =>
-    api.post('orabooks_bank_connect_feed', {
-      org_id: orgId,
-      bank_account_id: bankAccountId,
-      provider,
-    }),
-  bankFeedsList: (orgId: number, bankAccountId = 0) =>
-    api.get('orabooks_bank_feeds_list', {
-      org_id: orgId,
-      ...(bankAccountId ? { bank_account_id: bankAccountId } : {}),
-    }),
-  bankAccountSummary: (orgId: number, bankAccountId: number, statementDate?: string) =>
-    api.get('orabooks_bank_account_summary', {
-      org_id: orgId,
-      bank_account_id: bankAccountId,
-      ...(statementDate ? { statement_date: statementDate } : {}),
     }),
   reportsDashboard: () =>
     api.get('orabooks_reports_dashboard'),
@@ -795,44 +715,8 @@ export const api = {
       reason_code: reasonCode,
       jurisdiction,
     }),
-  invoiceClearTaxOverride: (orgId: number, invoiceId: number, jurisdiction = 'US') =>
-    api.post('orabooks_invoice_clear_tax_override', {
-      org_id: orgId,
-      invoice_id: invoiceId,
-      jurisdiction,
-    }),
   recordPayment: (data: Record<string, any>) =>
     api.post('orabooks_invoice_record_payment', data),
-  invoiceSubmit: (orgId: number, invoiceId: number) =>
-    api.post('orabooks_invoice_submit', { org_id: orgId, invoice_id: invoiceId }),
-  invoiceApprove: (orgId: number, invoiceId: number) =>
-    api.post('orabooks_invoice_approve', { org_id: orgId, invoice_id: invoiceId }),
-  customerPaymentRecord: (data: Record<string, unknown>) =>
-    api.post('orabooks_customer_payment_record', data),
-  paymentReverse: (orgId: number, paymentId: number, reason = '') =>
-    api.post('orabooks_payment_reverse', { org_id: orgId, payment_id: paymentId, reason }),
-  creditNoteCreate: (data: Record<string, unknown>) =>
-    api.post('orabooks_credit_note_create', data),
-  creditNoteSubmit: (orgId: number, creditNoteId: number) =>
-    api.post('orabooks_credit_note_submit', { org_id: orgId, credit_note_id: creditNoteId }),
-  creditNoteApprove: (orgId: number, creditNoteId: number) =>
-    api.post('orabooks_credit_note_approve', { org_id: orgId, credit_note_id: creditNoteId }),
-  creditNotePost: (orgId: number, creditNoteId: number) =>
-    api.post('orabooks_credit_note_post', { org_id: orgId, credit_note_id: creditNoteId }),
-  creditNoteVoid: (orgId: number, creditNoteId: number, reason = '') =>
-    api.post('orabooks_credit_note_void', { org_id: orgId, credit_note_id: creditNoteId, reason }),
-  creditNotesList: (orgId: number, filters: { customer_id?: number; invoice_id?: number } = {}) =>
-    api.get('orabooks_credit_notes_list', { org_id: orgId, ...filters }),
-  paymentsList: (orgId: number, filters: { customer_id?: number; invoice_id?: number } = {}) =>
-    api.get('orabooks_payments_list', { org_id: orgId, ...filters }),
-  arConfigGet: (orgId: number) =>
-    api.get('orabooks_ar_config_get', { org_id: orgId }),
-  arConfigSave: (orgId: number, data: Record<string, unknown>) =>
-    api.post('orabooks_ar_config_save', { org_id: orgId, ...data }),
-  arAging: (orgId: number) =>
-    api.get('orabooks_ar_aging', { org_id: orgId }),
-  customerStatementsList: (orgId: number, customerId: number) =>
-    api.get('orabooks_customer_statements_list', { org_id: orgId, customer_id: customerId }),
 
   // CoA / Audit
   coaGet: (orgId: number) =>
@@ -906,11 +790,6 @@ export const api = {
     }),
   taxListConfigs: (orgId: number) =>
     api.get('orabooks_tax_configs_list', { org_id: orgId }),
-  taxOverrideReasons: (orgId: number, jurisdiction = '') =>
-    api.get('orabooks_tax_override_reasons', {
-      org_id: orgId,
-      ...(jurisdiction ? { jurisdiction } : {}),
-    }),
   taxListJurisdictions: (orgId: number) =>
     api.get('orabooks_tax_jurisdictions_list', { org_id: orgId }),
   taxLockStatus: (orgId: number, transactionDate?: string) =>
@@ -998,13 +877,6 @@ export const api = {
     api.post('orabooks_expense_reject', { org_id: orgId, expense_id: expenseId, reason }),
   expensePost: (orgId: number, expenseId: number) =>
     api.post('orabooks_expense_post', { org_id: orgId, expense_id: expenseId }),
-  expenseSettingsGet: (orgId: number) =>
-    api.get('orabooks_expense_settings_get', { org_id: orgId }),
-  expenseSettingsSave: (orgId: number, autoPostOnApprove: boolean) =>
-    api.post('orabooks_expense_settings_save', {
-      org_id: orgId,
-      auto_post_on_approve: autoPostOnApprove ? 1 : 0,
-    }),
   expenseOverrideTax: (
     orgId: number,
     expenseId: number,
@@ -1036,15 +908,6 @@ export const api = {
       account_code: accountCode,
       ...(taxRate != null ? { tax_rate: taxRate } : {}),
     }),
-  classificationStatus: (recordType: string, recordId: number) =>
-    api.get('orabooks_classification_status', { record_type: recordType, record_id: recordId }),
-  classificationRulesList: () => api.get('orabooks_classification_rules_list'),
-  classificationRulesSave: (payload: Record<string, unknown>) =>
-    api.post('orabooks_classification_rules_save', payload),
-  classificationRulesDelete: (ruleId: number) =>
-    api.post('orabooks_classification_rules_delete', { rule_id: ruleId }),
-  classificationLiveCheck: () => api.get('orabooks_classification_live_check'),
-  expensesLiveCheck: () => api.get('orabooks_expenses_live_check'),
   voiceDashboard: () =>
     api.get('orabooks_voice_dashboard'),
   uploadVoice: (orgId: number, file: File, idempotencyKey = '') => {
@@ -1080,7 +943,7 @@ export const api = {
     api.post('orabooks_reverse_journal', { org_id: orgId, journal_id: journalId, reason }),
   auditLogs: (filters = {}) =>
     api.get('orabooks_get_audit_logs', filters),
-  exportAuditLogs: async (filters = {}) => {
+  exportAuditLogs: (filters = {}) => {
     const cfg = getAjaxConfig();
     const qs = new URLSearchParams();
     const token = getStoredToken();
@@ -1091,45 +954,7 @@ export const api = {
     Object.entries(filters).forEach(([k, v]) => {
       if (v !== undefined && v !== null && v !== '') qs.set(k, String(v));
     });
-
-    try {
-      const res = await fetch(`${cfg.ajax_url}?${qs.toString()}`, {
-        credentials: 'include',
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
-      const contentType = res.headers.get('content-type') || '';
-
-      if (!res.ok || contentType.includes('application/json')) {
-        let json: any = null;
-        try {
-          json = await res.json();
-        } catch {
-          // ignore parse failure
-        }
-        return { error: extractError(json, 'Audit export failed.') };
-      }
-
-      const blob = await res.blob();
-      const fallback = `audit_logs_${new Date().toISOString().slice(0, 10)}.csv`;
-      const filename = (() => {
-        const disposition = res.headers.get('content-disposition') || '';
-        const match = disposition.match(/filename\*?=(?:UTF-8''|")?([^";]+)/i);
-        return match?.[1]?.trim().replace(/"/g, '') || fallback;
-      })();
-
-      const url = URL.createObjectURL(blob);
-      const anchor = document.createElement('a');
-      anchor.href = url;
-      anchor.download = filename;
-      document.body.appendChild(anchor);
-      anchor.click();
-      anchor.remove();
-      URL.revokeObjectURL(url);
-
-      return { data: { filename } };
-    } catch (error) {
-      return { error: error instanceof Error ? error.message : 'Audit export failed.' };
-    }
+    window.location.href = `${cfg.ajax_url}?${qs.toString()}`;
   },
   pendingPartners: () =>
     api.get('orabooks_admin_list_pending_partners'),
@@ -1153,8 +978,6 @@ export const api = {
     api.post('orabooks_notifications_mark_read', { notification_id: notificationId }),
   notificationsMarkAllRead: () =>
     api.post('orabooks_notifications_mark_all_read'),
-  notificationsRetryDelivery: (notificationId: number) =>
-    api.post('orabooks_notifications_retry_delivery', { notification_id: notificationId }),
   notificationPrefsGet: () =>
     api.get('orabooks_notification_preferences_get'),
   notificationPrefsSave: (data: Record<string, any>) =>

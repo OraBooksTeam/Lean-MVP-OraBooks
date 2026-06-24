@@ -1,5 +1,4 @@
-import { isSecureOrigin, shouldEnforceTls, upgradeToHttpsIfRequired } from '@/lib/security/sl008';
-import { buildOrgUrl } from '@/lib/residency/sl004';
+import { getTenantDomainSuffix } from '@/lib/utils';
 import { AUTH_TOKEN_STORAGE_KEY, clearPersistedAuthTokens } from '../api';
 import { normalizeAppRoute, toWpUrl } from './wp-routing';
 
@@ -15,42 +14,6 @@ export function consumePendingInviteToken() {
   const token = window.sessionStorage.getItem(PENDING_INVITE_TOKEN_KEY) || '';
   window.sessionStorage.removeItem(PENDING_INVITE_TOKEN_KEY);
   return token;
-}
-
-export function clearPendingInviteToken() {
-  window.sessionStorage.removeItem(PENDING_INVITE_TOKEN_KEY);
-}
-
-export function peekPendingInviteToken() {
-  return window.sessionStorage.getItem(PENDING_INVITE_TOKEN_KEY) || '';
-}
-
-/** Post-login routing that respects invite auto-accept and existing org sessions. */
-export function redirectAfterLogin(data: {
-  needs_accept_invite?: boolean;
-  invite_onboarded?: boolean;
-  org_id?: number;
-  token?: string;
-  [key: string]: unknown;
-}) {
-  if (data?.invite_onboarded || data?.org_id) {
-    clearPendingInviteToken();
-    redirectAfterAuth(data);
-    return;
-  }
-
-  if (data?.needs_accept_invite) {
-    redirectAfterAuth(data);
-    return;
-  }
-
-  const pendingInvite = consumePendingInviteToken();
-  if (pendingInvite) {
-    window.location.replace(getAcceptInviteUrl(pendingInvite));
-    return;
-  }
-
-  redirectAfterAuth(data);
 }
 
 export function getAcceptInviteUrl(token: string) {
@@ -131,35 +94,29 @@ function appendCrossOriginAuthParams(url: string) {
     return url;
   }
 
-  let target: URL;
   try {
-    target = upgradeToHttpsIfRequired(new URL(url, window.location.href));
+    const target = new URL(url, window.location.href);
     if (target.searchParams.get(LOGOUT_QUERY_FLAG) === '1'
       || target.searchParams.get(AUTH_RESET_QUERY_FLAG) === '1'
       || target.searchParams.get(SESSION_EXPIRED_QUERY_FLAG) === '1') {
-      return `${target.origin}${target.pathname}${target.search}`;
+      return url;
     }
   } catch {
+    // Fall through to token handling below.
+  }
+
+  const target = new URL(url, window.location.href);
+  if (target.origin === window.location.origin) {
     return url;
   }
 
-  const normalized = `${target.origin}${target.pathname}${target.search}`;
-
-  if (target.origin === window.location.origin) {
-    return normalized;
-  }
-
   if (target.searchParams.has('ob_t')) {
-    return normalized;
-  }
-
-  if (shouldEnforceTls() && !isSecureOrigin(target)) {
-    return normalized;
+    return url;
   }
 
   const token = window.localStorage.getItem(AUTH_TOKEN_STORAGE_KEY);
   if (!token) {
-    return normalized;
+    return url;
   }
 
   target.searchParams.set('ob_t', token);
@@ -168,9 +125,10 @@ function appendCrossOriginAuthParams(url: string) {
 }
 
 export function redirectToOrgSubdomain(subdomain: string, wpPath = '/dashboard/') {
+  const suffix = getTenantDomainSuffix();
   const path = normalizeWpAppPath(wpPath);
   const destination = appendCrossOriginAuthParams(
-    upgradeToHttpsIfRequired(new URL(buildOrgUrl(subdomain, path), window.location.href)).toString()
+    `${window.location.protocol}//${subdomain}${suffix}${path}`
   );
   window.location.replace(destination);
 }
@@ -178,7 +136,6 @@ export function redirectToOrgSubdomain(subdomain: string, wpPath = '/dashboard/'
 export function redirectAfterAuth(data: {
   needs_tier_selection?: boolean;
   needs_accept_invite?: boolean;
-  needs_2fa_setup?: boolean;
   invite_onboarded?: boolean;
   tier_selection_token?: string;
   redirect_to?: string;
@@ -208,16 +165,6 @@ export function redirectAfterAuth(data: {
     return;
   }
 
-  if (data?.needs_2fa_setup) {
-    const securityPath = normalizeWpAppPath('/security/2fa/');
-    if (data?.subdomain) {
-      redirectToOrgSubdomain(data.subdomain, securityPath);
-      return;
-    }
-    window.location.replace(securityPath);
-    return;
-  }
-
   if (data?.is_platform_admin) {
     const adminUrl =
       (window as any).orabooks_ajax?.platform_admin_url
@@ -230,7 +177,7 @@ export function redirectAfterAuth(data: {
 
   const redirectTo = String(data?.redirect_to || '').trim();
   if (redirectTo.startsWith('http')) {
-    const target = upgradeToHttpsIfRequired(new URL(redirectTo));
+    const target = new URL(redirectTo);
     target.hash = '';
     window.location.replace(appendCrossOriginAuthParams(target.toString()));
     return;

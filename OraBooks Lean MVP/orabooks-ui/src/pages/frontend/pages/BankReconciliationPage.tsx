@@ -5,14 +5,7 @@ import Button from '@/components/Button';
 import Input from '@/components/Input';
 import { api } from '../api';
 import ClientShell from '../components/ClientShell';
-import { Landmark, Paperclip, Plus, RefreshCw, ShieldCheck, Upload, Wallet, Link2 } from 'lucide-react';
-
-type BankSuggestion = {
-  id: number;
-  transaction_type: string;
-  transaction_id: number;
-  confidence_score: number;
-};
+import { Landmark, Paperclip, Plus, RefreshCw, ShieldCheck, Wallet } from 'lucide-react';
 
 export default function BankReconciliationPage() {
   const [context, setContext] = useState<any>(null);
@@ -34,16 +27,6 @@ export default function BankReconciliationPage() {
   });
 
   const [showImportForm, setShowImportForm] = useState(false);
-  const [showCsvImport, setShowCsvImport] = useState(false);
-  const [csvFile, setCsvFile] = useState<File | null>(null);
-  const [selectedAccountId, setSelectedAccountId] = useState('');
-  const [accountSummary, setAccountSummary] = useState<any>(null);
-  const [feeds, setFeeds] = useState<any[]>([]);
-  const [showConnectFeed, setShowConnectFeed] = useState(false);
-  const [feedForm, setFeedForm] = useState({ bank_account_id: '', provider: 'plaid' as 'plaid' | 'yodlee' });
-  const [createTxn, setCreateTxn] = useState<any | null>(null);
-  const [createTxnForm, setCreateTxnForm] = useState({ transaction_type: 'expense' as 'expense' | 'invoice', vendor: '', category: 'General', customer_id: '' });
-  const [customers, setCustomers] = useState<any[]>([]);
   const [importForm, setImportForm] = useState({
     bank_account_id: '',
     date: new Date().toISOString().slice(0, 10),
@@ -54,7 +37,7 @@ export default function BankReconciliationPage() {
 
   const [matchTxn, setMatchTxn] = useState<any | null>(null);
   const [matchForm, setMatchForm] = useState({
-    transaction_type: 'payment' as 'payment' | 'expense' | 'journal' | 'vendor_payment' | 'invoice',
+    transaction_type: 'payment' as 'payment' | 'expense' | 'journal',
     transaction_id: '',
   });
 
@@ -90,14 +73,10 @@ export default function BankReconciliationPage() {
       return;
     }
 
-    const accountFilter = selectedAccountId ? Number(selectedAccountId) : 0;
-
-    const [dash, accountsRes, txnsRes, feedsRes, customersRes] = await Promise.all([
+    const [dash, accountsRes, txnsRes] = await Promise.all([
       api.bankDashboard(),
       api.bankAccountsList(orgId),
-      api.bankTransactionsList(orgId, accountFilter, { limit: 100 }),
-      api.bankFeedsList(orgId, accountFilter),
-      api.customersList(orgId, { limit: 100 }),
+      api.bankTransactionsList(orgId, 0, { limit: 100 }),
     ]);
 
     if (dash.error) {
@@ -109,26 +88,12 @@ export default function BankReconciliationPage() {
     }
     if (!accountsRes.error) setAccounts((accountsRes as any).data?.accounts || []);
     if (!txnsRes.error) setTransactions((txnsRes as any).data?.transactions || []);
-    if (!feedsRes.error) setFeeds((feedsRes as any).data?.feeds || []);
-    if (!customersRes.error) setCustomers((customersRes as any).data?.customers || []);
-
-    if (accountFilter > 0) {
-      const summaryRes = await api.bankAccountSummary(orgId, accountFilter);
-      if (!summaryRes.error) setAccountSummary((summaryRes as any).data?.summary || null);
-      else setAccountSummary(null);
-    } else {
-      setAccountSummary(null);
-    }
-
     setLoading(false);
   };
 
-  useEffect(() => { void load(); }, [selectedAccountId]);
+  useEffect(() => { void load(); }, []);
 
   const orgId = context?.organization?.id;
-  const permissions: string[] = context?.permissions || [];
-  const canMatch = permissions.includes('match_transaction') || permissions.includes('submit_transaction') || permissions.includes('approve_journal');
-  const canReconcile = permissions.includes('reconcile_bank') || permissions.includes('manage_org_settings') || permissions.includes('approve_journal');
   const unmatched = stats?.unmatched_count ?? 0;
   const selectedImportAccount = useMemo(
     () => accounts.find((a) => String(a.id) === importForm.bank_account_id),
@@ -190,76 +155,6 @@ export default function BankReconciliationPage() {
     setSaving(false);
   };
 
-  const handleImportCsv = async () => {
-    if (!orgId || !importForm.bank_account_id || !csvFile) {
-      setError('Account and CSV file are required.');
-      return;
-    }
-    setSaving(true);
-    setError('');
-    const res = await api.bankImportCsv(orgId, Number(importForm.bank_account_id), csvFile);
-    if (res.error) setError(res.error);
-    else {
-      const result = (res as any).data || {};
-      setSuccess(`Imported ${result.inserted || 0} row(s), ${result.duplicates || 0} duplicate(s), ${result.suggested_matches || 0} suggestion(s).`);
-      setShowCsvImport(false);
-      setCsvFile(null);
-      await load();
-    }
-    setSaving(false);
-  };
-
-  const handleConfirmSuggestion = async (txn: any, suggestion: BankSuggestion) => {
-    if (!orgId) return;
-    setSaving(true);
-    setError('');
-    const res = await api.bankConfirmMatch(orgId, Number(txn.id), suggestion.id);
-    if (res.error) setError(res.error);
-    else {
-      setSuccess('Suggested match confirmed.');
-      await load();
-    }
-    setSaving(false);
-  };
-
-  const handleCreateLinkedTransaction = async () => {
-    if (!orgId || !createTxn) return;
-    setSaving(true);
-    setError('');
-    const payload: Record<string, unknown> = {};
-    if (createTxnForm.transaction_type === 'expense') {
-      payload.vendor = createTxnForm.vendor || createTxn.description || 'Bank transaction';
-      payload.category = createTxnForm.category;
-    } else {
-      payload.customer_id = parseInt(createTxnForm.customer_id, 10);
-    }
-    const res = await api.bankCreateTransaction(orgId, Number(createTxn.id), createTxnForm.transaction_type, payload);
-    if (res.error) setError(res.error);
-    else {
-      setSuccess('Linked transaction created and matched.');
-      setCreateTxn(null);
-      await load();
-    }
-    setSaving(false);
-  };
-
-  const handleConnectFeed = async () => {
-    if (!orgId || !feedForm.bank_account_id) {
-      setError('Bank account is required.');
-      return;
-    }
-    setSaving(true);
-    setError('');
-    const res = await api.bankConnectFeed(orgId, Number(feedForm.bank_account_id), feedForm.provider);
-    if (res.error) setError(res.error);
-    else {
-      setSuccess('Bank feed connection initialized. OAuth setup will complete when provider credentials are configured.');
-      setShowConnectFeed(false);
-      await load();
-    }
-    setSaving(false);
-  };
-
   const handleManualMatch = async () => {
     if (!orgId || !matchTxn || !matchForm.transaction_id) {
       setError('Transaction type and transaction ID are required.');
@@ -285,7 +180,10 @@ export default function BankReconciliationPage() {
   };
 
   const handleSkip = async () => {
-    if (!orgId || !skipTxn) return;
+    if (!orgId || !skipTxn || !skipReason.trim()) {
+      setError('Skip reason is required.');
+      return;
+    }
     setSaving(true);
     setError('');
     const res = await api.bankSkip(orgId, Number(skipTxn.id), skipReason.trim());
@@ -352,74 +250,24 @@ export default function BankReconciliationPage() {
           </div>
         )}
 
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="min-w-[220px] flex-1">
-            <select
-              value={selectedAccountId}
-              onChange={(e) => setSelectedAccountId(e.target.value)}
-              className="w-full rounded-lg border border-border px-3 py-2.5 text-sm"
-              title="Select bank account to reconcile."
-            >
-              <option value="">All bank accounts</option>
-              {accounts.map((a) => (
-                <option key={a.id} value={a.id}>{a.account_name}</option>
-              ))}
-            </select>
-          </div>
-          {canMatch && (
-            <>
-              <Button size="sm" onClick={() => { setShowCsvImport(true); setError(''); setSuccess(''); }} title="CSV format: date, amount, description. Max 10MB.">
-                <Upload className="h-4 w-4" />
-                Upload statement
-              </Button>
-              <Button size="sm" variant="secondary" onClick={() => { setShowImportForm(true); setError(''); setSuccess(''); }}>
-                Import row
-              </Button>
-            </>
-          )}
-          {canReconcile && (
-            <>
-              <Button size="sm" variant="secondary" onClick={() => { setShowConnectFeed(true); setError(''); setSuccess(''); }} title="Plaid / Yodlee integration. Automatic sync.">
-                <Link2 className="h-4 w-4" />
-                Connect bank
-              </Button>
-              <Button size="sm" onClick={() => { setShowAccountForm(true); setError(''); setSuccess(''); }}>
-                <Plus className="h-4 w-4" />
-                Add account
-              </Button>
-              <Button size="sm" onClick={() => { setShowReconcileForm(true); setError(''); setSuccess(''); }}>
-                <ShieldCheck className="h-4 w-4" />
-                Reconcile now
-              </Button>
-            </>
-          )}
+        <div className="flex flex-wrap justify-end gap-2">
+          <Button size="sm" onClick={() => { setShowAccountForm(true); setError(''); setSuccess(''); }}>
+            <Plus className="h-4 w-4" />
+            Add account
+          </Button>
+          <Button size="sm" onClick={() => { setShowImportForm(true); setError(''); setSuccess(''); }}>
+            <Plus className="h-4 w-4" />
+            Import row
+          </Button>
+          <Button size="sm" onClick={() => { setShowReconcileForm(true); setError(''); setSuccess(''); }}>
+            <ShieldCheck className="h-4 w-4" />
+            Reconcile
+          </Button>
           <Button onClick={load} variant="secondary" size="sm">
             <RefreshCw className="h-4 w-4" />
             Refresh
           </Button>
         </div>
-
-        {accountSummary && (
-          <div className="rounded-xl border border-border bg-slate-50 p-4 text-sm">
-            <p className="font-semibold text-ink">{accountSummary.account_name}</p>
-            <div className="mt-2 flex flex-wrap gap-4 text-slate-700">
-              <span>Bank balance: {money(accountSummary.bank_balance)}</span>
-              <span>System balance: {money(accountSummary.system_balance)}</span>
-              <span className={Math.abs(Number(accountSummary.difference)) < 0.01 ? 'text-success' : 'text-amber-700'}>
-                Difference: {money(accountSummary.difference)}
-              </span>
-              <span>{accountSummary.unmatched_count} unmatched</span>
-            </div>
-          </div>
-        )}
-
-        {feeds.length > 0 && (
-          <div className="rounded-xl border border-sky-200 bg-sky-50/80 p-4 text-sm text-sky-900">
-            {feeds.map((feed) => (
-              <p key={feed.id}>{feed.provider} feed — status {feed.status}{feed.last_sync_at ? ` · last sync ${String(feed.last_sync_at).slice(0, 10)}` : ''}</p>
-            ))}
-          </div>
-        )}
 
         {error && (
           <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-medium text-red-700">{error}</div>
@@ -484,63 +332,33 @@ export default function BankReconciliationPage() {
                 <th className="px-5 py-3 font-semibold">Description</th>
                 <th className="px-5 py-3 font-semibold">Reference</th>
                 <th className="px-5 py-3 font-semibold">Status</th>
-                <th className="px-5 py-3 font-semibold">Suggested match</th>
                 <th className="px-5 py-3 text-right font-semibold">Amount</th>
                 <th className="px-5 py-3 font-semibold">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
               {loading ? (
-                <tr><td colSpan={8} className="px-5 py-8 text-center text-slate-500">Loading transactions...</td></tr>
+                <tr><td colSpan={7} className="px-5 py-8 text-center text-slate-500">Loading transactions...</td></tr>
               ) : transactions.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="px-5 py-10 text-center text-sm text-slate-500">No bank transactions imported yet.</td>
+                  <td colSpan={7} className="px-5 py-10 text-center text-sm text-slate-500">No bank transactions imported yet.</td>
                 </tr>
               ) : transactions.map((txn: any) => (
                 <tr key={txn.id} className="hover:bg-slate-50/70">
                   <td className="px-5 py-3 text-slate-600">{txn.transaction_date || '—'}</td>
-                  <td className="px-5 py-3 text-slate-600">{txn.account_name || accounts.find((a) => a.id === txn.bank_account_id)?.account_name || '—'}</td>
+                  <td className="px-5 py-3 text-slate-600">{txn.account_name || '—'}</td>
                   <td className="px-5 py-3 text-ink">{txn.description || '—'}</td>
                   <td className="px-5 py-3 font-mono text-xs text-slate-500">{txn.reference || '—'}</td>
                   <td className="px-5 py-3"><StatusBadge status={txn.status} /></td>
-                  <td className="px-5 py-3">
-                    {(txn.suggestions || []).length > 0 && (
-                      <div className="mb-2 space-y-1">
-                        {(txn.suggestions as BankSuggestion[]).slice(0, 2).map((s) => (
-                          <div key={s.id} className="flex flex-wrap items-center gap-2 text-xs">
-                            <ConfidenceBadge score={s.confidence_score} />
-                            <span className="text-slate-600">{s.transaction_type} #{s.transaction_id}</span>
-                            {canMatch && txn.status === 'unmatched' && (
-                              <Button size="sm" variant="secondary" disabled={saving} onClick={() => void handleConfirmSuggestion(txn, s)}>
-                                Match
-                              </Button>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </td>
                   <td className={`px-5 py-3 text-right font-bold ${Number(txn.amount) >= 0 ? 'text-success' : 'text-red-600'}`}>
                     {money(txn.amount)}
                   </td>
                   <td className="px-5 py-3">
                     <div className="flex flex-wrap gap-1">
-                      {txn.status === 'unmatched' && canMatch ? (
+                      {txn.status === 'unmatched' ? (
                         <>
                           <Button size="sm" variant="secondary" onClick={() => { setMatchTxn(txn); setError(''); }}>
-                            Manual
-                          </Button>
-                          <Button size="sm" variant="secondary" onClick={() => {
-                            setCreateTxn(txn);
-                            setCreateTxnForm({
-                              transaction_type: Number(txn.amount) >= 0 ? 'invoice' : 'expense',
-                              vendor: txn.description || '',
-                              category: 'General',
-                              customer_id: '',
-                            });
-                            setError('');
-                          }}>
-                            Create
+                            Match
                           </Button>
                           <Button size="sm" variant="secondary" onClick={() => { setSkipTxn(txn); setError(''); }}>
                             Skip
@@ -637,114 +455,6 @@ export default function BankReconciliationPage() {
           </Modal>
         )}
 
-        {showCsvImport && (
-          <Modal title="Upload bank statement (CSV)" onClose={() => setShowCsvImport(false)}>
-            <p className="mb-4 text-sm text-slate-600">CSV columns: date, amount, description, reference (optional). Max 10MB.</p>
-            <div className="grid gap-4">
-              <Field label="Bank account">
-                <select
-                  value={importForm.bank_account_id}
-                  onChange={(e) => setImportForm((p) => ({ ...p, bank_account_id: e.target.value }))}
-                  className="w-full rounded-lg border border-border px-3 py-2.5 text-sm"
-                >
-                  <option value="">Select account...</option>
-                  {accounts.map((a) => (
-                    <option key={a.id} value={a.id}>{a.account_name}</option>
-                  ))}
-                </select>
-              </Field>
-              <Field label="CSV file">
-                <input type="file" accept=".csv,text/csv" onChange={(e) => setCsvFile(e.target.files?.[0] || null)} className="w-full text-sm" />
-              </Field>
-            </div>
-            <div className="mt-6 flex justify-end gap-2">
-              <Button variant="secondary" onClick={() => setShowCsvImport(false)}>Cancel</Button>
-              <Button onClick={handleImportCsv} disabled={saving || !csvFile}>Upload</Button>
-            </div>
-          </Modal>
-        )}
-
-        {showConnectFeed && (
-          <Modal title="Connect bank feed" onClose={() => setShowConnectFeed(false)}>
-            <p className="mb-4 text-sm text-slate-600">Initialize Plaid or Yodlee connection. OAuth credentials must be configured server-side.</p>
-            <div className="grid gap-4">
-              <Field label="Bank account">
-                <select
-                  value={feedForm.bank_account_id}
-                  onChange={(e) => setFeedForm((p) => ({ ...p, bank_account_id: e.target.value }))}
-                  className="w-full rounded-lg border border-border px-3 py-2.5 text-sm"
-                >
-                  <option value="">Select account...</option>
-                  {accounts.map((a) => (
-                    <option key={a.id} value={a.id}>{a.account_name}</option>
-                  ))}
-                </select>
-              </Field>
-              <Field label="Provider">
-                <select
-                  value={feedForm.provider}
-                  onChange={(e) => setFeedForm((p) => ({ ...p, provider: e.target.value as 'plaid' | 'yodlee' }))}
-                  className="w-full rounded-lg border border-border px-3 py-2.5 text-sm"
-                >
-                  <option value="plaid">Plaid</option>
-                  <option value="yodlee">Yodlee</option>
-                </select>
-              </Field>
-            </div>
-            <div className="mt-6 flex justify-end gap-2">
-              <Button variant="secondary" onClick={() => setShowConnectFeed(false)}>Cancel</Button>
-              <Button onClick={handleConnectFeed} disabled={saving}>Connect</Button>
-            </div>
-          </Modal>
-        )}
-
-        {createTxn && (
-          <Modal title="Create linked transaction" onClose={() => setCreateTxn(null)}>
-            <p className="mb-4 text-sm text-slate-600">
-              Create a draft {createTxnForm.transaction_type} for `{createTxn.description || createTxn.reference || `Txn #${createTxn.id}`}` and auto-match.
-            </p>
-            <div className="grid gap-4">
-              <Field label="Type">
-                <select
-                  value={createTxnForm.transaction_type}
-                  onChange={(e) => setCreateTxnForm((p) => ({ ...p, transaction_type: e.target.value as 'expense' | 'invoice' }))}
-                  className="w-full rounded-lg border border-border px-3 py-2.5 text-sm"
-                >
-                  <option value="expense">Expense</option>
-                  <option value="invoice">Invoice</option>
-                </select>
-              </Field>
-              {createTxnForm.transaction_type === 'expense' ? (
-                <>
-                  <Field label="Vendor">
-                    <Input value={createTxnForm.vendor} onChange={(e) => setCreateTxnForm((p) => ({ ...p, vendor: e.target.value }))} />
-                  </Field>
-                  <Field label="Category">
-                    <Input value={createTxnForm.category} onChange={(e) => setCreateTxnForm((p) => ({ ...p, category: e.target.value }))} />
-                  </Field>
-                </>
-              ) : (
-                <Field label="Customer">
-                  <select
-                    value={createTxnForm.customer_id}
-                    onChange={(e) => setCreateTxnForm((p) => ({ ...p, customer_id: e.target.value }))}
-                    className="w-full rounded-lg border border-border px-3 py-2.5 text-sm"
-                  >
-                    <option value="">Select customer...</option>
-                    {customers.map((c) => (
-                      <option key={c.id} value={c.id}>{c.display_name || c.contact_email || `Customer #${c.id}`}</option>
-                    ))}
-                  </select>
-                </Field>
-              )}
-            </div>
-            <div className="mt-6 flex justify-end gap-2">
-              <Button variant="secondary" onClick={() => setCreateTxn(null)}>Cancel</Button>
-              <Button onClick={handleCreateLinkedTransaction} disabled={saving}>Create & match</Button>
-            </div>
-          </Modal>
-        )}
-
         {showImportForm && (
           <Modal title="Import Statement Row" onClose={() => setShowImportForm(false)}>
             <div className="grid gap-4">
@@ -796,13 +506,11 @@ export default function BankReconciliationPage() {
               <Field label="Transaction type">
                 <select
                   value={matchForm.transaction_type}
-                  onChange={(e) => setMatchForm((p) => ({ ...p, transaction_type: e.target.value as typeof matchForm.transaction_type }))}
+                  onChange={(e) => setMatchForm((p) => ({ ...p, transaction_type: e.target.value as 'payment' | 'expense' | 'journal' }))}
                   className="w-full rounded-lg border border-border px-3 py-2.5 text-sm"
                 >
-                  <option value="payment">Payment (AR)</option>
-                  <option value="vendor_payment">Vendor payment (AP)</option>
+                  <option value="payment">Payment</option>
                   <option value="expense">Expense</option>
-                  <option value="invoice">Invoice</option>
                   <option value="journal">Journal</option>
                 </select>
               </Field>
@@ -822,7 +530,7 @@ export default function BankReconciliationPage() {
             <p className="mb-4 text-sm text-slate-600">
               Provide a reason to skip this transaction from matching.
             </p>
-            <Field label="Reason (optional)">
+            <Field label="Reason">
               <Input value={skipReason} onChange={(e) => setSkipReason(e.target.value)} />
             </Field>
             <div className="mt-6 flex justify-end gap-2">
@@ -884,16 +592,6 @@ function Metric({ label, value, tone = 'default' }: { label: string; value: stri
       <p className="text-xs font-bold uppercase tracking-wide text-slate-500">{label}</p>
       <p className={`mt-2 text-3xl font-black ${tone === 'warning' ? 'text-amber-700' : 'text-ink'}`}>{value}</p>
     </div>
-  );
-}
-
-function ConfidenceBadge({ score }: { score: number }) {
-  const label = score >= 90 ? 'High' : score >= 75 ? 'Medium' : 'Low';
-  const tone = score >= 90 ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : score >= 75 ? 'border-sky-200 bg-sky-50 text-sky-800' : 'border-amber-200 bg-amber-50 text-amber-800';
-  return (
-    <span className={`badge border ${tone}`} title={`AI confidence: ${score.toFixed(0)}%`}>
-      {score.toFixed(0)}% {label}
-    </span>
   );
 }
 

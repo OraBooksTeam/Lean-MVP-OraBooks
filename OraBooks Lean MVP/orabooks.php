@@ -2,7 +2,7 @@
 /**
  * Plugin Name: OraBooks - Multi-Tenant Accounting & Partner Platform
  * Plugin URI: https://orabooks.app
- * Description: Lean MVP multi-tenant accounting and partner platform.
+ * Description: Lean MVP multi-tenant accounting and partner platform (SL-004 through SL-139).
  * Version: 1.0.0
  * Network: true
  * Author: OraBooks Team
@@ -53,9 +53,7 @@ require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-async-queue.php';
 require_once ORABOOKS_PLUGIN_DIR . 'includes/jobs/loader.php';
 require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-exports.php';
 require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-customers.php';
-require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-ar.php';
 require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-vendors.php';
-require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-ap.php';
 require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-inventory.php';
 require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-bank-reconciliation.php';
 require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-financial-reports.php';
@@ -82,14 +80,13 @@ add_filter('script_loader_tag', ['OraBooks_Assets', 'filter_react_script_tag'], 
 // Initialize plugin
 add_action('plugins_loaded', 'orabooks_init');
 
-function orabooks_init()
-{
+function orabooks_init() {
     // Load text domain
     load_plugin_textdomain('orabooks', false, dirname(plugin_basename(__FILE__)) . '/languages');
 
     orabooks_ensure_database();
     orabooks_ensure_mvp_cron_schedules();
-
+    
     // Initialize core classes
     OraBooks_Database::init();
     OraBooks_Secrets::init();
@@ -122,9 +119,7 @@ function orabooks_init()
     OraBooks_AsyncQueue::register_default_handlers();
     OraBooks_Exports::init();
     OraBooks_Customers::init();
-    OraBooks_AR::init();
     OraBooks_Vendors::init();
-    OraBooks_AP::init();
     OraBooks_Inventory::init();
     OraBooks_Bank_Reconciliation::init();
     OraBooks_Financial_Reports::init();
@@ -139,8 +134,7 @@ function orabooks_init()
     OraBooks_Security::init();
     OraBooks_Pwa::init();
     OraBooks_Rest_Api::init();
-
-    OraBooks_Exports::register_report_provider('coa', function ($params) {
+    OraBooks_Exports::register_report_provider('coa', function($params) {
         // Reuse OraBooks_COA if available
         if (class_exists('OraBooks_COA') && method_exists('OraBooks_COA', 'get_accounts')) {
             $org_id = intval($params['org_id'] ?? 0);
@@ -151,25 +145,17 @@ function orabooks_init()
         }
         return null;
     });
-    // Register the generate_export handler with async queue
-    // Register notification_log report provider for export
-    OraBooks_Exports::register_report_provider('notification_log', function ($params) {
+    // Register the generate_export handler with SL-303 async queue
+    // Register notification_log report provider for SL-114 export
+    OraBooks_Exports::register_report_provider('notification_log', function($params) {
         if (class_exists('OraBooks_Notifications') && method_exists('OraBooks_Notifications', 'get_notifications')) {
             $user_id = intval($params['user_id'] ?? get_current_user_id());
             $org_id = intval($params['org_id'] ?? 0);
             $args = [];
-            if (!empty($params['from_date'])) {
-                $args['from_date'] = $params['from_date'];
-            }
-            if (!empty($params['to_date'])) {
-                $args['to_date'] = $params['to_date'];
-            }
-            if (!empty($params['event_type'])) {
-                $args['event_type'] = $params['event_type'];
-            }
-            if (!empty($params['priority'])) {
-                $args['priority'] = $params['priority'];
-            }
+            if (!empty($params['from_date'])) $args['from_date'] = $params['from_date'];
+            if (!empty($params['to_date'])) $args['to_date'] = $params['to_date'];
+            if (!empty($params['event_type'])) $args['event_type'] = $params['event_type'];
+            if (!empty($params['priority'])) $args['priority'] = $params['priority'];
             if ($user_id) {
                 return OraBooks_Notifications::get_notifications($user_id, $args);
             }
@@ -177,7 +163,7 @@ function orabooks_init()
         return null;
     });
     // Register commission_data report provider
-    OraBooks_Exports::register_report_provider('commission_data', function ($params) {
+    OraBooks_Exports::register_report_provider('commission_data', function($params) {
         if (class_exists('OraBooks_Commission') && method_exists('OraBooks_Commission', 'get_earned_commissions')) {
             $user_id = intval($params['user_id'] ?? get_current_user_id());
             $org_id = intval($params['org_id'] ?? 0);
@@ -190,15 +176,15 @@ function orabooks_init()
         }
         return null;
     });
-    // Register users_data report provider for export
-    OraBooks_Exports::register_report_provider('users_data', function ($params) {
+    // Register users_data report provider for SL-114 export
+    OraBooks_Exports::register_report_provider('users_data', function($params) {
         global $wpdb;
         $table = OraBooks_Database::table('users');
         $users = $wpdb->get_results("SELECT id, email, is_active, is_email_verified, is_2fa_enabled, auth_provider, org_id, is_partner, created_at FROM {$table} ORDER BY created_at DESC LIMIT 1000");
         return $users ?: null;
     });
     // Register async_queue_data report provider
-    OraBooks_Exports::register_report_provider('async_queue_data', function ($params) {
+    OraBooks_Exports::register_report_provider('async_queue_data', function($params) {
         if (class_exists('OraBooks_AsyncQueue') && method_exists('OraBooks_AsyncQueue', 'get_queue_stats')) {
             try {
                 $stats = OraBooks_AsyncQueue::get_queue_stats();
@@ -209,8 +195,8 @@ function orabooks_init()
         }
         return null;
     });
-    // Register commission_config report provider for export
-    OraBooks_Exports::register_report_provider('commission_config', function ($params) {
+    // Register commission_config report provider for SL-114 export
+    OraBooks_Exports::register_report_provider('commission_config', function($params) {
         if (class_exists('OraBooks_Commission') && method_exists('OraBooks_Commission', 'get_config')) {
             try {
                 $config = OraBooks_Commission::get_config();
@@ -224,8 +210,8 @@ function orabooks_init()
         }
         return null;
     });
-    // Register partner_onboarding report provider ( / export)
-    OraBooks_Exports::register_report_provider('partner_onboarding', function ($params) {
+    // Register partner_onboarding report provider (SL-139 / SL-114 export)
+    OraBooks_Exports::register_report_provider('partner_onboarding', function($params) {
         $user_id = intval($params['user_id'] ?? get_current_user_id());
         if (!$user_id || !class_exists('OraBooks_Partner')) {
             return null;
@@ -233,7 +219,7 @@ function orabooks_init()
         $data = OraBooks_Partner::get_dashboard_data($user_id);
         return $data ? [$data] : null;
     });
-    // Register the generate_export handler with async queue
+    // Register the generate_export handler with SL-303 async queue
     OraBooks_AsyncQueue::register_handler('generate_export', ['OraBooks_Exports', 'generate_export_job']);
     OraBooks_AsyncQueue::register_handler('parse_csv_import', ['OraBooks_Csv_Imports', 'parse_csv_import_job']);
 
@@ -252,70 +238,59 @@ function orabooks_init()
 add_action('init', 'orabooks_mirror_jwt_ajax_nopriv_handlers', 999);
 
 /**
- * Create a WordPress page with shortcode content if it doesn't already exist.
- * Repairs existing pages that are missing the expected shortcode.
+ * Create a WordPress page with shortcode content if it doesn't already exist
  */
-function orabooks_create_page($slug, $title, $shortcode, $parent_slug = '')
-{
+function orabooks_create_page($slug, $title, $shortcode, $parent_slug = '') {
     $path = $parent_slug ? trim($parent_slug, '/') . '/' . $slug : $slug;
-    $content = orabooks_build_page_shortcode_content($shortcode);
     $existing = get_page_by_path($path, OBJECT, 'page');
     if ($existing) {
-        if ($shortcode !== '' && !orabooks_page_contains_shortcode($existing->post_content, $shortcode)) {
-            wp_update_post([
-                'ID' => (int) $existing->ID,
-                'post_content' => $content,
-            ]);
-        }
-        return (int) $existing->ID;
+        return $existing->ID;
     }
-
+    
     $page_data = [
-        'post_title' => $title,
-        'post_content' => $content,
-        'post_status' => 'publish',
-        'post_type' => 'page',
-        'post_name' => $slug,
+        'post_title'    => $title,
+        'post_content'  => '<!-- wp:shortcode -->' . $shortcode . '<!-- /wp:shortcode -->',
+        'post_status'   => 'publish',
+        'post_type'     => 'page',
+        'post_name'     => $slug,
         'comment_status' => 'closed',
-        'ping_status' => 'closed',
+        'ping_status'   => 'closed',
     ];
-
+    
     if (!empty($parent_slug)) {
         $parent = get_page_by_path($parent_slug, OBJECT, 'page');
         if ($parent) {
             $page_data['post_parent'] = $parent->ID;
         }
     }
-
+    
     return wp_insert_post($page_data);
 }
 
 /**
  * Create all required OraBooks frontend pages on activation
  */
-function orabooks_create_required_pages()
-{
+function orabooks_create_required_pages() {
     $pages = orabooks_get_lean_mvp_page_definitions();
-
+    
     // Create a parent page "OraBooks" if needed (optional)
     $created_ids = [];
-
+    
     foreach ($pages as $slug => $config) {
         $page_id = orabooks_create_page($slug, $config[0], $config[1], $config[2] ?? '');
         $created_ids[$slug] = $page_id;
     }
-
+    
     // Store created page IDs in options for reference
     update_option('orabooks_pages', $created_ids);
-
+    
     return $created_ids;
 }
 
 /**
  * Ensure frontend pages exist on existing installs (idempotent).
  */
-function orabooks_ensure_frontend_pages()
-{
+function orabooks_ensure_frontend_pages() {
     orabooks_create_required_pages();
 }
 
@@ -323,25 +298,24 @@ add_action('init', 'orabooks_ensure_frontend_pages', 20);
 
 // Activation hook
 register_activation_hook(__FILE__, 'orabooks_activate');
-function orabooks_activate($network_wide = false)
-{
+function orabooks_activate($network_wide = false) {
     require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-database.php';
 
     orabooks_with_data_blog(function () {
         OraBooks_Database::install();
     });
-
+    
     // Flush rewrite rules so OIDC routes (/orabooks-google-login, /orabooks-google-callback) work
     orabooks_oidc_rewrite_rules();
     flush_rewrite_rules();
-
+    
     // Create required frontend pages with shortcodes
     orabooks_create_required_pages();
 
     if (class_exists('OraBooks_Accounting')) {
         OraBooks_Accounting::activate((bool) $network_wide);
     }
-
+    
     // Set default options
     add_option('orabooks_db_version', ORABOOKS_DB_VERSION);
     add_option('orabooks_block_same_email_domain', 0);
@@ -359,22 +333,12 @@ function orabooks_activate($network_wide = false)
 /**
  * Ensure database tables exist (e.g. plugin uploaded without re-activation).
  */
-function orabooks_ensure_database()
-{
+function orabooks_ensure_database() {
     orabooks_with_data_blog(function () {
         global $wpdb;
 
         if (class_exists('OraBooks_Customers')) {
             OraBooks_Customers::ensure_schema();
-        }
-        if (class_exists('OraBooks_Vendors')) {
-            OraBooks_Vendors::ensure_schema();
-        }
-        if (class_exists('OraBooks_Bank_Reconciliation')) {
-            OraBooks_Bank_Reconciliation::ensure_schema();
-        }
-        if (class_exists('OraBooks_AP')) {
-            OraBooks_AP::ensure_schema();
         }
 
         $table_users = OraBooks_Database::table('users');
@@ -389,8 +353,7 @@ function orabooks_ensure_database()
 /**
  * Ensure MVP cron schedules exist after FTP upload (no re-activation required).
  */
-function orabooks_ensure_mvp_cron_schedules()
-{
+function orabooks_ensure_mvp_cron_schedules() {
     if (class_exists('OraBooks_DeployChecks')) {
         OraBooks_DeployChecks::ensure_mvp_cron_schedules();
     }
@@ -398,8 +361,7 @@ function orabooks_ensure_mvp_cron_schedules()
 
 // Deactivation hook
 register_deactivation_hook(__FILE__, 'orabooks_deactivate');
-function orabooks_deactivate()
-{
+function orabooks_deactivate() {
     // Cleanup if needed
     wp_clear_scheduled_hook('orabooks_daily_cleanup');
     wp_clear_scheduled_hook('orabooks_partner_activity_check');
@@ -447,31 +409,29 @@ function orabooks_deactivate()
 
 // Add custom cron schedule for every_minute
 add_filter('cron_schedules', 'orabooks_cron_schedules');
-function orabooks_cron_schedules($schedules)
-{
+function orabooks_cron_schedules($schedules) {
     $schedules['every_minute'] = [
         'interval' => 60,
-        'display' => __('Every Minute', 'orabooks'),
+        'display'  => __('Every Minute', 'orabooks'),
     ];
     $schedules['every_5_minutes'] = [
         'interval' => 300,
-        'display' => __('Every 5 Minutes', 'orabooks'),
+        'display'  => __('Every 5 Minutes', 'orabooks'),
     ];
     $schedules['every_6_hours'] = [
         'interval' => 6 * HOUR_IN_SECONDS,
-        'display' => __('Every 6 Hours', 'orabooks'),
+        'display'  => __('Every 6 Hours', 'orabooks'),
     ];
     $schedules['monthly'] = [
         'interval' => 30 * DAY_IN_SECONDS,
-        'display' => __('Monthly', 'orabooks'),
+        'display'  => __('Monthly', 'orabooks'),
     ];
     return $schedules;
 }
 
 // Admin menu
 add_action('admin_menu', 'orabooks_admin_menu');
-function orabooks_admin_menu()
-{
+function orabooks_admin_menu() {
     add_menu_page(
         'OraBooks',
         'OraBooks',
@@ -481,7 +441,7 @@ function orabooks_admin_menu()
         'dashicons-chart-area',
         30
     );
-
+    
     add_submenu_page(
         'orabooks',
         'Organizations',
@@ -490,7 +450,7 @@ function orabooks_admin_menu()
         'orabooks-orgs',
         'orabooks_admin_orgs'
     );
-
+    
     add_submenu_page(
         'orabooks',
         'Users & Teams',
@@ -499,7 +459,7 @@ function orabooks_admin_menu()
         'orabooks-users',
         'orabooks_admin_users'
     );
-
+    
     add_submenu_page(
         'orabooks',
         'Audit Log',
@@ -508,7 +468,7 @@ function orabooks_admin_menu()
         'orabooks-audit',
         'orabooks_admin_audit'
     );
-
+    
     add_submenu_page(
         'orabooks',
         'Settings',
@@ -517,7 +477,7 @@ function orabooks_admin_menu()
         'orabooks-settings',
         'orabooks_admin_settings'
     );
-
+    
     // Partner Approvals page - admin only
     add_submenu_page(
         'orabooks',
@@ -527,7 +487,7 @@ function orabooks_admin_menu()
         'orabooks-partners',
         'orabooks_admin_partners'
     );
-
+    
     // Partner Program page - visible to users with partner_commission_access
     add_submenu_page(
         'orabooks',
@@ -537,7 +497,7 @@ function orabooks_admin_menu()
         'orabooks-commissions',
         'orabooks_admin_commissions'
     );
-
+    
     // Notification Center - visible to all logged-in users
     add_submenu_page(
         'orabooks',
@@ -547,7 +507,7 @@ function orabooks_admin_menu()
         'orabooks-notifications',
         'orabooks_admin_notifications'
     );
-
+    
     // Async Queue Dashboard (admin only)
     add_submenu_page(
         'orabooks',
@@ -636,12 +596,11 @@ function orabooks_admin_menu()
         'orabooks_admin_csv_imports'
     );
 }
-
+                            
 /**
  * Nav items for React admin subnav (capability-filtered).
  */
-function orabooks_user_can_see_partner_program()
-{
+function orabooks_user_can_see_partner_program() {
     if (current_user_can('manage_options')) {
         return true;
     }
@@ -682,8 +641,7 @@ function orabooks_user_can_see_partner_program()
     return false;
 }
 
-function orabooks_get_admin_nav_items()
-{
+function orabooks_get_admin_nav_items() {
     $items = [];
 
     if (current_user_can('manage_options')) {
@@ -735,8 +693,7 @@ function orabooks_get_admin_nav_items()
 }
 
 add_action('admin_menu', 'orabooks_admin_menu_tweaks', 999);
-function orabooks_admin_menu_tweaks()
-{
+function orabooks_admin_menu_tweaks() {
     global $submenu;
     if (isset($submenu['orabooks'][0][0])) {
         $submenu['orabooks'][0][0] = __('Dashboard', 'orabooks');
@@ -744,8 +701,7 @@ function orabooks_admin_menu_tweaks()
 }
 
 add_filter('parent_file', 'orabooks_admin_parent_file');
-function orabooks_admin_parent_file($parent_file)
-{
+function orabooks_admin_parent_file($parent_file) {
     global $plugin_page;
     if (!empty($plugin_page) && strpos($plugin_page, 'orabooks') !== false) {
         return 'orabooks';
@@ -754,8 +710,7 @@ function orabooks_admin_parent_file($parent_file)
 }
 
 add_filter('submenu_file', 'orabooks_admin_submenu_file');
-function orabooks_admin_submenu_file($submenu_file)
-{
+function orabooks_admin_submenu_file($submenu_file) {
     global $plugin_page;
     if (!empty($plugin_page) && strpos($plugin_page, 'orabooks') !== false) {
         return $plugin_page;
@@ -764,8 +719,7 @@ function orabooks_admin_submenu_file($submenu_file)
 }
 
 // Admin page render functions
-function orabooks_admin_include($file, $vars = [])
-{
+function orabooks_admin_include($file, $vars = []) {
     $path = ORABOOKS_PLUGIN_DIR . 'admin/' . $file;
     if (!file_exists($path)) {
         echo '<div class="wrap"><h1>OraBooks</h1><p>' . esc_html__('Admin view not found.', 'orabooks') . '</p></div>';
@@ -779,56 +733,44 @@ function orabooks_admin_include($file, $vars = [])
     include $path;
 }
 
-function orabooks_admin_react_page($route)
-{
+function orabooks_admin_react_page($route) {
     orabooks_admin_include('app.php', [
         'orabooks_admin_route' => $route,
     ]);
 }
 
-function orabooks_admin_commissions()
-{
+function orabooks_admin_commissions() {
     orabooks_admin_react_page('/admin/commissions');
 }
-function orabooks_admin_notifications()
-{
+function orabooks_admin_notifications() {
     orabooks_admin_react_page('/admin/notifications');
 }
-function orabooks_admin_job_queue()
-{
+function orabooks_admin_job_queue() {
     orabooks_admin_react_page('/admin/job-queue');
 }
-function orabooks_admin_webhook_settings()
-{
+function orabooks_admin_webhook_settings() {
     orabooks_admin_react_page('/admin/webhook-settings');
 }
-function orabooks_admin_observability()
-{
+function orabooks_admin_observability() {
     orabooks_admin_react_page('/admin/observability');
 }
-function orabooks_admin_security()
-{
+function orabooks_admin_security() {
     orabooks_admin_react_page('/admin/security');
 }
-function orabooks_admin_exports()
-{
+function orabooks_admin_exports() {
     orabooks_admin_react_page('/admin/exports');
 }
-function orabooks_admin_csv_imports()
-{
+function orabooks_admin_csv_imports() {
     orabooks_admin_react_page('/admin/csv-imports');
 }
-function orabooks_admin_coa()
-{
+function orabooks_admin_coa() {
     orabooks_admin_react_page('/admin/coa');
 }
 
-function orabooks_admin_customers()
-{
+function orabooks_admin_customers() {
     orabooks_admin_react_page('/admin/customers');
 }
-function orabooks_admin_dashboard()
-{
+function orabooks_admin_dashboard() {
     if (current_user_can('manage_options')) {
         orabooks_admin_react_page('/admin/dashboard');
     } elseif (orabooks_user_can_see_partner_program()) {
@@ -838,50 +780,43 @@ function orabooks_admin_dashboard()
     }
 }
 
-function orabooks_admin_partners()
-{
+function orabooks_admin_partners() {
     orabooks_admin_react_page('/admin/partners');
 }
 
-function orabooks_admin_orgs()
-{
+function orabooks_admin_orgs() {
     orabooks_admin_react_page('/admin/organizations');
 }
 
-function orabooks_admin_users()
-{
+function orabooks_admin_users() {
     orabooks_admin_react_page('/admin/users');
 }
 
-function orabooks_admin_audit()
-{
+function orabooks_admin_audit() {
     orabooks_admin_react_page('/admin/audit');
 }
 
-function orabooks_admin_settings()
-{
+function orabooks_admin_settings() {
     orabooks_admin_react_page('/admin/settings');
 }
 
 // ============================================
-//: Google OIDC Rewrite Rules
+// SL-013: Google OIDC Rewrite Rules
 // ============================================
 add_action('init', 'orabooks_oidc_rewrite_rules');
-function orabooks_oidc_rewrite_rules()
-{
+function orabooks_oidc_rewrite_rules() {
     add_rewrite_tag('%orabooks_oidc%', '([^&]+)');
     add_rewrite_rule('^orabooks-google-login/?$', 'index.php?orabooks_oidc=initiate', 'top');
     add_rewrite_rule('^orabooks-google-callback/?$', 'index.php?orabooks_oidc=callback', 'top');
 }
 
 add_action('template_redirect', 'orabooks_oidc_route_handler');
-function orabooks_oidc_route_handler()
-{
+function orabooks_oidc_route_handler() {
     $action = get_query_var('orabooks_oidc');
     if (!$action) {
         return;
     }
-
+    
     if ($action === 'initiate') {
         // Redirect user to Google OAuth authorization URL
         $url = OraBooks_Auth::initiate_google_oauth();
@@ -891,24 +826,24 @@ function orabooks_oidc_route_handler()
         wp_redirect($url);
         exit;
     }
-
+    
     if ($action === 'callback') {
         $code = $_GET['code'] ?? '';
         $state = $_GET['state'] ?? '';
-
+        
         if (empty($code) || empty($state)) {
             wp_die('Missing authorization code or state parameter.');
         }
-
+        
         $result = OraBooks_Auth::handle_google_callback($code, $state);
-
+        
         if (is_wp_error($result)) {
             if ($result->get_error_code() === 'oidc_email_conflict') {
                 wp_die($result->get_error_message(), '', ['response' => 409]);
             }
             wp_die($result->get_error_message());
         }
-
+        
         // Login successful — redirect to org workspace with auth cookies set
         $result = orabooks_enrich_login_response($result);
         orabooks_persist_login_session($result);
@@ -925,8 +860,7 @@ function orabooks_oidc_route_handler()
 
 // Flush rewrite rules on activation
 add_action('after_switch_theme', 'orabooks_flush_rewrites');
-function orabooks_flush_rewrites()
-{
+function orabooks_flush_rewrites() {
     orabooks_oidc_rewrite_rules();
     flush_rewrite_rules();
 }
@@ -934,8 +868,7 @@ function orabooks_flush_rewrites()
 // Enqueue admin assets
 add_action('admin_enqueue_scripts', 'orabooks_admin_enqueue');
 
-function orabooks_admin_enqueue($hook)
-{
+function orabooks_admin_enqueue($hook) {
     if (strpos($hook, 'orabooks') === false) {
         return;
     }
@@ -955,8 +888,7 @@ function orabooks_admin_enqueue($hook)
 
 // Enqueue frontend assets
 add_action('wp_enqueue_scripts', 'orabooks_frontend_enqueue');
-function orabooks_frontend_enqueue()
-{
+function orabooks_frontend_enqueue() {
     if (!is_singular('page')) {
         return;
     }
@@ -989,8 +921,7 @@ add_action('wp_footer', ['OraBooks_Assets', 'maybe_enqueue_missed_frontend_asset
 
 // Add body classes on OraBooks frontend pages for full-width layout
 add_filter('body_class', 'orabooks_body_class');
-function orabooks_body_class($classes)
-{
+function orabooks_body_class($classes) {
     if (!is_singular('page')) {
         return $classes;
     }

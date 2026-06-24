@@ -4,7 +4,6 @@ import { api } from '../api';
 import ClientShell from '../components/ClientShell';
 import WpLink from '../components/WpLink';
 import { RefreshCw, ShieldCheck } from 'lucide-react';
-import { formatRegionLabel } from '@/lib/residency/sl004';
 
 export default function ProfilePage() {
   const [context, setContext] = useState<any>(null);
@@ -33,13 +32,7 @@ export default function ProfilePage() {
   };
 
   return (
-    <ClientShell
-      title="Profile"
-      eyebrow="User and role"
-      organization={org}
-      role={context?.role}
-      isPartner={isPartner}
-    >
+    <ClientShell title="Profile" eyebrow="User and role" organization={org} isPartner={isPartner}>
       <div className="space-y-5">
         <div className="flex justify-end">
           <Button onClick={load} variant="secondary" size="sm">
@@ -75,7 +68,6 @@ export default function ProfilePage() {
               <div className="mt-4 space-y-3">
                 <ProfileRow label="Name" value={org?.name || '—'} />
                 <ProfileRow label="Subdomain" value={org?.subdomain || '—'} />
-                <ProfileRow label="Data residency" value={formatRegionLabel(org?.region)} />
                 <ProfileRow label="Status" value={org?.status || '—'} />
                 <ProfileRow label="Type" value={org?.organization_type || '—'} />
                 {!isPartner && <ProfileRow label="Plan" value={org?.tier || '—'} />}

@@ -2,13 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react';
 import Button from '@/components/Button';
 import Input from '@/components/Input';
 import { api } from '@/pages/frontend/api';
-import {
-  buildSubdomainPreview,
-  getTenantDomainSuffix,
-  normalizeSubdomain,
-  RESIDENCY_REGIONS,
-  validateSubdomainFormat,
-} from '@/lib/residency/sl004';
+import { getTenantDomainSuffix } from '@/lib/utils';
 import {
   clearTierSelectionToken,
   getNetworkAuthUrl,
@@ -16,6 +10,12 @@ import {
   redirectAfterAuth,
   storeTierSelectionToken,
 } from '../lib/auth-routing';
+
+const REGIONS = [
+  { id: 'us-east', label: 'US East' },
+  { id: 'eu-west-1', label: 'EU West' },
+  { id: 'ap-southeast-1', label: 'Asia Pacific' },
+];
 
 export default function TierSelectionPage() {
   const tenantDomainSuffix = getTenantDomainSuffix();
@@ -27,9 +27,6 @@ export default function TierSelectionPage() {
   const [msg, setMsg] = useState('');
   const [loading, setLoading] = useState(false);
   const [confirmedPermanent, setConfirmedPermanent] = useState(false);
-
-  const normalizedSubdomain = normalizeSubdomain(subdomain);
-  const subdomainPreview = buildSubdomainPreview(normalizedSubdomain);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -47,16 +44,10 @@ export default function TierSelectionPage() {
   }, []);
 
   const checkSubdomain = async () => {
-    const validationError = validateSubdomainFormat(normalizedSubdomain);
-    if (validationError) {
-      setAvailable(false);
-      setMsg(validationError);
-      return;
-    }
-
+    if (!subdomain) return;
     setChecking(true);
     setAvailable(null);
-    const res = await api.post('orabooks_check_subdomain', { subdomain: normalizedSubdomain });
+    const res = await api.post('orabooks_check_subdomain', { subdomain });
     if (res.error) {
       const message = typeof res.error === 'string' ? res.error : 'Unable to check subdomain availability.';
       if (message.toLowerCase().includes('too many')) {
@@ -80,14 +71,6 @@ export default function TierSelectionPage() {
       setMsg('Your tier-selection session expired. Please log in again.');
       return;
     }
-
-    const validationError = validateSubdomainFormat(normalizedSubdomain);
-    if (validationError) {
-      setAvailable(false);
-      setMsg(validationError);
-      return;
-    }
-
     if (available !== true) {
       setMsg('Please check subdomain availability and choose an available name.');
       return;
@@ -102,11 +85,7 @@ export default function TierSelectionPage() {
     }
 
     setLoading(true);
-    const payload: Record<string, string> = {
-      tier,
-      subdomain: normalizedSubdomain,
-      tier_selection_token: tierToken,
-    };
+    const payload: Record<string, string> = { tier, subdomain, tier_selection_token: tierToken };
     if (tier === 'enterprise') {
       payload.region = region;
     }
@@ -151,7 +130,7 @@ export default function TierSelectionPage() {
             ))}
           </div>
 
-          {tier === 'enterprise' ? (
+          {tier === 'enterprise' && (
             <div>
               <label className="mb-1.5 block text-sm font-medium text-slate-700">Data residency region</label>
               <select
@@ -160,42 +139,22 @@ export default function TierSelectionPage() {
                 className="w-full rounded-lg border border-border bg-white px-3 py-2 text-sm"
                 required
               >
-                {RESIDENCY_REGIONS.map((r) => (
+                {REGIONS.map((r) => (
                   <option key={r.id} value={r.id}>{r.label}</option>
                 ))}
               </select>
-              <p className="mt-1.5 text-xs text-slate-500">
-                Enterprise organizations store data in the region you select. Super admins can queue a migration later if needed.
-              </p>
             </div>
-          ) : (
-            <p className="rounded-xl border border-border bg-slate-50 p-3 text-sm text-slate-600">
-              Data residency for {tier} plans is assigned automatically to <strong>US East</strong>.
-            </p>
           )}
 
           <div>
             <label className="mb-1.5 block text-sm font-medium text-slate-700">Choose subdomain</label>
             <div className="flex gap-2">
-              <Input
-                value={subdomain}
-                onChange={(e) => {
-                  setSubdomain(e.target.value);
-                  setAvailable(null);
-                }}
-                onBlur={() => setSubdomain(normalizeSubdomain(subdomain))}
-                placeholder="mycompany"
-                required
-                className="flex-1"
-              />
+              <Input value={subdomain} onChange={(e) => { setSubdomain(e.target.value); setAvailable(null); }} placeholder="mycompany" required className="flex-1" />
               <Button type="button" variant="secondary" onClick={checkSubdomain} loading={checking} className="whitespace-nowrap">
                 Check availability
               </Button>
             </div>
-            <p className="mt-1.5 text-xs text-slate-500">
-              Your workspace URL: <span className="font-mono">{subdomainPreview}</span>
-            </p>
-            <p className="mt-1 text-xs text-slate-500">Tenant suffix: {tenantDomainSuffix}</p>
+            <p className="mt-1.5 text-xs text-slate-500">{tenantDomainSuffix}</p>
             {available !== null && (
               <p className={`mt-1.5 text-xs font-medium ${available ? 'text-success' : 'text-danger'}`}>
                 {available ? '✓ Available' : `✗ ${msg || 'Not available'}`}

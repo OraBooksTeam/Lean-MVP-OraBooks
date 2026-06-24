@@ -69,9 +69,6 @@ class OraBooks_Deploy_Checks_Test extends TestCase
             'orabooks_async_queue_archive' => time() + 86400,
             'orabooks_daily_active_status_refresh' => time() + 7200,
             'orabooks_team_cleanup_expired_invites' => time() + 86400,
-            'orabooks_approval_expire_stale' => time() + 3600,
-            'orabooks_approval_escalate_overdue' => time() + 3600,
-            'orabooks_approval_expiry_reminders' => time() + 3600,
         ];
 
         $wpdb->test_get_var_callback = function ($query) {
@@ -114,9 +111,6 @@ class OraBooks_Deploy_Checks_Test extends TestCase
             'orabooks_async_queue_archive' => time() + 86400,
             'orabooks_daily_active_status_refresh' => time() + 7200,
             'orabooks_team_cleanup_expired_invites' => time() + 86400,
-            'orabooks_approval_expire_stale' => time() + 3600,
-            'orabooks_approval_escalate_overdue' => time() + 3600,
-            'orabooks_approval_expiry_reminders' => time() + 3600,
         ];
 
         $wpdb->test_get_var_callback = function ($query) {
@@ -148,7 +142,7 @@ class OraBooks_Deploy_Checks_Test extends TestCase
 
         $repaired = OraBooks_DeployChecks::ensure_mvp_cron_schedules();
 
-        $this->assertCount(8, $repaired);
+        $this->assertCount(5, $repaired);
         $this->assertContains('orabooks_async_queue_process', $repaired);
         $this->assertContains('orabooks_async_queue_archive', $repaired);
 

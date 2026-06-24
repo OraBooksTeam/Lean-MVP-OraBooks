@@ -2,7 +2,6 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import FrontendRoutes from './App';
 import ExportTriggerButton from '@/components/platform/ExportTriggerButton';
-import { enforceHttpsIfRequired } from '@/lib/security/sl008';
 import { registerOraBooksPwa } from '@/lib/pwa/register-pwa';
 import { absorbAuthTokensFromUrl } from './lib/auth-routing';
 import { migrateLegacyHashUrl } from './lib/wp-routing';
@@ -98,7 +97,6 @@ function bootFrontend() {
   }
 
   migrateLegacyHashUrl();
-  enforceHttpsIfRequired();
 
   registerOraBooksPwa();
   bootExportWidgets();

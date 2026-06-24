@@ -73,21 +73,16 @@ export default function RegisterPage() {
       const res = await api.register({
         email,
         password,
-        user_type: invitedFlow ? 'customer' : userType,
-        partner_type: invitedFlow ? 'individual' : partnerType,
-        organization_name: invitedFlow ? '' : orgName,
-        partner_code: invitedFlow ? '' : partnerCode,
+        user_type: userType,
+        partner_type: partnerType,
+        organization_name: orgName,
+        partner_code: partnerCode,
         accept_terms: acceptTerms ? 1 : 0,
         terms_version: '1.0',
       });
       if (res.error) setError(typeof res.error === 'string' ? res.error : 'Registration failed');
       else {
-        try {
-          window.sessionStorage.setItem('orabooks_pending_verification_email', email);
-        } catch {
-          // sessionStorage may be unavailable in strict contexts
-        }
-        window.location.replace(getNetworkAuthUrl('verify-email', { registered: '1' }));
+        window.location.replace(getNetworkAuthUrl('verify-email'));
       }
     } finally {
       setLoading(false);

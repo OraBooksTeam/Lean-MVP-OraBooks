@@ -1,7 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { RouterProvider, createHashRouter } from 'react-router-dom';
-import { enforceHttpsIfRequired } from '@/lib/security/sl008';
 import AdminRoutes from './routes';
 import { mountStandaloneApp } from './standalone';
 import '@/styles/index.css';
@@ -21,8 +20,6 @@ function showAdminBootError(root: HTMLElement, message: string) {
 }
 
 function bootAdmin() {
-  enforceHttpsIfRequired();
-
   const adminRoot = document.getElementById('orabooks-admin-root');
   if (!adminRoot) {
     return;

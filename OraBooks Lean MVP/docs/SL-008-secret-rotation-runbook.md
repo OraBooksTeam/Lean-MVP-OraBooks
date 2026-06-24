@@ -1,4 +1,4 @@
-# Secrets & TLS — Operations Runbook
+# SL-008 Secrets & TLS — Operations Runbook
 
 This runbook covers secret rotation, TLS provisioning, and database encryption for OraBooks Lean MVP production deployments.
 
@@ -9,10 +9,10 @@ This runbook covers secret rotation, TLS provisioning, and database encryption f
 
 ```json
 {
- "jwt_secret": "64+ character random string",
- "encryption_key": "32+ character random string",
- "google_oauth_client_id": "...",
- "google_oauth_client_secret": "..."
+  "jwt_secret": "64+ character random string",
+  "encryption_key": "32+ character random string",
+  "google_oauth_client_id": "...",
+  "google_oauth_client_secret": "..."
 }
 ```
 
@@ -28,7 +28,7 @@ Never commit secrets to source control.
 | JWT signing key | 30 days | 24h grace via `OraBooks_Secrets::rotate_secret('jwt_secret', $new)` |
 | Encryption key | 90 days | Re-encrypt at-rest fields during maintenance window |
 | Database password | 90 days | Coordinate with hosting / RDS |
-| Google OAuth client secret | On compromise | Update env + `OraBooks_Secrets::clear_secrets_cache` |
+| Google OAuth client secret | On compromise | Update env + `OraBooks_Secrets::clear_secrets_cache()` |
 
 Monthly cron `orabooks_security_secret_rotation_reminder` notifies platform admins when JWT/encryption rotation is overdue (90-day policy in `OraBooks_Security`).
 
@@ -53,7 +53,7 @@ OraBooks_Secrets::rotate_secret('jwt_secret', $new);
 
 OraBooks enforces HTTPS in production via:
 
-- `OraBooks_Secrets::maybe_enforce_https` — HTTP → HTTPS 301 redirect
+- `OraBooks_Secrets::maybe_enforce_https()` — HTTP → HTTPS 301 redirect
 - `Strict-Transport-Security` header when SSL is active
 - Weekly `orabooks_security_header_check` cron — certificate expiry warnings
 
@@ -62,8 +62,8 @@ OraBooks enforces HTTPS in production via:
 - [ ] Terminate TLS 1.2+ at load balancer or web server (nginx, Apache, Cloudflare, Azure Front Door).
 - [ ] Use **Let's Encrypt** (certbot / ACME) or enterprise CA certificates.
 - [ ] Auto-renew certificates before expiry (30-day warning logged as `tls_certificate_expiring`).
-- [ ] Ensure `home_url` and `siteurl` use `https://`.
-- [ ] Run deploy checks: `OraBooks_DeployChecks::run` — `tls_certificate` row must pass.
+- [ ] Ensure `home_url()` and `siteurl` use `https://`.
+- [ ] Run deploy checks: `OraBooks_DeployChecks::run()` — `tls_certificate` row must pass.
 
 ## Database TLS
 
@@ -86,7 +86,7 @@ Custom hosts may use:
 
 ```php
 add_filter('orabooks_database_tls_verified', function ($verified, $indicators) {
- return true; // only if your platform provides TLS another way
+    return true; // only if your platform provides TLS another way
 }, 10, 2);
 ```
 
@@ -94,8 +94,8 @@ add_filter('orabooks_database_tls_verified', function ($verified, $indicators) {
 
 If required secrets or DB TLS fail validation in production:
 
-- `OraBooks_Secrets::is_ready` returns `false`
-- `orabooks_init` does not load auth, accounting, or other modules
+- `OraBooks_Secrets::is_ready()` returns `false`
+- `orabooks_init()` does not load auth, accounting, or other modules
 - Admin notice shown to `manage_options` users
 - All `orabooks_*` AJAX actions return HTTP 503
 
@@ -103,7 +103,7 @@ Fix configuration and reload PHP / clear opcode cache.
 
 ## Logging rules
 
-- Secrets are never logged in plaintext — use `OraBooks_Secrets::mask_value` / `redact_sensitive`.
+- Secrets are never logged in plaintext — use `OraBooks_Secrets::mask_value()` / `redact_sensitive()`.
 - Events: `secret_accessed`, `secret_rotated`, `secrets_bootstrap_failed`, `tls_certificate_expiring`, `database_tls_not_configured`.
 
 ## Tests

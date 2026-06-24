@@ -56,7 +56,7 @@ export default function JournalsPage() {
   const [detailTab, setDetailTab] = useState<'lines' | 'history'>('lines');
   const [mfaThreshold, setMfaThreshold] = useState(10000);
   const [rejectModalOpen, setRejectModalOpen] = useState(false);
-  const [mfaModal, setMfaModal] = useState({ open: false, code: '', error: '' });
+  const [mfaModal, setMfaModal] = useState({ open: false, code: '' });
 
   const orgId = context?.organization?.id;
   const currentUserId = context?.user?.id;
@@ -130,30 +130,11 @@ export default function JournalsPage() {
     if (!selectedJournal) return;
     const amount = Number(selectedJournal.total_amount || 0);
     if (amount >= mfaThreshold && !mfaOtp) {
-      setMfaModal({ open: true, code: '', error: '' });
+      setMfaModal({ open: true, code: '' });
       return;
     }
-
-    setActionLoading(true);
-    setError('');
-    setSuccess('');
-    const res = await api.approveJournal(selectedJournal.id, mfaOtp);
-    if (res.error) {
-      if (mfaOtp) {
-        setMfaModal((prev) => ({
-          ...prev,
-          error: res.error || 'Invalid 2FA code. Try again.',
-        }));
-      } else {
-        setError(res.error);
-      }
-    } else {
-      setSuccess('Journal approved.');
-      setMfaModal({ open: false, code: '', error: '' });
-      await load();
-      if (selectedId) await loadDetail(selectedId);
-    }
-    setActionLoading(false);
+    await runAction(() => api.approveJournal(selectedJournal.id, mfaOtp), 'Journal approved.');
+    setMfaModal({ open: false, code: '' });
   };
 
   const runAction = async (action: () => Promise<any>, successMessage: string) => {
@@ -535,18 +516,17 @@ export default function JournalsPage() {
         confirmLabel="Verify & Approve"
         confirmDisabled={mfaModal.code.trim().length < 6}
         loading={actionLoading}
-        onClose={() => setMfaModal({ open: false, code: '', error: '' })}
+        onClose={() => setMfaModal({ open: false, code: '' })}
         onConfirm={() => void approveJournal(mfaModal.code.trim())}
       >
         <Input
           label="6-digit code"
           value={mfaModal.code}
-          onChange={(e) => setMfaModal({ open: true, code: e.target.value.replace(/\D/g, '').slice(0, 6), error: '' })}
+          onChange={(e) => setMfaModal({ open: true, code: e.target.value.replace(/\D/g, '').slice(0, 6) })}
           placeholder="000000"
           inputMode="numeric"
           autoComplete="one-time-code"
         />
-        {mfaModal.error && <p className="text-sm text-danger">{mfaModal.error}</p>}
       </WorkflowModal>
     </ClientShell>
   );

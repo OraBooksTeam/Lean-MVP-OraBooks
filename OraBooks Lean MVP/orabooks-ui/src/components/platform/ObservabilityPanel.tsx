@@ -64,23 +64,13 @@ export default function ObservabilityPanel() {
             </div>
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
-            {['eventbus', 'async_queue', 'expense_ocr', 'notifications', 'exports'].map((key) => (
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            {['eventbus', 'async_queue', 'notifications', 'exports'].map((key) => (
               <div key={key} className="stat-card">
-                <p className="text-xs font-bold uppercase tracking-wide text-slate-500">
-                  {key.replace(/_/g, ' ')}
-                </p>
+                <p className="text-xs font-bold uppercase tracking-wide text-slate-500">{key.replace('_', ' ')}</p>
                 <p className="mt-2 text-xl font-bold text-ink">
                   {(snapshots[key]?.status || '—').toString().toUpperCase()}
                 </p>
-                {key === 'expense_ocr' && snapshots[key] && (
-                  <p className="mt-1 text-xs text-slate-500">
-                    Queue: {snapshots[key].queue_depth ?? 0} · Failed 24h: {snapshots[key].failed_24h ?? 0}
-                    {snapshots[key].avg_confidence_24h != null
-                      ? ` · Avg conf: ${snapshots[key].avg_confidence_24h}%`
-                      : ''}
-                  </p>
-                )}
               </div>
             ))}
           </div>

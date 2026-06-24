@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import WpLink from '../components/WpLink';
 
 import Button from '@/components/Button';
+import Input from '@/components/Input';
 import { api } from '../api';
 import ClientShell from '../components/ClientShell';
 import ResourceAttachmentsPanel from '../components/ResourceAttachmentsPanel';
@@ -16,52 +17,20 @@ import {
   isStandalonePwa,
   onOnline,
 } from '@/lib/pwa/register-pwa';
-import { Camera, CheckCircle2, CloudOff, Paperclip, Percent, Receipt, RefreshCw, Upload, XCircle } from 'lucide-react';
-import ClassificationPanel from '@/components/classification/ClassificationPanel';
-import ConfidenceBadge from '@/components/classification/ConfidenceBadge';
-import OverrideClassificationModal from '@/components/classification/OverrideClassificationModal';
-import { useClassificationPolling } from '@/components/classification/useClassificationPolling';
-import TaxOverrideModal, { type TaxConfig } from '@/components/tax/TaxOverrideModal';
-import ExpenseLineItemsPanel from '@/components/expenses/ExpenseLineItemsPanel';
-import ExpenseOcrField from '@/components/expenses/ExpenseOcrField';
-import OcrProcessingBanner from '@/components/expenses/OcrProcessingBanner';
-import PaymentStatusBadge from '@/components/expenses/PaymentStatusBadge';
-import { useExpenseOcrPolling } from '@/components/expenses/useExpenseOcrPolling';
+import { Camera, CheckCircle2, CloudOff, Paperclip, Percent, Receipt, RefreshCw, Sparkles, Upload, XCircle } from 'lucide-react';
 
 const fieldClass =
   'w-full rounded-lg border border-border bg-white px-3.5 py-2.5 text-sm text-ink shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20';
 
-const PAYMENT_STATUS_OPTIONS = [
-  { value: 'unpaid', label: 'Unpaid' },
-  { value: 'paid', label: 'Paid' },
-  { value: 'reimbursable', label: 'Reimbursable' },
-] as const;
+type TaxConfig = { jurisdiction: string; override_reasons?: string[] };
 
-function buildEditFields(expense: any): Record<string, string> {
-  return {
-    vendor: expense?.vendor || '',
-    vendor_tax_id: expense?.vendor_tax_id || '',
-    invoice_number: expense?.invoice_number || '',
-    transaction_date: expense?.transaction_date || '',
-    due_date: expense?.due_date || '',
-    subtotal: expense?.subtotal != null ? String(expense.subtotal) : '',
-    total_amount: expense?.total_amount != null ? String(expense.total_amount) : '',
-    tax_amount: expense?.tax_amount != null ? String(expense.tax_amount) : '',
-    category: expense?.category || '',
-    payment_method: expense?.payment_method || '',
-    payment_status: expense?.payment_status || 'unpaid',
-    merchant_address: expense?.merchant_address || '',
-    description: expense?.description || '',
-    account_code:
-      expense?.account_code ||
-      (expense?.classification?.status === 'processed' ? expense?.classification?.suggested_account_code || '' : ''),
-  };
-}
-
-function fieldConfidence(expense: any, fieldKey: string): number | null {
-  const value = expense?.ocr_data?.fields?.[fieldKey]?.confidence;
-  return value != null ? Number(value) : null;
-}
+const DEFAULT_REASONS = [
+  'WRONG_AI_CLASSIFICATION',
+  'LOCAL_TAX_RULE',
+  'MANUAL_JURISDICTION_ADJUSTMENT',
+  'CUSTOMER_EXEMPTION',
+  'REGIONAL_COMPLIANCE_OVERRIDE',
+];
 
 export default function ExpensesPage() {
   const [data, setData] = useState<any>(null);
@@ -75,7 +44,6 @@ export default function ExpensesPage() {
   const [confirming, setConfirming] = useState(false);
   const [actionId, setActionId] = useState<number | null>(null);
   const [classifying, setClassifying] = useState(false);
-  const [showClassOverride, setShowClassOverride] = useState(false);
   const [taxConfigs, setTaxConfigs] = useState<TaxConfig[]>([]);
   const [overrideExpense, setOverrideExpense] = useState<any>(null);
   const [overrideRate, setOverrideRate] = useState('');
@@ -93,12 +61,6 @@ export default function ExpensesPage() {
   const caps = data?.capabilities || {};
   const threshold = data?.threshold ?? 70;
   const maxMb = Math.round((data?.limits?.max_file_size || 10485760) / 1048576);
-  const expenseSettings = data?.expense_settings || {};
-  const autoPostOnApprove = Number(expenseSettings.auto_post_on_approve ?? 1);
-  const approveLabel = autoPostOnApprove ? 'Approve & Post' : 'Approve';
-  const canManageSettings =
-    data?.context?.permissions?.includes('manage_org_settings') || data?.context?.role === 'owner';
-  const [savingSettings, setSavingSettings] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -168,17 +130,25 @@ export default function ExpensesPage() {
 
   useEffect(() => {
     if (!orgId) return;
-    void api.taxOverrideReasons(orgId).then((res) => {
+    void api.taxListConfigs(orgId).then((res) => {
       const configs = (res as any).data?.configs || [];
       setTaxConfigs(configs);
     });
   }, [orgId]);
 
+  const reasonOptions = useMemo(() => {
+    const cfg = taxConfigs.find((c) => c.jurisdiction === overrideJurisdiction);
+    const reasons = cfg?.override_reasons?.length ? cfg.override_reasons : DEFAULT_REASONS;
+    return reasons;
+  }, [taxConfigs, overrideJurisdiction]);
+
+  const formatReason = (code: string) => code.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
+
   const openOverride = async (expense: any) => {
     setOverrideExpense(expense);
     setOverrideRate(String(Number(expense.tax_rate || 0)));
     setOverrideReason('');
-    setOverrideJurisdiction(expense.tax_jurisdiction || taxConfigs[0]?.jurisdiction || 'US');
+    setOverrideJurisdiction(taxConfigs[0]?.jurisdiction || 'US');
     setError('');
 
     if (orgId) {
@@ -247,41 +217,17 @@ export default function ExpensesPage() {
     else {
       const expense = (res as any).data?.expense;
       setSelectedExpense(expense);
-      setEditFields(buildEditFields(expense));
+      setEditFields({
+        vendor: expense?.vendor || '',
+        invoice_number: expense?.invoice_number || '',
+        transaction_date: expense?.transaction_date || '',
+        total_amount: expense?.total_amount != null ? String(expense.total_amount) : '',
+        tax_amount: expense?.tax_amount != null ? String(expense.tax_amount) : '',
+        category: expense?.category || '',
+        description: expense?.description || '',
+      });
     }
   };
-
-  const applyExpenseUpdate = useCallback((expense: Record<string, unknown>) => {
-    setSelectedExpense(expense);
-    setEditFields(buildEditFields(expense));
-  }, []);
-
-  const ocrPollingEnabled =
-    selectedExpense?.workflow_status === 'draft' &&
-    selectedExpense?.ocr_confidence == null &&
-    selectedExpense?.ocr_queue?.status !== 'failed';
-
-  useExpenseOcrPolling({
-    orgId,
-    expenseId: selectedExpense?.id,
-    enabled: ocrPollingEnabled,
-    onUpdate: applyExpenseUpdate,
-  });
-
-  useClassificationPolling({
-    recordType: 'expense',
-    recordId: selectedExpense?.id ?? 0,
-    enabled: selectedExpense?.classification?.status === 'pending',
-    onUpdate: (classification) => {
-      setSelectedExpense((prev: any) => (prev ? { ...prev, classification } : prev));
-      if (classification?.status === 'processed' && classification?.suggested_account_code) {
-        setEditFields((prev) => ({
-          ...prev,
-          account_code: prev.account_code || classification.suggested_account_code,
-        }));
-      }
-    },
-  });
 
   const handleUpload = async (fileOverride?: File | null) => {
     const file = fileOverride ?? selectedFile;
@@ -343,7 +289,6 @@ export default function ExpensesPage() {
 
     const res = await api.expenseConfirm(orgId, selectedExpense.id, idempotencyKey, {
       ...editFields,
-      subtotal: editFields.subtotal ? parseFloat(editFields.subtotal) : undefined,
       total_amount: parseFloat(editFields.total_amount || '0'),
       tax_amount: parseFloat(editFields.tax_amount || '0'),
     });
@@ -370,49 +315,11 @@ export default function ExpensesPage() {
     const res = await api.expenseApprove(orgId, expenseId);
     if (res.error) setError(res.error);
     else {
-      setSuccess(autoPostOnApprove ? 'Expense approved and posted.' : 'Expense approved.');
+      setSuccess('Expense approved and posted.');
       await load();
       if (selectedExpense?.id === expenseId) void loadExpense(expenseId);
     }
     setActionId(null);
-  };
-
-  const handlePost = async (expenseId: number) => {
-    if (!orgId) return;
-    setActionId(expenseId);
-    setError('');
-    const res = await api.expensePost(orgId, expenseId);
-    if (res.error) setError(res.error);
-    else {
-      setSuccess('Expense posted to ledger.');
-      await load();
-      if (selectedExpense?.id === expenseId) void loadExpense(expenseId);
-    }
-    setActionId(null);
-  };
-
-  const handleToggleAutoPost = async (enabled: boolean) => {
-    if (!orgId || savingSettings) return;
-    setSavingSettings(true);
-    setError('');
-    const res = await api.expenseSettingsSave(orgId, enabled);
-    if (res.error) {
-      setError(res.error);
-    } else {
-      setSuccess('Expense settings saved.');
-      setData((prev: any) =>
-        prev
-          ? {
-              ...prev,
-              expense_settings: (res as any).data?.settings || {
-                ...expenseSettings,
-                auto_post_on_approve: enabled ? 1 : 0,
-              },
-            }
-          : prev
-      );
-    }
-    setSavingSettings(false);
   };
 
   const handleReject = async (expenseId: number) => {
@@ -434,12 +341,6 @@ export default function ExpensesPage() {
   const pending = data?.pending_approval || [];
   const stats = data?.stats || {};
 
-  const ocrFailed = selectedExpense?.ocr_queue?.status === 'failed';
-  const canEditDraft =
-    selectedExpense?.workflow_status === 'draft' &&
-    (selectedExpense?.ocr_confidence != null || ocrFailed);
-  const canConfirmSubmit = caps.submit && canEditDraft;
-
   return (
     <ClientShell title="Expenses" eyebrow="Receipt OCR & approval" organization={data?.context?.organization}>
       <div className="space-y-5">
@@ -449,25 +350,6 @@ export default function ExpensesPage() {
           <Metric label="Awaiting Approval" value={(stats.submitted ?? 0) + (stats.ai_review ?? 0)} tone="warning" />
           <Metric label="Posted" value={stats.posted ?? 0} tone="success" />
         </div>
-
-        {canManageSettings && (
-          <div className="glass-panel p-5">
-            <h2 className="font-bold text-ink">Expense workflow</h2>
-            <p className="mt-1 text-sm text-slate-600">
-              When enabled, approving an expense also posts it to the ledger.
-            </p>
-            <label className="mt-4 flex items-center gap-2 text-sm font-medium text-ink">
-              <input
-                type="checkbox"
-                checked={Boolean(autoPostOnApprove)}
-                disabled={savingSettings}
-                onChange={(e) => void handleToggleAutoPost(e.target.checked)}
-                className="h-4 w-4 rounded border-border text-primary focus:ring-primary/30"
-              />
-              Auto-post on approve
-            </label>
-          </div>
-        )}
 
         {caps.upload && (
           <div className="glass-panel p-5">
@@ -506,7 +388,7 @@ export default function ExpensesPage() {
               </div>
               <Button onClick={() => void handleUpload()} disabled={uploading || !selectedFile}>
                 <Receipt className="h-4 w-4" />
-                {uploading ? 'Uploading...' : 'Upload Receipt'}
+                {uploading ? 'Processing...' : 'Upload Receipt'}
               </Button>
               {showMobileCamera && (
                 <Button
@@ -566,19 +448,9 @@ export default function ExpensesPage() {
               </div>
               <div className="flex flex-wrap gap-2">
                 {selectedExpense.ocr_confidence != null && (
-                  <PaymentStatusBadge status={selectedExpense.payment_status} />
-                )}
-                {selectedExpense.ocr_confidence != null && (
                   <ConfidenceBadge value={selectedExpense.ocr_confidence} threshold={threshold} />
                 )}
-                {selectedExpense.ocr_confidence != null && selectedExpense.ocr_risk_level && (
-                  <RiskBadge level={selectedExpense.ocr_risk_level} />
-                )}
-                {selectedExpense.ocr_provider && (
-                  <span className="inline-flex items-center rounded-full border border-border bg-white px-2 py-0.5 text-xs text-slate-600">
-                    {selectedExpense.ocr_provider}
-                  </span>
-                )}
+                {selectedExpense.ocr_risk_level && <RiskBadge level={selectedExpense.ocr_risk_level} />}
                 {selectedExpense.tax_rate != null && (
                   <span className="inline-flex items-center gap-1 rounded-full border border-border bg-white px-2 py-0.5 text-xs text-slate-600">
                     <Percent className="h-3 w-3" />
@@ -588,137 +460,32 @@ export default function ExpensesPage() {
               </div>
             </div>
 
-            <OcrProcessingBanner
-              ocrConfidence={selectedExpense.ocr_confidence}
-              ocrQueue={selectedExpense.ocr_queue}
-            />
-
-            {canEditDraft ? (
+            {selectedExpense.workflow_status === 'draft' && selectedExpense.ocr_confidence != null ? (
               <div className="mt-4 grid gap-4 md:grid-cols-2">
-                <ExpenseOcrField
-                  label="Vendor"
-                  fieldKey="vendor"
-                  value={editFields.vendor || ''}
-                  threshold={threshold}
-                  fieldConfidence={fieldConfidence(selectedExpense, 'vendor')}
-                  onChange={(value) => setEditFields((prev) => ({ ...prev, vendor: value }))}
-                />
-                <ExpenseOcrField
-                  label="Invoice number"
-                  fieldKey="invoice_number"
-                  value={editFields.invoice_number || ''}
-                  threshold={threshold}
-                  fieldConfidence={fieldConfidence(selectedExpense, 'invoice_number')}
-                  onChange={(value) => setEditFields((prev) => ({ ...prev, invoice_number: value }))}
-                />
-                <ExpenseOcrField
-                  label="Transaction date"
-                  fieldKey="transaction_date"
-                  type="date"
-                  value={editFields.transaction_date || ''}
-                  threshold={threshold}
-                  fieldConfidence={fieldConfidence(selectedExpense, 'transaction_date')}
-                  onChange={(value) => setEditFields((prev) => ({ ...prev, transaction_date: value }))}
-                />
-                <ExpenseOcrField
-                  label="Due date"
-                  fieldKey="due_date"
-                  type="date"
-                  value={editFields.due_date || ''}
-                  threshold={threshold}
-                  fieldConfidence={fieldConfidence(selectedExpense, 'due_date')}
-                  onChange={(value) => setEditFields((prev) => ({ ...prev, due_date: value }))}
-                />
-                <ExpenseOcrField
-                  label="Subtotal"
-                  fieldKey="subtotal"
-                  type="number"
-                  value={editFields.subtotal || ''}
-                  threshold={threshold}
-                  fieldConfidence={fieldConfidence(selectedExpense, 'subtotal')}
-                  onChange={(value) => setEditFields((prev) => ({ ...prev, subtotal: value }))}
-                />
-                <ExpenseOcrField
-                  label="Tax amount"
-                  fieldKey="tax_amount"
-                  type="number"
-                  value={editFields.tax_amount || ''}
-                  threshold={threshold}
-                  fieldConfidence={fieldConfidence(selectedExpense, 'tax_amount')}
-                  onChange={(value) => setEditFields((prev) => ({ ...prev, tax_amount: value }))}
-                />
-                <ExpenseOcrField
-                  label="Total amount"
-                  fieldKey="total_amount"
-                  type="number"
-                  value={editFields.total_amount || ''}
-                  threshold={threshold}
-                  fieldConfidence={fieldConfidence(selectedExpense, 'total_amount')}
-                  onChange={(value) => setEditFields((prev) => ({ ...prev, total_amount: value }))}
-                />
-                <ExpenseOcrField
-                  label="Category"
-                  fieldKey="category"
-                  value={editFields.category || ''}
-                  threshold={threshold}
-                  fieldConfidence={fieldConfidence(selectedExpense, 'category')}
-                  onChange={(value) => setEditFields((prev) => ({ ...prev, category: value }))}
-                />
-                <ExpenseOcrField
-                  label="Payment method"
-                  fieldKey="payment_method"
-                  value={editFields.payment_method || ''}
-                  threshold={threshold}
-                  onChange={(value) => setEditFields((prev) => ({ ...prev, payment_method: value }))}
-                />
-                <ExpenseOcrField
-                  label="Account code"
-                  fieldKey="account_code"
-                  value={editFields.account_code || ''}
-                  threshold={threshold}
-                  onChange={(value) => setEditFields((prev) => ({ ...prev, account_code: value }))}
-                />
-                <label className="block text-sm">
-                  <span className="mb-1 block font-semibold text-slate-700">Payment status</span>
-                  <select
-                    className={fieldClass}
-                    value={editFields.payment_status || 'unpaid'}
-                    onChange={(e) => setEditFields((prev) => ({ ...prev, payment_status: e.target.value }))}
-                  >
-                    {PAYMENT_STATUS_OPTIONS.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <ExpenseOcrField
-                  label="Vendor tax ID"
-                  fieldKey="vendor_tax_id"
-                  value={editFields.vendor_tax_id || ''}
-                  threshold={threshold}
-                  onChange={(value) => setEditFields((prev) => ({ ...prev, vendor_tax_id: value }))}
-                />
-                <label className="block text-sm md:col-span-2">
-                  <span className="mb-1 block font-semibold text-slate-700">Merchant address</span>
-                  <textarea
-                    className={fieldClass}
-                    rows={2}
-                    value={editFields.merchant_address || ''}
-                    onChange={(e) => setEditFields((prev) => ({ ...prev, merchant_address: e.target.value }))}
-                  />
-                </label>
+                {(['vendor', 'invoice_number', 'transaction_date', 'total_amount', 'tax_amount', 'category'] as const).map(
+                  (field) => (
+                    <label key={field} className="block text-sm">
+                      <span className="mb-1 block font-semibold capitalize text-slate-700">
+                        {field.replace('_', ' ')}
+                      </span>
+                      <input
+                        className={fieldClass}
+                        value={editFields[field] || ''}
+                        onChange={(e) => setEditFields((prev) => ({ ...prev, [field]: e.target.value }))}
+                      />
+                    </label>
+                  )
+                )}
                 <label className="block text-sm md:col-span-2">
                   <span className="mb-1 block font-semibold text-slate-700">Description</span>
-                  <textarea
+                  <input
                     className={fieldClass}
-                    rows={2}
                     value={editFields.description || ''}
                     onChange={(e) => setEditFields((prev) => ({ ...prev, description: e.target.value }))}
                   />
                 </label>
               </div>
-            ) : selectedExpense.workflow_status === 'draft' ? null : (
+            ) : (
               <div className="mt-4 grid gap-2 text-sm text-slate-700 md:grid-cols-2">
                 <p>
                   <strong>Vendor:</strong> {selectedExpense.vendor || '—'}
@@ -732,21 +499,15 @@ export default function ExpensesPage() {
                 <p>
                   <strong>Category:</strong> {selectedExpense.category || '—'}
                 </p>
-                <p>
-                  <strong>Payment:</strong> {selectedExpense.payment_status || 'unpaid'}
-                </p>
               </div>
             )}
 
-            <ExpenseLineItemsPanel lineItems={selectedExpense.line_items} threshold={threshold} />
-
-            {selectedExpense.classification && selectedExpense.ocr_confidence != null && (
+            {selectedExpense.classification && (
               <ClassificationPanel
                 classification={selectedExpense.classification}
                 threshold={threshold}
                 canManage={!!caps.submit}
                 loading={classifying}
-                recordType="expense"
                 onApply={async () => {
                   if (!selectedExpense?.id) return;
                   setClassifying(true);
@@ -758,7 +519,6 @@ export default function ExpensesPage() {
                   }
                   setClassifying(false);
                 }}
-                onOverride={() => setShowClassOverride(true)}
                 onRerun={async () => {
                   if (!selectedExpense?.id) return;
                   setClassifying(true);
@@ -772,30 +532,6 @@ export default function ExpensesPage() {
                 }}
               />
             )}
-
-            <OverrideClassificationModal
-              open={showClassOverride}
-              accountCode={selectedExpense.classification?.suggested_account_code || editFields.account_code || ''}
-              taxRate={
-                selectedExpense.classification?.tax_hints?.tax_rate != null
-                  ? String(selectedExpense.classification.tax_hints.tax_rate)
-                  : ''
-              }
-              saving={classifying}
-              onClose={() => setShowClassOverride(false)}
-              onSubmit={async (accountCode, taxRate) => {
-                if (!selectedExpense?.id) return;
-                setClassifying(true);
-                const res = await api.classificationOverride('expense', selectedExpense.id, accountCode, taxRate);
-                if (res.error) setError(res.error);
-                else {
-                  setSuccess('Classification overridden.');
-                  setShowClassOverride(false);
-                  await loadExpense(selectedExpense.id);
-                }
-                setClassifying(false);
-              }}
-            />
 
             {orgId && selectedExpense?.id && (
               <div className="mt-4">
@@ -823,10 +559,10 @@ export default function ExpensesPage() {
                   </Button>
                 </WpLink>
               )}
-              {canConfirmSubmit && (
+              {caps.submit && selectedExpense.workflow_status === 'draft' && selectedExpense.ocr_confidence != null && (
                 <Button onClick={() => void handleConfirm()} disabled={confirming}>
                   <CheckCircle2 className="h-4 w-4" />
-                  {confirming ? 'Submitting...' : ocrFailed ? 'Submit manually' : 'Confirm & Submit'}
+                  {confirming ? 'Submitting...' : 'Confirm & Submit'}
                 </Button>
               )}
               {selectedExpense.workflow_status === 'draft' && (caps.submit || caps.approve) && (
@@ -839,16 +575,8 @@ export default function ExpensesPage() {
                 ['submitted', 'ai_review'].includes(selectedExpense.workflow_status) && (
                   <>
                     <Button disabled={actionId === selectedExpense.id} onClick={() => void handleApprove(selectedExpense.id)}>
-                      {approveLabel}
+                      Approve
                     </Button>
-                    {!autoPostOnApprove && selectedExpense.workflow_status === 'approved' && caps.post && (
-                      <Button
-                        disabled={actionId === selectedExpense.id}
-                        onClick={() => void handlePost(selectedExpense.id)}
-                      >
-                        Post
-                      </Button>
-                    )}
                     <Button
                       variant="secondary"
                       disabled={actionId === selectedExpense.id}
@@ -888,9 +616,6 @@ export default function ExpensesPage() {
             onApprove={caps.approve ? (id) => void handleApprove(id) : undefined}
             onReject={caps.approve ? (id) => void handleReject(id) : undefined}
             actionId={actionId}
-            approveLabel={approveLabel}
-            showPostAction={!autoPostOnApprove && !!caps.post}
-            onPost={caps.post ? (id) => void handlePost(id) : undefined}
           />
         )}
 
@@ -900,34 +625,84 @@ export default function ExpensesPage() {
           loading={loading}
           onSelect={(id) => void loadExpense(id)}
           onOverride={(expense) => void openOverride(expense)}
-          canOverride={!!caps.override_tax}
+          canOverride={!!(caps.submit || caps.approve)}
           actionId={actionId}
-          approveLabel={approveLabel}
-          showPostAction={!autoPostOnApprove && !!caps.post}
-          onPost={caps.post ? (id) => void handlePost(id) : undefined}
         />
 
-        <TaxOverrideModal
-          open={Boolean(overrideExpense)}
-          title="Override tax"
-          subtitle={overrideExpense?.vendor || (overrideExpense ? `Expense #${overrideExpense.id}` : '')}
-          taxRate={overrideRate}
-          reasonCode={overrideReason}
-          jurisdiction={overrideJurisdiction}
-          taxConfigs={taxConfigs}
-          taxLocked={taxLocked}
-          saving={saving}
-          error={overrideExpense ? error : undefined}
-          hasExistingOverride={Boolean(overrideExpense?.tax_override_reason)}
-          currency={overrideExpense?.currency}
-          preview={overridePreview ? { newTax: overridePreview.newTax, newTotal: overridePreview.newTotal } : null}
-          onClose={() => setOverrideExpense(null)}
-          onTaxRateChange={setOverrideRate}
-          onReasonChange={setOverrideReason}
-          onJurisdictionChange={setOverrideJurisdiction}
-          onApply={() => void handleApplyOverride()}
-          onClear={() => void handleClearOverride()}
-        />
+        {overrideExpense && (
+          <Modal title="Override tax" onClose={() => setOverrideExpense(null)}>
+            <p className="mb-4 text-sm text-slate-600">
+              {overrideExpense.vendor || `Expense #${overrideExpense.id}`}
+            </p>
+            {taxLocked && (
+              <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+                Tax is locked for this fiscal period.
+              </div>
+            )}
+            {error && <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div>}
+            <div className="grid gap-4">
+              <Field label="Jurisdiction">
+                <select
+                  value={overrideJurisdiction}
+                  onChange={(e) => setOverrideJurisdiction(e.target.value)}
+                  disabled={taxLocked}
+                  className={fieldClass}
+                >
+                  {(taxConfigs.length ? taxConfigs : [{ jurisdiction: 'US' }]).map((c) => (
+                    <option key={c.jurisdiction} value={c.jurisdiction}>
+                      {c.jurisdiction}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+              <Field label="New tax rate (%)">
+                <Input
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="0.01"
+                  value={overrideRate}
+                  onChange={(e) => setOverrideRate(e.target.value)}
+                  disabled={taxLocked}
+                />
+              </Field>
+              <Field label="Reason code">
+                <select
+                  value={overrideReason}
+                  onChange={(e) => setOverrideReason(e.target.value)}
+                  disabled={taxLocked}
+                  className={fieldClass}
+                >
+                  <option value="">Select a reason…</option>
+                  {reasonOptions.map((r) => (
+                    <option key={r} value={r}>
+                      {formatReason(r)}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+              {overridePreview && (
+                <div className="rounded-lg border border-border bg-slate-50 p-3 text-sm">
+                  <div>New tax: {money(overridePreview.newTax)}</div>
+                  <div className="font-semibold">New total: {money(overridePreview.newTotal)}</div>
+                </div>
+              )}
+            </div>
+            <div className="mt-6 flex flex-wrap justify-end gap-2">
+              {overrideExpense.tax_override_reason && (
+                <Button variant="secondary" onClick={() => void handleClearOverride()} disabled={saving || taxLocked}>
+                  Clear override
+                </Button>
+              )}
+              <Button variant="secondary" onClick={() => setOverrideExpense(null)}>
+                Cancel
+              </Button>
+              <Button onClick={() => void handleApplyOverride()} disabled={saving || taxLocked || !overrideReason}>
+                Apply override
+              </Button>
+            </div>
+          </Modal>
+        )}
       </div>
     </ClientShell>
   );
@@ -940,12 +715,9 @@ function ExpenseTable({
   onSelect,
   onApprove,
   onReject,
-  onPost,
   onOverride,
   canOverride,
   actionId,
-  approveLabel = 'Approve',
-  showPostAction = false,
 }: {
   title: string;
   expenses: any[];
@@ -953,12 +725,9 @@ function ExpenseTable({
   onSelect: (id: number) => void;
   onApprove?: (id: number) => void;
   onReject?: (id: number) => void;
-  onPost?: (id: number) => void;
   onOverride?: (expense: any) => void;
   canOverride?: boolean;
   actionId: number | null;
-  approveLabel?: string;
-  showPostAction?: boolean;
 }) {
   return (
     <div className="glass-panel overflow-hidden">
@@ -972,7 +741,6 @@ function ExpenseTable({
             <th className="px-5 py-3 font-semibold">Date</th>
             <th className="px-5 py-3 text-right font-semibold">Amount</th>
             <th className="px-5 py-3 font-semibold">Workflow</th>
-            <th className="px-5 py-3 font-semibold">Payment</th>
             <th className="px-5 py-3 font-semibold">Risk</th>
             <th className="px-5 py-3 font-semibold">Confidence</th>
             <th className="px-5 py-3 font-semibold">Actions</th>
@@ -981,13 +749,13 @@ function ExpenseTable({
         <tbody className="divide-y divide-border">
           {loading ? (
             <tr>
-              <td colSpan={8} className="px-5 py-8 text-center text-slate-500">
+              <td colSpan={7} className="px-5 py-8 text-center text-slate-500">
                 Loading...
               </td>
             </tr>
           ) : expenses.length === 0 ? (
             <tr>
-              <td colSpan={8} className="px-5 py-8 text-center text-sm text-slate-500">
+              <td colSpan={7} className="px-5 py-8 text-center text-sm text-slate-500">
                 No expenses yet.
               </td>
             </tr>
@@ -1009,23 +777,9 @@ function ExpenseTable({
                 <td className="px-5 py-3 text-right font-bold text-ink">{money(expense.total_amount)}</td>
                 <td className="px-5 py-3">
                   <StatusBadge status={expense.workflow_status} />
-                  {expense.workflow_status === 'draft' && expense.ocr_confidence == null && (
-                    <span className="mt-1 block text-xs text-blue-700">OCR pending</span>
-                  )}
                 </td>
                 <td className="px-5 py-3">
-                  {expense.ocr_confidence != null ? (
-                    <PaymentStatusBadge status={expense.payment_status} />
-                  ) : (
-                    '—'
-                  )}
-                </td>
-                <td className="px-5 py-3">
-                  {expense.ocr_confidence != null && expense.ocr_risk_level ? (
-                    <RiskBadge level={expense.ocr_risk_level} />
-                  ) : (
-                    '—'
-                  )}
+                  {expense.ocr_risk_level ? <RiskBadge level={expense.ocr_risk_level} /> : '—'}
                 </td>
                 <td className="px-5 py-3">
                   {expense.ocr_confidence != null ? `${Number(expense.ocr_confidence).toFixed(1)}%` : '—'}
@@ -1036,25 +790,15 @@ function ExpenseTable({
                       View
                     </Button>
                     {canOverride && expense.workflow_status === 'draft' && onOverride && (
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        title="Manually change tax rate."
-                        onClick={() => onOverride(expense)}
-                      >
-                        Override tax
+                      <Button size="sm" variant="secondary" onClick={() => onOverride(expense)}>
+                        Tax
                       </Button>
                     )}
                     {onApprove && ['submitted', 'ai_review'].includes(expense.workflow_status) && (
                       <>
                         <Button size="sm" disabled={actionId === expense.id} onClick={() => onApprove(expense.id)}>
-                          {approveLabel}
+                          Approve
                         </Button>
-                        {showPostAction && expense.workflow_status === 'approved' && onPost && (
-                          <Button size="sm" disabled={actionId === expense.id} onClick={() => onPost(expense.id)}>
-                            Post
-                          </Button>
-                        )}
                         <Button
                           size="sm"
                           variant="secondary"
@@ -1097,6 +841,80 @@ function Metric({
       <p className="text-xs font-bold uppercase tracking-wide text-slate-500">{label}</p>
       <p className="mt-2 text-2xl font-black text-ink">{value}</p>
     </div>
+  );
+}
+
+function ClassificationPanel({
+  classification,
+  threshold,
+  canManage,
+  loading,
+  onApply,
+  onRerun,
+}: {
+  classification: any;
+  threshold: number;
+  canManage: boolean;
+  loading: boolean;
+  onApply: () => void;
+  onRerun: () => void;
+}) {
+  const conf = classification.account_confidence;
+  const tax = classification.tax_hints || {};
+
+  return (
+    <div className="mt-4 rounded-xl border border-primary/20 bg-primary/5 p-4">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-2 text-sm font-semibold text-ink">
+          <Sparkles className="h-4 w-4 text-primary" />
+          AI Classification
+        </div>
+        <span className="badge border border-primary/20 bg-white text-primary">{classification.status || 'pending'}</span>
+      </div>
+      <div className="mt-3 grid gap-2 text-sm text-slate-700 md:grid-cols-2">
+        <p>
+          <strong>Suggested account:</strong>{' '}
+          {classification.suggested_account_code || '—'}
+          {conf != null && (
+            <span className="ml-2">
+              <ConfidenceBadge value={conf} threshold={threshold} />
+            </span>
+          )}
+        </p>
+        <p title="Tax hint from AI and SL-305 tax engine">
+          <strong>Tax hint:</strong>{' '}
+          {tax.tax_type ? `${tax.tax_type} ${tax.tax_rate ?? 0}%` : '—'}
+        </p>
+        {classification.reason && (
+          <p className="md:col-span-2 text-xs text-slate-500">{classification.reason}</p>
+        )}
+      </div>
+      {canManage && classification.status === 'processed' && (
+        <div className="mt-3 flex flex-wrap gap-2">
+          <Button size="sm" onClick={onApply} disabled={loading}>
+            Apply AI suggestions
+          </Button>
+          <Button size="sm" variant="secondary" onClick={onRerun} disabled={loading}>
+            <RefreshCw className="h-4 w-4" />
+            Rerun classification
+          </Button>
+        </div>
+      )}
+      {classification.low_confidence && (
+        <p className="mt-2 text-xs font-medium text-amber-700">Low confidence. Please verify before submitting.</p>
+      )}
+    </div>
+  );
+}
+
+function ConfidenceBadge({ value, threshold }: { value: number; threshold: number }) {
+  const low = value < threshold;
+  return (
+    <span
+      className={`badge border font-mono ${low ? 'border-amber-200 bg-amber-50 text-amber-800' : 'border-emerald-200 bg-emerald-50 text-emerald-800'}`}
+    >
+      {Number(value).toFixed(1)}% {low ? 'Low' : 'High'}
+    </span>
   );
 }
 

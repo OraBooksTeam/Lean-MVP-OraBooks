@@ -1,6 +1,6 @@
-# OraBooks Domain Events
+# OraBooks Domain Events (SL-302)
 
-OraBooks publishes domain events through `OraBooks_EventBus` and the event module. Publishers write events in the same database transaction as the business change. The EventBus worker later delivers pending events to registered consumers and records successful consumption for idempotency.
+OraBooks publishes domain events through `OraBooks_EventBus` and the SL-302 event module. Publishers write events in the same database transaction as the business change. The EventBus worker later delivers pending events to registered consumers and records successful consumption for idempotency.
 
 The MVP final-report table convention is WordPress table prefix + `gob_` prefix + `_tob` suffix:
 
@@ -48,12 +48,12 @@ Published after an approved journal is posted and locked.
 
 ```json
 {
- "event_version": 1,
- "journal_id": 55,
- "org_id": 10,
- "journal_number": "JE-2026-000001",
- "total_amount": "100.00",
- "created_by": 7
+  "event_version": 1,
+  "journal_id": 55,
+  "org_id": 10,
+  "journal_number": "JE-2026-000001",
+  "total_amount": "100.00",
+  "created_by": 7
 }
 ```
 
@@ -63,12 +63,12 @@ Published after a sale is marked delivered.
 
 ```json
 {
- "event_version": 1,
- "sale_id": 501,
- "customer_id": 44,
- "org_id": 10,
- "amount": "100.00",
- "delivered_by": 7
+  "event_version": 1,
+  "sale_id": 501,
+  "customer_id": 44,
+  "org_id": 10,
+  "amount": "100.00",
+  "delivered_by": 7
 }
 ```
 
@@ -78,12 +78,12 @@ Published after a purchase is marked received.
 
 ```json
 {
- "event_version": 1,
- "purchase_id": 601,
- "supplier_id": 45,
- "org_id": 10,
- "amount": "75.00",
- "received_by": 7
+  "event_version": 1,
+  "purchase_id": 601,
+  "supplier_id": 45,
+  "org_id": 10,
+  "amount": "75.00",
+  "received_by": 7
 }
 ```
 
@@ -93,12 +93,12 @@ Published after a sales or purchase return is approved.
 
 ```json
 {
- "event_version": 1,
- "return_id": 701,
- "return_type": "sales",
- "org_id": 10,
- "approver_user_id": 7,
- "amount": "25.00"
+  "event_version": 1,
+  "return_id": 701,
+  "return_type": "sales",
+  "org_id": 10,
+  "approver_user_id": 7,
+  "amount": "25.00"
 }
 ```
 
@@ -108,11 +108,11 @@ Published after a reimbursement is submitted for approval.
 
 ```json
 {
- "event_version": 1,
- "reimbursement_id": 801,
- "org_id": 10,
- "submitted_by": 7,
- "amount": "40.00"
+  "event_version": 1,
+  "reimbursement_id": 801,
+  "org_id": 10,
+  "submitted_by": 7,
+  "amount": "40.00"
 }
 ```
 
