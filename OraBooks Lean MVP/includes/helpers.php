@@ -426,23 +426,20 @@ function orabooks_get_org_workspace_url($org_id, $path = '/dashboard/', $query_a
 /**
  * Blog ID that stores shared OraBooks tenant data on multisite networks.
  */
-function orabooks_get_data_blog_id() {
- if (function_exists('is_multisite') && is_multisite && function_exists('get_main_site_id')) {
- return (int) get_main_site_id;
- }
+function orabooks_get_data_blog_id() {	if (function_exists('is_multisite') && is_multisite() && function_exists('get_main_site_id')) {
+		return (int) get_main_site_id();
+	}
 
- return function_exists('get_current_blog_id') ? (int) get_current_blog_id: 1;
+	return function_exists('get_current_blog_id') ? (int) get_current_blog_id() : 1;
 }
 
 /**
  * Table prefix for shared OraBooks data (always the main network site on multisite).
  */
 function orabooks_get_table_prefix() {
- global $wpdb;
-
- if (function_exists('is_multisite') && is_multisite && function_exists('get_main_site_id')) {
- $main_id = (int) get_main_site_id;
- if ((int) get_current_blog_id !== $main_id) {
+ global $wpdb;	if (function_exists('is_multisite') && is_multisite() && function_exists('get_main_site_id')) {
+		$main_id = (int) get_main_site_id();
+		if ((int) get_current_blog_id() !== $main_id) {
  return $wpdb->get_blog_prefix($main_id);
  }
  }
@@ -456,11 +453,10 @@ function orabooks_get_table_prefix() {
  * @return mixed
  */
 function orabooks_with_data_blog(callable $callback) {
- $switched = false;
- $target_blog = orabooks_get_data_blog_id;
+ $switched = false;	$target_blog = orabooks_get_data_blog_id();
 
- if (function_exists('is_multisite') && is_multisite && function_exists('switch_to_blog')) {
- if ((int) get_current_blog_id !== $target_blog) {
+	if (function_exists('is_multisite') && is_multisite() && function_exists('switch_to_blog')) {
+		if ((int) get_current_blog_id() !== $target_blog) {
  switch_to_blog($target_blog);
  $switched = true;
  }
@@ -468,10 +464,9 @@ function orabooks_with_data_blog(callable $callback) {
 
  try {
  return $callback;
- } finally {
- if ($switched && function_exists('restore_current_blog')) {
- restore_current_blog;
- }
+ } finally {		if ($switched && function_exists('restore_current_blog')) {
+			restore_current_blog();
+		}
  }
 }
 
@@ -480,8 +475,7 @@ function orabooks_with_data_blog(callable $callback) {
  *
  * @return array{ok:bool,checks:array<int,array{id:string,label:string,ok:bool,detail:string}>,timestamp:string,environment:array<string,mixed>}
  */
-function orabooks_run_deploy_checks() {
- return OraBooks_DeployChecks::run;
+function orabooks_run_deploy_checks() {	return OraBooks_DeployChecks::run();
 }
 
 /**
