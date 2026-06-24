@@ -58,7 +58,7 @@ class OraBooks_Ai_Review {
  $table_models = OraBooks_Database::table(self::TABLE_MODELS);
  $table_orgs = OraBooks_Database::table('organizations');
  $table_journals = OraBooks_Database::table('journals');
- $charset = $wpdb->get_charset_collate;
+ $charset = $wpdb->get_charset_collate();
 
  return [
  "CREATE TABLE IF NOT EXISTS {$table_queue} (

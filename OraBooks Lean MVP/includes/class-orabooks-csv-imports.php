@@ -70,7 +70,7 @@ class OraBooks_Csv_Imports {
  $table_imports = OraBooks_Database::table(self::TABLE_IMPORTS);
  $table_rows = OraBooks_Database::table(self::TABLE_ROWS);
  $table_orgs = OraBooks_Database::table('organizations');
- $charset = $wpdb->get_charset_collate;
+ $charset = $wpdb->get_charset_collate();
 
  return [
  "CREATE TABLE IF NOT EXISTS {$table_imports} (

@@ -77,7 +77,7 @@ class OraBooks_Attachments {
  $table_attachments = OraBooks_Database::table(self::TABLE_ATTACHMENTS);
  $table_versions = OraBooks_Database::table(self::TABLE_VERSIONS);
  $table_orgs = OraBooks_Database::table('organizations');
- $charset = $wpdb->get_charset_collate;
+ $charset = $wpdb->get_charset_collate();
 
  return [
  "CREATE TABLE IF NOT EXISTS {$table_attachments} (

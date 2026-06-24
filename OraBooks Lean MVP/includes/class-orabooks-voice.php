@@ -53,7 +53,7 @@ class OraBooks_Voice {
  $table = OraBooks_Database::table(self::TABLE_VOICE);
  $table_orgs = OraBooks_Database::table('organizations');
  $table_attachments = OraBooks_Database::table('attachments');
- $charset = $wpdb->get_charset_collate;
+ $charset = $wpdb->get_charset_collate();
 
  return [
  "CREATE TABLE IF NOT EXISTS {$table} (

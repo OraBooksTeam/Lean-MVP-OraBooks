@@ -69,7 +69,7 @@ class OraBooks_Customers {
  public static function get_create_table_sql() {
  global $wpdb;
 
- $charset_collate = $wpdb->get_charset_collate();
+ $charset_collate = $wpdb->get_charset_collate()();
  $tables = [];
  $table_users = OraBooks_Database::table('users');
  $table_orgs = OraBooks_Database::table('organizations');
@@ -552,7 +552,7 @@ class OraBooks_Customers {
  return;
  }
 
- $charset_collate = $wpdb->get_charset_collate();
+ $charset_collate = $wpdb->get_charset_collate()();
  $wpdb->query(
  "CREATE TABLE IF NOT EXISTS {$table_payments} (
  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,

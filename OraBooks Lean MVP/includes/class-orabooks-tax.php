@@ -77,7 +77,7 @@ class OraBooks_Tax {
  public static function get_create_table_sql() {
  global $wpdb;
 
- $charset_collate = $wpdb->get_charset_collate;
+ $charset_collate = $wpdb->get_charset_collate();
  $tables = [];
 
  $table_configs = OraBooks_Database::table('tax_configs');

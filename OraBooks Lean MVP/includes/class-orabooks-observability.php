@@ -88,7 +88,7 @@ class OraBooks_Observability {
 
  public static function get_create_table_sql() {
  global $wpdb;
- $charset_collate = $wpdb->get_charset_collate;
+ $charset_collate = $wpdb->get_charset_collate();
  $tables = [];
 
  $table_metrics = OraBooks_Database::table('platform_metrics');

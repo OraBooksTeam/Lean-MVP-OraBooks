@@ -467,7 +467,7 @@ class OraBooks_EventBus {
  */
  public static function get_create_table_sql() {
  global $wpdb;
- $charset_collate = $wpdb->get_charset_collate;
+ $charset_collate = $wpdb->get_charset_collate();
  $tables = [];
 
  // Consumer event tracking for idempotency

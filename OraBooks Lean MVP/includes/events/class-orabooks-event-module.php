@@ -54,7 +54,7 @@ class OraBooks_Event_Module {
 
  public static function get_create_table_sql() {
  global $wpdb;
- $charset_collate = $wpdb->get_charset_collate;
+ $charset_collate = $wpdb->get_charset_collate();
 
  $outbox = self::table('event_outbox');
  $consumer_log = self::table('event_consumer_log');

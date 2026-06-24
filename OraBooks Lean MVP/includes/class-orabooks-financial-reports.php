@@ -42,7 +42,7 @@ class OraBooks_Financial_Reports {
  public static function get_create_table_sql() {
  global $wpdb;
 
- $charset_collate = $wpdb->get_charset_collate;
+ $charset_collate = $wpdb->get_charset_collate();
  $table_orgs = OraBooks_Database::table('organizations');
  $table_accounts = OraBooks_Database::table('accounts');
  $tables = [];

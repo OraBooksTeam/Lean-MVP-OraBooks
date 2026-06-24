@@ -48,7 +48,7 @@ class OraBooks_Inventory {
  public static function get_create_table_sql() {
  global $wpdb;
 
- $charset_collate = $wpdb->get_charset_collate;
+ $charset_collate = $wpdb->get_charset_collate();
  $table_products = OraBooks_Database::table('products');
  $table_movements = OraBooks_Database::table('inventory_movements');
  $table_lookups = OraBooks_Database::table('inventory_lookups');

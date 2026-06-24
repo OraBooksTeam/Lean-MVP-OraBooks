@@ -52,7 +52,7 @@ class OraBooks_Bank_Reconciliation {
  public static function get_create_table_sql() {
  global $wpdb;
 
- $charset_collate = $wpdb->get_charset_collate;
+ $charset_collate = $wpdb->get_charset_collate();
  $table_accounts = OraBooks_Database::table('bank_accounts');
  $table_transactions = OraBooks_Database::table('bank_transactions');
  $table_feeds = OraBooks_Database::table('bank_feeds');

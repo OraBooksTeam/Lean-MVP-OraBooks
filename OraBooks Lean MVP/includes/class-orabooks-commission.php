@@ -63,7 +63,7 @@ class OraBooks_Commission {
  public static function get_create_table_sql() {
  global $wpdb;
 
- $charset_collate = $wpdb->get_charset_collate;
+ $charset_collate = $wpdb->get_charset_collate();
  $tables = [];
  $table_orgs = OraBooks_Database::table('organizations');
  $table_users = OraBooks_Database::table('users');

@@ -58,7 +58,7 @@ class OraBooks_Exports {
  add_action('wp_ajax_orabooks_exports_stats', [self::$instance, 'ajax_exports_stats']);
 
  // Register default report data providers
- self::register_default_providers;
+ self::register_default_providers();
  }
  return self::$instance;
  }
@@ -100,7 +100,7 @@ class OraBooks_Exports {
  INDEX idx_org_user_status (org_id, user_id, status),
  INDEX idx_expires (expires_at),
  INDEX idx_status_created (status, created_at)
- ) {$wpdb->get_charset_collate};";
+ ) {$wpdb->get_charset_collate()()};";
 
  $sql[] = "CREATE TABLE IF NOT EXISTS {$table_files} (
  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -110,7 +110,7 @@ class OraBooks_Exports {
  is_encrypted TINYINT(1) DEFAULT 1,
  retention_days INT DEFAULT 7,
  FOREIGN KEY (export_request_id) REFERENCES {$table_requests}(id) ON DELETE CASCADE
- ) {$wpdb->get_charset_collate};";
+ ) {$wpdb->get_charset_collate()()};";
 
  return $sql;
  }
@@ -137,7 +137,7 @@ class OraBooks_Exports {
  try {
  return call_user_func(self::$report_providers[$export_type], $parameters);
  } catch (\Exception $e) {
- orabooks_log_event('export_data_error', "Report provider error for {$export_type}: ". $e->getMessage, 'warning');
+ orabooks_log_event('export_data_error', "Report provider error for {$export_type}: ". $e->getMessage(), 'warning');
  return null;
  }
  }
@@ -226,7 +226,7 @@ class OraBooks_Exports {
  }
 
  $table = OraBooks_Database::table(self::TABLE_REQUESTS);
- $correlation_id = orabooks_uuid;
+ $correlation_id = orabooks_uuid();
 
  $wpdb->insert($table, [
  'org_id' => $org_id,
@@ -349,7 +349,7 @@ class OraBooks_Exports {
  ];
  }
 
- $upload_dir = wp_upload_dir;
+ $upload_dir = wp_upload_dir();
  $exports_dir = $upload_dir['basedir']. '/orabooks-exports';
  $exports_url = $upload_dir['baseurl']. '/orabooks-exports';
 
@@ -369,7 +369,7 @@ class OraBooks_Exports {
  if ($export->format === 'csv') {
  $result = self::generate_csv($report_data, $exports_dir, $filename, $export);
  if (is_wp_error($result)) {
- throw new \Exception($result->get_error_message);
+ throw new \Exception($result->get_error_message());
  }
  $file_path = $result['path'];
  $file_size = $result['size'];
@@ -378,7 +378,7 @@ class OraBooks_Exports {
  // PDF — generate watermarked HTML
  $result = self::generate_pdf_html($report_data, $exports_dir, $filename, $export, $org_id, $user_id);
  if (is_wp_error($result)) {
- throw new \Exception($result->get_error_message);
+ throw new \Exception($result->get_error_message());
  }
  $file_path = $result['path'];
  $file_size = $result['size'];
@@ -454,16 +454,16 @@ class OraBooks_Exports {
  $table_requests,
  [
  'status' => 'failed',
- 'error_message' => $e->getMessage,
+ 'error_message' => $e->getMessage(),
  ],
  ['id' => $export_id],
  ['%s', '%s'],
  ['%d']
  );
 
- orabooks_log_event('export_failed', "Export #{$export_id} failed: ". $e->getMessage, 'warning', [
+ orabooks_log_event('export_failed', "Export #{$export_id} failed: ". $e->getMessage(), 'warning', [
  'export_id' => $export_id,
- 'error' => $e->getMessage,
+ 'error' => $e->getMessage(),
  ], $user_id, $org_id);
 
  // Notify user via
@@ -473,10 +473,10 @@ class OraBooks_Exports {
  'format' => $export->format,
  'org_id' => $org_id,
  'user_id' => $user_id,
- 'error' => $e->getMessage,
+ 'error' => $e->getMessage(),
  ]);
 
- return $e->getMessage;
+ return $e->getMessage();
  }
  }
 
@@ -584,7 +584,7 @@ class OraBooks_Exports {
  $org_name = self::get_org_name($org_id);
  $user_email = orabooks_get_user_email($user_id);
  $date_str = current_time('Y-m-d H:i:s T');
- $correlation_id = $export->correlation_id ?? orabooks_uuid;
+ $correlation_id = $export->correlation_id ?? orabooks_uuid();
 
  // Extract columns and rows
  $columns = [];
@@ -943,7 +943,7 @@ HTML;
  foreach ($expired as $item) {
  // Delete physical file
  if (!empty($item->storage_key)) {
- $upload_dir = wp_upload_dir;
+ $upload_dir = wp_upload_dir();
  $full_path = $upload_dir['basedir']. '/'. $item->storage_key;
  if (file_exists($full_path)) {
  @unlink($full_path);
@@ -1063,7 +1063,7 @@ HTML;
  * Expects: export_type, format, [parameters]
  */
  public function ajax_request_export() {
- $user_id = orabooks_get_current_user_id;
+ $user_id = orabooks_get_current_user_id();
  if (!$user_id) {
  orabooks_json_error('Authentication required', 401);
  }
@@ -1089,7 +1089,7 @@ HTML;
 
  $result = self::request_export($org_id, $user_id, $export_type, $format, $parameters);
  if (is_wp_error($result)) {
- orabooks_json_error($result->get_error_message, 400);
+ orabooks_json_error($result->get_error_message(), 400);
  }
 
  orabooks_json_success($result, 'Export requested successfully');
@@ -1099,7 +1099,7 @@ HTML;
  * AJAX: List exports for current user.
  */
  public function ajax_exports_list() {
- $user_id = orabooks_get_current_user_id;
+ $user_id = orabooks_get_current_user_id();
  if (!$user_id) {
  orabooks_json_error('Authentication required', 401);
  }
@@ -1148,7 +1148,7 @@ HTML;
  * AJAX: Download an export.
  */
  public function ajax_download_export() {
- $user_id = orabooks_get_current_user_id;
+ $user_id = orabooks_get_current_user_id();
  if (!$user_id) {
  orabooks_json_error('Authentication required', 401);
  }
@@ -1160,7 +1160,7 @@ HTML;
 
  $result = self::download_export($export_id, $user_id);
  if (is_wp_error($result)) {
- orabooks_json_error($result->get_error_message, 400);
+ orabooks_json_error($result->get_error_message(), 400);
  }
 
  orabooks_json_success([
@@ -1175,7 +1175,7 @@ HTML;
  * AJAX: Cancel an export.
  */
  public function ajax_cancel_export() {
- $user_id = orabooks_get_current_user_id;
+ $user_id = orabooks_get_current_user_id();
  if (!$user_id) {
  orabooks_json_error('Authentication required', 401);
  }
@@ -1187,7 +1187,7 @@ HTML;
 
  $result = self::cancel_export($export_id, $user_id);
  if (is_wp_error($result)) {
- orabooks_json_error($result->get_error_message, 400);
+ orabooks_json_error($result->get_error_message(), 400);
  }
 
  orabooks_json_success([], 'Export cancelled');
@@ -1201,7 +1201,7 @@ HTML;
  orabooks_json_error('Permission denied', 403);
  }
 
- $stats = self::get_export_stats;
+ $stats = self::get_export_stats();
  orabooks_json_success($stats);
  }
 

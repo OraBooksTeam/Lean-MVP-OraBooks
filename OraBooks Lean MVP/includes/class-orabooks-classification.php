@@ -102,7 +102,7 @@ class OraBooks_Classification {
 
  public static function get_create_table_sql() {
  global $wpdb;
- $charset = $wpdb->get_charset_collate;
+ $charset = $wpdb->get_charset_collate();
  $table = OraBooks_Database::table('classification_rules');
  $orgs = OraBooks_Database::table('organizations');
 

@@ -131,7 +131,7 @@ class OraBooks_Expenses {
  $table_settings = OraBooks_Database::table(self::TABLE_SETTINGS);
  $table_orgs = OraBooks_Database::table('organizations');
  $table_attachments = OraBooks_Database::table('attachments');
- $charset = $wpdb->get_charset_collate;
+ $charset = $wpdb->get_charset_collate();
 
  return [
  "CREATE TABLE IF NOT EXISTS {$table_expenses} (
@@ -228,7 +228,7 @@ class OraBooks_Expenses {
 
  $table_orgs = OraBooks_Database::table('organizations');
  $table = OraBooks_Database::table(self::TABLE_SETTINGS);
- $charset = $wpdb->get_charset_collate;
+ $charset = $wpdb->get_charset_collate();
 
  if ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table)) !== $table) {
  $wpdb->query(

@@ -57,7 +57,7 @@ class OraBooks_AR {
 
  public static function get_create_table_sql() {
  global $wpdb;
- $charset = $wpdb->get_charset_collate;
+ $charset = $wpdb->get_charset_collate();
  $tables = [];
  $orgs = OraBooks_Database::table('organizations');
  $customers = OraBooks_Database::table('customers');
