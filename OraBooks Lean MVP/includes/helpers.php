@@ -580,10 +580,9 @@ function orabooks_auth_error_status_code($error_code) {
 /**
  * Whether a WordPress multisite blog already exists for an org subdomain.
  */
-function orabooks_multisite_subdomain_taken($subdomain) {
- if (!function_exists('is_multisite') || !is_multisite || !function_exists('get_blog_details')) {
- return false;
- }
+function orabooks_multisite_subdomain_taken($subdomain) {	if (!function_exists('is_multisite') || !is_multisite() || !function_exists('get_blog_details')) {
+		return false;
+	}
 	$base_domain = orabooks_get_tenant_base_domain();
 	if ($base_domain === '') {
  return false;
@@ -732,15 +731,14 @@ function orabooks_resolve_wp_user_link_for_orabooks_user($orabooks_user_id, $cre
  *
  * @return int|true|WP_Error Blog ID, true when multisite is disabled, or error.
  */
-function orabooks_provision_org_multisite($org_id, $subdomain, $title, $owner_user_id) {
- if (!function_exists('is_multisite') || !is_multisite || !function_exists('wpmu_create_blog')) {
- return true;
- }
+function orabooks_provision_org_multisite($org_id, $subdomain, $title, $owner_user_id) {	if (!function_exists('is_multisite') || !is_multisite() || !function_exists('wpmu_create_blog')) {
+		return true;
+	}
 
- $org_id = (int) $org_id;
- $subdomain = strtolower(trim((string) $subdomain));
- $title = $title !== '' ? $title: $subdomain;
- $base_domain = orabooks_get_tenant_base_domain;
+	$org_id = (int) $org_id;
+	$subdomain = strtolower(trim((string) $subdomain));
+	$title = $title !== '' ? $title: $subdomain;
+	$base_domain = orabooks_get_tenant_base_domain();
 
  if ($subdomain === '' || $base_domain === '') {
  return new WP_Error('invalid_subdomain', __('Unable to provision organization site.', 'orabooks'));
@@ -751,8 +749,7 @@ function orabooks_provision_org_multisite($org_id, $subdomain, $title, $owner_us
  if ($existing && !empty($existing->blog_id)) {
  $blog_id = (int) $existing->blog_id;
  } else {
- $wp_user_id = orabooks_get_wp_user_id_for_orabooks_user($owner_user_id);
- $blog_id = wpmu_create_blog($domain, '/', $title, $wp_user_id, ['public' => 1], get_current_network_id);
+ $wp_user_id = orabooks_get_wp_user_id_for_orabooks_user($owner_user_id);	$blog_id = wpmu_create_blog($domain, '/', $title, $wp_user_id, ['public' => 1], get_current_network_id());
 
  if (is_wp_error($blog_id)) {
  orabooks_log_event('org_site_provision_failed', $blog_id->get_error_message, 'error', [
@@ -764,13 +761,11 @@ function orabooks_provision_org_multisite($org_id, $subdomain, $title, $owner_us
  }
 
  $blog_id = (int) $blog_id;
- }
-
- if ($blog_id > 0 && function_exists('orabooks_create_required_pages')) {
- switch_to_blog($blog_id);
- orabooks_create_required_pages;
- restore_current_blog;
- }
+ }	if ($blog_id > 0 && function_exists('orabooks_create_required_pages')) {
+		switch_to_blog($blog_id);
+		orabooks_create_required_pages();
+		restore_current_blog();
+	}
 
  if ($org_id > 0) {
  global $wpdb;
@@ -852,9 +847,7 @@ function orabooks_append_auth_tokens_to_url($url, $token = '', $refresh_token = 
  $query['ob_t'] = $token;
  if ($refresh_token !== '') {
  $query['ob_rt'] = $refresh_token;
- }
-
- $scheme = $parsed['scheme'] ?? (is_ssl ? 'https': 'http');
+ }	$scheme = $parsed['scheme'] ?? (is_ssl() ? 'https': 'http');
  $path = $parsed['path'] ?? '/';
  return $scheme. '://'. $target_host. $path. '?'. http_build_query($query);
 }
