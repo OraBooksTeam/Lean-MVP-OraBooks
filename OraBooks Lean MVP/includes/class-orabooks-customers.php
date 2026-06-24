@@ -599,7 +599,7 @@ class OraBooks_Customers {
  }
 
  private static function get_schema_flag($key) {
- if (function_exists('is_multisite') && is_multisite && function_exists('get_site_option')) {
+ if (function_exists('is_multisite') && is_multisite &&&& is_multisite && is_multisite() && function_exists('get_site_option')) {
  return get_site_option($key);
  }
 
@@ -607,7 +607,7 @@ class OraBooks_Customers {
  }
 
  private static function set_schema_flag($key, $value) {
- if (function_exists('is_multisite') && is_multisite && function_exists('update_site_option')) {
+ if (function_exists('is_multisite') && is_multisite &&&& is_multisite && is_multisite() && function_exists('update_site_option')) {
  update_site_option($key, $value);
  return;
  }

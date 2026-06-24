@@ -310,7 +310,7 @@ class OraBooks_DeployChecks {
  'checks' => $checks,
  'timestamp' => current_time('mysql'),
  'environment' => [
- 'is_multisite' => function_exists('is_multisite') && is_multisite,
+ 'is_multisite' => function_exists('is_multisite') && is_multisite(),
  'data_blog_id' => function_exists('orabooks_get_data_blog_id') ? orabooks_get_data_blog_id: null,
  'current_blog_id' => function_exists('get_current_blog_id') ? get_current_blog_id: null,
  'table_prefix' => $table_prefix,
