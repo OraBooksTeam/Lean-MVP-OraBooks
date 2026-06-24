@@ -915,13 +915,11 @@ function orabooks_enrich_login_response($login_result) {
  }
 
  $user_id = !empty($login_result['user_id']) ? (int) $login_result['user_id']: 0;
- if (
- $user_id > 0
- && orabooks_is_network_auth_host
- && orabooks_orabooks_user_can_manage_platform($user_id)
+ if (	$user_id > 0
+				 && orabooks_is_network_auth_host()
+				 && orabooks_orabooks_user_can_manage_platform($user_id)
  ) {
- $login_result['is_platform_admin'] = true;
- $login_result['redirect_to'] = orabooks_get_platform_admin_url;
+ $login_result['is_platform_admin'] = true;	$login_result['redirect_to'] = orabooks_get_platform_admin_url();
 
  if (!empty($login_result['token'])) {
  $login_result['redirect_to'] = orabooks_append_auth_tokens_to_url(
@@ -1004,14 +1002,12 @@ function orabooks_enrich_login_response($login_result) {
 function orabooks_redirect_tenant_auth_to_network() {
  if (!is_singular('page') || !class_exists('OraBooks_Auth')) {
  return;
- }
+ }	$subdomain = OraBooks_Auth::detect_subdomain_from_host();
+	if ($subdomain === '') {
+		return;
+	}
 
- $subdomain = OraBooks_Auth::detect_subdomain_from_host;
- if ($subdomain === '') {
- return;
- }
-
- $post = get_queried_object;
+	$post = get_queried_object();
  if (!$post || empty($post->post_name)) {
  return;
  }
@@ -1019,21 +1015,19 @@ function orabooks_redirect_tenant_auth_to_network() {
  $shared_auth_slugs = ['login', 'register', 'reset-password', 'verify-email', 'tier-selection', 'accept-invite'];
  if (!in_array($post->post_name, $shared_auth_slugs, true)) {
  return;
- }
+ }	if ($post->post_name === 'login' && function_exists('orabooks_is_user_logged_in') && orabooks_is_user_logged_in()) {
+		if (orabooks_is_explicit_logout_request()) {
+			wp_redirect(orabooks_get_logout_redirect_url());
+			exit;
+		}
 
- if ($post->post_name === 'login' && function_exists('orabooks_is_user_logged_in') && orabooks_is_user_logged_in) {
- if (orabooks_is_explicit_logout_request) {
- wp_redirect(orabooks_get_logout_redirect_url);
- exit;
- }
+		wp_redirect(orabooks_append_auth_tokens_to_url(home_url('/dashboard/')));
+		exit;
+	}
 
- wp_redirect(orabooks_append_auth_tokens_to_url(home_url('/dashboard/')));
- exit;
- }
-
- $target = orabooks_get_network_login_url($post->post_name);
- if ($post->post_name === 'login' && orabooks_is_explicit_logout_request) {
- $target = orabooks_get_logout_redirect_url;
+	$target = orabooks_get_network_login_url($post->post_name);
+	if ($post->post_name === 'login' && orabooks_is_explicit_logout_request()) {
+		$target = orabooks_get_logout_redirect_url();
  }
 
  wp_redirect($target);
@@ -1045,17 +1039,16 @@ add_action('template_redirect', 'orabooks_redirect_tenant_auth_to_network', 2);
 /**
  * Handle Google OAuth callback on the network login page (server-side redirect).
  */
-function orabooks_handle_login_oidc_callback() {
- if (orabooks_is_explicit_logout_request) {
- return;
- }
+function orabooks_handle_login_oidc_callback() {	if (orabooks_is_explicit_logout_request()) {
+		return;
+	}
 
- if (!is_singular('page')) {
- return;
- }
+	if (!is_singular('page')) {
+		return;
+	}
 
- $post = get_queried_object;
- if (!$post || $post->post_name !== 'login') {
+	$post = get_queried_object();
+	if (!$post || $post->post_name !== 'login') {
  return;
  }
 
@@ -1083,9 +1076,8 @@ function orabooks_handle_login_oidc_callback() {
  return;
  }
 
- if (!empty($result['needs_tier_selection'])) {
- orabooks_clear_logout_landing_cookie;
- $target = orabooks_get_network_login_url('tier-selection');
+ if (!empty($result['needs_tier_selection'])) {	orabooks_clear_logout_landing_cookie();
+		$target = orabooks_get_network_login_url('tier-selection');
  if (!empty($result['tier_selection_token'])) {
  $target = add_query_arg(
  'tier_selection_token',
