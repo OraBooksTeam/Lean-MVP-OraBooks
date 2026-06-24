@@ -26,15 +26,15 @@ class OraBooks_Ai_Providers {
  public static function provider_name($capability) {
  switch ($capability) {
  case 'ocr':
- return self::is_document_intelligence_configured
+ return self::is_document_intelligence_configured()
  ? self::PROVIDER_AZURE_DI
 : self::STUB_PROVIDER;
  case 'speech':
  case 'classification':
- if (self::is_azure_openai_configured) {
+ if (self::is_azure_openai_configured()) {
  return self::PROVIDER_AZURE_OAI;
  }
- if (self::is_openai_configured) {
+ if (self::is_openai_configured()) {
  return self::PROVIDER_OPENAI;
  }
  return self::STUB_PROVIDER;
@@ -100,13 +100,13 @@ class OraBooks_Ai_Providers {
  $expense_id = (int) ($context['expense_id'] ?? 0);
  $file_bytes = $context['file_bytes'] ?? null;
 
- if (self::is_document_intelligence_configured && $file_bytes) {
+ if (self::is_document_intelligence_configured() && $file_bytes) {
  $result = self::azure_document_intelligence_ocr($file_bytes, $filename);
  if (!is_wp_error($result)) {
  return $result;
  }
  orabooks_log_event('ocr_provider_fallback', 'Document Intelligence failed; using stub', 'warning', [
- 'error' => $result->get_error_message,
+ 'error' => $result->get_error_message(),
  'expense_id' => $expense_id,
  ], null, null);
  }
@@ -124,7 +124,7 @@ class OraBooks_Ai_Providers {
  $voice_id = (int) ($context['voice_id'] ?? 0);
  $file_bytes = $context['file_bytes'] ?? null;
 
- if ($file_bytes && (self::is_openai_configured || self::is_azure_openai_configured)) {
+ if ($file_bytes && (self::is_openai_configured() || self::is_azure_openai_configured())) {
  $transcript = self::transcribe_audio($file_bytes, $filename, $context['mime_type'] ?? 'audio/webm');
  if (!is_wp_error($transcript) && $transcript !== '') {
  $nlu = self::extract_voice_intent($transcript);
@@ -135,7 +135,7 @@ class OraBooks_Ai_Providers {
  }
  if (is_wp_error($transcript)) {
  orabooks_log_event('voice_provider_fallback', 'Speech transcription failed; using stub', 'warning', [
- 'error' => $transcript->get_error_message,
+ 'error' => $transcript->get_error_message(),
  'voice_id' => $voice_id,
  ], null, null);
  }
@@ -148,14 +148,14 @@ class OraBooks_Ai_Providers {
  * Suggest GL account for expense/invoice/journal lines.
  */
  public static function classify_record($record_type, $record, $text, $amount, $org_id) {
- if (self::is_openai_configured || self::is_azure_openai_configured) {
+ if (self::is_openai_configured() || self::is_azure_openai_configured()) {
  $accounts = self::org_account_codes((int) $org_id);
  $result = self::chat_classify_account($record_type, $text, $amount, $record, $accounts);
  if (!is_wp_error($result)) {
  return $result;
  }
  orabooks_log_event('classification_provider_fallback', 'AI classification failed; using stub', 'warning', [
- 'error' => $result->get_error_message,
+ 'error' => $result->get_error_message(),
  'record_type' => $record_type,
  ], null, (int) $org_id);
  }
@@ -361,7 +361,7 @@ class OraBooks_Ai_Providers {
  ],
  ]);
 
- if (self::is_azure_openai_configured) {
+ if (self::is_azure_openai_configured()) {
  $endpoint = rtrim(self::config('azure_openai_endpoint'), '/');
  $deployment = self::config('azure_openai_whisper_deployment', self::config('azure_openai_deployment'));
  $api_version = self::config('azure_openai_api_version', '2024-06-01');
@@ -545,7 +545,7 @@ class OraBooks_Ai_Providers {
  }
 
  private static function chat_completion(array $messages, $json_mode = false) {
- if (self::is_azure_openai_configured) {
+ if (self::is_azure_openai_configured()) {
  $endpoint = rtrim(self::config('azure_openai_endpoint'), '/');
  $deployment = self::config('azure_openai_deployment');
  $api_version = self::config('azure_openai_api_version', '2024-06-01');
@@ -569,7 +569,7 @@ class OraBooks_Ai_Providers {
  if ($json_mode) {
  $body['response_format'] = ['type' => 'json_object'];
  }
- if (!self::is_azure_openai_configured) {
+ if (!self::is_azure_openai_configured()) {
  $body['model'] = self::config('openai_chat_model', 'gpt-4o-mini');
  }
 

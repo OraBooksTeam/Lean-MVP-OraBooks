@@ -2459,7 +2459,7 @@ class OraBooks_Customers {
 
  $isolation = OraBooks_Auth::require_customer_org($user_id, $org_id);
  if (is_wp_error($isolation)) {
- orabooks_json_error($isolation->get_error_message, 403);
+ orabooks_json_error($isolation->get_error_message(), 403);
  }
 
  if (!current_user_can('manage_options') && !OraBooks_RBAC::require_permission($user_id, $org_id, $permission)) {
@@ -2532,7 +2532,7 @@ class OraBooks_Customers {
 
  $result = self::create_customer($org_id, $_POST);
  if (is_wp_error($result)) {
- orabooks_json_error($result->get_error_message, 400);
+ orabooks_json_error($result->get_error_message(), 400);
  }
 
  orabooks_json_success(['customer' => $result], 'Customer created');
@@ -2750,7 +2750,7 @@ class OraBooks_Customers {
 
  $result = self::create_invoice($org_id, $data);
  if (is_wp_error($result)) {
- orabooks_json_error($result->get_error_message, 400);
+ orabooks_json_error($result->get_error_message(), 400);
  }
 
  orabooks_json_success(['invoice' => self::format_invoice($result)], 'Invoice created');
@@ -2813,7 +2813,7 @@ class OraBooks_Customers {
 
  $isolation = OraBooks_Auth::require_customer_org($user_id, $org_id);
  if (is_wp_error($isolation)) {
- orabooks_json_error($isolation->get_error_message, 403);
+ orabooks_json_error($isolation->get_error_message(), 403);
  }
 
  $can_override = class_exists('OraBooks_Tax')
@@ -2835,7 +2835,7 @@ class OraBooks_Customers {
  );
 
  if (is_wp_error($result)) {
- orabooks_json_error($result->get_error_message, 400);
+ orabooks_json_error($result->get_error_message(), 400);
  }
 
  orabooks_json_success($result, 'Tax override applied');
@@ -2873,7 +2873,7 @@ class OraBooks_Customers {
 
  $isolation = OraBooks_Auth::require_customer_org($user_id, $org_id);
  if (is_wp_error($isolation)) {
- orabooks_json_error($isolation->get_error_message, 403);
+ orabooks_json_error($isolation->get_error_message(), 403);
  }
 
  $can_override = class_exists('OraBooks_Tax')
@@ -2892,7 +2892,7 @@ class OraBooks_Customers {
  );
 
  if (is_wp_error($result)) {
- orabooks_json_error($result->get_error_message, 400);
+ orabooks_json_error($result->get_error_message(), 400);
  }
 
  orabooks_json_success(['invoice' => $result], 'Tax override cleared');
@@ -2927,7 +2927,7 @@ class OraBooks_Customers {
 
  $result = self::send_invoice($org_id, $invoice_id, $user_id);
  if (is_wp_error($result)) {
- orabooks_json_error($result->get_error_message, 400);
+ orabooks_json_error($result->get_error_message(), 400);
  }
 
  orabooks_json_success(['invoice' => $result], 'Invoice sent');
@@ -2962,7 +2962,7 @@ class OraBooks_Customers {
 
  $result = self::post_invoice($org_id, $invoice_id, $user_id);
  if (is_wp_error($result)) {
- orabooks_json_error($result->get_error_message, 400);
+ orabooks_json_error($result->get_error_message(), 400);
  }
 
  orabooks_json_success(['invoice' => $result], 'Invoice posted');
@@ -3003,7 +3003,7 @@ class OraBooks_Customers {
  if (is_array($data) && isset($data['status'])) {
  $status = (int) $data['status'];
  }
- orabooks_json_error($result->get_error_message, $status);
+ orabooks_json_error($result->get_error_message(), $status);
  }
 
  orabooks_json_success(['invoice' => $result], 'Invoice cancelled');
@@ -3052,7 +3052,7 @@ class OraBooks_Customers {
 
  $result = self::record_payment($org_id, $invoice_id, $data);
  if (is_wp_error($result)) {
- orabooks_json_error($result->get_error_message, 400);
+ orabooks_json_error($result->get_error_message(), 400);
  }
 
  orabooks_json_success($result, 'Payment recorded');
