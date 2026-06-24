@@ -7,90 +7,90 @@
          failOnRisky="true"
          cacheResult="false">
     <testsuites>
-        <testsuite name="OraBooks SL-001 Posting Tests">
+        <testsuite name="OraBooks Posting Tests">
             <file>OraBooks_Posting_Test.php</file>
         </testsuite>
-        <testsuite name="OraBooks SL-003 RBAC Tests">
+        <testsuite name="OraBooks RBAC Tests">
             <file>OraBooks_RBAC_Test.php</file>
             <file>OraBooks_Deploy_Checks_Test.php</file>
         </testsuite>
-        <testsuite name="OraBooks SL-017 CoA Tests">
+        <testsuite name="OraBooks CoA Tests">
             <file>OraBooks_COA_Test.php</file>
         </testsuite>
-        <testsuite name="OraBooks SL-304 Fiscal Tests">
+        <testsuite name="OraBooks Fiscal Tests">
             <file>OraBooks_Fiscal_Test.php</file>
             <file>OraBooks_Rest_Api_Test.php</file>
             <file>OraBooks_Pwa_Test.php</file>
         </testsuite>
-        <testsuite name="OraBooks SL-114 Export Tests">
+        <testsuite name="OraBooks Export Tests">
             <file>OraBooks_Exports_Test.php</file>
             <file>OraBooks_Exports_Ajax_Test.php</file>
         </testsuite>
-        <testsuite name="OraBooks SL-013 Auth Tests">
+        <testsuite name="OraBooks Auth Tests">
             <file>OraBooks_Auth_Test.php</file>
             <file>OraBooks_TwoFactor_Test.php</file>
         </testsuite>
-        <testsuite name="OraBooks SL-021 Customers Tests">
+        <testsuite name="OraBooks Customers Tests">
             <file>OraBooks_Customers_Test.php</file>
         </testsuite>
-        <testsuite name="OraBooks SL-027 Vendors Tests">
+        <testsuite name="OraBooks Vendors Tests">
             <file>OraBooks_Vendors_Test.php</file>
         </testsuite>
-        <testsuite name="OraBooks SL-034 Inventory Tests">
+        <testsuite name="OraBooks Inventory Tests">
             <file>OraBooks_Inventory_Test.php</file>
         </testsuite>
-        <testsuite name="OraBooks SL-031 Bank Reconciliation Tests">
+        <testsuite name="OraBooks  Bank Reconciliation Tests">
             <file>OraBooks_Bank_Reconciliation_Test.php</file>
         </testsuite>
-        <testsuite name="OraBooks SL-068 Commission Tests">
+        <testsuite name="OraBooks Commission Tests">
             <file>OraBooks_Commission_Test.php</file>
         </testsuite>
-        <testsuite name="OraBooks SL-074 Financial Reports Tests">
+        <testsuite name="OraBooks Financial Reports Tests">
             <file>OraBooks_Financial_Reports_Test.php</file>
         </testsuite>
-        <testsuite name="OraBooks SL-075 Operational Reports Tests">
+        <testsuite name="OraBooks Operational Reports Tests">
             <file>OraBooks_Operational_Reports_Test.php</file>
         </testsuite>
-        <testsuite name="OraBooks SL-081 Manual Tax Tests">
+        <testsuite name="OraBooks Manual Tax Tests">
             <file>OraBooks_Manual_Tax_Test.php</file>
         </testsuite>
-        <testsuite name="OraBooks SL-305 Tax Tests">
+        <testsuite name="OraBooks Tax Tests">
             <file>OraBooks_Tax_Test.php</file>
         </testsuite>
-        <testsuite name="OraBooks SL-013 Partner Tests">
+        <testsuite name="OraBooks Partner Tests">
             <file>OraBooks_Partner_Test.php</file>
         </testsuite>
-        <testsuite name="OraBooks SL-250 Notification Tests">
+        <testsuite name="OraBooks Notification Tests">
             <file>OraBooks_Notifications_Test.php</file>
         </testsuite>
-        <testsuite name="OraBooks SL-093 Observability Tests">
+        <testsuite name="OraBooks Observability Tests">
             <file>OraBooks_Observability_Test.php</file>
         </testsuite>
-        <testsuite name="OraBooks SL-099 Security Tests">
+        <testsuite name="OraBooks Security Tests">
             <file>OraBooks_Security_Test.php</file>
         </testsuite>
-        <testsuite name="OraBooks SL-301 Workflow Tests">
+        <testsuite name="OraBooks Workflow Tests">
             <file>OraBooks_Workflow_Test.php</file>
         </testsuite>
-        <testsuite name="OraBooks SL-302 Event Bus Tests">
+        <testsuite name="OraBooks Event Bus Tests">
             <file>OraBooks_EventBus_Test.php</file>
         </testsuite>
-        <testsuite name="OraBooks SL-303 Async Queue Tests">
+        <testsuite name="OraBooks Async Queue Tests">
             <file>OraBooks_AsyncQueue_Test.php</file>
         </testsuite>
-        <testsuite name="OraBooks SL-022 Classification Tests">
+        <testsuite name="OraBooks Classification Tests">
             <file>OraBooks_Classification_Test.php</file>
         </testsuite>
-        <testsuite name="OraBooks SL-009 Audit Tests">
+        <testsuite name="OraBooks Audit Tests">
             <file>OraBooks_Audit_Test.php</file>
         </testsuite>
-        <testsuite name="OraBooks SL-014 Team Tests">
+        <testsuite name="OraBooks Team Tests">
             <file>OraBooks_Team_Test.php</file>
         </testsuite>
-        <testsuite name="OraBooks SL-004 Organization Tests">
+        <testsuite name="OraBooks Organization Tests">
             <file>OraBooks_Organization_Test.php</file>
         </testsuite>
-        <testsuite name="OraBooks SL-113 CSV Imports Tests">
+        <testsuite name="OraBooks CSV Imports Tests">
             <file>OraBooks_Csv_Imports_Test.php</file>
             <file>OraBooks_Attachments_Test.php</file>
             <file>OraBooks_Approval_Test.php</file>
