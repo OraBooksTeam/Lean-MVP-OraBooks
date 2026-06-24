@@ -69,7 +69,7 @@ class OraBooks_Customers {
  public static function get_create_table_sql() {
  global $wpdb;
 
- $charset_collate = $wpdb->get_charset_collate;
+ $charset_collate = $wpdb->get_charset_collate();
  $tables = [];
  $table_users = OraBooks_Database::table('users');
  $table_orgs = OraBooks_Database::table('organizations');
@@ -239,7 +239,7 @@ class OraBooks_Customers {
  self::ensure_customer_credit_schema();
  self::ensure_customer_profile_schema();
  if (class_exists('OraBooks_AR')) {
- OraBooks_AR::ensure_schema;
+ OraBooks_AR::ensure_schema();
  }
 
  $table_invoices = OraBooks_Database::table('invoices');
@@ -552,7 +552,7 @@ class OraBooks_Customers {
  return;
  }
 
- $charset_collate = $wpdb->get_charset_collate;
+ $charset_collate = $wpdb->get_charset_collate();
  $wpdb->query(
  "CREATE TABLE IF NOT EXISTS {$table_payments} (
  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -884,7 +884,7 @@ class OraBooks_Customers {
  "Customer profile created: {$display_name}",
  'info',
  ['customer_id' => $customer_id, 'contact_email' => $contact_email],
- orabooks_get_current_user_id,
+ orabooks_get_current_user_id(),
  $org_id
  );
 
@@ -1040,7 +1040,7 @@ class OraBooks_Customers {
  WHERE i.customer_id = %d
  AND i.workflow_status = 'posted'
  AND i.payment_status IN ('paid', 'partial')
- AND p.payment_date >= DATE_SUB(CURDATE, INTERVAL %d DAY)",
+ AND p.payment_date >= DATE_SUB(CURDATE(), INTERVAL %d DAY)",
  $customer_id,
  $window_days
  ));
@@ -1054,7 +1054,7 @@ class OraBooks_Customers {
  WHERE customer_id = %d
  AND payment_status IN ('paid', 'partial')
  AND workflow_status = 'posted'
- AND COALESCE(last_payment_date, DATE(paid_at), transaction_date) >= DATE_SUB(CURDATE, INTERVAL %d DAY)",
+ AND COALESCE(last_payment_date, DATE(paid_at), transaction_date) >= DATE_SUB(CURDATE(), INTERVAL %d DAY)",
  $customer_id,
  $window_days
  ));
@@ -1119,7 +1119,7 @@ class OraBooks_Customers {
  "Customer #{$customer_ref} ". ($is_active ? 'activated': 'deactivated'),
  'info',
  ['customer_id' => $customer->id, 'user_id' => $customer->user_id, 'org_id' => $customer->org_id],
- orabooks_get_current_user_id,
+ orabooks_get_current_user_id(),
  $customer->org_id
  );
 
@@ -1244,7 +1244,7 @@ class OraBooks_Customers {
  'currency' => $data['currency'] ?? 'USD',
  'payment_status' => 'unpaid',
  'workflow_status' => $data['workflow_status'] ?? 'draft',
- 'idempotency_key' => $data['idempotency_key'] ?? orabooks_uuid,
+ 'idempotency_key' => $data['idempotency_key'] ?? orabooks_uuid(),
  ],
  ['%d', '%d', '%s', '%s', '%s', '%s', '%s', '%f', '%f', '%f', '%s', '%s', '%s', '%d', '%s', '%s', '%s', '%s', '%s']
  );
@@ -1268,7 +1268,7 @@ class OraBooks_Customers {
  'customer_id' => (int) $data['customer_id'],
  'total_amount' => $data['total_amount'],
  'org_id' => $org_id,
- ], orabooks_get_current_user_id, $org_id);
+ ], orabooks_get_current_user_id(), $org_id);
 
  // Fire event for notification system
  do_action('orabooks_invoice_created', $invoice_id, [
@@ -2006,7 +2006,7 @@ class OraBooks_Customers {
  'type' => 'payment',
  'reference' => $data['reference'] ?? '',
  'notes' => $data['notes'] ?? '',
- 'idempotency_key'=> $data['idempotency_key'] ?? orabooks_uuid,
+ 'idempotency_key'=> $data['idempotency_key'] ?? orabooks_uuid(),
  ],
  ['%d', '%d', '%d', '%s', '%f', '%s', '%s', '%s', '%s', '%s']
  );
@@ -2099,7 +2099,7 @@ class OraBooks_Customers {
  $org_id
  ));
  if ($posted_invoice) {
- OraBooks_Tax::snapshot_for_invoice($posted_invoice, orabooks_get_current_user_id);
+ OraBooks_Tax::snapshot_for_invoice($posted_invoice, orabooks_get_current_user_id());
  }
  }
 
@@ -2123,7 +2123,7 @@ class OraBooks_Customers {
  'payment_status'=> $new_status,
  'customer_id' => $invoice->customer_id,
  'org_id' => $org_id,
- ], orabooks_get_current_user_id, $org_id);
+ ], orabooks_get_current_user_id(), $org_id);
 
  return [
  'payment_id' => $payment_id,
@@ -2230,7 +2230,7 @@ class OraBooks_Customers {
  SET is_active = 0
  WHERE is_active = 1
  AND (last_paid_invoice_date IS NULL
- OR last_paid_invoice_date < DATE_SUB(CURDATE, INTERVAL %d DAY))",
+ OR last_paid_invoice_date < DATE_SUB(CURDATE(), INTERVAL %d DAY))",
  $window_days
  ));
 
@@ -2252,7 +2252,7 @@ class OraBooks_Customers {
 
  // Sync with commission engine read model
  if (class_exists('OraBooks_Commission') && method_exists('OraBooks_Commission', 'refresh_all_customer_active_status')) {
- OraBooks_Commission::refresh_all_customer_active_status;
+ OraBooks_Commission::refresh_all_customer_active_status();
  }
 
  return $inactive_count;
@@ -2269,10 +2269,10 @@ class OraBooks_Customers {
  $overdue_count = $wpdb->query(
  "UPDATE {$table}
  SET payment_status = 'overdue',
- overdue_notified_at = NOW
+ overdue_notified_at = NOW()
  WHERE payment_status IN ('unpaid', 'partial')
  AND workflow_status IN ('sent', 'posted')
- AND due_date < CURDATE
+ AND due_date < CURDATE()
  AND overdue_notified_at IS NULL"
  );
 
@@ -2492,7 +2492,7 @@ class OraBooks_Customers {
  * List customers for admin.
  */
  public function ajax_customers_list() {
- $user_id = orabooks_get_current_user_id;
+ $user_id = orabooks_get_current_user_id();
  $org_id = intval($_GET['org_id'] ?? $_POST['org_id'] ?? 0);
  $org_id = $this->resolve_request_org_id($user_id, $org_id);
 
@@ -2517,7 +2517,7 @@ class OraBooks_Customers {
  * Create a customer profile for the current organization.
  */
  public function ajax_customer_create() {
- $user_id = orabooks_get_current_user_id;
+ $user_id = orabooks_get_current_user_id();
  $org_id = intval($_POST['org_id'] ?? 0);
 
  if (!$user_id) {
@@ -2543,7 +2543,7 @@ class OraBooks_Customers {
  * or user_id (users table ID).
  */
  public function ajax_customer_get() {
- $user_id = orabooks_get_current_user_id;
+ $user_id = orabooks_get_current_user_id();
  if (!$user_id) {
  orabooks_json_error('Not authenticated', 401);
  }
@@ -2572,7 +2572,7 @@ class OraBooks_Customers {
  * Update customer notes (is_active is derived from invoice activity per ).
  */
  public function ajax_customer_update() {
- $user_id = orabooks_get_current_user_id;
+ $user_id = orabooks_get_current_user_id();
  $customer_id = intval($_POST['customer_id'] ?? 0);
  if (!$customer_id) {
  orabooks_json_error('Customer ID required', 400);
@@ -2676,7 +2676,7 @@ class OraBooks_Customers {
  * List invoices.
  */
  public function ajax_invoices_list() {
- $user_id = orabooks_get_current_user_id;
+ $user_id = orabooks_get_current_user_id();
  $org_id = intval($_GET['org_id'] ?? $_POST['org_id'] ?? 0);
 
  if (!$org_id) {
@@ -2708,7 +2708,7 @@ class OraBooks_Customers {
  */
  public function ajax_invoice_create() {
  global $wpdb;
- $user_id = orabooks_get_current_user_id;
+ $user_id = orabooks_get_current_user_id();
  $org_id = intval($_POST['org_id'] ?? 0);
 
  if (!$user_id) {
@@ -2760,7 +2760,7 @@ class OraBooks_Customers {
  * Get single invoice details.
  */
  public function ajax_invoice_get() {
- $user_id = orabooks_get_current_user_id;
+ $user_id = orabooks_get_current_user_id();
  $invoice_id = intval($_GET['invoice_id'] ?? $_POST['invoice_id'] ?? 0);
 
  if (!$user_id) {
@@ -2787,7 +2787,7 @@ class OraBooks_Customers {
  public function ajax_invoice_override_tax() {
  global $wpdb;
 
- $user_id = orabooks_get_current_user_id;
+ $user_id = orabooks_get_current_user_id();
  $invoice_id = intval($_POST['invoice_id'] ?? 0);
  $org_id = intval($_POST['org_id'] ?? 0);
 
@@ -2847,7 +2847,7 @@ class OraBooks_Customers {
  public function ajax_invoice_clear_tax_override() {
  global $wpdb;
 
- $user_id = orabooks_get_current_user_id;
+ $user_id = orabooks_get_current_user_id();
  $invoice_id = intval($_POST['invoice_id'] ?? 0);
  $org_id = intval($_POST['org_id'] ?? 0);
 
@@ -2903,7 +2903,7 @@ class OraBooks_Customers {
  */
  public function ajax_invoice_send() {
  global $wpdb;
- $user_id = orabooks_get_current_user_id;
+ $user_id = orabooks_get_current_user_id();
  $org_id = intval($_POST['org_id'] ?? 0);
  $invoice_id = intval($_POST['invoice_id'] ?? 0);
 
@@ -2938,7 +2938,7 @@ class OraBooks_Customers {
  */
  public function ajax_invoice_post() {
  global $wpdb;
- $user_id = orabooks_get_current_user_id;
+ $user_id = orabooks_get_current_user_id();
  $org_id = intval($_POST['org_id'] ?? 0);
  $invoice_id = intval($_POST['invoice_id'] ?? 0);
 
@@ -2973,7 +2973,7 @@ class OraBooks_Customers {
  */
  public function ajax_invoice_cancel() {
  global $wpdb;
- $user_id = orabooks_get_current_user_id;
+ $user_id = orabooks_get_current_user_id();
  $org_id = intval($_POST['org_id'] ?? 0);
  $invoice_id = intval($_POST['invoice_id'] ?? 0);
  $reason = isset($_POST['reason']) ? sanitize_textarea_field(wp_unslash($_POST['reason'])): null;
@@ -2999,7 +2999,7 @@ class OraBooks_Customers {
  $result = self::cancel_invoice($org_id, $invoice_id, $user_id, $reason);
  if (is_wp_error($result)) {
  $status = 400;
- $data = $result->get_error_data;
+ $data = $result->get_error_data();
  if (is_array($data) && isset($data['status'])) {
  $status = (int) $data['status'];
  }
@@ -3014,7 +3014,7 @@ class OraBooks_Customers {
  */
  public function ajax_record_payment() {
  global $wpdb;
- $user_id = orabooks_get_current_user_id;
+ $user_id = orabooks_get_current_user_id();
  $org_id = intval($_POST['org_id'] ?? 0);
 
  if (!$user_id) {
@@ -3062,7 +3062,7 @@ class OraBooks_Customers {
  * Customer stats for admin dashboard.
  */
  public function ajax_customer_stats() {
- $user_id = orabooks_get_current_user_id;
+ $user_id = orabooks_get_current_user_id();
  $org_id = intval($_GET['org_id'] ?? $_POST['org_id'] ?? 0);
  $org_id = $this->resolve_request_org_id($user_id, $org_id);
 

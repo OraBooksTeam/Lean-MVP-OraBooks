@@ -245,7 +245,7 @@ class OraBooks_Expenses {
  public static function get_org_settings($org_id) {
  global $wpdb;
 
- self::ensure_settings_schema;
+ self::ensure_settings_schema();
 
  $table = OraBooks_Database::table(self::TABLE_SETTINGS);
  $row = $wpdb->get_row($wpdb->prepare(
@@ -266,7 +266,7 @@ class OraBooks_Expenses {
  public static function save_org_settings($org_id, array $data) {
  global $wpdb;
 
- self::ensure_settings_schema;
+ self::ensure_settings_schema();
 
  $table = OraBooks_Database::table(self::TABLE_SETTINGS);
  $payload = [

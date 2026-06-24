@@ -748,7 +748,7 @@ function orabooks_provision_org_multisite($org_id, $subdomain, $title, $owner_us
  $wp_user_id = orabooks_get_wp_user_id_for_orabooks_user($owner_user_id);	$blog_id = wpmu_create_blog($domain, '/', $title, $wp_user_id, ['public' => 1], get_current_network_id());
 
  if (is_wp_error($blog_id)) {
- orabooks_log_event('org_site_provision_failed', $blog_id->get_error_message, 'error', [
+ orabooks_log_event('org_site_provision_failed', $blog_id->get_error_message(), 'error', [
  'org_id' => $org_id,
  'subdomain' => $subdomain,
  ], (int) $owner_user_id, $org_id);
@@ -1062,7 +1062,7 @@ function orabooks_handle_login_oidc_callback() {	if (orabooks_is_explicit_logout
  if (is_wp_error($result)) {
  wp_redirect(add_query_arg(
  'oidc_error',
- rawurlencode($result->get_error_message),
+ rawurlencode($result->get_error_message()),
  orabooks_get_network_login_url('login')
  ));
  exit;

@@ -213,7 +213,7 @@ class OraBooks_AR {
 
  public static function get_ar_config($org_id) {
  global $wpdb;
- self::ensure_schema;
+ self::ensure_schema();
 
  $table = OraBooks_Database::table('customer_ar_configs');
  $row = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$table} WHERE org_id = %d", (int) $org_id));
@@ -232,7 +232,7 @@ class OraBooks_AR {
 
  public static function save_ar_config($org_id, array $data) {
  global $wpdb;
- self::ensure_schema;
+ self::ensure_schema();
 
  $table = OraBooks_Database::table('customer_ar_configs');
  $payload = [
@@ -405,7 +405,7 @@ class OraBooks_AR {
 
  public static function record_customer_payment($org_id, $customer_id, array $data) {
  global $wpdb;
- self::ensure_schema;
+ self::ensure_schema();
 
  $amount = round((float) ($data['amount'] ?? 0), 2);
  if ($amount <= 0) {
@@ -487,7 +487,7 @@ class OraBooks_AR {
 
  public static function reverse_payment($org_id, $payment_id, $user_id, $reason = '') {
  global $wpdb;
- self::ensure_schema;
+ self::ensure_schema();
 
  $table = OraBooks_Database::table('payments');
  $payment = $wpdb->get_row($wpdb->prepare(
@@ -554,7 +554,7 @@ class OraBooks_AR {
 
  public static function create_credit_note($org_id, array $data) {
  global $wpdb;
- self::ensure_schema;
+ self::ensure_schema();
 
  $customer_id = (int) ($data['customer_id'] ?? 0);
  $amount = round((float) ($data['amount'] ?? 0), 2);
@@ -794,7 +794,7 @@ class OraBooks_AR {
 
  public function daily_statement_snapshot() {
  global $wpdb;
- self::ensure_schema;
+ self::ensure_schema();
 
  $month = current_time('Y-m');
  $customers = $wpdb->get_results("SELECT * FROM ". OraBooks_Database::table('customers'));
@@ -834,7 +834,7 @@ class OraBooks_AR {
 
  public function daily_dunning_check() {
  global $wpdb;
- self::ensure_schema;
+ self::ensure_schema();
 
  $table = OraBooks_Database::table('invoices');
  $wpdb->query(
@@ -988,7 +988,7 @@ class OraBooks_AR {
 
  public static function list_credit_notes($org_id, $customer_id = 0, $invoice_id = 0) {
  global $wpdb;
- self::ensure_schema;
+ self::ensure_schema();
  $table = OraBooks_Database::table('credit_notes');
  if ($invoice_id > 0) {
  $rows = $wpdb->get_results($wpdb->prepare(
@@ -1013,7 +1013,7 @@ class OraBooks_AR {
 
  public static function list_payments($org_id, $args = []) {
  global $wpdb;
- self::ensure_schema;
+ self::ensure_schema();
 
  $table = OraBooks_Database::table('payments');
  $where = ['org_id = %d'];

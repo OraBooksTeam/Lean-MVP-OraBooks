@@ -252,7 +252,7 @@ class OraBooks_Vendors {
  }
 
  require_once $upgrade;
- foreach (self::get_create_table_sql as $sql) {
+ foreach (self::get_create_table_sql() as $sql) {
  if (strpos($sql, 'bill_line_items') !== false) {
  dbDelta($sql);
  break;

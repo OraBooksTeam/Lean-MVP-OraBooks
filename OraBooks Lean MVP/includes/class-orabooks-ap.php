@@ -81,7 +81,7 @@ class OraBooks_AP {
 
  public static function get_ap_config($org_id) {
  global $wpdb;
- self::ensure_schema;
+ self::ensure_schema();
 
  $table = OraBooks_Database::table('vendor_ap_configs');
  $row = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$table} WHERE org_id = %d", (int) $org_id));
@@ -100,7 +100,7 @@ class OraBooks_AP {
 
  public static function save_ap_config($org_id, array $data) {
  global $wpdb;
- self::ensure_schema;
+ self::ensure_schema();
 
  $table = OraBooks_Database::table('vendor_ap_configs');
  $payload = [
@@ -125,7 +125,7 @@ class OraBooks_AP {
 
  public static function apply_vendor_credit_to_bill($org_id, $vendor_id, $bill_id, $user_id) {
  global $wpdb;
- self::ensure_schema;
+ self::ensure_schema();
 
  $config = self::get_ap_config($org_id);
  if (empty($config->auto_apply_vendor_credit)) {
@@ -232,7 +232,7 @@ class OraBooks_AP {
 
  public static function reverse_vendor_payment($org_id, $payment_id, $user_id, $reason = '') {
  global $wpdb;
- self::ensure_schema;
+ self::ensure_schema();
 
  $table = OraBooks_Database::table('vendor_payments');
  $payment = $wpdb->get_row($wpdb->prepare(
@@ -471,7 +471,7 @@ class OraBooks_AP {
 
  public static function list_credit_notes($org_id, $vendor_id = 0, $bill_id = 0) {
  global $wpdb;
- self::ensure_schema;
+ self::ensure_schema();
 
  $table = OraBooks_Database::table('vendor_credit_notes');
  if ($bill_id > 0) {
@@ -498,7 +498,7 @@ class OraBooks_AP {
 
  public static function list_payments($org_id, $args = []) {
  global $wpdb;
- self::ensure_schema;
+ self::ensure_schema();
 
  $table = OraBooks_Database::table('vendor_payments');
  $where = ['org_id = %d'];
@@ -537,7 +537,7 @@ class OraBooks_AP {
 
  public function daily_vendor_statement_snapshot() {
  global $wpdb;
- self::ensure_schema;
+ self::ensure_schema();
 
  $month = current_time('Y-m');
  $vendors = $wpdb->get_results("SELECT * FROM ". OraBooks_Database::table('vendors'). " WHERE is_active = 1");
