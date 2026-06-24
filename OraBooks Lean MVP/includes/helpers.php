@@ -1528,12 +1528,9 @@ function orabooks_get_refresh_token_cookie_ttl() {
 /**
  * Persist refresh token in an HTTP-only cookie.
  */
-function orabooks_set_refresh_token_cookie($token) {
- if (empty($token) || headers_sent) {
+function orabooks_set_refresh_token_cookie($token) {	if (empty($token) || headers_sent()) {
  return;
- }
-
- $expiry = time + orabooks_get_refresh_token_cookie_ttl;
+ }	$expiry = time() + orabooks_get_refresh_token_cookie_ttl();
  $path = defined('COOKIEPATH') && COOKIEPATH ? COOKIEPATH: '/';
  $secure = is_ssl;	foreach (orabooks_get_auth_cookie_domains() as $domain) {
  if (PHP_VERSION_ID >= 70300) {
@@ -1964,20 +1961,16 @@ function orabooks_destroy_auth_session($user_id = 0, $log = true, $set_landing_c
  $set_landing_cookie = $log;
  }
 
- if ($user_id <= 0) {
- $user_id = orabooks_resolve_authenticated_user_id;
+ if ($user_id <= 0) {	$user_id = orabooks_resolve_authenticated_user_id();
  }
 
  if ($user_id > 0 && class_exists('OraBooks_Auth')) {
  OraBooks_Auth::revoke_user_tokens($user_id);
- }
+ }	orabooks_clear_auth_token_cookie();
+	orabooks_clear_refresh_token_cookie();
+	orabooks_clear_wp_auth_cookies();
 
- orabooks_clear_auth_token_cookie;
- orabooks_clear_refresh_token_cookie;
- orabooks_clear_wp_auth_cookies;
-
- if (function_exists('wp_logout')) {
- wp_logout;
+ if (function_exists('wp_logout')) {		wp_logout();
  }
 
  if (function_exists('wp_set_current_user')) {
