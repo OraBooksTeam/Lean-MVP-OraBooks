@@ -693,9 +693,7 @@ function orabooks_resolve_wp_user_link_for_orabooks_user($orabooks_user_id, $cre
  $password = function_exists('wp_generate_password')
  ? wp_generate_password(32, true, true)
 : orabooks_random_string(32);
- $username = orabooks_generate_username_from_email($user->email);
-
- if (function_exists('is_multisite') && is_multisite && function_exists('wpmu_create_user')) {
+ $username = orabooks_generate_username_from_email($user->email);	if (function_exists('is_multisite') && is_multisite() && function_exists('wpmu_create_user')) {
  $wp_user_id = wpmu_create_user($username, $password, $user->email);
  } else {
  $wp_user_id = wp_create_user($username, $password, $user->email);
@@ -1229,8 +1227,7 @@ function orabooks_users_can_register() {	if (function_exists('is_multisite') && 
 /**
  * Multisite networks that require email activation via wp-signup / wp-activate.
  */
-function orabooks_multisite_uses_signup_activation() {
- if (!function_exists('is_multisite') || !is_multisite || !function_exists('get_site_option')) {
+function orabooks_multisite_uses_signup_activation() {	if (!function_exists('is_multisite') || !is_multisite() || !function_exists('get_site_option')) {
  return false;
  }
 
@@ -1269,9 +1266,7 @@ function orabooks_generate_username_from_email($email) {
 function orabooks_create_wp_user_for_registration($email, $password, $meta = []) {
  if (!function_exists('wp_create_user')) {
  return 0;
- }
-
- if (!orabooks_users_can_register) {
+ }	if (!orabooks_users_can_register()) {
  return new WP_Error('registration_disabled', __('User registration is disabled on this site.', 'orabooks'));
  }
 
@@ -1279,9 +1274,7 @@ function orabooks_create_wp_user_for_registration($email, $password, $meta = [])
  return new WP_Error('email_exists', __('This email is already registered.', 'orabooks'));
  }
 
- $username = orabooks_generate_username_from_email($email);
-
- if (orabooks_multisite_uses_signup_activation && function_exists('wpmu_signup_user')) {
+ $username = orabooks_generate_username_from_email($email);	if (orabooks_multisite_uses_signup_activation() && function_exists('wpmu_signup_user')) {
  $signup_meta = array_merge($meta, [
  'password' => $password,
  'orabooks_signup' => 1,
@@ -1296,9 +1289,7 @@ function orabooks_create_wp_user_for_registration($email, $password, $meta = [])
  'pending_signup' => true,
  'user_login' => $username,
  ];
- }
-
- if (function_exists('is_multisite') && is_multisite && function_exists('wpmu_create_user')) {
+ }	if (function_exists('is_multisite') && is_multisite() && function_exists('wpmu_create_user')) {
  $wp_user_id = wpmu_create_user($username, $password, $email);
  } else {
  $wp_user_id = wp_create_user($username, $password, $email);
@@ -1310,10 +1301,8 @@ function orabooks_create_wp_user_for_registration($email, $password, $meta = [])
 
  if (!$wp_user_id) {
  return new WP_Error('wp_user_failed', __('Could not create WordPress user.', 'orabooks'));
- }
-
- if (function_exists('is_multisite') && is_multisite && function_exists('add_user_to_blog')) {
- $blog_id = get_current_blog_id;
+ }	if (function_exists('is_multisite') && is_multisite() && function_exists('add_user_to_blog')) {
+			$blog_id = get_current_blog_id();
  if (!is_user_member_of_blog($wp_user_id, $blog_id)) {
  add_user_to_blog($blog_id, $wp_user_id, 'subscriber');
  }
