@@ -1376,9 +1376,7 @@ function orabooks_get_auth_cookie_domains() {
  $domains = [''];	$configured = orabooks_get_auth_cookie_domain();
  if ($configured !== '') {
  $domains[] = $configured;
- }
-
- $base_domain = function_exists('orabooks_get_tenant_base_domain') ? orabooks_get_tenant_base_domain: '';
+ }	$base_domain = function_exists('orabooks_get_tenant_base_domain') ? orabooks_get_tenant_base_domain() : '';
  if ($base_domain !== '') {
  $shared = '.'. ltrim($base_domain, '.');
  if (!in_array($shared, $domains, true)) {
@@ -1531,8 +1529,7 @@ function orabooks_get_refresh_token_cookie_ttl() {
 function orabooks_set_refresh_token_cookie($token) {	if (empty($token) || headers_sent()) {
  return;
  }	$expiry = time() + orabooks_get_refresh_token_cookie_ttl();
- $path = defined('COOKIEPATH') && COOKIEPATH ? COOKIEPATH: '/';
- $secure = is_ssl;	foreach (orabooks_get_auth_cookie_domains() as $domain) {
+ $path = defined('COOKIEPATH') && COOKIEPATH ? COOKIEPATH: '/';	$secure = is_ssl();	foreach (orabooks_get_auth_cookie_domains() as $domain) {
  if (PHP_VERSION_ID >= 70300) {
  setcookie('orabooks_refresh', $token, [
  'expires' => $expiry,
@@ -1852,8 +1849,7 @@ function orabooks_set_logout_landing_cookie() {
  return;
  }
 
- $path = defined('COOKIEPATH') && COOKIEPATH ? COOKIEPATH: '/';
- $secure = is_ssl;	foreach (orabooks_get_auth_cookie_domains() as $domain) {
+ $path = defined('COOKIEPATH') && COOKIEPATH ? COOKIEPATH: '/';	$secure = is_ssl();	foreach (orabooks_get_auth_cookie_domains() as $domain) {
  if (PHP_VERSION_ID >= 70300) {
  setcookie('orabooks_logout', '1', [
  'expires' => time + 600,
@@ -1908,8 +1904,7 @@ function orabooks_get_logout_redirect_url() {
  * Clear WordPress logged-in cookies across multisite domain variants.
  */
 function orabooks_clear_wp_auth_cookies() {
- if (function_exists('wp_clear_auth_cookie')) {
- wp_clear_auth_cookie;
+ if (function_exists('wp_clear_auth_cookie')) {		wp_clear_auth_cookie();
  }
 
  if (headers_sent) {
@@ -1930,9 +1925,8 @@ function orabooks_clear_wp_auth_cookies() {
  defined('COOKIEPATH') && COOKIEPATH ? COOKIEPATH: '/',
  defined('SITECOOKIEPATH') && SITECOOKIEPATH ? SITECOOKIEPATH: '/',
  '/',
- ])));
- $secure = is_ssl;
- $expired = time - 3600;	foreach (orabooks_get_auth_cookie_domains() as $domain) {
+ ])));	$secure = is_ssl();
+	$expired = time() - 3600;	foreach (orabooks_get_auth_cookie_domains() as $domain) {
  foreach ($names as $name) {
  foreach ($paths as $path) {
  if (PHP_VERSION_ID >= 70300) {
@@ -1978,8 +1972,7 @@ function orabooks_destroy_auth_session($user_id = 0, $log = true, $set_landing_c
  }
 
  unset($_COOKIE['orabooks_token']);
- if ($set_landing_cookie) {
- orabooks_set_logout_landing_cookie;
+ if ($set_landing_cookie) {	orabooks_set_logout_landing_cookie();
  }
 
  if ($log && $user_id > 0) {
@@ -1990,8 +1983,7 @@ function orabooks_destroy_auth_session($user_id = 0, $log = true, $set_landing_c
 /**
  * On post-logout landing, force-clear any lingering cookies before redirect guards run.
  */
-function orabooks_force_logout_cleanup() {
- if (!orabooks_needs_logout_cleanup) {
+function orabooks_force_logout_cleanup() {	if (!orabooks_needs_logout_cleanup()) {
  return;
  }
 
