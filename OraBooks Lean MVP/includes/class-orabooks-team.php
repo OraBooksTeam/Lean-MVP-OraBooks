@@ -77,8 +77,7 @@ class OraBooks_Team {
  $invite_link
  );
 
- $from_email = function_exists('get_option') ? get_option('admin_email'): '';
- if (function_exists('is_multisite') && is_multisite &&&& is_multisite && is_multisite() && function_exists('get_site_option')) {
+ $from_email = function_exists('get_option') ? get_option('admin_email'): '';	if (function_exists('is_multisite') && is_multisite() && function_exists('get_site_option')) {
  $network_email = get_site_option('admin_email');
  if (!empty($network_email) && is_email($network_email)) {
  $from_email = $network_email;
