@@ -1104,26 +1104,23 @@ add_action('template_redirect', 'orabooks_handle_login_oidc_callback', 1);
 /**
  * Redirect logged-in customers from the main site to their org subdomain workspace.
  */
-function orabooks_maybe_redirect_to_org_subdomain() {
- if (orabooks_is_explicit_logout_request) {
- return;
- }
+function orabooks_maybe_redirect_to_org_subdomain() {	if (orabooks_is_explicit_logout_request()) {
+		return;
+	}
 
- if (!function_exists('orabooks_is_user_logged_in') || !orabooks_is_user_logged_in) {
- return;
- }
+	if (!function_exists('orabooks_is_user_logged_in') || !orabooks_is_user_logged_in()) {
+		return;
+	}
 
- if (!is_singular('page')) {
- return;
- }
+	if (!is_singular('page')) {
+		return;
+	}
 
- $post = get_queried_object;
+	$post = get_queried_object();
  if (!$post || empty($post->post_name)) {
  return;
- }
-
- $user_id = orabooks_get_current_user_id;
- if ($user_id > 0 && orabooks_is_network_auth_host && orabooks_orabooks_user_can_manage_platform($user_id)) {
+ }	$user_id = orabooks_get_current_user_id();
+	if ($user_id > 0 && orabooks_is_network_auth_host() && orabooks_orabooks_user_can_manage_platform($user_id)) {
  return;
  }
 
@@ -1135,18 +1132,15 @@ function orabooks_maybe_redirect_to_org_subdomain() {
  $org = OraBooks_Organization::get($org_id);
  if (!$org || empty($org->subdomain)) {
  return;
- }
-
- $current_subdomain = OraBooks_Auth::detect_subdomain_from_host;
- if (strtolower($current_subdomain) === strtolower($org->subdomain)) {
+ }	$current_subdomain = OraBooks_Auth::detect_subdomain_from_host();
+	if (strtolower($current_subdomain) === strtolower($org->subdomain)) {
  return;
  }
 
  $shared_auth_slugs = ['login', 'register', 'reset-password', 'verify-email', 'tier-selection', 'accept-invite'];
  if (in_array($post->post_name, $shared_auth_slugs, true)) {
- if ($post->post_name === 'login') {
- if (orabooks_is_network_auth_host && orabooks_orabooks_user_can_manage_platform($user_id)) {
- wp_redirect(orabooks_get_platform_admin_url);
+ if ($post->post_name === 'login') {		if (orabooks_is_network_auth_host() && orabooks_orabooks_user_can_manage_platform($user_id)) {
+					wp_redirect(orabooks_get_platform_admin_url());
  exit;
  }
 
@@ -1158,9 +1152,7 @@ function orabooks_maybe_redirect_to_org_subdomain() {
  exit;
  }
  return;
- }
-
- if (!function_exists('orabooks_get_accounting_page_slugs') || !in_array($post->post_name, orabooks_get_accounting_page_slugs, true)) {
+ }	if (!function_exists('orabooks_get_accounting_page_slugs') || !in_array($post->post_name, orabooks_get_accounting_page_slugs(), true)) {
  return;
  }
 
@@ -1222,8 +1214,7 @@ function orabooks_get_user_agent() {
 /**
  * Whether public registration is allowed (single site or multisite network setting).
  */
-function orabooks_users_can_register() {
- if (function_exists('is_multisite') && is_multisite && function_exists('get_site_option')) {
+function orabooks_users_can_register() {	if (function_exists('is_multisite') && is_multisite() && function_exists('get_site_option')) {
  $registration = get_site_option('registration', 'none');
  return in_array($registration, ['user', 'all'], true);
  }
