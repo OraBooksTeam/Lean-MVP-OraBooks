@@ -1319,11 +1319,10 @@ function orabooks_create_wp_user_for_registration($email, $password, $meta = [])
 /**
  * Resolve OraBooks user ID from a WordPress user ID or OraBooks ID.
  */
-function orabooks_resolve_user_id($user_id = 0) {
- $user_id = $user_id ?: orabooks_get_current_user_id;
- if (!$user_id) {
- return 0;
- }
+function orabooks_resolve_user_id($user_id = 0) {	$user_id = $user_id ?: orabooks_get_current_user_id();
+	if (!$user_id) {
+		return 0;
+	}
 
  global $wpdb;
  $table = OraBooks_Database::table('users');
@@ -1374,9 +1373,7 @@ function orabooks_get_verified_jwt_payload() {
  * @return string[]
  */
 function orabooks_get_auth_cookie_domains() {
- $domains = [''];
-
- $configured = orabooks_get_auth_cookie_domain;
+ $domains = [''];	$configured = orabooks_get_auth_cookie_domain();
  if ($configured !== '') {
  $domains[] = $configured;
  }
@@ -1395,16 +1392,15 @@ function orabooks_get_auth_cookie_domains() {
 /**
  * Resolve an OraBooks user from WordPress auth or a verified OraBooks JWT.
  */
-function orabooks_resolve_authenticated_user_id() {
- $wp_user_id = get_current_user_id;
- if ($wp_user_id) {
- $resolved = orabooks_resolve_user_id((int) $wp_user_id);
- if ($resolved > 0) {
- return $resolved;
- }
- }
+function orabooks_resolve_authenticated_user_id() {	$wp_user_id = get_current_user_id();
+	if ($wp_user_id) {
+		$resolved = orabooks_resolve_user_id((int) $wp_user_id);
+		if ($resolved > 0) {
+			return $resolved;
+		}
+	}
 
- $payload = orabooks_get_verified_jwt_payload;
+	$payload = orabooks_get_verified_jwt_payload();
  if ($payload) {
  return (int) $payload['user_id'];
  }
@@ -1414,29 +1410,26 @@ function orabooks_resolve_authenticated_user_id() {
 
 /**
  * Resolve the active OraBooks user, ignoring auth during post-logout landing.
- */
-function orabooks_get_current_user_id() {
- if (orabooks_is_explicit_logout_request) {
- return 0;
- }
+ */function orabooks_get_current_user_id() {
+	if (orabooks_is_explicit_logout_request()) {
+		return 0;
+	}
 
- return orabooks_resolve_authenticated_user_id;
+	return orabooks_resolve_authenticated_user_id();
 }
 
 /**
  * Whether an OraBooks user is authenticated (WordPress session or verified JWT).
  */
-function orabooks_is_user_logged_in() {
- return orabooks_get_current_user_id > 0;
+function orabooks_is_user_logged_in() {	return orabooks_get_current_user_id() > 0;
 }
 
 /**
  * Cookie lifetime for the OraBooks auth token mirror.
  */
-function orabooks_get_auth_token_cookie_ttl() {
- $jwt_expiry = class_exists('OraBooks_Secrets')
- ? OraBooks_Secrets::get_default_jwt_expiry
-: 900;
+function orabooks_get_auth_token_cookie_ttl() {	$jwt_expiry = class_exists('OraBooks_Secrets')
+		? OraBooks_Secrets::get_default_jwt_expiry()
+	: 900;
  $jwt_expiry = (int) get_option('orabooks_jwt_expiry', $jwt_expiry);
 
  return max(300, $jwt_expiry);
@@ -1446,8 +1439,7 @@ function orabooks_get_auth_token_cookie_ttl() {
  * HMAC signing key for internal integrity proofs.
  */
 function orabooks_get_hmac_signing_key() {
- if (class_exists('OraBooks_Secrets')) {
- return OraBooks_Secrets::get_hmac_signing_key;
+ if (class_exists('OraBooks_Secrets')) {		return OraBooks_Secrets::get_hmac_signing_key();
  }
 
  if (defined('ORABOOKS_JWT_SECRET') && ORABOOKS_JWT_SECRET) {
