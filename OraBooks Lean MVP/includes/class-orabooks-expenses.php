@@ -1775,7 +1775,7 @@ class OraBooks_Expenses {
  $add('async_ocr_handler', 'Async handler: process_expense_ocr ', is_callable($ocr_handler));
 
  if (class_exists('OraBooks_Workflow')) {
- $machines = OraBooks_Workflow::get_machines;
+ $machines = OraBooks_Workflow::get_machines();
  $expense_machine = $machines['expense'] ?? null;
  $has_ai_review_state = is_array($expense_machine)
  && in_array('ai_review', $expense_machine['states'] ?? [], true);
