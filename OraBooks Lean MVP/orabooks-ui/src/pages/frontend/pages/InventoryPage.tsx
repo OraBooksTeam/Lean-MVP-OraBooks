@@ -401,7 +401,7 @@ export default function InventoryPage() {
   return (
     <ClientShell
       title="Inventory"
-      eyebrow="SL-034 Products & stock"
+      eyebrow="Products & stock"
       organization={context?.organization}
       isPartner={context?.organization?.organization_type === 'partner'}
     >
