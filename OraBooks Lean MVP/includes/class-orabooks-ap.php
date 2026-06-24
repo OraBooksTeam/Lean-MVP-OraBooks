@@ -58,7 +58,7 @@ class OraBooks_AP {
  $ran = true;
 
  if (class_exists('OraBooks_Vendors')) {
- foreach (OraBooks_Vendors::get_create_table_sql as $sql) {
+ foreach (OraBooks_Vendors::get_create_table_sql() as $sql) {
  $wpdb->query($sql);
  }
  }
