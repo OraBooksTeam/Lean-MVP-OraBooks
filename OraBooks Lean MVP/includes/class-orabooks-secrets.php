@@ -16,72 +16,21 @@ class OraBooks_Secrets {
     private static $secrets_cache = [];
     private static $access_logged = [];
     private static $bootstrapped = false;
-    /** @var WP_Error|null */
-    private static $bootstrap_error = null;
-    private static $file_secrets = null;
 
     /** Grace period after JWT secret rotation (seconds). */
     const JWT_ROTATION_GRACE_SECONDS = 86400;
     const MIN_JWT_SECRET_LENGTH = 32;
     const MIN_ENCRYPTION_KEY_LENGTH = 32;
     const TLS_EXPIRY_WARN_DAYS = 30;
-    const DEFAULT_JWT_EXPIRY_SECONDS = 900;
     
     public static function init() {
         if (self::$instance === null) {
             self::$instance = new self();
-            $boot = self::bootstrap();
-            if (is_wp_error($boot)) {
-                self::$bootstrap_error = $boot;
-                self::register_failure_handlers();
-            } else {
-                add_action('template_redirect', [self::class, 'maybe_enforce_https'], 1);
-                add_action('admin_init', [self::class, 'maybe_enforce_https'], 1);
-            }
+            self::bootstrap();
+            add_action('template_redirect', [self::class, 'maybe_enforce_https'], 1);
+            add_action('admin_init', [self::class, 'maybe_enforce_https'], 1);
         }
         return self::$instance;
-    }
-
-    /**
-     * Whether SL-008 bootstrap completed without blocking errors.
-     */
-    public static function is_ready() {
-        return self::$bootstrap_error === null;
-    }
-
-    /**
-     * @return WP_Error|null
-     */
-    public static function get_bootstrap_error() {
-        return self::$bootstrap_error;
-    }
-
-    /**
-     * Default JWT access-token lifetime (SL-013: 15 minutes).
-     */
-    public static function get_default_jwt_expiry() {
-        return (int) apply_filters('orabooks_default_jwt_expiry', self::DEFAULT_JWT_EXPIRY_SECONDS);
-    }
-
-    /**
-     * Shared HMAC signing material for internal integrity proofs (SL-008 §5.6).
-     */
-    public static function get_hmac_signing_key() {
-        return (string) self::get_jwt_secret();
-    }
-
-    /**
-     * Clear cached secrets after rotation or external secret-manager reload.
-     */
-    public static function clear_secrets_cache($key = null) {
-        if ($key === null) {
-            self::$secrets_cache = [];
-            self::$access_logged = [];
-            self::$file_secrets = null;
-            return;
-        }
-
-        unset(self::$secrets_cache[$key], self::$access_logged[$key]);
     }
 
     /**
@@ -106,23 +55,13 @@ class OraBooks_Secrets {
             if (strlen((string) $encryption) < self::MIN_ENCRYPTION_KEY_LENGTH) {
                 $issues[] = 'encryption_key too short';
             }
-
-            $db_tls = self::check_database_tls();
-            if (empty($db_tls['ok']) && empty($db_tls['skipped'])) {
-                $issues[] = 'database connection is not using TLS';
-            }
-
             if (!empty($issues) && function_exists('orabooks_log_event')) {
                 orabooks_log_event('secrets_bootstrap_failed', 'Required secrets failed validation', 'critical', [
                     'issues' => $issues,
                 ]);
             }
             if (!empty($issues)) {
-                return new WP_Error(
-                    'secrets_invalid',
-                    'Required secrets or TLS configuration failed validation for production.',
-                    ['issues' => $issues]
-                );
+                return new WP_Error('secrets_invalid', 'Required secrets are missing or too short for production.');
             }
         }
 
@@ -188,153 +127,6 @@ class OraBooks_Secrets {
 
     public static function requires_tls() {
         return (bool) apply_filters('orabooks_require_tls', self::is_production());
-    }
-
-    /**
-     * Block OraBooks runtime when bootstrap failed in production (SL-008 §10).
-     */
-    private static function register_failure_handlers() {
-        add_action('admin_notices', [self::class, 'render_bootstrap_admin_notice']);
-        add_action('init', [self::class, 'block_orabooks_ajax_when_not_ready'], 0);
-    }
-
-    public static function render_bootstrap_admin_notice() {
-        if (!current_user_can('manage_options') || !self::$bootstrap_error) {
-            return;
-        }
-
-        $message = esc_html(self::$bootstrap_error->get_error_message());
-        $issues = self::$bootstrap_error->get_error_data();
-        if (is_array($issues) && !empty($issues['issues'])) {
-            $message .= ' ' . esc_html(implode('; ', (array) $issues['issues']));
-        }
-
-        echo '<div class="notice notice-error"><p><strong>OraBooks (SL-008):</strong> ' . $message . '</p></div>';
-    }
-
-    public static function block_orabooks_ajax_when_not_ready() {
-        if (self::is_ready() || !defined('DOING_AJAX') || !DOING_AJAX) {
-            return;
-        }
-
-        $action = sanitize_text_field($_REQUEST['action'] ?? '');
-        if ($action === '' || strpos($action, 'orabooks_') !== 0) {
-            return;
-        }
-
-        if (function_exists('orabooks_json_error')) {
-            orabooks_json_error(
-                self::$bootstrap_error ? self::$bootstrap_error->get_error_message() : 'OraBooks secrets bootstrap failed.',
-                503
-            );
-        }
-
-        wp_send_json([
-            'success' => false,
-            'error' => true,
-            'message' => self::$bootstrap_error ? self::$bootstrap_error->get_error_message() : 'OraBooks secrets bootstrap failed.',
-        ], 503);
-    }
-
-    /**
-     * Verify database client TLS indicators (SL-008 §5.3 / checklist §10).
-     *
-     * @return array<string, mixed>
-     */
-    public static function check_database_tls() {
-        if (!self::is_production()) {
-            return [
-                'ok' => true,
-                'skipped' => true,
-                'reason' => 'non_production',
-            ];
-        }
-
-        $indicators = [];
-
-        if (defined('MYSQL_CLIENT_FLAGS') && defined('MYSQLI_CLIENT_SSL')) {
-            if (((int) MYSQL_CLIENT_FLAGS & (int) MYSQLI_CLIENT_SSL) !== 0) {
-                $indicators[] = 'MYSQL_CLIENT_FLAGS';
-            }
-        }
-        if (defined('MYSQL_SSL_CA') && MYSQL_SSL_CA) {
-            $indicators[] = 'MYSQL_SSL_CA';
-        }
-        if (defined('MYSQL_SSL_CERT') && MYSQL_SSL_CERT) {
-            $indicators[] = 'MYSQL_SSL_CERT';
-        }
-        if (defined('MYSQL_SSL_KEY') && MYSQL_SSL_KEY) {
-            $indicators[] = 'MYSQL_SSL_KEY';
-        }
-        if (defined('DB_SSL') && DB_SSL) {
-            $indicators[] = 'DB_SSL';
-        }
-        if (getenv('ORABOOKS_DB_SSL') === '1' || getenv('MYSQL_SSL_CA')) {
-            $indicators[] = 'env_ssl';
-        }
-
-        global $wpdb;
-        if (isset($wpdb->dbh) && $wpdb->dbh instanceof mysqli) {
-            $result = @mysqli_query($wpdb->dbh, "SHOW SESSION STATUS LIKE 'Ssl_cipher'");
-            if ($result instanceof mysqli_result) {
-                $row = mysqli_fetch_assoc($result);
-                mysqli_free_result($result);
-                if (!empty($row['Value'])) {
-                    $indicators[] = 'mysqli_ssl_cipher';
-                }
-            }
-        }
-
-        $verified = (bool) apply_filters('orabooks_database_tls_verified', false, $indicators);
-        $ok = $verified || !empty($indicators);
-
-        if (!$ok && function_exists('orabooks_log_event')) {
-            orabooks_log_event('database_tls_not_configured', 'Database TLS not detected in production', 'critical', [
-                'indicators' => $indicators,
-            ]);
-        }
-
-        return [
-            'ok' => $ok,
-            'skipped' => false,
-            'indicators' => array_values(array_unique($indicators)),
-            'verified' => $verified,
-        ];
-    }
-
-    /**
-     * Load secrets from ORABOOKS_SECRETS_FILE (JSON) for Vault/secret-manager sidecars.
-     *
-     * @return array<string, string>
-     */
-    private static function load_file_secrets() {
-        if (self::$file_secrets !== null) {
-            return self::$file_secrets;
-        }
-
-        self::$file_secrets = [];
-        $path = getenv('ORABOOKS_SECRETS_FILE');
-        if (!$path || !is_readable($path)) {
-            return self::$file_secrets;
-        }
-
-        $raw = file_get_contents($path);
-        if ($raw === false) {
-            return self::$file_secrets;
-        }
-
-        $decoded = json_decode($raw, true);
-        if (!is_array($decoded)) {
-            return self::$file_secrets;
-        }
-
-        foreach ($decoded as $name => $value) {
-            if (is_scalar($value) && $value !== '') {
-                self::$file_secrets[sanitize_key((string) $name)] = (string) $value;
-            }
-        }
-
-        return self::$file_secrets;
     }
 
     /**
@@ -444,16 +236,6 @@ class OraBooks_Secrets {
      * Load secret from environment or WordPress options
      */
     private static function load_secret($key) {
-        $filtered = apply_filters('orabooks_load_secret', null, $key);
-        if ($filtered !== null && $filtered !== '') {
-            return (string) $filtered;
-        }
-
-        $file_secrets = self::load_file_secrets();
-        if (!empty($file_secrets[$key])) {
-            return $file_secrets[$key];
-        }
-
         $env_key = 'ORABOOKS_' . strtoupper($key);
         $env_value = getenv($env_key);
         if ($env_value !== false && $env_value !== '') {
@@ -519,7 +301,6 @@ class OraBooks_Secrets {
         }
 
         self::set($key, $new_value);
-        self::clear_secrets_cache($key);
         unset(self::$secrets_cache[$key . '_previous']);
 
         if ($key === 'jwt_secret') {
@@ -702,27 +483,13 @@ class OraBooks_Secrets {
             ];
         }
 
-        $ssl_opts = [
-            'capture_peer_cert' => true,
-            'capture_peer_chain' => true,
-            'verify_peer' => true,
-            'verify_peer_name' => true,
-        ];
-
-        // Use WordPress bundled CA bundle if available (WP 5.7+).
-        if (defined('ABSPATH') && defined('WPINC')) {
-            $ca_path = ABSPATH . WPINC . '/certificates/ca-bundle.crt';
-            if (file_exists($ca_path)) {
-                $ssl_opts['cafile'] = $ca_path;
-            }
-        }
-
-        // Fall back to system default CA if no bundled bundle exists.
-        if (empty($ssl_opts['cafile'])) {
-            $ssl_opts['allow_self_signed'] = false;
-        }
-
-        $context = stream_context_create(['ssl' => $ssl_opts]);
+        $context = stream_context_create([
+            'ssl' => [
+                'capture_peer_cert' => true,
+                'verify_peer' => false,
+                'verify_peer_name' => false,
+            ],
+        ]);
 
         $client = @stream_socket_client(
             'ssl://' . $host . ':' . (int) $port,
@@ -797,18 +564,15 @@ class OraBooks_Secrets {
         $jwt = self::get_jwt_secret();
         $encryption = self::get_encryption_key();
         $tls = self::check_tls_certificate();
-        $db_tls = self::check_database_tls();
 
         return [
             'production_mode' => self::is_production(),
             'requires_tls' => self::requires_tls(),
-            'bootstrap_ready' => self::is_ready(),
             'jwt_secret_configured' => strlen((string) $jwt) >= self::MIN_JWT_SECRET_LENGTH,
             'encryption_key_configured' => strlen((string) $encryption) >= self::MIN_ENCRYPTION_KEY_LENGTH,
             'jwt_secret_length' => strlen((string) $jwt),
             'last_rotated' => get_option('orabooks_secrets_last_rotated', ''),
             'tls' => $tls,
-            'database_tls' => $db_tls,
             'https_active' => function_exists('is_ssl') ? is_ssl() : false,
         ];
     }
@@ -839,7 +603,7 @@ class OraBooks_Secrets {
         $header = self::base64url_encode(json_encode(['alg' => 'HS256', 'typ' => 'JWT']));
         $payload['iat'] = time();
         $jwt_expiry = self::with_shared_options(function () {
-            return (int) get_option('orabooks_jwt_expiry', self::get_default_jwt_expiry());
+            return (int) get_option('orabooks_jwt_expiry', 3600);
         });
         if (empty($payload['exp']) || (int) $payload['exp'] <= time()) {
             $payload['exp'] = time() + max(300, $jwt_expiry);

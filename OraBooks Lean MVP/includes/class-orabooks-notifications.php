@@ -528,7 +528,7 @@ class OraBooks_Notifications {
             'provider'        => $provider,
             'region'          => $region,
             'timestamp'       => current_time('mysql', true),
-            'signature'       => hash_hmac('sha256', "{$notification_id}:{$channel}:{$provider}", orabooks_get_hmac_signing_key()),
+            'signature'       => hash_hmac('sha256', "{$notification_id}:{$channel}:{$provider}", defined('ORABOOKS_JWT_SECRET') ? ORABOOKS_JWT_SECRET : 'orabooks-default'),
         ];
 
         $success = true; // MVP: assume success
@@ -977,7 +977,7 @@ class OraBooks_Notifications {
             $bundle['notifications'][] = $item;
             $bundle['signatures'][] = [
                 'notification_id' => (int)$n->id,
-                'hmac'            => hash_hmac('sha256', json_encode($item), orabooks_get_hmac_signing_key()),
+                'hmac'            => hash_hmac('sha256', json_encode($item), defined('ORABOOKS_JWT_SECRET') ? ORABOOKS_JWT_SECRET : 'orabooks-default'),
             ];
         }
 

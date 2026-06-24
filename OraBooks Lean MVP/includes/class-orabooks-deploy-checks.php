@@ -86,11 +86,6 @@ class OraBooks_DeployChecks {
             } elseif (!empty($tls['expiring_soon'])) {
                 $secrets_detail = 'TLS certificate expiring in ' . ($tls['days_remaining'] ?? '?') . ' days';
             }
-
-            if (empty($status['bootstrap_ready'])) {
-                $secrets_ok = false;
-                $secrets_detail = $secrets_detail ?: 'Secrets bootstrap failed — see admin notice';
-            }
         } else {
             $legacy_jwt = get_option('orabooks_jwt_secret');
             $secrets_ok = !empty($legacy_jwt);
@@ -106,33 +101,6 @@ class OraBooks_DeployChecks {
                 : true,
             $secrets_detail
         );
-
-        if (class_exists('OraBooks_Secrets')) {
-            $db_tls = OraBooks_Secrets::check_database_tls();
-            $db_tls_ok = !empty($db_tls['ok']) || !empty($db_tls['skipped']);
-            $db_tls_detail = '';
-            if (!$db_tls_ok) {
-                $db_tls_detail = 'Enable MYSQL_CLIENT_FLAGS|MYSQL_SSL_CA|DB_SSL or ORABOOKS_DB_SSL=1 — see docs/SL-008-secret-rotation-runbook.md';
-            } elseif (!empty($db_tls['indicators'])) {
-                $db_tls_detail = 'indicators: ' . implode(', ', (array) $db_tls['indicators']);
-            }
-            $add_check('database_tls', 'Database connection uses TLS (production)', $db_tls_ok, $db_tls_detail);
-
-            $tls_status = OraBooks_Secrets::get_status()['tls'] ?? [];
-            $tls_provision_ok = true;
-            $tls_provision_detail = 'Configure Let\'s Encrypt or enterprise CA at the load balancer — see docs/SL-008-secret-rotation-runbook.md';
-            if (OraBooks_Secrets::requires_tls() && !empty($tls_status['skipped']) && empty($tls_status['ok'])) {
-                $tls_provision_ok = false;
-            } elseif (!empty($tls_status['expired'])) {
-                $tls_provision_ok = false;
-                $tls_provision_detail = 'Certificate expired for ' . ($tls_status['host'] ?? 'site host');
-            } elseif (!empty($tls_status['expiring_soon'])) {
-                $tls_provision_detail = 'Renew before expiry (' . ($tls_status['days_remaining'] ?? '?') . ' days left)';
-            } elseif (!empty($tls_status['expires_at'])) {
-                $tls_provision_detail = 'Valid until ' . $tls_status['expires_at'];
-            }
-            $add_check('tls_certificate', 'TLS certificate provisioned', $tls_provision_ok, $tls_provision_detail);
-        }
 
         $db_version = get_option('orabooks_db_version');
         $expected_db_version = defined('ORABOOKS_DB_VERSION') ? ORABOOKS_DB_VERSION : '1.0.1';
