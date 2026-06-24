@@ -34,12 +34,12 @@ class OraBooks_DeployChecks {
  public static function ensure_mvp_cron_schedules() {
  $repaired = [];
 
- foreach (self::mvp_cron_jobs as $hook => $recurrence) {
+ foreach (self::mvp_cron_jobs() as $hook => $recurrence) {
  if (wp_next_scheduled($hook)) {
  continue;
  }
 
- wp_schedule_event(time, $recurrence, $hook);
+ wp_schedule_event(time(), $recurrence, $hook);
  $repaired[] = $hook;
  }
 
@@ -70,11 +70,11 @@ class OraBooks_DeployChecks {
  $secrets_detail = '';
 
  if (class_exists('OraBooks_Secrets')) {
- $status = OraBooks_Secrets::get_status;
+ $status = OraBooks_Secrets::get_status();
  $secrets_ok = !empty($status['jwt_secret_configured'])
  && !empty($status['encryption_key_configured']);
 
- if (OraBooks_Secrets::requires_tls && empty($status['https_active'])) {
+ if (OraBooks_Secrets::requires_tls() && empty($status['https_active'])) {
  $secrets_ok = false;
  $secrets_detail = 'HTTPS required in production';
  }
@@ -119,13 +119,13 @@ class OraBooks_DeployChecks {
  'encryption_key',
  'Encryption key configured',
  class_exists('OraBooks_Secrets')
- ? !empty(OraBooks_Secrets::get_status['encryption_key_configured'])
+ ? !empty(OraBooks_Secrets::get_status()['encryption_key_configured'])
 : true,
  $secrets_detail
  );
 
  if (class_exists('OraBooks_Secrets')) {
- $db_tls = OraBooks_Secrets::check_database_tls;
+ $db_tls = OraBooks_Secrets::check_database_tls();
  $db_tls_ok = !empty($db_tls['ok']) || !empty($db_tls['skipped']);
  $db_tls_detail = '';
  if (!$db_tls_ok) {
@@ -135,10 +135,10 @@ class OraBooks_DeployChecks {
  }
  $add_check('database_tls', 'Database connection uses TLS (production)', $db_tls_ok, $db_tls_detail);
 
- $tls_status = OraBooks_Secrets::get_status['tls'] ?? [];
+ $tls_status = OraBooks_Secrets::get_status()['tls'] ?? [];
  $tls_provision_ok = true;
  $tls_provision_detail = 'Configure Let\'s Encrypt or enterprise CA at the load balancer — see docs/-secret-rotation-runbook.md';
- if (OraBooks_Secrets::requires_tls && !empty($tls_status['skipped']) && empty($tls_status['ok'])) {
+ if (OraBooks_Secrets::requires_tls() && !empty($tls_status['skipped']) && empty($tls_status['ok'])) {
  $tls_provision_ok = false;
  } elseif (!empty($tls_status['expired'])) {
  $tls_provision_ok = false;
@@ -165,7 +165,7 @@ class OraBooks_DeployChecks {
  global $wpdb;
 
  $table_prefix = function_exists('orabooks_get_table_prefix')
- ? orabooks_get_table_prefix
+ ? orabooks_get_table_prefix()
 : $wpdb->prefix;
  $add_check('table_prefix', 'Shared table prefix resolved', $table_prefix !== '', $table_prefix);
 
@@ -210,7 +210,7 @@ class OraBooks_DeployChecks {
  if (function_exists('orabooks_with_data_blog')) {
  orabooks_with_data_blog($run_table_checks);
  } else {
- $run_table_checks;
+ $run_table_checks();
  }
 
  $cron_hooks = array_keys(self::mvp_cron_jobs);
@@ -311,8 +311,8 @@ class OraBooks_DeployChecks {
  'timestamp' => current_time('mysql'),
  'environment' => [
  'is_multisite' => function_exists('is_multisite') && is_multisite(),
- 'data_blog_id' => function_exists('orabooks_get_data_blog_id') ? orabooks_get_data_blog_id: null,
- 'current_blog_id' => function_exists('get_current_blog_id') ? get_current_blog_id: null,
+ 'data_blog_id' => function_exists('orabooks_get_data_blog_id') ? orabooks_get_data_blog_id(): null,
+ 'current_blog_id' => function_exists('get_current_blog_id') ? get_current_blog_id(): null,
  'table_prefix' => $table_prefix,
  'plugin_version' => defined('ORABOOKS_VERSION') ? ORABOOKS_VERSION: null,
  'db_version_expected' => $expected_db_version,
