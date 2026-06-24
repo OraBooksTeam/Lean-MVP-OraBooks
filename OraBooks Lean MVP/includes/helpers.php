@@ -460,11 +460,9 @@ function orabooks_with_data_blog(callable $callback) {
  switch_to_blog($target_blog);
  $switched = true;
  }
- }
-
- try {
- return $callback;
- } finally {		if ($switched && function_exists('restore_current_blog')) {
+ }	try {
+		return $callback();
+	} finally {		if ($switched && function_exists('restore_current_blog')) {
 			restore_current_blog();
 		}
  }
