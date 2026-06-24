@@ -702,27 +702,27 @@ class OraBooks_Secrets {
             ];
         }
 
-        $context = stream_context_create([
-            'ssl' => [
-                'capture_peer_cert' => true,
-                'capture_peer_chain' => true,
-                'verify_peer' => true,
-                'verify_peer_name' => true,
-            ],
-        ]);
+        $ssl_opts = [
+            'capture_peer_cert' => true,
+            'capture_peer_chain' => true,
+            'verify_peer' => true,
+            'verify_peer_name' => true,
+        ];
 
-        // Default CA bundle: use system path, or fall back to WordPress bundled CA.
-        if (defined('WPINC')) {
-            $ca_path = defined('ABSPATH')
-                ? ABSPATH . WPINC . '/certificates/ca-bundle.crt'
-                : '';
-            if ($ca_path && file_exists($ca_path)) {
-                $context_options['ssl']['cafile'] = $ca_path;
+        // Use WordPress bundled CA bundle if available (WP 5.7+).
+        if (defined('ABSPATH') && defined('WPINC')) {
+            $ca_path = ABSPATH . WPINC . '/certificates/ca-bundle.crt';
+            if (file_exists($ca_path)) {
+                $ssl_opts['cafile'] = $ca_path;
             }
         }
 
-        stream_context_set_option($context, 'ssl', 'capture_peer_cert', true);
-        stream_context_set_option($context, 'ssl', 'capture_peer_chain', true);
+        // Fall back to system default CA if no bundled bundle exists.
+        if (empty($ssl_opts['cafile'])) {
+            $ssl_opts['allow_self_signed'] = false;
+        }
+
+        $context = stream_context_create(['ssl' => $ssl_opts]);
 
         $client = @stream_socket_client(
             'ssl://' . $host . ':' . (int) $port,
