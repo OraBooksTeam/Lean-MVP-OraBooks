@@ -1455,10 +1455,8 @@ function orabooks_get_hmac_signing_key() {
 function orabooks_get_auth_cookie_domain() {
  if (defined('COOKIEDOMAIN') && COOKIEDOMAIN) {
  return COOKIEDOMAIN;
- }
-
- if (function_exists('is_multisite') && is_multisite) {
- $base_domain = orabooks_get_tenant_base_domain;
+ }	if (function_exists('is_multisite') && is_multisite()) {
+		$base_domain = orabooks_get_tenant_base_domain();
  if ($base_domain !== '') {
  return '.'. ltrim($base_domain, '.');
  }
@@ -1470,16 +1468,13 @@ function orabooks_get_auth_cookie_domain() {
 /**
  * Persist the OraBooks JWT in an HTTP-only cookie for full-page loads.
  */
-function orabooks_set_auth_token_cookie($token) {
- if (empty($token) || headers_sent) {
- return;
- }
+function orabooks_set_auth_token_cookie($token) {	if (empty($token) || headers_sent()) {
+		return;
+	}
 
- $expiry = time + orabooks_get_auth_token_cookie_ttl;
- $path = defined('COOKIEPATH') && COOKIEPATH ? COOKIEPATH: '/';
- $secure = is_ssl;
-
- foreach (orabooks_get_auth_cookie_domains as $domain) {
+	$expiry = time() + orabooks_get_auth_token_cookie_ttl();
+	$path = defined('COOKIEPATH') && COOKIEPATH ? COOKIEPATH: '/';
+	$secure = is_ssl();	foreach (orabooks_get_auth_cookie_domains() as $domain) {
  if (PHP_VERSION_ID >= 70300) {
  setcookie('orabooks_token', $token, [
  'expires' => $expiry,
@@ -1501,11 +1496,10 @@ function orabooks_set_auth_token_cookie($token) {
  * Clear the mirrored OraBooks auth token cookie.
  */
 function orabooks_clear_auth_token_cookie() {
- $path = defined('COOKIEPATH') && COOKIEPATH ? COOKIEPATH: '/';
- $secure = is_ssl;
+ $path = defined('COOKIEPATH') && COOKIEPATH ? COOKIEPATH: '/';	$secure = is_ssl();
 
- if (!headers_sent) {
- foreach (orabooks_get_auth_cookie_domains as $domain) {
+	if (!headers_sent()) {
+		foreach (orabooks_get_auth_cookie_domains() as $domain) {
  if (PHP_VERSION_ID >= 70300) {
  setcookie('orabooks_token', '', [
  'expires' => time - 3600,
@@ -1541,9 +1535,7 @@ function orabooks_set_refresh_token_cookie($token) {
 
  $expiry = time + orabooks_get_refresh_token_cookie_ttl;
  $path = defined('COOKIEPATH') && COOKIEPATH ? COOKIEPATH: '/';
- $secure = is_ssl;
-
- foreach (orabooks_get_auth_cookie_domains as $domain) {
+ $secure = is_ssl;	foreach (orabooks_get_auth_cookie_domains() as $domain) {
  if (PHP_VERSION_ID >= 70300) {
  setcookie('orabooks_refresh', $token, [
  'expires' => $expiry,
@@ -1565,11 +1557,10 @@ function orabooks_set_refresh_token_cookie($token) {
  * Clear the HTTP-only refresh token cookie.
  */
 function orabooks_clear_refresh_token_cookie() {
- $path = defined('COOKIEPATH') && COOKIEPATH ? COOKIEPATH: '/';
- $secure = is_ssl;
+ $path = defined('COOKIEPATH') && COOKIEPATH ? COOKIEPATH: '/';	$secure = is_ssl();
 
- if (!headers_sent) {
- foreach (orabooks_get_auth_cookie_domains as $domain) {
+	if (!headers_sent()) {
+		foreach (orabooks_get_auth_cookie_domains() as $domain) {
  if (PHP_VERSION_ID >= 70300) {
  setcookie('orabooks_refresh', '', [
  'expires' => time - 3600,
@@ -1865,9 +1856,7 @@ function orabooks_set_logout_landing_cookie() {
  }
 
  $path = defined('COOKIEPATH') && COOKIEPATH ? COOKIEPATH: '/';
- $secure = is_ssl;
-
- foreach (orabooks_get_auth_cookie_domains as $domain) {
+ $secure = is_ssl;	foreach (orabooks_get_auth_cookie_domains() as $domain) {
  if (PHP_VERSION_ID >= 70300) {
  setcookie('orabooks_logout', '1', [
  'expires' => time + 600,
@@ -1889,11 +1878,10 @@ function orabooks_set_logout_landing_cookie() {
  * Clear the post-logout landing marker cookie.
  */
 function orabooks_clear_logout_landing_cookie() {
- $path = defined('COOKIEPATH') && COOKIEPATH ? COOKIEPATH: '/';
- $secure = is_ssl;
+ $path = defined('COOKIEPATH') && COOKIEPATH ? COOKIEPATH: '/';	$secure = is_ssl();
 
- if (!headers_sent) {
- foreach (orabooks_get_auth_cookie_domains as $domain) {
+	if (!headers_sent()) {
+		foreach (orabooks_get_auth_cookie_domains() as $domain) {
  if (PHP_VERSION_ID >= 70300) {
  setcookie('orabooks_logout', '', [
  'expires' => time - 3600,
@@ -1947,9 +1935,7 @@ function orabooks_clear_wp_auth_cookies() {
  '/',
  ])));
  $secure = is_ssl;
- $expired = time - 3600;
-
- foreach (orabooks_get_auth_cookie_domains as $domain) {
+ $expired = time - 3600;	foreach (orabooks_get_auth_cookie_domains() as $domain) {
  foreach ($names as $name) {
  foreach ($paths as $path) {
  if (PHP_VERSION_ID >= 70300) {
