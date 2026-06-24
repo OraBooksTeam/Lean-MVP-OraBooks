@@ -372,7 +372,7 @@ export default function VendorsPage() {
   return (
     <ClientShell
       title="Vendors & Bills"
-      eyebrow="SL-027 Accounts payable"
+      eyebrow="Accounts payable"
       organization={context?.organization}
       isPartner={context?.organization?.organization_type === 'partner'}
     >
