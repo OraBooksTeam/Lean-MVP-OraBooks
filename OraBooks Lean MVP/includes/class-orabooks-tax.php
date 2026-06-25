@@ -482,6 +482,8 @@ class OraBooks_Tax {
 
         if (!empty($data['override'])) {
             $calculation = self::build_override_calculation($data);
+        } elseif (!empty($data['posted_tax'])) {
+            $calculation = self::build_posted_tax_calculation($data);
         } else {
             $calculation = self::calculate($data);
         }
