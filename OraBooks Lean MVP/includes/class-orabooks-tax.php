@@ -258,7 +258,8 @@ class OraBooks_Tax {
      * Validate tax liability account exists before posting tax (SL-017).
      */
     public static function validate_tax_posting_accounts($org_id, $tax_type) {
-        if ($tax_type === 'None' || floatval($tax_type) === 0.0) {
+        $tax_type = is_string($tax_type) ? sanitize_text_field($tax_type) : $tax_type;
+        if ($tax_type === 'None' || (is_numeric($tax_type) && floatval($tax_type) === 0.0)) {
             return true;
         }
 
@@ -1109,5 +1110,6 @@ class OraBooks_Tax {
         ]);
     }
 }
+
 
 
