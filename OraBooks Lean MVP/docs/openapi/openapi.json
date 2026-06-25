@@ -16,6 +16,7 @@
     { "name": "Journals", "description": "SL-001 canonical posting and journal workflow" },
     { "name": "Expenses", "description": "SL-028 receipt OCR and expense workflow" },
     { "name": "Classification", "description": "SL-022 AI classification suggestions and tax hints" },
+    { "name": "Async Queue", "description": "SL-303 internal async job enqueue and replay governance" },
     { "name": "PWA", "description": "Progressive Web App metadata" },
     { "name": "Auth", "description": "SL-013 two-factor authentication" }
   ],
@@ -26,6 +27,56 @@
         "summary": "OpenAPI specification",
         "responses": {
           "200": { "description": "This document" }
+        }
+      }
+    },
+    "/internal/jobs/enqueue": {
+      "post": {
+        "tags": ["Async Queue"],
+        "summary": "Enqueue internal async job",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["job_type", "payload"],
+                "properties": {
+                  "queue_name": { "type": "string", "default": "default" },
+                  "job_type": { "type": "string" },
+                  "payload": { "type": "object" },
+                  "priority": { "type": "integer", "minimum": 0, "maximum": 10, "default": 5 },
+                  "max_retries": { "type": "integer", "minimum": 0, "default": 5 },
+                  "delay_seconds": { "type": "integer", "minimum": 0, "default": 0 },
+                  "idempotency_key": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Job enqueued" },
+          "403": { "description": "Forbidden" },
+          "422": { "description": "Invalid payload" }
+        }
+      }
+    },
+    "/internal/jobs/{id}/retry": {
+      "post": {
+        "tags": ["Async Queue"],
+        "summary": "Retry dead-letter or failed async job",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer" }
+          }
+        ],
+        "responses": {
+          "200": { "description": "Job requeued" },
+          "404": { "description": "Job not found" },
+          "409": { "description": "Invalid job state for retry" }
         }
       }
     },
