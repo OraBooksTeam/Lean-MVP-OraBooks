@@ -475,3 +475,175 @@ export default function TaxSettingsPage() {
     </ClientShell>
   );
 }
+
+type TaxFormState = {
+  jurisdiction: string;
+  default_tax_rate: string;
+  tax_type: TaxConfig['tax_type'];
+  is_active: boolean;
+  exemption_certificate_url: string;
+  override_reasons: string[];
+};
+
+function TaxConfigModal({
+  title,
+  taxLocked,
+  lockMessage,
+  form,
+  formMode,
+  jurisdictionOptions,
+  saving,
+  onClose,
+  onSave,
+  onJurisdictionChange,
+  onFormChange,
+  onToggleReason,
+}: {
+  title: string;
+  taxLocked: boolean;
+  lockMessage?: string;
+  form: TaxFormState;
+  formMode: 'add' | 'edit';
+  jurisdictionOptions: Jurisdiction[];
+  saving: boolean;
+  onClose: () => void;
+  onSave: () => void;
+  onJurisdictionChange: (code: string) => void;
+  onFormChange: React.Dispatch<React.SetStateAction<TaxFormState>>;
+  onToggleReason: (reason: string) => void;
+}) {
+  return (
+    <div
+      className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-900/50 p-4"
+      onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="tax-config-modal-title"
+    >
+      <div
+        className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-border bg-white p-6 shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h3 id="tax-config-modal-title" className="text-lg font-semibold text-ink">{title}</h3>
+            <p className="mt-1 text-sm text-slate-600">
+              Set default tax rate, type, and allowed override reasons for this jurisdiction.
+            </p>
+          </div>
+          <button type="button" onClick={onClose} className="text-sm font-medium text-slate-500 hover:text-slate-700">
+            Close
+          </button>
+        </div>
+
+        {taxLocked && (
+          <div className="mt-4 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+            <Lock className="mt-0.5 h-4 w-4 shrink-0" />
+            <p>{lockMessage || 'Tax configuration is locked for closed fiscal periods. Saving is disabled.'}</p>
+          </div>
+        )}
+
+        <div className="mt-5 grid gap-4 sm:grid-cols-2">
+          <Field label="Jurisdiction">
+            {formMode === 'add' ? (
+              <select
+                value={form.jurisdiction}
+                onChange={(e) => onJurisdictionChange(e.target.value)}
+                className="w-full rounded-lg border border-border bg-white px-3 py-2.5 text-sm"
+              >
+                {jurisdictionOptions.map((j) => (
+                  <option key={j.jurisdiction_code} value={j.jurisdiction_code}>
+                    {j.name} ({j.jurisdiction_code})
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <Input value={form.jurisdiction} readOnly disabled className="bg-slate-50" />
+            )}
+          </Field>
+          <Field label="Tax type">
+            <select
+              value={form.tax_type}
+              onChange={(e) => onFormChange((prev) => ({ ...prev, tax_type: e.target.value as TaxConfig['tax_type'] }))}
+              disabled={taxLocked}
+              className="w-full rounded-lg border border-border bg-white px-3 py-2.5 text-sm disabled:bg-slate-50"
+            >
+              {TAX_TYPES.map((type) => (
+                <option key={type} value={type}>{type}</option>
+              ))}
+            </select>
+          </Field>
+          <Field label="Default rate (%)">
+            <Input
+              type="number"
+              min="0"
+              max="100"
+              step="0.01"
+              value={form.default_tax_rate}
+              onChange={(e) => onFormChange((prev) => ({ ...prev, default_tax_rate: e.target.value }))}
+              disabled={taxLocked}
+            />
+          </Field>
+          <Field label="Exemption certificate URL">
+            <Input
+              type="url"
+              value={form.exemption_certificate_url}
+              onChange={(e) => onFormChange((prev) => ({ ...prev, exemption_certificate_url: e.target.value }))}
+              placeholder="https://..."
+              disabled={taxLocked}
+            />
+          </Field>
+          <label className="flex items-center gap-2 pt-7 text-sm sm:col-span-2">
+            <input
+              type="checkbox"
+              checked={form.is_active}
+              onChange={(e) => onFormChange((prev) => ({ ...prev, is_active: e.target.checked }))}
+              disabled={taxLocked}
+              className="rounded border-border"
+            />
+            <span className="font-medium text-slate-700">Active configuration</span>
+          </label>
+        </div>
+
+        <div className="mt-5">
+          <p className="text-sm font-medium text-slate-700">Allowed override reason codes</p>
+          <p className="text-xs text-slate-500">Only selected codes can be used when overriding tax on invoices or expenses.</p>
+          <div className="mt-2 grid gap-2 sm:grid-cols-2">
+            {DEFAULT_OVERRIDE_REASONS.map((reason) => (
+              <label key={reason} className="flex items-start gap-2 rounded-lg border border-border bg-white px-3 py-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={form.override_reasons.includes(reason)}
+                  onChange={() => onToggleReason(reason)}
+                  disabled={taxLocked}
+                  className="mt-0.5 rounded border-border"
+                />
+                <span>
+                  <span className="font-medium text-ink">{reasonLabel(reason)}</span>
+                  <span className="block text-xs text-slate-500">{reason}</span>
+                </span>
+              </label>
+            ))}
+          </div>
+        </div>
+
+        <div className="mt-6 flex flex-wrap gap-2">
+          <Button type="button" onClick={onSave} disabled={saving || taxLocked}>
+            <Save className="h-4 w-4" />
+            {saving ? 'Saving…' : 'Save configuration'}
+          </Button>
+          <Button type="button" variant="secondary" onClick={onClose}>Cancel</Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Field({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <label className="block space-y-1.5 text-sm">
+      <span className="font-medium text-slate-700">{label}</span>
+      {children}
+    </label>
+  );
+}
