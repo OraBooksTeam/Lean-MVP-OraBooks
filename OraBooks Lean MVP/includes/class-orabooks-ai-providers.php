@@ -111,7 +111,7 @@ class OraBooks_Ai_Providers {
             ], null, null);
         }
 
-        return OraBooks_Expenses::run_ocr_stub($filename, $expense_id);
+        return OraBooks_Expenses::run_ocr_stub($filename, $expense_id, $file_bytes);
     }
 
     /**
@@ -252,11 +252,19 @@ class OraBooks_Ai_Providers {
         $doc = $payload['analyzeResult']['documents'][0] ?? [];
         $fields = $doc['fields'] ?? [];
 
-        $vendor = self::field_value($fields, 'MerchantName') ?: self::field_value($fields, 'MerchantAddress');
+        $vendor = self::first_field_value($fields, ['MerchantName', 'VendorName', 'SupplierName'])
+            ?: self::field_value($fields, 'MerchantAddress');
+        $merchant_address = self::first_field_value($fields, ['MerchantAddress', 'VendorAddress', 'SupplierAddress']) ?: '';
+        $vendor_tax_id = self::first_field_value($fields, ['MerchantTaxId', 'TaxId', 'VendorTaxId', 'TaxRegistrationNumber']) ?: '';
+        $invoice_no = self::first_field_value($fields, ['ReceiptNumber', 'InvoiceId', 'InvoiceNumber', 'TransactionId']) ?: '';
         $total = self::field_number($fields, 'Total') ?: self::field_number($fields, 'TotalAmount');
         $tax = self::field_number($fields, 'TotalTax');
         $subtotal = self::field_number($fields, 'Subtotal');
-        $date = self::field_date($fields, 'TransactionDate') ?: current_time('Y-m-d');
+        $date = self::first_field_date($fields, ['TransactionDate', 'InvoiceDate']) ?: current_time('Y-m-d');
+        $due_date = self::first_field_date($fields, ['DueDate', 'PaymentDueDate']);
+        $currency = self::first_field_value($fields, ['CurrencyCode', 'Currency']) ?: 'USD';
+        $payment_method = self::first_field_value($fields, ['PaymentMethod', 'PaymentType']) ?: 'Card';
+        $category = self::infer_category_from_text($vendor . ' ' . $merchant_address . ' ' . $filename);
 
         if ($subtotal === null && $total !== null && $tax !== null) {
             $subtotal = round($total - $tax, 2);
@@ -270,12 +278,20 @@ class OraBooks_Ai_Providers {
         $tax_rate = $subtotal > 0 ? round(($tax / $subtotal) * 100, 2) : 0.0;
 
         $field_confidences = [
-            'vendor'           => self::field_confidence($fields, 'MerchantName', 85),
-            'invoice_number'   => self::field_confidence($fields, 'TransactionId', 75),
-            'transaction_date' => self::field_confidence($fields, 'TransactionDate', 90),
-            'total_amount'     => self::field_confidence($fields, 'Total', 88),
-            'tax_amount'       => self::field_confidence($fields, 'TotalTax', 72),
-            'category'         => 78,
+            'vendor'            => self::first_field_confidence($fields, ['MerchantName', 'VendorName', 'SupplierName'], 85),
+            'vendor_tax_id'     => self::first_field_confidence($fields, ['MerchantTaxId', 'TaxId', 'VendorTaxId'], 65),
+            'invoice_number'    => self::first_field_confidence($fields, ['ReceiptNumber', 'InvoiceId', 'InvoiceNumber', 'TransactionId'], 75),
+            'transaction_date'  => self::first_field_confidence($fields, ['TransactionDate', 'InvoiceDate'], 90),
+            'due_date'          => self::first_field_confidence($fields, ['DueDate', 'PaymentDueDate'], 70),
+            'subtotal'          => self::field_confidence($fields, 'Subtotal', 72),
+            'tax_amount'        => self::field_confidence($fields, 'TotalTax', 72),
+            'tax_rate'          => 70,
+            'total_amount'      => self::first_field_confidence($fields, ['Total', 'TotalAmount'], 88),
+            'currency'          => self::first_field_confidence($fields, ['CurrencyCode', 'Currency'], 80),
+            'payment_method'    => self::first_field_confidence($fields, ['PaymentMethod', 'PaymentType'], 72),
+            'line_items'        => 80,
+            'category'          => 76,
+            'merchant_address'  => self::first_field_confidence($fields, ['MerchantAddress', 'VendorAddress'], 70),
         ];
 
         $avg = array_sum($field_confidences) / count($field_confidences);
@@ -291,15 +307,18 @@ class OraBooks_Ai_Providers {
 
         return [
             'vendor'           => $vendor ? sanitize_text_field($vendor) : 'Unknown Vendor',
-            'invoice_number'   => sanitize_text_field(self::field_value($fields, 'TransactionId') ?: ''),
+            'vendor_tax_id'    => sanitize_text_field($vendor_tax_id),
+            'invoice_number'   => sanitize_text_field($invoice_no),
             'transaction_date' => $date,
+            'due_date'         => $due_date,
             'subtotal'           => round((float) $subtotal, 2),
             'tax_amount'         => round((float) $tax, 2),
             'tax_rate'           => $tax_rate,
             'total_amount'       => round((float) $total, 2),
-            'currency'           => sanitize_text_field(self::field_value($fields, 'Currency') ?: 'USD'),
-            'payment_method'     => sanitize_text_field(self::field_value($fields, 'PaymentMethod') ?: 'Card'),
-            'category'           => 'General',
+            'currency'           => sanitize_text_field($currency),
+            'payment_method'     => sanitize_text_field($payment_method),
+            'category'           => sanitize_text_field($category),
+            'merchant_address'   => sanitize_text_field($merchant_address),
             'description'        => 'OCR extracted expense from ' . sanitize_text_field($filename),
             'ocr_confidence'     => round($avg, 2),
             'ocr_risk_level'     => $risk,
@@ -308,6 +327,55 @@ class OraBooks_Ai_Providers {
             'provider'           => self::PROVIDER_AZURE_DI,
             'model_version'      => self::model_version('ocr'),
         ];
+    }
+
+    private static function first_field_value(array $fields, array $candidates) {
+        foreach ($candidates as $name) {
+            $value = self::field_value($fields, $name);
+            if ($value !== null && $value !== '') {
+                return $value;
+            }
+        }
+        return null;
+    }
+
+    private static function first_field_date(array $fields, array $candidates) {
+        foreach ($candidates as $name) {
+            $value = self::field_date($fields, $name);
+            if ($value !== null && $value !== '') {
+                return $value;
+            }
+        }
+        return null;
+    }
+
+    private static function first_field_confidence(array $fields, array $candidates, $default) {
+        foreach ($candidates as $name) {
+            if (!empty($fields[$name])) {
+                return self::field_confidence($fields, $name, $default);
+            }
+        }
+        return $default;
+    }
+
+    private static function infer_category_from_text($text) {
+        $text = strtolower((string) $text);
+        if (preg_match('/hotel|flight|uber|transport|travel/', $text)) {
+            return 'Travel';
+        }
+        if (preg_match('/restaurant|cafe|meal|food/', $text)) {
+            return 'Meals';
+        }
+        if (preg_match('/software|subscription|saas|license/', $text)) {
+            return 'Software';
+        }
+        if (preg_match('/stationery|office|printer|paper/', $text)) {
+            return 'Office Supplies';
+        }
+        if (preg_match('/electric|utility|water|internet/', $text)) {
+            return 'Utilities';
+        }
+        return 'General';
     }
 
     private static function normalize_receipt_items(array $fields) {

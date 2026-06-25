@@ -219,11 +219,18 @@ export default function ExpensesPage() {
       setSelectedExpense(expense);
       setEditFields({
         vendor: expense?.vendor || '',
+        vendor_tax_id: expense?.vendor_tax_id || '',
         invoice_number: expense?.invoice_number || '',
         transaction_date: expense?.transaction_date || '',
+        due_date: expense?.due_date || '',
+        subtotal: expense?.subtotal != null ? String(expense.subtotal) : '',
         total_amount: expense?.total_amount != null ? String(expense.total_amount) : '',
         tax_amount: expense?.tax_amount != null ? String(expense.tax_amount) : '',
+        tax_rate: expense?.tax_rate != null ? String(expense.tax_rate) : '',
+        currency: expense?.currency || 'USD',
+        payment_method: expense?.payment_method || '',
         category: expense?.category || '',
+        merchant_address: expense?.merchant_address || '',
         description: expense?.description || '',
       });
     }
@@ -463,6 +470,20 @@ export default function ExpensesPage() {
             {selectedExpense.workflow_status === 'draft' && selectedExpense.ocr_confidence != null ? (
               <div className="mt-4 grid gap-4 md:grid-cols-2">
                 {(['vendor', 'invoice_number', 'transaction_date', 'total_amount', 'tax_amount', 'category'] as const).map(
+                {([
+                  'vendor',
+                  'vendor_tax_id',
+                  'invoice_number',
+                  'transaction_date',
+                  'due_date',
+                  'subtotal',
+                  'tax_amount',
+                  'tax_rate',
+                  'total_amount',
+                  'currency',
+                  'payment_method',
+                  'category',
+                ] as const).map(
                   (field) => (
                     <label key={field} className="block text-sm">
                       <span className="mb-1 block font-semibold capitalize text-slate-700">
@@ -476,6 +497,14 @@ export default function ExpensesPage() {
                     </label>
                   )
                 )}
+                <label className="block text-sm md:col-span-2">
+                  <span className="mb-1 block font-semibold text-slate-700">Merchant Address</span>
+                  <input
+                    className={fieldClass}
+                    value={editFields.merchant_address || ''}
+                    onChange={(e) => setEditFields((prev) => ({ ...prev, merchant_address: e.target.value }))}
+                  />
+                </label>
                 <label className="block text-sm md:col-span-2">
                   <span className="mb-1 block font-semibold text-slate-700">Description</span>
                   <input
@@ -495,6 +524,9 @@ export default function ExpensesPage() {
                 </p>
                 <p>
                   <strong>Date:</strong> {selectedExpense.transaction_date || '—'}
+                </p>
+                <p>
+                  <strong>Payment:</strong> {selectedExpense.payment_status || '—'}
                 </p>
                 <p>
                   <strong>Category:</strong> {selectedExpense.category || '—'}
@@ -741,6 +773,7 @@ function ExpenseTable({
             <th className="px-5 py-3 font-semibold">Date</th>
             <th className="px-5 py-3 text-right font-semibold">Amount</th>
             <th className="px-5 py-3 font-semibold">Workflow</th>
+            <th className="px-5 py-3 font-semibold">Payment</th>
             <th className="px-5 py-3 font-semibold">Risk</th>
             <th className="px-5 py-3 font-semibold">Confidence</th>
             <th className="px-5 py-3 font-semibold">Actions</th>
@@ -749,13 +782,13 @@ function ExpenseTable({
         <tbody className="divide-y divide-border">
           {loading ? (
             <tr>
-              <td colSpan={7} className="px-5 py-8 text-center text-slate-500">
+              <td colSpan={8} className="px-5 py-8 text-center text-slate-500">
                 Loading...
               </td>
             </tr>
           ) : expenses.length === 0 ? (
             <tr>
-              <td colSpan={7} className="px-5 py-8 text-center text-sm text-slate-500">
+              <td colSpan={8} className="px-5 py-8 text-center text-sm text-slate-500">
                 No expenses yet.
               </td>
             </tr>
@@ -778,6 +811,7 @@ function ExpenseTable({
                 <td className="px-5 py-3">
                   <StatusBadge status={expense.workflow_status} />
                 </td>
+                <td className="px-5 py-3">{expense.payment_status || '—'}</td>
                 <td className="px-5 py-3">
                   {expense.ocr_risk_level ? <RiskBadge level={expense.ocr_risk_level} /> : '—'}
                 </td>

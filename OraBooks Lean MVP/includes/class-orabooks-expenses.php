@@ -15,10 +15,13 @@ class OraBooks_Expenses {
     const TABLE_EXPENSES     = 'expenses';
     const TABLE_OCR_QUEUE    = 'ocr_processing_queue';
     const TABLE_LINE_ITEMS   = 'expense_line_items';
+    const OCR_JOB_TYPE       = 'process_expense_ocr';
 
     const CONFIDENCE_THRESHOLD = 70.0;
     const MAX_RECEIPT_SIZE     = 10485760; // 10 MB
     const MAX_OCR_RETRIES      = 3;
+    const UPLOAD_RATE_LIMIT_MAX = 10;
+    const UPLOAD_RATE_LIMIT_PERIOD = 60;
     const OCR_MODEL_VERSION    = 'mvp-stub-1.0';
     const OCR_PROVIDER         = 'mvp-stub';
 
@@ -38,6 +41,10 @@ class OraBooks_Expenses {
     public static function init() {
         if (self::$instance === null) {
             self::$instance = new self();
+
+            if (class_exists('OraBooks_AsyncQueue')) {
+                OraBooks_AsyncQueue::register_handler(self::OCR_JOB_TYPE, [self::class, 'handle_ocr_async_job']);
+            }
 
             add_action('orabooks_expenses_ocr_process', [self::$instance, 'cron_process_ocr_queue']);
 
@@ -100,6 +107,7 @@ class OraBooks_Expenses {
                 ocr_provider VARCHAR(50) DEFAULT NULL,
                 ocr_model_version VARCHAR(20) DEFAULT NULL,
                 ocr_snapshot_hash VARCHAR(64) DEFAULT NULL,
+                receipt_image_hash VARCHAR(64) DEFAULT NULL,
                 workflow_status ENUM('draft','submitted','ai_review','approved','posted','locked') NOT NULL DEFAULT 'draft',
                 payment_status ENUM('unpaid','paid','reimbursable') NOT NULL DEFAULT 'unpaid',
                 lock_status ENUM('unlocked','locked') NOT NULL DEFAULT 'unlocked',
@@ -127,7 +135,8 @@ class OraBooks_Expenses {
                 expense_id BIGINT UNSIGNED NOT NULL,
                 org_id BIGINT UNSIGNED NOT NULL,
                 attachment_id BIGINT UNSIGNED NULL,
-                status ENUM('pending','processing','completed','failed') NOT NULL DEFAULT 'pending',
+                file_path VARCHAR(500) DEFAULT NULL,
+                status ENUM('pending','processing','completed','failed','escalated') NOT NULL DEFAULT 'pending',
                 retry_count INT UNSIGNED NOT NULL DEFAULT 0,
                 error_message TEXT DEFAULT NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -263,6 +272,7 @@ class OraBooks_Expenses {
             'ocr_provider'     => $row->ocr_provider,
             'ocr_model_version'=> $row->ocr_model_version,
             'ocr_snapshot_hash'=> $row->ocr_snapshot_hash,
+            'receipt_image_hash' => $row->receipt_image_hash ?? null,
             'workflow_status'  => $row->workflow_status,
             'payment_status'   => $row->payment_status,
             'lock_status'      => $row->lock_status,
@@ -311,6 +321,10 @@ class OraBooks_Expenses {
 
         if ($content === '' || strlen($content) > self::MAX_RECEIPT_SIZE) {
             return new WP_Error('invalid_file', 'Receipt is empty or exceeds 10MB limit');
+        }
+
+        if (!orabooks_check_rate_limit("expense_receipt_upload_{$user_id}", self::UPLOAD_RATE_LIMIT_MAX, self::UPLOAD_RATE_LIMIT_PERIOD)) {
+            return new WP_Error('rate_limit', 'Too many uploads. Limit is 10 uploads per minute.');
         }
 
         $allowed = ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg', 'image/webp'];
@@ -363,7 +377,26 @@ class OraBooks_Expenses {
         $wpdb->update($table, ['attachment_id' => $attachment_id], ['id' => $expense_id], ['%d'], ['%d']);
 
         $queue_id = self::enqueue_ocr($expense_id, $org_id, $attachment_id);
-        self::init()->process_ocr_item_by_id($queue_id);
+
+        $queued_async = false;
+        if (class_exists('OraBooks_AsyncQueue')) {
+            $job_id = OraBooks_AsyncQueue::enqueue(self::OCR_JOB_TYPE, [
+                'queue_id' => (int) $queue_id,
+                'expense_id' => (int) $expense_id,
+                'org_id' => (int) $org_id,
+            ], [
+                'queue_name' => 'ocr',
+                'priority' => 3,
+                'max_retries' => self::MAX_OCR_RETRIES,
+                'idempotency_key' => 'ocr-' . (int) $queue_id,
+            ]);
+            $queued_async = (bool) $job_id;
+        }
+
+        // Fallback for environments where SL-303 queue worker is unavailable.
+        if (!$queued_async) {
+            self::init()->process_ocr_item_by_id($queue_id);
+        }
 
         orabooks_log_event('expense_receipt_uploaded', "Receipt uploaded for expense #{$expense_id}", 'info', [
             'expense_id'    => $expense_id,
@@ -382,6 +415,16 @@ class OraBooks_Expenses {
         return self::format_expense($expense, true);
     }
 
+    public static function handle_ocr_async_job($job, $payload) {
+        $queue_id = (int) ($payload['queue_id'] ?? 0);
+        if ($queue_id <= 0) {
+            return false;
+        }
+
+        $ok = self::init()->process_ocr_item_by_id($queue_id);
+        return (bool) $ok;
+    }
+
     private static function enqueue_ocr($expense_id, $org_id, $attachment_id) {
         global $wpdb;
 
@@ -390,8 +433,9 @@ class OraBooks_Expenses {
             'expense_id'    => intval($expense_id),
             'org_id'        => intval($org_id),
             'attachment_id' => intval($attachment_id),
+            'file_path'     => null,
             'status'        => 'pending',
-        ], ['%d', '%d', '%d', '%s']);
+        ], ['%d', '%d', '%d', '%s', '%s']);
 
         return (int) $wpdb->insert_id;
     }
@@ -418,8 +462,10 @@ class OraBooks_Expenses {
         ));
 
         if ($item && $item->status === 'pending') {
-            $this->process_ocr_item($item);
+            return $this->process_ocr_item($item);
         }
+
+        return false;
     }
 
     private function process_ocr_item($item) {
@@ -436,7 +482,7 @@ class OraBooks_Expenses {
                 'status'        => 'failed',
                 'error_message' => 'Expense not found',
             ], ['id' => (int) $item->id], ['%s', '%s'], ['%d']);
-            return;
+            return false;
         }
 
         $filename = 'receipt';
@@ -461,6 +507,10 @@ class OraBooks_Expenses {
                 'expense_id' => (int) $item->expense_id,
                 'file_bytes' => $file_bytes,
             ]);
+
+            if (is_wp_error($ocr)) {
+                throw new Exception($ocr->get_error_message());
+            }
         } catch (Exception $e) {
             $retry = (int) $item->retry_count + 1;
             if ($retry > self::MAX_OCR_RETRIES) {
@@ -469,21 +519,32 @@ class OraBooks_Expenses {
                     'retry_count'   => $retry,
                     'error_message' => $e->getMessage(),
                 ], ['id' => (int) $item->id], ['%s', '%d', '%s'], ['%d']);
+
+                self::alert_ocr_failure((int) $item->org_id, (int) $item->expense_id, $e->getMessage(), $retry);
             } else {
                 $wpdb->update($queue_table, [
                     'status'      => 'pending',
                     'retry_count' => $retry,
                 ], ['id' => (int) $item->id], ['%s', '%d'], ['%d']);
             }
-            return;
+            return false;
         }
 
         $snapshot_hash = hash('sha256', wp_json_encode($ocr['ocr_data']));
+        $receipt_hash = !empty($ocr['receipt_image_hash'])
+            ? sanitize_text_field((string) $ocr['receipt_image_hash'])
+            : (!empty($file_bytes) ? hash('sha256', (string) $file_bytes) : null);
+
+        $status = ((float) ($ocr['ocr_confidence'] ?? 0) < self::CONFIDENCE_THRESHOLD || ($ocr['ocr_risk_level'] ?? 'low') === 'high')
+            ? 'escalated'
+            : 'completed';
 
         $wpdb->update($expense_table, [
             'vendor'             => sanitize_text_field($ocr['vendor']),
+            'vendor_tax_id'      => sanitize_text_field($ocr['vendor_tax_id'] ?? ''),
             'invoice_number'     => sanitize_text_field($ocr['invoice_number']),
             'transaction_date'   => $ocr['transaction_date'],
+            'due_date'           => !empty($ocr['due_date']) ? sanitize_text_field($ocr['due_date']) : null,
             'subtotal'           => $ocr['subtotal'],
             'tax_amount'         => $ocr['tax_amount'],
             'tax_rate'           => $ocr['tax_rate'],
@@ -491,6 +552,7 @@ class OraBooks_Expenses {
             'currency'           => sanitize_text_field($ocr['currency']),
             'payment_method'     => sanitize_text_field($ocr['payment_method']),
             'category'           => sanitize_text_field($ocr['category']),
+            'merchant_address'   => !empty($ocr['merchant_address']) ? sanitize_textarea_field($ocr['merchant_address']) : null,
             'description'        => sanitize_textarea_field($ocr['description']),
             'ocr_confidence'     => $ocr['ocr_confidence'],
             'ocr_risk_level'     => $ocr['ocr_risk_level'],
@@ -498,11 +560,12 @@ class OraBooks_Expenses {
             'ocr_provider'       => sanitize_text_field($ocr['provider'] ?? OraBooks_Ai_Providers::provider_name('ocr')),
             'ocr_model_version'  => sanitize_text_field($ocr['model_version'] ?? OraBooks_Ai_Providers::model_version('ocr')),
             'ocr_snapshot_hash'  => $snapshot_hash,
+            'receipt_image_hash' => $receipt_hash,
         ], ['id' => (int) $item->expense_id]);
 
         self::replace_line_items((int) $item->expense_id, $ocr['line_items']);
 
-        $wpdb->update($queue_table, ['status' => 'completed'], ['id' => (int) $item->id], ['%s'], ['%d']);
+        $wpdb->update($queue_table, ['status' => $status], ['id' => (int) $item->id], ['%s'], ['%d']);
 
         orabooks_log_event('ocr_processing_completed', "OCR completed for expense #{$item->expense_id}", 'info', [
             'expense_id'     => (int) $item->expense_id,
@@ -514,29 +577,125 @@ class OraBooks_Expenses {
         if (class_exists('OraBooks_Classification')) {
             OraBooks_Classification::request('expense', (int) $item->expense_id, (int) $item->org_id);
         }
+
+        return true;
     }
 
-    public static function run_ocr_stub($filename, $expense_id) {
+    public static function run_ocr_stub($filename, $expense_id, $file_bytes = null) {
         $base = pathinfo($filename, PATHINFO_FILENAME);
         $base = preg_replace('/[_\-]+/', ' ', $base);
         $base = trim($base) ?: 'Unknown Vendor';
 
         $seed = crc32($filename . $expense_id);
-        $total = round(($expense_id % 10000) / 10 + ($seed % 5000) / 100 + 20, 2);
+
+        $text = '';
+        if (!empty($file_bytes)) {
+            $text = preg_replace('/[^A-Za-z0-9@.,:\/-\s]/', ' ', (string) $file_bytes);
+            $text = preg_replace('/\s+/', ' ', (string) $text);
+        }
+
+        $vendor = ucwords($base);
+        if ($text !== '' && preg_match('/(?:merchant|vendor|supplier|shop)\s*[:\-]\s*([A-Za-z][A-Za-z0-9\s&.,\-]{2,80})/i', $text, $m)) {
+            $vendor = sanitize_text_field(trim($m[1]));
+        }
+
+        $total = 0.0;
+        if ($text !== '' && preg_match('/(?:grand\s*total|total\s*amount|amount\s*due|total)\s*[:\-]?\s*(?:USD|BDT|EUR|GBP|\$|৳|€|£)?\s*([0-9]{1,3}(?:,[0-9]{3})*(?:\.[0-9]{1,2})|[0-9]+(?:\.[0-9]{1,2})?)/i', $text, $m)) {
+            $total = (float) str_replace(',', '', $m[1]);
+        }
+        if ($total <= 0 && $text !== '' && preg_match_all('/([0-9]{1,3}(?:,[0-9]{3})*(?:\.[0-9]{1,2})|[0-9]+(?:\.[0-9]{1,2})?)/', $text, $nums)) {
+            $values = array_map(function ($n) {
+                return (float) str_replace(',', '', $n);
+            }, $nums[1]);
+            $values = array_filter($values, function ($v) {
+                return $v > 0.5 && $v < 100000000;
+            });
+            if (!empty($values)) {
+                $total = max($values);
+            }
+        }
+        if ($total <= 0) {
+            $total = 0.0;
+        }
+
         $tax_rate = 5.0;
         $tax_amount = round($total * ($tax_rate / 100) / (1 + ($tax_rate / 100)), 2);
         $subtotal = round($total - $tax_amount, 2);
 
+        $invoice_number = 'RCP-' . str_pad((string) ($seed % 999999), 6, '0', STR_PAD_LEFT);
+        if ($text !== '' && preg_match('/(?:invoice|receipt)\s*(?:no|number|#)?\s*[:\-]?\s*([A-Z0-9\-]{3,40})/i', $text, $m)) {
+            $invoice_number = sanitize_text_field(trim($m[1]));
+        }
+
+        $transaction_date = current_time('Y-m-d');
+        if ($text !== '' && preg_match('/(\d{4}[\/-]\d{1,2}[\/-]\d{1,2}|\d{1,2}[\/-]\d{1,2}[\/-]\d{2,4})/', $text, $m)) {
+            $parsed = strtotime($m[1]);
+            if ($parsed) {
+                $transaction_date = gmdate('Y-m-d', $parsed);
+            }
+        }
+
+        $due_date = null;
+        if ($text !== '' && preg_match('/due\s*date\s*[:\-]?\s*(\d{4}[\/-]\d{1,2}[\/-]\d{1,2}|\d{1,2}[\/-]\d{1,2}[\/-]\d{2,4})/i', $text, $m)) {
+            $parsed = strtotime($m[1]);
+            if ($parsed) {
+                $due_date = gmdate('Y-m-d', $parsed);
+            }
+        }
+
+        $vendor_tax_id = '';
+        if ($text !== '' && preg_match('/(?:vat|tin|bin|tax\s*id)\s*[:\-]?\s*([A-Z0-9\-]{4,40})/i', $text, $m)) {
+            $vendor_tax_id = sanitize_text_field(trim($m[1]));
+        }
+
+        $merchant_address = '';
+        if ($text !== '' && preg_match('/(?:address|addr)\s*[:\-]\s*([^\n\r]{6,180})/i', $text, $m)) {
+            $merchant_address = sanitize_text_field(trim($m[1]));
+        }
+
+        $currency = 'USD';
+        if (stripos($text, 'BDT') !== false || strpos($text, '৳') !== false) {
+            $currency = 'BDT';
+        } elseif (stripos($text, 'EUR') !== false || strpos($text, '€') !== false) {
+            $currency = 'EUR';
+        } elseif (stripos($text, 'GBP') !== false || strpos($text, '£') !== false) {
+            $currency = 'GBP';
+        }
+
         $categories = ['Office Supplies', 'Meals', 'Travel', 'Software', 'Utilities'];
         $category = $categories[$seed % count($categories)];
+        if ($text !== '') {
+            if (preg_match('/hotel|flight|uber|transport|travel/i', $text)) {
+                $category = 'Travel';
+            } elseif (preg_match('/restaurant|cafe|meal|food/i', $text)) {
+                $category = 'Meals';
+            } elseif (preg_match('/software|subscription|saas/i', $text)) {
+                $category = 'Software';
+            } elseif (preg_match('/paper|stationery|office|printer/i', $text)) {
+                $category = 'Office Supplies';
+            }
+        }
+
+        $base_conf = $text !== '' ? 62 : 50;
+        if ($total > 0) {
+            $base_conf += 10;
+        }
 
         $field_confidences = [
-            'vendor'           => 88 + ($seed % 10),
-            'invoice_number'   => 75 + ($seed % 20),
-            'transaction_date' => 92,
-            'total_amount'     => 85 + ($seed % 12),
-            'tax_amount'       => 70 + ($seed % 15),
-            'category'         => 78 + ($seed % 18),
+            'vendor'            => min(95, $base_conf + ($vendor !== 'Unknown Vendor' ? 10 : 0)),
+            'vendor_tax_id'     => $vendor_tax_id !== '' ? min(95, $base_conf + 8) : max(40, $base_conf - 12),
+            'invoice_number'    => min(92, $base_conf + 5),
+            'transaction_date'  => min(92, $base_conf + 10),
+            'due_date'          => $due_date ? min(90, $base_conf + 6) : max(45, $base_conf - 10),
+            'subtotal'          => $total > 0 ? min(88, $base_conf + 8) : max(35, $base_conf - 15),
+            'tax_amount'        => $total > 0 ? min(85, $base_conf + 4) : max(35, $base_conf - 15),
+            'tax_rate'          => $total > 0 ? min(82, $base_conf + 2) : max(35, $base_conf - 15),
+            'total_amount'      => $total > 0 ? min(90, $base_conf + 10) : max(30, $base_conf - 20),
+            'currency'          => $text !== '' ? min(90, $base_conf + 8) : max(45, $base_conf - 10),
+            'payment_method'    => $text !== '' ? min(82, $base_conf + 3) : max(45, $base_conf - 10),
+            'line_items'        => $text !== '' ? min(80, $base_conf + 2) : max(40, $base_conf - 10),
+            'category'          => min(88, $base_conf + 6),
+            'merchant_address'  => $merchant_address !== '' ? min(90, $base_conf + 4) : max(42, $base_conf - 8),
         ];
 
         if (stripos($base, 'unknown') !== false || strlen($base) < 3) {
@@ -570,20 +729,24 @@ class OraBooks_Expenses {
         }
 
         return [
-            'vendor'           => ucwords($base),
-            'invoice_number'   => 'RCP-' . str_pad((string) ($seed % 999999), 6, '0', STR_PAD_LEFT),
-            'transaction_date'   => current_time('Y-m-d'),
+            'vendor'             => $vendor,
+            'vendor_tax_id'      => $vendor_tax_id,
+            'invoice_number'     => $invoice_number,
+            'transaction_date'   => $transaction_date,
+            'due_date'           => $due_date,
             'subtotal'           => $subtotal,
             'tax_amount'         => $tax_amount,
             'tax_rate'           => $tax_rate,
             'total_amount'       => $total,
-            'currency'           => 'USD',
-            'payment_method'     => 'Credit Card',
+            'currency'           => $currency,
+            'payment_method'     => preg_match('/cash/i', $text) ? 'Cash' : (preg_match('/bank|transfer/i', $text) ? 'Bank Transfer' : 'Credit Card'),
             'category'           => $category,
+            'merchant_address'   => $merchant_address,
             'description'        => 'OCR extracted expense from ' . $filename,
             'ocr_confidence'     => round($avg, 2),
             'ocr_risk_level'     => $risk,
             'ocr_data'           => $ocr_data,
+            'receipt_image_hash' => !empty($file_bytes) ? hash('sha256', (string) $file_bytes) : null,
             'line_items'         => [[
                 'description'     => $category . ' purchase',
                 'quantity'        => 1,
@@ -594,6 +757,61 @@ class OraBooks_Expenses {
             'provider'           => OraBooks_Ai_Providers::STUB_PROVIDER,
             'model_version'      => OraBooks_Ai_Providers::STUB_MODEL_VERSION,
         ];
+    }
+
+    private static function alert_ocr_failure($org_id, $expense_id, $error_message, $retry_count) {
+        $org_id = (int) $org_id;
+        $expense_id = (int) $expense_id;
+        $error_message = sanitize_text_field((string) $error_message);
+
+        orabooks_log_event('ocr_processing_failed', "OCR failed for expense #{$expense_id}", 'warning', [
+            'expense_id' => $expense_id,
+            'retry_count' => (int) $retry_count,
+            'error' => $error_message,
+        ], 0, $org_id);
+
+        if (function_exists('orabooks_publish_event')) {
+            orabooks_publish_event('ocr_failed', $expense_id, [
+                'expense_id' => $expense_id,
+                'org_id' => $org_id,
+                'retry_count' => (int) $retry_count,
+                'error' => $error_message,
+            ]);
+        }
+
+        if (!class_exists('OraBooks_Notifications')) {
+            return;
+        }
+
+        foreach (self::get_alert_user_ids($org_id) as $user_id) {
+            OraBooks_Notifications::send_notification((int) $user_id, 'ocr_processing_failed', [
+                'title' => 'Expense OCR failed after retries',
+                'message' => "Expense #{$expense_id} OCR failed after {$retry_count} retries.",
+                'priority' => 'high',
+                'expense_id' => $expense_id,
+                'error' => $error_message,
+            ], $org_id);
+        }
+    }
+
+    private static function get_alert_user_ids($org_id) {
+        global $wpdb;
+
+        $table_users = OraBooks_Database::table('users');
+        $ids = $wpdb->get_col($wpdb->prepare(
+            "SELECT user_id FROM {$table_users} WHERE org_id = %d AND role IN ('owner','admin')",
+            (int) $org_id
+        ));
+
+        $ids = array_values(array_unique(array_filter(array_map('intval', (array) $ids))));
+        if (empty($ids)) {
+            $fallback = (int) get_current_user_id();
+            if ($fallback > 0) {
+                $ids[] = $fallback;
+            }
+        }
+
+        return $ids;
     }
 
     private static function replace_line_items($expense_id, array $lines) {
