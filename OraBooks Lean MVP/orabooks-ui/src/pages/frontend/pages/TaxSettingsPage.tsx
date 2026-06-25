@@ -195,7 +195,6 @@ export default function TaxSettingsPage() {
     });
     setShowForm(true);
     setSuccess('');
-    setError('');
   };
 
   const handleJurisdictionChange = (code: string) => {
@@ -226,6 +225,13 @@ export default function TaxSettingsPage() {
     setSaving(true);
     setError('');
     setSuccess('');
+
+    const session = await api.verifySession();
+    if (session.error) {
+      setError(session.error || 'Your session expired. Please refresh and log in again.');
+      setSaving(false);
+      return;
+    }
 
     const res = await api.taxSaveConfig(orgId, {
       jurisdiction: form.jurisdiction,
