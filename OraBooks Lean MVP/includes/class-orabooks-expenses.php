@@ -29,6 +29,7 @@ class OraBooks_Expenses {
     const PAYMENT_STATUSES  = ['unpaid', 'paid', 'reimbursable'];
 
     private static $instance = null;
+    private static $table_columns_cache = [];
 
     private static $category_accounts = [
         'meals'           => '5200',
@@ -433,13 +434,42 @@ class OraBooks_Expenses {
         global $wpdb;
 
         $table = OraBooks_Database::table(self::TABLE_OCR_QUEUE);
-        $wpdb->insert($table, [
+        $payload = [
             'expense_id'    => intval($expense_id),
             'org_id'        => intval($org_id),
             'attachment_id' => intval($attachment_id),
             'file_path'     => null,
             'status'        => 'pending',
-        ], ['%d', '%d', '%d', '%s', '%s']);
+        ];
+
+        $payload = self::filter_existing_columns($table, $payload);
+        if (empty($payload)) {
+            return 0;
+        }
+
+        $formats = [];
+        foreach ($payload as $value) {
+            $formats[] = is_int($value) ? '%d' : '%s';
+        }
+
+        $wpdb->insert($table, $payload, $formats);
+
+        // Legacy fallback: older queue schema may reject nullable file_path/status enum values.
+        if (!$wpdb->insert_id) {
+            $legacy = self::filter_existing_columns($table, [
+                'expense_id'    => intval($expense_id),
+                'org_id'        => intval($org_id),
+                'attachment_id' => intval($attachment_id),
+                'status'        => 'pending',
+            ]);
+            if (!empty($legacy)) {
+                $legacy_formats = [];
+                foreach ($legacy as $value) {
+                    $legacy_formats[] = is_int($value) ? '%d' : '%s';
+                }
+                $wpdb->insert($table, $legacy, $legacy_formats);
+            }
+        }
 
         return (int) $wpdb->insert_id;
     }
@@ -543,7 +573,7 @@ class OraBooks_Expenses {
             ? 'escalated'
             : 'completed';
 
-        $wpdb->update($expense_table, [
+        $expense_update = [
             'vendor'             => sanitize_text_field($ocr['vendor']),
             'vendor_tax_id'      => sanitize_text_field($ocr['vendor_tax_id'] ?? ''),
             'invoice_number'     => sanitize_text_field($ocr['invoice_number']),
@@ -565,11 +595,23 @@ class OraBooks_Expenses {
             'ocr_model_version'  => sanitize_text_field($ocr['model_version'] ?? OraBooks_Ai_Providers::model_version('ocr')),
             'ocr_snapshot_hash'  => $snapshot_hash,
             'receipt_image_hash' => $receipt_hash,
-        ], ['id' => (int) $item->expense_id]);
+        ];
+
+        $expense_update = self::filter_existing_columns($expense_table, $expense_update);
+        if (!empty($expense_update)) {
+            $wpdb->update($expense_table, $expense_update, ['id' => (int) $item->expense_id]);
+        }
 
         self::replace_line_items((int) $item->expense_id, $ocr['line_items']);
 
-        $wpdb->update($queue_table, ['status' => $status], ['id' => (int) $item->id], ['%s'], ['%d']);
+        $queue_status = in_array($status, ['pending', 'processing', 'completed', 'failed', 'escalated'], true)
+            ? $status
+            : 'completed';
+        $updated_queue = $wpdb->update($queue_table, ['status' => $queue_status], ['id' => (int) $item->id], ['%s'], ['%d']);
+        if ($updated_queue === false && $queue_status === 'escalated') {
+            // Legacy enum fallback where 'escalated' is not yet present.
+            $wpdb->update($queue_table, ['status' => 'completed'], ['id' => (int) $item->id], ['%s'], ['%d']);
+        }
 
         orabooks_log_event('ocr_processing_completed', "OCR completed for expense #{$item->expense_id}", 'info', [
             'expense_id'     => (int) $item->expense_id,
@@ -835,6 +877,44 @@ class OraBooks_Expenses {
                 'error' => $error_message,
             ], $org_id);
         }
+    }
+
+    private static function filter_existing_columns($table, array $data) {
+        if (empty($data)) {
+            return $data;
+        }
+
+        $columns = self::get_table_columns($table);
+        if (empty($columns)) {
+            return $data;
+        }
+
+        return array_filter(
+            $data,
+            function ($value, $key) use ($columns) {
+                return isset($columns[$key]);
+            },
+            ARRAY_FILTER_USE_BOTH
+        );
+    }
+
+    private static function get_table_columns($table) {
+        global $wpdb;
+
+        if (isset(self::$table_columns_cache[$table])) {
+            return self::$table_columns_cache[$table];
+        }
+
+        $rows = $wpdb->get_results("SHOW COLUMNS FROM {$table}");
+        $map = [];
+        foreach ($rows ?: [] as $row) {
+            if (!empty($row->Field)) {
+                $map[$row->Field] = true;
+            }
+        }
+
+        self::$table_columns_cache[$table] = $map;
+        return $map;
     }
 
     private static function get_alert_user_ids($org_id) {
