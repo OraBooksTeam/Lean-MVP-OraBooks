@@ -242,6 +242,66 @@ class OraBooks_Ai_Providers_Test extends TestCase
     }
 
     #[Test]
+    public function test_run_ocr_uses_vision_chat_fallback_for_images_when_openai_configured()
+    {
+        $GLOBALS['orabooks_test_secrets'] = [
+            'openai_api_key' => 'test-openai-key',
+            'openai_chat_model' => 'gpt-4o-mini',
+        ];
+
+        $GLOBALS['orabooks_test_wp_remote_request_callback'] = function ($url, $args) {
+            $this->assertStringContainsString('/chat/completions', $url);
+            return [
+                'response' => ['code' => 200],
+                'headers'  => [],
+                'body'     => wp_json_encode([
+                    'choices' => [[
+                        'message' => [
+                            'content' => wp_json_encode([
+                                'vendor' => 'Jolie Cassin',
+                                'invoice_number' => 'EXP-100',
+                                'transaction_date' => '2060-01-30',
+                                'total_amount' => 100,
+                                'subtotal' => 100,
+                                'tax_amount' => 0,
+                                'tax_rate' => 0,
+                                'currency' => 'USD',
+                                'payment_method' => 'Credit Card',
+                                'category' => 'Meals',
+                                'description' => 'Business Lunch, Taxi Fare, Office Supplies',
+                                'line_items' => [
+                                    ['description' => 'Business Lunch', 'quantity' => 1, 'unit_price' => 50, 'total_amount' => 50, 'line_confidence' => 90],
+                                    ['description' => 'Taxi Fare', 'quantity' => 1, 'unit_price' => 30, 'total_amount' => 30, 'line_confidence' => 88],
+                                    ['description' => 'Office Supplies', 'quantity' => 1, 'unit_price' => 20, 'total_amount' => 20, 'line_confidence' => 86],
+                                ],
+                                'field_confidences' => [
+                                    'vendor' => 91,
+                                    'total_amount' => 94,
+                                    'currency' => 93,
+                                    'category' => 85,
+                                ],
+                            ]),
+                        ],
+                    ]],
+                ]),
+            ];
+        };
+
+        $ocr = OraBooks_Ai_Providers::run_ocr([
+            'filename'   => 'expense-voucher.png',
+            'expense_id' => 501,
+            'file_bytes' => 'mock-image-bytes',
+        ]);
+
+        $this->assertSame('Jolie Cassin', $ocr['vendor']);
+        $this->assertSame('USD', $ocr['currency']);
+        $this->assertSame(100.0, $ocr['total_amount']);
+        $this->assertSame('Meals', $ocr['category']);
+        $this->assertContains($ocr['provider'], ['openai', 'azure-openai']);
+        $this->assertNotEmpty($ocr['line_items']);
+    }
+
+    #[Test]
     public function test_classify_record_falls_back_to_stub_without_credentials()
     {
         $record = (object) ['category' => 'meals'];

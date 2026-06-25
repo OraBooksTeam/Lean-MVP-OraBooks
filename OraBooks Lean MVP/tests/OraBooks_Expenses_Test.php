@@ -76,6 +76,16 @@ class OraBooks_Expenses_Test extends TestCase
     }
 
     #[Test]
+    public function test_ocr_stub_does_not_fabricate_large_amount_from_binary_image_noise()
+    {
+        $binary_like = "\x89PNG\r\n\x1A\n\x00\x00\x00IHDR\x00\x00\x02\xD0\x00\x00\x04\x38";
+        $ocr = OraBooks_Expenses::run_ocr_stub('Expense-Voucher-Template-edit-online.png', 10, $binary_like);
+
+        $this->assertSame('General', $ocr['category']);
+        $this->assertEqualsWithDelta(0.0, (float) $ocr['total_amount'], 0.01);
+    }
+
+    #[Test]
     public function test_format_expense_maps_core_fields()
     {
         $row = (object) [
