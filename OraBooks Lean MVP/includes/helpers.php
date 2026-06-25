@@ -1351,6 +1351,29 @@ function orabooks_resolve_user_id($user_id = 0) {
 }
 
 /**
+ * Ensure Authorization headers are visible to PHP on Apache/CGI hosts.
+ */
+function orabooks_normalize_auth_server_vars() {
+    if (!empty($_SERVER['HTTP_AUTHORIZATION']) || !empty($_SERVER['REDIRECT_HTTP_AUTHORIZATION'])) {
+        return;
+    }
+
+    if (function_exists('getallheaders')) {
+        $headers = getallheaders();
+        if (is_array($headers)) {
+            foreach ($headers as $name => $value) {
+                if (strcasecmp((string) $name, 'Authorization') === 0 && $value !== '') {
+                    $_SERVER['HTTP_AUTHORIZATION'] = $value;
+                    break;
+                }
+            }
+        }
+    }
+}
+
+add_action('init', 'orabooks_normalize_auth_server_vars', 0);
+
+/**
  * Return the first verified OraBooks JWT payload from request sources.
  *
  * @return array<string, mixed>|null
@@ -1360,10 +1383,15 @@ function orabooks_get_verified_jwt_payload() {
         return null;
     }
 
+    orabooks_normalize_auth_server_vars();
+
     $candidates = [];
     $auth_header = $_SERVER['HTTP_AUTHORIZATION'] ?? $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ?? '';
     if (stripos($auth_header, 'Bearer ') === 0) {
         $candidates[] = trim(substr($auth_header, 7));
+    }
+    if (!empty($_SERVER['HTTP_X_ORABOOKS_TOKEN'])) {
+        $candidates[] = sanitize_text_field(wp_unslash($_SERVER['HTTP_X_ORABOOKS_TOKEN']));
     }
     if (!empty($_COOKIE['orabooks_token'])) {
         $candidates[] = sanitize_text_field(wp_unslash($_COOKIE['orabooks_token']));
