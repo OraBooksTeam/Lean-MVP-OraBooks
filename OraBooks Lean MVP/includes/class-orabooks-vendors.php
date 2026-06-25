@@ -43,8 +43,36 @@ class OraBooks_Vendors {
             add_action('wp_ajax_nopriv_orabooks_ap_aging', [self::$instance, 'ajax_ap_aging']);
 
             add_action('orabooks_daily_ap_aging_snapshot', [self::$instance, 'daily_ap_aging_snapshot']);
+            self::maybe_ensure_bill_tax_schema();
         }
         return self::$instance;
+    }
+
+    private static function maybe_ensure_bill_tax_schema() {
+        static $ran = false;
+        if ($ran) {
+            return;
+        }
+        $ran = true;
+
+        global $wpdb;
+        $table = OraBooks_Database::table('bills');
+        if ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table)) !== $table) {
+            return;
+        }
+
+        $existing = $wpdb->get_col("SHOW COLUMNS FROM {$table}", 0);
+        $columns = [
+            'tax_rate' => "ALTER TABLE {$table} ADD COLUMN tax_rate DECIMAL(8,4) DEFAULT 0 AFTER tax_amount",
+            'tax_jurisdiction' => "ALTER TABLE {$table} ADD COLUMN tax_jurisdiction VARCHAR(32) NULL AFTER tax_rate",
+            'tax_type' => "ALTER TABLE {$table} ADD COLUMN tax_type VARCHAR(32) NULL AFTER tax_jurisdiction",
+        ];
+
+        foreach ($columns as $column => $sql) {
+            if (!in_array($column, $existing, true)) {
+                $wpdb->query($sql);
+            }
+        }
     }
 
     public static function get_create_table_sql() {
@@ -92,6 +120,9 @@ class OraBooks_Vendors {
             description TEXT NULL,
             subtotal_amount DECIMAL(20,2) NOT NULL DEFAULT 0,
             tax_amount DECIMAL(20,2) NOT NULL DEFAULT 0,
+            tax_rate DECIMAL(8,4) DEFAULT 0,
+            tax_jurisdiction VARCHAR(32) NULL,
+            tax_type VARCHAR(32) NULL,
             total_amount DECIMAL(20,2) NOT NULL DEFAULT 0,
             paid_amount DECIMAL(20,2) NOT NULL DEFAULT 0,
             currency CHAR(3) DEFAULT 'USD',
@@ -381,21 +412,31 @@ class OraBooks_Vendors {
             ? round(floatval($data['tax_amount']), 2)
             : null;
 
+        $tax_rate = 0.0;
+        $tax_jurisdiction = strtoupper(sanitize_text_field($data['jurisdiction'] ?? 'US'));
+        $tax_type = 'Sales Tax';
+
         if ($subtotal > 0 && $tax_amount === null && class_exists('OraBooks_Tax')) {
-            $jurisdiction = strtoupper(sanitize_text_field($data['jurisdiction'] ?? 'US'));
             $tax_result = OraBooks_Tax::calculate([
                 'org_id' => $org_id,
                 'amount' => $subtotal,
-                'jurisdiction' => $jurisdiction,
+                'jurisdiction' => $tax_jurisdiction,
+                'product_type' => sanitize_text_field($data['product_type'] ?? 'standard'),
             ]);
 
             if (!is_wp_error($tax_result)) {
                 $tax_amount = round(floatval($tax_result['tax_amount']), 2);
+                $tax_rate = floatval($tax_result['tax_rate'] ?? 0);
+                $tax_jurisdiction = sanitize_text_field($tax_result['jurisdiction_applied'] ?? $tax_jurisdiction);
+                $tax_type = sanitize_text_field($tax_result['tax_type'] ?? 'Sales Tax');
             } else {
                 $tax_amount = 0.0;
             }
         } else {
             $tax_amount = $tax_amount ?? 0.0;
+            if ($subtotal > 0 && $tax_amount > 0) {
+                $tax_rate = round(($tax_amount / $subtotal) * 100, 4);
+            }
         }
 
         $total = round(floatval($data['total_amount'] ?? ($subtotal + $tax_amount)), 2);
@@ -430,6 +471,9 @@ class OraBooks_Vendors {
                 'description' => isset($data['description']) ? sanitize_textarea_field($data['description']) : '',
                 'subtotal_amount' => $subtotal,
                 'tax_amount' => $tax_amount,
+                'tax_rate' => $tax_rate,
+                'tax_jurisdiction' => $tax_jurisdiction,
+                'tax_type' => $tax_type,
                 'total_amount' => $total,
                 'paid_amount' => 0,
                 'currency' => strtoupper(sanitize_text_field($data['currency'] ?? 'USD')),
@@ -441,7 +485,7 @@ class OraBooks_Vendors {
                 'created_by' => orabooks_get_current_user_id(),
                 'rendered_copy' => !empty($data['rendered_copy']) ? wp_json_encode($data['rendered_copy']) : null,
             ],
-            ['%d', '%d', '%s', '%s', '%s', '%s', '%s', '%f', '%f', '%f', '%f', '%s', '%f', '%s', '%s', '%s', '%s', '%d', '%s']
+            ['%d', '%d', '%s', '%s', '%s', '%s', '%s', '%f', '%f', '%f', '%f', '%s', '%s', '%f', '%f', '%s', '%s', '%s', '%s', '%s', '%d', '%s']
         );
 
         $bill_id = intval($wpdb->insert_id);
