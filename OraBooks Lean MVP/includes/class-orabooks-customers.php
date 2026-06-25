@@ -1096,7 +1096,7 @@ class OraBooks_Customers {
                 $billing_address = $data['billing_address'] ?? null;
 
                 if ($jurisdiction === '' && !empty($data['customer_id'])) {
-                    $customer = self::get_customer((int) $data['customer_id'], $org_id);
+                    $customer = self::get_by_id((int) $data['customer_id']);
                     if ($customer) {
                         $billing_address = [
                             'country' => $customer->country ?? '',
