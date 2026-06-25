@@ -123,6 +123,16 @@ class OraBooks_Security_Test extends TestCase
     }
 
     #[Test]
+    public function test_get_headers_status_allows_same_origin_camera_for_pwa_scan()
+    {
+        $status = OraBooks_Security::get_headers_status();
+
+        $this->assertArrayHasKey('Permissions-Policy', $status['configured']);
+        $this->assertStringContainsString('camera=(self)', $status['configured']['Permissions-Policy']);
+        $this->assertStringContainsString('microphone=(self)', $status['configured']['Permissions-Policy']);
+    }
+
+    #[Test]
     public function test_get_owasp_catalog_has_all_ten_controls()
     {
         $catalog = OraBooks_Security::get_owasp_catalog();
