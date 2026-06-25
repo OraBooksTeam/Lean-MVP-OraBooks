@@ -646,6 +646,7 @@ class OraBooks_Expenses {
             $text = preg_replace('/[^A-Za-z0-9@.,:\/\s-]/', ' ', (string) $file_bytes);
             $text = preg_replace('/\s+/', ' ', (string) $text);
         }
+        $text_signal = $text !== '' && preg_match('/total|amount|invoice|voucher|bill|paid|payment|tax|subtotal|grand|currency|date/i', $text);
 
         $vendor = ucwords($base);
         $base_lower = strtolower((string) $base);
@@ -662,7 +663,7 @@ class OraBooks_Expenses {
         if ($text !== '' && preg_match('/(?:grand\s*total|total\s*amount|amount\s*due|total)\s*[:\-]?\s*(?:USD|BDT|EUR|GBP|\$|৳|€|£)?\s*([0-9]{1,3}(?:,[0-9]{3})*(?:\.[0-9]{1,2})|[0-9]+(?:\.[0-9]{1,2})?)/i', $text, $m)) {
             $total = (float) str_replace(',', '', $m[1]);
         }
-        if ($total <= 0 && $text !== '' && preg_match_all('/([0-9]{1,3}(?:,[0-9]{3})*(?:\.[0-9]{1,2})|[0-9]+(?:\.[0-9]{1,2})?)/', $text, $nums)) {
+        if ($total <= 0 && $text !== '' && $text_signal && preg_match_all('/([0-9]{1,3}(?:,[0-9]{3})*(?:\.[0-9]{1,2})|[0-9]+(?:\.[0-9]{1,2})?)/', $text, $nums)) {
             $values = array_map(function ($n) {
                 return (float) str_replace(',', '', $n);
             }, $nums[1]);
@@ -671,6 +672,12 @@ class OraBooks_Expenses {
             });
             if (!empty($values)) {
                 $total = max($values);
+            }
+        }
+        if ($total <= 0) {
+            if (!empty($file_bytes) && !$text_signal) {
+                // Binary image bytes without textual OCR signal should not produce fabricated totals.
+                $total = 0.0;
             }
         }
         if ($total <= 0) {
@@ -746,8 +753,7 @@ class OraBooks_Expenses {
             $currency = 'GBP';
         }
 
-        $categories = ['Office Supplies', 'Meals', 'Travel', 'Software', 'Utilities'];
-        $category = $categories[$seed % count($categories)];
+        $category = 'General';
         if (preg_match('/salary|payroll|wage/', $base_lower)) {
             $category = 'Salary';
         }
