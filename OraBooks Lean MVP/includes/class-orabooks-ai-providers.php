@@ -198,6 +198,10 @@ class OraBooks_Ai_Providers {
         $key = self::config('azure_document_intelligence_key');
         $api_version = self::config('azure_document_intelligence_api_version', '2023-07-31');
         $model = self::config('azure_document_intelligence_model', 'prebuilt-receipt');
+        $filename_lower = strtolower((string) $filename);
+        if ($model === 'prebuilt-receipt' && preg_match('/salary|voucher|payroll|statement/', $filename_lower)) {
+            $model = 'prebuilt-document';
+        }
 
         $analyze_url = $endpoint . '/formrecognizer/documentModels/' . rawurlencode($model) . ':analyze?api-version=' . rawurlencode($api_version);
 
