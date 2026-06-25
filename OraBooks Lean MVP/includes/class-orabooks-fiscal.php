@@ -17,17 +17,11 @@ class OraBooks_Fiscal {
         if (self::$instance === null) {
             self::$instance = new self();
             add_action('wp_ajax_orabooks_fiscal_periods_list', [self::$instance, 'ajax_list_periods']);
-            add_action('wp_ajax_nopriv_orabooks_fiscal_periods_list', [self::$instance, 'ajax_list_periods']);
             add_action('wp_ajax_orabooks_fiscal_period_close', [self::$instance, 'ajax_close_period']);
-            add_action('wp_ajax_nopriv_orabooks_fiscal_period_close', [self::$instance, 'ajax_close_period']);
             add_action('wp_ajax_orabooks_fiscal_period_reopen', [self::$instance, 'ajax_reopen_period']);
-            add_action('wp_ajax_nopriv_orabooks_fiscal_period_reopen', [self::$instance, 'ajax_reopen_period']);
             add_action('wp_ajax_orabooks_fiscal_period_override_reopen', [self::$instance, 'ajax_override_reopen_period']);
-            add_action('wp_ajax_nopriv_orabooks_fiscal_period_override_reopen', [self::$instance, 'ajax_override_reopen_period']);
             add_action('wp_ajax_orabooks_fiscal_period_create', [self::$instance, 'ajax_create_period']);
-            add_action('wp_ajax_nopriv_orabooks_fiscal_period_create', [self::$instance, 'ajax_create_period']);
             add_action('wp_ajax_orabooks_fiscal_period_update', [self::$instance, 'ajax_update_period']);
-            add_action('wp_ajax_nopriv_orabooks_fiscal_period_update', [self::$instance, 'ajax_update_period']);
             add_action('orabooks_monthly_fiscal_period_rollover', [__CLASS__, 'cron_ensure_periods']);
         }
         return self::$instance;
