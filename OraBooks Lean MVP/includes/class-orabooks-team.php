@@ -562,7 +562,7 @@ class OraBooks_Team {
             orabooks_json_error('Your organization is not active. Please contact support.', 403);
         }
 
-        if (!orabooks_user_belongs_to_org((int) $user_id, $org_id) && !current_user_can('manage_options')) {
+        if (!orabooks_user_belongs_to_org((int) $user_id, $org_id)) {
             orabooks_json_error('You are not a member of this organization', 403);
         }
     }

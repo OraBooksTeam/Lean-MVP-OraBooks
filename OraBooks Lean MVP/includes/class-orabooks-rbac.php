@@ -82,13 +82,16 @@ class OraBooks_RBAC {
         if ($permission === 'partner_commission_access' && in_array($role, ['staff', 'viewer'])) {
             if ($org_id) {
                 $org = OraBooks_Organization::get($org_id);
-                if ($org && !empty($org->partner_commission_for_staff_viewer)) {
-                    return true;
+                if ($org) {
+                    if (!empty($org->partner_commission_for_staff_viewer)) {
+                        return true;
+                    }
+
+                    $config = json_decode((string) ($org->config ?? ''), true);
+                    if (is_array($config) && !empty($config['partner_commission_for_staff_viewer'])) {
+                        return true;
+                    }
                 }
-            }
-            // Fallback to global option
-            if (get_option('orabooks_partner_commission_for_staff_viewer', 0)) {
-                return true;
             }
         }
         
