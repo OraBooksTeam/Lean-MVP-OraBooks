@@ -630,7 +630,9 @@ class OraBooks_Expenses {
         $subtotal = round($total - $tax_amount, 2);
 
         $invoice_number = 'RCP-' . str_pad((string) ($seed % 999999), 6, '0', STR_PAD_LEFT);
-        if ($text !== '' && preg_match('/(?:invoice|receipt|voucher)\s*(?:no|number|#)?\s*[:\-]?\s*([A-Z0-9\-]{3,40})/i', $text, $m)) {
+        if ($text !== '' && preg_match('/voucher\s*(?:no|number|#)\s*[:\-]?\s*([A-Z0-9\-]{3,40})/i', $text, $m)) {
+            $invoice_number = sanitize_text_field(trim($m[1]));
+        } elseif ($text !== '' && preg_match('/(?:invoice|receipt)\s*(?:no|number|#)?\s*[:\-]?\s*([A-Z0-9\-]{3,40})/i', $text, $m)) {
             $invoice_number = sanitize_text_field(trim($m[1]));
         }
 
