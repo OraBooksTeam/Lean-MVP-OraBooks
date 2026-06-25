@@ -192,6 +192,44 @@ class OraBooks_Observability_Test extends TestCase
     }
 
     #[Test]
+    public function test_collect_sli_uses_terminal_status_denominator_for_notifications()
+    {
+        global $wpdb;
+
+        $captured_query = '';
+        $wpdb->test_get_row_callback = function ($query) use (&$captured_query) {
+            $captured_query = $query;
+            return (object) ['total' => 3, 'good' => 2, 'bad' => 1];
+        };
+
+        $ref = new ReflectionMethod(OraBooks_Observability::class, 'collect_sli');
+        $ref->setAccessible(true);
+        $result = $ref->invoke(null, 'notifications_delivery', 30);
+
+        $this->assertStringContainsString("status IN ('delivered', 'failed', 'dead_letter')", $captured_query);
+        $this->assertSame(3, $result['total']);
+    }
+
+    #[Test]
+    public function test_collect_sli_uses_terminal_status_denominator_for_eventbus()
+    {
+        global $wpdb;
+
+        $captured_query = '';
+        $wpdb->test_get_row_callback = function ($query) use (&$captured_query) {
+            $captured_query = $query;
+            return (object) ['total' => 5, 'good' => 4, 'bad' => 1];
+        };
+
+        $ref = new ReflectionMethod(OraBooks_Observability::class, 'collect_sli');
+        $ref->setAccessible(true);
+        $result = $ref->invoke(null, 'eventbus_processing', 30);
+
+        $this->assertStringContainsString("status IN ('sent', 'failed', 'dead_letter')", $captured_query);
+        $this->assertSame(5, $result['total']);
+    }
+
+    #[Test]
     public function test_evaluate_error_budgets_alerts_on_breach()
     {
         $ref = new ReflectionMethod(OraBooks_Observability::class, 'build_slo_status');
