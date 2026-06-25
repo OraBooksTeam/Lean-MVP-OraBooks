@@ -26,19 +26,12 @@ class OraBooks_Approval {
         add_action('orabooks_approval_expiry_reminders', [__CLASS__, 'cron_expiry_reminders']);
 
         add_action('wp_ajax_orabooks_resubmit_journal', [self::$instance, 'ajax_resubmit_journal']);
-        add_action('wp_ajax_nopriv_orabooks_resubmit_journal', [self::$instance, 'ajax_resubmit_journal']);
         add_action('wp_ajax_orabooks_update_journal_draft', [self::$instance, 'ajax_update_journal_draft']);
-        add_action('wp_ajax_nopriv_orabooks_update_journal_draft', [self::$instance, 'ajax_update_journal_draft']);
         add_action('wp_ajax_orabooks_approval_policy_get', [self::$instance, 'ajax_policy_get']);
-        add_action('wp_ajax_nopriv_orabooks_approval_policy_get', [self::$instance, 'ajax_policy_get']);
         add_action('wp_ajax_orabooks_approval_policy_save', [self::$instance, 'ajax_policy_save']);
-        add_action('wp_ajax_nopriv_orabooks_approval_policy_save', [self::$instance, 'ajax_policy_save']);
         add_action('wp_ajax_orabooks_approval_delegation_create', [self::$instance, 'ajax_delegation_create']);
-        add_action('wp_ajax_nopriv_orabooks_approval_delegation_create', [self::$instance, 'ajax_delegation_create']);
         add_action('wp_ajax_orabooks_approval_delegation_revoke', [self::$instance, 'ajax_delegation_revoke']);
-        add_action('wp_ajax_nopriv_orabooks_approval_delegation_revoke', [self::$instance, 'ajax_delegation_revoke']);
         add_action('wp_ajax_orabooks_approval_delegations_list', [self::$instance, 'ajax_delegations_list']);
-        add_action('wp_ajax_nopriv_orabooks_approval_delegations_list', [self::$instance, 'ajax_delegations_list']);
 
         return self::$instance;
     }
