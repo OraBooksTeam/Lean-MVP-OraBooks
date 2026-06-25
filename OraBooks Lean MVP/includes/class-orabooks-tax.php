@@ -154,17 +154,29 @@ class OraBooks_Tax {
             [
                 'jurisdiction_code' => 'BD',
                 'name' => 'Bangladesh VAT',
-                'tax_rules' => ['default_rate' => 15.0, 'tax_type' => 'VAT'],
+                'tax_rules' => [
+                    'default_rate' => 15.0,
+                    'tax_type' => 'VAT',
+                    'product_rates' => ['standard' => 15.0, 'exempt' => 0.0, 'reduced' => 5.0],
+                ],
             ],
             [
                 'jurisdiction_code' => 'IN',
                 'name' => 'India GST',
-                'tax_rules' => ['default_rate' => 18.0, 'tax_type' => 'GST'],
+                'tax_rules' => [
+                    'default_rate' => 18.0,
+                    'tax_type' => 'GST',
+                    'product_rates' => ['standard' => 18.0, 'exempt' => 0.0, 'reduced' => 5.0],
+                ],
             ],
             [
                 'jurisdiction_code' => 'US',
                 'name' => 'United States Sales Tax',
-                'tax_rules' => ['default_rate' => 0.0, 'tax_type' => 'Sales Tax'],
+                'tax_rules' => [
+                    'default_rate' => 0.0,
+                    'tax_type' => 'Sales Tax',
+                    'product_rates' => ['standard' => 0.0, 'exempt' => 0.0, 'reduced' => 0.0],
+                ],
             ],
         ];
 
