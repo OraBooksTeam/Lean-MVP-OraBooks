@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type Dispatch, type ReactNode, type SetStateAction } from 'react';
 import { createPortal } from 'react-dom';
 import Button from '@/components/Button';
 import Input from '@/components/Input';
@@ -509,7 +509,7 @@ function TaxConfigModal({
   onClose: () => void;
   onSave: () => void;
   onJurisdictionChange: (code: string) => void;
-  onFormChange: React.Dispatch<React.SetStateAction<TaxFormState>>;
+  onFormChange: Dispatch<SetStateAction<TaxFormState>>;
   onToggleReason: (reason: string) => void;
 }) {
   return (
