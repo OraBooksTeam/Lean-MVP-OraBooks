@@ -236,6 +236,30 @@ export default function ExpensesPage() {
     }
   };
 
+  const sleep = (ms: number) => new Promise((resolve) => window.setTimeout(resolve, ms));
+
+  const hasUsefulOcr = (expense: any) => {
+    if (!expense) return false;
+    const vendor = String(expense.vendor || '').trim().toLowerCase();
+    const category = String(expense.category || '').trim().toLowerCase();
+    const amount = Number(expense.total_amount || 0);
+    const hasVendor = vendor !== '' && vendor !== 'unknown vendor';
+    const hasCategory = category !== '' && category !== 'general';
+    return hasVendor || hasCategory || amount > 0;
+  };
+
+  const waitForOcrHydration = async (organizationId: number, expenseId: number) => {
+    for (let attempt = 0; attempt < 8; attempt += 1) {
+      const res = await api.expenseGet(organizationId, expenseId);
+      const expense = (res as any).data?.expense;
+      if (hasUsefulOcr(expense)) {
+        return true;
+      }
+      await sleep(1200);
+    }
+    return false;
+  };
+
   const handleUpload = async (fileOverride?: File | null) => {
     const file = fileOverride ?? selectedFile;
     if (!orgId || !file) {
@@ -268,10 +292,23 @@ export default function ExpensesPage() {
       setSelectedFile(null);
       if (fileInputRef.current) fileInputRef.current.value = '';
       if (cameraInputRef.current) cameraInputRef.current.value = '';
-      setSuccess('Receipt uploaded. OCR fields extracted.');
-      await load();
+
       const expense = (res as any).data?.expense;
-      if (expense?.id) void loadExpense(expense.id);
+      let hydrated = false;
+      if (expense?.id) {
+        hydrated = await waitForOcrHydration(orgId, expense.id);
+      }
+
+      await load();
+      if (expense?.id) {
+        await loadExpense(expense.id);
+      }
+
+      setSuccess(
+        hydrated
+          ? 'Receipt uploaded and OCR fields extracted.'
+          : 'Receipt uploaded. OCR is processing in the background; values will appear shortly.'
+      );
     }
     setUploading(false);
   };
