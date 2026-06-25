@@ -17,6 +17,10 @@ final class OraBooks_AsyncQueue_Test extends TestCase
         $wpdb->test_update_callback = null;
         $GLOBALS['orabooks_test_options'] = [];
         $GLOBALS['orabooks_test_use_insert_id'] = null;
+
+        $ref = new ReflectionProperty(OraBooks_AsyncQueue::class, 'handlers');
+        $ref->setAccessible(true);
+        $ref->setValue(null, []);
     }
 
     #[Test]
@@ -136,5 +140,149 @@ final class OraBooks_AsyncQueue_Test extends TestCase
         $this->assertSame('event-webhook-55', $inserted[0]['idempotency_key']);
         $payload = json_decode($inserted[0]['payload'], true);
         $this->assertSame(9, $payload['org_id']);
+    }
+
+    #[Test]
+    public function process_queue_marks_job_completed_when_handler_succeeds(): void
+    {
+        global $wpdb;
+
+        $job = (object) [
+            'id' => 12,
+            'queue_name' => 'default',
+            'job_type' => 'unit_success',
+            'payload' => wp_json_encode(['org_id' => 9]),
+            'status' => 'pending',
+            'priority' => 3,
+            'retry_count' => 0,
+            'max_retries' => 5,
+        ];
+
+        $updates = [];
+        OraBooks_AsyncQueue::register_handler('unit_success', function () {
+            return true;
+        });
+
+        $wpdb->test_get_results_callback = function ($query) use ($job) {
+            return stripos((string) $query, "status = 'pending'") !== false ? [$job] : [];
+        };
+        $wpdb->test_get_row_callback = function ($query) use ($job) {
+            return stripos((string) $query, 'FOR UPDATE') !== false ? clone $job : null;
+        };
+        $wpdb->test_update_callback = function ($table, $data) use (&$updates) {
+            $updates[] = $data;
+            return 1;
+        };
+
+        $result = (new OraBooks_AsyncQueue())->process_queue();
+
+        $this->assertSame(1, $result['processed']);
+        $this->assertSame(1, $result['completed']);
+        $this->assertSame(0, $result['failed']);
+        $this->assertSame('processing', $updates[0]['status']);
+        $this->assertSame('completed', $updates[1]['status']);
+    }
+
+    #[Test]
+    public function process_queue_schedules_retry_with_backoff_when_handler_fails(): void
+    {
+        global $wpdb;
+
+        $job = (object) [
+            'id' => 13,
+            'queue_name' => 'default',
+            'job_type' => 'unit_retry',
+            'payload' => wp_json_encode(['org_id' => 9]),
+            'status' => 'pending',
+            'priority' => 4,
+            'retry_count' => 1,
+            'max_retries' => 5,
+        ];
+
+        $updates = [];
+        OraBooks_AsyncQueue::register_handler('unit_retry', function () {
+            return false;
+        });
+
+        $wpdb->test_get_results_callback = function ($query) use ($job) {
+            return stripos((string) $query, "status = 'pending'") !== false ? [$job] : [];
+        };
+        $wpdb->test_get_row_callback = function ($query) use ($job) {
+            return stripos((string) $query, 'FOR UPDATE') !== false ? clone $job : null;
+        };
+        $wpdb->test_update_callback = function ($table, $data) use (&$updates) {
+            $updates[] = $data;
+            return 1;
+        };
+
+        $result = (new OraBooks_AsyncQueue())->process_queue();
+
+        $this->assertSame(1, $result['processed']);
+        $this->assertSame(0, $result['completed']);
+        $this->assertSame(1, $result['failed']);
+        $this->assertSame('pending', $updates[1]['status']);
+        $this->assertSame(2, $updates[1]['retry_count']);
+        $this->assertArrayHasKey('next_retry_at', $updates[1]);
+    }
+
+    #[Test]
+    public function process_queue_moves_job_to_dead_letter_after_max_retries(): void
+    {
+        global $wpdb;
+
+        $job = (object) [
+            'id' => 14,
+            'queue_name' => 'default',
+            'job_type' => 'unit_dead',
+            'payload' => wp_json_encode(['org_id' => 9]),
+            'status' => 'pending',
+            'priority' => 4,
+            'retry_count' => 4,
+            'max_retries' => 5,
+        ];
+
+        $updates = [];
+        OraBooks_AsyncQueue::register_handler('unit_dead', function () {
+            throw new RuntimeException('forced failure');
+        });
+
+        $wpdb->test_get_results_callback = function ($query) use ($job) {
+            return stripos((string) $query, "status = 'pending'") !== false ? [$job] : [];
+        };
+        $wpdb->test_get_row_callback = function ($query) use ($job) {
+            return stripos((string) $query, 'FOR UPDATE') !== false ? clone $job : null;
+        };
+        $wpdb->test_update_callback = function ($table, $data) use (&$updates) {
+            $updates[] = $data;
+            return 1;
+        };
+
+        $result = (new OraBooks_AsyncQueue())->process_queue();
+
+        $this->assertSame(1, $result['failed']);
+        $this->assertSame('dead_letter', $updates[1]['status']);
+        $this->assertSame(5, $updates[1]['retry_count']);
+        $this->assertSame('forced failure', $updates[1]['last_error']);
+    }
+
+    #[Test]
+    public function heartbeat_recovery_returns_recovered_and_dead_counts(): void
+    {
+        global $wpdb;
+
+        $wpdb->test_query_callback = function ($query) {
+            if (stripos((string) $query, 'retry_count < max_retries') !== false) {
+                return 2;
+            }
+            if (stripos((string) $query, 'retry_count >= max_retries') !== false) {
+                return 1;
+            }
+            return 0;
+        };
+
+        $result = (new OraBooks_AsyncQueue())->heartbeat_recovery();
+
+        $this->assertSame(2, $result['recovered']);
+        $this->assertSame(1, $result['dead']);
     }
 }
