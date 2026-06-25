@@ -48,14 +48,12 @@ class OraBooks_EventBus_Test extends TestCase
         $id = OraBooks_EventBus::publish('journal_posted', 55, ['org_id' => 10]);
 
         $this->assertSame(302, $id);
-        $this->assertCount(2, $captured);
-        $this->assertStringContainsString('orabooks_outbox_messages', $captured[0][0]);
-        $this->assertStringContainsString('gob_event_outbox_tob', $captured[1][0]);
+        $this->assertCount(1, $captured);
+        $this->assertStringContainsString('gob_event_outbox_tob', $captured[0][0]);
         $this->assertSame('journal_posted', $captured[0][1]['event_type']);
         $this->assertSame(55, $captured[0][1]['aggregate_id']);
         $this->assertSame('pending', $captured[0][1]['status']);
         $this->assertSame(1, json_decode($captured[0][1]['payload'], true)['event_version']);
-        $this->assertSame(1, json_decode($captured[1][1]['payload'], true)['event_version']);
     }
 
     #[Test]
