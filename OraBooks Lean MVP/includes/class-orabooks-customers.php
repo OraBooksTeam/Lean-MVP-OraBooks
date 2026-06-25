@@ -1099,8 +1099,8 @@ class OraBooks_Customers {
                     $customer = self::get_by_id((int) $data['customer_id']);
                     if ($customer) {
                         $billing_address = [
-                            'country' => $customer->country ?? '',
-                            'state' => $customer->state ?? '',
+                            'country' => $customer->country_id ?? '',
+                            'state' => $customer->state_id ?? '',
                         ];
                     }
                 }
