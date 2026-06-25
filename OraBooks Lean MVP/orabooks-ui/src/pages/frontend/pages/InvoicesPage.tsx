@@ -854,6 +854,9 @@ export default function InvoicesPage() {
         {overrideInvoice && (
           <Modal title="Override tax" onClose={() => setOverrideInvoice(null)}>
             <p className="mb-4 text-sm text-slate-600">{overrideInvoice.invoice_number || `Invoice #${overrideInvoice.id}`}</p>
+            <p className="mb-4 text-xs text-slate-500" title="Override tax rate. Reason code required for audit.">
+              Override tax rate. A reason code is required for audit compliance.
+            </p>
             {taxLocked && (
               <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
                 Tax is locked for this fiscal period.
@@ -872,20 +875,33 @@ export default function InvoicesPage() {
                 <Input type="number" min="0" max="100" step="0.01" value={overrideRate} onChange={(e) => setOverrideRate(e.target.value)} disabled={taxLocked} />
               </Field>
               <Field label="Reason code">
-                <select value={overrideReason} onChange={(e) => setOverrideReason(e.target.value)} disabled={taxLocked} className="w-full rounded-lg border border-border px-3 py-2.5 text-sm">
+                <select
+                  value={overrideReason}
+                  onChange={(e) => setOverrideReason(e.target.value)}
+                  disabled={taxLocked}
+                  className="w-full rounded-lg border border-border px-3 py-2.5 text-sm"
+                  title="Reason for override (audit required)."
+                >
                   <option value="">Select a reason…</option>
                   {reasonOptions.map((r) => <option key={r} value={r}>{formatReason(r)}</option>)}
                 </select>
               </Field>
               {overridePreview && (
                 <div className="rounded-lg border border-border bg-slate-50 p-3 text-sm">
-                  <div>New total: {money(overridePreview.newTotal, overrideInvoice.currency)}</div>
+                  <div>New tax: {money(overridePreview.newTax, overrideInvoice.currency)}</div>
+                  <div className="font-semibold">New total: {money(overridePreview.newTotal, overrideInvoice.currency)}</div>
                 </div>
               )}
+              <p className="text-xs text-amber-700">Override will be locked after posting.</p>
             </div>
-            <div className="mt-6 flex justify-end gap-2">
+            <div className="mt-6 flex flex-wrap justify-end gap-2">
+              {overrideInvoice.tax_override_reason && (
+                <Button variant="secondary" onClick={() => void handleClearOverride()} disabled={saving || taxLocked}>
+                  Clear override
+                </Button>
+              )}
               <Button variant="secondary" onClick={() => setOverrideInvoice(null)}>Cancel</Button>
-              <Button onClick={handleApplyOverride} disabled={saving || taxLocked || !overrideReason}>Apply override</Button>
+              <Button onClick={handleApplyOverride} disabled={saving || taxLocked || !overrideReason}>Apply Override</Button>
             </div>
           </Modal>
         )}
@@ -945,5 +961,10 @@ function money(value?: string | number, currency = 'USD') {
 }
 
 function formatReason(code: string) {
-  return code.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
+  return REASON_LABELS[code] || code.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+function invoiceTaxLabel(invoice: Invoice) {
+  const type = invoice.tax_type || invoice.classification?.tax_hints?.tax_type;
+  return type && type !== 'None' ? type : 'Tax';
 }
