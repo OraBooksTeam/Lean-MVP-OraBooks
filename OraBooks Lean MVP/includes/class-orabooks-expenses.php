@@ -599,9 +599,9 @@ class OraBooks_Expenses {
         if (preg_match('/salary|payroll|wage/', $base_lower)) {
             $vendor = 'Staff Salary';
         }
-        if ($text !== '' && preg_match('/(?:company\s*name|merchant|vendor|supplier|shop)\s*[:\-]\s*([A-Za-z][A-Za-z0-9\s&.,\-]{2,80})/i', $text, $m)) {
+        if ($text !== '' && preg_match('/(?:company\s*name|merchant|vendor|supplier|shop)\s*[:\-]\s*([A-Za-z][A-Za-z0-9&.,\- ]{1,80}?)(?=\s+(?:address|phone|date|voucher\s*no|invoice|paid\s*to|paid\s*for)\s*[:\-]|$)/i', $text, $m)) {
             $vendor = sanitize_text_field(trim($m[1]));
-        } elseif ($text !== '' && preg_match('/paid\s*to\s*[:\-]\s*([A-Za-z][A-Za-z0-9\s&.,\-]{2,80})/i', $text, $m)) {
+        } elseif ($text !== '' && preg_match('/paid\s*to\s*[:\-]\s*([A-Za-z][A-Za-z0-9&.,\- ]{1,80}?)(?=\s+(?:paid\s*for|date|amount|description|title)\s*[:\-]|$)/i', $text, $m)) {
             $vendor = sanitize_text_field(trim($m[1]));
         }
 
