@@ -732,6 +732,18 @@ class OraBooks_Tax {
             }
         }
 
+        // Fallback guard for environments where fiscal helper class is not wired.
+        global $wpdb;
+        $table = OraBooks_Database::table('fiscal_periods');
+        $status = $wpdb->get_var($wpdb->prepare(
+            "SELECT status FROM {$table} WHERE org_id = %d AND %s BETWEEN period_start AND period_end LIMIT 1",
+            (int) $org_id,
+            (string) $date
+        ));
+        if (in_array($status, ['soft_closed', 'hard_closed'], true)) {
+            return true;
+        }
+
         return false;
     }
 
