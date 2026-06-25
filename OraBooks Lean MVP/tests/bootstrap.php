@@ -1181,40 +1181,42 @@ if (!class_exists('OraBooks_Organization', false)) {
             }
 
             global $wpdb;
-            $table = OraBooks_Database::table('organizations');
-            $from_db = $wpdb->get_row($wpdb->prepare(
-                "SELECT * FROM {$table} WHERE id = %d",
-                (int) $org_id
-            ));
-            if ($from_db && (
-                isset($from_db->organization_type)
-                || isset($from_db->status)
-                || isset($from_db->subdomain)
-                || isset($from_db->name)
-            )) {
-                if (!isset($from_db->id)) {
-                    $from_db->id = (int) $org_id;
-                }
-                if (!isset($from_db->owner_id)) {
-                    $from_db->owner_id = 1;
-                }
-                if (!isset($from_db->organization_type)) {
-                    $from_db->organization_type = 'customer';
-                }
-                if (!isset($from_db->tier)) {
-                    $from_db->tier = 'free';
-                }
-                if (!isset($from_db->subdomain)) {
-                    $from_db->subdomain = 'testorg';
-                }
-                if (!isset($from_db->status)) {
-                    $from_db->status = 'active';
-                }
-                if (!isset($from_db->name)) {
-                    $from_db->name = 'Test Customer Org';
-                }
+            if ($wpdb->test_get_row_callback !== null) {
+                $table = OraBooks_Database::table('organizations');
+                $from_db = $wpdb->get_row($wpdb->prepare(
+                    "SELECT * FROM {$table} WHERE id = %d",
+                    (int) $org_id
+                ));
+                if ($from_db && (
+                    isset($from_db->organization_type)
+                    || isset($from_db->status)
+                    || isset($from_db->subdomain)
+                    || isset($from_db->name)
+                )) {
+                    if (!isset($from_db->id)) {
+                        $from_db->id = (int) $org_id;
+                    }
+                    if (!isset($from_db->owner_id)) {
+                        $from_db->owner_id = 1;
+                    }
+                    if (!isset($from_db->organization_type)) {
+                        $from_db->organization_type = 'customer';
+                    }
+                    if (!isset($from_db->tier)) {
+                        $from_db->tier = 'free';
+                    }
+                    if (!isset($from_db->subdomain)) {
+                        $from_db->subdomain = 'testorg';
+                    }
+                    if (!isset($from_db->status)) {
+                        $from_db->status = 'active';
+                    }
+                    if (!isset($from_db->name)) {
+                        $from_db->name = 'Test Customer Org';
+                    }
 
-                return $from_db;
+                    return $from_db;
+                }
             }
 
             if (!$org_id) {
@@ -1244,11 +1246,18 @@ if (!class_exists('OraBooks_Organization', false)) {
                 $org = ($GLOBALS['orabooks_test_org_by_subdomain_callback'])($subdomain);
             } else {
                 global $wpdb;
-                $table = OraBooks_Database::table('organizations');
-                $org = $wpdb->get_row($wpdb->prepare(
-                    "SELECT * FROM {$table} WHERE subdomain = %s",
-                    strtolower(trim((string) $subdomain))
-                ));
+                if ($wpdb->test_get_row_callback !== null) {
+                    $table = OraBooks_Database::table('organizations');
+                    $org = $wpdb->get_row($wpdb->prepare(
+                        "SELECT * FROM {$table} WHERE subdomain = %s",
+                        strtolower(trim((string) $subdomain))
+                    ));
+                } else {
+                    $org = self::get(1);
+                    if ($org) {
+                        $org->subdomain = strtolower(trim((string) $subdomain));
+                    }
+                }
             }
 
             if (!$org) {
