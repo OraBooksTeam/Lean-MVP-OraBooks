@@ -366,6 +366,9 @@ class OraBooks_Ai_Providers {
         if (preg_match('/restaurant|cafe|meal|food/', $text)) {
             return 'Meals';
         }
+        if (preg_match('/salary|staff\s*salary|wage|payroll/', $text)) {
+            return 'Salary';
+        }
         if (preg_match('/software|subscription|saas|license/', $text)) {
             return 'Software';
         }
