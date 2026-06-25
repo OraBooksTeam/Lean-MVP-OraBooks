@@ -10,7 +10,11 @@ const APP_ROUTE_ALIASES: Record<string, string> = {
 };
 
 export function normalizeAppRoute(route: string): string {
-  let path = route.trim();
+  const rawRoute = typeof route === 'string' ? route : '';
+  let path = rawRoute.trim();
+  if (!path) {
+    return '/dashboard';
+  }
   if (path.startsWith('#')) {
     path = path.replace(/^#\/?/, '/');
   }
@@ -26,13 +30,18 @@ export function normalizeAppRoute(route: string): string {
 
 /** Build a clean WordPress URL (trailing slash, optional query string). */
 export function toWpUrl(path: string): string {
-  if (path.startsWith('http://') || path.startsWith('https://')) {
-    return path;
+  const rawPath = typeof path === 'string' ? path : '';
+  if (rawPath.trim() === '') {
+    return '/dashboard/';
   }
 
-  const queryIndex = path.indexOf('?');
-  const pathname = queryIndex >= 0 ? path.slice(0, queryIndex) : path;
-  const search = queryIndex >= 0 ? path.slice(queryIndex) : '';
+  if (rawPath.startsWith('http://') || rawPath.startsWith('https://')) {
+    return rawPath;
+  }
+
+  const queryIndex = rawPath.indexOf('?');
+  const pathname = queryIndex >= 0 ? rawPath.slice(0, queryIndex) : rawPath;
+  const search = queryIndex >= 0 ? rawPath.slice(queryIndex) : '';
 
   let normalized = pathname.startsWith('/') ? pathname : `/${pathname}`;
   const routeKey = normalizeAppRoute(normalized);
