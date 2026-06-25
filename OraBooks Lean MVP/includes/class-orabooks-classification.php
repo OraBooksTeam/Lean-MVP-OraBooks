@@ -328,6 +328,7 @@ class OraBooks_Classification {
      */
     public static function run($record_type, $record_id, $org_id) {
         global $wpdb;
+        $started_at = microtime(true);
 
         $record_type = sanitize_text_field($record_type);
         $record_id = (int) $record_id;
@@ -348,7 +349,7 @@ class OraBooks_Classification {
         $amount = self::resolve_amount($record, $map);
 
         $rule_result = self::match_rules($org_id, $record, $text);
-        $use_rules = (bool) get_option('orabooks_rule_precedence_over_ai', 1);
+        $use_rules = self::should_prioritize_rules($org_id);
 
         if ($use_rules && $rule_result) {
             $suggestion = $rule_result;
@@ -365,6 +366,11 @@ class OraBooks_Classification {
                 'classification_reason' => 'Unable to generate classification suggestion',
                 'last_classified_at'    => current_time('mysql', true),
             ], ['%s', '%s', '%s']);
+
+            self::record_observability('classification', 'failed_count', 1, $org_id, [
+                'record_type' => $record_type,
+                'record_id' => $record_id,
+            ]);
 
             return new WP_Error('classification_failed', __('Classification failed', 'orabooks'));
         }
@@ -400,6 +406,21 @@ class OraBooks_Classification {
             ],
             ['%s', '%s', '%d', '%f', '%s', '%s', '%s', '%s', '%s', '%s']
         );
+
+        $latency_ms = round((microtime(true) - $started_at) * 1000, 2);
+        self::record_observability('classification', 'latency_ms', (float) $latency_ms, $org_id, [
+            'record_type' => $record_type,
+            'record_id' => $record_id,
+            'source' => $suggestion['source'] ?? 'unknown',
+        ]);
+        self::record_observability('classification', 'confidence_score', (float) $suggestion['confidence'], $org_id, [
+            'record_type' => $record_type,
+            'record_id' => $record_id,
+        ]);
+        self::record_observability('classification', 'low_confidence_count', $suggestion['confidence'] < self::CONFIDENCE_THRESHOLD ? 1.0 : 0.0, $org_id, [
+            'record_type' => $record_type,
+            'record_id' => $record_id,
+        ]);
 
         orabooks_log_event('classification_suggested', sprintf(
             'Classification suggested for %s #%d',
@@ -467,7 +488,7 @@ class OraBooks_Classification {
         $amount = self::resolve_amount($record, $map);
 
         $rule_result = self::match_rules($org_id, $record, $text);
-        $use_rules = (bool) get_option('orabooks_rule_precedence_over_ai', 1);
+        $use_rules = self::should_prioritize_rules($org_id);
 
         if ($use_rules && $rule_result) {
             $suggestion = $rule_result;
@@ -673,7 +694,36 @@ class OraBooks_Classification {
             'tax_rate'     => $tax_rate,
         ], (int) $user_id, (int) $org_id);
 
+        self::record_observability('classification', 'override_count', 1, (int) $org_id, [
+            'record_type' => $record_type,
+            'record_id' => $record_id,
+        ]);
+
         return self::get_record($record_type, $record_id, $org_id);
+    }
+
+    private static function should_prioritize_rules($org_id) {
+        $org_id = (int) $org_id;
+
+        if (class_exists('OraBooks_Organization') && $org_id > 0) {
+            $org = OraBooks_Organization::get($org_id);
+            if ($org && !empty($org->config)) {
+                $config = json_decode((string) $org->config, true);
+                if (is_array($config) && array_key_exists('rule_precedence_over_ai', $config)) {
+                    return !empty($config['rule_precedence_over_ai']);
+                }
+            }
+        }
+
+        return (bool) get_option('orabooks_rule_precedence_over_ai', 1);
+    }
+
+    private static function record_observability($component, $metric_name, $value, $org_id = null, array $metadata = []) {
+        if (!class_exists('OraBooks_Observability')) {
+            return;
+        }
+
+        OraBooks_Observability::record_metric((string) $component, (string) $metric_name, (float) $value, $org_id ? (int) $org_id : null, $metadata);
     }
 
     public static function format_classification($row) {

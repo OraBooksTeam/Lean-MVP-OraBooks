@@ -143,6 +143,19 @@ class OraBooks_Posting {
                 'credit_amount' => $line['credit'] ?? 0,
                 'description' => $line['description'] ?? ''
             ], ['%d', '%d', '%s', '%f', '%f', '%s']);
+
+            $line_id = (int) $wpdb->insert_id;
+            if ($line_id > 0 && class_exists('OraBooks_Classification')) {
+                $classify = OraBooks_Classification::request('journal_line', $line_id, (int) $journal->org_id);
+                if (is_wp_error($classify)) {
+                    // Classification suggestions are non-blocking for draft line creation.
+                    orabooks_log_event('classification_request_failed', 'Failed to queue classification for journal line', 'warning', [
+                        'journal_id' => (int) $journal_id,
+                        'journal_line_id' => $line_id,
+                        'error' => $classify->get_error_message(),
+                    ], null, (int) $journal->org_id);
+                }
+            }
             
             $total_debit += $line['debit'] ?? 0;
             $total_credit += $line['credit'] ?? 0;

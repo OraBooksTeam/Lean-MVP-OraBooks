@@ -530,7 +530,10 @@ class OraBooks_Tax {
 
         $snapshot_id = intval($wpdb->insert_id);
 
-        orabooks_log_event(!empty($data['override']) ? 'tax_override' : 'tax_snapshot_created', 'Tax snapshot created', 'info', [
+        orabooks_log_event(
+            !empty($data['override']) ? 'tax_override' : (!empty($data['posted_tax']) ? 'tax_snapshot_created' : 'tax_snapshot_created'),
+            'Tax snapshot created',
+            'info', [
             'transaction_id' => $transaction_id,
             'transaction_type' => $transaction_type,
             'tax_amount' => $calculation['tax_amount'],

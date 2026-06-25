@@ -170,6 +170,43 @@ class OraBooks_Rest_Api {
             'permission_callback' => [__CLASS__, 'can_manage_internal_jobs'],
         ]);
 
+        register_rest_route(self::NAMESPACE, '/internal/tax/calculate', [
+            'methods'             => WP_REST_Server::CREATABLE,
+            'callback'            => [__CLASS__, 'rest_tax_calculate'],
+            'permission_callback' => [__CLASS__, 'can_calculate_tax'],
+        ]);
+
+        register_rest_route(self::NAMESPACE, '/internal/tax/snapshot', [
+            'methods'             => WP_REST_Server::CREATABLE,
+            'callback'            => [__CLASS__, 'rest_tax_snapshot'],
+            'permission_callback' => [__CLASS__, 'can_submit_tax_snapshot'],
+        ]);
+
+        register_rest_route(self::NAMESPACE, '/tax/configs', [
+            [
+                'methods'             => WP_REST_Server::READABLE,
+                'callback'            => [__CLASS__, 'rest_tax_list_configs'],
+                'permission_callback' => [__CLASS__, 'can_manage_tax_config'],
+            ],
+            [
+                'methods'             => WP_REST_Server::CREATABLE,
+                'callback'            => [__CLASS__, 'rest_tax_save_config'],
+                'permission_callback' => [__CLASS__, 'can_manage_tax_config'],
+            ],
+        ]);
+
+        register_rest_route(self::NAMESPACE, '/tax/jurisdictions', [
+            'methods'             => WP_REST_Server::READABLE,
+            'callback'            => [__CLASS__, 'rest_tax_list_jurisdictions'],
+            'permission_callback' => [__CLASS__, 'can_calculate_tax'],
+        ]);
+
+        register_rest_route(self::NAMESPACE, '/tax/lock-status', [
+            'methods'             => WP_REST_Server::READABLE,
+            'callback'            => [__CLASS__, 'rest_tax_lock_status'],
+            'permission_callback' => [__CLASS__, 'can_manage_tax_config'],
+        ]);
+
         register_rest_route(self::NAMESPACE, '/auth/2fa/setup', [
             'methods'             => WP_REST_Server::CREATABLE,
             'callback'            => [__CLASS__, 'rest_2fa_setup'],
