@@ -590,7 +590,7 @@ class OraBooks_Expenses {
 
         $text = '';
         if (!empty($file_bytes)) {
-            $text = preg_replace('/[^A-Za-z0-9@.,:\/-\s]/', ' ', (string) $file_bytes);
+            $text = preg_replace('/[^A-Za-z0-9@.,:\/\s-]/', ' ', (string) $file_bytes);
             $text = preg_replace('/\s+/', ' ', (string) $text);
         }
 
