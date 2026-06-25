@@ -339,8 +339,8 @@ class OraBooks_Tax {
         } else {
             $config = self::get_active_config($org_id, $jurisdiction);
             if ($config) {
-                $rate = floatval($config->default_tax_rate);
-                $tax_type = $config->tax_type;
+                $rate = isset($config->default_tax_rate) ? floatval($config->default_tax_rate) : 0.0;
+                $tax_type = isset($config->tax_type) ? sanitize_text_field((string) $config->tax_type) : 'Sales Tax';
                 $rule_id = 'org_config_' . intval($config->id);
             } else {
                 $rate = floatval($jurisdiction_rules['default_rate'] ?? 0);
@@ -1109,4 +1109,5 @@ class OraBooks_Tax {
         ]);
     }
 }
+
 
