@@ -168,8 +168,9 @@ export default function TaxSettingsPage() {
   useEffect(() => { void load(); }, []);
 
   const openNewConfig = (jurisdictionCode?: string) => {
-    const jurisdiction = jurisdictionOptions.find((j) => j.jurisdiction_code === jurisdictionCode)
-      || jurisdictionOptions[0];
+    const pool = addableJurisdictions;
+    const jurisdiction = pool.find((j) => j.jurisdiction_code === jurisdictionCode) || pool[0];
+    setFormMode('add');
     setForm({
       jurisdiction: jurisdictionCode || jurisdiction?.jurisdiction_code || 'US',
       default_tax_rate: String(jurisdiction?.default_tax_rate ?? 0),
@@ -184,6 +185,7 @@ export default function TaxSettingsPage() {
   };
 
   const openEditConfig = (config: TaxConfig) => {
+    setFormMode('edit');
     setForm({
       jurisdiction: config.jurisdiction,
       default_tax_rate: String(config.default_tax_rate),
@@ -301,8 +303,8 @@ export default function TaxSettingsPage() {
             <RefreshCw className="h-4 w-4" />
             Refresh
           </Button>
-          {!taxLocked && (
-            <Button size="sm" onClick={() => openNewConfig()}>
+          {orgId && !loading && (
+            <Button size="sm" type="button" onClick={() => openNewConfig()}>
               <Plus className="h-4 w-4" />
               Add jurisdiction
             </Button>
@@ -357,9 +359,9 @@ export default function TaxSettingsPage() {
                         </span>
                       </td>
                       <td className="px-5 py-3 text-right">
-                        {!taxLocked && (
-                          <Button variant="secondary" size="sm" onClick={() => openEditConfig(config)}>Edit</Button>
-                        )}
+                        <Button variant="secondary" size="sm" type="button" onClick={() => openEditConfig(config)}>
+                          Edit
+                        </Button>
                       </td>
                     </tr>
                   ))
