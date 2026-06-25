@@ -1313,7 +1313,7 @@ class OraBooks_Customers_Test extends TestCase
     {
         global $wpdb;
 
-        $wpdb->test_insert_id = 42;
+        $wpdb->insert_id = 42;
         $wpdb->test_insert_callback = function ($table, $data) {
             $this->assertArrayNotHasKey('user_id', $data);
             $this->assertSame(5, $data['org_id']);
@@ -1454,3 +1454,4 @@ class OraBooks_Customers_Test extends TestCase
         $this->assertEquals('has_payments', $result->get_error_code());
     }
 }
+
