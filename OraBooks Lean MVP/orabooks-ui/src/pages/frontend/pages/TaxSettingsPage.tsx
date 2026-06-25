@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import Button from '@/components/Button';
 import Input from '@/components/Input';
 import { api } from '../api';
@@ -38,6 +39,12 @@ type TaxSnapshot = {
 
 const TAX_TYPES = ['VAT', 'GST', 'Sales Tax', 'None'] as const;
 
+const DEFAULT_JURISDICTIONS: Jurisdiction[] = [
+  { jurisdiction_code: 'US', name: 'United States Sales Tax', default_tax_rate: 0, tax_type: 'Sales Tax' },
+  { jurisdiction_code: 'BD', name: 'Bangladesh VAT', default_tax_rate: 15, tax_type: 'VAT' },
+  { jurisdiction_code: 'IN', name: 'India GST', default_tax_rate: 18, tax_type: 'GST' },
+];
+
 const DEFAULT_OVERRIDE_REASONS = [
   'WRONG_AI_CLASSIFICATION',
   'LOCAL_TAX_RULE',
@@ -69,6 +76,7 @@ export default function TaxSettingsPage() {
   const [success, setSuccess] = useState('');
   const [saving, setSaving] = useState(false);
   const [showForm, setShowForm] = useState(false);
+  const [formMode, setFormMode] = useState<'add' | 'edit'>('add');
   const [form, setForm] = useState({
     jurisdiction: 'US',
     default_tax_rate: '0',
@@ -96,13 +104,22 @@ export default function TaxSettingsPage() {
 
   const jurisdictionOptions = useMemo(() => {
     if (jurisdictions.length) return jurisdictions;
-    return configs.map((c) => ({
-      jurisdiction_code: c.jurisdiction,
-      name: c.jurisdiction,
-      default_tax_rate: c.default_tax_rate,
-      tax_type: c.tax_type,
-    }));
+    if (configs.length) {
+      return configs.map((c) => ({
+        jurisdiction_code: c.jurisdiction,
+        name: c.jurisdiction,
+        default_tax_rate: c.default_tax_rate,
+        tax_type: c.tax_type,
+      }));
+    }
+    return DEFAULT_JURISDICTIONS;
   }, [jurisdictions, configs]);
+
+  const addableJurisdictions = useMemo(() => {
+    const configured = new Set(configs.map((c) => c.jurisdiction));
+    const available = jurisdictionOptions.filter((j) => !configured.has(j.jurisdiction_code));
+    return available.length ? available : jurisdictionOptions;
+  }, [jurisdictionOptions, configs]);
 
   const load = async () => {
     setLoading(true);
