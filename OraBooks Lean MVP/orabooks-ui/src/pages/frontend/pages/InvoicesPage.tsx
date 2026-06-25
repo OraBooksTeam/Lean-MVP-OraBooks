@@ -532,6 +532,44 @@ export default function InvoicesPage() {
                 title="Invoice files"
               />
             </div>
+            <div className="mt-4 rounded-xl border border-border bg-slate-50/70 p-4">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <p className="text-sm font-semibold text-ink">Tax (VAT / GST / Sales Tax)</p>
+                  <p className="mt-1 text-sm text-slate-700">
+                    {invoiceTaxLabel(selectedInvoice)} · {Number(selectedInvoice.tax_rate || 0).toFixed(2)}% ·{' '}
+                    {money(selectedInvoice.tax_amount, selectedInvoice.currency)}
+                  </p>
+                  {selectedInvoice.tax_override_reason && (
+                    <span
+                      className="mt-2 inline-block rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800"
+                      title={`Tax manually changed. Reason: ${formatReason(selectedInvoice.tax_override_reason)}`}
+                    >
+                      Overridden
+                    </span>
+                  )}
+                </div>
+                {canOverride(selectedInvoice) && (
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    title="Override tax rate. Reason code required for audit."
+                    onClick={() => void openOverride(selectedInvoice)}
+                  >
+                    Override Tax
+                  </Button>
+                )}
+              </div>
+              {selectedInvoice.classification?.tax_hints?.tax_type && (
+                <p className="mt-2 text-xs text-slate-500">
+                  AI suggestion: {selectedInvoice.classification.tax_hints.tax_type}{' '}
+                  {selectedInvoice.classification.tax_hints.tax_rate ?? 0}% (human override has final authority)
+                </p>
+              )}
+              {canOverride(selectedInvoice) && (
+                <p className="mt-2 text-xs text-amber-700">Override will be locked after posting.</p>
+              )}
+            </div>
             <div className="mt-4 rounded-xl border border-primary/20 bg-primary/5 p-4">
               <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2 text-sm font-semibold text-ink">
@@ -639,7 +677,7 @@ export default function InvoicesPage() {
                   <td className="px-5 py-3 text-slate-600">
                     <span className="inline-flex items-center gap-1">
                       <Percent className="h-3.5 w-3.5" />
-                      {Number(invoice.tax_rate || 0).toFixed(2)}%
+                      {invoiceTaxLabel(invoice)} {Number(invoice.tax_rate || 0).toFixed(2)}%
                     </span>
                     <div className="text-xs text-slate-500">{money(invoice.tax_amount, invoice.currency)}</div>
                   </td>
@@ -671,8 +709,13 @@ export default function InvoicesPage() {
                         </Button>
                       )}
                       {canOverride(invoice) && (
-                        <Button size="sm" variant="secondary" onClick={() => void openOverride(invoice)}>
-                          Tax
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          title="Manually change tax rate."
+                          onClick={() => void openOverride(invoice)}
+                        >
+                          Override Tax
                         </Button>
                       )}
                       <WpLink to={`/attachments?resource_type=invoice&resource_id=${invoice.id}`}>
@@ -753,7 +796,10 @@ export default function InvoicesPage() {
               </Field>
               {createPreview && (
                 <div className="rounded-lg border border-border bg-slate-50 p-3 text-sm">
-                  <div>Tax ({createPreview.tax_rate.toFixed(2)}%): {money(createPreview.tax_amount)}</div>
+                  <div>
+                    {createPreview.tax_type || 'Tax'} ({createPreview.tax_rate.toFixed(2)}%):{' '}
+                    {money(createPreview.tax_amount)}
+                  </div>
                   <div className="font-semibold">Total: {money(createPreview.total_amount)}</div>
                 </div>
               )}
