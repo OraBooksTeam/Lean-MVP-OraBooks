@@ -418,4 +418,117 @@ class OraBooks_Tax_Test extends TestCase
         $this->assertIsArray($result);
         $this->assertEquals(55, $result['snapshot_id']);
     }
+
+    #[Test]
+    public function test_resolve_jurisdiction_from_billing_address_country()
+    {
+        $this->assertEquals('BD', OraBooks_Tax::resolve_jurisdiction([
+            'billing_address' => ['country' => 'BD'],
+        ]));
+    }
+
+    #[Test]
+    public function test_resolve_jurisdiction_from_us_state()
+    {
+        $this->assertEquals('US-CA', OraBooks_Tax::resolve_jurisdiction([
+            'billing_address' => ['country' => 'US', 'state' => 'CA'],
+        ]));
+    }
+
+    #[Test]
+    public function test_calculate_applies_product_type_rate_from_jurisdiction_rules()
+    {
+        global $wpdb;
+
+        $wpdb->test_get_row_callback = function ($query) {
+            if (stripos($query, 'tax_configs') !== false) {
+                return null;
+            }
+            if (stripos($query, 'tax_jurisdictions') !== false) {
+                return (object) [
+                    'tax_rules' => json_encode([
+                        'default_rate' => 15,
+                        'tax_type' => 'VAT',
+                        'product_rates' => ['standard' => 15, 'reduced' => 5],
+                    ]),
+                ];
+            }
+            return null;
+        };
+
+        $result = OraBooks_Tax::calculate([
+            'org_id' => 5,
+            'amount' => 100,
+            'jurisdiction' => 'BD',
+            'product_type' => 'reduced',
+        ]);
+
+        $this->assertEquals(5.0, $result['tax_rate']);
+        $this->assertEquals(5.0, $result['tax_amount']);
+        $this->assertEquals('product_reduced', $result['rule_id']);
+    }
+
+    #[Test]
+    public function test_validate_tax_posting_accounts_requires_liability_account()
+    {
+        if (!class_exists('OraBooks_COA')) {
+            $this->markTestSkipped('OraBooks_COA not loaded');
+        }
+
+        global $wpdb;
+        $wpdb->test_get_row_callback = function ($query) {
+            if (stripos($query, 'accounts') !== false) {
+                return null;
+            }
+            return null;
+        };
+
+        $result = OraBooks_Tax::validate_tax_posting_accounts(3, 'VAT');
+        $this->assertInstanceOf(WP_Error::class, $result);
+        $this->assertEquals('tax_account_missing', $result->get_error_code());
+    }
+
+    #[Test]
+    public function test_snapshot_for_journal_uses_posted_tax_lines()
+    {
+        global $wpdb;
+
+        $wpdb->test_get_var_callback = function ($query) {
+            if (stripos($query, 'tax_snapshots') !== false) {
+                return null;
+            }
+            return null;
+        };
+        $wpdb->test_get_row_callback = function ($query) {
+            if (stripos($query, 'fiscal_periods') !== false) {
+                return (object) ['status' => 'open'];
+            }
+            return null;
+        };
+        $wpdb->test_insert_callback = function ($table, $data) {
+            $GLOBALS['tax_journal_snapshot'] = $data;
+        };
+        $GLOBALS['orabooks_test_use_insert_id'] = 901;
+
+        $journal = (object) [
+            'id' => 44,
+            'org_id' => 2,
+            'total_amount' => '115.00',
+            'transaction_date' => '2026-06-15',
+            'journal_number' => 'JE-2026-000001',
+            'metadata' => wp_json_encode(['tax_jurisdiction' => 'BD', 'tax_type' => 'VAT']),
+        ];
+        $lines = [
+            (object) ['account_code' => '1100', 'debit_amount' => 115, 'credit_amount' => 0],
+            (object) ['account_code' => '4000', 'debit_amount' => 0, 'credit_amount' => 100],
+            (object) ['account_code' => '2100', 'debit_amount' => 0, 'credit_amount' => 15],
+        ];
+
+        $result = OraBooks_Tax::snapshot_for_journal($journal, $lines, 1);
+
+        $this->assertIsArray($result);
+        $this->assertEquals(901, $result['snapshot_id']);
+        $this->assertEquals(15.0, $GLOBALS['tax_journal_snapshot']['tax_amount']);
+        $this->assertEquals('journal', $GLOBALS['tax_journal_snapshot']['transaction_type']);
+    }
 }
