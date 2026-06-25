@@ -484,7 +484,9 @@ class OraBooks_Observability {
                 ];
 
             case 'eventbus_processing':
-                $outbox = OraBooks_Database::table('outbox_messages');
+                $outbox = class_exists('OraBooks_Event_Module')
+                    ? OraBooks_Event_Module::table('event_outbox')
+                    : OraBooks_Database::table('outbox_messages');
                 $row = $wpdb->get_row($wpdb->prepare(
                     "SELECT
                         SUM(CASE WHEN status IN ('sent', 'failed', 'dead_letter') THEN 1 ELSE 0 END) AS total,
