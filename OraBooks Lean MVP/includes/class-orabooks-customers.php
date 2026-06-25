@@ -1092,27 +1092,46 @@ class OraBooks_Customers {
         if (empty($data['total_amount']) || $data['total_amount'] <= 0) {
             if (!empty($data['subtotal_amount']) && floatval($data['subtotal_amount']) > 0) {
                 $subtotal = round(floatval($data['subtotal_amount']), 2);
-                $jurisdiction = strtoupper(sanitize_text_field($data['jurisdiction'] ?? 'US'));
+                $jurisdiction = strtoupper(sanitize_text_field($data['jurisdiction'] ?? ''));
+                $billing_address = $data['billing_address'] ?? null;
+
+                if ($jurisdiction === '' && !empty($data['customer_id'])) {
+                    $customer = self::get_customer((int) $data['customer_id'], $org_id);
+                    if ($customer) {
+                        $billing_address = [
+                            'country' => $customer->country ?? '',
+                            'state' => $customer->state ?? '',
+                        ];
+                    }
+                }
 
                 if (class_exists('OraBooks_Tax')) {
-                    $tax_result = OraBooks_Tax::calculate([
+                    $tax_payload = [
                         'org_id' => $org_id,
                         'amount' => $subtotal,
-                        'jurisdiction' => $jurisdiction,
                         'customer_tax_status' => sanitize_text_field($data['customer_tax_status'] ?? 'taxable'),
-                    ]);
+                        'product_type' => sanitize_text_field($data['product_type'] ?? 'standard'),
+                    ];
+                    if ($jurisdiction !== '') {
+                        $tax_payload['jurisdiction'] = $jurisdiction;
+                    }
+                    if ($billing_address) {
+                        $tax_payload['billing_address'] = $billing_address;
+                    }
+
+                    $tax_result = OraBooks_Tax::calculate($tax_payload);
 
                     if (!is_wp_error($tax_result)) {
                         $data['tax_amount'] = $tax_result['tax_amount'];
                         $data['tax_rate'] = $tax_result['tax_rate'];
-                        $data['tax_jurisdiction'] = $jurisdiction;
+                        $data['tax_jurisdiction'] = $tax_result['jurisdiction_applied'] ?? ($jurisdiction ?: 'US');
                         $data['tax_type'] = $tax_result['tax_type'] ?? 'Sales Tax';
                         $data['total_amount'] = round($subtotal + $tax_result['tax_amount'], 2);
                     } else {
                         $data['total_amount'] = $subtotal;
                         $data['tax_amount'] = 0;
                         $data['tax_rate'] = 0;
-                        $data['tax_jurisdiction'] = $jurisdiction;
+                        $data['tax_jurisdiction'] = $jurisdiction ?: OraBooks_Tax::resolve_jurisdiction(['billing_address' => $billing_address]);
                         $data['tax_type'] = 'Sales Tax';
                     }
                 } else {
