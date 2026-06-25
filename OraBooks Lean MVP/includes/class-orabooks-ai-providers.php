@@ -103,7 +103,19 @@ class OraBooks_Ai_Providers {
         if (self::is_document_intelligence_configured() && $file_bytes) {
             $result = self::azure_document_intelligence_ocr($file_bytes, $filename);
             if (!is_wp_error($result)) {
-                return $result;
+                if (!self::is_weak_ocr_result($result)) {
+                    return $result;
+                }
+
+                $stub = OraBooks_Expenses::run_ocr_stub($filename, $expense_id, $file_bytes);
+                $merged = self::merge_ocr_result_with_stub($result, $stub);
+
+                orabooks_log_event('ocr_provider_partial_fallback', 'Document Intelligence returned low-signal result; merged with stub', 'warning', [
+                    'expense_id' => $expense_id,
+                    'provider' => $result['provider'] ?? self::PROVIDER_AZURE_DI,
+                ], null, null);
+
+                return $merged;
             }
             orabooks_log_event('ocr_provider_fallback', 'Document Intelligence failed; using stub', 'warning', [
                 'error' => $result->get_error_message(),
@@ -379,6 +391,88 @@ class OraBooks_Ai_Providers {
             return 'Utilities';
         }
         return 'General';
+    }
+
+    private static function is_weak_ocr_result(array $result) {
+        $vendor = trim((string) ($result['vendor'] ?? ''));
+        $invoice = trim((string) ($result['invoice_number'] ?? ''));
+        $total = (float) ($result['total_amount'] ?? 0);
+        $category = strtolower(trim((string) ($result['category'] ?? '')));
+        $currency = strtoupper(trim((string) ($result['currency'] ?? '')));
+
+        $weak_signals = 0;
+        if ($vendor === '' || strtolower($vendor) === 'unknown vendor') {
+            $weak_signals++;
+        }
+        if ($invoice === '') {
+            $weak_signals++;
+        }
+        if ($total <= 0) {
+            $weak_signals++;
+        }
+        if ($category === '' || $category === 'general') {
+            $weak_signals++;
+        }
+        if ($currency === '' || $currency === 'USD') {
+            $weak_signals++;
+        }
+
+        return $weak_signals >= 3;
+    }
+
+    private static function merge_ocr_result_with_stub(array $primary, array $stub) {
+        $merged = $primary;
+
+        $prefer_stub_when_empty = [
+            'vendor', 'vendor_tax_id', 'invoice_number', 'transaction_date', 'due_date',
+            'subtotal', 'tax_amount', 'tax_rate', 'total_amount', 'currency',
+            'payment_method', 'category', 'merchant_address', 'description',
+        ];
+
+        foreach ($prefer_stub_when_empty as $field) {
+            $current = $merged[$field] ?? null;
+            $fallback = $stub[$field] ?? null;
+
+            if ($field === 'total_amount' || $field === 'subtotal' || $field === 'tax_amount') {
+                if ((float) $current <= 0 && $fallback !== null) {
+                    $merged[$field] = round((float) $fallback, 2);
+                }
+                continue;
+            }
+
+            if ($field === 'tax_rate') {
+                if ((float) $current <= 0 && $fallback !== null) {
+                    $merged[$field] = (float) $fallback;
+                }
+                continue;
+            }
+
+            if ($field === 'vendor') {
+                $vendor = strtolower(trim((string) $current));
+                if ($vendor === '' || $vendor === 'unknown vendor') {
+                    $merged[$field] = $fallback;
+                }
+                continue;
+            }
+
+            if (($current === null || $current === '') && $fallback !== null && $fallback !== '') {
+                $merged[$field] = $fallback;
+            }
+        }
+
+        if (empty($merged['line_items']) && !empty($stub['line_items'])) {
+            $merged['line_items'] = $stub['line_items'];
+        }
+
+        if ((float) ($merged['ocr_confidence'] ?? 0) < (float) ($stub['ocr_confidence'] ?? 0)) {
+            $merged['ocr_confidence'] = $stub['ocr_confidence'];
+        }
+
+        if (empty($merged['ocr_data']['fields']) && !empty($stub['ocr_data']['fields'])) {
+            $merged['ocr_data'] = $stub['ocr_data'];
+        }
+
+        return $merged;
     }
 
     private static function normalize_receipt_items(array $fields) {
