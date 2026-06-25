@@ -1061,14 +1061,58 @@ class OraBooks_Tax {
         return false;
     }
 
+    private function resolve_tax_user_id() {
+        $user_id = orabooks_get_current_user_id();
+        if ($user_id > 0) {
+            return (int) $user_id;
+        }
+
+        if (function_exists('orabooks_normalize_auth_server_vars')) {
+            orabooks_normalize_auth_server_vars();
+        }
+
+        return (int) orabooks_get_current_user_id();
+    }
+
+    private function resolve_tax_org_id($user_id, $org_id) {
+        $org_id = (int) $org_id;
+        if ($org_id > 0) {
+            return $org_id;
+        }
+
+        if ($user_id > 0 && function_exists('orabooks_get_current_org_id')) {
+            $current_org_id = (int) orabooks_get_current_org_id($user_id);
+            if ($current_org_id > 0) {
+                return $current_org_id;
+            }
+        }
+
+        return 0;
+    }
+
     private function require_tax_access($user_id, $org_id, $permission = 'manage_org_settings') {
+        $user_id = $this->resolve_tax_user_id();
+        $org_id = $this->resolve_tax_org_id($user_id, $org_id);
+
         if (!$user_id) {
             orabooks_json_error('Not authenticated', 401);
+        }
+
+        if ($org_id <= 0) {
+            orabooks_json_error('Organization is required', 400);
         }
 
         $isolation = OraBooks_Auth::require_customer_org($user_id, $org_id);
         if (is_wp_error($isolation)) {
             orabooks_json_error($isolation->get_error_message(), 403);
+        }
+
+        if (current_user_can('manage_options')) {
+            return;
+        }
+
+        if (!orabooks_user_belongs_to_org((int) $user_id, $org_id)) {
+            orabooks_json_error('You are not a member of this organization', 403);
         }
 
         if (!OraBooks_RBAC::require_permission($user_id, $org_id, $permission)) {
