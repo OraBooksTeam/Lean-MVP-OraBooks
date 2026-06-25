@@ -621,6 +621,9 @@ class OraBooks_Expenses {
         ], 0, (int) $item->org_id);
 
         if (class_exists('OraBooks_Classification')) {
+            if (method_exists('OraBooks_Classification', 'ensure_schema')) {
+                OraBooks_Classification::ensure_schema();
+            }
             OraBooks_Classification::request('expense', (int) $item->expense_id, (int) $item->org_id);
             if (method_exists('OraBooks_Classification', 'run')) {
                 OraBooks_Classification::run('expense', (int) $item->expense_id, (int) $item->org_id);
