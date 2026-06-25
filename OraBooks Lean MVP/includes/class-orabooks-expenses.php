@@ -1024,6 +1024,15 @@ class OraBooks_Expenses {
             return new WP_Error('invalid_status', 'Expense must be approved before posting');
         }
 
+        $expense_tax = round(floatval($expense->tax_amount ?? 0), 2);
+        if ($expense_tax > 0 && class_exists('OraBooks_Tax')) {
+            $tax_type = sanitize_text_field($expense->tax_type ?? 'Sales Tax');
+            $account_check = OraBooks_Tax::validate_tax_posting_accounts($org_id, $tax_type);
+            if (is_wp_error($account_check)) {
+                return $account_check;
+            }
+        }
+
         if (!class_exists('OraBooks_Posting') || !class_exists('OraBooks_COA')) {
             return new WP_Error('missing_module', 'Posting module unavailable');
         }

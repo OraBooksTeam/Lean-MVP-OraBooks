@@ -531,4 +531,45 @@ class OraBooks_Tax_Test extends TestCase
         $this->assertEquals(15.0, $GLOBALS['tax_journal_snapshot']['tax_amount']);
         $this->assertEquals('journal', $GLOBALS['tax_journal_snapshot']['transaction_type']);
     }
+
+    #[Test]
+    public function test_snapshot_for_vendor_bill_uses_bill_transaction_type()
+    {
+        global $wpdb;
+
+        $wpdb->test_get_var_callback = function ($query) {
+            if (stripos($query, 'tax_snapshots') !== false) {
+                return null;
+            }
+            return null;
+        };
+        $wpdb->test_get_row_callback = function ($query) {
+            if (stripos($query, 'fiscal_periods') !== false) {
+                return (object) ['status' => 'open'];
+            }
+            return null;
+        };
+        $wpdb->test_insert_callback = function ($table, $data) {
+            $GLOBALS['tax_bill_snapshot'] = $data;
+        };
+        $GLOBALS['orabooks_test_use_insert_id'] = 902;
+
+        $bill = (object) [
+            'id' => 12,
+            'org_id' => 2,
+            'bill_number' => 'BILL-001',
+            'subtotal_amount' => '100.00',
+            'tax_amount' => '15.00',
+            'tax_jurisdiction' => 'BD',
+            'tax_type' => 'VAT',
+            'transaction_date' => '2026-06-15',
+        ];
+
+        $result = OraBooks_Tax::snapshot_for_vendor_bill($bill, 1);
+
+        $this->assertIsArray($result);
+        $this->assertEquals(902, $result['snapshot_id']);
+        $this->assertEquals('bill', $GLOBALS['tax_bill_snapshot']['transaction_type']);
+        $this->assertEquals(15.0, $GLOBALS['tax_bill_snapshot']['tax_amount']);
+    }
 }
