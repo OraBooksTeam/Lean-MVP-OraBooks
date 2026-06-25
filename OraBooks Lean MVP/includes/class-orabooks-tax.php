@@ -819,11 +819,24 @@ class OraBooks_Tax {
         global $wpdb;
 
         $table = OraBooks_Database::table('tax_configs');
-        return $wpdb->get_row($wpdb->prepare(
-            "SELECT * FROM {$table} WHERE org_id = %d AND jurisdiction = %s AND is_active = 1 LIMIT 1",
-            intval($org_id),
-            strtoupper($jurisdiction)
-        ));
+        $jurisdiction = strtoupper(sanitize_text_field($jurisdiction));
+        $candidates = [$jurisdiction];
+        if (strpos($jurisdiction, '-') !== false) {
+            $candidates[] = explode('-', $jurisdiction)[0];
+        }
+
+        foreach ($candidates as $code) {
+            $row = $wpdb->get_row($wpdb->prepare(
+                "SELECT * FROM {$table} WHERE org_id = %d AND jurisdiction = %s AND is_active = 1 LIMIT 1",
+                intval($org_id),
+                $code
+            ));
+            if ($row) {
+                return $row;
+            }
+        }
+
+        return null;
     }
 
     public static function get_config($config_id) {
@@ -840,15 +853,24 @@ class OraBooks_Tax {
         global $wpdb;
 
         $table = OraBooks_Database::table('tax_jurisdictions');
-        $row = $wpdb->get_row($wpdb->prepare(
-            "SELECT tax_rules FROM {$table} WHERE jurisdiction_code = %s",
-            strtoupper($jurisdiction)
-        ));
+        $jurisdiction = strtoupper(sanitize_text_field($jurisdiction));
+        $candidates = [$jurisdiction];
 
-        if ($row && !empty($row->tax_rules)) {
-            $rules = json_decode($row->tax_rules, true);
-            if (is_array($rules)) {
-                return $rules;
+        if (strpos($jurisdiction, '-') !== false) {
+            $candidates[] = explode('-', $jurisdiction)[0];
+        }
+
+        foreach ($candidates as $code) {
+            $row = $wpdb->get_row($wpdb->prepare(
+                "SELECT tax_rules FROM {$table} WHERE jurisdiction_code = %s",
+                $code
+            ));
+
+            if ($row && !empty($row->tax_rules)) {
+                $rules = json_decode($row->tax_rules, true);
+                if (is_array($rules)) {
+                    return $rules;
+                }
             }
         }
 
