@@ -181,7 +181,6 @@ export default function TaxSettingsPage() {
     });
     setShowForm(true);
     setSuccess('');
-    setError('');
   };
 
   const openEditConfig = (config: TaxConfig) => {

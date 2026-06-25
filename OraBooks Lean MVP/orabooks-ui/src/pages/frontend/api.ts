@@ -254,7 +254,7 @@ async function uploadRequest<T = any>(
     const res = await fetch(cfg.ajax_url, {
       method: 'POST',
       credentials: 'include',
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      headers: token ? authRequestHeaders(token) : {},
       body: formData,
     });
 
@@ -294,7 +294,7 @@ export const api = {
 
     return fetch(`${cfg.ajax_url}?${qs.toString()}`, {
       credentials: 'include',
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      headers: token ? authRequestHeaders(token) : {},
     })
       .then((r) => parseResponse<T>(r, options))
       .catch((error) => ({
@@ -824,28 +824,36 @@ export const api = {
       period_end: data.period_end,
     }),
   taxListConfigs: (orgId: number) =>
-    api.get('orabooks_tax_configs_list', { org_id: orgId }),
+    api.get('orabooks_tax_configs_list', { org_id: orgId }, { clearAuthOnFailure: false }),
   taxListJurisdictions: (orgId: number) =>
-    api.get('orabooks_tax_jurisdictions_list', { org_id: orgId }),
+    api.get('orabooks_tax_jurisdictions_list', { org_id: orgId }, { clearAuthOnFailure: false }),
   taxLockStatus: (orgId: number, transactionDate?: string) =>
-    api.get('orabooks_tax_lock_status', {
-      org_id: orgId,
-      ...(transactionDate ? { transaction_date: transactionDate } : {}),
-    }),
+    api.get(
+      'orabooks_tax_lock_status',
+      {
+        org_id: orgId,
+        ...(transactionDate ? { transaction_date: transactionDate } : {}),
+      },
+      { clearAuthOnFailure: false }
+    ),
   taxCalculate: (payload: Record<string, unknown>) =>
-    api.post('orabooks_tax_calculate', payload),
+    api.post('orabooks_tax_calculate', payload, { clearAuthOnFailure: false }),
   taxSaveConfig: (orgId: number, data: Record<string, unknown>) =>
-    api.post('orabooks_tax_save_config', { org_id: orgId, ...data }),
+    api.post('orabooks_tax_save_config', { org_id: orgId, ...data }, { clearAuthOnFailure: false }),
   taxCreateSnapshot: (payload: Record<string, unknown>) =>
-    api.post('orabooks_tax_snapshot', payload),
+    api.post('orabooks_tax_snapshot', payload, { clearAuthOnFailure: false }),
   taxGetSnapshot: (orgId: number, transactionType: string, transactionId: number) =>
-    api.get('orabooks_tax_get_snapshot', {
-      org_id: orgId,
-      transaction_type: transactionType,
-      transaction_id: transactionId,
-    }),
+    api.get(
+      'orabooks_tax_get_snapshot',
+      {
+        org_id: orgId,
+        transaction_type: transactionType,
+        transaction_id: transactionId,
+      },
+      { clearAuthOnFailure: false }
+    ),
   taxListSnapshots: (orgId: number, limit = 25) =>
-    api.get('orabooks_tax_snapshots_list', { org_id: orgId, limit }),
+    api.get('orabooks_tax_snapshots_list', { org_id: orgId, limit }, { clearAuthOnFailure: false }),
   journalsList: (orgId: number, filters = {}) =>
     api.get('orabooks_get_journals', { org_id: orgId, ...filters }),
   journalGet: (orgId: number, journalId: number) =>
