@@ -158,6 +158,18 @@ class OraBooks_Rest_Api {
             'permission_callback' => [__CLASS__, 'can_execute_state_transition'],
         ]);
 
+        register_rest_route(self::NAMESPACE, '/internal/jobs/enqueue', [
+            'methods'             => WP_REST_Server::CREATABLE,
+            'callback'            => [__CLASS__, 'rest_enqueue_internal_job'],
+            'permission_callback' => [__CLASS__, 'can_manage_internal_jobs'],
+        ]);
+
+        register_rest_route(self::NAMESPACE, '/internal/jobs/(?P<id>\d+)/retry', [
+            'methods'             => WP_REST_Server::CREATABLE,
+            'callback'            => [__CLASS__, 'rest_retry_internal_job'],
+            'permission_callback' => [__CLASS__, 'can_manage_internal_jobs'],
+        ]);
+
         register_rest_route(self::NAMESPACE, '/auth/2fa/setup', [
             'methods'             => WP_REST_Server::CREATABLE,
             'callback'            => [__CLASS__, 'rest_2fa_setup'],
@@ -354,6 +366,84 @@ class OraBooks_Rest_Api {
 
     public static function can_manage_classification($request) {
         return !is_wp_error(self::require_org_access($request, 'create_invoice'));
+    }
+
+    public static function can_manage_internal_jobs($request) {
+        $user_id = self::current_user_id();
+        return $user_id > 0 && current_user_can('manage_options');
+    }
+
+    public static function rest_enqueue_internal_job(WP_REST_Request $request) {
+        if (!class_exists('OraBooks_AsyncQueue')) {
+            return new WP_Error('unavailable', 'Async queue unavailable.', ['status' => 503]);
+        }
+
+        $job_type = sanitize_key((string) $request->get_param('job_type'));
+        if ($job_type === '') {
+            return new WP_Error('invalid_request', 'job_type is required.', ['status' => 422]);
+        }
+
+        $payload = $request->get_param('payload');
+        if (is_string($payload)) {
+            $decoded = json_decode($payload, true);
+            $payload = is_array($decoded) ? $decoded : [];
+        }
+        if (!is_array($payload)) {
+            return new WP_Error('invalid_request', 'payload must be an object.', ['status' => 422]);
+        }
+
+        $opts = [
+            'queue_name' => sanitize_key((string) ($request->get_param('queue_name') ?: 'default')),
+            'priority' => (int) ($request->get_param('priority') ?? 5),
+            'max_retries' => (int) ($request->get_param('max_retries') ?? OraBooks_AsyncQueue::DEFAULT_MAX_RETRIES),
+            'delay_seconds' => (int) ($request->get_param('delay_seconds') ?? 0),
+        ];
+
+        $idempotency_key = sanitize_text_field((string) ($request->get_param('idempotency_key') ?? ''));
+        if ($idempotency_key !== '') {
+            $opts['idempotency_key'] = $idempotency_key;
+        }
+
+        $job_id = OraBooks_AsyncQueue::enqueue_job($job_type, $payload, $opts);
+        if (!$job_id) {
+            return new WP_Error('enqueue_failed', 'Failed to enqueue job.', ['status' => 500]);
+        }
+
+        return rest_ensure_response([
+            'job_id' => (int) $job_id,
+            'status' => 'pending',
+            'queue_name' => $opts['queue_name'],
+            'job_type' => $job_type,
+        ]);
+    }
+
+    public static function rest_retry_internal_job(WP_REST_Request $request) {
+        if (!class_exists('OraBooks_AsyncQueue')) {
+            return new WP_Error('unavailable', 'Async queue unavailable.', ['status' => 503]);
+        }
+
+        $job_id = self::resolve_route_id($request);
+        if ($job_id <= 0) {
+            return new WP_Error('invalid_request', 'Job ID is required.', ['status' => 422]);
+        }
+
+        $result = OraBooks_AsyncQueue::retry_job($job_id);
+        if (is_wp_error($result)) {
+            $status = 409;
+            if ($result->get_error_code() === 'not_found') {
+                $status = 404;
+            } elseif ($result->get_error_code() === 'forbidden') {
+                $status = 403;
+            }
+            $result->add_data(['status' => $status]);
+            return $result;
+        }
+
+        return rest_ensure_response([
+            'success' => true,
+            'job_id' => $job_id,
+            'status' => 'pending',
+        ]);
     }
 
     public static function rest_list_journals(WP_REST_Request $request) {
