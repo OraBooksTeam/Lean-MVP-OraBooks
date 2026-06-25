@@ -24,9 +24,7 @@ class OraBooks_Audit {
         if (self::$instance === null) {
             self::$instance = new self();
             add_action('wp_ajax_orabooks_get_audit_logs', [self::$instance, 'ajax_get_logs']);
-            add_action('wp_ajax_nopriv_orabooks_get_audit_logs', [self::$instance, 'ajax_get_logs']);
             add_action('wp_ajax_orabooks_export_audit_logs', [self::$instance, 'ajax_export_logs']);
-            add_action('wp_ajax_nopriv_orabooks_export_audit_logs', [self::$instance, 'ajax_export_logs']);
             
             add_action('orabooks_daily_cleanup', [self::$instance, 'archive_old_logs']);
         }
@@ -46,6 +44,9 @@ class OraBooks_Audit {
         }
 
         $severity = in_array($severity, ['info', 'warning', 'critical'], true) ? $severity : 'info';
+        if ((string) $event_type === 'permission_denied' && $severity === 'info') {
+            $severity = 'warning';
+        }
         if ($correlation_id === null || trim((string) $correlation_id) === '') {
             $correlation_id = function_exists('orabooks_get_correlation_id')
                 ? orabooks_get_correlation_id(true)
@@ -242,7 +243,9 @@ class OraBooks_Audit {
         $org_slug = 'platform';
         if ($org_id > 0 && class_exists('OraBooks_Organization')) {
             $org = OraBooks_Organization::get($org_id);
-            if ($org && !empty($org->subdomain)) {
+            if ($org && !empty($org->name)) {
+                $org_slug = sanitize_title($org->name);
+            } elseif ($org && !empty($org->subdomain)) {
                 $org_slug = sanitize_title($org->subdomain);
             }
         }
