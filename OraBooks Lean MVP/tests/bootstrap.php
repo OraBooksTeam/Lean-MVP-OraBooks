@@ -1201,6 +1201,50 @@ if (!class_exists('OraBooks_Organization', false)) {
             ];
         }
 
+        public static function get_active_by_subdomain($subdomain) {
+            if (isset($GLOBALS['orabooks_test_org_by_subdomain_callback'])) {
+                $org = ($GLOBALS['orabooks_test_org_by_subdomain_callback'])($subdomain);
+            } else {
+                $org = self::get(1);
+                if ($org) {
+                    $org->subdomain = strtolower(trim((string) $subdomain));
+                }
+            }
+
+            if (!$org) {
+                return new WP_Error('org_not_found', 'Organization not found.');
+            }
+
+            if (($org->status ?? '') !== 'active') {
+                return new WP_Error('org_inactive', 'This organization is not active.');
+            }
+
+            return $org;
+        }
+
+        public static function change_region($org_id, $region, $admin_id) {
+            $org = self::get($org_id);
+            if (!$org) {
+                return new WP_Error('not_found', 'Organization not found');
+            }
+
+            if (($org->organization_type ?? '') !== 'customer' || ($org->tier ?? '') !== 'enterprise') {
+                return new WP_Error('invalid_type', 'Region changes are only allowed for enterprise customer organizations.');
+            }
+
+            global $wpdb;
+            $table = OraBooks_Database::table('organizations');
+            $wpdb->update(
+                $table,
+                ['region' => strtolower(trim((string) $region))],
+                ['id' => (int) $org_id],
+                ['%s'],
+                ['%d']
+            );
+
+            return true;
+        }
+
         public static function request_partner_reactivation($org_id, $user_id, $reason) {
             return rand(100, 999); // Returns review ID
         }
@@ -2256,6 +2300,70 @@ if (!class_exists('OraBooks_Audit', false)) {
     } else {
     class OraBooks_Audit {
         public static function log_event($event_type, $description, $severity = 'info', $metadata = null, $user_id = null, $org_id = null, $correlation_id = null) {
+            global $wpdb;
+
+            if ($correlation_id === null || trim((string) $correlation_id) === '') {
+                $correlation_id = function_exists('orabooks_get_correlation_id')
+                    ? orabooks_get_correlation_id(true)
+                    : orabooks_uuid();
+            }
+
+            $masked = [];
+            if (is_array($metadata)) {
+                foreach ($metadata as $key => $value) {
+                    $key_lower = strtolower((string) $key);
+                    if (strpos($key_lower, 'password') !== false
+                        || strpos($key_lower, 'token') !== false
+                        || strpos($key_lower, 'secret') !== false
+                        || strpos($key_lower, 'key') !== false) {
+                        $masked[$key] = '[REDACTED]';
+                        continue;
+                    }
+
+                    if (preg_match('/(^|_)email$/', $key_lower) && is_string($value) && $value !== '') {
+                        $masked[$key . '_masked'] = orabooks_mask_email($value);
+                        $masked[$key . '_hash'] = orabooks_hash_email($value);
+                        continue;
+                    }
+
+                    $masked[$key] = $value;
+                }
+            }
+
+            $row = [
+                'org_id' => (int) ($org_id ?: 0),
+                'user_id' => $user_id,
+                'event_type' => (string) $event_type,
+                'severity' => (string) $severity,
+                'description' => (string) $description,
+                'correlation_id' => (string) $correlation_id,
+                'metadata' => !empty($masked) ? wp_json_encode($masked) : null,
+            ];
+
+            $wpdb->insert(OraBooks_Database::table('audit_logs'), $row);
+
+            return true;
+        }
+
+        public static function get_logs($org_id, $args = []) {
+            global $wpdb;
+
+            $rows = $wpdb->get_results('SELECT * FROM ' . OraBooks_Database::table('audit_logs'));
+
+            if (empty($args['skip_view_log'])) {
+                self::log_event('audit_log_viewed', 'Audit log accessed', 'info', [], orabooks_get_current_user_id(), $org_id);
+            }
+
+            return $rows;
+        }
+
+        public static function archive_old_logs() {
+            global $wpdb;
+
+            $wpdb->query('SET @orabooks_audit_archival = 1');
+            self::log_event('audit_log_archival', 'Audit log archival completed', 'info', ['records_moved' => 0], null, 0);
+            $wpdb->query('SET @orabooks_audit_archival = NULL');
+
             return true;
         }
     }
