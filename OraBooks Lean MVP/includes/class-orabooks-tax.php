@@ -203,11 +203,122 @@ class OraBooks_Tax {
         }
     }
 
+    /**
+     * Resolve jurisdiction from explicit code or billing/shipping address (SL-305 §5.2).
+     */
+    public static function resolve_jurisdiction($data) {
+        if (!empty($data['jurisdiction'])) {
+            return strtoupper(sanitize_text_field($data['jurisdiction']));
+        }
+
+        $address = $data['billing_address'] ?? $data['shipping_address'] ?? null;
+        if (is_string($address) && $address !== '') {
+            $decoded = json_decode($address, true);
+            if (is_array($decoded)) {
+                $address = $decoded;
+            }
+        }
+
+        if (is_array($address)) {
+            $country = strtoupper(sanitize_text_field($address['country'] ?? $address['country_code'] ?? ''));
+            $state = strtoupper(sanitize_text_field($address['state'] ?? $address['region'] ?? $address['province'] ?? ''));
+            if ($country === 'US' && $state !== '') {
+                return 'US-' . $state;
+            }
+            if ($country !== '') {
+                return $country;
+            }
+        }
+
+        return 'US';
+    }
+
+    /**
+     * Apply product-type rate overrides from jurisdiction JSON rules.
+     */
+    private static function apply_product_type_rate($rules, $product_type, $base_rate) {
+        $product_type = sanitize_text_field($product_type ?: 'standard');
+        if ($product_type === 'exempt') {
+            return [0.0, 'product_exempt'];
+        }
+
+        $product_rates = [];
+        if (is_array($rules) && !empty($rules['product_rates']) && is_array($rules['product_rates'])) {
+            $product_rates = $rules['product_rates'];
+        }
+
+        if (isset($product_rates[$product_type])) {
+            return [floatval($product_rates[$product_type]), 'product_' . $product_type];
+        }
+
+        return [floatval($base_rate), null];
+    }
+
+    /**
+     * Validate tax liability account exists before posting tax (SL-017).
+     */
+    public static function validate_tax_posting_accounts($org_id, $tax_type) {
+        if ($tax_type === 'None' || floatval($tax_type) === 0.0) {
+            return true;
+        }
+
+        if (!class_exists('OraBooks_COA')) {
+            return true;
+        }
+
+        $code = self::TAX_LIABILITY_ACCOUNTS[$tax_type] ?? '2100';
+        $account = OraBooks_COA::get_account_by_code((int) $org_id, $code);
+        if (!$account) {
+            return new WP_Error(
+                'tax_account_missing',
+                sprintf('Tax liability account %s is required before posting tax (SL-017).', $code)
+            );
+        }
+
+        return true;
+    }
+
+    /**
+     * Seed default org tax profile from country/jurisdiction defaults (SL-305 §5.1).
+     */
+    public static function seed_default_org_configs($org_id, $country_code = null) {
+        global $wpdb;
+
+        self::maybe_ensure_tax_schema();
+        $org_id = (int) $org_id;
+        if ($org_id <= 0) {
+            return false;
+        }
+
+        $table = OraBooks_Database::table('tax_configs');
+        $existing = (int) $wpdb->get_var($wpdb->prepare(
+            "SELECT COUNT(*) FROM {$table} WHERE org_id = %d",
+            $org_id
+        ));
+        if ($existing > 0) {
+            return false;
+        }
+
+        $country = strtoupper(sanitize_text_field($country_code ?: 'US'));
+        $rule = self::get_jurisdiction_rule($country);
+        $rate = floatval($rule['default_rate'] ?? 0);
+        $tax_type = sanitize_text_field($rule['tax_type'] ?? 'Sales Tax');
+
+        self::save_config($org_id, [
+            'jurisdiction' => $country,
+            'default_tax_rate' => $rate,
+            'tax_type' => $tax_type,
+            'is_active' => 1,
+        ]);
+
+        return true;
+    }
+
     public static function calculate($data) {
         self::maybe_ensure_tax_schema();
         $org_id = intval($data['org_id'] ?? 0);
         $amount = round(floatval($data['amount'] ?? 0), 2);
-        $jurisdiction = strtoupper(sanitize_text_field($data['jurisdiction'] ?? 'US'));
+        $jurisdiction = self::resolve_jurisdiction($data);
         $customer_tax_status = sanitize_text_field($data['customer_tax_status'] ?? 'taxable');
         $product_type = sanitize_text_field($data['product_type'] ?? 'standard');
 
@@ -218,6 +329,8 @@ class OraBooks_Tax {
         if ($amount < 0) {
             return new WP_Error('invalid_amount', 'Amount cannot be negative');
         }
+
+        $jurisdiction_rules = self::get_jurisdiction_rule($jurisdiction);
 
         if ($customer_tax_status === 'exempt') {
             $rate = 0.0;
@@ -230,19 +343,26 @@ class OraBooks_Tax {
                 $tax_type = $config->tax_type;
                 $rule_id = 'org_config_' . intval($config->id);
             } else {
-                $jurisdiction_rule = self::get_jurisdiction_rule($jurisdiction);
-                $rate = floatval($jurisdiction_rule['default_rate'] ?? 0);
-                $tax_type = sanitize_text_field($jurisdiction_rule['tax_type'] ?? 'Sales Tax');
+                $rate = floatval($jurisdiction_rules['default_rate'] ?? 0);
+                $tax_type = sanitize_text_field($jurisdiction_rules['tax_type'] ?? 'Sales Tax');
                 $rule_id = 'jurisdiction_' . $jurisdiction;
+            }
+
+            list($product_rate, $product_rule_id) = self::apply_product_type_rate($jurisdiction_rules, $product_type, $rate);
+            $rate = $product_rate;
+            if ($product_rule_id) {
+                $rule_id = $product_rule_id;
             }
         }
 
-        if ($product_type === 'exempt') {
-            $rate = 0.0;
-            $rule_id = 'product_exempt';
-        }
-
         $tax_amount = round($amount * ($rate / 100), 2);
+
+        if (!empty($data['validate_posting_accounts']) && $tax_amount > 0) {
+            $account_check = self::validate_tax_posting_accounts($org_id, $tax_type);
+            if (is_wp_error($account_check)) {
+                return $account_check;
+            }
+        }
 
         $result = [
             'org_id' => $org_id,
@@ -260,6 +380,7 @@ class OraBooks_Tax {
             'tax_amount' => $tax_amount,
             'jurisdiction' => $jurisdiction,
             'rule_id' => $rule_id,
+            'product_type' => $product_type,
         ], get_current_user_id(), $org_id);
 
         return $result;
