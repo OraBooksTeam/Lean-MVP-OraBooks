@@ -42,6 +42,30 @@ class OraBooks_Expenses_Test extends TestCase
     }
 
     #[Test]
+    public function test_ocr_stub_extracts_salary_voucher_fields_from_text()
+    {
+        $voucher_text = 'EXPENSE VOUCHER '
+            . 'Company Name : ABC Garments Ltd. '
+            . 'Address : 123, Industrial Area, Gazipur, Bangladesh '
+            . 'Voucher No : EXP-2026-06-23-001 '
+            . 'Date : 23-06-2026 '
+            . 'Paid To : Staff Salary '
+            . 'Paid For : Payment of staff salary for June 2026 '
+            . 'Amount (BDT) 60,000.00 '
+            . 'Total Amount 60,000.00 '
+            . 'Amount in Words: Taka Sixty Thousand Only.';
+
+        $ocr = OraBooks_Expenses::run_ocr_stub('salary-voucher.png', 128, $voucher_text);
+
+        $this->assertSame('ABC Garments Ltd.', $ocr['vendor']);
+        $this->assertSame('EXP-2026-06-23-001', $ocr['invoice_number']);
+        $this->assertSame('2026-06-23', $ocr['transaction_date']);
+        $this->assertSame('BDT', $ocr['currency']);
+        $this->assertSame('Salary', $ocr['category']);
+        $this->assertEqualsWithDelta(60000.00, (float) $ocr['total_amount'], 0.01);
+    }
+
+    #[Test]
     public function test_format_expense_maps_core_fields()
     {
         $row = (object) [
