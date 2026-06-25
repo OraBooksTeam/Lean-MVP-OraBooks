@@ -42,6 +42,8 @@ class OraBooks_Customers {
             add_action('wp_ajax_nopriv_orabooks_invoice_get', [self::$instance, 'ajax_invoice_get']);
             add_action('wp_ajax_orabooks_invoice_override_tax', [self::$instance, 'ajax_invoice_override_tax']);
             add_action('wp_ajax_nopriv_orabooks_invoice_override_tax', [self::$instance, 'ajax_invoice_override_tax']);
+            add_action('wp_ajax_orabooks_invoice_clear_tax_override', [self::$instance, 'ajax_invoice_clear_tax_override']);
+            add_action('wp_ajax_nopriv_orabooks_invoice_clear_tax_override', [self::$instance, 'ajax_invoice_clear_tax_override']);
             add_action('wp_ajax_orabooks_invoice_send', [self::$instance, 'ajax_invoice_send']);
             add_action('wp_ajax_nopriv_orabooks_invoice_send', [self::$instance, 'ajax_invoice_send']);
             add_action('wp_ajax_orabooks_invoice_post', [self::$instance, 'ajax_invoice_post']);
