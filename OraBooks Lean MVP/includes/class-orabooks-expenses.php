@@ -638,17 +638,39 @@ class OraBooks_Expenses {
 
         $transaction_date = current_time('Y-m-d');
         if ($text !== '' && preg_match('/(\d{4}[\/-]\d{1,2}[\/-]\d{1,2}|\d{1,2}[\/-]\d{1,2}[\/-]\d{2,4})/', $text, $m)) {
-            $parsed = strtotime($m[1]);
-            if ($parsed) {
-                $transaction_date = gmdate('Y-m-d', $parsed);
+            $raw_date = trim((string) $m[1]);
+            if (preg_match('/^(\d{4})[\/-](\d{1,2})[\/-](\d{1,2})$/', $raw_date, $parts)) {
+                $transaction_date = sprintf('%04d-%02d-%02d', (int) $parts[1], (int) $parts[2], (int) $parts[3]);
+            } elseif (preg_match('/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{2,4})$/', $raw_date, $parts)) {
+                $year = (int) $parts[3];
+                if ($year < 100) {
+                    $year += 2000;
+                }
+                $transaction_date = sprintf('%04d-%02d-%02d', $year, (int) $parts[2], (int) $parts[1]);
+            } else {
+                $parsed = strtotime($raw_date);
+                if ($parsed) {
+                    $transaction_date = date('Y-m-d', $parsed);
+                }
             }
         }
 
         $due_date = null;
         if ($text !== '' && preg_match('/due\s*date\s*[:\-]?\s*(\d{4}[\/-]\d{1,2}[\/-]\d{1,2}|\d{1,2}[\/-]\d{1,2}[\/-]\d{2,4})/i', $text, $m)) {
-            $parsed = strtotime($m[1]);
-            if ($parsed) {
-                $due_date = gmdate('Y-m-d', $parsed);
+            $raw_date = trim((string) $m[1]);
+            if (preg_match('/^(\d{4})[\/-](\d{1,2})[\/-](\d{1,2})$/', $raw_date, $parts)) {
+                $due_date = sprintf('%04d-%02d-%02d', (int) $parts[1], (int) $parts[2], (int) $parts[3]);
+            } elseif (preg_match('/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{2,4})$/', $raw_date, $parts)) {
+                $year = (int) $parts[3];
+                if ($year < 100) {
+                    $year += 2000;
+                }
+                $due_date = sprintf('%04d-%02d-%02d', $year, (int) $parts[2], (int) $parts[1]);
+            } else {
+                $parsed = strtotime($raw_date);
+                if ($parsed) {
+                    $due_date = date('Y-m-d', $parsed);
+                }
             }
         }
 
