@@ -35,13 +35,9 @@ class OraBooks_Voice {
             add_action('orabooks_voice_purge', [self::$instance, 'cron_purge_old']);
 
             add_action('wp_ajax_orabooks_voice_upload', [self::$instance, 'ajax_upload']);
-            add_action('wp_ajax_nopriv_orabooks_voice_upload', [self::$instance, 'ajax_upload']);
             add_action('wp_ajax_orabooks_voice_get', [self::$instance, 'ajax_get']);
-            add_action('wp_ajax_nopriv_orabooks_voice_get', [self::$instance, 'ajax_get']);
             add_action('wp_ajax_orabooks_voice_confirm', [self::$instance, 'ajax_confirm']);
-            add_action('wp_ajax_nopriv_orabooks_voice_confirm', [self::$instance, 'ajax_confirm']);
             add_action('wp_ajax_orabooks_voice_list', [self::$instance, 'ajax_list']);
-            add_action('wp_ajax_nopriv_orabooks_voice_list', [self::$instance, 'ajax_list']);
         }
 
         return self::$instance;
