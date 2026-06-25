@@ -802,16 +802,42 @@ class OraBooks_Tax {
 
     public static function get_lock_status($org_id, $transaction_date = null) {
         $date = $transaction_date ?: current_time('Y-m-d');
-        $locked = self::is_tax_locked((int) $org_id, ['transaction_date' => $date]);
+        $config_locked = self::is_tax_config_locked((int) $org_id, ['transaction_date' => $date]);
+        $transaction_locked = self::is_tax_locked((int) $org_id, ['transaction_date' => $date]);
 
         return [
             'org_id' => (int) $org_id,
             'transaction_date' => $date,
-            'tax_locked' => $locked,
-            'message' => $locked
+            'tax_locked' => $transaction_locked,
+            'config_tax_locked' => $config_locked,
+            'message' => $transaction_locked
                 ? 'Tax settings are locked for closed fiscal periods.'
                 : 'Tax changes are allowed for this period.',
+            'config_message' => $config_locked
+                ? 'Tax configuration cannot be changed while a fiscal period is hard closed.'
+                : 'Tax configuration can be updated.',
         ];
+    }
+
+    /**
+     * Whether org tax configuration changes are blocked (hard-closed period only).
+     */
+    public static function is_tax_config_locked($org_id, $data = []) {
+        $date = $data['transaction_date'] ?? current_time('Y-m-d');
+
+        if (class_exists('OraBooks_Fiscal') && method_exists('OraBooks_Fiscal', 'is_period_hard_closed')) {
+            return OraBooks_Fiscal::is_period_hard_closed($org_id, $date);
+        }
+
+        global $wpdb;
+        $table = OraBooks_Database::table('fiscal_periods');
+        $row = $wpdb->get_row($wpdb->prepare(
+            "SELECT status FROM {$table} WHERE org_id = %d AND %s BETWEEN period_start AND period_end LIMIT 1",
+            (int) $org_id,
+            (string) $date
+        ));
+
+        return ($row->status ?? null) === 'hard_closed';
     }
 
     public static function format_config($config) {
@@ -1084,7 +1110,12 @@ class OraBooks_Tax {
         orabooks_json_success([
             'configs' => self::list_configs($org_id),
             'override_reasons' => self::DEFAULT_OVERRIDE_REASONS,
-            'lock_status' => self::get_lock_status($org_id),
+            'lock_status' => [
+                'tax_locked' => self::is_tax_config_locked($org_id),
+                'message' => self::is_tax_config_locked($org_id)
+                    ? 'Tax configuration cannot be changed while a fiscal period is hard closed.'
+                    : 'Tax configuration can be updated.',
+            ],
         ]);
     }
 

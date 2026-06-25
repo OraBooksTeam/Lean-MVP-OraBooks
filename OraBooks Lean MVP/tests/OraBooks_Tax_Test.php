@@ -237,7 +237,7 @@ class OraBooks_Tax_Test extends TestCase
 
         $wpdb->test_get_row_callback = function ($query) {
             if (stripos($query, 'fiscal_periods') !== false) {
-                return (object) ['status' => 'soft_closed'];
+                return (object) ['status' => 'hard_closed'];
             }
             return null;
         };
