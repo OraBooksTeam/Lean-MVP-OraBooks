@@ -527,6 +527,13 @@ export const api = {
     api.get('orabooks_csv_imports_list', { org_id: orgId }),
   teamDashboard: () =>
     api.get('orabooks_team_dashboard'),
+  teamAccessSettingsGet: (orgId: number) =>
+    api.get('orabooks_team_access_settings_get', { org_id: orgId }),
+  teamAccessSettingsSave: (orgId: number, partnerCommissionForStaffViewer: boolean) =>
+    api.post('orabooks_team_access_settings_save', {
+      org_id: orgId,
+      partner_commission_for_staff_viewer: partnerCommissionForStaffViewer ? 1 : 0,
+    }),
   inviteTeamUser: (orgId: number, email: string, role: string) =>
     api.post('orabooks_invite_user', { org_id: orgId, email, role }),
   updateTeamRole: (orgId: number, userId: number, role: string) =>

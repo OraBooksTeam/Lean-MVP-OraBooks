@@ -18,6 +18,8 @@ export default function TeamPage() {
   const [inviting, setInviting] = useState(false);
   const [actionUserId, setActionUserId] = useState<number | null>(null);
   const [actionInviteId, setActionInviteId] = useState<number | null>(null);
+  const [partnerCommissionForStaffViewer, setPartnerCommissionForStaffViewer] = useState(false);
+  const [savingAccessSettings, setSavingAccessSettings] = useState(false);
 
   const orgId = data?.context?.organization?.id;
   const currentUserId = data?.context?.user_id;
@@ -32,6 +34,13 @@ export default function TeamPage() {
     else {
       const payload = (res as any).data;
       setData(payload);
+      const nextOrgId = payload?.context?.organization?.id;
+      if (nextOrgId) {
+        const settingsRes = await api.teamAccessSettingsGet(nextOrgId);
+        if (!settingsRes.error) {
+          setPartnerCommissionForStaffViewer(Boolean((settingsRes as any).data?.partner_commission_for_staff_viewer));
+        }
+      }
       if (payload?.invite_roles?.length && !payload.invite_roles.some((r: any) => r.id === inviteRole)) {
         setInviteRole(payload.invite_roles[0].id);
       }
@@ -124,6 +133,20 @@ export default function TeamPage() {
   const canManageNotificationPolicy = ['owner', 'admin'].includes(data?.context?.role);
   const canViewAccessMatrix = ['owner', 'admin'].includes(data?.context?.role);
   const permissionMatrix = data?.context?.permission_matrix || {};
+
+  const savePartnerAccessSetting = async () => {
+    if (!orgId) return;
+    setSavingAccessSettings(true);
+    setError('');
+    const res = await api.teamAccessSettingsSave(orgId, partnerCommissionForStaffViewer);
+    if (res.error) {
+      setError(res.error || 'Unable to save access setting.');
+    } else {
+      setSuccess('Access setting updated.');
+      await load();
+    }
+    setSavingAccessSettings(false);
+  };
 
   return (
     <ClientShell
@@ -348,6 +371,28 @@ export default function TeamPage() {
                   </div>
                 </div>
               ))}
+            </div>
+          </div>
+        )}
+
+        {canViewAccessMatrix && isPartner && (
+          <div className="glass-panel p-5">
+            <h2 className="font-bold text-ink">Partner Access Setting</h2>
+            <p className="mt-1 text-sm text-slate-600">
+              Allow Staff/Viewer roles to access Partner Program and Commissions.
+            </p>
+            <label className="mt-4 flex items-center gap-3 text-sm text-slate-700">
+              <input
+                type="checkbox"
+                checked={partnerCommissionForStaffViewer}
+                onChange={(e) => setPartnerCommissionForStaffViewer(e.target.checked)}
+              />
+              Enable partner commission access for Staff/Viewer
+            </label>
+            <div className="mt-4">
+              <Button onClick={() => void savePartnerAccessSetting()} disabled={savingAccessSettings}>
+                {savingAccessSettings ? 'Saving...' : 'Save access setting'}
+              </Button>
             </div>
           </div>
         )}
