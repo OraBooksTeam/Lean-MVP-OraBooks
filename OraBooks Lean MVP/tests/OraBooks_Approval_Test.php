@@ -322,6 +322,18 @@ class OraBooks_Approval_Test extends TestCase
     }
 
     #[Test]
+    public function test_user_can_approve_blocks_admin_without_delegation()
+    {
+        $GLOBALS['orabooks_test_get_user_role_callback'] = function () {
+            return 'admin';
+        };
+
+        $this->assertFalse(OraBooks_Approval::user_can_approve(2, 1));
+
+        unset($GLOBALS['orabooks_test_get_user_role_callback']);
+    }
+
+    #[Test]
     public function test_cron_expire_stale_approvals_marks_journal_stale()
     {
         global $wpdb;
