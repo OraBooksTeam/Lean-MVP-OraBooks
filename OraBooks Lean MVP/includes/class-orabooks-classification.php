@@ -50,6 +50,8 @@ class OraBooks_Classification {
         ['rule_type' => 'keyword', 'match_value' => 'office', 'account_code' => '5100', 'priority' => 10],
         ['rule_type' => 'keyword', 'match_value' => 'meal', 'account_code' => '5200', 'priority' => 10],
         ['rule_type' => 'keyword', 'match_value' => 'travel', 'account_code' => '5300', 'priority' => 10],
+        ['rule_type' => 'keyword', 'match_value' => 'salary', 'account_code' => '5000', 'priority' => 10],
+        ['rule_type' => 'keyword', 'match_value' => 'payroll', 'account_code' => '5000', 'priority' => 10],
         ['rule_type' => 'keyword', 'match_value' => 'software', 'account_code' => '5500', 'priority' => 10],
         ['rule_type' => 'vendor', 'match_value' => 'amazon', 'account_code' => '5100', 'priority' => 20],
         ['rule_type' => 'vendor', 'match_value' => 'uber', 'account_code' => '5300', 'priority' => 20],
@@ -921,6 +923,7 @@ class OraBooks_Classification {
             '5300' => ['Travel', 80.0],
             '5400' => ['Utilities', 78.0],
             '5500' => ['Software', 86.0],
+            '5000' => ['Salary', 90.0],
             '4000' => ['Sales Revenue', 75.0],
         ];
 
@@ -955,6 +958,8 @@ class OraBooks_Classification {
                 'office supplies' => '5100',
                 'software'        => '5500',
                 'utilities'       => '5400',
+                'salary'          => '5000',
+                'payroll'         => '5000',
             ];
             $cat = strtolower((string) $record->category);
             foreach ($category_map as $needle => $code) {

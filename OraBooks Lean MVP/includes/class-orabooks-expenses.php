@@ -37,6 +37,7 @@ class OraBooks_Expenses {
         'office supplies' => '5100',
         'utilities'       => '5400',
         'software'        => '5500',
+        'salary'          => '5000',
     ];
 
     public static function init() {
