@@ -123,7 +123,182 @@ class OraBooks_Ai_Providers {
             ], null, null);
         }
 
+        if ($file_bytes && self::is_image_filename($filename) && (self::is_openai_configured() || self::is_azure_openai_configured())) {
+            $vision = self::vision_chat_ocr($file_bytes, $filename);
+            if (!is_wp_error($vision)) {
+                if (!self::is_weak_ocr_result($vision)) {
+                    return $vision;
+                }
+
+                $stub = OraBooks_Expenses::run_ocr_stub($filename, $expense_id, $file_bytes);
+                return self::merge_ocr_result_with_stub($vision, $stub);
+            }
+
+            orabooks_log_event('ocr_provider_fallback', 'Vision OCR failed; using stub', 'warning', [
+                'error' => $vision->get_error_message(),
+                'expense_id' => $expense_id,
+            ], null, null);
+        }
+
         return OraBooks_Expenses::run_ocr_stub($filename, $expense_id, $file_bytes);
+    }
+
+    private static function is_image_filename($filename) {
+        $ext = strtolower((string) pathinfo((string) $filename, PATHINFO_EXTENSION));
+        return in_array($ext, ['png', 'jpg', 'jpeg', 'webp', 'bmp', 'gif'], true);
+    }
+
+    private static function vision_chat_ocr($file_bytes, $filename) {
+        $mime = 'image/png';
+        $ext = strtolower((string) pathinfo((string) $filename, PATHINFO_EXTENSION));
+        if (in_array($ext, ['jpg', 'jpeg'], true)) {
+            $mime = 'image/jpeg';
+        } elseif ($ext === 'webp') {
+            $mime = 'image/webp';
+        }
+
+        $data_url = 'data:' . $mime . ';base64,' . base64_encode((string) $file_bytes);
+
+        $system = 'You are an OCR extraction engine for expense vouchers and receipts. Read all visible text and return JSON only with keys: vendor, vendor_tax_id, invoice_number, transaction_date (YYYY-MM-DD), due_date (YYYY-MM-DD|null), subtotal, tax_amount, tax_rate, total_amount, currency, payment_method, category, merchant_address, description, line_items (array of {description, quantity, unit_price, total_amount, line_confidence}), field_confidences (object with 0-100 confidence per field). If unknown, return empty string or null. Do not invent large amounts.';
+
+        $payload = self::chat_completion([
+            ['role' => 'system', 'content' => $system],
+            [
+                'role' => 'user',
+                'content' => [
+                    ['type' => 'text', 'text' => 'Extract the expense voucher fields from this image.'],
+                    ['type' => 'image_url', 'image_url' => ['url' => $data_url]],
+                ],
+            ],
+        ], true);
+
+        if (is_wp_error($payload)) {
+            return $payload;
+        }
+
+        $content = $payload['choices'][0]['message']['content'] ?? '';
+        $decoded = json_decode((string) $content, true);
+        if (!is_array($decoded)) {
+            return new WP_Error('ocr_parse_failed', 'Vision OCR response could not be parsed.');
+        }
+
+        return self::normalize_vision_result($decoded, $filename);
+    }
+
+    private static function normalize_vision_result(array $data, $filename) {
+        $vendor = sanitize_text_field((string) ($data['vendor'] ?? ''));
+        if ($vendor === '') {
+            $vendor = 'Unknown Vendor';
+        }
+
+        $subtotal = isset($data['subtotal']) ? round((float) $data['subtotal'], 2) : null;
+        $tax = isset($data['tax_amount']) ? round((float) $data['tax_amount'], 2) : null;
+        $total = isset($data['total_amount']) ? round((float) $data['total_amount'], 2) : null;
+
+        if ($total === null && $subtotal !== null) {
+            $total = round($subtotal + (float) ($tax ?? 0), 2);
+        }
+        if ($subtotal === null && $total !== null && $tax !== null) {
+            $subtotal = round($total - $tax, 2);
+        }
+        if ($subtotal === null) {
+            $subtotal = 0.0;
+        }
+        if ($tax === null) {
+            $tax = max(0, round(((float) $total) - $subtotal, 2));
+        }
+        if ($total === null) {
+            $total = round($subtotal + $tax, 2);
+        }
+
+        $tax_rate = isset($data['tax_rate']) ? (float) $data['tax_rate'] : ($subtotal > 0 ? round(($tax / $subtotal) * 100, 2) : 0.0);
+        $currency = strtoupper(sanitize_text_field((string) ($data['currency'] ?? 'USD')));
+        if ($currency === '') {
+            $currency = 'USD';
+        }
+
+        $field_confidences = is_array($data['field_confidences'] ?? null) ? $data['field_confidences'] : [];
+        $defaults = [
+            'vendor' => 78,
+            'vendor_tax_id' => 60,
+            'invoice_number' => 70,
+            'transaction_date' => 80,
+            'due_date' => 65,
+            'subtotal' => 76,
+            'tax_amount' => 72,
+            'tax_rate' => 70,
+            'total_amount' => 84,
+            'currency' => 82,
+            'payment_method' => 70,
+            'line_items' => 72,
+            'category' => 74,
+            'merchant_address' => 65,
+        ];
+
+        $normalized_conf = [];
+        foreach ($defaults as $field => $fallback) {
+            $normalized_conf[$field] = isset($field_confidences[$field]) ? (float) $field_confidences[$field] : (float) $fallback;
+            $normalized_conf[$field] = max(0, min(100, $normalized_conf[$field]));
+        }
+
+        $avg = !empty($normalized_conf) ? array_sum($normalized_conf) / count($normalized_conf) : 70.0;
+        $risk = self::risk_from_confidence($avg, $normalized_conf, $total);
+
+        $ocr_data = ['fields' => []];
+        foreach ($normalized_conf as $field => $confidence) {
+            $ocr_data['fields'][$field] = [
+                'confidence' => round($confidence, 2),
+                'risk' => $confidence >= 80 ? 'low' : ($confidence >= 65 ? 'medium' : 'high'),
+            ];
+        }
+
+        $line_items = [];
+        if (is_array($data['line_items'] ?? null)) {
+            foreach ($data['line_items'] as $item) {
+                if (!is_array($item)) {
+                    continue;
+                }
+                $line_items[] = [
+                    'description' => sanitize_text_field((string) ($item['description'] ?? 'Line item')),
+                    'quantity' => (float) ($item['quantity'] ?? 1),
+                    'unit_price' => round((float) ($item['unit_price'] ?? 0), 2),
+                    'total_amount' => round((float) ($item['total_amount'] ?? 0), 2),
+                    'line_confidence' => round((float) ($item['line_confidence'] ?? 75), 2),
+                ];
+            }
+        }
+        if (empty($line_items)) {
+            $line_items[] = [
+                'description' => 'Receipt total',
+                'quantity' => 1,
+                'unit_price' => round((float) $subtotal, 2),
+                'total_amount' => round((float) $total, 2),
+                'line_confidence' => round((float) ($normalized_conf['line_items'] ?? 72), 2),
+            ];
+        }
+
+        return [
+            'vendor' => $vendor,
+            'vendor_tax_id' => sanitize_text_field((string) ($data['vendor_tax_id'] ?? '')),
+            'invoice_number' => sanitize_text_field((string) ($data['invoice_number'] ?? '')),
+            'transaction_date' => sanitize_text_field((string) ($data['transaction_date'] ?? current_time('Y-m-d'))),
+            'due_date' => !empty($data['due_date']) ? sanitize_text_field((string) $data['due_date']) : null,
+            'subtotal' => round((float) $subtotal, 2),
+            'tax_amount' => round((float) $tax, 2),
+            'tax_rate' => (float) $tax_rate,
+            'total_amount' => round((float) $total, 2),
+            'currency' => $currency,
+            'payment_method' => sanitize_text_field((string) ($data['payment_method'] ?? '')),
+            'category' => sanitize_text_field((string) ($data['category'] ?? self::infer_category_from_text($vendor . ' ' . $filename))),
+            'merchant_address' => sanitize_text_field((string) ($data['merchant_address'] ?? '')),
+            'description' => sanitize_text_field((string) ($data['description'] ?? ('OCR extracted expense from ' . $filename))),
+            'ocr_confidence' => round((float) $avg, 2),
+            'ocr_risk_level' => $risk,
+            'ocr_data' => $ocr_data,
+            'line_items' => $line_items,
+            'provider' => self::is_azure_openai_configured() ? self::PROVIDER_AZURE_OAI : self::PROVIDER_OPENAI,
+            'model_version' => self::model_version('classification'),
+        ];
     }
 
     /**
