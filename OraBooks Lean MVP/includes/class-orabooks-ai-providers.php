@@ -455,6 +455,23 @@ class OraBooks_Ai_Providers {
                 continue;
             }
 
+            if ($field === 'currency') {
+                $currency = strtoupper(trim((string) $current));
+                $fallback_currency = strtoupper(trim((string) $fallback));
+                if (($currency === '' || $currency === 'USD') && $fallback_currency !== '' && $fallback_currency !== 'USD') {
+                    $merged[$field] = $fallback_currency;
+                }
+                continue;
+            }
+
+            if ($field === 'category') {
+                $category = strtolower(trim((string) $current));
+                if (($category === '' || $category === 'general') && !empty($fallback)) {
+                    $merged[$field] = $fallback;
+                }
+                continue;
+            }
+
             if (($current === null || $current === '') && $fallback !== null && $fallback !== '') {
                 $merged[$field] = $fallback;
             }
