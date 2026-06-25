@@ -66,6 +66,16 @@ class OraBooks_Expenses_Test extends TestCase
     }
 
     #[Test]
+    public function test_ocr_stub_uses_filename_for_salary_voucher_when_text_is_unreadable()
+    {
+        $ocr = OraBooks_Expenses::run_ocr_stub('salary-voucher.png', 201, null);
+
+        $this->assertSame('Staff Salary', $ocr['vendor']);
+        $this->assertSame('Salary', $ocr['category']);
+        $this->assertGreaterThan(0, (float) $ocr['total_amount']);
+    }
+
+    #[Test]
     public function test_format_expense_maps_core_fields()
     {
         $row = (object) [
