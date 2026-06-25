@@ -40,6 +40,17 @@ function getStoredToken() {
   return window.localStorage.getItem(TOKEN_KEY) || '';
 }
 
+function authRequestHeaders(token = getStoredToken()): Record<string, string> {
+  if (!token) {
+    return {};
+  }
+
+  return {
+    Authorization: `Bearer ${token}`,
+    'X-OraBooks-Token': token,
+  };
+}
+
 export function hasStoredAuthToken() {
   return Boolean(getStoredToken());
 }
@@ -174,7 +185,8 @@ async function establishSession(token: string, refreshToken = '') {
 async function request<T = any>(
   payload: Record<string, any>,
   method = 'POST',
-  options: RequestOptions = {}
+  options: RequestOptions = {},
+  allowAuthRetry = true
 ): Promise<ApiResult<T>> {
   const cfg = getAjaxConfig();
   const body = new URLSearchParams();
@@ -199,12 +211,28 @@ async function request<T = any>(
       credentials: 'include',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded; charset=utf-8',
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...authRequestHeaders(token),
       },
       body,
     });
 
-    return parseResponse<T>(res, options);
+    const parsed = await parseResponse<T>(res, options);
+    if (parsed.error && res.status === 401 && allowAuthRetry) {
+      const refreshed = await tryRefreshSession();
+      if (refreshed) {
+        return request<T>(payload, method, options, false);
+      }
+
+      const storedToken = getStoredToken();
+      if (storedToken) {
+        const established = await establishSession(storedToken);
+        if (!established.error) {
+          return request<T>(payload, method, options, false);
+        }
+      }
+    }
+
+    return parsed;
   } catch (error) {
     return { error: error instanceof Error ? error.message : 'OraBooks request failed.' };
   }

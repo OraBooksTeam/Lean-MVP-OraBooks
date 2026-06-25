@@ -1134,8 +1134,8 @@ class OraBooks_Tax {
     }
 
     public function ajax_save_config() {
-        $user_id = orabooks_get_current_user_id();
-        $org_id = intval($_POST['org_id'] ?? 0);
+        $user_id = $this->resolve_tax_user_id();
+        $org_id = $this->resolve_tax_org_id($user_id, intval($_POST['org_id'] ?? 0));
         $this->require_tax_access($user_id, $org_id, 'manage_org_settings');
 
         $result = self::save_config($org_id, $_POST, $user_id);
