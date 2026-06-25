@@ -48,13 +48,9 @@ class OraBooks_Csv_Imports {
             add_action('orabooks_daily_cleanup', [self::$instance, 'cron_purge_old_imports']);
 
             add_action('wp_ajax_orabooks_csv_upload', [self::$instance, 'ajax_upload']);
-            add_action('wp_ajax_nopriv_orabooks_csv_upload', [self::$instance, 'ajax_upload']);
             add_action('wp_ajax_orabooks_csv_import_get', [self::$instance, 'ajax_get_import']);
-            add_action('wp_ajax_nopriv_orabooks_csv_import_get', [self::$instance, 'ajax_get_import']);
             add_action('wp_ajax_orabooks_csv_import_confirm', [self::$instance, 'ajax_confirm']);
-            add_action('wp_ajax_nopriv_orabooks_csv_import_confirm', [self::$instance, 'ajax_confirm']);
             add_action('wp_ajax_orabooks_csv_imports_list', [self::$instance, 'ajax_list_imports']);
-            add_action('wp_ajax_nopriv_orabooks_csv_imports_list', [self::$instance, 'ajax_list_imports']);
         }
 
         return self::$instance;
