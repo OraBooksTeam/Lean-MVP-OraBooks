@@ -485,7 +485,7 @@ class OraBooks_Vendors {
                 'created_by' => orabooks_get_current_user_id(),
                 'rendered_copy' => !empty($data['rendered_copy']) ? wp_json_encode($data['rendered_copy']) : null,
             ],
-            ['%d', '%d', '%s', '%s', '%s', '%s', '%s', '%f', '%f', '%f', '%f', '%s', '%s', '%f', '%f', '%s', '%s', '%s', '%s', '%s', '%d', '%s']
+            ['%d', '%d', '%s', '%s', '%s', '%s', '%s', '%f', '%f', '%f', '%s', '%s', '%f', '%f', '%s', '%f', '%s', '%s', '%s', '%s', '%d', '%s']
         );
 
         $bill_id = intval($wpdb->insert_id);
