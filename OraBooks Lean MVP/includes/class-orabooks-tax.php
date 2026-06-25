@@ -80,6 +80,16 @@ class OraBooks_Tax {
                 }
             }
         }
+
+        $snapshots_table = OraBooks_Database::table('tax_snapshots');
+        if ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $snapshots_table)) === $snapshots_table) {
+            $type_col = $wpdb->get_row("SHOW COLUMNS FROM {$snapshots_table} LIKE 'transaction_type'");
+            if ($type_col && isset($type_col->Type) && stripos($type_col->Type, 'bill') === false) {
+                $wpdb->query(
+                    "ALTER TABLE {$snapshots_table} MODIFY transaction_type ENUM('invoice','expense','journal','bill') NOT NULL"
+                );
+            }
+        }
     }
 
     public static function get_create_table_sql() {
@@ -125,7 +135,7 @@ class OraBooks_Tax {
             id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
             org_id BIGINT UNSIGNED NOT NULL,
             transaction_id BIGINT UNSIGNED NOT NULL,
-            transaction_type ENUM('invoice','expense','journal') NOT NULL,
+            transaction_type ENUM('invoice','expense','journal','bill') NOT NULL,
             taxable_amount DECIMAL(20,2) NOT NULL DEFAULT 0,
             tax_rate DECIMAL(8,4) NOT NULL DEFAULT 0,
             tax_amount DECIMAL(20,2) NOT NULL DEFAULT 0,
@@ -473,7 +483,7 @@ class OraBooks_Tax {
             return new WP_Error('invalid_transaction', 'Organization and transaction are required');
         }
 
-        if (!in_array($transaction_type, ['invoice', 'expense', 'journal'], true)) {
+        if (!in_array($transaction_type, ['invoice', 'expense', 'journal', 'bill'], true)) {
             return new WP_Error('invalid_transaction_type', 'Invalid transaction type');
         }
 
@@ -610,6 +620,34 @@ class OraBooks_Tax {
         }
 
         return self::create_snapshot($payload, $user_id);
+    }
+
+    /**
+     * Create or return an immutable tax snapshot for a posted vendor bill.
+     */
+    public static function snapshot_for_vendor_bill($bill, $user_id = null) {
+        if (!$bill || floatval($bill->tax_amount ?? 0) <= 0) {
+            return null;
+        }
+
+        $subtotal = round(floatval($bill->subtotal_amount ?? 0), 2);
+        $tax_amount = round(floatval($bill->tax_amount ?? 0), 2);
+        $tax_rate = $subtotal > 0 ? round(($tax_amount / $subtotal) * 100, 4) : 0.0;
+
+        return self::create_snapshot([
+            'org_id' => (int) $bill->org_id,
+            'transaction_id' => (int) $bill->id,
+            'transaction_type' => 'bill',
+            'amount' => $subtotal,
+            'tax_rate' => $tax_rate,
+            'tax_amount' => $tax_amount,
+            'jurisdiction' => sanitize_text_field($bill->tax_jurisdiction ?? 'US'),
+            'tax_type' => sanitize_text_field($bill->tax_type ?? 'Sales Tax'),
+            'transaction_date' => $bill->transaction_date ?? current_time('Y-m-d'),
+            'posted_tax' => true,
+            'rule_id' => 'vendor_bill_posted',
+            'metadata' => ['bill_number' => $bill->bill_number ?? null],
+        ], $user_id);
     }
 
     /**
