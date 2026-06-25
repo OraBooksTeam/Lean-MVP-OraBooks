@@ -409,7 +409,7 @@ class OraBooks_Observability {
                 $table = OraBooks_Database::table('notifications');
                 $row = $wpdb->get_row($wpdb->prepare(
                     "SELECT
-                        COUNT(*) AS total,
+                        SUM(CASE WHEN status IN ('delivered', 'failed', 'dead_letter') THEN 1 ELSE 0 END) AS total,
                         SUM(CASE WHEN status = 'delivered' THEN 1 ELSE 0 END) AS good,
                         SUM(CASE WHEN status IN ('failed', 'dead_letter') THEN 1 ELSE 0 END) AS bad
                      FROM {$table}
@@ -442,7 +442,7 @@ class OraBooks_Observability {
                     $table = OraBooks_Database::table('async_jobs');
                     $row = $wpdb->get_row($wpdb->prepare(
                         "SELECT
-                            COUNT(*) AS total,
+                            SUM(CASE WHEN status IN ('completed', 'failed', 'dead_letter') THEN 1 ELSE 0 END) AS total,
                             SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) AS good,
                             SUM(CASE WHEN status IN ('failed', 'dead_letter') THEN 1 ELSE 0 END) AS bad
                          FROM {$table}
@@ -487,7 +487,7 @@ class OraBooks_Observability {
                 $outbox = OraBooks_Database::table('outbox_messages');
                 $row = $wpdb->get_row($wpdb->prepare(
                     "SELECT
-                        COUNT(*) AS total,
+                        SUM(CASE WHEN status IN ('sent', 'failed', 'dead_letter') THEN 1 ELSE 0 END) AS total,
                         SUM(CASE WHEN status = 'sent' THEN 1 ELSE 0 END) AS good,
                         SUM(CASE WHEN status IN ('failed', 'dead_letter') THEN 1 ELSE 0 END) AS bad
                      FROM {$outbox}
