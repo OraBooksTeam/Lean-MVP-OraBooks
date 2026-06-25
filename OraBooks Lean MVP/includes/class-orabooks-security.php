@@ -635,12 +635,26 @@ class OraBooks_Security {
     public static function get_headers_status() {
         $last_sent = get_option('orabooks_security_headers_last_sent', '');
         $configured = [
-            'Strict-Transport-Security' => is_ssl(),
-            'Content-Security-Policy'   => true,
-            'X-Frame-Options'           => true,
-            'X-Content-Type-Options'    => true,
-            'Referrer-Policy'           => true,
-            'Permissions-Policy'        => true,
+            'Strict-Transport-Security' => is_ssl() ? 'max-age=31536000; includeSubDomains' : false,
+            'Content-Security-Policy'   => apply_filters(
+                'orabooks_content_security_policy',
+                implode(' ', [
+                    "default-src 'self' data: blob: https:;",
+                    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https: blob:;",
+                    "script-src-elem 'self' 'unsafe-inline' https: blob:;",
+                    "style-src 'self' 'unsafe-inline' https:;",
+                    "img-src 'self' data: blob: https:;",
+                    "font-src 'self' data: https:;",
+                    "connect-src 'self' https:;",
+                    "frame-ancestors 'self';",
+                    "base-uri 'self';",
+                    "form-action 'self';",
+                ])
+            ),
+            'X-Frame-Options'           => 'SAMEORIGIN',
+            'X-Content-Type-Options'    => 'nosniff',
+            'Referrer-Policy'           => 'strict-origin-when-cross-origin',
+            'Permissions-Policy'        => 'geolocation=(), microphone=(self), camera=(self)',
         ];
 
         return [
