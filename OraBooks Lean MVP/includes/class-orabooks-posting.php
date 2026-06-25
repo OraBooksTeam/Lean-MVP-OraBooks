@@ -485,7 +485,7 @@ class OraBooks_Posting {
             ));
 
             if ($fiscal && ($fiscal->status === 'soft_closed' || $fiscal->status === 'hard_closed')) {
-                return new WP_Error('fiscal_closed', 'Fiscal period is closed. Cannot post.');
+                return new WP_Error('fiscal_closed', 'Fiscal period is closed. Cannot post.', ['status' => 409]);
             }
         }
         
