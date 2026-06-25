@@ -60,26 +60,16 @@ class OraBooks_Notifications {
             add_action('wp_ajax_orabooks_notifications_mark_read', [self::$instance, 'ajax_mark_read']);
             add_action('wp_ajax_orabooks_notifications_mark_all_read', [self::$instance, 'ajax_mark_all_read']);
             add_action('wp_ajax_orabooks_notifications_unread_count', [self::$instance, 'ajax_unread_count']);
-            add_action('wp_ajax_nopriv_orabooks_notifications_list', [self::$instance, 'ajax_list_notifications']);
-            add_action('wp_ajax_nopriv_orabooks_notifications_mark_read', [self::$instance, 'ajax_mark_read']);
-            add_action('wp_ajax_nopriv_orabooks_notifications_mark_all_read', [self::$instance, 'ajax_mark_all_read']);
-            add_action('wp_ajax_nopriv_orabooks_notifications_unread_count', [self::$instance, 'ajax_unread_count']);
 
             // AJAX: Preferences
             add_action('wp_ajax_orabooks_notification_preferences_get', [self::$instance, 'ajax_get_preferences']);
-            add_action('wp_ajax_nopriv_orabooks_notification_preferences_get', [self::$instance, 'ajax_get_preferences']);
             add_action('wp_ajax_orabooks_notification_preferences_save', [self::$instance, 'ajax_save_preferences']);
-            add_action('wp_ajax_nopriv_orabooks_notification_preferences_save', [self::$instance, 'ajax_save_preferences']);
 
             // AJAX: Admin (Owner only)
             add_action('wp_ajax_orabooks_notification_admin_policy_get', [self::$instance, 'ajax_get_org_policy']);
-            add_action('wp_ajax_nopriv_orabooks_notification_admin_policy_get', [self::$instance, 'ajax_get_org_policy']);
             add_action('wp_ajax_orabooks_notification_admin_policy_save', [self::$instance, 'ajax_save_org_policy']);
-            add_action('wp_ajax_nopriv_orabooks_notification_admin_policy_save', [self::$instance, 'ajax_save_org_policy']);
             add_action('wp_ajax_orabooks_notification_admin_provider_health', [self::$instance, 'ajax_provider_health']);
-            add_action('wp_ajax_nopriv_orabooks_notification_admin_provider_health', [self::$instance, 'ajax_provider_health']);
             add_action('wp_ajax_orabooks_notification_admin_audit_export', [self::$instance, 'ajax_audit_export']);
-            add_action('wp_ajax_nopriv_orabooks_notification_admin_audit_export', [self::$instance, 'ajax_audit_export']);
 
             // AJAX: Mobile device registration
             add_action('wp_ajax_orabooks_register_device', [self::$instance, 'ajax_register_device']);
@@ -1511,8 +1501,8 @@ class OraBooks_Notifications {
     public function ajax_audit_export() {
         $org_id = intval($_GET['org_id'] ?? 0);
         $user_id = $this->require_org_notification_admin($org_id);
-        $start_date = sanitize_text_field($_GET['start_date'] ?? date('Y-m-d', strtotime('-30 days')));
-        $end_date = sanitize_text_field($_GET['end_date'] ?? date('Y-m-d'));
+        $start_date = sanitize_text_field($_GET['start_date'] ?? $_GET['start'] ?? date('Y-m-d', strtotime('-30 days')));
+        $end_date = sanitize_text_field($_GET['end_date'] ?? $_GET['end'] ?? date('Y-m-d'));
 
         $bundle = self::export_audit_bundle($org_id, $start_date . ' 00:00:00', $end_date . ' 23:59:59', $user_id);
 
