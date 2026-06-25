@@ -324,8 +324,17 @@ class OraBooks_Approval_Test extends TestCase
     #[Test]
     public function test_user_can_approve_blocks_admin_without_delegation()
     {
+        global $wpdb;
+
         $GLOBALS['orabooks_test_get_user_role_callback'] = function () {
             return 'admin';
+        };
+
+        $wpdb->test_get_row_callback = function ($query) {
+            if (stripos((string) $query, 'approval_delegations') !== false) {
+                return null;
+            }
+            return null;
         };
 
         $this->assertFalse(OraBooks_Approval::user_can_approve(2, 1));
