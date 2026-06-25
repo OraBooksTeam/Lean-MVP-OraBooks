@@ -284,7 +284,7 @@ export default function ClientShell({
             <Info className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
           </span>
         )}
-        {userRole && <span className="badge bg-white/90 text-ink">Role: {userRole}</span>}
+        {userRole && <span className="badge bg-white/90 text-ink" title="Your role determines permissions.">Role: {userRole}</span>}
         {!isPartner && organization?.tier && <span className="badge bg-white text-primary">{organization.tier}</span>}
         {organization?.status && <span className="badge bg-accent text-white">{organization.status}</span>}
       </div>
