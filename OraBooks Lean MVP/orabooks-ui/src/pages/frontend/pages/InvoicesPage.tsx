@@ -21,7 +21,11 @@ type Invoice = {
   paid_amount?: string | number;
   tax_amount?: string | number;
   tax_rate?: string | number;
+  tax_type?: string | null;
+  tax_jurisdiction?: string | null;
   tax_override_reason?: string | null;
+  tax_override_by?: number | null;
+  tax_override_at?: string | null;
   currency?: string;
   classification?: {
     status?: string;
@@ -34,7 +38,7 @@ type Invoice = {
 };
 
 type Customer = { id: number; display_name?: string | null; email?: string };
-type TaxConfig = { jurisdiction: string; override_reasons?: string[] };
+type TaxConfig = { jurisdiction: string; tax_type?: string; override_reasons?: string[] };
 
 const DEFAULT_REASONS = [
   'WRONG_AI_CLASSIFICATION',
@@ -43,6 +47,14 @@ const DEFAULT_REASONS = [
   'CUSTOMER_EXEMPTION',
   'REGIONAL_COMPLIANCE_OVERRIDE',
 ];
+
+const REASON_LABELS: Record<string, string> = {
+  WRONG_AI_CLASSIFICATION: 'Wrong AI classification',
+  LOCAL_TAX_RULE: 'Local tax rule',
+  MANUAL_JURISDICTION_ADJUSTMENT: 'Manual jurisdiction adjustment',
+  CUSTOMER_EXEMPTION: 'Customer exemption',
+  REGIONAL_COMPLIANCE_OVERRIDE: 'Regional compliance override',
+};
 
 export default function InvoicesPage() {
   const [context, setContext] = useState<any>(null);
@@ -69,7 +81,7 @@ export default function InvoicesPage() {
     currency: 'USD',
     description: '',
   });
-  const [createPreview, setCreatePreview] = useState<{ tax_rate: number; tax_amount: number; total_amount: number } | null>(null);
+  const [createPreview, setCreatePreview] = useState<{ tax_rate: number; tax_amount: number; total_amount: number; tax_type?: string } | null>(null);
 
   const [paymentInvoice, setPaymentInvoice] = useState<Invoice | null>(null);
   const [paymentForm, setPaymentForm] = useState({
@@ -96,7 +108,9 @@ export default function InvoicesPage() {
   const canCreateInvoice = permissions.includes('create_invoice');
   const canRecordPayment = permissions.includes('create_invoice');
   const canOverrideTax =
-    permissions.includes('manage_org_settings') || permissions.includes('approve_journal');
+    permissions.includes('manage_settings')
+    || permissions.includes('manage_org_settings')
+    || permissions.includes('approve_journal');
 
   const load = async () => {
     setLoading(true);
@@ -236,6 +250,7 @@ export default function InvoicesPage() {
         tax_rate: Number(data.tax_rate || 0),
         tax_amount: Number(data.tax_amount || 0),
         total_amount: Number(data.taxable_amount || 0) + Number(data.tax_amount || 0),
+        tax_type: data.tax_type || undefined,
       });
     }
   };
@@ -336,8 +351,21 @@ export default function InvoicesPage() {
   const openOverride = async (invoice: Invoice) => {
     setOverrideInvoice(invoice);
     setOverrideRate(String(Number(invoice.tax_rate || 0)));
-    setOverrideReason('');
-    setOverrideJurisdiction(taxConfigs[0]?.jurisdiction || 'US');
+    setOverrideJurisdiction(invoice.tax_jurisdiction || taxConfigs[0]?.jurisdiction || 'US');
+
+    const aiHintRate = invoice.classification?.tax_hints?.tax_rate;
+    const currentRate = Number(invoice.tax_rate || 0);
+    if (
+      aiHintRate != null
+      && Math.abs(Number(aiHintRate) - currentRate) > 0.001
+      && !invoice.tax_override_reason
+    ) {
+      setOverrideRate(String(aiHintRate));
+      setOverrideReason('WRONG_AI_CLASSIFICATION');
+    } else {
+      setOverrideReason('');
+    }
+
     setError('');
 
     if (orgId) {
@@ -377,6 +405,27 @@ export default function InvoicesPage() {
     if (res.error) setError(res.error);
     else {
       setSuccess('Tax override applied.');
+      setOverrideInvoice(null);
+      await load();
+    }
+    setSaving(false);
+  };
+
+  const handleClearOverride = async () => {
+    if (!orgId || !overrideInvoice) return;
+
+    setSaving(true);
+    setError('');
+    const res = await api.invoiceClearTaxOverride(
+      orgId,
+      overrideInvoice.id,
+      overrideJurisdiction || overrideInvoice.tax_jurisdiction || ''
+    );
+
+    if (res.error) {
+      setError(res.error);
+    } else {
+      setSuccess('Tax override cleared. Rate recalculated from tax engine.');
       setOverrideInvoice(null);
       await load();
     }

@@ -749,7 +749,13 @@ export const api = {
       new_tax_rate: newTaxRate,
       reason_code: reasonCode,
       jurisdiction,
-    }),
+    }, { clearAuthOnFailure: false }),
+  invoiceClearTaxOverride: (orgId: number, invoiceId: number, jurisdiction = '') =>
+    api.post('orabooks_invoice_clear_tax_override', {
+      org_id: orgId,
+      invoice_id: invoiceId,
+      ...(jurisdiction ? { jurisdiction } : {}),
+    }, { clearAuthOnFailure: false }),
   recordPayment: (data: Record<string, any>) =>
     api.post('orabooks_invoice_record_payment', data),
 
