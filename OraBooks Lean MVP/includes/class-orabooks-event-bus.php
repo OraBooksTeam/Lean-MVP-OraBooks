@@ -186,11 +186,18 @@ class OraBooks_EventBus {
     public static function publish($event_type, $aggregate_id, $payload = []) {
         global $wpdb;
 
-        $table = OraBooks_Database::table(self::OUTBOX_TABLE);
         $payload = is_array($payload) ? $payload : [];
         if (!isset($payload['event_version'])) {
             $payload['event_version'] = 1;
         }
+
+        // The gob_* SL-302 module is the canonical event bus runtime.
+        // Keep this class as a compatibility facade for existing callers.
+        if (class_exists('OraBooks_Event_Module')) {
+            return OraBooks_Event_Module::publish($event_type, $aggregate_id, $payload);
+        }
+
+        $table = OraBooks_Database::table(self::OUTBOX_TABLE);
 
         $wpdb->insert($table, [
             'event_type'   => $event_type,
@@ -208,10 +215,6 @@ class OraBooks_EventBus {
                 'aggregate_id' => $aggregate_id,
                 'outbox_id'    => $id,
             ]);
-
-            if (class_exists('OraBooks_Event_Module')) {
-                OraBooks_Event_Module::publish($event_type, $aggregate_id, $payload);
-            }
         }
 
         return $id;
