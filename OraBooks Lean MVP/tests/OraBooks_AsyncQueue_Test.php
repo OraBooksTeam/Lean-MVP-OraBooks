@@ -285,4 +285,43 @@ final class OraBooks_AsyncQueue_Test extends TestCase
         $this->assertSame(2, $result['recovered']);
         $this->assertSame(1, $result['dead']);
     }
+
+    #[Test]
+    public function process_queue_skips_job_if_lock_row_is_not_pending(): void
+    {
+        global $wpdb;
+
+        $job = (object) [
+            'id' => 21,
+            'queue_name' => 'default',
+            'job_type' => 'unit_lock',
+            'payload' => wp_json_encode(['org_id' => 9]),
+            'status' => 'pending',
+            'priority' => 5,
+            'retry_count' => 0,
+            'max_retries' => 5,
+        ];
+
+        OraBooks_AsyncQueue::register_handler('unit_lock', function () {
+            return true;
+        });
+
+        $wpdb->test_get_results_callback = function ($query) use ($job) {
+            return stripos((string) $query, "status = 'pending'") !== false ? [$job] : [];
+        };
+        $wpdb->test_get_row_callback = function ($query) use ($job) {
+            if (stripos((string) $query, 'FOR UPDATE') !== false) {
+                $locked = clone $job;
+                $locked->status = 'processing';
+                return $locked;
+            }
+            return null;
+        };
+
+        $result = (new OraBooks_AsyncQueue())->process_queue();
+
+        $this->assertSame(0, $result['processed']);
+        $this->assertSame(0, $result['completed']);
+        $this->assertSame(0, $result['failed']);
+    }
 }
