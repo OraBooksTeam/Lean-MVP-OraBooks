@@ -299,7 +299,10 @@ export default function ApprovalsPage() {
               <tr className="border-b border-border bg-slate-50/70 text-xs uppercase text-slate-500">
                 <th className="px-5 py-3 font-semibold">Journal</th>
                 <th className="px-5 py-3 font-semibold">Action</th>
+                <th className="px-5 py-3 font-semibold">By</th>
                 <th className="px-5 py-3 font-semibold">Round</th>
+                <th className="px-5 py-3 font-semibold">Rev</th>
+                <th className="px-5 py-3 font-semibold">Snapshot</th>
                 <th className="px-5 py-3 font-semibold">Reason</th>
                 <th className="px-5 py-3 font-semibold">When</th>
               </tr>
@@ -307,13 +310,13 @@ export default function ApprovalsPage() {
             <tbody className="divide-y divide-border">
               {loading ? (
                 <tr>
-                  <td colSpan={5} className="px-5 py-8 text-center text-slate-500">
+                  <td colSpan={8} className="px-5 py-8 text-center text-slate-500">
                     Loading history...
                   </td>
                 </tr>
               ) : (data?.recent_history || []).length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-5 py-8 text-center text-sm text-slate-500">
+                  <td colSpan={8} className="px-5 py-8 text-center text-sm text-slate-500">
                     No approval history yet.
                   </td>
                 </tr>
@@ -324,7 +327,12 @@ export default function ApprovalsPage() {
                     <td className="px-5 py-3">
                       <ActionBadge action={row.action} />
                     </td>
+                    <td className="px-5 py-3 text-slate-600">{row.performed_by > 0 ? `User #${row.performed_by}` : 'System'}</td>
                     <td className="px-5 py-3 font-mono text-xs">{row.approval_round}</td>
+                    <td className="px-5 py-3 font-mono text-xs">{row.revision_number}</td>
+                    <td className="px-5 py-3 font-mono text-xs text-slate-600" title={row.snapshot_hash || ''}>
+                      {row.snapshot_hash ? `${String(row.snapshot_hash).slice(0, 12)}...` : '—'}
+                    </td>
                     <td className="px-5 py-3 text-slate-600">{row.reason || '—'}</td>
                     <td className="px-5 py-3 text-slate-600">{formatDate(row.created_at)}</td>
                   </tr>
@@ -610,7 +618,10 @@ function JournalDetailPanel({
                   <thead>
                     <tr className="border-b border-border bg-slate-50/70 text-xs uppercase text-slate-500">
                       <th className="px-4 py-2 font-semibold">Action</th>
+                      <th className="px-4 py-2 font-semibold">By</th>
                       <th className="px-4 py-2 font-semibold">Round</th>
+                      <th className="px-4 py-2 font-semibold">Revision</th>
+                      <th className="px-4 py-2 font-semibold">Snapshot</th>
                       <th className="px-4 py-2 font-semibold">Reason</th>
                       <th className="px-4 py-2 font-semibold">When</th>
                     </tr>
@@ -621,7 +632,12 @@ function JournalDetailPanel({
                         <td className="px-4 py-2">
                           <ActionBadge action={row.action} />
                         </td>
+                        <td className="px-4 py-2 text-slate-600">{row.performed_by > 0 ? `User #${row.performed_by}` : 'System'}</td>
                         <td className="px-4 py-2 font-mono text-xs">{row.approval_round}</td>
+                        <td className="px-4 py-2 font-mono text-xs">{row.revision_number}</td>
+                        <td className="px-4 py-2 font-mono text-xs text-slate-600" title={row.snapshot_hash || ''}>
+                          {row.snapshot_hash ? `${String(row.snapshot_hash).slice(0, 12)}...` : '—'}
+                        </td>
                         <td className="px-4 py-2 text-slate-600">{row.reason || '—'}</td>
                         <td className="px-4 py-2 text-slate-600">{formatDate(row.created_at)}</td>
                       </tr>
@@ -680,6 +696,7 @@ function JournalStatusBadge({ status }: { status: string }) {
     review_pending: 'border-amber-200 bg-amber-50 text-amber-800',
     approved: 'border-emerald-200 bg-emerald-50 text-emerald-800',
     posted: 'border-primary/20 bg-primary/10 text-primary',
+    locked: 'border-primary/30 bg-primary/15 text-primary',
     reversed: 'border-red-200 bg-red-50 text-red-800',
   };
   return (
@@ -718,6 +735,11 @@ function ActionBadge({ action }: { action: string }) {
     submit: 'border-blue-200 bg-blue-50 text-blue-800',
     approve: 'border-emerald-200 bg-emerald-50 text-emerald-800',
     reject: 'border-red-200 bg-red-50 text-red-800',
+    resubmit: 'border-sky-200 bg-sky-50 text-sky-800',
+    escalate: 'border-amber-200 bg-amber-50 text-amber-800',
+    invalidate: 'border-orange-200 bg-orange-50 text-orange-800',
+    expire: 'border-rose-200 bg-rose-50 text-rose-800',
+    delegate: 'border-violet-200 bg-violet-50 text-violet-800',
   };
 
   return <span className={`badge border capitalize ${styles[action] || 'border-slate-200 bg-slate-50 text-slate-700'}`}>{action}</span>;

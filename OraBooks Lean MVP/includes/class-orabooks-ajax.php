@@ -901,7 +901,7 @@ class OraBooks_Ajax {
                 'approve' => class_exists('OraBooks_Approval')
                     ? OraBooks_Approval::user_can_approve($context['user_id'], $org_id)
                     : OraBooks_RBAC::require_permission($context['user_id'], $org_id, 'approve_journal'),
-                'post'    => OraBooks_RBAC::require_permission($context['user_id'], $org_id, 'submit_transaction'),
+                'post'    => OraBooks_RBAC::require_permission($context['user_id'], $org_id, 'approve_journal'),
                 'manage_policy' => OraBooks_RBAC::require_permission($context['user_id'], $org_id, 'manage_org_settings'),
             ],
             'policy' => class_exists('OraBooks_Approval') ? OraBooks_Approval::get_policy($org_id) : null,

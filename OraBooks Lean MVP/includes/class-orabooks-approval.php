@@ -122,11 +122,20 @@ class OraBooks_Approval {
     }
 
     public static function user_can_approve($user_id, $org_id) {
-        if (OraBooks_RBAC::require_permission($user_id, $org_id, 'approve_journal')) {
+        if (self::is_owner_or_approver($user_id, $org_id)) {
             return true;
         }
 
         return self::has_active_delegation($user_id, $org_id) !== null;
+    }
+
+    private static function is_owner_or_approver($user_id, $org_id) {
+        if (!function_exists('orabooks_get_user_role')) {
+            return false;
+        }
+
+        $role = (string) orabooks_get_user_role((int) $user_id, (int) $org_id);
+        return in_array($role, ['owner', 'approver'], true);
     }
 
     public static function has_active_delegation($delegate_user_id, $org_id) {
