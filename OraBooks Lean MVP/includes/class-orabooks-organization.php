@@ -149,6 +149,11 @@ class OraBooks_Organization {
         if ($organization_type === 'customer' && class_exists('OraBooks_Fiscal') && method_exists('OraBooks_Fiscal', 'ensure_periods_for_org')) {
             OraBooks_Fiscal::ensure_periods_for_org($org_id);
         }
+
+        if ($organization_type === 'customer' && class_exists('OraBooks_Tax') && method_exists('OraBooks_Tax', 'seed_default_org_configs')) {
+            $country = !empty($data['country']) ? sanitize_text_field($data['country']) : null;
+            OraBooks_Tax::seed_default_org_configs($org_id, $country);
+        }
         
         // Audit log
         $event_type = $organization_type === 'partner' ? 'partner_org_created' : 'org_created';

@@ -618,6 +618,10 @@ class OraBooks_Posting {
             'posted_by' => (int) $user_id,
         ]);
 
+        if (class_exists('OraBooks_Tax') && method_exists('OraBooks_Tax', 'snapshot_for_journal')) {
+            OraBooks_Tax::snapshot_for_journal($journal, $lines, $user_id);
+        }
+
         orabooks_log_event('journal_posted', "Journal #$journal_number posted to ledger", 'info', [
             'journal_id' => $journal_id,
             'journal_number' => $journal_number,
