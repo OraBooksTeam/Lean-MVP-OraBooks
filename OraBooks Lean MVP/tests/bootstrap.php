@@ -1179,6 +1179,17 @@ if (!class_exists('OraBooks_Organization', false)) {
             if (isset($GLOBALS['orabooks_test_org_callback'])) {
                 return ($GLOBALS['orabooks_test_org_callback'])($org_id);
             }
+
+            global $wpdb;
+            $table = OraBooks_Database::table('organizations');
+            $from_db = $wpdb->get_row($wpdb->prepare(
+                "SELECT * FROM {$table} WHERE id = %d",
+                (int) $org_id
+            ));
+            if ($from_db) {
+                return $from_db;
+            }
+
             if (!$org_id) {
                 return null;
             }
@@ -1205,10 +1216,12 @@ if (!class_exists('OraBooks_Organization', false)) {
             if (isset($GLOBALS['orabooks_test_org_by_subdomain_callback'])) {
                 $org = ($GLOBALS['orabooks_test_org_by_subdomain_callback'])($subdomain);
             } else {
-                $org = self::get(1);
-                if ($org) {
-                    $org->subdomain = strtolower(trim((string) $subdomain));
-                }
+                global $wpdb;
+                $table = OraBooks_Database::table('organizations');
+                $org = $wpdb->get_row($wpdb->prepare(
+                    "SELECT * FROM {$table} WHERE subdomain = %s",
+                    strtolower(trim((string) $subdomain))
+                ));
             }
 
             if (!$org) {
