@@ -417,69 +417,22 @@ export default function TaxSettingsPage() {
           </div>
         </div>
 
-        {showForm && !taxLocked && (
-          <div className="glass-panel space-y-4 p-5">
-            <h3 className="text-base font-semibold text-ink">Tax configuration</h3>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <label className="space-y-1.5 text-sm">
-                <span className="font-medium text-slate-700">Jurisdiction</span>
-                <select value={form.jurisdiction} onChange={(e) => handleJurisdictionChange(e.target.value)} className="w-full rounded-lg border border-border bg-white px-3 py-2.5 text-sm">
-                  {jurisdictionOptions.map((j) => (
-                    <option key={j.jurisdiction_code} value={j.jurisdiction_code}>{j.name} ({j.jurisdiction_code})</option>
-                  ))}
-                </select>
-              </label>
-              <label className="space-y-1.5 text-sm">
-                <span className="font-medium text-slate-700">Tax type</span>
-                <select value={form.tax_type} onChange={(e) => setForm((prev) => ({ ...prev, tax_type: e.target.value as TaxConfig['tax_type'] }))} className="w-full rounded-lg border border-border bg-white px-3 py-2.5 text-sm">
-                  {TAX_TYPES.map((type) => (
-                    <option key={type} value={type}>{type}</option>
-                  ))}
-                </select>
-              </label>
-              <label className="space-y-1.5 text-sm">
-                <span className="font-medium text-slate-700">Default rate (%)</span>
-                <Input type="number" min="0" max="100" step="0.01" value={form.default_tax_rate} onChange={(e) => setForm((prev) => ({ ...prev, default_tax_rate: e.target.value }))} />
-              </label>
-              <label className="space-y-1.5 text-sm">
-                <span className="font-medium text-slate-700">Exemption certificate URL</span>
-                <Input type="url" value={form.exemption_certificate_url} onChange={(e) => setForm((prev) => ({ ...prev, exemption_certificate_url: e.target.value }))} placeholder="https://..." />
-              </label>
-              <label className="flex items-center gap-2 pt-7 text-sm sm:col-span-2">
-                <input type="checkbox" checked={form.is_active} onChange={(e) => setForm((prev) => ({ ...prev, is_active: e.target.checked }))} className="rounded border-border" />
-                <span className="font-medium text-slate-700">Active configuration</span>
-              </label>
-            </div>
-
-            <div>
-              <p className="text-sm font-medium text-slate-700">Allowed override reason codes</p>
-              <p className="text-xs text-slate-500">Only selected codes can be used when overriding tax on invoices or expenses.</p>
-              <div className="mt-2 grid gap-2 sm:grid-cols-2">
-                {DEFAULT_OVERRIDE_REASONS.map((reason) => (
-                  <label key={reason} className="flex items-start gap-2 rounded-lg border border-border bg-white px-3 py-2 text-sm">
-                    <input
-                      type="checkbox"
-                      checked={form.override_reasons.includes(reason)}
-                      onChange={() => toggleOverrideReason(reason)}
-                      className="mt-0.5 rounded border-border"
-                    />
-                    <span>
-                      <span className="font-medium text-ink">{reasonLabel(reason)}</span>
-                      <span className="block text-xs text-slate-500">{reason}</span>
-                    </span>
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            <div className="flex gap-2">
-              <Button onClick={handleSave} disabled={saving}>
-                <Save className="h-4 w-4" />
-                {saving ? 'Saving…' : 'Save configuration'}
-              </Button>
-              <Button variant="secondary" onClick={() => setShowForm(false)}>Cancel</Button>
-            </div>
-          </div>
+        {showForm && createPortal(
+          <TaxConfigModal
+            title={formMode === 'add' ? 'Add jurisdiction' : 'Edit tax configuration'}
+            taxLocked={taxLocked}
+            lockMessage={lockStatus?.message}
+            form={form}
+            formMode={formMode}
+            jurisdictionOptions={formMode === 'add' ? addableJurisdictions : jurisdictionOptions}
+            saving={saving}
+            onClose={() => setShowForm(false)}
+            onSave={() => { void handleSave(); }}
+            onJurisdictionChange={handleJurisdictionChange}
+            onFormChange={setForm}
+            onToggleReason={toggleOverrideReason}
+          />,
+          document.body
         )}
 
         <div className="glass-panel overflow-hidden">
