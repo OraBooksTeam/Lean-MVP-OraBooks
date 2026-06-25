@@ -141,6 +141,57 @@ class OraBooks_Ai_Providers_Test extends TestCase
     }
 
     #[Test]
+    public function test_run_ocr_merges_stub_when_document_intelligence_is_low_signal()
+    {
+        $GLOBALS['orabooks_test_secrets'] = [
+            'azure_document_intelligence_endpoint' => 'https://example.cognitiveservices.azure.com',
+            'azure_document_intelligence_key'    => 'test-key',
+        ];
+
+        $poll_payload = [
+            'status' => 'succeeded',
+            'analyzeResult' => [
+                'documents' => [[
+                    'fields' => [
+                        // Intentionally weak output for non-receipt voucher templates.
+                    ],
+                ]],
+            ],
+        ];
+
+        $call = 0;
+        $GLOBALS['orabooks_test_wp_remote_request_callback'] = function ($url, $args) use (&$call, $poll_payload) {
+            $call++;
+            if ($call === 1) {
+                return [
+                    'response' => ['code' => 202],
+                    'headers'  => ['operation-location' => 'https://example.cognitiveservices.azure.com/operations/2'],
+                    'body'     => '',
+                ];
+            }
+
+            return [
+                'response' => ['code' => 200],
+                'headers'  => [],
+                'body'     => wp_json_encode($poll_payload),
+            ];
+        };
+
+        $text = 'SALARY VOUCHER Company Name : ABC Garments Ltd. Date : 23-06-2026 Total Amount 60,000.00 Amount (BDT) 60,000.00';
+        $ocr = OraBooks_Ai_Providers::run_ocr([
+            'filename'   => 'salary-voucher.png',
+            'expense_id' => 77,
+            'file_bytes' => $text,
+        ]);
+
+        $this->assertSame('azure-document-intelligence', $ocr['provider']);
+        $this->assertSame('ABC Garments Ltd.', $ocr['vendor']);
+        $this->assertSame('BDT', $ocr['currency']);
+        $this->assertSame('Salary', $ocr['category']);
+        $this->assertGreaterThan(0, (float) $ocr['total_amount']);
+    }
+
+    #[Test]
     public function test_classify_record_falls_back_to_stub_without_credentials()
     {
         $record = (object) ['category' => 'meals'];
