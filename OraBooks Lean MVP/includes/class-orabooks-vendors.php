@@ -670,6 +670,15 @@ class OraBooks_Vendors {
             return new WP_Error('invalid_status', 'Bill must be approved before posting');
         }
 
+        $tax_amount = round(floatval($bill->tax_amount ?? 0), 2);
+        if ($tax_amount > 0 && class_exists('OraBooks_Tax')) {
+            $tax_type = sanitize_text_field($bill->tax_type ?? 'Sales Tax');
+            $account_check = OraBooks_Tax::validate_tax_posting_accounts($org_id, $tax_type);
+            if (is_wp_error($account_check)) {
+                return $account_check;
+            }
+        }
+
         $journal_id = self::create_bill_journal($bill, $user_id);
         $tax_snapshot_id = self::snapshot_bill_tax($bill, $user_id);
 
@@ -1057,23 +1066,12 @@ class OraBooks_Vendors {
             return null;
         }
 
-        $snapshot = OraBooks_Tax::create_snapshot([
-            'org_id' => intval($bill->org_id),
-            'transaction_id' => intval($bill->id),
-            'transaction_type' => 'expense',
-            'amount' => floatval($bill->subtotal_amount),
-            'jurisdiction' => 'US',
-            'override' => true,
-            'override_tax_rate' => floatval($bill->subtotal_amount) > 0
-                ? round((floatval($bill->tax_amount) / floatval($bill->subtotal_amount)) * 100, 4)
-                : 0,
-            'override_reason' => 'LOCAL_TAX_RULE',
-            'transaction_date' => $bill->transaction_date,
-            'metadata' => ['bill_number' => $bill->bill_number],
-        ], intval($user_id));
-
+        $snapshot = OraBooks_Tax::snapshot_for_vendor_bill($bill, intval($user_id));
         if (is_wp_error($snapshot)) {
             return $snapshot;
+        }
+        if (!$snapshot || !is_array($snapshot)) {
+            return null;
         }
 
         return intval($snapshot['snapshot_id']);
