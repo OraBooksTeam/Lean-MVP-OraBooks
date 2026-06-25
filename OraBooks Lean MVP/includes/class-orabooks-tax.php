@@ -21,6 +21,16 @@ class OraBooks_Tax {
         'REGIONAL_COMPLIANCE_OVERRIDE',
     ];
 
+    /** SL-017 tax liability account codes by tax type. */
+    const TAX_LIABILITY_ACCOUNTS = [
+        'VAT'        => '2100',
+        'GST'        => '2100',
+        'Sales Tax'  => '2100',
+    ];
+
+    /** Journal line account codes that represent posted tax amounts. */
+    const TAX_LINE_ACCOUNT_CODES = ['2100', '5300'];
+
     public static function init() {
         if (self::$instance === null) {
             self::$instance = new self();
