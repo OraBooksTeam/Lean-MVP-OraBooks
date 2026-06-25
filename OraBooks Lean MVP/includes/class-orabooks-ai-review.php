@@ -433,10 +433,6 @@ class OraBooks_Ai_Review {
         }
 
         if (self::passes_threshold($evaluation)) {
-            if ($item->journal_id && class_exists('OraBooks_Posting')) {
-                OraBooks_Posting::promote_to_review_pending((int) $item->journal_id, 0);
-            }
-
             if (function_exists('orabooks_publish_event')) {
                 orabooks_publish_event('journal_ready_for_review', (int) ($item->journal_id ?: $item->resource_id), [
                     'journal_id' => (int) $item->journal_id,
