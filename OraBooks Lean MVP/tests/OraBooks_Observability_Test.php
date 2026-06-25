@@ -163,7 +163,7 @@ class OraBooks_Observability_Test extends TestCase
             if (stripos($query, 'async_jobs') !== false) {
                 return (object) ['total' => 200, 'good' => 198, 'bad' => 2];
             }
-            if (stripos($query, 'outbox_messages') !== false) {
+            if (stripos($query, 'outbox_messages') !== false || stripos($query, 'event_outbox') !== false) {
                 return (object) ['total' => 500, 'good' => 495, 'bad' => 5];
             }
             return null;
