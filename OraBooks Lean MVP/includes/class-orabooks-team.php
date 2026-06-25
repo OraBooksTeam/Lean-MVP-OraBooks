@@ -35,6 +35,10 @@ class OraBooks_Team {
             add_action('wp_ajax_orabooks_preview_invite', [self::$instance, 'ajax_preview_invite']);
             add_action('wp_ajax_nopriv_orabooks_preview_invite', [self::$instance, 'ajax_preview_invite']);
             add_action('wp_ajax_orabooks_transfer_ownership', [self::$instance, 'ajax_transfer_ownership']);
+            add_action('wp_ajax_orabooks_team_access_settings_get', [self::$instance, 'ajax_team_access_settings_get']);
+            add_action('wp_ajax_nopriv_orabooks_team_access_settings_get', [self::$instance, 'ajax_team_access_settings_get']);
+            add_action('wp_ajax_orabooks_team_access_settings_save', [self::$instance, 'ajax_team_access_settings_save']);
+            add_action('wp_ajax_nopriv_orabooks_team_access_settings_save', [self::$instance, 'ajax_team_access_settings_save']);
             add_action('orabooks_team_cleanup_expired_invites', [self::class, 'cleanup_expired_invites']);
         }
         return self::$instance;
@@ -725,6 +729,77 @@ class OraBooks_Team {
         }
         
         orabooks_json_success([], 'Invitation cancelled');
+    }
+
+    public function ajax_team_access_settings_get() {
+        $user_id = $this->current_user_id();
+        $org_id = intval($_POST['org_id'] ?? $_GET['org_id'] ?? 0);
+
+        $this->require_org_member_access($user_id, $org_id);
+
+        $org = OraBooks_Organization::get($org_id);
+        if (!$org) {
+            orabooks_json_error('Organization not found', 404);
+        }
+
+        $config = json_decode((string) ($org->config ?? ''), true);
+        if (!is_array($config)) {
+            $config = [];
+        }
+
+        $setting = !empty($org->partner_commission_for_staff_viewer)
+            || !empty($config['partner_commission_for_staff_viewer']);
+
+        orabooks_json_success([
+            'partner_commission_for_staff_viewer' => (bool) $setting,
+            'organization_type' => $org->organization_type,
+            'can_manage' => OraBooks_RBAC::require_permission($user_id, $org_id, 'manage_org_settings'),
+        ]);
+    }
+
+    public function ajax_team_access_settings_save() {
+        global $wpdb;
+
+        $user_id = $this->current_user_id();
+        $org_id = intval($_POST['org_id'] ?? 0);
+        $enabled = !empty($_POST['partner_commission_for_staff_viewer']) ? 1 : 0;
+
+        $this->require_org_member_access($user_id, $org_id);
+
+        if (!OraBooks_RBAC::require_permission($user_id, $org_id, 'manage_org_settings')) {
+            orabooks_json_error('Permission denied', 403);
+        }
+
+        $table_orgs = OraBooks_Database::table('organizations');
+        $org = OraBooks_Organization::get($org_id);
+        if (!$org) {
+            orabooks_json_error('Organization not found', 404);
+        }
+
+        $config = json_decode((string) ($org->config ?? ''), true);
+        if (!is_array($config)) {
+            $config = [];
+        }
+        $config['partner_commission_for_staff_viewer'] = (bool) $enabled;
+
+        $wpdb->update(
+            $table_orgs,
+            [
+                'partner_commission_for_staff_viewer' => $enabled,
+                'config' => wp_json_encode($config),
+            ],
+            ['id' => $org_id],
+            ['%d', '%s'],
+            ['%d']
+        );
+
+        orabooks_log_event('org_access_settings_updated', 'Organization access settings updated', 'info', [
+            'partner_commission_for_staff_viewer' => (bool) $enabled,
+        ], $user_id, $org_id);
+
+        orabooks_json_success([
+            'partner_commission_for_staff_viewer' => (bool) $enabled,
+        ], 'Access settings saved');
     }
     
     public function ajax_accept_invite() {
