@@ -199,6 +199,43 @@ class OraBooks_Manual_Tax_Test extends TestCase
     }
 
     #[Test]
+    public function test_clear_invoice_tax_override_recalculates_from_tax_engine()
+    {
+        global $wpdb;
+
+        $wpdb->test_get_row_callback = function ($query) {
+            if (stripos($query, 'orabooks_invoices') !== false) {
+                return $this->mockInvoice([
+                    'tax_override_reason' => 'WRONG_AI_CLASSIFICATION',
+                    'tax_override_by' => 7,
+                    'tax_override_at' => '2026-06-01 10:00:00',
+                    'tax_jurisdiction' => 'BD',
+                ]);
+            }
+            if (stripos($query, 'fiscal_periods') !== false) {
+                return (object) ['status' => 'open'];
+            }
+            if (stripos($query, 'orabooks_tax_configs') !== false) {
+                return (object) [
+                    'id' => 1,
+                    'default_tax_rate' => '15.0000',
+                    'tax_type' => 'VAT',
+                    'override_reasons' => json_encode(['WRONG_AI_CLASSIFICATION']),
+                ];
+            }
+            return null;
+        };
+
+        $result = OraBooks_Customers::clear_invoice_tax_override(5, 100, 7, 'BD');
+
+        $this->assertIsArray($result);
+        $this->assertNull($result['tax_override_reason']);
+        $this->assertEquals(15.0, $result['tax_rate']);
+        $this->assertEquals(15.0, $result['tax_amount']);
+        $this->assertEquals(115.0, $result['total_amount']);
+    }
+
+    #[Test]
     public function test_override_invoice_tax_blocks_when_fiscal_period_closed()
     {
         global $wpdb;
