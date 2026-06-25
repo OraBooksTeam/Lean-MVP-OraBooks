@@ -674,13 +674,15 @@ class OraBooks_Expenses {
                 $total = max($values);
             }
         }
+        $allow_deterministic_fallback = true;
         if ($total <= 0) {
             if (!empty($file_bytes) && !$text_signal) {
                 // Binary image bytes without textual OCR signal should not produce fabricated totals.
                 $total = 0.0;
+                $allow_deterministic_fallback = false;
             }
         }
-        if ($total <= 0) {
+        if ($total <= 0 && $allow_deterministic_fallback) {
             // Keep deterministic fallback so OCR stub still produces usable preview values.
             $total = round(($expense_id % 10000) / 10 + ($seed % 5000) / 100 + 20, 2);
         }
