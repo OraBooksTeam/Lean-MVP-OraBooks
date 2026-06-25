@@ -26,21 +26,14 @@ class OraBooks_Commission {
             
             // AJAX endpoints
             add_action('wp_ajax_orabooks_commission_stats', [self::$instance, 'ajax_commission_stats']);
-            add_action('wp_ajax_nopriv_orabooks_commission_stats', [self::$instance, 'ajax_commission_stats']);
             add_action('wp_ajax_orabooks_commission_earned', [self::$instance, 'ajax_commission_earned']);
-            add_action('wp_ajax_nopriv_orabooks_commission_earned', [self::$instance, 'ajax_commission_earned']);
             add_action('wp_ajax_orabooks_commission_payouts', [self::$instance, 'ajax_commission_payouts']);
-            add_action('wp_ajax_nopriv_orabooks_commission_payouts', [self::$instance, 'ajax_commission_payouts']);
             add_action('wp_ajax_orabooks_commission_aging', [self::$instance, 'ajax_commission_aging']);
-            add_action('wp_ajax_nopriv_orabooks_commission_aging', [self::$instance, 'ajax_commission_aging']);
             add_action('wp_ajax_orabooks_commission_config', [self::$instance, 'ajax_commission_config']);
             add_action('wp_ajax_orabooks_commission_update_config', [self::$instance, 'ajax_update_config']);
             add_action('wp_ajax_orabooks_commission_escrow_schedule', [self::$instance, 'ajax_escrow_schedule']);
-            add_action('wp_ajax_nopriv_orabooks_commission_escrow_schedule', [self::$instance, 'ajax_escrow_schedule']);
             add_action('wp_ajax_orabooks_commission_by_customer', [self::$instance, 'ajax_commission_by_customer']);
-            add_action('wp_ajax_nopriv_orabooks_commission_by_customer', [self::$instance, 'ajax_commission_by_customer']);
             add_action('wp_ajax_orabooks_commission_release_history', [self::$instance, 'ajax_release_history']);
-            add_action('wp_ajax_nopriv_orabooks_commission_release_history', [self::$instance, 'ajax_release_history']);
             
             // Cron jobs
             add_action('orabooks_monthly_commission_release', [self::$instance, 'process_monthly_release']);
