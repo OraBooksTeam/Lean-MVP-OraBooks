@@ -595,6 +595,10 @@ class OraBooks_Expenses {
         }
 
         $vendor = ucwords($base);
+        $base_lower = strtolower((string) $base);
+        if (preg_match('/salary|payroll|wage/', $base_lower)) {
+            $vendor = 'Staff Salary';
+        }
         if ($text !== '' && preg_match('/(?:company\s*name|merchant|vendor|supplier|shop)\s*[:\-]\s*([A-Za-z][A-Za-z0-9\s&.,\-]{2,80})/i', $text, $m)) {
             $vendor = sanitize_text_field(trim($m[1]));
         } elseif ($text !== '' && preg_match('/paid\s*to\s*[:\-]\s*([A-Za-z][A-Za-z0-9\s&.,\-]{2,80})/i', $text, $m)) {
@@ -667,6 +671,9 @@ class OraBooks_Expenses {
 
         $categories = ['Office Supplies', 'Meals', 'Travel', 'Software', 'Utilities'];
         $category = $categories[$seed % count($categories)];
+        if (preg_match('/salary|payroll|wage/', $base_lower)) {
+            $category = 'Salary';
+        }
         if ($text !== '') {
             if (preg_match('/hotel|flight|uber|transport|travel/i', $text)) {
                 $category = 'Travel';
