@@ -1269,6 +1269,14 @@ class OraBooks_Customers {
         $old_tax_amount = floatval($invoice->tax_amount ?? 0);
         $new_tax_amount = round($tax_base * ($new_tax_rate / 100), 2);
         $new_total = round($tax_base + $new_tax_amount, 2);
+        $tax_type = sanitize_text_field($invoice->tax_type ?? 'Sales Tax');
+
+        if (class_exists('OraBooks_Tax')) {
+            $config = OraBooks_Tax::get_active_config($org_id, $jurisdiction);
+            if ($config && !empty($config->tax_type)) {
+                $tax_type = sanitize_text_field((string) $config->tax_type);
+            }
+        }
 
         $wpdb->update(
             $table,
@@ -1277,12 +1285,13 @@ class OraBooks_Customers {
                 'tax_amount' => $new_tax_amount,
                 'total_amount' => $new_total,
                 'tax_jurisdiction' => $jurisdiction,
+                'tax_type' => $tax_type,
                 'tax_override_reason' => $reason_code,
                 'tax_override_by' => $user_id,
                 'tax_override_at' => current_time('mysql'),
             ],
             ['id' => $invoice_id, 'org_id' => $org_id],
-            ['%f', '%f', '%f', '%s', '%s', '%d', '%s'],
+            ['%f', '%f', '%f', '%s', '%s', '%s', '%d', '%s'],
             ['%d', '%d']
         );
 
@@ -1303,7 +1312,104 @@ class OraBooks_Customers {
             'total_amount' => $new_total,
             'tax_override_reason' => $reason_code,
             'tax_override_by' => $user_id,
+            'tax_type' => $tax_type,
         ];
+    }
+
+    /**
+     * Clear manual tax override and recalculate from SL-305 (SL-081 §5.4).
+     */
+    public static function clear_invoice_tax_override($org_id, $invoice_id, $user_id, $jurisdiction = null) {
+        global $wpdb;
+
+        $org_id = (int) $org_id;
+        $invoice_id = (int) $invoice_id;
+        $user_id = (int) $user_id;
+
+        $table = OraBooks_Database::table('invoices');
+        $invoice = $wpdb->get_row($wpdb->prepare(
+            "SELECT * FROM {$table} WHERE id = %d AND org_id = %d",
+            $invoice_id,
+            $org_id
+        ));
+
+        if (!$invoice) {
+            return new WP_Error('not_found', 'Invoice not found');
+        }
+
+        if (!in_array($invoice->workflow_status, ['draft', 'sent'], true)) {
+            return new WP_Error('invalid_status', 'Override can only be cleared before posting');
+        }
+
+        if (class_exists('OraBooks_Tax') && OraBooks_Tax::is_tax_locked($org_id, [
+            'transaction_date' => $invoice->invoice_date ?? current_time('Y-m-d'),
+        ])) {
+            return new WP_Error('tax_locked', 'Tax is locked for this transaction period');
+        }
+
+        $tax_base = self::get_invoice_tax_base($invoice);
+        $jurisdiction = strtoupper(sanitize_text_field(
+            $jurisdiction ?: ($invoice->tax_jurisdiction ?? 'US')
+        ));
+        $tax_rate = 0.0;
+        $tax_amount = 0.0;
+        $tax_type = 'Sales Tax';
+        $total = $tax_base;
+
+        if (class_exists('OraBooks_Tax') && $tax_base > 0) {
+            $calc = OraBooks_Tax::calculate([
+                'org_id' => $org_id,
+                'amount' => $tax_base,
+                'jurisdiction' => $jurisdiction,
+            ]);
+            if (!is_wp_error($calc)) {
+                $tax_rate = (float) ($calc['tax_rate'] ?? 0);
+                $tax_amount = (float) ($calc['tax_amount'] ?? 0);
+                $tax_type = sanitize_text_field($calc['tax_type'] ?? 'Sales Tax');
+                $total = round($tax_base + $tax_amount, 2);
+                if (!empty($calc['jurisdiction_applied'])) {
+                    $jurisdiction = strtoupper(sanitize_text_field($calc['jurisdiction_applied']));
+                }
+            }
+        }
+
+        $wpdb->update(
+            $table,
+            [
+                'tax_rate' => $tax_rate,
+                'tax_amount' => $tax_amount,
+                'total_amount' => $total,
+                'tax_jurisdiction' => $jurisdiction,
+                'tax_type' => $tax_type,
+                'tax_override_reason' => null,
+                'tax_override_by' => null,
+                'tax_override_at' => null,
+            ],
+            ['id' => $invoice_id, 'org_id' => $org_id],
+            ['%f', '%f', '%f', '%s', '%s', '%s', '%s', '%s'],
+            ['%d', '%d']
+        );
+
+        orabooks_log_event('tax_override_cleared', 'Invoice tax override cleared', 'info', [
+            'transaction_type' => 'invoice',
+            'transaction_id' => $invoice_id,
+        ], $user_id, $org_id);
+
+        return [
+            'invoice_id' => $invoice_id,
+            'tax_rate' => $tax_rate,
+            'tax_amount' => $tax_amount,
+            'total_amount' => $total,
+            'tax_type' => $tax_type,
+            'tax_jurisdiction' => $jurisdiction,
+            'tax_override_reason' => null,
+        ];
+    }
+
+    private function can_override_invoice_tax($user_id, $org_id) {
+        return current_user_can('manage_options')
+            || OraBooks_RBAC::require_permission($user_id, $org_id, 'manage_org_settings')
+            || OraBooks_RBAC::require_permission($user_id, $org_id, 'approve_journal');
     }
 
     /**
