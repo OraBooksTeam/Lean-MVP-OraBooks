@@ -141,6 +141,56 @@ class OraBooks_Ai_Providers_Test extends TestCase
     }
 
     #[Test]
+    public function test_run_ocr_uses_prebuilt_document_model_for_salary_voucher_files()
+    {
+        $GLOBALS['orabooks_test_secrets'] = [
+            'azure_document_intelligence_endpoint' => 'https://example.cognitiveservices.azure.com',
+            'azure_document_intelligence_key'    => 'test-key',
+            'azure_document_intelligence_model'  => 'prebuilt-receipt',
+        ];
+
+        $poll_payload = [
+            'status' => 'succeeded',
+            'analyzeResult' => [
+                'documents' => [[
+                    'fields' => [
+                        'MerchantName' => ['valueString' => 'Voucher Vendor', 'confidence' => 0.9],
+                        'Total' => ['valueCurrency' => ['amount' => 2900.0], 'confidence' => 0.88],
+                    ],
+                ]],
+            ],
+        ];
+
+        $call = 0;
+        $GLOBALS['orabooks_test_wp_remote_request_callback'] = function ($url, $args) use (&$call, $poll_payload) {
+            $call++;
+            if ($call === 1) {
+                $this->assertStringContainsString('/documentModels/prebuilt-document:analyze', $url);
+                return [
+                    'response' => ['code' => 202],
+                    'headers'  => ['operation-location' => 'https://example.cognitiveservices.azure.com/operations/3'],
+                    'body'     => '',
+                ];
+            }
+
+            return [
+                'response' => ['code' => 200],
+                'headers'  => [],
+                'body'     => wp_json_encode($poll_payload),
+            ];
+        };
+
+        $ocr = OraBooks_Ai_Providers::run_ocr([
+            'filename'   => 'salary-voucher-jan.png',
+            'expense_id' => 6,
+            'file_bytes' => '%PDF-1.4 mock',
+        ]);
+
+        $this->assertSame('Voucher Vendor', $ocr['vendor']);
+        $this->assertSame(2900.0, $ocr['total_amount']);
+    }
+
+    #[Test]
     public function test_run_ocr_merges_stub_when_document_intelligence_is_low_signal()
     {
         $GLOBALS['orabooks_test_secrets'] = [
