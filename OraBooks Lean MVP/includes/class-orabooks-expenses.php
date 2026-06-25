@@ -595,7 +595,9 @@ class OraBooks_Expenses {
         }
 
         $vendor = ucwords($base);
-        if ($text !== '' && preg_match('/(?:merchant|vendor|supplier|shop)\s*[:\-]\s*([A-Za-z][A-Za-z0-9\s&.,\-]{2,80})/i', $text, $m)) {
+        if ($text !== '' && preg_match('/(?:company\s*name|merchant|vendor|supplier|shop)\s*[:\-]\s*([A-Za-z][A-Za-z0-9\s&.,\-]{2,80})/i', $text, $m)) {
+            $vendor = sanitize_text_field(trim($m[1]));
+        } elseif ($text !== '' && preg_match('/paid\s*to\s*[:\-]\s*([A-Za-z][A-Za-z0-9\s&.,\-]{2,80})/i', $text, $m)) {
             $vendor = sanitize_text_field(trim($m[1]));
         }
 
@@ -624,7 +626,7 @@ class OraBooks_Expenses {
         $subtotal = round($total - $tax_amount, 2);
 
         $invoice_number = 'RCP-' . str_pad((string) ($seed % 999999), 6, '0', STR_PAD_LEFT);
-        if ($text !== '' && preg_match('/(?:invoice|receipt)\s*(?:no|number|#)?\s*[:\-]?\s*([A-Z0-9\-]{3,40})/i', $text, $m)) {
+        if ($text !== '' && preg_match('/(?:invoice|receipt|voucher)\s*(?:no|number|#)?\s*[:\-]?\s*([A-Z0-9\-]{3,40})/i', $text, $m)) {
             $invoice_number = sanitize_text_field(trim($m[1]));
         }
 
@@ -655,7 +657,7 @@ class OraBooks_Expenses {
         }
 
         $currency = 'USD';
-        if (stripos($text, 'BDT') !== false || strpos($text, '৳') !== false) {
+        if (stripos($text, 'BDT') !== false || stripos($text, 'taka') !== false || strpos($text, '৳') !== false) {
             $currency = 'BDT';
         } elseif (stripos($text, 'EUR') !== false || strpos($text, '€') !== false) {
             $currency = 'EUR';
@@ -670,6 +672,8 @@ class OraBooks_Expenses {
                 $category = 'Travel';
             } elseif (preg_match('/restaurant|cafe|meal|food/i', $text)) {
                 $category = 'Meals';
+            } elseif (preg_match('/salary|staff\s*salary|wage|payroll/i', $text)) {
+                $category = 'Salary';
             } elseif (preg_match('/software|subscription|saas/i', $text)) {
                 $category = 'Software';
             } elseif (preg_match('/paper|stationery|office|printer/i', $text)) {
