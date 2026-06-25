@@ -393,9 +393,13 @@ class OraBooks_Expenses {
             $queued_async = (bool) $job_id;
         }
 
-        // Fallback for environments where SL-303 queue worker is unavailable.
-        if (!$queued_async) {
-            self::init()->process_ocr_item_by_id($queue_id);
+        // Always attempt a best-effort immediate OCR pass so users see extracted values
+        // right after upload even when async workers/cron are delayed.
+        $processed_now = self::init()->process_ocr_item_by_id($queue_id);
+
+        // If immediate processing did not complete, async/cron will continue retries.
+        if (!$processed_now && !$queued_async) {
+            self::init()->cron_process_ocr_queue();
         }
 
         orabooks_log_event('expense_receipt_uploaded', "Receipt uploaded for expense #{$expense_id}", 'info', [
@@ -576,6 +580,9 @@ class OraBooks_Expenses {
 
         if (class_exists('OraBooks_Classification')) {
             OraBooks_Classification::request('expense', (int) $item->expense_id, (int) $item->org_id);
+            if (method_exists('OraBooks_Classification', 'run')) {
+                OraBooks_Classification::run('expense', (int) $item->expense_id, (int) $item->org_id);
+            }
         }
 
         return true;
