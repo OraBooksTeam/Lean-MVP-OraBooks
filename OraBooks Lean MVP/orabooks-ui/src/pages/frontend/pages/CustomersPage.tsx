@@ -290,7 +290,7 @@ export default function CustomersPage() {
   return (
     <ClientShell
       title="Customers"
-      eyebrow="SL-021 Accounts receivable"
+      eyebrow="Accounts receivable"
       organization={context?.organization}
       isPartner={context?.organization?.organization_type === 'partner'}
     >
@@ -298,7 +298,7 @@ export default function CustomersPage() {
         <div className="flex items-start gap-3 rounded-xl border border-sky-200 bg-sky-50/80 p-4 text-sm text-sky-900">
           <Info className="mt-0.5 h-4 w-4 shrink-0" />
           <p>
-            Manage AR customer profiles with payment terms, credit limits, and credit hold. Wallet balance shows open AR; credit balance stores overpayments per SL-021.
+            Manage AR customer profiles with payment terms, credit limits, and credit hold. Wallet balance shows open AR; credit balance stores overpayments.
           </p>
         </div>
 
