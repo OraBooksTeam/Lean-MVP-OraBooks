@@ -136,7 +136,7 @@ class OraBooks_Workflow_Integration {
      * @return true|WP_Error
      */
     private static function expense_preconditions($event, $user_id, $org_id) {
-        if ($user_id <= 0) {
+        if ($user_id <= 0 && $event !== 'lock') {
             return new WP_Error('auth_required', __('Authentication required', 'orabooks'), ['status' => 401]);
         }
 
@@ -229,10 +229,6 @@ class OraBooks_Workflow_Integration {
     private static function has_permission($user_id, $org_id, $permission) {
         if ($user_id <= 0 || $org_id <= 0) {
             return false;
-        }
-
-        if (function_exists('current_user_can') && current_user_can('manage_options')) {
-            return true;
         }
 
         return orabooks_has_permission($user_id, $org_id, $permission);
