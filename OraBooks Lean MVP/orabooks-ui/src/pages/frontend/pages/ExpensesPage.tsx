@@ -469,7 +469,6 @@ export default function ExpensesPage() {
 
             {selectedExpense.workflow_status === 'draft' && selectedExpense.ocr_confidence != null ? (
               <div className="mt-4 grid gap-4 md:grid-cols-2">
-                {(['vendor', 'invoice_number', 'transaction_date', 'total_amount', 'tax_amount', 'category'] as const).map(
                 {([
                   'vendor',
                   'vendor_tax_id',
