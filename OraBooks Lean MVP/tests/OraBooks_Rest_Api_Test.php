@@ -110,4 +110,60 @@ class OraBooks_Rest_Api_Test extends TestCase
         $this->assertInstanceOf(WP_Error::class, $result);
         $this->assertSame('not_found', $result->get_error_code());
     }
+
+    #[Test]
+    public function test_rest_enqueue_internal_job_returns_pending_job_id()
+    {
+        global $wpdb;
+
+        $request = new WP_REST_Request('POST', '/api/internal/jobs/enqueue');
+        $request->set_param('job_type', 'send_email');
+        $request->set_param('queue_name', 'default');
+        $request->set_param('payload', ['to' => 'ops@example.com', 'subject' => 'Async test']);
+        $request->set_param('priority', 2);
+        $request->set_param('max_retries', 3);
+        $request->set_param('delay_seconds', 0);
+
+        $GLOBALS['orabooks_test_current_user_id'] = 1;
+        $GLOBALS['orabooks_test_current_user_can'] = true;
+        $GLOBALS['orabooks_test_use_insert_id'] = 603;
+        $wpdb->test_get_var_callback = function () {
+            return 0;
+        };
+
+        $result = OraBooks_Rest_Api::rest_enqueue_internal_job($request);
+
+        $this->assertIsArray($result);
+        $this->assertSame(603, $result['job_id']);
+        $this->assertSame('pending', $result['status']);
+        $this->assertSame('send_email', $result['job_type']);
+    }
+
+    #[Test]
+    public function test_rest_retry_internal_job_returns_pending_on_success()
+    {
+        global $wpdb;
+
+        $request = new WP_REST_Request('POST', '/api/internal/jobs/9/retry');
+        $request->set_param('id', 9);
+
+        $GLOBALS['orabooks_test_current_user_id'] = 1;
+        $GLOBALS['orabooks_test_current_user_can'] = true;
+
+        $wpdb->test_get_row_callback = function () {
+            return (object) [
+                'id' => 9,
+                'job_type' => 'webhook_dispatch',
+                'status' => 'dead_letter',
+                'payload' => wp_json_encode(['org_id' => 1]),
+            ];
+        };
+
+        $result = OraBooks_Rest_Api::rest_retry_internal_job($request);
+
+        $this->assertIsArray($result);
+        $this->assertTrue($result['success']);
+        $this->assertSame(9, $result['job_id']);
+        $this->assertSame('pending', $result['status']);
+    }
 }
