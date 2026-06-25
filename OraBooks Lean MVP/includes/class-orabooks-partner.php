@@ -19,13 +19,9 @@ class OraBooks_Partner {
             self::$instance = new self();
             add_action('orabooks_partner_activity_check', [self::$instance, 'dispatch_partner_activity_job']);
             add_action('wp_ajax_orabooks_get_partner_info', [self::$instance, 'ajax_get_partner_info']);
-            add_action('wp_ajax_nopriv_orabooks_get_partner_info', [self::$instance, 'ajax_get_partner_info']);
             add_action('wp_ajax_orabooks_partner_onboarding', [self::$instance, 'ajax_partner_onboarding']);
-            add_action('wp_ajax_nopriv_orabooks_partner_onboarding', [self::$instance, 'ajax_partner_onboarding']);
             add_action('wp_ajax_orabooks_partner_onboarding_complete', [self::$instance, 'ajax_partner_onboarding_complete']);
-            add_action('wp_ajax_nopriv_orabooks_partner_onboarding_complete', [self::$instance, 'ajax_partner_onboarding_complete']);
             add_action('wp_ajax_orabooks_request_reactivation', [self::$instance, 'ajax_request_reactivation']);
-            add_action('wp_ajax_nopriv_orabooks_request_reactivation', [self::$instance, 'ajax_request_reactivation']);
             
             // SL-139: Partner Dashboard endpoints
             add_action('wp_ajax_orabooks_partner_dashboard', [self::$instance, 'ajax_partner_dashboard']);
@@ -33,8 +29,6 @@ class OraBooks_Partner {
             add_action('wp_ajax_orabooks_partner_attributions', [self::$instance, 'ajax_partner_attributions']);
             add_action('wp_ajax_orabooks_partner_payment_settings', [self::$instance, 'ajax_payment_settings']);
             add_action('wp_ajax_orabooks_partner_application', [self::$instance, 'ajax_partner_application']);
-            add_action('wp_ajax_nopriv_orabooks_partner_dashboard', [self::$instance, 'ajax_partner_dashboard']);
-            add_action('wp_ajax_nopriv_orabooks_partner_code_copied', [self::$instance, 'ajax_code_copied']);
             
             // SL-003: Admin partner approval / rejection
             add_action('wp_ajax_orabooks_admin_approve_partner', [self::$instance, 'ajax_admin_approve_partner']);
@@ -307,6 +301,8 @@ class OraBooks_Partner {
             'individual' => 'Individual',
             'agency' => 'Agency',
             'accountant' => 'Accountant',
+            'reseller' => 'Reseller',
+            'strategic_partner' => 'Strategic Partner',
             'consultant' => 'Consultant',
         ];
 
@@ -319,13 +315,19 @@ class OraBooks_Partner {
     }
 
     public static function get_onboarding_status_message($code_status, $org_status) {
+        if ($org_status === 'pending_setup' || $code_status === 'pending_setup' || $code_status === 'pending_review') {
+            return '⏳ Awaiting admin approval. Your code is not yet active.';
+        }
+
         if ($org_status === 'suspended' || $code_status === 'disabled') {
             return '🚫 Your code has been disabled. Contact support.';
         }
 
+        if ($org_status === 'payout_hold') {
+            return '⚠️ Payout hold: commissions are being tracked but withdrawal is temporarily disabled.';
+        }
+
         switch ($code_status) {
-            case 'pending_review':
-                return '⏳ Awaiting admin approval. Your code is not yet active.';
             case 'active':
                 return '✅ Your code is active. Share it to earn commissions.';
             case 'inactive':
@@ -974,6 +976,12 @@ class OraBooks_Partner {
             : '';
 
         orabooks_log_event('partner_onboarding_viewed', 'Partner viewed onboarding page', 'info', [
+            'partner_user_id' => $user_id,
+            'code_status' => $info['code_status'],
+            'correlation_id' => $correlation_id,
+        ], $user_id, (int) ($access->org_id ?? 0));
+
+        orabooks_log_event('partner_onboarding_started', 'Partner started onboarding', 'info', [
             'partner_user_id' => $user_id,
             'code_status' => $info['code_status'],
             'correlation_id' => $correlation_id,
