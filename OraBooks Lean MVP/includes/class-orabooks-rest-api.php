@@ -146,6 +146,12 @@ class OraBooks_Rest_Api {
             'permission_callback' => [__CLASS__, 'can_reverse_journal'],
         ]);
 
+        register_rest_route(self::NAMESPACE, '/classification/run', [
+            'methods'             => WP_REST_Server::CREATABLE,
+            'callback'            => [__CLASS__, 'rest_run_classification'],
+            'permission_callback' => [__CLASS__, 'can_view_classification'],
+        ]);
+
         register_rest_route(self::NAMESPACE, '/internal/state/transition', [
             'methods'             => WP_REST_Server::CREATABLE,
             'callback'            => [__CLASS__, 'rest_state_transition'],
@@ -340,6 +346,14 @@ class OraBooks_Rest_Api {
 
     public static function can_reverse_journal($request) {
         return !is_wp_error(self::require_org_access($request, 'reverse_journal'));
+    }
+
+    public static function can_view_classification($request) {
+        return !is_wp_error(self::require_org_access($request, 'view_reports'));
+    }
+
+    public static function can_manage_classification($request) {
+        return !is_wp_error(self::require_org_access($request, 'create_invoice'));
     }
 
     public static function rest_list_journals(WP_REST_Request $request) {
@@ -538,6 +552,48 @@ class OraBooks_Rest_Api {
         }
 
         return rest_ensure_response($result);
+    }
+
+    public static function rest_run_classification(WP_REST_Request $request) {
+        $context = self::require_org_access($request, 'view_reports');
+        if (is_wp_error($context)) {
+            return $context;
+        }
+
+        if (!class_exists('OraBooks_Classification')) {
+            return new WP_Error('unavailable', 'Classification engine unavailable.', ['status' => 503]);
+        }
+
+        $record_type = sanitize_text_field($request->get_param('record_type') ?? $request->get_param('recordType') ?? '');
+        $record_id = (int) ($request->get_param('record_id') ?? $request->get_param('recordId') ?? 0);
+        $persist = rest_sanitize_boolean($request->get_param('persist') ?? false);
+
+        if ($record_id <= 0 || $record_type === '') {
+            return new WP_Error('invalid_request', 'record_type and record_id are required.', ['status' => 422]);
+        }
+
+        if ($persist) {
+            $manage = self::require_org_access($request, 'create_invoice');
+            if (is_wp_error($manage)) {
+                return $manage;
+            }
+        }
+
+        $result = $persist
+            ? OraBooks_Classification::run($record_type, $record_id, $context['org_id'])
+            : OraBooks_Classification::preview($record_type, $record_id, $context['org_id']);
+
+        if (is_wp_error($result)) {
+            $result->add_data(['status' => 422]);
+            return $result;
+        }
+
+        return rest_ensure_response([
+            'record_type' => $record_type,
+            'record_id' => $record_id,
+            'persist' => $persist,
+            'classification' => $result,
+        ]);
     }
 
     public static function rest_list_fiscal_periods(WP_REST_Request $request) {

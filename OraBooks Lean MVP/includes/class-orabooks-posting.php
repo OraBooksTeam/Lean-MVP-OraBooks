@@ -1791,13 +1791,19 @@ class OraBooks_Posting {
     }
 
     public static function format_journal_line($line) {
-        return [
+        $formatted = [
             'id'            => (int) $line->id,
             'account_code'  => $line->account_code,
             'debit_amount'  => (float) $line->debit_amount,
             'credit_amount' => (float) $line->credit_amount,
             'description'   => $line->description,
         ];
+
+        if (class_exists('OraBooks_Classification')) {
+            $formatted['classification'] = OraBooks_Classification::format_classification($line);
+        }
+
+        return $formatted;
     }
 
     public static function format_approval_history_row($row) {

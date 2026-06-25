@@ -145,4 +145,73 @@ class OraBooks_Classification_Test extends TestCase
         $this->assertEquals('overridden', $updates[0]['classification_status']);
         $this->assertEquals('5300', $updates[0]['suggested_account_code']);
     }
+
+    #[Test]
+    public function test_request_returns_duplicate_error_with_status_409()
+    {
+        global $wpdb;
+
+        $invoice = (object) [
+            'id' => 77,
+            'org_id' => 9,
+            'description' => 'Monthly retainer invoice',
+            'total_amount' => 5000.00,
+        ];
+
+        $wpdb->test_get_row_callback = function () use ($invoice) {
+            return $invoice;
+        };
+
+        $wpdb->test_get_var_callback = function ($query) {
+            if (stripos($query, 'classification_idempotency_key') !== false) {
+                return 11;
+            }
+            return null;
+        };
+
+        $result = OraBooks_Classification::request('invoice', 77, 9, [
+            'idempotency_key' => 'dup-key-1',
+        ]);
+
+        $this->assertTrue(is_wp_error($result));
+        $this->assertEquals('duplicate', $result->get_error_code());
+        $this->assertEquals(409, (int) ($result->get_error_data()['status'] ?? 0));
+    }
+
+    #[Test]
+    public function test_preview_returns_non_persistent_classification_payload()
+    {
+        global $wpdb;
+
+        $invoice = (object) [
+            'id' => 88,
+            'org_id' => 4,
+            'description' => 'Consulting service invoice',
+            'total_amount' => 2500.00,
+        ];
+
+        $wpdb->test_get_row_callback = function () use ($invoice) {
+            return $invoice;
+        };
+
+        $wpdb->test_get_results_callback = function ($query) {
+            if (stripos($query, 'classification_rules') !== false) {
+                return [(object) [
+                    'rule_type' => 'keyword',
+                    'match_value' => 'consulting',
+                    'account_code' => '4000',
+                    'tax_jurisdiction' => 'US',
+                    'priority' => 20,
+                ]];
+            }
+            return [];
+        };
+
+        $preview = OraBooks_Classification::preview('invoice', 88, 4);
+
+        $this->assertIsArray($preview);
+        $this->assertEquals('preview', $preview['status']);
+        $this->assertEquals('4000', $preview['suggested_account_code']);
+        $this->assertArrayHasKey('tax_hints', $preview);
+    }
 }

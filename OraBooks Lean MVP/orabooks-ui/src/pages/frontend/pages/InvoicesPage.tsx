@@ -7,7 +7,7 @@ import Input from '@/components/Input';
 import { api } from '../api';
 import ClientShell from '../components/ClientShell';
 import ResourceAttachmentsPanel from '../components/ResourceAttachmentsPanel';
-import { FileText, Info, Paperclip, Percent, Plus, RefreshCw, Wallet } from 'lucide-react';
+import { FileText, Info, Paperclip, Percent, Plus, RefreshCw, Sparkles, Wallet } from 'lucide-react';
 
 type Invoice = {
   id: number;
@@ -23,6 +23,14 @@ type Invoice = {
   tax_rate?: string | number;
   tax_override_reason?: string | null;
   currency?: string;
+  classification?: {
+    status?: string;
+    suggested_account_code?: string | null;
+    account_confidence?: number | null;
+    tax_hints?: { tax_type?: string; tax_rate?: number };
+    reason?: string | null;
+    low_confidence?: boolean;
+  };
 };
 
 type Customer = { id: number; display_name?: string | null; email?: string };
@@ -45,6 +53,9 @@ export default function InvoicesPage() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [saving, setSaving] = useState(false);
+  const [classificationBusyId, setClassificationBusyId] = useState<number | null>(null);
+  const [classificationOverrideCode, setClassificationOverrideCode] = useState('');
+  const [accounts, setAccounts] = useState<Array<{ id?: number; code?: string; account_code?: string; name?: string }>>([]);
 
   const [showCreate, setShowCreate] = useState(false);
   const [createForm, setCreateForm] = useState({
@@ -110,13 +121,14 @@ export default function InvoicesPage() {
 
     const customerFilter = Number(getSearchParam('customer_id') || 0);
 
-    const [invoicesRes, taxRes, customersRes] = await Promise.all([
+    const [invoicesRes, taxRes, customersRes, coaRes] = await Promise.all([
       api.invoicesList(nextOrgId, {
         limit: 100,
         customer_id: customerFilter > 0 ? customerFilter : undefined,
       }),
       api.taxListConfigs(nextOrgId),
       api.customersList(nextOrgId, { limit: 100 }),
+      api.coaGet(nextOrgId),
     ]);
 
     if (invoicesRes.error) setError(invoicesRes.error || 'Unable to load invoices.');
@@ -129,6 +141,9 @@ export default function InvoicesPage() {
       if (customerFilter > 0) {
         setCreateForm((prev) => ({ ...prev, customer_id: String(customerFilter) }));
       }
+    }
+    if (!coaRes.error) {
+      setAccounts((coaRes as any).data?.accounts || []);
     }
 
     setLoading(false);
@@ -368,6 +383,48 @@ export default function InvoicesPage() {
     setSaving(false);
   };
 
+  const runClassification = async (invoiceId: number) => {
+    setClassificationBusyId(invoiceId);
+    setError('');
+    const res = await api.classificationRun('invoice', invoiceId, false);
+    if (res.error) setError(res.error);
+    else {
+      setSuccess('Classification updated.');
+      await load();
+    }
+    setClassificationBusyId(null);
+  };
+
+  const applyClassification = async (invoiceId: number) => {
+    setClassificationBusyId(invoiceId);
+    setError('');
+    const res = await api.classificationApply('invoice', invoiceId);
+    if (res.error) setError(res.error);
+    else {
+      setSuccess('Classification suggestions applied.');
+      await load();
+    }
+    setClassificationBusyId(null);
+  };
+
+  const overrideClassification = async (invoiceId: number) => {
+    if (!classificationOverrideCode) {
+      setError('Select an account code to override classification.');
+      return;
+    }
+
+    setClassificationBusyId(invoiceId);
+    setError('');
+    const res = await api.classificationOverride('invoice', invoiceId, classificationOverrideCode);
+    if (res.error) setError(res.error);
+    else {
+      setSuccess('Classification override applied.');
+      setClassificationOverrideCode('');
+      await load();
+    }
+    setClassificationBusyId(null);
+  };
+
   return (
     <ClientShell
       title="Invoices"
@@ -425,6 +482,67 @@ export default function InvoicesPage() {
                 resourceId={selectedInvoice.id}
                 title="Invoice files"
               />
+            </div>
+            <div className="mt-4 rounded-xl border border-primary/20 bg-primary/5 p-4">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2 text-sm font-semibold text-ink">
+                  <Sparkles className="h-4 w-4 text-primary" />
+                  AI Classification
+                </div>
+                <span className="badge border border-primary/20 bg-white text-primary">
+                  {selectedInvoice.classification?.status || 'pending'}
+                </span>
+              </div>
+              <div className="mt-3 grid gap-2 text-sm text-slate-700 md:grid-cols-2">
+                <p>
+                  <strong>Suggested account:</strong>{' '}
+                  {selectedInvoice.classification?.suggested_account_code || '—'}
+                  {selectedInvoice.classification?.account_confidence != null && (
+                    <span className="ml-2 badge border border-slate-200 bg-slate-50 text-slate-700">
+                      {Number(selectedInvoice.classification.account_confidence).toFixed(1)}%
+                    </span>
+                  )}
+                </p>
+                <p>
+                  <strong>Tax hint:</strong>{' '}
+                  {selectedInvoice.classification?.tax_hints?.tax_type
+                    ? `${selectedInvoice.classification.tax_hints.tax_type} ${selectedInvoice.classification.tax_hints.tax_rate ?? 0}%`
+                    : '—'}
+                </p>
+                {selectedInvoice.classification?.reason && (
+                  <p className="md:col-span-2 text-xs text-slate-500">{selectedInvoice.classification.reason}</p>
+                )}
+              </div>
+              {selectedInvoice.classification?.low_confidence && (
+                <p className="mt-2 text-xs font-medium text-amber-700">Low confidence. Please verify account mapping.</p>
+              )}
+              <div className="mt-3 flex flex-wrap gap-2">
+                <Button size="sm" variant="secondary" onClick={() => void runClassification(selectedInvoice.id)} disabled={classificationBusyId === selectedInvoice.id}>
+                  <RefreshCw className="h-4 w-4" />
+                  Rerun
+                </Button>
+                <Button size="sm" onClick={() => void applyClassification(selectedInvoice.id)} disabled={classificationBusyId === selectedInvoice.id || selectedInvoice.classification?.status !== 'processed'}>
+                  Apply
+                </Button>
+                <select
+                  value={classificationOverrideCode}
+                  onChange={(e) => setClassificationOverrideCode(e.target.value)}
+                  className="min-w-[220px] rounded-lg border border-border px-2 py-1.5 text-xs"
+                >
+                  <option value="">Select override account…</option>
+                  {accounts.map((a) => {
+                    const code = a.account_code || a.code || '';
+                    return (
+                      <option key={String(a.id || code)} value={code}>
+                        {code} {a.name ? `- ${a.name}` : ''}
+                      </option>
+                    );
+                  })}
+                </select>
+                <Button size="sm" variant="secondary" onClick={() => void overrideClassification(selectedInvoice.id)} disabled={classificationBusyId === selectedInvoice.id || !classificationOverrideCode}>
+                  Override
+                </Button>
+              </div>
             </div>
           </div>
         )}

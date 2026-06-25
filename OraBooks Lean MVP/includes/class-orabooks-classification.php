@@ -2,7 +2,7 @@
 /**
  * OraBooks Smart Classification & Tax Hints (SL-022)
  *
- * Rule-first + AI-stub account mapping and SL-305 tax hints for expenses/invoices.
+ * Rule-first + AI-stub account mapping and SL-305 tax hints for expenses/invoices/journal lines.
  * Suggestions only — never posts or approves. Async via SL-303, events via SL-302.
  */
 
@@ -32,6 +32,17 @@ class OraBooks_Classification {
             'org_column'    => 'org_id',
             'amount_column' => 'total_amount',
             'text_columns'  => ['description'],
+        ],
+        'journal_line' => [
+            'table'          => 'journal_lines',
+            'org_column'     => null,
+            'org_join'       => [
+                'table'      => 'journals',
+                'line_fk'    => 'journal_id',
+                'org_column' => 'org_id',
+            ],
+            'amount_columns' => ['debit_amount', 'credit_amount'],
+            'text_columns'   => ['description', 'account_code'],
         ],
     ];
 
@@ -111,21 +122,7 @@ class OraBooks_Classification {
     public static function ensure_schema() {
         global $wpdb;
 
-        $columns_sql = "
-            classification_status ENUM('pending','processed','overridden','failed') NOT NULL DEFAULT 'pending',
-            suggested_account_code VARCHAR(20) DEFAULT NULL,
-            suggested_account_id BIGINT UNSIGNED DEFAULT NULL,
-            account_confidence DECIMAL(5,2) DEFAULT NULL,
-            tax_hints JSON DEFAULT NULL,
-            classification_risk_score JSON DEFAULT NULL,
-            classification_model_version VARCHAR(20) DEFAULT NULL,
-            tax_engine_version VARCHAR(20) DEFAULT NULL,
-            classification_idempotency_key VARCHAR(128) DEFAULT NULL,
-            classification_reason TEXT DEFAULT NULL,
-            last_classified_at TIMESTAMP NULL DEFAULT NULL
-        ";
-
-        foreach (['expenses', 'invoices'] as $base_table) {
+        foreach (['expenses', 'invoices', 'journal_lines'] as $base_table) {
             $table = OraBooks_Database::table($base_table);
             $existing = $wpdb->get_results("SHOW COLUMNS FROM {$table}");
             $fields = array_map(function ($col) {
@@ -133,7 +130,11 @@ class OraBooks_Classification {
             }, $existing ?: []);
 
             if (!in_array('classification_status', $fields, true)) {
-                $wpdb->query("ALTER TABLE {$table} ADD COLUMN classification_status ENUM('pending','processed','overridden','failed') NOT NULL DEFAULT 'pending' AFTER updated_at");
+                if (in_array('updated_at', $fields, true)) {
+                    $wpdb->query("ALTER TABLE {$table} ADD COLUMN classification_status ENUM('pending','processed','overridden','failed') NOT NULL DEFAULT 'pending' AFTER updated_at");
+                } else {
+                    $wpdb->query("ALTER TABLE {$table} ADD COLUMN classification_status ENUM('pending','processed','overridden','failed') NOT NULL DEFAULT 'pending'");
+                }
             }
             if (!in_array('suggested_account_code', $fields, true)) {
                 $wpdb->query("ALTER TABLE {$table} ADD COLUMN suggested_account_code VARCHAR(20) DEFAULT NULL");
@@ -167,12 +168,24 @@ class OraBooks_Classification {
             }
 
             $indexes = $wpdb->get_results("SHOW INDEX FROM {$table}");
-            $index_names = array_map(function ($idx) {
-                return $idx->Key_name;
-            }, $indexes ?: []);
+            $index_map = [];
+            foreach ($indexes ?: [] as $idx) {
+                $index_map[$idx->Key_name] = (int) $idx->Non_unique;
+            }
 
-            if (!in_array('idx_org_classification_idempotency', $index_names, true)) {
-                $wpdb->query("ALTER TABLE {$table} ADD INDEX idx_org_classification_idempotency (org_id, classification_idempotency_key)");
+            if ($base_table === 'journal_lines') {
+                if (!isset($index_map['uk_journal_classification_idempotency'])) {
+                    $wpdb->query("ALTER TABLE {$table} ADD UNIQUE KEY uk_journal_classification_idempotency (journal_id, classification_idempotency_key)");
+                }
+                continue;
+            }
+
+            if (isset($index_map['idx_org_classification_idempotency']) && (int) $index_map['idx_org_classification_idempotency'] === 1) {
+                $wpdb->query("ALTER TABLE {$table} DROP INDEX idx_org_classification_idempotency");
+            }
+
+            if (!isset($index_map['uk_org_classification_idempotency'])) {
+                $wpdb->query("ALTER TABLE {$table} ADD UNIQUE KEY uk_org_classification_idempotency (org_id, classification_idempotency_key)");
             }
         }
     }
@@ -232,29 +245,41 @@ class OraBooks_Classification {
         $map = self::$record_types[$record_type];
         $table = OraBooks_Database::table($map['table']);
 
-        $duplicate = $wpdb->get_var($wpdb->prepare(
-            "SELECT id FROM {$table}
-             WHERE org_id = %d AND classification_idempotency_key = %s
-               AND id != %d AND classification_status IN ('pending','processed')",
-            $org_id,
-            $idempotency_key,
-            $record_id
-        ));
+        if (self::uses_org_join($map)) {
+            $join_table = OraBooks_Database::table($map['org_join']['table']);
+            $line_fk = $map['org_join']['line_fk'];
+            $join_org_column = $map['org_join']['org_column'];
+            $duplicate = $wpdb->get_var($wpdb->prepare(
+                "SELECT t.id
+                   FROM {$table} t
+                   INNER JOIN {$join_table} j ON j.id = t.{$line_fk}
+                  WHERE j.{$join_org_column} = %d
+                    AND t.classification_idempotency_key = %s
+                    AND t.id != %d
+                    AND t.classification_status IN ('pending','processed')",
+                $org_id,
+                $idempotency_key,
+                $record_id
+            ));
+        } else {
+            $duplicate = $wpdb->get_var($wpdb->prepare(
+                "SELECT id FROM {$table}
+                 WHERE org_id = %d AND classification_idempotency_key = %s
+                   AND id != %d AND classification_status IN ('pending','processed')",
+                $org_id,
+                $idempotency_key,
+                $record_id
+            ));
+        }
 
         if ($duplicate) {
             return new WP_Error('duplicate', __('Classification already requested for this content hash', 'orabooks'), ['status' => 409]);
         }
 
-        $wpdb->update(
-            $table,
-            [
-                'classification_status'          => 'pending',
-                'classification_idempotency_key' => $idempotency_key,
-            ],
-            ['id' => $record_id, 'org_id' => $org_id],
-            ['%s', '%s'],
-            ['%d', '%d']
-        );
+        self::update_classification_fields($map, $record_id, $org_id, [
+            'classification_status'          => 'pending',
+            'classification_idempotency_key' => $idempotency_key,
+        ], ['%s', '%s']);
 
         $payload = [
             'record_type'     => $record_type,
@@ -280,13 +305,18 @@ class OraBooks_Classification {
     }
 
     public static function handle_async_job($job, $payload) {
+        $record_type = sanitize_text_field($payload['record_type'] ?? '');
+        $record_id = (int) ($payload['record_id'] ?? 0);
+        $org_id = (int) ($payload['org_id'] ?? 0);
+
         $result = self::run(
-            sanitize_text_field($payload['record_type'] ?? ''),
-            (int) ($payload['record_id'] ?? 0),
-            (int) ($payload['org_id'] ?? 0)
+            $record_type,
+            $record_id,
+            $org_id
         );
 
         if (is_wp_error($result)) {
+            self::mark_failed($record_type, $record_id, $org_id, $result->get_error_message());
             return $result->get_error_message();
         }
 
@@ -315,7 +345,7 @@ class OraBooks_Classification {
         $map = self::$record_types[$record_type];
         $table = OraBooks_Database::table($map['table']);
         $text = self::extract_text($record, $map['text_columns']);
-        $amount = (float) ($record->{$map['amount_column']} ?? 0);
+        $amount = self::resolve_amount($record, $map);
 
         $rule_result = self::match_rules($org_id, $record, $text);
         $use_rules = (bool) get_option('orabooks_rule_precedence_over_ai', 1);
@@ -327,6 +357,16 @@ class OraBooks_Classification {
             if ($rule_result && !$use_rules) {
                 $suggestion['rule_match'] = $rule_result;
             }
+        }
+
+        if (empty($suggestion['account_code'])) {
+            self::update_classification_fields($map, $record_id, $org_id, [
+                'classification_status' => 'failed',
+                'classification_reason' => 'Unable to generate classification suggestion',
+                'last_classified_at'    => current_time('mysql', true),
+            ], ['%s', '%s', '%s']);
+
+            return new WP_Error('classification_failed', __('Classification failed', 'orabooks'));
         }
 
         $jurisdiction = $suggestion['tax_jurisdiction'] ?? 'US';
@@ -342,8 +382,10 @@ class OraBooks_Classification {
             'score' => max(0, 100 - (float) $suggestion['confidence']),
         ];
 
-        $wpdb->update(
-            $table,
+        self::update_classification_fields(
+            $map,
+            $record_id,
+            $org_id,
             [
                 'classification_status'          => 'processed',
                 'suggested_account_code'         => $suggestion['account_code'],
@@ -353,12 +395,10 @@ class OraBooks_Classification {
                 'classification_risk_score'      => wp_json_encode($risk_score),
                 'classification_model_version'   => $suggestion['model_version'] ?? OraBooks_Ai_Providers::model_version('classification'),
                 'tax_engine_version'             => self::TAX_ENGINE_VERSION,
-                'classification_reason'            => $suggestion['reason'],
+                'classification_reason'          => $suggestion['reason'],
                 'last_classified_at'             => current_time('mysql', true),
             ],
-            ['id' => $record_id, 'org_id' => $org_id],
-            ['%s', '%s', '%d', '%f', '%s', '%s', '%s', '%s', '%s', '%s'],
-            ['%d', '%d']
+            ['%s', '%s', '%d', '%f', '%s', '%s', '%s', '%s', '%s', '%s']
         );
 
         orabooks_log_event('classification_suggested', sprintf(
@@ -408,6 +448,60 @@ class OraBooks_Classification {
         ]));
     }
 
+    public static function preview($record_type, $record_id, $org_id) {
+        $record_type = sanitize_text_field($record_type);
+        $record_id = (int) $record_id;
+        $org_id = (int) $org_id;
+
+        if (!isset(self::$record_types[$record_type])) {
+            return new WP_Error('invalid_type', __('Unknown record type', 'orabooks'));
+        }
+
+        $record = self::get_record($record_type, $record_id, $org_id);
+        if (!$record) {
+            return new WP_Error('not_found', __('Record not found', 'orabooks'));
+        }
+
+        $map = self::$record_types[$record_type];
+        $text = self::extract_text($record, $map['text_columns']);
+        $amount = self::resolve_amount($record, $map);
+
+        $rule_result = self::match_rules($org_id, $record, $text);
+        $use_rules = (bool) get_option('orabooks_rule_precedence_over_ai', 1);
+
+        if ($use_rules && $rule_result) {
+            $suggestion = $rule_result;
+        } else {
+            $suggestion = OraBooks_Ai_Providers::classify_record($record_type, $record, $text, $amount, $org_id);
+            if ($rule_result && !$use_rules) {
+                $suggestion['rule_match'] = $rule_result;
+            }
+        }
+
+        if (empty($suggestion['account_code'])) {
+            return new WP_Error('classification_failed', __('Classification failed', 'orabooks'));
+        }
+
+        $tax_hints = self::build_tax_hints($org_id, $amount, $suggestion['tax_jurisdiction'] ?? 'US');
+        $risk_score = [
+            'level' => $suggestion['confidence'] < self::CONFIDENCE_THRESHOLD ? 'medium' : 'low',
+            'score' => max(0, 100 - (float) $suggestion['confidence']),
+        ];
+
+        return [
+            'status'                 => 'preview',
+            'suggested_account_code' => $suggestion['account_code'],
+            'account_confidence'     => (float) $suggestion['confidence'],
+            'tax_hints'              => $tax_hints,
+            'risk_score'             => $risk_score,
+            'model_version'          => $suggestion['model_version'] ?? OraBooks_Ai_Providers::model_version('classification'),
+            'tax_engine_version'     => self::TAX_ENGINE_VERSION,
+            'reason'                 => $suggestion['reason'] ?? null,
+            'last_classified_at'     => null,
+            'low_confidence'         => (float) $suggestion['confidence'] < self::CONFIDENCE_THRESHOLD,
+        ];
+    }
+
     public static function apply_suggestions($record_type, $record_id, $org_id, $user_id) {
         $record = self::get_record($record_type, $record_id, $org_id);
         if (!$record) {
@@ -436,6 +530,41 @@ class OraBooks_Classification {
             }
         }
 
+        if ($record_type === 'journal_line') {
+            if (empty($record->suggested_account_code)) {
+                return new WP_Error('not_ready', __('No suggested account available', 'orabooks'));
+            }
+
+            if (class_exists('OraBooks_Posting')) {
+                $journal = OraBooks_Posting::get_journal((int) ($record->journal_id ?? 0), (int) $org_id);
+                if ($journal && $journal->status !== 'draft') {
+                    return new WP_Error('invalid_status', __('Only draft journal lines can be updated', 'orabooks'));
+                }
+            }
+
+            global $wpdb;
+            $line_table = OraBooks_Database::table('journal_lines');
+            $account = class_exists('OraBooks_COA')
+                ? OraBooks_COA::get_account_by_code((int) $org_id, (string) $record->suggested_account_code)
+                : null;
+            if (!$account) {
+                return new WP_Error('invalid_account', __('Suggested account not found', 'orabooks'));
+            }
+
+            $wpdb->update(
+                $line_table,
+                [
+                    'account_code' => (string) $record->suggested_account_code,
+                    'account_id'   => (int) $account->id,
+                ],
+                ['id' => (int) $record_id],
+                ['%s', '%d'],
+                ['%d']
+            );
+
+            $updates['account_code'] = (string) $record->suggested_account_code;
+        }
+
         if ($record_type === 'invoice' && !empty($tax_hints['tax_rate'])) {
             global $wpdb;
             $table = OraBooks_Database::table('invoices');
@@ -458,12 +587,17 @@ class OraBooks_Classification {
         if (!empty($updates)) {
             global $wpdb;
             $map = self::$record_types[$record_type];
+            $where = self::uses_org_join($map)
+                ? ['id' => (int) $record_id]
+                : ['id' => (int) $record_id, 'org_id' => (int) $org_id];
+            $where_formats = self::uses_org_join($map) ? ['%d'] : ['%d', '%d'];
+
             $wpdb->update(
                 OraBooks_Database::table($map['table']),
                 $updates,
-                ['id' => (int) $record_id, 'org_id' => (int) $org_id],
+                $where,
                 array_fill(0, count($updates), '%s'),
-                ['%d', '%d']
+                $where_formats
             );
         }
 
@@ -490,19 +624,39 @@ class OraBooks_Classification {
         $map = self::$record_types[$record_type];
         $table = OraBooks_Database::table($map['table']);
 
-        $wpdb->update(
-            $table,
+        self::update_classification_fields(
+            $map,
+            $record_id,
+            $org_id,
             [
                 'classification_status'  => 'overridden',
                 'suggested_account_code' => $account_code,
                 'suggested_account_id'   => $account ? (int) $account->id : null,
             ],
-            ['id' => (int) $record_id, 'org_id' => (int) $org_id],
-            ['%s', '%s', '%d'],
-            ['%d', '%d']
+            ['%s', '%s', '%d']
         );
 
-        if ($tax_rate !== null && $record_type === 'expense') {
+        if ($record_type === 'journal_line' && $account) {
+            if (class_exists('OraBooks_Posting')) {
+                $journal = OraBooks_Posting::get_journal((int) ($record->journal_id ?? 0), (int) $org_id);
+                if ($journal && $journal->status !== 'draft') {
+                    return new WP_Error('invalid_status', __('Only draft journal lines can be updated', 'orabooks'));
+                }
+            }
+
+            $wpdb->update(
+                $table,
+                [
+                    'account_code' => $account_code,
+                    'account_id'   => (int) $account->id,
+                ],
+                ['id' => (int) $record_id],
+                ['%s', '%d'],
+                ['%d']
+            );
+        }
+
+        if ($tax_rate !== null && ($record_type === 'expense' || $record_type === 'invoice')) {
             $wpdb->update(
                 $table,
                 ['tax_rate' => (float) $tax_rate],
@@ -644,6 +798,22 @@ class OraBooks_Classification {
         }
 
         $table = OraBooks_Database::table($map['table']);
+
+        if (self::uses_org_join($map)) {
+            $join_table = OraBooks_Database::table($map['org_join']['table']);
+            $line_fk = $map['org_join']['line_fk'];
+            $join_org_column = $map['org_join']['org_column'];
+
+            return $wpdb->get_row($wpdb->prepare(
+                "SELECT t.*, j.{$join_org_column} AS org_id
+                   FROM {$table} t
+                   INNER JOIN {$join_table} j ON j.id = t.{$line_fk}
+                  WHERE t.id = %d AND j.{$join_org_column} = %d",
+                (int) $record_id,
+                (int) $org_id
+            ));
+        }
+
         return $wpdb->get_row($wpdb->prepare(
             "SELECT * FROM {$table} WHERE id = %d AND {$map['org_column']} = %d",
             (int) $record_id,
@@ -798,8 +968,70 @@ class OraBooks_Classification {
         foreach ($map['text_columns'] as $column) {
             $parts[] = (string) ($record->{$column} ?? '');
         }
-        $parts[] = (string) ($record->{$map['amount_column']} ?? '');
+        $parts[] = (string) self::resolve_amount($record, $map);
         return substr(hash('sha256', implode('|', $parts)), 0, 64);
+    }
+
+    private static function uses_org_join($map) {
+        return !empty($map['org_join']) && is_array($map['org_join']);
+    }
+
+    private static function resolve_amount($record, $map) {
+        if (!empty($map['amount_column'])) {
+            return (float) ($record->{$map['amount_column']} ?? 0);
+        }
+
+        if (!empty($map['amount_columns']) && is_array($map['amount_columns'])) {
+            $total = 0.0;
+            foreach ($map['amount_columns'] as $column) {
+                $total += (float) ($record->{$column} ?? 0);
+            }
+            return $total;
+        }
+
+        return 0.0;
+    }
+
+    private static function update_classification_fields($map, $record_id, $org_id, $data, $data_formats) {
+        global $wpdb;
+
+        $table = OraBooks_Database::table($map['table']);
+        if (self::uses_org_join($map)) {
+            return $wpdb->update(
+                $table,
+                $data,
+                ['id' => (int) $record_id],
+                $data_formats,
+                ['%d']
+            );
+        }
+
+        return $wpdb->update(
+            $table,
+            $data,
+            ['id' => (int) $record_id, 'org_id' => (int) $org_id],
+            $data_formats,
+            ['%d', '%d']
+        );
+    }
+
+    private static function mark_failed($record_type, $record_id, $org_id, $reason) {
+        if (!isset(self::$record_types[$record_type])) {
+            return;
+        }
+
+        $map = self::$record_types[$record_type];
+        self::update_classification_fields(
+            $map,
+            (int) $record_id,
+            (int) $org_id,
+            [
+                'classification_status' => 'failed',
+                'classification_reason' => sanitize_text_field($reason),
+                'last_classified_at'    => current_time('mysql', true),
+            ],
+            ['%s', '%s', '%s']
+        );
     }
 
     private static function account_code_to_category($code) {

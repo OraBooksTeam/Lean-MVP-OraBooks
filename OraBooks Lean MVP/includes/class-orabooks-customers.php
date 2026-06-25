@@ -1624,6 +1624,10 @@ class OraBooks_Customers {
             $invoice_id
         ));
 
+        if (class_exists('OraBooks_Classification')) {
+            $invoice->classification = OraBooks_Classification::format_classification($invoice);
+        }
+
         return $invoice;
     }
 
@@ -1694,6 +1698,12 @@ class OraBooks_Customers {
         $params[] = $offset;
 
         $results = $wpdb->get_results($wpdb->prepare($sql, $params));
+
+        if (class_exists('OraBooks_Classification') && !empty($results)) {
+            foreach ($results as $row) {
+                $row->classification = OraBooks_Classification::format_classification($row);
+            }
+        }
 
         // Total count
         $count_params = array_slice($params, 0, count($params) - 2);

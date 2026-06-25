@@ -15,6 +15,7 @@
     { "name": "Fiscal", "description": "SL-304 fiscal period governance" },
     { "name": "Journals", "description": "SL-001 canonical posting and journal workflow" },
     { "name": "Expenses", "description": "SL-028 receipt OCR and expense workflow" },
+    { "name": "Classification", "description": "SL-022 AI classification suggestions and tax hints" },
     { "name": "PWA", "description": "Progressive Web App metadata" },
     { "name": "Auth", "description": "SL-013 two-factor authentication" }
   ],
@@ -263,6 +264,35 @@
         "responses": {
           "200": { "description": "Posted and locked" },
           "409": { "description": "Invalid status or fiscal closed" }
+        }
+      }
+    },
+    "/classification/run": {
+      "post": {
+        "tags": ["Classification"],
+        "summary": "Run transaction classification preview or persistent update",
+        "parameters": [
+          { "in": "query", "name": "org_id", "required": true, "schema": { "type": "integer" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["record_type", "record_id"],
+                "properties": {
+                  "record_type": { "type": "string", "enum": ["expense", "invoice", "journal_line"] },
+                  "record_id": { "type": "integer" },
+                  "persist": { "type": "boolean", "default": false }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Classification response" },
+          "422": { "description": "Invalid request or classification failure" }
         }
       }
     },
