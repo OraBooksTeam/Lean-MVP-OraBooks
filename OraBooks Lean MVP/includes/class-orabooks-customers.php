@@ -1359,6 +1359,15 @@ class OraBooks_Customers {
             return $credit_check;
         }
 
+        $tax_amount = round(floatval($invoice->tax_amount ?? 0), 2);
+        if ($tax_amount > 0 && class_exists('OraBooks_Tax')) {
+            $tax_type = sanitize_text_field($invoice->tax_type ?? 'Sales Tax');
+            $account_check = OraBooks_Tax::validate_tax_posting_accounts($org_id, $tax_type);
+            if (is_wp_error($account_check)) {
+                return $account_check;
+            }
+        }
+
         $journal_id = self::create_invoice_journal($invoice, $user_id);
         if (is_wp_error($journal_id)) {
             return $journal_id;
