@@ -1193,4 +1193,154 @@ class OraBooks_Rest_Api {
 
         return rest_ensure_response($result);
     }
+
+    public static function can_calculate_tax($request) {
+        $context = self::require_org_access($request, 'create_invoice');
+        return is_wp_error($context) ? $context : true;
+    }
+
+    public static function can_manage_tax_config($request) {
+        $context = self::require_org_access($request, 'manage_org_settings');
+        return is_wp_error($context) ? $context : true;
+    }
+
+    public static function can_submit_tax_snapshot($request) {
+        $context = self::require_org_access($request, 'submit_transaction');
+        return is_wp_error($context) ? $context : true;
+    }
+
+    public static function rest_tax_calculate(WP_REST_Request $request) {
+        if (!class_exists('OraBooks_Tax')) {
+            return new WP_Error('tax_unavailable', 'Tax engine unavailable.', ['status' => 503]);
+        }
+
+        $context = self::require_org_access($request, 'create_invoice');
+        if (is_wp_error($context)) {
+            return $context;
+        }
+
+        $payload = [
+            'org_id' => $context['org_id'],
+            'amount' => $request->get_param('amount'),
+            'jurisdiction' => $request->get_param('jurisdiction'),
+            'billing_address' => $request->get_param('billing_address'),
+            'customer_tax_status' => $request->get_param('customer_tax_status'),
+            'product_type' => $request->get_param('product_type'),
+            'validate_posting_accounts' => rest_sanitize_boolean($request->get_param('validate_posting_accounts') ?? false),
+        ];
+
+        $result = OraBooks_Tax::calculate($payload);
+        if (is_wp_error($result)) {
+            $result->add_data(['status' => 400]);
+            return $result;
+        }
+
+        return rest_ensure_response($result);
+    }
+
+    public static function rest_tax_snapshot(WP_REST_Request $request) {
+        if (!class_exists('OraBooks_Tax')) {
+            return new WP_Error('tax_unavailable', 'Tax engine unavailable.', ['status' => 503]);
+        }
+
+        $context = self::require_org_access($request, 'submit_transaction');
+        if (is_wp_error($context)) {
+            return $context;
+        }
+
+        $payload = [
+            'org_id' => $context['org_id'],
+            'transaction_id' => (int) $request->get_param('transaction_id'),
+            'transaction_type' => sanitize_text_field($request->get_param('transaction_type') ?? ''),
+            'amount' => $request->get_param('amount'),
+            'jurisdiction' => $request->get_param('jurisdiction'),
+            'transaction_date' => $request->get_param('transaction_date'),
+            'tax_type' => $request->get_param('tax_type'),
+            'override' => rest_sanitize_boolean($request->get_param('override') ?? false),
+            'override_tax_rate' => $request->get_param('override_tax_rate'),
+            'override_reason' => $request->get_param('override_reason'),
+            'override_note' => $request->get_param('override_note'),
+            'metadata' => $request->get_param('metadata'),
+        ];
+
+        $result = OraBooks_Tax::create_snapshot($payload, $context['user_id']);
+        if (is_wp_error($result)) {
+            $result->add_data(['status' => 409]);
+            return $result;
+        }
+
+        return rest_ensure_response($result);
+    }
+
+    public static function rest_tax_list_configs(WP_REST_Request $request) {
+        if (!class_exists('OraBooks_Tax')) {
+            return new WP_Error('tax_unavailable', 'Tax engine unavailable.', ['status' => 503]);
+        }
+
+        $context = self::require_org_access($request, 'manage_org_settings');
+        if (is_wp_error($context)) {
+            return $context;
+        }
+
+        return rest_ensure_response([
+            'configs' => OraBooks_Tax::list_configs($context['org_id']),
+            'override_reasons' => OraBooks_Tax::DEFAULT_OVERRIDE_REASONS,
+            'lock_status' => OraBooks_Tax::get_lock_status($context['org_id']),
+        ]);
+    }
+
+    public static function rest_tax_save_config(WP_REST_Request $request) {
+        if (!class_exists('OraBooks_Tax')) {
+            return new WP_Error('tax_unavailable', 'Tax engine unavailable.', ['status' => 503]);
+        }
+
+        $context = self::require_org_access($request, 'manage_org_settings');
+        if (is_wp_error($context)) {
+            return $context;
+        }
+
+        $result = OraBooks_Tax::save_config($context['org_id'], [
+            'jurisdiction' => $request->get_param('jurisdiction'),
+            'default_tax_rate' => $request->get_param('default_tax_rate'),
+            'tax_type' => $request->get_param('tax_type'),
+            'is_active' => $request->get_param('is_active'),
+            'exemption_certificate_url' => $request->get_param('exemption_certificate_url'),
+            'override_reasons' => $request->get_param('override_reasons'),
+            'transaction_date' => $request->get_param('transaction_date'),
+        ], $context['user_id']);
+
+        if (is_wp_error($result)) {
+            $result->add_data(['status' => 400]);
+            return $result;
+        }
+
+        return rest_ensure_response(['config' => OraBooks_Tax::format_config($result)]);
+    }
+
+    public static function rest_tax_list_jurisdictions(WP_REST_Request $request) {
+        if (!class_exists('OraBooks_Tax')) {
+            return new WP_Error('tax_unavailable', 'Tax engine unavailable.', ['status' => 503]);
+        }
+
+        $context = self::require_org_access($request, 'create_invoice');
+        if (is_wp_error($context)) {
+            return $context;
+        }
+
+        return rest_ensure_response(['jurisdictions' => OraBooks_Tax::list_jurisdictions()]);
+    }
+
+    public static function rest_tax_lock_status(WP_REST_Request $request) {
+        if (!class_exists('OraBooks_Tax')) {
+            return new WP_Error('tax_unavailable', 'Tax engine unavailable.', ['status' => 503]);
+        }
+
+        $context = self::require_org_access($request, 'manage_org_settings');
+        if (is_wp_error($context)) {
+            return $context;
+        }
+
+        $date = sanitize_text_field($request->get_param('transaction_date') ?? '');
+        return rest_ensure_response(OraBooks_Tax::get_lock_status($context['org_id'], $date ?: null));
+    }
 }
