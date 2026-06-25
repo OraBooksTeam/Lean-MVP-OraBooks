@@ -1020,6 +1020,7 @@ class OraBooks_Auth_Test extends TestCase
     {
         global $wpdb;
 
+        $before_log_count = count($GLOBALS['orabooks_test_log_events'] ?? []);
         $updates = [];
         $wpdb->test_update_callback = function ($table, $data, $where) use (&$updates) {
             $updates[] = [$table, $data, $where];
@@ -1041,8 +1042,10 @@ class OraBooks_Auth_Test extends TestCase
         }));
 
         $this->assertCount(1, $matching_updates);
-        $this->assertNotEmpty($GLOBALS['orabooks_test_log_events']);
-        $this->assertSame('wp_user_activated', $GLOBALS['orabooks_test_log_events'][0]['event_type']);
+        $new_logs = array_slice($GLOBALS['orabooks_test_log_events'] ?? [], $before_log_count);
+        $this->assertNotEmpty($new_logs);
+        $events = array_map(static function ($row) { return $row['event_type'] ?? ''; }, $new_logs);
+        $this->assertContains('wp_user_activated', $events);
     }
 
     #[Test]
@@ -1050,6 +1053,7 @@ class OraBooks_Auth_Test extends TestCase
     {
         global $wpdb;
 
+        $before_log_count = count($GLOBALS['orabooks_test_log_events'] ?? []);
         $updates = [];
         $wpdb->test_update_callback = function ($table, $data, $where) use (&$updates) {
             $updates[] = [$table, $data, $where];
@@ -1071,8 +1075,10 @@ class OraBooks_Auth_Test extends TestCase
         }));
 
         $this->assertCount(1, $matching_updates);
-        $this->assertNotEmpty($GLOBALS['orabooks_test_log_events']);
-        $this->assertSame('wp_user_activated', $GLOBALS['orabooks_test_log_events'][0]['event_type']);
+        $new_logs = array_slice($GLOBALS['orabooks_test_log_events'] ?? [], $before_log_count);
+        $this->assertNotEmpty($new_logs);
+        $events = array_map(static function ($row) { return $row['event_type'] ?? ''; }, $new_logs);
+        $this->assertContains('wp_user_activated', $events);
     }
 
     #[Test]
@@ -1080,6 +1086,7 @@ class OraBooks_Auth_Test extends TestCase
     {
         global $wpdb;
 
+        $before_log_count = count($GLOBALS['orabooks_test_log_events'] ?? []);
         $updates = [];
         $wpdb->test_update_callback = function ($table, $data, $where) use (&$updates) {
             $updates[] = [$table, $data, $where];
@@ -1090,7 +1097,8 @@ class OraBooks_Auth_Test extends TestCase
         $auth->handle_multisite_user_activation(777, 'unused-password', []);
 
         $this->assertCount(0, $updates);
-        $this->assertCount(0, $GLOBALS['orabooks_test_log_events']);
+        $new_logs = array_slice($GLOBALS['orabooks_test_log_events'] ?? [], $before_log_count);
+        $this->assertCount(0, $new_logs);
     }
 
     // ================================================================
