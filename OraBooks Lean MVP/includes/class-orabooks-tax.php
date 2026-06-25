@@ -608,6 +608,66 @@ class OraBooks_Tax {
         return self::create_snapshot($payload, $user_id);
     }
 
+    /**
+     * Create or return an immutable tax snapshot for a posted journal (SL-305 §5.3).
+     */
+    public static function snapshot_for_journal($journal, $lines, $user_id = null) {
+        if (!$journal || !is_array($lines)) {
+            return null;
+        }
+
+        $tax_amount = 0.0;
+        foreach ($lines as $line) {
+            $code = isset($line->account_code) ? (string) $line->account_code : '';
+            if (!in_array($code, self::TAX_LINE_ACCOUNT_CODES, true)) {
+                continue;
+            }
+            if ($code === '2100') {
+                $tax_amount += max(0, floatval($line->credit_amount ?? 0) - floatval($line->debit_amount ?? 0));
+            } else {
+                $tax_amount += max(0, floatval($line->debit_amount ?? 0) - floatval($line->credit_amount ?? 0));
+            }
+        }
+
+        $tax_amount = round($tax_amount, 2);
+        if ($tax_amount <= 0) {
+            return null;
+        }
+
+        $metadata = [];
+        if (!empty($journal->metadata)) {
+            $decoded = json_decode($journal->metadata, true);
+            if (is_array($decoded)) {
+                $metadata = $decoded;
+            }
+        }
+
+        $total = round(floatval($journal->total_amount ?? 0), 2);
+        $taxable_amount = max(0, round($total - $tax_amount, 2));
+        if ($taxable_amount <= 0 && $total > 0) {
+            $taxable_amount = $total;
+        }
+
+        $jurisdiction = sanitize_text_field($metadata['tax_jurisdiction'] ?? self::resolve_jurisdiction($metadata));
+        $tax_type = sanitize_text_field($metadata['tax_type'] ?? 'Sales Tax');
+        $tax_rate = $taxable_amount > 0 ? round(($tax_amount / $taxable_amount) * 100, 4) : 0.0;
+
+        return self::create_snapshot([
+            'org_id' => (int) $journal->org_id,
+            'transaction_id' => (int) $journal->id,
+            'transaction_type' => 'journal',
+            'amount' => $taxable_amount,
+            'tax_rate' => $tax_rate,
+            'tax_amount' => $tax_amount,
+            'jurisdiction' => $jurisdiction,
+            'tax_type' => $tax_type,
+            'transaction_date' => $journal->transaction_date ?? current_time('Y-m-d'),
+            'posted_tax' => true,
+            'rule_id' => 'journal_posted',
+            'metadata' => array_merge($metadata, ['journal_number' => $journal->journal_number ?? null]),
+        ], $user_id);
+    }
+
     public static function list_snapshots($org_id, $limit = 25) {
         global $wpdb;
         self::maybe_ensure_tax_schema();
@@ -790,6 +850,24 @@ class OraBooks_Tax {
         }
 
         return ['default_rate' => 0.0, 'tax_type' => 'Sales Tax'];
+    }
+
+    private static function build_posted_tax_calculation($data) {
+        $org_id = intval($data['org_id'] ?? 0);
+        $amount = round(floatval($data['amount'] ?? 0), 2);
+        $jurisdiction = self::resolve_jurisdiction($data);
+        $tax_rate = round(floatval($data['tax_rate'] ?? 0), 4);
+        $tax_amount = round(floatval($data['tax_amount'] ?? ($amount * ($tax_rate / 100))), 2);
+
+        return [
+            'org_id' => $org_id,
+            'taxable_amount' => $amount,
+            'tax_rate' => $tax_rate,
+            'tax_amount' => $tax_amount,
+            'jurisdiction_applied' => $jurisdiction,
+            'tax_type' => sanitize_text_field($data['tax_type'] ?? 'Sales Tax'),
+            'rule_id' => sanitize_text_field($data['rule_id'] ?? 'journal_posted'),
+        ];
     }
 
     private static function build_override_calculation($data) {
