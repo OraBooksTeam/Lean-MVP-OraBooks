@@ -1186,7 +1186,34 @@ if (!class_exists('OraBooks_Organization', false)) {
                 "SELECT * FROM {$table} WHERE id = %d",
                 (int) $org_id
             ));
-            if ($from_db) {
+            if ($from_db && (
+                isset($from_db->organization_type)
+                || isset($from_db->status)
+                || isset($from_db->subdomain)
+                || isset($from_db->name)
+            )) {
+                if (!isset($from_db->id)) {
+                    $from_db->id = (int) $org_id;
+                }
+                if (!isset($from_db->owner_id)) {
+                    $from_db->owner_id = 1;
+                }
+                if (!isset($from_db->organization_type)) {
+                    $from_db->organization_type = 'customer';
+                }
+                if (!isset($from_db->tier)) {
+                    $from_db->tier = 'free';
+                }
+                if (!isset($from_db->subdomain)) {
+                    $from_db->subdomain = 'testorg';
+                }
+                if (!isset($from_db->status)) {
+                    $from_db->status = 'active';
+                }
+                if (!isset($from_db->name)) {
+                    $from_db->name = 'Test Customer Org';
+                }
+
                 return $from_db;
             }
 
