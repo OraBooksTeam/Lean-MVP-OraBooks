@@ -18,29 +18,17 @@ class OraBooks_Vendors {
         if (self::$instance === null) {
             self::$instance = new self();
             add_action('wp_ajax_orabooks_vendors_list', [self::$instance, 'ajax_vendors_list']);
-            add_action('wp_ajax_nopriv_orabooks_vendors_list', [self::$instance, 'ajax_vendors_list']);
             add_action('wp_ajax_orabooks_vendor_create', [self::$instance, 'ajax_vendor_create']);
-            add_action('wp_ajax_nopriv_orabooks_vendor_create', [self::$instance, 'ajax_vendor_create']);
             add_action('wp_ajax_orabooks_vendor_update', [self::$instance, 'ajax_vendor_update']);
-            add_action('wp_ajax_nopriv_orabooks_vendor_update', [self::$instance, 'ajax_vendor_update']);
             add_action('wp_ajax_orabooks_bills_list', [self::$instance, 'ajax_bills_list']);
-            add_action('wp_ajax_nopriv_orabooks_bills_list', [self::$instance, 'ajax_bills_list']);
             add_action('wp_ajax_orabooks_bill_create', [self::$instance, 'ajax_bill_create']);
-            add_action('wp_ajax_nopriv_orabooks_bill_create', [self::$instance, 'ajax_bill_create']);
             add_action('wp_ajax_orabooks_bill_submit', [self::$instance, 'ajax_bill_submit']);
-            add_action('wp_ajax_nopriv_orabooks_bill_submit', [self::$instance, 'ajax_bill_submit']);
             add_action('wp_ajax_orabooks_bill_approve', [self::$instance, 'ajax_bill_approve']);
-            add_action('wp_ajax_nopriv_orabooks_bill_approve', [self::$instance, 'ajax_bill_approve']);
             add_action('wp_ajax_orabooks_bill_post', [self::$instance, 'ajax_bill_post']);
-            add_action('wp_ajax_nopriv_orabooks_bill_post', [self::$instance, 'ajax_bill_post']);
             add_action('wp_ajax_orabooks_bill_void', [self::$instance, 'ajax_bill_void']);
-            add_action('wp_ajax_nopriv_orabooks_bill_void', [self::$instance, 'ajax_bill_void']);
             add_action('wp_ajax_orabooks_vendor_payment_record', [self::$instance, 'ajax_record_payment']);
-            add_action('wp_ajax_nopriv_orabooks_vendor_payment_record', [self::$instance, 'ajax_record_payment']);
             add_action('wp_ajax_orabooks_vendor_credit_note_create', [self::$instance, 'ajax_create_credit_note']);
-            add_action('wp_ajax_nopriv_orabooks_vendor_credit_note_create', [self::$instance, 'ajax_create_credit_note']);
             add_action('wp_ajax_orabooks_ap_aging', [self::$instance, 'ajax_ap_aging']);
-            add_action('wp_ajax_nopriv_orabooks_ap_aging', [self::$instance, 'ajax_ap_aging']);
 
             add_action('orabooks_daily_ap_aging_snapshot', [self::$instance, 'daily_ap_aging_snapshot']);
             self::maybe_ensure_bill_tax_schema();
