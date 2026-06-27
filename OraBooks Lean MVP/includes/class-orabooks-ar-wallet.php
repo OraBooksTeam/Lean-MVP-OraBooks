@@ -456,24 +456,25 @@ class OraBooks_AR_Wallet {
             ];
         }
 
-        $wpdb->insert(
-            $table_payments,
-            [
-                'org_id' => $org_id,
-                'customer_id' => $customer_id,
-                'invoice_id' => $target_invoice_id > 0 ? $target_invoice_id : null,
-                'payment_date' => $payment_date,
-                'amount' => $amount,
-                'unapplied_amount' => 0,
-                'payment_method' => $data['payment_method'] ?? 'bank_transfer',
-                'type' => 'payment',
-                'reference' => isset($data['reference']) ? sanitize_text_field($data['reference']) : '',
-                'notes' => isset($data['notes']) ? sanitize_textarea_field($data['notes']) : '',
-                'allocation_method' => $allocation_method,
-                'idempotency_key' => $idempotency_key,
-            ],
-            ['%d', '%d', '%d', '%s', '%f', '%f', '%s', '%s', '%s', '%s', '%s', '%s']
-        );
+        $payment_row = [
+            'org_id' => $org_id,
+            'customer_id' => $customer_id,
+            'payment_date' => $payment_date,
+            'amount' => $amount,
+            'unapplied_amount' => 0,
+            'payment_method' => $data['payment_method'] ?? 'bank_transfer',
+            'type' => 'payment',
+            'reference' => isset($data['reference']) ? sanitize_text_field($data['reference']) : '',
+            'notes' => isset($data['notes']) ? sanitize_textarea_field($data['notes']) : '',
+            'allocation_method' => $allocation_method,
+            'idempotency_key' => $idempotency_key,
+        ];
+        $payment_formats = ['%d', '%d', '%s', '%f', '%f', '%s', '%s', '%s', '%s', '%s', '%s'];
+        if ($target_invoice_id > 0) {
+            $payment_row['invoice_id'] = $target_invoice_id;
+            array_splice($payment_formats, 2, 0, ['%d']);
+        }
+        $wpdb->insert($table_payments, $payment_row, $payment_formats);
 
         $payment_id = intval($wpdb->insert_id);
         $remaining = $amount;
