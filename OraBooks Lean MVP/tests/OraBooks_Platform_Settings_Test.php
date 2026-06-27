@@ -17,6 +17,7 @@ class OraBooks_Platform_Settings_Test extends TestCase
         $this->ajax = new OraBooks_Ajax();
         $GLOBALS['orabooks_test_current_user_can'] = true;
         $GLOBALS['orabooks_test_current_user_id'] = 1;
+        $GLOBALS['orabooks_test_wp_remote_request_callback'] = null;
         $_POST = [];
 
         $this->resetOptions = [
@@ -38,6 +39,8 @@ class OraBooks_Platform_Settings_Test extends TestCase
         foreach ($this->resetOptions as $option => $value) {
             update_option($option, $value);
         }
+
+        $GLOBALS['orabooks_test_wp_remote_request_callback'] = null;
 
         parent::tearDown();
     }
@@ -94,5 +97,49 @@ class OraBooks_Platform_Settings_Test extends TestCase
         $this->assertSame(1, get_option('orabooks_speech_webhook_healthcheck_enabled'));
         $this->assertSame('https://speech.example.internal/health', get_option('orabooks_speech_webhook_health_url'));
         $this->assertSame('Settings saved', $response['message']);
+    }
+
+    #[Test]
+    public function test_speech_webhook_check_returns_not_configured_without_webhook_url()
+    {
+        update_option('orabooks_speech_webhook_url', '');
+
+        $response = $this->callAjax('ajax_speech_webhook_check');
+
+        $this->assertFalse($response['error']);
+        $this->assertFalse((bool) $response['data']['speech_webhook_configured']);
+        $this->assertSame('not_configured', $response['data']['speech_webhook_health']['status']);
+    }
+
+    #[Test]
+    public function test_speech_webhook_check_returns_up_when_health_endpoint_is_reachable()
+    {
+        update_option('orabooks_speech_webhook_url', 'https://speech.example.internal/transcribe');
+        update_option('orabooks_speech_webhook_model', 'whisper-large-v3');
+        update_option('orabooks_speech_webhook_healthcheck_enabled', 1);
+        update_option('orabooks_speech_webhook_health_url', 'https://speech.example.internal/health');
+
+        $GLOBALS['orabooks_test_wp_remote_request_callback'] = function ($url, $args) {
+            if (strpos($url, '/health') !== false) {
+                return [
+                    'response' => ['code' => 200],
+                    'body' => wp_json_encode([
+                        'status' => 'up',
+                        'version' => 'whisper-large-v3',
+                    ]),
+                ];
+            }
+
+            return new WP_Error('unexpected_request', 'Unexpected URL in test');
+        };
+
+        $response = $this->callAjax('ajax_speech_webhook_check');
+
+        $this->assertFalse($response['error']);
+        $this->assertTrue((bool) $response['data']['speech_webhook_configured']);
+        $this->assertSame('speech-webhook', $response['data']['speech_provider']);
+        $this->assertSame('whisper-large-v3', $response['data']['speech_model_version']);
+        $this->assertSame('up', $response['data']['speech_webhook_health']['status']);
+        $this->assertSame('whisper-large-v3', $response['data']['speech_webhook_health']['version']);
     }
 }
