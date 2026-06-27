@@ -676,6 +676,18 @@ export const api = {
     audit_retention_days: number;
     jwt_expiry: number;
     refresh_token_expiry: number;
+    openai_api_key: string;
+    openai_chat_model: string;
+    openai_whisper_model: string;
+    azure_openai_endpoint: string;
+    azure_openai_key: string;
+    azure_openai_deployment: string;
+    azure_openai_whisper_deployment: string;
+    azure_openai_api_version: string;
+    azure_document_intelligence_endpoint: string;
+    azure_document_intelligence_key: string;
+    azure_document_intelligence_model: string;
+    azure_document_intelligence_api_version: string;
     speech_webhook_url: string;
     speech_webhook_token: string;
     speech_webhook_model: string;
@@ -687,6 +699,18 @@ export const api = {
       audit_retention_days: data.audit_retention_days,
       jwt_expiry: data.jwt_expiry,
       refresh_token_expiry: data.refresh_token_expiry,
+      openai_api_key: data.openai_api_key,
+      openai_chat_model: data.openai_chat_model,
+      openai_whisper_model: data.openai_whisper_model,
+      azure_openai_endpoint: data.azure_openai_endpoint,
+      azure_openai_key: data.azure_openai_key,
+      azure_openai_deployment: data.azure_openai_deployment,
+      azure_openai_whisper_deployment: data.azure_openai_whisper_deployment,
+      azure_openai_api_version: data.azure_openai_api_version,
+      azure_document_intelligence_endpoint: data.azure_document_intelligence_endpoint,
+      azure_document_intelligence_key: data.azure_document_intelligence_key,
+      azure_document_intelligence_model: data.azure_document_intelligence_model,
+      azure_document_intelligence_api_version: data.azure_document_intelligence_api_version,
       speech_webhook_url: data.speech_webhook_url,
       speech_webhook_token: data.speech_webhook_token,
       speech_webhook_model: data.speech_webhook_model,
