@@ -54,6 +54,7 @@ export default function VoicePage() {
 
   const orgId = data?.context?.organization?.id;
   const caps = data?.capabilities || {};
+  const aiStatus = data?.ai_status || null;
   const threshold = data?.threshold ?? 70;
   const maxMb = Math.round((data?.limits?.max_file_size || 10485760) / 1048576);
   const maxDuration = data?.limits?.max_duration_seconds ?? 120;
@@ -267,6 +268,21 @@ export default function VoicePage() {
           Speak a transaction in any language. Max {maxDuration / 60} minutes, {maxMb}MB upload limit.
           Audio is encrypted and retained for {data?.limits?.retention_days ?? 90} days unless legal hold applies.
         </div>
+
+        {aiStatus && (
+          <div
+            className={`rounded-xl border p-4 text-sm ${aiStatus.speech_provider !== 'mvp-stub' ? 'border-emerald-200 bg-emerald-50 text-emerald-900' : 'border-amber-200 bg-amber-50 text-amber-900'}`}
+          >
+            <p className="font-semibold">
+              Speech: {aiStatus.speech_provider || 'mvp-stub'} ({aiStatus.speech_model_version || 'mvp-stub-1.0'})
+            </p>
+            {aiStatus.speech_provider === 'mvp-stub' && (
+              <p className="mt-1">
+                Real speech transcription is not configured. Configure OpenAI, Azure OpenAI, or Speech Webhook for real voice-to-text.
+              </p>
+            )}
+          </div>
+        )}
 
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
           <Metric label="Total Inputs" value={stats.total ?? 0} />
