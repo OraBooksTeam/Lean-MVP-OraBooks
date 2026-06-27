@@ -405,7 +405,7 @@ export default function ExpensesPage() {
             </p>
             {!aiStatus.real_ocr_enabled && (
               <p className="mt-1">
-                Real OCR is not enabled yet. Configure Azure Document Intelligence অথবা OpenAI/Azure OpenAI key to enable production OCR.
+                Real OCR is not enabled yet. Configure Azure Document Intelligence or an OpenAI/Azure OpenAI key to enable production OCR.
               </p>
             )}
           </div>
