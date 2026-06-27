@@ -1082,9 +1082,23 @@ class OraBooks_Customers {
         if (empty($data['customer_id'])) {
             return new WP_Error('missing_field', 'Customer ID is required');
         }
+
+        $line_items = [];
+        if (class_exists('OraBooks_Invoice_Document') && !empty($data['line_items'])) {
+            OraBooks_Invoice_Document::ensure_schema();
+            $line_items = OraBooks_Invoice_Document::normalize_line_items($data['line_items']);
+            if (!empty($line_items)) {
+                $data['subtotal_amount'] = OraBooks_Invoice_Document::subtotal_from_lines($line_items);
+            }
+        }
+
+        $data['discount_amount'] = round(floatval($data['discount_amount'] ?? 0), 2);
+        $data['po_reference'] = !empty($data['po_reference']) ? sanitize_text_field($data['po_reference']) : null;
+
         if (empty($data['total_amount']) || $data['total_amount'] <= 0) {
             if (!empty($data['subtotal_amount']) && floatval($data['subtotal_amount']) > 0) {
                 $subtotal = round(floatval($data['subtotal_amount']), 2);
+                $taxable_base = max(0, round($subtotal - floatval($data['discount_amount']), 2));
                 $jurisdiction = strtoupper(sanitize_text_field($data['jurisdiction'] ?? ''));
                 $billing_address = $data['billing_address'] ?? null;
 
@@ -1101,7 +1115,7 @@ class OraBooks_Customers {
                 if (class_exists('OraBooks_Tax')) {
                     $tax_payload = [
                         'org_id' => $org_id,
-                        'amount' => $subtotal,
+                        'amount' => $taxable_base,
                         'customer_tax_status' => sanitize_text_field($data['customer_tax_status'] ?? 'taxable'),
                         'product_type' => sanitize_text_field($data['product_type'] ?? 'standard'),
                     ];
@@ -1119,22 +1133,29 @@ class OraBooks_Customers {
                         $data['tax_rate'] = $tax_result['tax_rate'];
                         $data['tax_jurisdiction'] = $tax_result['jurisdiction_applied'] ?? ($jurisdiction ?: 'US');
                         $data['tax_type'] = $tax_result['tax_type'] ?? 'Sales Tax';
-                        $data['total_amount'] = round($subtotal + $tax_result['tax_amount'], 2);
+                        $data['subtotal_amount'] = $subtotal;
+                        $data['total_amount'] = round($taxable_base + $tax_result['tax_amount'], 2);
                     } else {
-                        $data['total_amount'] = $subtotal;
+                        $data['total_amount'] = $taxable_base;
+                        $data['subtotal_amount'] = $subtotal;
                         $data['tax_amount'] = 0;
                         $data['tax_rate'] = 0;
                         $data['tax_jurisdiction'] = $jurisdiction ?: OraBooks_Tax::resolve_jurisdiction(['billing_address' => $billing_address]);
                         $data['tax_type'] = 'Sales Tax';
                     }
                 } else {
-                    $data['total_amount'] = $subtotal;
+                    $data['total_amount'] = $taxable_base;
+                    $data['subtotal_amount'] = $subtotal;
                     $data['tax_amount'] = 0;
                     $data['tax_rate'] = 0;
                 }
             } else {
                 return new WP_Error('invalid_amount', 'Total amount must be greater than 0');
             }
+        }
+
+        if (empty($data['subtotal_amount']) && !empty($data['total_amount'])) {
+            $data['subtotal_amount'] = max(0, round(floatval($data['total_amount']) - floatval($data['tax_amount'] ?? 0) + floatval($data['discount_amount'] ?? 0), 2));
         }
 
         if (empty($data['total_amount']) || $data['total_amount'] <= 0) {
