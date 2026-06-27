@@ -20,19 +20,12 @@ class OraBooks_Bank_Reconciliation {
             self::$instance = new self();
 
             add_action('wp_ajax_orabooks_bank_accounts_list', [self::$instance, 'ajax_accounts_list']);
-            add_action('wp_ajax_nopriv_orabooks_bank_accounts_list', [self::$instance, 'ajax_accounts_list']);
             add_action('wp_ajax_orabooks_bank_account_create', [self::$instance, 'ajax_account_create']);
-            add_action('wp_ajax_nopriv_orabooks_bank_account_create', [self::$instance, 'ajax_account_create']);
             add_action('wp_ajax_orabooks_bank_import_rows', [self::$instance, 'ajax_import_rows']);
-            add_action('wp_ajax_nopriv_orabooks_bank_import_rows', [self::$instance, 'ajax_import_rows']);
             add_action('wp_ajax_orabooks_bank_transactions_list', [self::$instance, 'ajax_transactions_list']);
-            add_action('wp_ajax_nopriv_orabooks_bank_transactions_list', [self::$instance, 'ajax_transactions_list']);
             add_action('wp_ajax_orabooks_bank_match', [self::$instance, 'ajax_manual_match']);
-            add_action('wp_ajax_nopriv_orabooks_bank_match', [self::$instance, 'ajax_manual_match']);
             add_action('wp_ajax_orabooks_bank_skip', [self::$instance, 'ajax_skip_transaction']);
-            add_action('wp_ajax_nopriv_orabooks_bank_skip', [self::$instance, 'ajax_skip_transaction']);
             add_action('wp_ajax_orabooks_bank_reconcile', [self::$instance, 'ajax_finalize_reconciliation']);
-            add_action('wp_ajax_nopriv_orabooks_bank_reconcile', [self::$instance, 'ajax_finalize_reconciliation']);
         }
         return self::$instance;
     }
