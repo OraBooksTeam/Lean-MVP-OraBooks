@@ -818,7 +818,9 @@ class OraBooks_Tax {
         $date = $data['transaction_date'] ?? current_time('Y-m-d');
 
         if (class_exists('OraBooks_Fiscal') && method_exists('OraBooks_Fiscal', 'is_period_hard_closed')) {
-            return OraBooks_Fiscal::is_period_hard_closed($org_id, $date);
+            if (OraBooks_Fiscal::is_period_hard_closed($org_id, $date)) {
+                return true;
+            }
         }
 
         global $wpdb;
