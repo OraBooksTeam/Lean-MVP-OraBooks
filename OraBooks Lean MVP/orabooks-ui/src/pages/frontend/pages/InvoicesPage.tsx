@@ -358,6 +358,51 @@ export default function InvoicesPage() {
     setSaving(false);
   };
 
+  const openCreditNote = async (invoice: Invoice) => {
+    if (!orgId) return;
+    setCreditNoteInvoice(invoice);
+    setCreditNoteForm({
+      amount: String(remainingBalance(invoice) || ''),
+      reason: '',
+      is_write_off: false,
+      credit_date: new Date().toISOString().slice(0, 10),
+    });
+    const res = await api.creditNotesList(orgId, { invoice_id: invoice.id });
+    if (!res.error) {
+      setCreditNotes((res as any).data?.credit_notes || []);
+    }
+    setError('');
+  };
+
+  const handleCreateCreditNote = async () => {
+    if (!orgId || !creditNoteInvoice) return;
+    setSaving(true);
+    setError('');
+    const res = await api.creditNoteCreate(orgId, {
+      customer_id: creditNoteInvoice.customer_id,
+      invoice_id: creditNoteInvoice.id,
+      amount: parseFloat(creditNoteForm.amount) || 0,
+      reason: creditNoteForm.reason,
+      is_write_off: creditNoteForm.is_write_off ? 1 : 0,
+      credit_date: creditNoteForm.credit_date,
+    });
+    if (res.error) {
+      setError(res.error);
+    } else {
+      const noteId = (res as any).data?.credit_note_id;
+      if (noteId) {
+        const postRes = await api.creditNotePost(orgId, noteId);
+        if (postRes.error) setError(postRes.error);
+        else {
+          setSuccess('Credit note posted.');
+          setCreditNoteInvoice(null);
+          await load();
+        }
+      }
+    }
+    setSaving(false);
+  };
+
   const openOverride = async (invoice: Invoice) => {
     setOverrideInvoice(invoice);
     setOverrideRate(String(Number(invoice.tax_rate || 0)));
@@ -529,10 +574,27 @@ export default function InvoicesPage() {
                 <p className="text-sm text-slate-600">
                   Due {selectedInvoice.due_date || '—'} · {money(selectedInvoice.total_amount, selectedInvoice.currency)}
                 </p>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  <Badge value={selectedInvoice.workflow_status || 'draft'} />
+                  <Badge value={selectedInvoice.payment_status || 'unpaid'} />
+                  {selectedInvoice.lock_status === 'locked' && (
+                    <span className="badge border border-slate-300 bg-slate-100 text-slate-700">Locked</span>
+                  )}
+                  {selectedInvoice.dunning_stage && selectedInvoice.dunning_stage !== 'none' && (
+                    <span className="badge border border-amber-200 bg-amber-50 text-amber-800">{selectedInvoice.dunning_stage}</span>
+                  )}
+                </div>
               </div>
-              <Button variant="secondary" size="sm" onClick={() => setSelectedInvoice(null)}>
-                Close
-              </Button>
+              <div className="flex flex-wrap gap-2">
+                {canCreditNote(selectedInvoice) && (
+                  <Button size="sm" variant="secondary" onClick={() => void openCreditNote(selectedInvoice)}>
+                    Credit note
+                  </Button>
+                )}
+                <Button variant="secondary" size="sm" onClick={() => setSelectedInvoice(null)}>
+                  Close
+                </Button>
+              </div>
             </div>
             <div className="mt-4">
               <ResourceAttachmentsPanel
@@ -711,6 +773,11 @@ export default function InvoicesPage() {
                         <Button size="sm" variant="secondary" onClick={() => openPayment(invoice)}>
                           <Wallet className="h-3.5 w-3.5" />
                           Pay
+                        </Button>
+                      )}
+                      {canCreditNote(invoice) && (
+                        <Button size="sm" variant="secondary" onClick={() => void openCreditNote(invoice)}>
+                          Credit note
                         </Button>
                       )}
                       {canCancel(invoice) && (
