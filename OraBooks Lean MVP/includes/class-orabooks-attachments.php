@@ -137,10 +137,6 @@ class OraBooks_Attachments {
             return new WP_Error('invalid_resource_type', 'Unsupported resource type');
         }
 
-        if (!OraBooks_RBAC::require_permission($user_id, $org_id, 'submit_transaction')) {
-            return new WP_Error('permission_denied', 'Permission denied');
-        }
-
         if (!orabooks_check_rate_limit("attachment_upload_{$user_id}", self::RATE_LIMIT_MAX, self::RATE_LIMIT_PERIOD)) {
             return new WP_Error('rate_limit', sprintf('Rate limit exceeded. Max %d uploads per minute.', self::RATE_LIMIT_MAX));
         }
@@ -152,6 +148,10 @@ class OraBooks_Attachments {
         $mime_type = sanitize_text_field($mime_type ?: 'application/octet-stream');
         if (!self::is_allowed_mime($mime_type)) {
             return new WP_Error('invalid_mime', 'Unsupported file type');
+        }
+
+        if (!OraBooks_RBAC::require_permission($user_id, $org_id, 'submit_transaction')) {
+            return new WP_Error('permission_denied', 'Permission denied');
         }
 
         if (!self::can_access_resource($user_id, $org_id, $resource_type, 'write')) {
