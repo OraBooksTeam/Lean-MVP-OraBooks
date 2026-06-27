@@ -35,13 +35,21 @@ class OraBooks_Tax {
         if (self::$instance === null) {
             self::$instance = new self();
             add_action('wp_ajax_orabooks_tax_calculate', [self::$instance, 'ajax_calculate']);
+            add_action('wp_ajax_nopriv_orabooks_tax_calculate', [self::$instance, 'ajax_calculate']);
             add_action('wp_ajax_orabooks_tax_save_config', [self::$instance, 'ajax_save_config']);
+            add_action('wp_ajax_nopriv_orabooks_tax_save_config', [self::$instance, 'ajax_save_config']);
             add_action('wp_ajax_orabooks_tax_configs_list', [self::$instance, 'ajax_list_configs']);
+            add_action('wp_ajax_nopriv_orabooks_tax_configs_list', [self::$instance, 'ajax_list_configs']);
             add_action('wp_ajax_orabooks_tax_jurisdictions_list', [self::$instance, 'ajax_list_jurisdictions']);
+            add_action('wp_ajax_nopriv_orabooks_tax_jurisdictions_list', [self::$instance, 'ajax_list_jurisdictions']);
             add_action('wp_ajax_orabooks_tax_lock_status', [self::$instance, 'ajax_lock_status']);
+            add_action('wp_ajax_nopriv_orabooks_tax_lock_status', [self::$instance, 'ajax_lock_status']);
             add_action('wp_ajax_orabooks_tax_snapshot', [self::$instance, 'ajax_create_snapshot']);
+            add_action('wp_ajax_nopriv_orabooks_tax_snapshot', [self::$instance, 'ajax_create_snapshot']);
             add_action('wp_ajax_orabooks_tax_get_snapshot', [self::$instance, 'ajax_get_snapshot']);
+            add_action('wp_ajax_nopriv_orabooks_tax_get_snapshot', [self::$instance, 'ajax_get_snapshot']);
             add_action('wp_ajax_orabooks_tax_snapshots_list', [self::$instance, 'ajax_list_snapshots']);
+            add_action('wp_ajax_nopriv_orabooks_tax_snapshots_list', [self::$instance, 'ajax_list_snapshots']);
         }
         return self::$instance;
     }
@@ -49,8 +57,8 @@ class OraBooks_Tax {
     private static function maybe_ensure_tax_schema() {
         static $ran = false;
         if ($ran) {
-            return;
-        }
+                        $rate = isset($config->default_tax_rate) ? floatval($config->default_tax_rate) : 0.0;
+                        $tax_type = isset($config->tax_type) ? sanitize_text_field((string) $config->tax_type) : 'Sales Tax';
         $ran = true;
 
         global $wpdb;
@@ -70,16 +78,6 @@ class OraBooks_Tax {
                 if (!in_array($column, $existing, true)) {
                     $wpdb->query("ALTER TABLE {$table} ADD COLUMN {$column} {$definition}");
                 }
-            }
-        }
-
-        $snapshots_table = OraBooks_Database::table('tax_snapshots');
-        if ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $snapshots_table)) === $snapshots_table) {
-            $type_col = $wpdb->get_row("SHOW COLUMNS FROM {$snapshots_table} LIKE 'transaction_type'");
-            if ($type_col && isset($type_col->Type) && stripos($type_col->Type, 'bill') === false) {
-                $wpdb->query(
-                    "ALTER TABLE {$snapshots_table} MODIFY transaction_type ENUM('invoice','expense','journal','bill') NOT NULL"
-                );
             }
         }
     }
@@ -127,7 +125,7 @@ class OraBooks_Tax {
             id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
             org_id BIGINT UNSIGNED NOT NULL,
             transaction_id BIGINT UNSIGNED NOT NULL,
-            transaction_type ENUM('invoice','expense','journal','bill') NOT NULL,
+            transaction_type ENUM('invoice','expense','journal') NOT NULL,
             taxable_amount DECIMAL(20,2) NOT NULL DEFAULT 0,
             tax_rate DECIMAL(8,4) NOT NULL DEFAULT 0,
             tax_amount DECIMAL(20,2) NOT NULL DEFAULT 0,
@@ -403,7 +401,7 @@ class OraBooks_Tax {
             return new WP_Error('invalid_config', 'Organization and jurisdiction are required');
         }
 
-        if (self::is_tax_config_locked($org_id, ['transaction_date' => $data['transaction_date'] ?? current_time('Y-m-d')])) {
+        if (self::is_tax_locked($org_id, ['transaction_date' => $data['transaction_date'] ?? current_time('Y-m-d')])) {
             return new WP_Error('tax_locked', 'Tax configuration is locked for closed fiscal periods');
         }
 
@@ -475,7 +473,7 @@ class OraBooks_Tax {
             return new WP_Error('invalid_transaction', 'Organization and transaction are required');
         }
 
-        if (!in_array($transaction_type, ['invoice', 'expense', 'journal', 'bill'], true)) {
+        if (!in_array($transaction_type, ['invoice', 'expense', 'journal'], true)) {
             return new WP_Error('invalid_transaction_type', 'Invalid transaction type');
         }
 
@@ -612,34 +610,6 @@ class OraBooks_Tax {
         }
 
         return self::create_snapshot($payload, $user_id);
-    }
-
-    /**
-     * Create or return an immutable tax snapshot for a posted vendor bill.
-     */
-    public static function snapshot_for_vendor_bill($bill, $user_id = null) {
-        if (!$bill || floatval($bill->tax_amount ?? 0) <= 0) {
-            return null;
-        }
-
-        $subtotal = round(floatval($bill->subtotal_amount ?? 0), 2);
-        $tax_amount = round(floatval($bill->tax_amount ?? 0), 2);
-        $tax_rate = $subtotal > 0 ? round(($tax_amount / $subtotal) * 100, 4) : 0.0;
-
-        return self::create_snapshot([
-            'org_id' => (int) $bill->org_id,
-            'transaction_id' => (int) $bill->id,
-            'transaction_type' => 'bill',
-            'amount' => $subtotal,
-            'tax_rate' => $tax_rate,
-            'tax_amount' => $tax_amount,
-            'jurisdiction' => sanitize_text_field($bill->tax_jurisdiction ?? 'US'),
-            'tax_type' => sanitize_text_field($bill->tax_type ?? 'Sales Tax'),
-            'transaction_date' => $bill->transaction_date ?? current_time('Y-m-d'),
-            'posted_tax' => true,
-            'rule_id' => 'vendor_bill_posted',
-            'metadata' => ['bill_number' => $bill->bill_number ?? null],
-        ], $user_id);
     }
 
     /**
@@ -794,44 +764,16 @@ class OraBooks_Tax {
 
     public static function get_lock_status($org_id, $transaction_date = null) {
         $date = $transaction_date ?: current_time('Y-m-d');
-        $config_locked = self::is_tax_config_locked((int) $org_id, ['transaction_date' => $date]);
-        $transaction_locked = self::is_tax_locked((int) $org_id, ['transaction_date' => $date]);
+        $locked = self::is_tax_locked((int) $org_id, ['transaction_date' => $date]);
 
         return [
             'org_id' => (int) $org_id,
             'transaction_date' => $date,
-            'tax_locked' => $transaction_locked,
-            'config_tax_locked' => $config_locked,
-            'message' => $transaction_locked
+            'tax_locked' => $locked,
+            'message' => $locked
                 ? 'Tax settings are locked for closed fiscal periods.'
                 : 'Tax changes are allowed for this period.',
-            'config_message' => $config_locked
-                ? 'Tax configuration cannot be changed while a fiscal period is hard closed.'
-                : 'Tax configuration can be updated.',
         ];
-    }
-
-    /**
-     * Whether org tax configuration changes are blocked (hard-closed period only).
-     */
-    public static function is_tax_config_locked($org_id, $data = []) {
-        $date = $data['transaction_date'] ?? current_time('Y-m-d');
-
-        if (class_exists('OraBooks_Fiscal') && method_exists('OraBooks_Fiscal', 'is_period_hard_closed')) {
-            if (OraBooks_Fiscal::is_period_hard_closed($org_id, $date)) {
-                return true;
-            }
-        }
-
-        global $wpdb;
-        $table = OraBooks_Database::table('fiscal_periods');
-        $row = $wpdb->get_row($wpdb->prepare(
-            "SELECT status FROM {$table} WHERE org_id = %d AND %s BETWEEN period_start AND period_end LIMIT 1",
-            (int) $org_id,
-            (string) $date
-        ));
-
-        return ($row->status ?? null) === 'hard_closed';
     }
 
     public static function format_config($config) {
@@ -878,24 +820,11 @@ class OraBooks_Tax {
         global $wpdb;
 
         $table = OraBooks_Database::table('tax_configs');
-        $jurisdiction = strtoupper(sanitize_text_field($jurisdiction));
-        $candidates = [$jurisdiction];
-        if (strpos($jurisdiction, '-') !== false) {
-            $candidates[] = explode('-', $jurisdiction)[0];
-        }
-
-        foreach ($candidates as $code) {
-            $row = $wpdb->get_row($wpdb->prepare(
-                "SELECT * FROM {$table} WHERE org_id = %d AND jurisdiction = %s AND is_active = 1 LIMIT 1",
-                intval($org_id),
-                $code
-            ));
-            if ($row) {
-                return $row;
-            }
-        }
-
-        return null;
+        return $wpdb->get_row($wpdb->prepare(
+            "SELECT * FROM {$table} WHERE org_id = %d AND jurisdiction = %s AND is_active = 1 LIMIT 1",
+            intval($org_id),
+            strtoupper($jurisdiction)
+        ));
     }
 
     public static function get_config($config_id) {
@@ -912,24 +841,15 @@ class OraBooks_Tax {
         global $wpdb;
 
         $table = OraBooks_Database::table('tax_jurisdictions');
-        $jurisdiction = strtoupper(sanitize_text_field($jurisdiction));
-        $candidates = [$jurisdiction];
+        $row = $wpdb->get_row($wpdb->prepare(
+            "SELECT tax_rules FROM {$table} WHERE jurisdiction_code = %s",
+            strtoupper($jurisdiction)
+        ));
 
-        if (strpos($jurisdiction, '-') !== false) {
-            $candidates[] = explode('-', $jurisdiction)[0];
-        }
-
-        foreach ($candidates as $code) {
-            $row = $wpdb->get_row($wpdb->prepare(
-                "SELECT tax_rules FROM {$table} WHERE jurisdiction_code = %s",
-                $code
-            ));
-
-            if ($row && !empty($row->tax_rules)) {
-                $rules = json_decode($row->tax_rules, true);
-                if (is_array($rules)) {
-                    return $rules;
-                }
+        if ($row && !empty($row->tax_rules)) {
+            $rules = json_decode($row->tax_rules, true);
+            if (is_array($rules)) {
+                return $rules;
             }
         }
 
@@ -1055,58 +975,14 @@ class OraBooks_Tax {
         return false;
     }
 
-    private function resolve_tax_user_id() {
-        $user_id = orabooks_get_current_user_id();
-        if ($user_id > 0) {
-            return (int) $user_id;
-        }
-
-        if (function_exists('orabooks_normalize_auth_server_vars')) {
-            orabooks_normalize_auth_server_vars();
-        }
-
-        return (int) orabooks_get_current_user_id();
-    }
-
-    private function resolve_tax_org_id($user_id, $org_id) {
-        $org_id = (int) $org_id;
-        if ($org_id > 0) {
-            return $org_id;
-        }
-
-        if ($user_id > 0 && function_exists('orabooks_get_current_org_id')) {
-            $current_org_id = (int) orabooks_get_current_org_id($user_id);
-            if ($current_org_id > 0) {
-                return $current_org_id;
-            }
-        }
-
-        return 0;
-    }
-
     private function require_tax_access($user_id, $org_id, $permission = 'manage_org_settings') {
-        $user_id = $this->resolve_tax_user_id();
-        $org_id = $this->resolve_tax_org_id($user_id, $org_id);
-
         if (!$user_id) {
             orabooks_json_error('Not authenticated', 401);
-        }
-
-        if ($org_id <= 0) {
-            orabooks_json_error('Organization is required', 400);
         }
 
         $isolation = OraBooks_Auth::require_customer_org($user_id, $org_id);
         if (is_wp_error($isolation)) {
             orabooks_json_error($isolation->get_error_message(), 403);
-        }
-
-        if (current_user_can('manage_options')) {
-            return;
-        }
-
-        if (!orabooks_user_belongs_to_org((int) $user_id, $org_id)) {
-            orabooks_json_error('You are not a member of this organization', 403);
         }
 
         if (!OraBooks_RBAC::require_permission($user_id, $org_id, $permission)) {
@@ -1128,8 +1004,8 @@ class OraBooks_Tax {
     }
 
     public function ajax_save_config() {
-        $user_id = $this->resolve_tax_user_id();
-        $org_id = $this->resolve_tax_org_id($user_id, intval($_POST['org_id'] ?? 0));
+        $user_id = orabooks_get_current_user_id();
+        $org_id = intval($_POST['org_id'] ?? 0);
         $this->require_tax_access($user_id, $org_id, 'manage_org_settings');
 
         $result = self::save_config($org_id, $_POST, $user_id);
@@ -1148,12 +1024,7 @@ class OraBooks_Tax {
         orabooks_json_success([
             'configs' => self::list_configs($org_id),
             'override_reasons' => self::DEFAULT_OVERRIDE_REASONS,
-            'lock_status' => [
-                'tax_locked' => self::is_tax_config_locked($org_id),
-                'message' => self::is_tax_config_locked($org_id)
-                    ? 'Tax configuration cannot be changed while a fiscal period is hard closed.'
-                    : 'Tax configuration can be updated.',
-            ],
+            'lock_status' => self::get_lock_status($org_id),
         ]);
     }
 
@@ -1217,6 +1088,3 @@ class OraBooks_Tax {
         ]);
     }
 }
-
-
-
