@@ -62,11 +62,8 @@ class OraBooks_Classification {
             self::$instance = new self();
 
             add_action('wp_ajax_orabooks_classification_run', [self::$instance, 'ajax_run']);
-            add_action('wp_ajax_nopriv_orabooks_classification_run', [self::$instance, 'ajax_run']);
             add_action('wp_ajax_orabooks_classification_apply', [self::$instance, 'ajax_apply']);
-            add_action('wp_ajax_nopriv_orabooks_classification_apply', [self::$instance, 'ajax_apply']);
             add_action('wp_ajax_orabooks_classification_override', [self::$instance, 'ajax_override']);
-            add_action('wp_ajax_nopriv_orabooks_classification_override', [self::$instance, 'ajax_override']);
 
             if (class_exists('OraBooks_AsyncQueue')) {
                 OraBooks_AsyncQueue::register_handler('classify_transaction', [self::class, 'handle_async_job']);
