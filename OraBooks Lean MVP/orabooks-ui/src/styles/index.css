@@ -120,4 +120,28 @@
   .orabooks-mobile-drawer nav::-webkit-scrollbar {
     display: none;
   }
+  .orabooks-modal-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 100010;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 1rem;
+    background: rgb(15 23 42 / 0.4);
+  }
+  .orabooks-modal-panel {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    max-height: 90vh;
+    margin-inline: auto;
+    overflow: hidden;
+  }
+  .orabooks-modal-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+  }
 }

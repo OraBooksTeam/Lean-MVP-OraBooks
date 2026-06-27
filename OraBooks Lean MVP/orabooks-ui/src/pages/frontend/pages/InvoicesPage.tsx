@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import WpLink from '../components/WpLink';
 import { getSearchParam } from '../lib/wp-routing';
 
@@ -1496,22 +1497,44 @@ function Modal({
   wide?: boolean;
   footer?: ReactNode;
 }) {
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-slate-900/40 p-4" onClick={onClose}>
-      <div
-        className={`my-auto flex max-h-[min(90vh,900px)] w-full flex-col overflow-hidden rounded-2xl border border-border bg-white shadow-xl ${wide ? 'max-w-3xl' : 'max-w-lg'}`}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex shrink-0 items-center justify-between gap-3 border-b border-border px-6 py-4">
-          <h3 className="text-lg font-semibold text-ink">{title}</h3>
-          <button type="button" onClick={onClose} className="text-sm text-slate-500 hover:text-slate-700">Close</button>
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onClose();
+    };
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    window.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener('keydown', onKeyDown);
+    };
+  }, [onClose]);
+
+  if (typeof document === 'undefined') {
+    return null;
+  }
+
+  return createPortal(
+    <div className="orabooks-modal orabooks-modal-overlay" onClick={onClose}>
+      <div className="flex min-h-full items-start justify-center py-2">
+        <div
+          role="dialog"
+          aria-modal="true"
+          className={`orabooks-modal-panel rounded-2xl border border-border bg-white shadow-xl ${wide ? 'max-w-3xl' : 'max-w-lg'}`}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="flex shrink-0 items-center justify-between gap-3 border-b border-border bg-white px-6 py-4">
+            <h3 className="text-lg font-semibold text-ink">{title}</h3>
+            <button type="button" onClick={onClose} className="text-sm text-slate-500 hover:text-slate-700">Close</button>
+          </div>
+          <div className="orabooks-modal-body px-6 py-4">{children}</div>
+          {footer ? (
+            <div className="shrink-0 border-t border-border bg-white px-6 py-4">{footer}</div>
+          ) : null}
         </div>
-        <div className="min-h-0 flex-1 overflow-y-auto px-6 py-4">{children}</div>
-        {footer ? (
-          <div className="shrink-0 border-t border-border bg-white px-6 py-4">{footer}</div>
-        ) : null}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
