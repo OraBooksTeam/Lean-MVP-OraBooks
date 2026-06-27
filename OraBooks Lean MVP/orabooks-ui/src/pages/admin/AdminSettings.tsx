@@ -10,6 +10,18 @@ interface PlatformSettings {
   audit_retention_days: number;
   jwt_expiry: number;
   refresh_token_expiry: number;
+  openai_api_key: string;
+  openai_chat_model: string;
+  openai_whisper_model: string;
+  azure_openai_endpoint: string;
+  azure_openai_key: string;
+  azure_openai_deployment: string;
+  azure_openai_whisper_deployment: string;
+  azure_openai_api_version: string;
+  azure_document_intelligence_endpoint: string;
+  azure_document_intelligence_key: string;
+  azure_document_intelligence_model: string;
+  azure_document_intelligence_api_version: string;
   speech_webhook_url: string;
   speech_webhook_token: string;
   speech_webhook_model: string;
@@ -22,6 +34,18 @@ const defaults: PlatformSettings = {
   audit_retention_days: 365,
   jwt_expiry: 900,
   refresh_token_expiry: 604800,
+  openai_api_key: '',
+  openai_chat_model: 'gpt-4o-mini',
+  openai_whisper_model: 'whisper-1',
+  azure_openai_endpoint: '',
+  azure_openai_key: '',
+  azure_openai_deployment: 'gpt-4o-mini',
+  azure_openai_whisper_deployment: '',
+  azure_openai_api_version: '2024-06-01',
+  azure_document_intelligence_endpoint: '',
+  azure_document_intelligence_key: '',
+  azure_document_intelligence_model: 'prebuilt-receipt',
+  azure_document_intelligence_api_version: '2023-07-31',
   speech_webhook_url: '',
   speech_webhook_token: '',
   speech_webhook_model: 'webhook-v1',
@@ -76,6 +100,28 @@ export default function AdminSettings() {
           audit_retention_days: Number(res.data.audit_retention_days) || defaults.audit_retention_days,
           jwt_expiry: Number(res.data.jwt_expiry) || defaults.jwt_expiry,
           refresh_token_expiry: Number(res.data.refresh_token_expiry) || defaults.refresh_token_expiry,
+          openai_api_key: String(res.data.openai_api_key || defaults.openai_api_key),
+          openai_chat_model: String(res.data.openai_chat_model || defaults.openai_chat_model),
+          openai_whisper_model: String(res.data.openai_whisper_model || defaults.openai_whisper_model),
+          azure_openai_endpoint: String(res.data.azure_openai_endpoint || defaults.azure_openai_endpoint),
+          azure_openai_key: String(res.data.azure_openai_key || defaults.azure_openai_key),
+          azure_openai_deployment: String(res.data.azure_openai_deployment || defaults.azure_openai_deployment),
+          azure_openai_whisper_deployment: String(
+            res.data.azure_openai_whisper_deployment || defaults.azure_openai_whisper_deployment
+          ),
+          azure_openai_api_version: String(res.data.azure_openai_api_version || defaults.azure_openai_api_version),
+          azure_document_intelligence_endpoint: String(
+            res.data.azure_document_intelligence_endpoint || defaults.azure_document_intelligence_endpoint
+          ),
+          azure_document_intelligence_key: String(
+            res.data.azure_document_intelligence_key || defaults.azure_document_intelligence_key
+          ),
+          azure_document_intelligence_model: String(
+            res.data.azure_document_intelligence_model || defaults.azure_document_intelligence_model
+          ),
+          azure_document_intelligence_api_version: String(
+            res.data.azure_document_intelligence_api_version || defaults.azure_document_intelligence_api_version
+          ),
           speech_webhook_url: String(res.data.speech_webhook_url || defaults.speech_webhook_url),
           speech_webhook_token: String(res.data.speech_webhook_token || defaults.speech_webhook_token),
           speech_webhook_model: String(res.data.speech_webhook_model || defaults.speech_webhook_model),
@@ -105,6 +151,22 @@ export default function AdminSettings() {
             audit_retention_days: Number(res.data.audit_retention_days),
             jwt_expiry: Number(res.data.jwt_expiry),
             refresh_token_expiry: Number(res.data.refresh_token_expiry),
+            openai_api_key: String(res.data.openai_api_key || ''),
+            openai_chat_model: String(res.data.openai_chat_model || defaults.openai_chat_model),
+            openai_whisper_model: String(res.data.openai_whisper_model || defaults.openai_whisper_model),
+            azure_openai_endpoint: String(res.data.azure_openai_endpoint || ''),
+            azure_openai_key: String(res.data.azure_openai_key || ''),
+            azure_openai_deployment: String(res.data.azure_openai_deployment || defaults.azure_openai_deployment),
+            azure_openai_whisper_deployment: String(res.data.azure_openai_whisper_deployment || ''),
+            azure_openai_api_version: String(res.data.azure_openai_api_version || defaults.azure_openai_api_version),
+            azure_document_intelligence_endpoint: String(res.data.azure_document_intelligence_endpoint || ''),
+            azure_document_intelligence_key: String(res.data.azure_document_intelligence_key || ''),
+            azure_document_intelligence_model: String(
+              res.data.azure_document_intelligence_model || defaults.azure_document_intelligence_model
+            ),
+            azure_document_intelligence_api_version: String(
+              res.data.azure_document_intelligence_api_version || defaults.azure_document_intelligence_api_version
+            ),
             speech_webhook_url: String(res.data.speech_webhook_url || ''),
             speech_webhook_token: String(res.data.speech_webhook_token || ''),
             speech_webhook_model: String(res.data.speech_webhook_model || 'webhook-v1'),
@@ -275,6 +337,147 @@ export default function AdminSettings() {
             </label>
 
             <div className="p-6">
+              <div className="mb-6 overflow-hidden rounded-2xl border border-violet-200 bg-gradient-to-br from-violet-50 via-blue-50 to-white">
+                <div className="border-b border-violet-100 bg-white/70 px-5 py-4">
+                  <h3 className="text-sm font-bold text-ink">Central AI / OCR Keys</h3>
+                  <p className="text-xs text-slate-600">
+                    Set keys once here. OCR, Classification, and Voice modules will use this shared configuration.
+                  </p>
+                </div>
+
+                <div className="grid gap-4 px-5 py-5 lg:grid-cols-2">
+                  <label className="space-y-1 lg:col-span-2">
+                    <span className="text-xs font-semibold uppercase tracking-wide text-slate-600">OpenAI API key</span>
+                    <input
+                      type="password"
+                      className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
+                      value={settings.openai_api_key}
+                      onChange={(e) => setSettings((prev) => ({ ...prev, openai_api_key: e.target.value }))}
+                    />
+                  </label>
+
+                  <label className="space-y-1">
+                    <span className="text-xs font-semibold uppercase tracking-wide text-slate-600">OpenAI chat model</span>
+                    <input
+                      type="text"
+                      className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
+                      value={settings.openai_chat_model}
+                      onChange={(e) => setSettings((prev) => ({ ...prev, openai_chat_model: e.target.value }))}
+                    />
+                  </label>
+
+                  <label className="space-y-1">
+                    <span className="text-xs font-semibold uppercase tracking-wide text-slate-600">OpenAI whisper model</span>
+                    <input
+                      type="text"
+                      className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
+                      value={settings.openai_whisper_model}
+                      onChange={(e) => setSettings((prev) => ({ ...prev, openai_whisper_model: e.target.value }))}
+                    />
+                  </label>
+
+                  <label className="space-y-1 lg:col-span-2">
+                    <span className="text-xs font-semibold uppercase tracking-wide text-slate-600">Azure OpenAI endpoint</span>
+                    <input
+                      type="url"
+                      className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
+                      value={settings.azure_openai_endpoint}
+                      onChange={(e) => setSettings((prev) => ({ ...prev, azure_openai_endpoint: e.target.value }))}
+                    />
+                  </label>
+
+                  <label className="space-y-1">
+                    <span className="text-xs font-semibold uppercase tracking-wide text-slate-600">Azure OpenAI key</span>
+                    <input
+                      type="password"
+                      className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
+                      value={settings.azure_openai_key}
+                      onChange={(e) => setSettings((prev) => ({ ...prev, azure_openai_key: e.target.value }))}
+                    />
+                  </label>
+
+                  <label className="space-y-1">
+                    <span className="text-xs font-semibold uppercase tracking-wide text-slate-600">Azure OpenAI deployment</span>
+                    <input
+                      type="text"
+                      className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
+                      value={settings.azure_openai_deployment}
+                      onChange={(e) => setSettings((prev) => ({ ...prev, azure_openai_deployment: e.target.value }))}
+                    />
+                  </label>
+
+                  <label className="space-y-1">
+                    <span className="text-xs font-semibold uppercase tracking-wide text-slate-600">Azure whisper deployment</span>
+                    <input
+                      type="text"
+                      className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
+                      value={settings.azure_openai_whisper_deployment}
+                      onChange={(e) =>
+                        setSettings((prev) => ({ ...prev, azure_openai_whisper_deployment: e.target.value }))
+                      }
+                    />
+                  </label>
+
+                  <label className="space-y-1">
+                    <span className="text-xs font-semibold uppercase tracking-wide text-slate-600">Azure API version</span>
+                    <input
+                      type="text"
+                      className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
+                      value={settings.azure_openai_api_version}
+                      onChange={(e) => setSettings((prev) => ({ ...prev, azure_openai_api_version: e.target.value }))}
+                    />
+                  </label>
+
+                  <label className="space-y-1 lg:col-span-2">
+                    <span className="text-xs font-semibold uppercase tracking-wide text-slate-600">Azure Document Intelligence endpoint</span>
+                    <input
+                      type="url"
+                      className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
+                      value={settings.azure_document_intelligence_endpoint}
+                      onChange={(e) =>
+                        setSettings((prev) => ({ ...prev, azure_document_intelligence_endpoint: e.target.value }))
+                      }
+                    />
+                  </label>
+
+                  <label className="space-y-1">
+                    <span className="text-xs font-semibold uppercase tracking-wide text-slate-600">Document Intelligence key</span>
+                    <input
+                      type="password"
+                      className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
+                      value={settings.azure_document_intelligence_key}
+                      onChange={(e) =>
+                        setSettings((prev) => ({ ...prev, azure_document_intelligence_key: e.target.value }))
+                      }
+                    />
+                  </label>
+
+                  <label className="space-y-1">
+                    <span className="text-xs font-semibold uppercase tracking-wide text-slate-600">Document model</span>
+                    <input
+                      type="text"
+                      className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
+                      value={settings.azure_document_intelligence_model}
+                      onChange={(e) =>
+                        setSettings((prev) => ({ ...prev, azure_document_intelligence_model: e.target.value }))
+                      }
+                    />
+                  </label>
+
+                  <label className="space-y-1">
+                    <span className="text-xs font-semibold uppercase tracking-wide text-slate-600">Document API version</span>
+                    <input
+                      type="text"
+                      className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
+                      value={settings.azure_document_intelligence_api_version}
+                      onChange={(e) =>
+                        setSettings((prev) => ({ ...prev, azure_document_intelligence_api_version: e.target.value }))
+                      }
+                    />
+                  </label>
+                </div>
+              </div>
+
               <div className="overflow-hidden rounded-2xl border border-sky-200 bg-gradient-to-br from-sky-50 via-cyan-50 to-white">
                 <div className="flex flex-wrap items-center justify-between gap-3 border-b border-sky-100 bg-white/70 px-5 py-4">
                   <div className="flex items-center gap-2">
