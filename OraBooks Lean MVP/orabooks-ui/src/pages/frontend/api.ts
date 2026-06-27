@@ -758,6 +758,30 @@ export const api = {
     }, { clearAuthOnFailure: false }),
   recordPayment: (data: Record<string, any>) =>
     api.post('orabooks_invoice_record_payment', data),
+  customerWallet: (customerId: number, orgId = 0) =>
+    api.get('orabooks_customer_wallet', { customer_id: customerId, org_id: orgId }),
+  customerPaymentRecord: (orgId: number, customerId: number, data: Record<string, unknown>) =>
+    api.post('orabooks_customer_payment_record', { org_id: orgId, customer_id: customerId, ...data }),
+  paymentReverse: (orgId: number, paymentId: number, reason = '') =>
+    api.post('orabooks_payment_reverse', { org_id: orgId, payment_id: paymentId, reason }),
+  creditNotesList: (orgId: number, filters: Record<string, unknown> = {}) =>
+    api.get('orabooks_credit_notes_list', { org_id: orgId, ...filters }),
+  creditNoteCreate: (orgId: number, data: Record<string, unknown>) =>
+    api.post('orabooks_credit_note_create', { org_id: orgId, ...data }),
+  creditNotePost: (orgId: number, creditNoteId: number, secondApproverId = 0) =>
+    api.post('orabooks_credit_note_post', {
+      org_id: orgId,
+      credit_note_id: creditNoteId,
+      second_approver_id: secondApproverId,
+    }),
+  creditNoteVoid: (orgId: number, creditNoteId: number) =>
+    api.post('orabooks_credit_note_void', { org_id: orgId, credit_note_id: creditNoteId }),
+  arConfigGet: (orgId: number) =>
+    api.get('orabooks_ar_config_get', { org_id: orgId }),
+  arConfigSet: (orgId: number, data: Record<string, unknown>) =>
+    api.post('orabooks_ar_config_set', { org_id: orgId, ...data }),
+  customerStatementsList: (orgId: number, customerId: number) =>
+    api.get('orabooks_customer_statements_list', { org_id: orgId, customer_id: customerId }),
 
   // CoA / Audit
   coaGet: (orgId: number) =>
