@@ -31,6 +31,18 @@ class OraBooks_Platform_Settings_Test extends TestCase
             'orabooks_audit_retention_days' => get_option('orabooks_audit_retention_days', null),
             'orabooks_jwt_expiry' => get_option('orabooks_jwt_expiry', null),
             'orabooks_refresh_token_expiry' => get_option('orabooks_refresh_token_expiry', null),
+            'orabooks_openai_api_key' => get_option('orabooks_openai_api_key', null),
+            'orabooks_openai_chat_model' => get_option('orabooks_openai_chat_model', null),
+            'orabooks_openai_whisper_model' => get_option('orabooks_openai_whisper_model', null),
+            'orabooks_azure_openai_endpoint' => get_option('orabooks_azure_openai_endpoint', null),
+            'orabooks_azure_openai_key' => get_option('orabooks_azure_openai_key', null),
+            'orabooks_azure_openai_deployment' => get_option('orabooks_azure_openai_deployment', null),
+            'orabooks_azure_openai_whisper_deployment' => get_option('orabooks_azure_openai_whisper_deployment', null),
+            'orabooks_azure_openai_api_version' => get_option('orabooks_azure_openai_api_version', null),
+            'orabooks_azure_document_intelligence_endpoint' => get_option('orabooks_azure_document_intelligence_endpoint', null),
+            'orabooks_azure_document_intelligence_key' => get_option('orabooks_azure_document_intelligence_key', null),
+            'orabooks_azure_document_intelligence_model' => get_option('orabooks_azure_document_intelligence_model', null),
+            'orabooks_azure_document_intelligence_api_version' => get_option('orabooks_azure_document_intelligence_api_version', null),
             'orabooks_speech_webhook_url' => get_option('orabooks_speech_webhook_url', null),
             'orabooks_speech_webhook_token' => get_option('orabooks_speech_webhook_token', null),
             'orabooks_speech_webhook_model' => get_option('orabooks_speech_webhook_model', null),
@@ -67,10 +79,14 @@ class OraBooks_Platform_Settings_Test extends TestCase
         update_option('orabooks_speech_webhook_model', 'webhook-v1');
         update_option('orabooks_speech_webhook_healthcheck_enabled', 1);
         update_option('orabooks_speech_webhook_health_url', 'https://speech.example.internal/health');
+        update_option('orabooks_openai_chat_model', 'gpt-4o-mini');
+        update_option('orabooks_azure_document_intelligence_model', 'prebuilt-receipt');
 
         $response = $this->callAjax('ajax_platform_settings_get');
 
         $this->assertFalse($response['error']);
+        $this->assertSame('gpt-4o-mini', $response['data']['openai_chat_model']);
+        $this->assertSame('prebuilt-receipt', $response['data']['azure_document_intelligence_model']);
         $this->assertSame('https://speech.example.internal/transcribe', $response['data']['speech_webhook_url']);
         $this->assertSame('webhook-v1', $response['data']['speech_webhook_model']);
         $this->assertTrue((bool) $response['data']['speech_webhook_healthcheck_enabled']);
@@ -86,6 +102,18 @@ class OraBooks_Platform_Settings_Test extends TestCase
             'audit_retention_days' => 730,
             'jwt_expiry' => 1200,
             'refresh_token_expiry' => 86400,
+            'openai_api_key' => 'openai-secret',
+            'openai_chat_model' => 'gpt-4o-mini',
+            'openai_whisper_model' => 'whisper-1',
+            'azure_openai_endpoint' => 'https://azure-openai.example.com',
+            'azure_openai_key' => 'azure-secret',
+            'azure_openai_deployment' => 'gpt-4o-mini',
+            'azure_openai_whisper_deployment' => 'whisper-prod',
+            'azure_openai_api_version' => '2024-06-01',
+            'azure_document_intelligence_endpoint' => 'https://azure-di.example.com',
+            'azure_document_intelligence_key' => 'di-secret',
+            'azure_document_intelligence_model' => 'prebuilt-receipt',
+            'azure_document_intelligence_api_version' => '2023-07-31',
             'speech_webhook_url' => 'https://speech.example.internal/transcribe',
             'speech_webhook_token' => 'secret-token',
             'speech_webhook_model' => 'whisper-large-v3',
@@ -96,6 +124,9 @@ class OraBooks_Platform_Settings_Test extends TestCase
         $response = $this->callAjax('ajax_platform_settings_save');
 
         $this->assertFalse($response['error']);
+        $this->assertSame('openai-secret', get_option('orabooks_openai_api_key'));
+        $this->assertSame('https://azure-openai.example.com', get_option('orabooks_azure_openai_endpoint'));
+        $this->assertSame('di-secret', get_option('orabooks_azure_document_intelligence_key'));
         $this->assertSame('https://speech.example.internal/transcribe', get_option('orabooks_speech_webhook_url'));
         $this->assertSame('secret-token', get_option('orabooks_speech_webhook_token'));
         $this->assertSame('whisper-large-v3', get_option('orabooks_speech_webhook_model'));
