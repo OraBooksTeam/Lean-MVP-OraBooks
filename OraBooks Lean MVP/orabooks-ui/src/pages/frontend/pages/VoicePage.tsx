@@ -314,13 +314,16 @@ export default function VoicePage() {
                 <Button
                   variant="secondary"
                   onClick={() => void uploadSelectedFile()}
-                  disabled={uploading || !selectedFile}
+                  disabled={uploading}
                   title="Upload audio and transcribe"
                 >
                   <Upload className="h-4 w-4" />
                   Upload Audio
                 </Button>
                 {selectedFile && <span className="text-xs text-slate-600">{selectedFile.name}</span>}
+                {!selectedFile && !uploading && (
+                  <span className="text-xs text-slate-500">Choose an audio file first, then click Upload Audio.</span>
+                )}
               </div>
             </div>
           </div>
