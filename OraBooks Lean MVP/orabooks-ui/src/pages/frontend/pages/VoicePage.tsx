@@ -370,6 +370,11 @@ export default function VoicePage() {
                 <p className="text-sm text-slate-600">
                   Voice #{selectedVoice.id} · {selectedVoice.status}
                 </p>
+                {(selectedVoice.ai_provider || selectedVoice.ai_model_version) && (
+                  <p className="mt-1 text-xs text-slate-500">
+                    Provider: {selectedVoice.ai_provider || 'unknown'} · Model: {selectedVoice.ai_model_version || 'unknown'}
+                  </p>
+                )}
               </div>
               <div className="flex flex-wrap gap-2">
                 {selectedVoice.confidence_avg != null && (
