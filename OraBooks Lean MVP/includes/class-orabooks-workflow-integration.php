@@ -63,6 +63,8 @@ class OraBooks_Workflow_Integration {
             return new WP_Error('auth_required', __('Authentication required for journal transition', 'orabooks'), ['status' => 401]);
         }
 
+        $reason = trim((string) ($context['reason'] ?? ''));
+
         switch ($event) {
             case 'submit':
             case 'edit':
@@ -98,10 +100,16 @@ class OraBooks_Workflow_Integration {
 
             case 'reject':
                 if (class_exists('OraBooks_Approval') && OraBooks_Approval::user_can_approve($user_id, $org_id)) {
+                    if ($reason === '') {
+                        return new WP_Error('reason_required', __('Reason is required for rejection', 'orabooks'), ['status' => 400]);
+                    }
                     break;
                 }
                 if (!self::has_permission($user_id, $org_id, 'approve_journal')) {
                     return self::deny('approve_journal');
+                }
+                if ($reason === '') {
+                    return new WP_Error('reason_required', __('Reason is required for rejection', 'orabooks'), ['status' => 400]);
                 }
                 break;
 
@@ -121,6 +129,9 @@ class OraBooks_Workflow_Integration {
             case 'reverse':
                 if (!self::has_permission($user_id, $org_id, 'reverse_journal')) {
                     return self::deny('reverse_journal');
+                }
+                if ($reason === '') {
+                    return new WP_Error('reason_required', __('Reason is required for reversal', 'orabooks'), ['status' => 400]);
                 }
                 break;
 
