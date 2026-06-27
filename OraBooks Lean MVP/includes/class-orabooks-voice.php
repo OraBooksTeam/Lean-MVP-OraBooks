@@ -305,16 +305,13 @@ class OraBooks_Voice {
         }
 
         try {
-            $file_bytes = null;
-            if (!empty($row->audio_file_id)) {
-                $file_bytes = OraBooks_Ai_Providers::resolve_attachment_bytes((int) $row->audio_file_id, $org_id);
-            }
+            $audio_context = self::resolve_voice_audio_context($row, $org_id, $filename);
 
             $result = OraBooks_Ai_Providers::run_voice_nlu([
-                'filename'   => $filename,
+                'filename'   => $audio_context['filename'],
                 'voice_id'   => $voice_id,
-                'file_bytes' => $file_bytes,
-                'mime_type'  => 'audio/webm',
+                'file_bytes' => $audio_context['file_bytes'],
+                'mime_type'  => $audio_context['mime_type'],
             ]);
         } catch (Exception $e) {
             $retry = (int) $row->processing_retry_count + 1;
@@ -362,8 +359,45 @@ class OraBooks_Voice {
             'overall_risk_level' => $result['overall_risk_level'],
             'provider' => $result['provider'] ?? OraBooks_Ai_Providers::STUB_PROVIDER,
             'model_version' => $result['model_version'] ?? OraBooks_Ai_Providers::STUB_MODEL_VERSION,
+            'language_detected' => sanitize_text_field($result['language_detected'] ?? 'en'),
             'correlation_id' => function_exists('orabooks_get_correlation_id') ? orabooks_get_correlation_id() : '',
         ], (int) $row->user_id, $org_id);
+    }
+
+    private static function resolve_voice_audio_context($row, $org_id, $default_filename = 'recording.webm') {
+        $context = [
+            'filename' => sanitize_file_name((string) $default_filename ?: 'recording.webm'),
+            'mime_type' => 'audio/webm',
+            'file_bytes' => null,
+        ];
+
+        if (empty($row->audio_file_id) || !class_exists('OraBooks_Attachments')) {
+            return $context;
+        }
+
+        $attachment = OraBooks_Attachments::get_attachment((int) $row->audio_file_id, (int) $org_id);
+        if (!$attachment || empty($attachment->current_version_id)) {
+            return $context;
+        }
+
+        $version = OraBooks_Attachments::get_version((int) $attachment->current_version_id, (int) $org_id);
+        if ($version) {
+            $version_name = sanitize_file_name((string) ($version->file_name ?? ''));
+            if ($version_name !== '') {
+                $context['filename'] = $version_name;
+            }
+            $version_mime = sanitize_text_field((string) ($version->mime_type ?? ''));
+            if ($version_mime !== '') {
+                $context['mime_type'] = $version_mime;
+            }
+        }
+
+        $bytes = OraBooks_Ai_Providers::resolve_attachment_bytes((int) $row->audio_file_id, (int) $org_id);
+        if ($bytes !== null && $bytes !== false && $bytes !== '') {
+            $context['file_bytes'] = $bytes;
+        }
+
+        return $context;
     }
 
     private static function notify_transcription_failure($voice_id, $org_id, $user_id, $reason) {
