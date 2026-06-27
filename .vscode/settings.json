@@ -1,0 +1,4 @@
+{
+  "typescript.tsdk": "OraBooks Lean MVP/orabooks-ui/node_modules/typescript/lib",
+  "typescript.enablePromptUseWorkspaceTsdk": true
+}
