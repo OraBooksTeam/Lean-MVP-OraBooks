@@ -82,6 +82,22 @@ class OraBooks_RBAC_Test extends TestCase
     }
 
     #[Test]
+    public function test_require_permission_allows_platform_admin_when_option_enabled()
+    {
+        $GLOBALS['orabooks_test_org_callback'] = function () {
+            return (object) [
+                'id' => 10,
+                'status' => 'active',
+                'organization_type' => 'customer',
+            ];
+        };
+        $GLOBALS['orabooks_test_get_user_role_callback'] = fn() => 'platform_admin';
+
+        $this->assertTrue(OraBooks_RBAC::require_permission(5, 10, 'change_role', ['allowSuperAdmin' => true]));
+        $this->assertFalse(OraBooks_RBAC::require_permission(5, 10, 'change_role'));
+    }
+
+    #[Test]
     public function test_require_permission_logs_dedicated_permission_audit_row()
     {
         global $wpdb;
