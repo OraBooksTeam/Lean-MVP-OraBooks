@@ -1201,6 +1201,9 @@ class OraBooks_Customers {
                 'transaction_date' => $data['transaction_date'] ?? $invoice_date,
                 'due_date'        => $data['due_date'] ?? date('Y-m-d', strtotime($invoice_date . " +{$due_days} days")),
                 'description'     => $data['description'] ?? '',
+                'subtotal_amount' => round(floatval($data['subtotal_amount'] ?? 0), 2),
+                'discount_amount' => round(floatval($data['discount_amount'] ?? 0), 2),
+                'po_reference'    => $data['po_reference'] ?? null,
                 'total_amount'    => $data['total_amount'],
                 'tax_amount'      => $data['tax_amount'] ?? 0,
                 'tax_rate'        => $data['tax_rate'] ?? 0,
@@ -1214,10 +1217,23 @@ class OraBooks_Customers {
                 'workflow_status' => $data['workflow_status'] ?? 'draft',
                 'idempotency_key' => $data['idempotency_key'] ?? orabooks_uuid(),
             ],
-            ['%d', '%d', '%s', '%s', '%s', '%s', '%s', '%f', '%f', '%f', '%s', '%s', '%s', '%d', '%s', '%s', '%s', '%s', '%s']
+            ['%d', '%d', '%s', '%s', '%s', '%s', '%s', '%f', '%f', '%s', '%f', '%f', '%f', '%s', '%s', '%s', '%d', '%s', '%s', '%s', '%s', '%s']
         );
 
         $invoice_id = $wpdb->insert_id;
+
+        if (!empty($line_items) && class_exists('OraBooks_Invoice_Document')) {
+            OraBooks_Invoice_Document::save_line_items($org_id, $invoice_id, $line_items);
+        } elseif (class_exists('OraBooks_Invoice_Document') && round(floatval($data['subtotal_amount'] ?? 0), 2) > 0) {
+            OraBooks_Invoice_Document::save_line_items($org_id, $invoice_id, [[
+                'line_number' => 1,
+                'description' => !empty($data['description']) ? sanitize_textarea_field($data['description']) : 'Invoice item',
+                'quantity' => 1,
+                'unit_price' => round(floatval($data['subtotal_amount']), 2),
+                'line_total' => round(floatval($data['subtotal_amount']), 2),
+                'sku_code' => null,
+            ]]);
+        }
 
         // Ensure customer record exists
         $table_customers = OraBooks_Database::table('customers');
@@ -1564,6 +1580,13 @@ class OraBooks_Customers {
             $posted_invoice = self::get_invoice($invoice_id);
             OraBooks_AR_Wallet::apply_auto_credit_to_invoice($org_id, $posted_invoice);
             OraBooks_AR_Wallet::lock_invoice_on_post($invoice_id, $org_id);
+        }
+
+        if (class_exists('OraBooks_Invoice_Document')) {
+            OraBooks_Invoice_Document::ensure_schema();
+            OraBooks_Invoice_Document::snapshot_invoice_parties($invoice_id, $org_id);
+            OraBooks_Invoice_Document::save_rendered_copy($invoice_id, $org_id);
+        } elseif (class_exists('OraBooks_AR_Wallet')) {
             OraBooks_AR_Wallet::save_invoice_rendered_copy($invoice_id, $org_id);
         }
 
@@ -1806,6 +1829,10 @@ class OraBooks_Customers {
 
         if (class_exists('OraBooks_Classification')) {
             $invoice->classification = OraBooks_Classification::format_classification($invoice);
+        }
+
+        if (class_exists('OraBooks_Invoice_Document')) {
+            $invoice = OraBooks_Invoice_Document::enrich_invoice($invoice);
         }
 
         return $invoice;
