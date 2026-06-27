@@ -54,6 +54,7 @@
                 <td>
                     <input type="url" name="orabooks_speech_webhook_health_url" value="<?php echo esc_attr(get_option('orabooks_speech_webhook_health_url', '')); ?>" class="regular-text" placeholder="https://speech.example.com/health">
                     <p class="description"><?php _e('Optional endpoint used by the voice diagnostics card to verify provider health.', 'orabooks'); ?></p>
+                    <p class="description"><?php _e('After saving, open Voice and check the Speech Diagnostics card to confirm the provider, model, and health status.', 'orabooks'); ?></p>
                 </td>
             </tr>
             <tr>
