@@ -707,6 +707,17 @@ export default function InvoicesPage() {
                 </div>
               </div>
               <div className="flex flex-wrap gap-2">
+                {selectedInvoice.workflow_status === 'posted' && (
+                  <>
+                    <Button size="sm" variant="secondary" onClick={() => void viewRenderedInvoice(selectedInvoice)}>
+                      View invoice
+                    </Button>
+                    <Button size="sm" variant="secondary" onClick={() => void downloadRenderedInvoice(selectedInvoice)}>
+                      <Download className="h-3.5 w-3.5" />
+                      Download
+                    </Button>
+                  </>
+                )}
                 {canCreditNote(selectedInvoice) && (
                   <Button size="sm" variant="secondary" onClick={() => void openCreditNote(selectedInvoice)}>
                     Credit note
@@ -717,6 +728,63 @@ export default function InvoicesPage() {
                 </Button>
               </div>
             </div>
+
+            <div className="mt-4 grid gap-4 lg:grid-cols-2">
+              <div className="rounded-xl border border-border bg-slate-50/70 p-4 text-sm">
+                <h3 className="font-semibold text-ink">From</h3>
+                <p className="mt-2 font-medium">{selectedInvoice.seller_snapshot?.legal_name || context?.organization?.name || '—'}</p>
+                <p className="whitespace-pre-wrap text-slate-600">{selectedInvoice.seller_snapshot?.address || '—'}</p>
+                {selectedInvoice.seller_snapshot?.tax_id && <p className="mt-1">Tax ID: {selectedInvoice.seller_snapshot.tax_id}</p>}
+              </div>
+              <div className="rounded-xl border border-border bg-slate-50/70 p-4 text-sm">
+                <h3 className="font-semibold text-ink">Bill To</h3>
+                <p className="mt-2 font-medium">{selectedInvoice.buyer_snapshot?.name || '—'}</p>
+                <p className="whitespace-pre-wrap text-slate-600">{selectedInvoice.buyer_snapshot?.billing_address || '—'}</p>
+                {selectedInvoice.buyer_snapshot?.tax_id && <p className="mt-1">Tax ID: {selectedInvoice.buyer_snapshot.tax_id}</p>}
+              </div>
+            </div>
+
+            <div className="mt-4 overflow-x-auto rounded-xl border border-border">
+              <table className="min-w-full text-left text-sm">
+                <thead>
+                  <tr className="border-b border-border bg-slate-50 text-xs uppercase text-slate-500">
+                    <th className="px-4 py-2">SKU</th>
+                    <th className="px-4 py-2">Description</th>
+                    <th className="px-4 py-2 text-right">Qty</th>
+                    <th className="px-4 py-2 text-right">Unit</th>
+                    <th className="px-4 py-2 text-right">Amount</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(selectedInvoice.line_items || []).length === 0 ? (
+                    <tr><td colSpan={5} className="px-4 py-4 text-slate-500">No line items.</td></tr>
+                  ) : (selectedInvoice.line_items || []).map((line) => (
+                    <tr key={line.id || `${line.line_number}-${line.description}`} className="border-t border-border">
+                      <td className="px-4 py-2">{line.sku_code || '—'}</td>
+                      <td className="px-4 py-2">{line.description}</td>
+                      <td className="px-4 py-2 text-right">{Number(line.quantity || 0).toFixed(2)}</td>
+                      <td className="px-4 py-2 text-right">{money(line.unit_price, selectedInvoice.currency)}</td>
+                      <td className="px-4 py-2 text-right">{money(line.line_total, selectedInvoice.currency)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="mt-4 flex justify-end">
+              <div className="min-w-[280px] space-y-1 text-sm">
+                <div className="flex justify-between"><span>Subtotal</span><span>{money(selectedInvoice.subtotal_amount, selectedInvoice.currency)}</span></div>
+                {Number(selectedInvoice.discount_amount || 0) > 0 && (
+                  <div className="flex justify-between"><span>Discount</span><span>-{money(selectedInvoice.discount_amount, selectedInvoice.currency)}</span></div>
+                )}
+                <div className="flex justify-between"><span>{invoiceTaxLabel(selectedInvoice)}</span><span>{money(selectedInvoice.tax_amount, selectedInvoice.currency)}</span></div>
+                <div className="flex justify-between border-t border-border pt-2 font-bold"><span>Total</span><span>{money(selectedInvoice.total_amount, selectedInvoice.currency)}</span></div>
+                {selectedInvoice.po_reference && (
+                  <div className="pt-2 text-xs text-slate-500">PO / Ref: {selectedInvoice.po_reference}</div>
+                )}
+              </div>
+            </div>
+
             <div className="mt-4">
               <ResourceAttachmentsPanel
                 orgId={orgId}
