@@ -20,6 +20,18 @@
     { "name": "PWA", "description": "Progressive Web App metadata" },
     { "name": "Auth", "description": "SL-013 two-factor authentication" }
   ],
+  "x-orabooks-webhooks": {
+    "delivery": {
+      "description": "Outbound webhook dispatch contract used by SL-303 webhook_dispatch jobs.",
+      "signature_algorithm": "HMAC-SHA256",
+      "signed_payload": "<X-OraBooks-Webhook-Timestamp> + '\\n' + raw request body",
+      "headers": {
+        "X-OraBooks-Webhook-Timestamp": "UTC timestamp used for signature generation",
+        "X-OraBooks-Webhook-Job-Id": "Async queue job ID",
+        "X-OraBooks-Webhook-Signature": "hex(HMAC_SHA256(signed_payload, signing_secret))"
+      }
+    }
+  },
   "paths": {
     "/openapi.json": {
       "get": {
