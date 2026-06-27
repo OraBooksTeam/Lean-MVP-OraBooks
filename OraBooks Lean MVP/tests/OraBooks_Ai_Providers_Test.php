@@ -61,6 +61,22 @@ class OraBooks_Ai_Providers_Test extends TestCase
     }
 
     #[Test]
+    public function test_capability_status_reports_speech_webhook_configuration_and_model()
+    {
+        $GLOBALS['orabooks_test_secrets'] = [
+            'speech_webhook_url' => 'https://speech.example.internal/transcribe',
+            'speech_webhook_model' => 'faster-whisper-large-v3',
+        ];
+
+        $status = OraBooks_Ai_Providers::capability_status();
+
+        $this->assertSame('speech-webhook', $status['speech_provider']);
+        $this->assertSame('faster-whisper-large-v3', $status['speech_model_version']);
+        $this->assertTrue((bool) $status['speech_webhook_configured']);
+        $this->assertTrue((bool) $status['real_ai_enabled']);
+    }
+
+    #[Test]
     public function test_run_ocr_falls_back_to_stub_without_file_bytes()
     {
         $ocr = OraBooks_Ai_Providers::run_ocr([
@@ -478,5 +494,41 @@ class OraBooks_Ai_Providers_Test extends TestCase
         $this->assertEquals(1200.0, $result['extracted_data']['amount']);
         $this->assertContains($result['overall_risk_level'], ['low', 'medium', 'high']);
         $this->assertSame('speech-webhook', OraBooks_Ai_Providers::provider_name('speech'));
+    }
+
+    #[Test]
+    public function test_run_voice_nlu_falls_back_to_stub_when_webhook_returns_empty_transcript()
+    {
+        $GLOBALS['orabooks_test_secrets'] = [
+            'speech_webhook_url' => 'https://speech.example.internal/transcribe',
+        ];
+
+        $GLOBALS['orabooks_test_wp_remote_request_callback'] = function ($url, $args) {
+            if ($url === 'https://speech.example.internal/transcribe') {
+                return [
+                    'response' => ['code' => 200],
+                    'headers'  => [],
+                    'body'     => wp_json_encode([
+                        'text' => '',
+                    ]),
+                ];
+            }
+
+            return [
+                'response' => ['code' => 500],
+                'headers'  => [],
+                'body'     => '',
+            ];
+        };
+
+        $result = OraBooks_Ai_Providers::run_voice_nlu([
+            'filename'   => 'voice-command.webm',
+            'voice_id'   => 22,
+            'file_bytes' => 'binary-audio',
+            'mime_type'  => 'audio/webm',
+        ]);
+
+        $this->assertSame('mvp-stub', $result['provider']);
+        $this->assertStringContainsString('Fallback transcription mode is active', $result['transcript']);
     }
 }
