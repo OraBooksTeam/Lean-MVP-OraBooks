@@ -54,7 +54,18 @@ class OraBooks_Invoice_Document {
     public static function ensure_schema() {
         global $wpdb;
 
-        if (self::get_schema_flag('orabooks_sl021_invoice_document_v1') === '1') {
+        $table_invoices = OraBooks_Database::table('invoices');
+        $table_lines = OraBooks_Database::table('invoice_line_items');
+        $invoice_fields = ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table_invoices)) === $table_invoices)
+            ? self::get_table_column_names($table_invoices)
+            : [];
+        $lines_ready = $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table_lines)) === $table_lines;
+
+        if (
+            self::get_schema_flag('orabooks_sl021_invoice_document_v1') === '1'
+            && in_array('subtotal_amount', $invoice_fields, true)
+            && $lines_ready
+        ) {
             return;
         }
 
@@ -66,7 +77,6 @@ class OraBooks_Invoice_Document {
             }
         }
 
-        $table_invoices = OraBooks_Database::table('invoices');
         if ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table_invoices)) === $table_invoices) {
             $fields = self::get_table_column_names($table_invoices);
             $additions = [
@@ -115,7 +125,13 @@ class OraBooks_Invoice_Document {
             }
         }
 
-        self::set_schema_flag('orabooks_sl021_invoice_document_v1', '1');
+        $invoice_fields = ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table_invoices)) === $table_invoices)
+            ? self::get_table_column_names($table_invoices)
+            : [];
+        $lines_ready = $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table_lines)) === $table_lines;
+        if (in_array('subtotal_amount', $invoice_fields, true) && $lines_ready) {
+            self::set_schema_flag('orabooks_sl021_invoice_document_v1', '1');
+        }
     }
 
     public static function normalize_line_items($lines) {
