@@ -794,59 +794,19 @@ class OraBooks_AR_Wallet {
     }
 
     public static function save_invoice_rendered_copy($invoice_id, $org_id) {
+        if (class_exists('OraBooks_Invoice_Document')) {
+            OraBooks_Invoice_Document::ensure_schema();
+            return OraBooks_Invoice_Document::save_rendered_copy(intval($invoice_id), intval($org_id));
+        }
+        return null;
+    }
+
+    private static function get_table_column_names($table) {
         global $wpdb;
-
-        self::ensure_schema();
-
-        $invoice = OraBooks_Customers::get_invoice(intval($invoice_id));
-        if (!$invoice) {
-            return null;
+        if ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table)) !== $table) {
+            return [];
         }
-
-        $payload = [
-            'invoice_number' => $invoice->invoice_number,
-            'invoice_date' => $invoice->invoice_date,
-            'due_date' => $invoice->due_date,
-            'customer_name' => $invoice->customer_name ?? '',
-            'description' => $invoice->description ?? '',
-            'total_amount' => floatval($invoice->total_amount),
-            'tax_amount' => floatval($invoice->tax_amount ?? 0),
-            'currency' => $invoice->currency ?? 'USD',
-            'workflow_status' => $invoice->workflow_status,
-            'payment_status' => $invoice->payment_status,
-        ];
-
-        $html = sprintf(
-            '<div class="orabooks-invoice"><h1>%s</h1><p>Date: %s | Due: %s</p><p>Customer: %s</p><p>Total: %s %s</p></div>',
-            esc_html($invoice->invoice_number),
-            esc_html($invoice->invoice_date),
-            esc_html($invoice->due_date),
-            esc_html($invoice->customer_name ?? ''),
-            esc_html(number_format(floatval($invoice->total_amount), 2)),
-            esc_html($invoice->currency ?? 'USD')
-        );
-
-        $table = OraBooks_Database::table('invoice_rendered_copy');
-        $existing = $wpdb->get_var($wpdb->prepare(
-            "SELECT id FROM {$table} WHERE invoice_id = %d",
-            intval($invoice_id)
-        ));
-
-        $row = [
-            'org_id' => intval($org_id),
-            'invoice_id' => intval($invoice_id),
-            'rendered_html' => $html,
-            'rendered_json' => wp_json_encode($payload),
-            'rendered_at' => current_time('mysql'),
-        ];
-
-        if ($existing) {
-            $wpdb->update($table, $row, ['id' => intval($existing)]);
-        } else {
-            $wpdb->insert($table, $row);
-        }
-
-        return true;
+        return $wpdb->get_col("SHOW COLUMNS FROM {$table}", 0) ?: [];
     }
 
     public static function create_credit_note($org_id, $data) {
