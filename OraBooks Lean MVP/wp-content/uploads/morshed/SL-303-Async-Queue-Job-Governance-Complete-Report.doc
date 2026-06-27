@@ -1,0 +1,75 @@
+<html>
+<head>
+<meta charset="utf-8">
+<title>SL-303 Async Queue & Job Governance - Complete Report</title>
+<style>
+body{font-family:Calibri,Arial,sans-serif;color:#1a1a1a;line-height:1.5;margin:32px}
+h1{color:#1e3a5f;margin-bottom:6px}
+h2{color:#1e3a5f;margin-top:24px}
+p,li{font-size:11pt}
+.small{color:#555}
+.box{border:1px solid #d9e2ec;background:#f8fafc;padding:12px;border-radius:8px}
+</style>
+</head>
+<body>
+<h1>SL-303 Async Queue & Job Governance</h1>
+<p class="small">Prepared for: Morshed | Project: OraBooks Lean MVP | Date: 2026-06-27</p>
+
+<h2>Executive Summary</h2>
+<p>SL-303 is implemented and operational for Lean MVP scope. Verification was completed using project code evidence and fresh automated tests.</p>
+<div class="box"><strong>Status:</strong> COMPLETE FOR MVP SCOPE</div>
+
+<h2>Implemented Scope</h2>
+<ul>
+<li>Central async queue runtime with handler registry and scheduled worker.</li>
+<li>Job lifecycle governance: pending, processing, completed, failed, dead_letter, cancelled, discarded.</li>
+<li>Retry with exponential backoff and max-retry dead-letter transition.</li>
+<li>Manual governance operations: replay, discard, cancel.</li>
+<li>Heartbeat recovery for stalled processing jobs.</li>
+<li>Queue monitoring: lag/dead-letter alerts and operational metrics.</li>
+<li>Org-scoped security checks and cross-tenant replay protection.</li>
+<li>Webhook dispatch signing support with HMAC headers.</li>
+</ul>
+
+<h2>Primary Evidence Files</h2>
+<ul>
+<li>includes/class-orabooks-async-queue.php</li>
+<li>tests/OraBooks_AsyncQueue_Test.php</li>
+<li>docs/openapi/openapi.json</li>
+<li>orabooks-ui/src/components/platform/JobQueuePanel.tsx</li>
+</ul>
+
+<h2>Automated Test Result (Fresh)</h2>
+<p><strong>Command:</strong> D:\xampp\php\php.exe tests\vendor\phpunit\phpunit\phpunit --configuration tests\phpunit.xml tests\OraBooks_AsyncQueue_Test.php</p>
+<ul>
+<li>Tests: 14</li>
+<li>Assertions: 43</li>
+<li>Result: PASS</li>
+</ul>
+
+<h2>How to Test Manually</h2>
+<ol>
+<li>Enqueue with idempotency_key and verify dedupe behavior.</li>
+<li>Run success-path jobs and verify pending to processing to completed transitions.</li>
+<li>Force failure and verify retry_count increment + next_retry_at backoff scheduling.</li>
+<li>Exceed max retries and verify dead_letter transition + error capture.</li>
+<li>Use replay/discard/cancel actions and verify allowed-state enforcement.</li>
+<li>Test cross-tenant replay attempt and verify forbidden denial.</li>
+<li>Verify queue metrics and Recent Failures in Job Queue panel.</li>
+<li>Verify webhook HMAC headers for webhook_dispatch jobs.</li>
+</ol>
+
+<h2>Sign-Off Checklist</h2>
+<ul>
+<li>SL-303 unit tests pass.</li>
+<li>Retry and dead-letter governance verified.</li>
+<li>Manual operations (replay/discard/cancel) verified.</li>
+<li>Org scope protection verified.</li>
+<li>Monitoring and metrics verified.</li>
+</ul>
+
+<h2>Conclusion</h2>
+<p>SL-303 Async Queue & Job Governance is complete and testable for OraBooks Lean MVP scope.</p>
+<p><strong>Recommendation:</strong> Approve SL-303 for MVP sign-off.</p>
+</body>
+</html>
