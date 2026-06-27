@@ -1423,11 +1423,17 @@ class OraBooks_AR_Wallet {
     }
 
     private function require_ar_access($user_id, $org_id, $capability = 'create_invoice') {
-        if (class_exists('OraBooks_Customers')) {
-            $customers = OraBooks_Customers::init();
-            if (method_exists($customers, 'require_customer_access')) {
-                $customers->require_customer_access($user_id, $org_id, $capability);
-            }
+        if (!$user_id) {
+            orabooks_json_error('Not authenticated', 401);
+        }
+
+        $isolation = OraBooks_Auth::require_customer_org($user_id, $org_id);
+        if (is_wp_error($isolation)) {
+            orabooks_json_error($isolation->get_error_message(), 403);
+        }
+
+        if (!current_user_can('manage_options') && !OraBooks_RBAC::require_permission($user_id, $org_id, $capability)) {
+            orabooks_json_error('Permission denied', 403);
         }
     }
 
