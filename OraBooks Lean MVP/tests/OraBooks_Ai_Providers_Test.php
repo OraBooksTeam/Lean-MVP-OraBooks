@@ -302,6 +302,40 @@ class OraBooks_Ai_Providers_Test extends TestCase
     }
 
     #[Test]
+    public function test_run_ocr_parses_fenced_json_from_vision_chat_response()
+    {
+        $GLOBALS['orabooks_test_secrets'] = [
+            'openai_api_key' => 'test-openai-key',
+            'openai_chat_model' => 'gpt-4o-mini',
+        ];
+
+        $GLOBALS['orabooks_test_wp_remote_request_callback'] = function ($url, $args) {
+            $this->assertStringContainsString('/chat/completions', $url);
+            return [
+                'response' => ['code' => 200],
+                'headers'  => [],
+                'body'     => wp_json_encode([
+                    'choices' => [[
+                        'message' => [
+                            'content' => "```json\n{\"vendor\":\"Fenced Vendor\",\"invoice_number\":\"F-1\",\"transaction_date\":\"2026-06-27\",\"total_amount\":55.25,\"subtotal\":50,\"tax_amount\":5.25,\"tax_rate\":10.5,\"currency\":\"USD\",\"payment_method\":\"Card\",\"category\":\"Office Supplies\",\"description\":\"Stationery\",\"line_items\":[{\"description\":\"Paper\",\"quantity\":1,\"unit_price\":50,\"total_amount\":50,\"line_confidence\":88}],\"field_confidences\":{\"vendor\":90,\"total_amount\":93}}\n```",
+                        ],
+                    ]],
+                ]),
+            ];
+        };
+
+        $ocr = OraBooks_Ai_Providers::run_ocr([
+            'filename'   => 'expense-fenced.png',
+            'expense_id' => 601,
+            'file_bytes' => 'mock-image-bytes',
+        ]);
+
+        $this->assertSame('Fenced Vendor', $ocr['vendor']);
+        $this->assertSame(55.25, $ocr['total_amount']);
+        $this->assertNotEmpty($ocr['line_items']);
+    }
+
+    #[Test]
     public function test_classify_record_falls_back_to_stub_without_credentials()
     {
         $record = (object) ['category' => 'meals'];
@@ -323,5 +357,60 @@ class OraBooks_Ai_Providers_Test extends TestCase
         $this->assertArrayHasKey('transcript', $result);
         $this->assertArrayHasKey('extracted_data', $result);
         $this->assertSame('mvp-stub', $result['provider']);
+    }
+
+    #[Test]
+    public function test_run_voice_nlu_uses_transcript_heuristic_when_nlu_json_is_invalid()
+    {
+        $GLOBALS['orabooks_test_secrets'] = [
+            'openai_api_key' => 'test-openai-key',
+            'openai_chat_model' => 'gpt-4o-mini',
+            'openai_whisper_model' => 'whisper-1',
+        ];
+
+        $GLOBALS['orabooks_test_wp_remote_request_callback'] = function ($url, $args) {
+            if (stripos($url, '/audio/transcriptions') !== false) {
+                return [
+                    'response' => ['code' => 200],
+                    'headers'  => [],
+                    'body'     => wp_json_encode([
+                        'text' => 'Create expense from Acme Supplies amount 125 USD for office paper',
+                    ]),
+                ];
+            }
+
+            if (stripos($url, '/chat/completions') !== false) {
+                return [
+                    'response' => ['code' => 200],
+                    'headers'  => [],
+                    'body'     => wp_json_encode([
+                        'choices' => [[
+                            'message' => [
+                                'content' => 'not-json',
+                            ],
+                        ]],
+                    ]),
+                ];
+            }
+
+            return [
+                'response' => ['code' => 500],
+                'headers'  => [],
+                'body'     => '',
+            ];
+        };
+
+        $result = OraBooks_Ai_Providers::run_voice_nlu([
+            'filename'   => 'voice-command.mp3',
+            'voice_id'   => 9,
+            'file_bytes' => 'binary-audio',
+            'mime_type'  => 'audio/mpeg',
+            'locale_preference' => 'en-US',
+        ]);
+
+        $this->assertSame('Create expense from Acme Supplies amount 125 USD for office paper', $result['transcript']);
+        $this->assertSame('expense', $result['extracted_data']['transaction_type']);
+        $this->assertEquals(125.0, $result['extracted_data']['amount']);
+        $this->assertContains($result['overall_risk_level'], ['low', 'medium', 'high']);
     }
 }
