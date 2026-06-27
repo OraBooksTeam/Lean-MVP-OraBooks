@@ -61,6 +61,24 @@ class OraBooks_Ai_Providers_Test extends TestCase
     }
 
     #[Test]
+    public function test_provider_name_reads_speech_webhook_options_when_secrets_are_missing()
+    {
+        $original_url = get_option('orabooks_speech_webhook_url', '');
+        $original_model = get_option('orabooks_speech_webhook_model', '');
+
+        update_option('orabooks_speech_webhook_url', 'https://speech.example.internal/transcribe');
+        update_option('orabooks_speech_webhook_model', 'whisper-large-v3');
+
+        try {
+            $this->assertSame('speech-webhook', OraBooks_Ai_Providers::provider_name('speech'));
+            $this->assertSame('whisper-large-v3', OraBooks_Ai_Providers::model_version('speech'));
+        } finally {
+            update_option('orabooks_speech_webhook_url', $original_url);
+            update_option('orabooks_speech_webhook_model', $original_model);
+        }
+    }
+
+    #[Test]
     public function test_capability_status_reports_speech_webhook_configuration_and_model()
     {
         $GLOBALS['orabooks_test_secrets'] = [
