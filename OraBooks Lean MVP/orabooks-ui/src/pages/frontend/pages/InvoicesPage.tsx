@@ -1157,6 +1157,13 @@ export default function InvoicesPage() {
                     Add line
                   </Button>
                 </div>
+                <div className="mb-2 hidden text-xs font-semibold uppercase tracking-wide text-slate-500 sm:grid sm:grid-cols-12 sm:gap-2 sm:px-3">
+                  <div className="sm:col-span-2">SKU</div>
+                  <div className="sm:col-span-4">Product</div>
+                  <div className="sm:col-span-2">Qty</div>
+                  <div className="sm:col-span-2">Unit price</div>
+                  <div className="sm:col-span-2 text-right">Line total</div>
+                </div>
                 <div className="space-y-2">
                   {lineItems.map((line, index) => (
                     <div key={index} className="grid gap-2 rounded-lg border border-border p-3 sm:grid-cols-12">
@@ -1164,7 +1171,12 @@ export default function InvoicesPage() {
                         <Input value={line.sku_code} onChange={(e) => setLineItems((items) => items.map((row, i) => i === index ? { ...row, sku_code: e.target.value } : row))} placeholder="SKU" />
                       </div>
                       <div className="sm:col-span-4">
-                        <Input value={line.description} onChange={(e) => setLineItems((items) => items.map((row, i) => i === index ? { ...row, description: e.target.value } : row))} placeholder="Description" />
+                        <ProductAutocomplete
+                          value={line.description}
+                          products={products}
+                          onChange={(value) => setLineItems((items) => items.map((row, i) => i === index ? { ...row, description: value } : row))}
+                          onSelectProduct={(product) => applyProductToLine(index, product)}
+                        />
                       </div>
                       <div className="sm:col-span-2">
                         <Input type="number" min="0" step="0.01" value={line.quantity} onChange={(e) => setLineItems((items) => items.map((row, i) => i === index ? { ...row, quantity: e.target.value } : row))} placeholder="Qty" />
@@ -1173,7 +1185,7 @@ export default function InvoicesPage() {
                         <Input type="number" min="0" step="0.01" value={line.unit_price} onChange={(e) => setLineItems((items) => items.map((row, i) => i === index ? { ...row, unit_price: e.target.value } : row))} placeholder="Unit price" />
                       </div>
                       <div className="flex items-center justify-end sm:col-span-2">
-                        <span className="mr-2 text-sm text-slate-600">{money((parseFloat(line.quantity) || 0) * (parseFloat(line.unit_price) || 0))}</span>
+                        <span className="mr-2 text-sm font-medium text-ink">{money(lineItemTotal(line), createForm.currency)}</span>
                         {lineItems.length > 1 && (
                           <Button size="sm" variant="secondary" onClick={() => setLineItems((items) => items.filter((_, i) => i !== index))}>
                             <Trash2 className="h-3.5 w-3.5" />
@@ -1183,6 +1195,9 @@ export default function InvoicesPage() {
                     </div>
                   ))}
                 </div>
+                {products.length === 0 && !createModalLoading && (
+                  <p className="mt-2 text-xs text-slate-500">No products in inventory yet. You can still type line descriptions manually.</p>
+                )}
               </div>
 
               <div className="grid gap-4 sm:grid-cols-2">
@@ -1193,14 +1208,38 @@ export default function InvoicesPage() {
                   <Input value={createForm.description} onChange={(e) => setCreateForm((p) => ({ ...p, description: e.target.value }))} placeholder="Optional invoice note" />
                 </Field>
               </div>
-              {createPreview && (
-                <div className="rounded-lg border border-border bg-slate-50 p-3 text-sm">
-                  <div>Subtotal: {money(createPreview.subtotal_amount || lineItemsSubtotal(lineItems))}</div>
-                  <div>
-                    {createPreview.tax_type || 'Tax'} ({createPreview.tax_rate.toFixed(2)}%):{' '}
-                    {money(createPreview.tax_amount)}
+              {createTotals.subtotal > 0 && (
+                <div className="rounded-lg border border-border bg-slate-50 p-4 text-sm">
+                  <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Invoice totals</div>
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-600">Subtotal</span>
+                      <span>{money(createTotals.subtotal, createForm.currency)}</span>
+                    </div>
+                    {createTotals.discount > 0 && (
+                      <div className="flex items-center justify-between">
+                        <span className="text-slate-600">Discount</span>
+                        <span>-{money(createTotals.discount, createForm.currency)}</span>
+                      </div>
+                    )}
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-600">Taxable amount</span>
+                      <span>{money(createTotals.taxable, createForm.currency)}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-600">
+                        {createTotals.taxType} / VAT ({createForm.jurisdiction})
+                        {taxPreviewLoading ? '' : ` · ${createTotals.taxRate.toFixed(2)}%`}
+                      </span>
+                      <span>
+                        {taxPreviewLoading ? 'Calculating…' : money(createTotals.taxAmount, createForm.currency)}
+                      </span>
+                    </div>
+                    <div className="mt-2 flex items-center justify-between border-t border-border pt-2 text-base font-semibold text-ink">
+                      <span>Total due</span>
+                      <span>{money(createTotals.total, createForm.currency)}</span>
+                    </div>
                   </div>
-                  <div className="font-semibold">Total: {money(createPreview.total_amount)}</div>
                 </div>
               )}
             </div>
