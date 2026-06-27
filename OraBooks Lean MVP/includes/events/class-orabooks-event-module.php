@@ -164,6 +164,16 @@ class OraBooks_Event_Module {
         }
 
         $payload['event_version'] = (int) ($payload['event_version'] ?? 1);
+        if (empty($payload['correlation_id'])) {
+            if (function_exists('orabooks_get_correlation_id')) {
+                $payload['correlation_id'] = orabooks_get_correlation_id(true);
+            } elseif (function_exists('orabooks_uuid')) {
+                $payload['correlation_id'] = orabooks_uuid();
+            }
+        }
+        if (!empty($payload['correlation_id']) && function_exists('orabooks_set_correlation_id')) {
+            orabooks_set_correlation_id($payload['correlation_id']);
+        }
         $payload['event_type'] = $payload['event_type'] ?? $event_type;
         $payload_json = wp_json_encode($payload);
         $validation = self::validate_payload($event_type, $payload);
@@ -269,6 +279,9 @@ class OraBooks_Event_Module {
 
             $payload = json_decode((string) $event->payload, true);
             $payload = is_array($payload) ? $payload : [];
+            if (!empty($payload['correlation_id']) && function_exists('orabooks_set_correlation_id')) {
+                orabooks_set_correlation_id($payload['correlation_id']);
+            }
             $consumers = self::$consumers[$event->event_type] ?? [];
 
             if (empty($consumers)) {
@@ -524,10 +537,12 @@ class OraBooks_Event_Module {
             'replayed_at' => current_time('mysql', true),
         ], ['id' => (int) $dead_letter_id], ['%s', '%d', '%s'], ['%d']);
 
+        $correlation_id = self::extract_correlation_id_from_record($dead);
+
         orabooks_log_event('event_dead_letter_replayed', 'Event dead letter replayed', 'info', [
             'dead_letter_id' => (int) $dead_letter_id,
             'outbox_id' => (int) $dead->outbox_id,
-        ], $user_id ?: null, null);
+        ], $user_id ?: null, null, $correlation_id);
 
         return true;
     }
@@ -553,12 +568,28 @@ class OraBooks_Event_Module {
             'discarded_at' => current_time('mysql', true),
         ], ['id' => (int) $dead_letter_id], ['%s', '%d', '%s'], ['%d']);
 
+        $correlation_id = self::extract_correlation_id_from_record($dead);
+
         orabooks_log_event('event_dead_letter_discarded', 'Event dead letter discarded', 'warning', [
             'dead_letter_id' => (int) $dead_letter_id,
             'outbox_id' => (int) $dead->outbox_id,
-        ], $user_id ?: null, null);
+        ], $user_id ?: null, null, $correlation_id);
 
         return true;
+    }
+
+    private static function extract_correlation_id_from_record($record) {
+        $payload_raw = is_array($record) ? ($record['payload'] ?? '') : ($record->payload ?? '');
+        if (!is_string($payload_raw) || $payload_raw === '') {
+            return function_exists('orabooks_get_correlation_id') ? orabooks_get_correlation_id(true) : '';
+        }
+
+        $payload = json_decode($payload_raw, true);
+        if (is_array($payload) && !empty($payload['correlation_id'])) {
+            return (string) $payload['correlation_id'];
+        }
+
+        return function_exists('orabooks_get_correlation_id') ? orabooks_get_correlation_id(true) : '';
     }
 
     public static function render_dead_letter_replay_page() {
