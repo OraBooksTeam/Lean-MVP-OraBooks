@@ -1,0 +1,76 @@
+<html>
+<head>
+<meta charset="utf-8">
+<title>SL-028 Expenses OCR [AI] - Complete Report</title>
+<style>
+body{font-family:Calibri,Arial,sans-serif;color:#1a1a1a;line-height:1.5;margin:32px}
+h1{color:#1e3a5f;margin-bottom:6px}
+h2{color:#1e3a5f;margin-top:24px}
+p,li{font-size:11pt}
+.small{color:#555}
+.box{border:1px solid #d9e2ec;background:#f8fafc;padding:12px;border-radius:8px}
+</style>
+</head>
+<body>
+<h1>SL-028 Expenses OCR [AI]</h1>
+<p class="small">Prepared for: Morshed | Project: OraBooks Lean MVP | Date: 2026-06-27</p>
+
+<h2>Executive Summary</h2>
+<p>SL-028 is implemented and operational for Lean MVP scope. Verification was completed via source evidence and fresh automated tests.</p>
+<div class="box"><strong>Status:</strong> READY FOR MVP SIGN-OFF (within SL-028 scope)</div>
+
+<h2>How It Works</h2>
+<ul>
+<li>Receipt upload creates draft expense and starts OCR processing.</li>
+<li>OCR provider selection supports Azure DI / vision path / safe stub fallback.</li>
+<li>Extracted fields hydrate expense draft (vendor, date, amount, tax, category, line items).</li>
+<li>Confidence and risk metadata are produced for review.</li>
+<li>Async queue integration and workflow handoff are present.</li>
+</ul>
+
+<h2>What Was Needed / What Is Needed</h2>
+<ul>
+<li>Implemented: schema, OCR pipeline, provider abstraction, fallback logic, UI upload + hydration, tests.</li>
+<li>For stronger production accuracy: secure provider credentials, more document templates, expanded tuning/monitoring.</li>
+</ul>
+
+<h2>Primary Evidence Files</h2>
+<ul>
+<li>includes/class-orabooks-expenses.php</li>
+<li>includes/class-orabooks-ai-providers.php</li>
+<li>orabooks-ui/src/pages/frontend/pages/ExpensesPage.tsx</li>
+<li>tests/OraBooks_Expenses_Test.php</li>
+<li>tests/OraBooks_Ai_Providers_Test.php</li>
+</ul>
+
+<h2>Automated Test Result (Fresh)</h2>
+<p><strong>Command:</strong> D:\xampp\php\php.exe tests\vendor\phpunit\phpunit\phpunit --configuration tests\phpunit.xml tests\OraBooks_Expenses_Test.php tests\OraBooks_Ai_Providers_Test.php</p>
+<ul>
+<li>Tests: 26</li>
+<li>Assertions: 105</li>
+<li>Result: PASS</li>
+</ul>
+
+<h2>How to Test Manually</h2>
+<ol>
+<li>Upload PDF/JPG/PNG receipt and verify draft hydration with OCR fields.</li>
+<li>Test without credentials (stub fallback) and with credentials (real provider path).</li>
+<li>Upload salary voucher/document-style file and verify extracted key fields.</li>
+<li>Validate MIME/size/rate-limit controls with negative test cases.</li>
+<li>Test offline queue and reconnect sync flow (PWA path).</li>
+</ol>
+
+<h2>Expected Result Pattern</h2>
+<ul>
+<li>workflow_status starts as draft after upload.</li>
+<li>OCR output includes confidence/risk/provider/model metadata.</li>
+<li>subtotal/tax/total are structurally consistent.</li>
+<li>line_items are present for downstream confirmation/review.</li>
+<li>Weak provider output still returns usable data via fallback merge.</li>
+</ul>
+
+<h2>Conclusion</h2>
+<p>SL-028 Expenses OCR [AI] is complete and testable for OraBooks Lean MVP scope.</p>
+<p><strong>Recommendation:</strong> Approve SL-028 for MVP sign-off.</p>
+</body>
+</html>
