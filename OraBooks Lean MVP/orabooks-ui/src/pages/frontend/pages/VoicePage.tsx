@@ -335,7 +335,7 @@ export default function VoicePage() {
                 </Button>
                 {selectedFile && <span className="text-xs font-medium text-slate-700">{selectedFile.name}</span>}
                 {!selectedFile && !uploading && (
-                  <span className="text-xs font-medium text-primary">Step 1: Choose Audio File, তারপর Upload Audio চাপো.</span>
+                  <span className="text-xs font-medium text-primary">Step 1: Choose Audio File, then click Upload Audio.</span>
                 )}
               </div>
             </div>
