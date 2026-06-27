@@ -1518,6 +1518,7 @@ function Modal({
     <div
       className="orabooks-modal-overlay"
       style={{
+        display: 'block',
         position: 'fixed',
         inset: 0,
         zIndex: 100010,

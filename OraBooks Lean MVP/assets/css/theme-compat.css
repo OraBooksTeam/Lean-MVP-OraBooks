@@ -356,6 +356,11 @@ body.orabooks-page #orabooks-app-root [role="dialog"] {
     z-index: 100010;
 }
 
+/* React invoice modals: override legacy .orabooks-modal { display: none } from frontend.css */
+body.orabooks-page .orabooks-modal-overlay {
+    display: block !important;
+}
+
 /* Responsive tables inside React pages */
 body.orabooks-page #orabooks-app-root .orabooks-table-scroll {
     width: 100%;
