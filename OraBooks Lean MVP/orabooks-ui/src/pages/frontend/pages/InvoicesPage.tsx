@@ -281,14 +281,93 @@ export default function InvoicesPage() {
   const remainingBalance = (invoice: Invoice) =>
     Math.max(0, Number(invoice.total_amount || 0) - Number(invoice.paid_amount || 0));
 
+  const lineItemsSubtotal = (items: LineItemForm[]) =>
+    items.reduce((sum, line) => {
+      const qty = parseFloat(line.quantity) || 0;
+      const price = parseFloat(line.unit_price) || 0;
+      return sum + (qty * price);
+    }, 0);
+
+  const buildLineItemsPayload = (items: LineItemForm[]) =>
+    items
+      .filter((line) => line.description.trim())
+      .map((line) => {
+        const quantity = parseFloat(line.quantity) || 1;
+        const unit_price = parseFloat(line.unit_price) || 0;
+        return {
+          description: line.description.trim(),
+          quantity,
+          unit_price,
+          line_total: Math.round(quantity * unit_price * 100) / 100,
+          sku_code: line.sku_code.trim() || undefined,
+        };
+      })
+      .filter((line) => line.line_total > 0);
+
+  const openInvoiceDetail = async (invoice: Invoice) => {
+    setSelectedInvoice(invoice);
+    const res = await api.invoiceGet(invoice.id);
+    if (!res.error) {
+      setSelectedInvoice((res as any).data || invoice);
+    }
+  };
+
+  const viewRenderedInvoice = async (invoice: Invoice) => {
+    if (!orgId) return;
+    const res = await api.invoiceRenderedGet(orgId, invoice.id);
+    if (res.error) {
+      setError(typeof res.error === 'string' ? res.error : 'Rendered invoice is not available yet.');
+      return;
+    }
+    const html = (res as any).data?.rendered_html;
+    if (!html) {
+      setError('Rendered invoice HTML is empty.');
+      return;
+    }
+    const win = window.open('', '_blank');
+    if (win) {
+      win.document.write(html);
+      win.document.close();
+    }
+  };
+
+  const downloadRenderedInvoice = async (invoice: Invoice) => {
+    if (!orgId) return;
+    const res = await api.invoiceRenderedGet(orgId, invoice.id);
+    if (res.error) {
+      setError(typeof res.error === 'string' ? res.error : 'Rendered invoice is not available yet.');
+      return;
+    }
+    const html = (res as any).data?.rendered_html;
+    if (!html) return;
+    const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${invoice.invoice_number || `invoice-${invoice.id}`}.html`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
   const previewCreateTax = async () => {
-    if (!orgId || !createForm.subtotal_amount) {
+    if (!orgId) {
       setCreatePreview(null);
       return;
     }
+
+    const lines = buildLineItemsPayload(lineItems);
+    const subtotal = lines.length ? lineItemsSubtotal(lineItems) : (parseFloat(createForm.subtotal_amount) || 0);
+    const discount = parseFloat(createForm.discount_amount) || 0;
+    const taxable = Math.max(0, subtotal - discount);
+
+    if (taxable <= 0) {
+      setCreatePreview(null);
+      return;
+    }
+
     const res = await api.taxCalculate({
       org_id: orgId,
-      amount: parseFloat(createForm.subtotal_amount) || 0,
+      amount: taxable,
       jurisdiction: createForm.jurisdiction,
     });
     if (!res.error) {
@@ -296,8 +375,9 @@ export default function InvoicesPage() {
       setCreatePreview({
         tax_rate: Number(data.tax_rate || 0),
         tax_amount: Number(data.tax_amount || 0),
-        total_amount: Number(data.taxable_amount || 0) + Number(data.tax_amount || 0),
+        total_amount: taxable + Number(data.tax_amount || 0),
         tax_type: data.tax_type || undefined,
+        subtotal_amount: subtotal,
       });
     }
   };
@@ -306,11 +386,14 @@ export default function InvoicesPage() {
     if (!showCreate) return;
     const timer = setTimeout(() => { void previewCreateTax(); }, 300);
     return () => clearTimeout(timer);
-  }, [showCreate, createForm.subtotal_amount, createForm.jurisdiction, orgId]);
+  }, [showCreate, createForm.subtotal_amount, createForm.discount_amount, createForm.jurisdiction, lineItems, orgId]);
 
   const handleCreateInvoice = async () => {
-    if (!orgId || !createForm.customer_id || !createForm.subtotal_amount) {
-      setError('Customer and subtotal are required.');
+    const lines = buildLineItemsPayload(lineItems);
+    const subtotal = lines.length ? lineItemsSubtotal(lineItems) : (parseFloat(createForm.subtotal_amount) || 0);
+
+    if (!orgId || !createForm.customer_id || subtotal <= 0) {
+      setError('Customer and at least one valid line item are required.');
       return;
     }
 
@@ -320,11 +403,14 @@ export default function InvoicesPage() {
       org_id: orgId,
       customer_id: parseInt(createForm.customer_id, 10),
       invoice_date: createForm.invoice_date,
-      subtotal_amount: parseFloat(createForm.subtotal_amount) || 0,
+      subtotal_amount: subtotal,
+      discount_amount: parseFloat(createForm.discount_amount) || 0,
+      po_reference: createForm.po_reference.trim(),
       jurisdiction: createForm.jurisdiction,
       currency: createForm.currency || 'USD',
       description: createForm.description,
       workflow_status: 'draft',
+      line_items: lines,
     };
 
     if (createForm.use_due_date && createForm.due_date) {
@@ -333,13 +419,17 @@ export default function InvoicesPage() {
       payload.due_days = parseInt(createForm.due_days, 10) || 30;
     }
 
-    const res = await api.invoiceCreate(payload);
+    const res = await api.invoiceCreate({
+      ...payload,
+      line_items: JSON.stringify(lines),
+    });
 
     if (res.error) {
       setError(res.error);
     } else {
       setSuccess('Invoice created.');
       setShowCreate(false);
+      setLineItems([emptyLineItem()]);
       setCreateForm({
         customer_id: getSearchParam('customer_id') || '',
         invoice_date: new Date().toISOString().slice(0, 10),
@@ -350,6 +440,8 @@ export default function InvoicesPage() {
         jurisdiction: taxConfigs[0]?.jurisdiction || 'US',
         currency: 'USD',
         description: '',
+        po_reference: '',
+        discount_amount: '0',
       });
       setCreatePreview(null);
       await load();
