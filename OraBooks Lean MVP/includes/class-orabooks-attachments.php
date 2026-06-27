@@ -137,6 +137,10 @@ class OraBooks_Attachments {
             return new WP_Error('invalid_resource_type', 'Unsupported resource type');
         }
 
+        if (!self::can_access_resource($user_id, $org_id, $resource_type, 'write')) {
+            return new WP_Error('permission_denied', 'Permission denied');
+        }
+
         if (!OraBooks_RBAC::require_permission($user_id, $org_id, 'submit_transaction')) {
             return new WP_Error('permission_denied', 'Permission denied');
         }
@@ -431,6 +435,10 @@ class OraBooks_Attachments {
             return new WP_Error('permission_denied', 'Permission denied');
         }
 
+        if (!self::can_access_resource($user_id, $org_id, (string) $attachment->resource_type, 'read')) {
+            return new WP_Error('permission_denied', 'Permission denied');
+        }
+
         if ($version_id <= 0) {
             $version_id = (int) $attachment->current_version_id;
         }
@@ -510,6 +518,31 @@ class OraBooks_Attachments {
 
     public static function can_upload($user_id, $org_id) {
         return OraBooks_RBAC::require_permission($user_id, $org_id, 'submit_transaction');
+    }
+
+    private static function can_access_resource($user_id, $org_id, $resource_type, $action = 'read') {
+        $permission = self::resource_permission($resource_type, $action);
+        return OraBooks_RBAC::require_permission($user_id, $org_id, $permission);
+    }
+
+    private static function resource_permission($resource_type, $action = 'read') {
+        $resource_type = sanitize_text_field((string) $resource_type);
+        $action = $action === 'write' ? 'write' : 'read';
+
+        $map = [
+            'invoice' => ['read' => 'view_invoices', 'write' => 'create_invoice'],
+            'customer' => ['read' => 'view_invoices', 'write' => 'create_invoice'],
+            'bill' => ['read' => 'manage_expenses', 'write' => 'manage_expenses'],
+            'expense' => ['read' => 'manage_expenses', 'write' => 'manage_expenses'],
+            'vendor' => ['read' => 'manage_expenses', 'write' => 'manage_expenses'],
+            'inventory_item' => ['read' => 'manage_inventory', 'write' => 'manage_inventory'],
+        ];
+
+        if (isset($map[$resource_type])) {
+            return $map[$resource_type][$action];
+        }
+
+        return $action === 'write' ? 'submit_transaction' : 'view_reports';
     }
 
     private static function is_allowed_mime($mime_type) {
@@ -720,6 +753,10 @@ class OraBooks_Attachments {
         $attachment = self::get_attachment($attachment_id, $org_id);
         if (!$attachment) {
             orabooks_json_error('Attachment not found', 404);
+        }
+
+        if (!self::can_access_resource($user_id, $org_id, (string) $attachment->resource_type, 'read')) {
+            orabooks_json_error('Permission denied', 403);
         }
 
         $versions = self::list_versions($attachment_id, $org_id);
