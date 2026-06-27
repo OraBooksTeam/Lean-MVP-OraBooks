@@ -369,12 +369,11 @@ export default function VoicePage() {
                 />
                 <Button
                   variant="secondary"
-                  className="cursor-pointer rounded-xl border-accent bg-accent px-5 text-white shadow-sm hover:border-accent-dark hover:bg-accent-dark"
+                  className="cursor-pointer transition bg-accent text-white shadow-sm hover:border-success hover:bg-success/90"
                   onClick={() => void uploadSelectedFile()}
                   disabled={uploading}
                   title="Upload audio and transcribe"
                 >
-                  <Upload className="h-4 w-4" />
                   Upload Audio
                 </Button>
                 {selectedFile && <span className="text-xs font-medium text-slate-700">{selectedFile.name}</span>}
