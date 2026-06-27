@@ -33,6 +33,8 @@ class OraBooks_Customers {
             add_action('wp_ajax_orabooks_customer_create', [self::$instance, 'ajax_customer_create']);
             add_action('wp_ajax_orabooks_invoices_list', [self::$instance, 'ajax_invoices_list']);
             add_action('wp_ajax_orabooks_invoice_create', [self::$instance, 'ajax_invoice_create']);
+            add_action('wp_ajax_orabooks_invoice_next_number', [self::$instance, 'ajax_invoice_next_number']);
+            add_action('wp_ajax_orabooks_invoice_products_search', [self::$instance, 'ajax_invoice_products_search']);
             add_action('wp_ajax_orabooks_invoice_get', [self::$instance, 'ajax_invoice_get']);
             add_action('wp_ajax_orabooks_invoice_override_tax', [self::$instance, 'ajax_invoice_override_tax']);
             add_action('wp_ajax_orabooks_invoice_clear_tax_override', [self::$instance, 'ajax_invoice_clear_tax_override']);
