@@ -51,21 +51,14 @@ class OraBooks_Expenses {
             add_action('orabooks_expenses_ocr_process', [self::$instance, 'cron_process_ocr_queue']);
 
             add_action('wp_ajax_orabooks_expense_upload_receipt', [self::$instance, 'ajax_upload_receipt']);
-            add_action('wp_ajax_nopriv_orabooks_expense_upload_receipt', [self::$instance, 'ajax_upload_receipt']);
             add_action('wp_ajax_orabooks_expense_get', [self::$instance, 'ajax_get']);
-            add_action('wp_ajax_nopriv_orabooks_expense_get', [self::$instance, 'ajax_get']);
             add_action('wp_ajax_orabooks_expense_confirm', [self::$instance, 'ajax_confirm']);
-            add_action('wp_ajax_nopriv_orabooks_expense_confirm', [self::$instance, 'ajax_confirm']);
             add_action('wp_ajax_orabooks_expense_approve', [self::$instance, 'ajax_approve']);
-            add_action('wp_ajax_nopriv_orabooks_expense_approve', [self::$instance, 'ajax_approve']);
             add_action('wp_ajax_orabooks_expense_reject', [self::$instance, 'ajax_reject']);
-            add_action('wp_ajax_nopriv_orabooks_expense_reject', [self::$instance, 'ajax_reject']);
             add_action('wp_ajax_orabooks_expense_post', [self::$instance, 'ajax_post']);
-            add_action('wp_ajax_nopriv_orabooks_expense_post', [self::$instance, 'ajax_post']);
             add_action('wp_ajax_orabooks_expense_override_tax', [self::$instance, 'ajax_override_tax']);
             add_action('wp_ajax_orabooks_expense_clear_tax_override', [self::$instance, 'ajax_clear_tax_override']);
             add_action('wp_ajax_orabooks_expenses_list', [self::$instance, 'ajax_list']);
-            add_action('wp_ajax_nopriv_orabooks_expenses_list', [self::$instance, 'ajax_list']);
         }
 
         return self::$instance;
