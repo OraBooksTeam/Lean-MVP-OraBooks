@@ -128,6 +128,10 @@ class OBN_Access_Control {
             ? orabooks_get_user_role($user_id, $org_id)
             : '';
 
+        if (!empty($options['allowSuperAdmin']) && $role === 'platform_admin') {
+            return true;
+        }
+
         if (!$role) {
             self::log_denied($user_id, $org_id, $permission, '', 'missing_role');
             return false;
