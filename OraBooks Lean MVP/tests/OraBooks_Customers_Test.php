@@ -1453,5 +1453,50 @@ class OraBooks_Customers_Test extends TestCase
         $this->assertInstanceOf(WP_Error::class, $result);
         $this->assertEquals('has_payments', $result->get_error_code());
     }
+
+    #[Test]
+    public function test_ar_wallet_blocks_credit_hold_on_new_invoice()
+    {
+        global $wpdb;
+
+        $wpdb->test_get_row_callback = function ($query) {
+            if (stripos($query, 'credit_hold') !== false) {
+                return (object) ['credit_hold' => 1, 'credit_limit' => 0];
+            }
+            return null;
+        };
+
+        $result = OraBooks_AR_Wallet::validate_customer_credit_for_new_invoice(5, 1, 250);
+
+        $this->assertInstanceOf(WP_Error::class, $result);
+        $this->assertEquals('credit_hold', $result->get_error_code());
+    }
+
+    #[Test]
+    public function test_ar_wallet_credit_limit_validation()
+    {
+        global $wpdb;
+
+        $wpdb->test_get_var_callback = function ($query) {
+            if (stripos($query, 'SUM(total_amount') !== false) {
+                return '800.00';
+            }
+            return null;
+        };
+
+        $wpdb->test_get_row_callback = function ($query) {
+            if (stripos($query, 'credit_hold') !== false) {
+                return (object) ['credit_hold' => 0, 'credit_limit' => 1000];
+            }
+            return null;
+        };
+
+        $ok = OraBooks_AR_Wallet::validate_customer_credit_for_new_invoice(5, 1, 150);
+        $this->assertTrue($ok);
+
+        $blocked = OraBooks_AR_Wallet::validate_customer_credit_for_new_invoice(5, 1, 300);
+        $this->assertInstanceOf(WP_Error::class, $blocked);
+        $this->assertEquals('credit_limit', $blocked->get_error_code());
+    }
 }
 
