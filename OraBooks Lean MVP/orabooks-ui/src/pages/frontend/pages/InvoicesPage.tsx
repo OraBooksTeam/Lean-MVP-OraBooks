@@ -17,6 +17,8 @@ type Invoice = {
   due_date?: string;
   workflow_status?: string;
   payment_status?: string;
+  lock_status?: string;
+  dunning_stage?: string;
   total_amount?: string | number;
   paid_amount?: string | number;
   tax_amount?: string | number;
@@ -102,6 +104,14 @@ export default function InvoicesPage() {
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const [cancelInvoice, setCancelInvoice] = useState<Invoice | null>(null);
   const [cancelReason, setCancelReason] = useState('');
+  const [creditNoteInvoice, setCreditNoteInvoice] = useState<Invoice | null>(null);
+  const [creditNoteForm, setCreditNoteForm] = useState({
+    amount: '',
+    reason: '',
+    is_write_off: false,
+    credit_date: new Date().toISOString().slice(0, 10),
+  });
+  const [creditNotes, setCreditNotes] = useState<any[]>([]);
 
   const orgId = context?.organization?.id;
   const permissions: string[] = context?.permissions || [];

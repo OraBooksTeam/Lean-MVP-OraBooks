@@ -517,6 +517,108 @@ export default function CustomersPage() {
             </div>
           </Modal>
         )}
+
+        {viewingCustomer && (
+          <Modal title={`Customer wallet — ${customerLabel(viewingCustomer)}`} onClose={() => { setViewingCustomer(null); setWalletData(null); }}>
+            {walletLoading ? (
+              <p className="text-sm text-slate-500">Loading wallet…</p>
+            ) : (
+              <div className="space-y-5">
+                <div className="grid gap-4 sm:grid-cols-4">
+                  <Metric label="AR due" value={money(walletData?.wallet_balance, viewingCustomer.default_currency)} />
+                  <Metric label="Credit balance" value={money(walletData?.credit_balance, viewingCustomer.default_currency)} />
+                  <Metric label="Credit limit" value={money(walletData?.credit_limit, viewingCustomer.default_currency)} />
+                  <Metric label="Hold" value={Number(walletData?.credit_hold) === 1 ? 'On hold' : 'Open'} />
+                </div>
+
+                {canManageCustomers && (
+                  <div className="rounded-xl border border-border bg-slate-50/70 p-4">
+                    <h4 className="text-sm font-semibold text-ink">Record payment (FIFO)</h4>
+                    <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                      <Field label="Amount">
+                        <Input type="number" min="0" step="0.01" value={customerPaymentForm.amount} onChange={(e) => setCustomerPaymentForm((p) => ({ ...p, amount: e.target.value }))} />
+                      </Field>
+                      <Field label="Date">
+                        <Input type="date" value={customerPaymentForm.payment_date} onChange={(e) => setCustomerPaymentForm((p) => ({ ...p, payment_date: e.target.value }))} />
+                      </Field>
+                    </div>
+                    <div className="mt-3 flex justify-end">
+                      <Button onClick={() => void recordCustomerPayment()} loading={saving}>Record payment</Button>
+                    </div>
+                  </div>
+                )}
+
+                <div>
+                  <h4 className="mb-2 text-sm font-semibold text-ink">Open invoices</h4>
+                  <div className="overflow-x-auto rounded-xl border border-border">
+                    <table className="min-w-full text-left text-sm">
+                      <thead>
+                        <tr className="border-b border-border bg-slate-50 text-xs uppercase text-slate-500">
+                          <th className="px-4 py-2">Invoice</th>
+                          <th className="px-4 py-2">Due</th>
+                          <th className="px-4 py-2">Status</th>
+                          <th className="px-4 py-2 text-right">Total</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {(walletData?.invoices || []).length === 0 ? (
+                          <tr><td colSpan={4} className="px-4 py-4 text-slate-500">No invoices.</td></tr>
+                        ) : (walletData?.invoices || []).map((invoice: any) => (
+                          <tr key={invoice.id} className="border-t border-border">
+                            <td className="px-4 py-2">{invoice.invoice_number}</td>
+                            <td className="px-4 py-2">{invoice.due_date}</td>
+                            <td className="px-4 py-2">{invoice.payment_status}</td>
+                            <td className="px-4 py-2 text-right">{money(invoice.total_amount, invoice.currency)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <div>
+                  <h4 className="mb-2 text-sm font-semibold text-ink">Payments</h4>
+                  <div className="overflow-x-auto rounded-xl border border-border">
+                    <table className="min-w-full text-left text-sm">
+                      <thead>
+                        <tr className="border-b border-border bg-slate-50 text-xs uppercase text-slate-500">
+                          <th className="px-4 py-2">Date</th>
+                          <th className="px-4 py-2">Type</th>
+                          <th className="px-4 py-2 text-right">Amount</th>
+                          <th className="px-4 py-2">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {(walletData?.payments || []).length === 0 ? (
+                          <tr><td colSpan={4} className="px-4 py-4 text-slate-500">No payments.</td></tr>
+                        ) : (walletData?.payments || []).map((payment: any) => (
+                          <tr key={payment.id} className="border-t border-border">
+                            <td className="px-4 py-2">{payment.payment_date}</td>
+                            <td className="px-4 py-2">{payment.type || 'payment'}</td>
+                            <td className="px-4 py-2 text-right">{money(payment.amount, viewingCustomer.default_currency)}</td>
+                            <td className="px-4 py-2">
+                              {canManageCustomers && payment.type === 'payment' && (
+                                <Button size="sm" variant="secondary" onClick={() => void reverseCustomerPayment(payment.id)} disabled={saving}>
+                                  Reverse
+                                </Button>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  <WpLink to={`/invoices?customer_id=${viewingCustomer.id}`}>
+                    <Button size="sm">Create invoice</Button>
+                  </WpLink>
+                </div>
+              </div>
+            )}
+          </Modal>
+        )}
       </div>
     </ClientShell>
   );
