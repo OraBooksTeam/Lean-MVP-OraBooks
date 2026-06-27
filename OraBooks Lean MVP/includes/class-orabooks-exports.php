@@ -44,16 +44,12 @@ class OraBooks_Exports {
 
             // AJAX: request export
             add_action('wp_ajax_orabooks_export_request', [self::$instance, 'ajax_request_export']);
-            add_action('wp_ajax_nopriv_orabooks_export_request', [self::$instance, 'ajax_request_export']);
             // AJAX: list user exports
             add_action('wp_ajax_orabooks_exports_list', [self::$instance, 'ajax_exports_list']);
-            add_action('wp_ajax_nopriv_orabooks_exports_list', [self::$instance, 'ajax_exports_list']);
             // AJAX: download export
             add_action('wp_ajax_orabooks_export_download', [self::$instance, 'ajax_download_export']);
-            add_action('wp_ajax_nopriv_orabooks_export_download', [self::$instance, 'ajax_download_export']);
             // AJAX: cancel export
             add_action('wp_ajax_orabooks_export_cancel', [self::$instance, 'ajax_cancel_export']);
-            add_action('wp_ajax_nopriv_orabooks_export_cancel', [self::$instance, 'ajax_cancel_export']);
             // AJAX: export stats
             add_action('wp_ajax_orabooks_exports_stats', [self::$instance, 'ajax_exports_stats']);
 

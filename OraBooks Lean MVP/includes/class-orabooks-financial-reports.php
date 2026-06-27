@@ -22,15 +22,10 @@ class OraBooks_Financial_Reports {
             self::$instance = new self();
 
             add_action('wp_ajax_orabooks_financial_report_generate', [self::$instance, 'ajax_generate_report']);
-            add_action('wp_ajax_nopriv_orabooks_financial_report_generate', [self::$instance, 'ajax_generate_report']);
             add_action('wp_ajax_orabooks_financial_report_export', [self::$instance, 'ajax_request_export']);
-            add_action('wp_ajax_nopriv_orabooks_financial_report_export', [self::$instance, 'ajax_request_export']);
             add_action('wp_ajax_orabooks_financial_report_sign', [self::$instance, 'ajax_sign_report']);
-            add_action('wp_ajax_nopriv_orabooks_financial_report_sign', [self::$instance, 'ajax_sign_report']);
             add_action('wp_ajax_orabooks_financial_report_rebuild', [self::$instance, 'ajax_rebuild_projection']);
-            add_action('wp_ajax_nopriv_orabooks_financial_report_rebuild', [self::$instance, 'ajax_rebuild_projection']);
             add_action('wp_ajax_orabooks_financial_report_replay', [self::$instance, 'ajax_replay_projection']);
-            add_action('wp_ajax_nopriv_orabooks_financial_report_replay', [self::$instance, 'ajax_replay_projection']);
 
             add_action('orabooks_journal_posted', [self::$instance, 'project_journal_posted'], 10, 2);
             add_action('orabooks_monthly_report_snapshot_archive', [self::$instance, 'archive_old_snapshots']);
