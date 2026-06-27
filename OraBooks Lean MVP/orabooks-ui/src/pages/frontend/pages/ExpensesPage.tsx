@@ -59,6 +59,7 @@ export default function ExpensesPage() {
 
   const orgId = data?.context?.organization?.id;
   const caps = data?.capabilities || {};
+  const aiStatus = data?.ai_status || null;
   const threshold = data?.threshold ?? 70;
   const maxMb = Math.round((data?.limits?.max_file_size || 10485760) / 1048576);
 
@@ -394,6 +395,21 @@ export default function ExpensesPage() {
           <Metric label="Awaiting Approval" value={(stats.submitted ?? 0) + (stats.ai_review ?? 0)} tone="warning" />
           <Metric label="Posted" value={stats.posted ?? 0} tone="success" />
         </div>
+
+        {aiStatus && (
+          <div
+            className={`rounded-xl border p-4 text-sm ${aiStatus.real_ocr_enabled ? 'border-emerald-200 bg-emerald-50 text-emerald-900' : 'border-amber-200 bg-amber-50 text-amber-900'}`}
+          >
+            <p className="font-semibold">
+              OCR: {aiStatus.ocr_provider || 'mvp-stub'} | AI: {aiStatus.classification_provider || 'mvp-stub'}
+            </p>
+            {!aiStatus.real_ocr_enabled && (
+              <p className="mt-1">
+                Real OCR is not enabled yet. Configure Azure Document Intelligence অথবা OpenAI/Azure OpenAI key to enable production OCR.
+              </p>
+            )}
+          </div>
+        )}
 
         {caps.upload && (
           <div className="glass-panel p-5">
