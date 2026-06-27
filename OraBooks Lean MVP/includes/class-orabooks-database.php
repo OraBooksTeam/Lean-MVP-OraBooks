@@ -1070,6 +1070,8 @@ class OraBooks_Database {
             dbDelta($sql);
         }
 
+        self::ensure_voice_schema($table_prefix . 'orabooks_voice_inputs');
+
         if (!wp_next_scheduled('orabooks_voice_transcription_process')) {
             wp_schedule_event(time(), 'every_5_minutes', 'orabooks_voice_transcription_process');
         }
@@ -1117,6 +1119,31 @@ class OraBooks_Database {
         OraBooks_Classification::ensure_schema();
 
         update_option('orabooks_db_version', ORABOOKS_DB_VERSION);
+    }
+
+    /**
+     * SL-052 guardrails for existing installs where dbDelta cannot alter ENUMs reliably.
+     */
+    private static function ensure_voice_schema($table_voice) {
+        global $wpdb;
+
+        $status = $wpdb->get_row("SHOW COLUMNS FROM {$table_voice} LIKE 'status'");
+        if ($status && strpos((string) $status->Type, 'dead_letter') === false) {
+            $wpdb->query("ALTER TABLE {$table_voice} MODIFY status ENUM('pending','processed','failed','escalated','dead_letter') DEFAULT 'pending'");
+        }
+
+        $indexes = $wpdb->get_results("SHOW INDEX FROM {$table_voice}");
+        $existing_indexes = [];
+        foreach ($indexes as $index) {
+            $existing_indexes[$index->Key_name] = true;
+        }
+
+        if (empty($existing_indexes['idx_org_status_created'])) {
+            $wpdb->query("ALTER TABLE {$table_voice} ADD INDEX idx_org_status_created (org_id, status, created_at)");
+        }
+        if (empty($existing_indexes['idx_org_risk_created'])) {
+            $wpdb->query("ALTER TABLE {$table_voice} ADD INDEX idx_org_risk_created (org_id, overall_risk_level, created_at)");
+        }
     }
 
     /**
