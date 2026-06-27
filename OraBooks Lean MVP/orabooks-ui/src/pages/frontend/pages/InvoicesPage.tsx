@@ -211,6 +211,9 @@ export default function InvoicesPage() {
     && !['paid', 'partial'].includes(invoice.payment_status || '')
     && Number(invoice.paid_amount || 0) <= 0;
 
+  const canCreditNote = (invoice: Invoice) =>
+    canCreateInvoice && invoice.workflow_status === 'posted';
+
   const runInvoiceAction = async (action: 'send' | 'post', invoiceId: number) => {
     if (!orgId) return;
     setActionInvoiceId(invoiceId);
@@ -924,6 +927,41 @@ export default function InvoicesPage() {
             <div className="mt-6 flex justify-end gap-2">
               <Button variant="secondary" onClick={() => setPaymentInvoice(null)}>Cancel</Button>
               <Button onClick={handleRecordPayment} disabled={saving}>Record payment</Button>
+            </div>
+          </Modal>
+        )}
+
+        {creditNoteInvoice && (
+          <Modal title="Issue credit note" onClose={() => setCreditNoteInvoice(null)}>
+            <p className="mb-4 text-sm text-slate-600">
+              {creditNoteInvoice.invoice_number} — outstanding {money(remainingBalance(creditNoteInvoice), creditNoteInvoice.currency)}
+            </p>
+            {error && <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div>}
+            <div className="grid gap-4">
+              <Field label="Amount">
+                <Input type="number" min="0" step="0.01" value={creditNoteForm.amount} onChange={(e) => setCreditNoteForm((p) => ({ ...p, amount: e.target.value }))} />
+              </Field>
+              <Field label="Credit date">
+                <Input type="date" value={creditNoteForm.credit_date} onChange={(e) => setCreditNoteForm((p) => ({ ...p, credit_date: e.target.value }))} />
+              </Field>
+              <Field label="Reason">
+                <Input value={creditNoteForm.reason} onChange={(e) => setCreditNoteForm((p) => ({ ...p, reason: e.target.value }))} placeholder="Reason for credit note" />
+              </Field>
+              <label className="flex items-center gap-2 text-sm text-slate-700" title="Requires manager approval if amount exceeds threshold.">
+                <input type="checkbox" checked={creditNoteForm.is_write_off} onChange={(e) => setCreditNoteForm((p) => ({ ...p, is_write_off: e.target.checked }))} />
+                Write-off (bad debt)
+              </label>
+            </div>
+            {creditNotes.length > 0 && (
+              <div className="mt-4 rounded-lg border border-border bg-slate-50 p-3 text-xs text-slate-600">
+                Existing credit notes: {creditNotes.map((n) => n.credit_note_number).join(', ')}
+              </div>
+            )}
+            <div className="mt-6 flex justify-end gap-2">
+              <Button variant="secondary" onClick={() => setCreditNoteInvoice(null)}>Cancel</Button>
+              <Button onClick={() => void handleCreateCreditNote()} disabled={saving || !creditNoteForm.reason.trim()}>
+                Create &amp; post
+              </Button>
             </div>
           </Modal>
         )}
