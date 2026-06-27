@@ -1044,8 +1044,10 @@ class OraBooks_Ajax {
             'processed' => 0,
             'failed'    => 0,
             'escalated' => 0,
+            'dead_letter' => 0,
         ];
         $voice_inputs = [];
+        $ai_status = class_exists('OraBooks_Ai_Providers') ? OraBooks_Ai_Providers::capability_status() : [];
 
         if (class_exists('OraBooks_Voice')) {
             $stats = OraBooks_Voice::get_voice_stats($org_id);
@@ -1057,6 +1059,7 @@ class OraBooks_Ajax {
             'context' => $context,
             'stats' => $stats,
             'voice_inputs' => $voice_inputs,
+            'ai_status' => $ai_status,
             'transaction_types' => OraBooks_Voice::TRANSACTION_TYPES,
             'threshold' => OraBooks_Voice::CONFIDENCE_THRESHOLD,
             'capabilities' => [
