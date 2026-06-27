@@ -28,30 +28,19 @@ class OraBooks_Customers {
 
             // AJAX endpoints
             add_action('wp_ajax_orabooks_customers_list', [self::$instance, 'ajax_customers_list']);
-            add_action('wp_ajax_nopriv_orabooks_customers_list', [self::$instance, 'ajax_customers_list']);
             add_action('wp_ajax_orabooks_customer_get', [self::$instance, 'ajax_customer_get']);
-            add_action('wp_ajax_nopriv_orabooks_customer_get', [self::$instance, 'ajax_customer_get']);
             add_action('wp_ajax_orabooks_customer_update', [self::$instance, 'ajax_customer_update']);
             add_action('wp_ajax_orabooks_customer_create', [self::$instance, 'ajax_customer_create']);
-            add_action('wp_ajax_nopriv_orabooks_customer_create', [self::$instance, 'ajax_customer_create']);
             add_action('wp_ajax_orabooks_invoices_list', [self::$instance, 'ajax_invoices_list']);
-            add_action('wp_ajax_nopriv_orabooks_invoices_list', [self::$instance, 'ajax_invoices_list']);
             add_action('wp_ajax_orabooks_invoice_create', [self::$instance, 'ajax_invoice_create']);
-            add_action('wp_ajax_nopriv_orabooks_invoice_create', [self::$instance, 'ajax_invoice_create']);
             add_action('wp_ajax_orabooks_invoice_get', [self::$instance, 'ajax_invoice_get']);
-            add_action('wp_ajax_nopriv_orabooks_invoice_get', [self::$instance, 'ajax_invoice_get']);
             add_action('wp_ajax_orabooks_invoice_override_tax', [self::$instance, 'ajax_invoice_override_tax']);
             add_action('wp_ajax_orabooks_invoice_clear_tax_override', [self::$instance, 'ajax_invoice_clear_tax_override']);
             add_action('wp_ajax_orabooks_invoice_send', [self::$instance, 'ajax_invoice_send']);
-            add_action('wp_ajax_nopriv_orabooks_invoice_send', [self::$instance, 'ajax_invoice_send']);
             add_action('wp_ajax_orabooks_invoice_post', [self::$instance, 'ajax_invoice_post']);
-            add_action('wp_ajax_nopriv_orabooks_invoice_post', [self::$instance, 'ajax_invoice_post']);
             add_action('wp_ajax_orabooks_invoice_cancel', [self::$instance, 'ajax_invoice_cancel']);
-            add_action('wp_ajax_nopriv_orabooks_invoice_cancel', [self::$instance, 'ajax_invoice_cancel']);
             add_action('wp_ajax_orabooks_invoice_record_payment', [self::$instance, 'ajax_record_payment']);
-            add_action('wp_ajax_nopriv_orabooks_invoice_record_payment', [self::$instance, 'ajax_record_payment']);
             add_action('wp_ajax_orabooks_customer_stats', [self::$instance, 'ajax_customer_stats']);
-            add_action('wp_ajax_nopriv_orabooks_customer_stats', [self::$instance, 'ajax_customer_stats']);
 
             // Cron jobs
             add_action('orabooks_daily_customer_status_check', [self::$instance, 'daily_customer_status_check']);
