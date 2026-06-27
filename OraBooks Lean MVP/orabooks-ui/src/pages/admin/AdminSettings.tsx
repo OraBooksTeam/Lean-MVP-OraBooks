@@ -10,6 +10,10 @@ interface PlatformSettings {
   audit_retention_days: number;
   jwt_expiry: number;
   refresh_token_expiry: number;
+  speech_webhook_url: string;
+  speech_webhook_token: string;
+  speech_webhook_model: string;
+  speech_webhook_health_url: string;
 }
 
 const defaults: PlatformSettings = {
@@ -18,6 +22,10 @@ const defaults: PlatformSettings = {
   audit_retention_days: 365,
   jwt_expiry: 900,
   refresh_token_expiry: 604800,
+  speech_webhook_url: '',
+  speech_webhook_token: '',
+  speech_webhook_model: 'webhook-v1',
+  speech_webhook_health_url: '',
 };
 
 type DeployCheck = {
@@ -59,6 +67,12 @@ export default function AdminSettings() {
           audit_retention_days: Number(res.data.audit_retention_days) || defaults.audit_retention_days,
           jwt_expiry: Number(res.data.jwt_expiry) || defaults.jwt_expiry,
           refresh_token_expiry: Number(res.data.refresh_token_expiry) || defaults.refresh_token_expiry,
+          speech_webhook_url: String(res.data.speech_webhook_url || defaults.speech_webhook_url),
+          speech_webhook_token: String(res.data.speech_webhook_token || defaults.speech_webhook_token),
+          speech_webhook_model: String(res.data.speech_webhook_model || defaults.speech_webhook_model),
+          speech_webhook_health_url: String(
+            res.data.speech_webhook_health_url || defaults.speech_webhook_health_url
+          ),
         });
       }
       setLoading(false);
@@ -82,6 +96,10 @@ export default function AdminSettings() {
             audit_retention_days: Number(res.data.audit_retention_days),
             jwt_expiry: Number(res.data.jwt_expiry),
             refresh_token_expiry: Number(res.data.refresh_token_expiry),
+            speech_webhook_url: String(res.data.speech_webhook_url || ''),
+            speech_webhook_token: String(res.data.speech_webhook_token || ''),
+            speech_webhook_model: String(res.data.speech_webhook_model || 'webhook-v1'),
+            speech_webhook_health_url: String(res.data.speech_webhook_health_url || ''),
           });
         }
       }
@@ -228,6 +246,79 @@ export default function AdminSettings() {
                   }
                 />
                 <p className="mt-1 text-xs text-slate-500">Default: 604800 (7 days)</p>
+              </div>
+            </label>
+
+            <label className="flex flex-col gap-2 p-6 sm:flex-row sm:items-center sm:justify-between">
+              <span className="text-sm font-semibold text-ink">Speech webhook URL</span>
+              <div className="sm:max-w-xl sm:flex-1">
+                <input
+                  type="url"
+                  className="w-full rounded-lg border border-border px-3 py-2 text-sm"
+                  placeholder="https://speech.example.com/transcribe"
+                  value={settings.speech_webhook_url}
+                  onChange={(e) =>
+                    setSettings((prev) => ({ ...prev, speech_webhook_url: e.target.value }))
+                  }
+                />
+                <p className="mt-1 text-xs text-slate-500">
+                  Optional endpoint for self-hosted or internal speech-to-text.
+                </p>
+              </div>
+            </label>
+
+            <label className="flex flex-col gap-2 p-6 sm:flex-row sm:items-center sm:justify-between">
+              <span className="text-sm font-semibold text-ink">Speech webhook token</span>
+              <div className="sm:max-w-xl sm:flex-1">
+                <input
+                  type="password"
+                  className="w-full rounded-lg border border-border px-3 py-2 text-sm"
+                  value={settings.speech_webhook_token}
+                  onChange={(e) =>
+                    setSettings((prev) => ({ ...prev, speech_webhook_token: e.target.value }))
+                  }
+                />
+                <p className="mt-1 text-xs text-slate-500">
+                  Bearer token sent to the speech webhook when configured.
+                </p>
+              </div>
+            </label>
+
+            <label className="flex flex-col gap-2 p-6 sm:flex-row sm:items-center sm:justify-between">
+              <span className="text-sm font-semibold text-ink">Speech webhook model</span>
+              <div className="sm:max-w-xl sm:flex-1">
+                <input
+                  type="text"
+                  className="w-full rounded-lg border border-border px-3 py-2 text-sm"
+                  value={settings.speech_webhook_model}
+                  onChange={(e) =>
+                    setSettings((prev) => ({ ...prev, speech_webhook_model: e.target.value }))
+                  }
+                />
+                <p className="mt-1 text-xs text-slate-500">
+                  Model label shown in speech diagnostics and transcript metadata.
+                </p>
+              </div>
+            </label>
+
+            <label className="flex flex-col gap-2 p-6 sm:flex-row sm:items-center sm:justify-between">
+              <span className="text-sm font-semibold text-ink">Speech webhook health URL</span>
+              <div className="sm:max-w-xl sm:flex-1">
+                <input
+                  type="url"
+                  className="w-full rounded-lg border border-border px-3 py-2 text-sm"
+                  placeholder="https://speech.example.com/health"
+                  value={settings.speech_webhook_health_url}
+                  onChange={(e) =>
+                    setSettings((prev) => ({ ...prev, speech_webhook_health_url: e.target.value }))
+                  }
+                />
+                <p className="mt-1 text-xs text-slate-500">
+                  Optional endpoint used by Voice page diagnostics to verify provider health.
+                </p>
+                <p className="mt-1 text-xs text-slate-500">
+                  After saving, open Voice and check the Speech Diagnostics card for provider, model, and health status.
+                </p>
               </div>
             </label>
           </div>
