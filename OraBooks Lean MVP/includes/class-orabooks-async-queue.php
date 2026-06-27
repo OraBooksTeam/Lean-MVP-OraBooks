@@ -121,22 +121,36 @@ class OraBooks_AsyncQueue {
                 $payload['org_id'] = $scoped_org_id;
             }
         }
+        $payload_org_id = (int) ($payload['org_id'] ?? 0);
 
         $next_retry_at = $delay > 0
             ? date('Y-m-d H:i:s', time() + $delay)
             : current_time('mysql', true);
 
         if ($idempotency_key !== '') {
-            $existing = (int) $wpdb->get_var($wpdb->prepare(
-                "SELECT id FROM {$table}
-                 WHERE idempotency_key = %s AND status IN ('pending','processing','completed')
-                 ORDER BY id DESC LIMIT 1",
-                $idempotency_key
-            ));
+            if ($payload_org_id > 0) {
+                $existing = (int) $wpdb->get_var($wpdb->prepare(
+                    "SELECT id FROM {$table}
+                     WHERE idempotency_key = %s
+                       AND status IN ('pending','processing','completed')
+                       AND CAST(JSON_UNQUOTE(JSON_EXTRACT(payload, '$.org_id')) AS UNSIGNED) = %d
+                     ORDER BY id DESC LIMIT 1",
+                    $idempotency_key,
+                    $payload_org_id
+                ));
+            } else {
+                $existing = (int) $wpdb->get_var($wpdb->prepare(
+                    "SELECT id FROM {$table}
+                     WHERE idempotency_key = %s AND status IN ('pending','processing','completed')
+                     ORDER BY id DESC LIMIT 1",
+                    $idempotency_key
+                ));
+            }
             if ($existing > 0) {
                 self::audit($existing, $job_type, 'deduped', 'pending', [
                     'idempotency_key' => $idempotency_key,
                     'queue_name' => $queue_name,
+                    'org_id' => $payload_org_id,
                 ]);
                 return $existing;
             }
