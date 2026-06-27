@@ -371,7 +371,9 @@ class OraBooks_Ai_Providers {
 
             $transcript_text = '';
             $language_detected = $language_hint !== '' ? $language_hint : 'en';
-            if (is_array($transcript)) {
+            if (is_wp_error($transcript)) {
+                $transcript_text = '';
+            } elseif (is_array($transcript)) {
                 $transcript_text = trim((string) ($transcript['text'] ?? ''));
                 $language_detected = trim((string) ($transcript['language_detected'] ?? $language_detected));
             } else {
