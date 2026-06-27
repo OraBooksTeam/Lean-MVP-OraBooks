@@ -251,6 +251,13 @@ class OraBooks_AR_Wallet {
             'ar_account_code' => '1100',
             'cash_account_code' => '1000',
             'revenue_account_code' => '4000',
+            'seller_legal_name' => '',
+            'seller_address' => '',
+            'seller_tax_id' => '',
+            'seller_email' => '',
+            'seller_phone' => '',
+            'payment_instructions' => '',
+            'invoice_terms' => '',
         ];
     }
 
@@ -270,6 +277,22 @@ class OraBooks_AR_Wallet {
             'cash_account_code' => sanitize_text_field($data['cash_account_code'] ?? '1000'),
             'revenue_account_code' => sanitize_text_field($data['revenue_account_code'] ?? '4000'),
         ];
+
+        $fields = self::get_table_column_names($table);
+        $document_fields = [
+            'seller_legal_name' => sanitize_text_field($data['seller_legal_name'] ?? ''),
+            'seller_address' => sanitize_textarea_field($data['seller_address'] ?? ''),
+            'seller_tax_id' => sanitize_text_field($data['seller_tax_id'] ?? ''),
+            'seller_email' => sanitize_email($data['seller_email'] ?? ''),
+            'seller_phone' => sanitize_text_field($data['seller_phone'] ?? ''),
+            'payment_instructions' => sanitize_textarea_field($data['payment_instructions'] ?? ''),
+            'invoice_terms' => sanitize_textarea_field($data['invoice_terms'] ?? ''),
+        ];
+        foreach ($document_fields as $column => $value) {
+            if (in_array($column, $fields, true) && array_key_exists($column, $data)) {
+                $payload[$column] = $value;
+            }
+        }
 
         $existing = $wpdb->get_var($wpdb->prepare(
             "SELECT org_id FROM {$table} WHERE org_id = %d",
