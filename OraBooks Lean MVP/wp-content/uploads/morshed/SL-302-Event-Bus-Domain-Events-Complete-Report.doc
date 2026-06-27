@@ -1,0 +1,75 @@
+<html>
+<head>
+<meta charset="utf-8">
+<title>SL-302 Event Bus & Domain Events - Complete Report</title>
+<style>
+body{font-family:Calibri,Arial,sans-serif;color:#1a1a1a;line-height:1.5;margin:32px}
+h1{color:#1e3a5f;margin-bottom:6px}
+h2{color:#1e3a5f;margin-top:24px}
+p,li{font-size:11pt}
+.small{color:#555}
+.box{border:1px solid #d9e2ec;background:#f8fafc;padding:12px;border-radius:8px}
+</style>
+</head>
+<body>
+<h1>SL-302 Event Bus & Domain Events</h1>
+<p class="small">Prepared for: Morshed | Project: OraBooks Lean MVP | Date: 2026-06-27</p>
+
+<h2>Executive Summary</h2>
+<p>SL-302 is implemented and operational for Lean MVP scope. Verification was performed against current code and fresh automated tests.</p>
+<div class="box"><strong>Status:</strong> COMPLETE FOR MVP SCOPE</div>
+
+<h2>Implemented Scope</h2>
+<ul>
+<li>Central Event Bus facade and canonical event module runtime.</li>
+<li>Transactional outbox with pending-processing-sent lifecycle.</li>
+<li>Retry with backoff and dead-letter handling.</li>
+<li>Dead-letter replay, replay-all, and discard operations.</li>
+<li>Consumer idempotency tracking via dedicated consumer log table.</li>
+<li>Payload validation, event versioning, correlation ID propagation.</li>
+<li>Dashboard health visibility and operations hooks.</li>
+</ul>
+
+<h2>Primary Files Reviewed</h2>
+<ul>
+<li>includes/class-orabooks-event-bus.php</li>
+<li>includes/events/class-orabooks-event-module.php</li>
+<li>tests/OraBooks_EventBus_Test.php</li>
+<li>docs/domain-events.md</li>
+<li>templates/events/dead-letter-replay.php</li>
+</ul>
+
+<h2>Automated Test Result (Fresh)</h2>
+<p><strong>Command:</strong> D:\xampp\php\php.exe tests\vendor\phpunit\phpunit\phpunit --configuration tests\phpunit.xml tests\OraBooks_EventBus_Test.php</p>
+<ul>
+<li>Tests: 12</li>
+<li>Assertions: 45</li>
+<li>Result: PASS</li>
+</ul>
+
+<h2>How to Test Manually</h2>
+<ol>
+<li>Trigger a domain action that publishes an event and verify outbox row creation.</li>
+<li>Run poll-now and verify pending to sent transition.</li>
+<li>Simulate consumer failure and verify retry_count increments.</li>
+<li>Verify dead_letter state after max retry exhaustion.</li>
+<li>Use dead-letter replay and discard operations and verify state changes.</li>
+<li>Attempt cross-tenant replay and verify forbidden denial.</li>
+<li>Verify event bus health counters in dashboard.</li>
+</ol>
+
+<h2>Sign-Off Checklist</h2>
+<ul>
+<li>SL-302 unit tests pass.</li>
+<li>Outbox publish and consumer delivery verified.</li>
+<li>Retry and dead-letter flow verified.</li>
+<li>Replay/discard operations verified.</li>
+<li>Cross-tenant safety verified.</li>
+<li>Health dashboard visibility verified.</li>
+</ul>
+
+<h2>Conclusion</h2>
+<p>SL-302 Event Bus & Domain Events is complete and testable for OraBooks Lean MVP scope.</p>
+<p><strong>Recommendation:</strong> Approve SL-302 for MVP sign-off.</p>
+</body>
+</html>
