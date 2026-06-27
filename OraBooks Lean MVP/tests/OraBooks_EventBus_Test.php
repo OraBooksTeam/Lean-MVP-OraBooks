@@ -225,6 +225,26 @@ class OraBooks_EventBus_Test extends TestCase
     }
 
     #[Test]
+    public function test_event_module_publish_uses_existing_request_correlation_id()
+    {
+        global $wpdb;
+
+        $captured = null;
+        $wpdb->test_insert_callback = function ($table, $data) use (&$captured) {
+            $captured = [$table, $data];
+        };
+        $GLOBALS['orabooks_test_use_insert_id'] = 703;
+        $GLOBALS['orabooks_correlation_id'] = 'corr-eventbus-302';
+
+        OraBooks_Event_Module::publish('purchase_received', 21, ['org_id' => 3]);
+
+        $payload = json_decode($captured[1]['payload'], true);
+        $this->assertSame('corr-eventbus-302', $payload['correlation_id']);
+
+        unset($GLOBALS['orabooks_correlation_id']);
+    }
+
+    #[Test]
     public function test_event_module_health_returns_dashboard_counts()
     {
         global $wpdb;
