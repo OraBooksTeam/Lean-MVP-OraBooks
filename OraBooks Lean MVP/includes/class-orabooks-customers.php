@@ -1076,6 +1076,11 @@ class OraBooks_Customers {
     public static function create_invoice($org_id, $data) {
         global $wpdb;
 
+        self::maybe_ensure_schema();
+        if (class_exists('OraBooks_Invoice_Document')) {
+            OraBooks_Invoice_Document::ensure_schema();
+        }
+
         $table = OraBooks_Database::table('invoices');
 
         // Validate required fields
@@ -2708,6 +2713,14 @@ class OraBooks_Customers {
 
         $this->require_customer_access($user_id, $org_id, 'create_invoice');
 
+        $line_items = [];
+        if (!empty($_POST['line_items'])) {
+            $decoded = json_decode(stripslashes((string) $_POST['line_items']), true);
+            if (is_array($decoded)) {
+                $line_items = $decoded;
+            }
+        }
+
         $data = [
             'customer_id'      => intval($_POST['customer_id'] ?? 0),
             'invoice_number'   => sanitize_text_field($_POST['invoice_number'] ?? ''),
@@ -2716,6 +2729,8 @@ class OraBooks_Customers {
             'due_date'         => sanitize_text_field($_POST['due_date'] ?? ''),
             'description'      => sanitize_textarea_field($_POST['description'] ?? ''),
             'subtotal_amount'  => floatval($_POST['subtotal_amount'] ?? 0),
+            'discount_amount'  => floatval($_POST['discount_amount'] ?? 0),
+            'po_reference'     => sanitize_text_field($_POST['po_reference'] ?? ''),
             'jurisdiction'     => sanitize_text_field($_POST['jurisdiction'] ?? 'US'),
             'total_amount'     => floatval($_POST['total_amount'] ?? 0),
             'tax_amount'       => floatval($_POST['tax_amount'] ?? 0),
@@ -2724,6 +2739,7 @@ class OraBooks_Customers {
             'workflow_status'  => sanitize_text_field($_POST['workflow_status'] ?? 'draft'),
             'due_days'         => intval($_POST['due_days'] ?? 30),
             'idempotency_key'  => sanitize_text_field($_POST['idempotency_key'] ?? ''),
+            'line_items'       => $line_items,
         ];
 
         $result = self::create_invoice($org_id, $data);
