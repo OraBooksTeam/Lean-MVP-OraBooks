@@ -346,4 +346,37 @@ final class OraBooks_AsyncQueue_Test extends TestCase
         $this->assertSame(0, $result['completed']);
         $this->assertSame(0, $result['failed']);
     }
+
+    #[Test]
+    public function webhook_dispatch_adds_hmac_signature_headers_when_secret_is_present(): void
+    {
+        $captured = [];
+        $GLOBALS['orabooks_test_wp_remote_request_callback'] = function ($url, $args) use (&$captured) {
+            $captured = ['url' => $url, 'args' => $args];
+            return [
+                'response' => ['code' => 200],
+                'body' => '{}',
+            ];
+        };
+
+        $job = (object) ['id' => 222, 'job_type' => 'webhook_dispatch'];
+        $result = OraBooks_AsyncQueue::handle_webhook_dispatch($job, [
+            'url' => 'https://example.com/webhook',
+            'body' => ['event' => 'invoice_posted', 'org_id' => 9],
+            'signing_secret' => 'test-signing-secret',
+        ]);
+
+        $this->assertTrue($result);
+        $this->assertSame('https://example.com/webhook', $captured['url']);
+        $this->assertArrayHasKey('X-OraBooks-Webhook-Timestamp', $captured['args']['headers']);
+        $this->assertArrayHasKey('X-OraBooks-Webhook-Job-Id', $captured['args']['headers']);
+        $this->assertArrayHasKey('X-OraBooks-Webhook-Signature', $captured['args']['headers']);
+        $this->assertSame('222', $captured['args']['headers']['X-OraBooks-Webhook-Job-Id']);
+
+        $signed_payload = $captured['args']['headers']['X-OraBooks-Webhook-Timestamp'] . "\n" . $captured['args']['body'];
+        $expected = hash_hmac('sha256', $signed_payload, 'test-signing-secret');
+        $this->assertSame($expected, $captured['args']['headers']['X-OraBooks-Webhook-Signature']);
+
+        unset($GLOBALS['orabooks_test_wp_remote_request_callback']);
+    }
 }
