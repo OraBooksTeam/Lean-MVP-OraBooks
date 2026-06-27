@@ -803,6 +803,10 @@ class OraBooks_Operational_Reports {
             orabooks_json_error($isolation->get_error_message(), 403);
         }
 
+        if (!OraBooks_RBAC::require_permission($user_id, $org_id, 'view_operational_reports')) {
+            orabooks_json_error('Permission denied', 403);
+        }
+
         if (!OraBooks_RBAC::require_permission($user_id, $org_id, 'export_reports')) {
             orabooks_json_error('Permission denied', 403);
         }
