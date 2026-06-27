@@ -618,6 +618,8 @@
     margin: 4px 0;
 }
 .orabooks-status-banners {
+    margin-bottom: 20px;
+}
 
 /* Voice page upload audio button: force solid green + bold white text */
 html body.orabooks-react-page .orabooks-client-main button[title="Upload audio and transcribe"] {
@@ -632,8 +634,6 @@ html body.orabooks-react-page .orabooks-client-main button[title="Upload audio a
     background: #15803d !important;
     border-color: #15803d !important;
     color: #ffffff !important;
-}
-    margin-bottom: 20px;
 }
 .orabooks-banner {
     padding: 12px 16px;
