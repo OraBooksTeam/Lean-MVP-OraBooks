@@ -40,6 +40,28 @@ final class OraBooks_AsyncQueue_Test extends TestCase
     }
 
     #[Test]
+    public function enqueue_idempotency_key_is_scoped_to_org_id(): void
+    {
+        global $wpdb;
+
+        $wpdb->test_get_var_callback = function ($query) {
+            $sql = (string) $query;
+            if (stripos($sql, 'idempotency_key') !== false && stripos($sql, "JSON_EXTRACT(payload, '$.org_id')") !== false) {
+                return 0;
+            }
+            return 0;
+        };
+        $GLOBALS['orabooks_test_use_insert_id'] = 145;
+
+        $jobId = OraBooks_AsyncQueue::enqueue('webhook_dispatch', ['event' => 'sale_delivered', 'org_id' => 77], [
+            'queue_name' => 'webhooks',
+            'idempotency_key' => 'evt-1',
+        ]);
+
+        $this->assertSame(145, $jobId);
+    }
+
+    #[Test]
     public function manual_replay_resets_dead_letter_job_to_pending(): void
     {
         global $wpdb;
