@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "node scripts/clean-react-output.mjs && vite build --config vite.admin.config.ts && vite build --config vite.frontend.config.ts && node scripts/write-deploy-manifest.mjs",
+    "typecheck": "tsc --noEmit",
     "preview": "vite preview"
   },
   "keywords": [],
@@ -26,6 +27,7 @@
   "devDependencies": {
     "@types/qrcode": "^1.5.6",
     "@types/react": "^19.2.17",
-    "@types/react-dom": "^19.2.3"
+    "@types/react-dom": "^19.2.3",
+    "typescript": "^5.9.3"
   }
 }
