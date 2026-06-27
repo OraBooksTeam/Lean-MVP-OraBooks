@@ -163,6 +163,8 @@ class OraBooks_Voice {
             $risk_scores = is_array($decoded) ? $decoded : [];
         }
 
+        $voice_ai = is_array($extracted['_voice_ai'] ?? null) ? $extracted['_voice_ai'] : [];
+
         return [
             'id'                    => (int) $row->id,
             'org_id'                => (int) $row->org_id,
@@ -177,6 +179,8 @@ class OraBooks_Voice {
             'risk_scores'           => $risk_scores,
             'overall_risk_level'    => $row->overall_risk_level,
             'status'                => $row->status,
+            'ai_provider'           => sanitize_text_field((string) ($voice_ai['provider'] ?? '')),
+            'ai_model_version'      => sanitize_text_field((string) ($voice_ai['model_version'] ?? '')),
             'derived_resource_type' => $row->derived_resource_type,
             'derived_resource_id'   => $row->derived_resource_id ? (int) $row->derived_resource_id : null,
             'idempotency_key'       => $row->idempotency_key ?? null,
@@ -336,9 +340,15 @@ class OraBooks_Voice {
             return;
         }
 
+        $extracted_payload = is_array($result['extracted_data'] ?? null) ? $result['extracted_data'] : [];
+        $extracted_payload['_voice_ai'] = [
+            'provider' => sanitize_text_field((string) ($result['provider'] ?? OraBooks_Ai_Providers::STUB_PROVIDER)),
+            'model_version' => sanitize_text_field((string) ($result['model_version'] ?? OraBooks_Ai_Providers::STUB_MODEL_VERSION)),
+        ];
+
         $wpdb->update($table, [
             'original_transcript' => sanitize_textarea_field($result['transcript']),
-            'extracted_data'      => wp_json_encode($result['extracted_data']),
+            'extracted_data'      => wp_json_encode($extracted_payload),
             'language_detected'   => sanitize_text_field($result['language_detected']),
             'confidence_avg'      => (float) $result['confidence_avg'],
             'risk_scores'         => wp_json_encode($result['risk_scores']),
@@ -350,6 +360,8 @@ class OraBooks_Voice {
             'voice_input_id' => $voice_id,
             'confidence_avg' => $result['confidence_avg'],
             'overall_risk_level' => $result['overall_risk_level'],
+            'provider' => $result['provider'] ?? OraBooks_Ai_Providers::STUB_PROVIDER,
+            'model_version' => $result['model_version'] ?? OraBooks_Ai_Providers::STUB_MODEL_VERSION,
             'correlation_id' => function_exists('orabooks_get_correlation_id') ? orabooks_get_correlation_id() : '',
         ], (int) $row->user_id, $org_id);
     }
