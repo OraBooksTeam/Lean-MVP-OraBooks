@@ -1498,5 +1498,19 @@ class OraBooks_Customers_Test extends TestCase
         $this->assertInstanceOf(WP_Error::class, $blocked);
         $this->assertEquals('credit_limit', $blocked->get_error_code());
     }
+
+    #[Test]
+    public function test_invoice_document_normalizes_line_items()
+    {
+        $lines = OraBooks_Invoice_Document::normalize_line_items([
+            ['description' => 'Consulting', 'quantity' => 2, 'unit_price' => 150, 'sku_code' => 'SRV-01'],
+            ['description' => '', 'quantity' => 1, 'unit_price' => 10],
+        ]);
+
+        $this->assertCount(1, $lines);
+        $this->assertEquals('Consulting', $lines[0]['description']);
+        $this->assertEquals(300.0, $lines[0]['line_total']);
+        $this->assertEquals('SRV-01', $lines[0]['sku_code']);
+    }
 }
 

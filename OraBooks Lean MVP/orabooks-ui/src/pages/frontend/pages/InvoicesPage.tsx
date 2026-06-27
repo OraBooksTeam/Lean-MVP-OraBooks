@@ -217,7 +217,7 @@ export default function InvoicesPage() {
 
     const match = invoices.find((invoice) => invoice.id === invoiceId);
     if (match) {
-      setSelectedInvoice(match);
+      void openInvoiceDetail(match);
     }
   }, [invoices]);
 
