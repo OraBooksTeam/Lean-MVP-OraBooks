@@ -1516,7 +1516,7 @@ function Modal({
 
   return createPortal(
     <div
-      className="orabooks-modal orabooks-modal-overlay"
+      className="orabooks-modal-overlay"
       style={{
         position: 'fixed',
         inset: 0,

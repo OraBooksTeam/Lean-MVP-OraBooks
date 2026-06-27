@@ -351,7 +351,7 @@ body.orabooks-page.orabooks-auth-page .entry-content {
 }
 
 /* Modals above theme fixed headers */
-body.orabooks-page .orabooks-modal,
+body.orabooks-page .orabooks-modal-overlay,
 body.orabooks-page #orabooks-app-root [role="dialog"] {
     z-index: 100010;
 }

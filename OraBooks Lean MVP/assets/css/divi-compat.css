@@ -105,7 +105,7 @@ body.orabooks-page.orabooks-divi-theme #orabooks-app-root ol {
 }
 
 /* Modals above Divi's fixed header (z-index ~99999) */
-body.orabooks-page.orabooks-divi-theme .orabooks-modal {
+body.orabooks-page.orabooks-divi-theme .orabooks-modal-overlay {
     z-index: 100010;
 }
 
