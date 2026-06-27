@@ -9,10 +9,15 @@ use PHPUnit\Framework\TestCase;
 class OraBooks_Platform_Settings_Test extends TestCase
 {
     private $ajax;
+    private $resetOptions = [];
 
     protected function setUp(): void
     {
         parent::setUp();
+
+        if (!class_exists('OraBooks_Ajax')) {
+            require_once __DIR__ . '/../includes/class-orabooks-ajax.php';
+        }
 
         $this->ajax = new OraBooks_Ajax();
         $GLOBALS['orabooks_test_current_user_can'] = true;
