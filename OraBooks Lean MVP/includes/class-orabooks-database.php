@@ -891,6 +891,12 @@ class OraBooks_Database {
         }
         OraBooks_AR_Wallet::ensure_schema();
 
+        $invoice_document_tables = OraBooks_Invoice_Document::get_create_table_sql();
+        foreach ($invoice_document_tables as $sql) {
+            dbDelta($sql);
+        }
+        OraBooks_Invoice_Document::ensure_schema();
+
         if (!wp_next_scheduled('orabooks_daily_invoice_overdue_check')) {
             wp_schedule_event(time(), 'daily', 'orabooks_daily_invoice_overdue_check');
         }

@@ -801,14 +801,6 @@ class OraBooks_AR_Wallet {
         return null;
     }
 
-    private static function get_table_column_names($table) {
-        global $wpdb;
-        if ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table)) !== $table) {
-            return [];
-        }
-        return $wpdb->get_col("SHOW COLUMNS FROM {$table}", 0) ?: [];
-    }
-
     public static function create_credit_note($org_id, $data) {
         global $wpdb;
 
