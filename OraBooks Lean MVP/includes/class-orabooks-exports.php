@@ -419,6 +419,7 @@ class OraBooks_Exports {
                 'format'      => $export->format,
                 'file_size'   => $file_size,
                 'expires_at'  => $expires_at,
+                'correlation_id' => $export->correlation_id,
             ], $user_id, $org_id);
 
             // Publish event for SL-250 notification
@@ -439,6 +440,7 @@ class OraBooks_Exports {
                     'format'      => $export->format,
                     'org_id'      => $org_id,
                     'user_id'     => $user_id,
+                    'correlation_id' => $export->correlation_id,
                 ]);
             }
 
@@ -460,6 +462,7 @@ class OraBooks_Exports {
             orabooks_log_event('export_failed', "Export #{$export_id} failed: " . $e->getMessage(), 'warning', [
                 'export_id' => $export_id,
                 'error'     => $e->getMessage(),
+                'correlation_id' => $export->correlation_id,
             ], $user_id, $org_id);
 
             // Notify user via SL-250
@@ -470,6 +473,7 @@ class OraBooks_Exports {
                 'org_id'      => $org_id,
                 'user_id'     => $user_id,
                 'error'       => $e->getMessage(),
+                'correlation_id' => $export->correlation_id,
             ]);
 
             return $e->getMessage();
