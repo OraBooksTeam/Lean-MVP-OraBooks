@@ -389,12 +389,28 @@ class OraBooks_Voice {
         $vendor = 'Voice Vendor ' . (($seed % 900) + 100);
         $customer = 'Voice Customer ' . (($seed % 800) + 200);
 
+        $filename_lc = strtolower((string) $filename);
+        $category = 'General';
+        if (preg_match('/rent|rental|lease/', $filename_lc)) {
+            $category = 'Rent';
+        } elseif (preg_match('/travel|flight|hotel|uber|transport/', $filename_lc)) {
+            $category = 'Travel';
+        } elseif (preg_match('/meal|food|restaurant|cafe/', $filename_lc)) {
+            $category = 'Meals';
+        } elseif (preg_match('/salary|payroll|wage/', $filename_lc)) {
+            $category = 'Salary';
+        } elseif (preg_match('/software|subscription|license|saas/', $filename_lc)) {
+            $category = 'Software';
+        } elseif (preg_match('/office|stationery|printer|paper/', $filename_lc)) {
+            $category = 'Office Supplies';
+        }
+
         $field_confidences = [
-            'transaction_type' => 90,
-            'vendor'           => 82 + ($seed % 10),
-            'amount'           => 86 + ($seed % 8),
-            'transaction_date' => 91,
-            'category'         => 78 + ($seed % 12),
+            'transaction_type' => 58,
+            'vendor'           => 52 + ($seed % 8),
+            'amount'           => 56 + ($seed % 8),
+            'transaction_date' => 60,
+            'category'         => 50,
         ];
 
         if (stripos($filename, 'unclear') !== false) {
@@ -407,10 +423,10 @@ class OraBooks_Voice {
         $confidence_avg = array_sum($field_confidences) / count($field_confidences);
 
         $risk_scores = [
-            'amount_risk'              => $amount >= 5000 ? 75 : 15,
-            'vendor_risk'              => $field_confidences['vendor'] < 65 ? 60 : 10,
-            'anomaly_risk'             => 20,
-            'language_ambiguity_risk'  => stripos($filename, 'unclear') !== false ? 70 : 10,
+            'amount_risk'              => $amount >= 5000 ? 75 : 30,
+            'vendor_risk'              => $field_confidences['vendor'] < 65 ? 70 : 30,
+            'anomaly_risk'             => 25,
+            'language_ambiguity_risk'  => stripos($filename, 'unclear') !== false ? 85 : 75,
             'spoofing_risk'            => 5,
         ];
 
@@ -420,12 +436,7 @@ class OraBooks_Voice {
         $tax_amount = round($amount - $subtotal, 2);
         $due_date = gmdate('Y-m-d', strtotime('+30 days'));
 
-        $transcript = sprintf(
-            'Create a %s for %s amount %.2f dollars dated today category office supplies',
-            $type,
-            $type === 'invoice' ? $customer : $vendor,
-            $amount
-        );
+        $transcript = 'Fallback transcription mode is active. Configure OpenAI/Azure speech provider to transcribe real audio.';
 
         $extracted = [
             'transaction_type'  => $type,
@@ -443,10 +454,10 @@ class OraBooks_Voice {
             'tax_type'          => 'Sales Tax',
             'tax_jurisdiction'  => 'US-CA',
             'tax_registration_number' => 'REG-' . (($seed % 90000) + 10000),
-            'category'          => 'Office Supplies',
-            'description'       => ucfirst($type) . ' from voice command',
+            'category'          => $category,
+            'description'       => 'Fallback extraction output. Verify and edit fields before confirming.',
             'line_items'        => [[
-                'description' => 'Consulting',
+                'description' => 'Fallback line item',
                 'quantity'    => 1,
                 'unit_price'  => $subtotal,
                 'total'       => $subtotal,
