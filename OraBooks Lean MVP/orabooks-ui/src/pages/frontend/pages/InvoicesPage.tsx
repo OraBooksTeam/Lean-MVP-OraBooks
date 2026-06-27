@@ -1083,7 +1083,17 @@ export default function InvoicesPage() {
         </div>
 
         {showCreate && canCreateInvoice && (
-          <Modal title="Create invoice" wide onClose={() => setShowCreate(false)}>
+          <Modal
+            title="Create invoice"
+            wide
+            onClose={() => setShowCreate(false)}
+            footer={(
+              <div className="flex justify-end gap-2">
+                <Button variant="secondary" onClick={() => setShowCreate(false)}>Cancel</Button>
+                <Button onClick={handleCreateInvoice} disabled={saving || !createForm.customer_id}>Create</Button>
+              </div>
+            )}
+          >
             {error && <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div>}
             <div className="grid gap-4">
               <Field label="Invoice number">
@@ -1242,10 +1252,6 @@ export default function InvoicesPage() {
                   </div>
                 </div>
               )}
-            </div>
-            <div className="mt-6 flex justify-end gap-2">
-              <Button variant="secondary" onClick={() => setShowCreate(false)}>Cancel</Button>
-              <Button onClick={handleCreateInvoice} disabled={saving || !createForm.customer_id}>Create</Button>
             </div>
           </Modal>
         )}
@@ -1477,15 +1483,33 @@ function ProductAutocomplete({
   );
 }
 
-function Modal({ title, children, onClose, wide = false }: { title: string; children: ReactNode; onClose: () => void; wide?: boolean }) {
+function Modal({
+  title,
+  children,
+  onClose,
+  wide = false,
+  footer,
+}: {
+  title: string;
+  children: ReactNode;
+  onClose: () => void;
+  wide?: boolean;
+  footer?: ReactNode;
+}) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4" onClick={onClose}>
-      <div className={`w-full rounded-2xl border border-border bg-white p-6 shadow-xl ${wide ? 'max-w-3xl' : 'max-w-lg'}`} onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between gap-3">
+    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-slate-900/40 p-4" onClick={onClose}>
+      <div
+        className={`my-auto flex max-h-[min(90vh,900px)] w-full flex-col overflow-hidden rounded-2xl border border-border bg-white shadow-xl ${wide ? 'max-w-3xl' : 'max-w-lg'}`}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex shrink-0 items-center justify-between gap-3 border-b border-border px-6 py-4">
           <h3 className="text-lg font-semibold text-ink">{title}</h3>
           <button type="button" onClick={onClose} className="text-sm text-slate-500 hover:text-slate-700">Close</button>
         </div>
-        <div className="mt-4">{children}</div>
+        <div className="min-h-0 flex-1 overflow-y-auto px-6 py-4">{children}</div>
+        {footer ? (
+          <div className="shrink-0 border-t border-border bg-white px-6 py-4">{footer}</div>
+        ) : null}
       </div>
     </div>
   );
