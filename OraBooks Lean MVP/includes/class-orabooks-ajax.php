@@ -83,7 +83,7 @@ class OraBooks_Ajax {
 
     private function save_ai_setting($key, $value, $is_secret = false) {
         update_option('orabooks_' . $key, $value);
-        if ($is_secret && class_exists('OraBooks_Secrets')) {
+        if ($is_secret && class_exists('OraBooks_Secrets') && method_exists('OraBooks_Secrets', 'set')) {
             OraBooks_Secrets::set($key, (string) $value);
         }
     }
