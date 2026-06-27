@@ -368,8 +368,8 @@ export default function VoicePage() {
                   title="Upload an audio file for transcription"
                 />
                 <Button
-                  variant="secondary"
-                  className="cursor-pointer transition bg-accent text-white shadow-sm hover:border-success hover:bg-success/90"
+                  variant="primary"
+                  className="cursor-pointer bg-accent text-white shadow-sm hover:bg-accent/90"
                   onClick={() => void uploadSelectedFile()}
                   disabled={uploading}
                   title="Upload audio and transcribe"
