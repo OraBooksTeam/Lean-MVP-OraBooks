@@ -58,6 +58,29 @@ class OraBooks_Ai_Providers {
         }
     }
 
+    /**
+     * Lightweight runtime status for UI diagnostics (no secret values exposed).
+     */
+    public static function capability_status() {
+        $ocr_provider = self::provider_name('ocr');
+        $speech_provider = self::provider_name('speech');
+        $classification_provider = self::provider_name('classification');
+
+        $azure_di = self::is_document_intelligence_configured();
+        $vision_chat = self::is_openai_configured() || self::is_azure_openai_configured();
+
+        return [
+            'ocr_provider' => $ocr_provider,
+            'ocr_model_version' => self::model_version('ocr'),
+            'speech_provider' => $speech_provider,
+            'classification_provider' => $classification_provider,
+            'real_ocr_enabled' => ($ocr_provider !== self::STUB_PROVIDER) || $vision_chat,
+            'real_ai_enabled' => ($speech_provider !== self::STUB_PROVIDER) || ($classification_provider !== self::STUB_PROVIDER),
+            'azure_document_intelligence_configured' => $azure_di,
+            'vision_chat_configured' => $vision_chat,
+        ];
+    }
+
     public static function is_document_intelligence_configured() {
         return self::config('azure_document_intelligence_endpoint') !== ''
             && self::config('azure_document_intelligence_key') !== '';

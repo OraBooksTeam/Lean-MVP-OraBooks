@@ -1006,11 +1006,17 @@ class OraBooks_Ajax {
             );
         }
 
+        $ai_status = [];
+        if (class_exists('OraBooks_Ai_Providers') && method_exists('OraBooks_Ai_Providers', 'capability_status')) {
+            $ai_status = OraBooks_Ai_Providers::capability_status();
+        }
+
         orabooks_json_success([
             'context' => $context,
             'stats' => $stats,
             'expenses' => $expenses,
             'pending_approval' => $pending_approval,
+            'ai_status' => $ai_status,
             'threshold' => OraBooks_Expenses::CONFIDENCE_THRESHOLD,
             'capabilities' => [
                 'upload'  => OraBooks_RBAC::require_permission($context['user_id'], $org_id, 'manage_expenses'),
