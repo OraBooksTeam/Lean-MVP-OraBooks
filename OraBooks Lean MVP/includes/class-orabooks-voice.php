@@ -32,6 +32,8 @@ class OraBooks_Voice {
     const RATE_LIMIT_PERIOD    = 60;
     const RETENTION_DAYS       = 90;
     const NLU_MODEL_VERSION    = 'mvp-stub-1.0';
+    const RETRY_BASE_DELAY_SECONDS = 30;
+    const RETRY_MAX_DELAY_SECONDS  = 600;
 
     const TRANSACTION_TYPES = ['expense', 'invoice', 'journal', 'task', 'reminder', 'support_ticket', 'workflow_command'];
 
@@ -42,12 +44,14 @@ class OraBooks_Voice {
             self::$instance = new self();
 
             add_action('orabooks_voice_transcription_process', [self::$instance, 'cron_process_pending']);
+            add_action('orabooks_voice_transcription_retry', [self::$instance, 'cron_process_retry'], 10, 2);
             add_action('orabooks_voice_purge', [self::$instance, 'cron_purge_old']);
 
             add_action('wp_ajax_orabooks_voice_upload', [self::$instance, 'ajax_upload']);
             add_action('wp_ajax_orabooks_voice_get', [self::$instance, 'ajax_get']);
             add_action('wp_ajax_orabooks_voice_confirm', [self::$instance, 'ajax_confirm']);
             add_action('wp_ajax_orabooks_voice_list', [self::$instance, 'ajax_list']);
+            add_action('wp_ajax_orabooks_voice_retry', [self::$instance, 'ajax_retry']);
         }
 
         return self::$instance;
@@ -333,6 +337,8 @@ class OraBooks_Voice {
                 $wpdb->update($table, [
                     'processing_retry_count' => $retry,
                 ], ['id' => $voice_id], ['%d'], ['%d']);
+
+                self::schedule_retry_attempt($voice_id, $org_id, $retry);
             }
             return;
         }
@@ -424,6 +430,64 @@ class OraBooks_Voice {
         foreach ($rows ?: [] as $row) {
             $this->process_voice_input((int) $row->id, (int) $row->org_id, 'recording.webm');
         }
+    }
+
+    public function cron_process_retry($voice_id, $org_id) {
+        $voice_id = (int) $voice_id;
+        $org_id = (int) $org_id;
+        if ($voice_id <= 0 || $org_id <= 0) {
+            return;
+        }
+
+        $this->process_voice_input($voice_id, $org_id, 'recording.webm');
+    }
+
+    private static function schedule_retry_attempt($voice_id, $org_id, $retry_count) {
+        if (!function_exists('wp_schedule_single_event') || !function_exists('wp_next_scheduled')) {
+            return;
+        }
+
+        $voice_id = (int) $voice_id;
+        $org_id = (int) $org_id;
+        $retry_count = max(1, (int) $retry_count);
+
+        $delay = (int) min(self::RETRY_MAX_DELAY_SECONDS, self::RETRY_BASE_DELAY_SECONDS * pow(2, max(0, $retry_count - 1)));
+        $hook = 'orabooks_voice_transcription_retry';
+        $args = [$voice_id, $org_id];
+
+        if (!wp_next_scheduled($hook, $args)) {
+            wp_schedule_single_event(time() + $delay, $hook, $args);
+        }
+    }
+
+    public static function retry_voice_input($voice_id, $org_id, $user_id) {
+        global $wpdb;
+
+        $voice = self::get_voice_input($voice_id, $org_id);
+        if (!$voice) {
+            return new WP_Error('not_found', 'Voice input not found');
+        }
+
+        if (!in_array($voice->status, [self::STATUS_FAILED, self::STATUS_DEAD_LETTER], true)) {
+            return new WP_Error('invalid_status', 'Only failed or dead-letter voice inputs can be retried.');
+        }
+
+        $table = OraBooks_Database::table(self::TABLE_VOICE);
+        $wpdb->update($table, [
+            'status' => self::STATUS_PENDING,
+            'processing_retry_count' => 0,
+            'dead_letter_reason' => null,
+        ], ['id' => (int) $voice_id], ['%s', '%d', '%s'], ['%d']);
+
+        self::init()->process_voice_input((int) $voice_id, (int) $org_id, 'recording.webm');
+
+        orabooks_log_event('voice_retry_requested', "Voice input #{$voice_id} retry requested", 'info', [
+            'voice_input_id' => (int) $voice_id,
+            'correlation_id' => function_exists('orabooks_get_correlation_id') ? orabooks_get_correlation_id() : '',
+        ], (int) $user_id, (int) $org_id);
+
+        $updated = self::get_voice_input($voice_id, $org_id);
+        return self::format_voice_input($updated);
     }
 
     public static function run_nlu_stub($filename, $voice_id) {
@@ -887,6 +951,21 @@ class OraBooks_Voice {
         }
 
         orabooks_json_success(['voice_input' => $result], 'Voice input confirmed');
+    }
+
+    public function ajax_retry() {
+        $user_id = orabooks_get_current_user_id();
+        $org_id = intval($_POST['org_id'] ?? 0);
+        $voice_id = intval($_POST['voice_id'] ?? 0);
+
+        $this->require_voice_access($user_id, $org_id, 'manage_voice_inputs');
+
+        $result = self::retry_voice_input($voice_id, $org_id, $user_id);
+        if (is_wp_error($result)) {
+            orabooks_json_error($result->get_error_message(), 400);
+        }
+
+        orabooks_json_success(['voice_input' => $result], 'Voice input retry queued');
     }
 
     public function ajax_list() {
