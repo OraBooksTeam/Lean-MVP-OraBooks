@@ -15,7 +15,17 @@ class OraBooks_Voice_Test extends TestCase
 
         $this->assertStringContainsString('orabooks_voice_inputs', $sql);
         $this->assertStringContainsString('overall_risk_level', $sql);
-        $this->assertStringContainsString("ENUM('pending','processed','failed','escalated')", $sql);
+        $this->assertStringContainsString("ENUM('pending','processed','failed','escalated','dead_letter')", $sql);
+        $this->assertStringContainsString('idx_org_status_created', $sql);
+        $this->assertStringContainsString('idx_org_risk_created', $sql);
+    }
+
+    #[Test]
+    public function test_contract_defines_extended_transaction_types_and_statuses()
+    {
+        $this->assertContains('support_ticket', OraBooks_Voice::TRANSACTION_TYPES);
+        $this->assertContains('workflow_command', OraBooks_Voice::TRANSACTION_TYPES);
+        $this->assertSame('dead_letter', OraBooks_Voice::STATUS_DEAD_LETTER);
     }
 
     #[Test]
