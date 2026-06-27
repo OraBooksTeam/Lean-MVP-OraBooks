@@ -1086,6 +1086,112 @@ class OraBooks_Ai_Providers {
         return $default;
     }
 
+    private static function heuristic_voice_intent_from_transcript($transcript) {
+        $text = trim((string) $transcript);
+        $lower = strtolower($text);
+
+        $transaction_type = 'expense';
+        $type_map = [
+            'support ticket' => 'support_ticket',
+            'workflow command' => 'workflow_command',
+            'reminder' => 'reminder',
+            'task' => 'task',
+            'journal' => 'journal',
+            'invoice' => 'invoice',
+            'expense' => 'expense',
+        ];
+        foreach ($type_map as $needle => $mapped) {
+            if (strpos($lower, $needle) !== false) {
+                $transaction_type = $mapped;
+                break;
+            }
+        }
+
+        $amount = 0.0;
+        if (preg_match('/(?:amount|total|for)\s*[:=]?\s*\$?\s*([0-9]+(?:[\.,][0-9]{1,2})?)/i', $text, $match)) {
+            $amount = (float) str_replace(',', '', $match[1]);
+        }
+
+        $vendor = '';
+        if (preg_match('/\b(?:to|from|at)\s+([a-z0-9&\.-]+(?:\s+[a-z0-9&\.-]+){0,3})/i', $text, $vendor_match)) {
+            $vendor = sanitize_text_field(trim($vendor_match[1]));
+        }
+
+        $field_confidences = [
+            'transaction_type' => 72,
+            'vendor' => $vendor !== '' ? 68 : 52,
+            'amount' => $amount > 0 ? 74 : 50,
+            'transaction_date' => 70,
+            'category' => 66,
+        ];
+
+        $confidence_avg = array_sum($field_confidences) / count($field_confidences);
+        $risk_scores = [
+            'amount_risk'             => $amount >= 5000 ? 75 : 20,
+            'vendor_risk'             => $vendor === '' ? 60 : 20,
+            'anomaly_risk'            => 20,
+            'language_ambiguity_risk' => $confidence_avg < 65 ? 70 : 20,
+            'spoofing_risk'           => 5,
+        ];
+        $overall_risk = OraBooks_Voice::compute_overall_risk_level($risk_scores, $confidence_avg);
+
+        $extracted = [
+            'transaction_type'  => in_array($transaction_type, OraBooks_Voice::TRANSACTION_TYPES, true) ? $transaction_type : 'expense',
+            'vendor'            => $vendor,
+            'customer'          => '',
+            'amount'            => $amount,
+            'total_amount'      => $amount,
+            'currency'          => strpos($lower, 'bdt') !== false ? 'BDT' : 'USD',
+            'transaction_date'  => current_time('Y-m-d'),
+            'tax_amount'        => null,
+            'tax_rate'          => null,
+            'tax_type'          => '',
+            'tax_jurisdiction'  => 'US',
+            'category'          => self::infer_category_from_text($text),
+            'description'       => $text,
+            'field_confidences' => $field_confidences,
+        ];
+
+        return [
+            'transcript'         => $text,
+            'extracted_data'     => $extracted,
+            'language_detected'  => 'en',
+            'confidence_avg'     => round($confidence_avg, 2),
+            'risk_scores'        => $risk_scores,
+            'overall_risk_level' => $overall_risk,
+            'provider'           => self::provider_name('speech'),
+            'model_version'      => self::model_version('speech'),
+        ];
+    }
+
+    private static function decode_json_content($content) {
+        $content = trim((string) $content);
+        if ($content === '') {
+            return null;
+        }
+
+        $decoded = json_decode($content, true);
+        if (is_array($decoded)) {
+            return $decoded;
+        }
+
+        $fenced = preg_replace('/^```(?:json)?\s*/i', '', $content);
+        $fenced = preg_replace('/\s*```$/', '', (string) $fenced);
+        $decoded = json_decode((string) $fenced, true);
+        if (is_array($decoded)) {
+            return $decoded;
+        }
+
+        if (preg_match('/\{.*\}/s', $content, $match)) {
+            $decoded = json_decode($match[0], true);
+            if (is_array($decoded)) {
+                return $decoded;
+            }
+        }
+
+        return null;
+    }
+
     private static function risk_from_confidence($avg, array $field_confidences, $total) {
         $risk = 'low';
         if ($avg < 70 || min($field_confidences) < 55) {
