@@ -192,6 +192,17 @@ export default function CustomersPage() {
   const [customerForm, setCustomerForm] = useState<CustomerFormState>(emptyCustomerForm());
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState('');
+  const [viewingCustomer, setViewingCustomer] = useState<Customer | null>(null);
+  const [walletData, setWalletData] = useState<any>(null);
+  const [walletLoading, setWalletLoading] = useState(false);
+  const [customerPaymentForm, setCustomerPaymentForm] = useState({
+    amount: '',
+    payment_date: new Date().toISOString().slice(0, 10),
+    payment_method: 'bank_transfer',
+    reference: '',
+    notes: '',
+    allocation_method: 'FIFO',
+  });
 
   const permissions: string[] = context?.permissions || [];
   const canManageCustomers = permissions.includes('create_invoice');
@@ -244,6 +255,58 @@ export default function CustomersPage() {
     setEditForm(customerToForm(customer));
     setSuccess('');
     setError('');
+  };
+
+  const openWallet = async (customer: Customer) => {
+    if (!orgId) return;
+    setViewingCustomer(customer);
+    setWalletLoading(true);
+    setError('');
+    const res = await api.customerWallet(customer.id, orgId);
+    if (res.error) {
+      setError(typeof res.error === 'string' ? res.error : 'Unable to load customer wallet.');
+      setWalletData(null);
+    } else {
+      setWalletData((res as any).data);
+    }
+    setWalletLoading(false);
+  };
+
+  const recordCustomerPayment = async () => {
+    if (!orgId || !viewingCustomer) return;
+    setSaving(true);
+    setError('');
+    const res = await api.customerPaymentRecord(orgId, viewingCustomer.id, {
+      amount: parseFloat(customerPaymentForm.amount) || 0,
+      payment_date: customerPaymentForm.payment_date,
+      payment_method: customerPaymentForm.payment_method,
+      reference: customerPaymentForm.reference,
+      notes: customerPaymentForm.notes,
+      allocation_method: customerPaymentForm.allocation_method,
+    });
+    if (res.error) {
+      setError(typeof res.error === 'string' ? res.error : 'Unable to record payment.');
+    } else {
+      setSuccess('Payment recorded.');
+      setCustomerPaymentForm((p) => ({ ...p, amount: '', reference: '', notes: '' }));
+      await openWallet(viewingCustomer);
+      await load();
+    }
+    setSaving(false);
+  };
+
+  const reverseCustomerPayment = async (paymentId: number) => {
+    if (!orgId || !viewingCustomer) return;
+    if (!window.confirm('Reverse this payment? AR allocations and journals will be reversed.')) return;
+    setSaving(true);
+    const res = await api.paymentReverse(orgId, paymentId, 'User-initiated reversal');
+    if (res.error) setError(typeof res.error === 'string' ? res.error : 'Unable to reverse payment.');
+    else {
+      setSuccess('Payment reversed.');
+      await openWallet(viewingCustomer);
+      await load();
+    }
+    setSaving(false);
   };
 
   const saveCustomer = async () => {
@@ -404,6 +467,9 @@ export default function CustomersPage() {
                   <td className="px-5 py-3 text-right text-slate-600">{money(customer.credit_balance, customer.default_currency)}</td>
                   <td className="px-5 py-3">
                     <div className="flex flex-wrap gap-1">
+                      <Button size="sm" variant="secondary" onClick={() => void openWallet(customer)}>
+                        Wallet
+                      </Button>
                       {canManageCustomers && (
                         <Button size="sm" variant="secondary" onClick={() => openEdit(customer)}>
                           <Pencil className="h-3.5 w-3.5" />
