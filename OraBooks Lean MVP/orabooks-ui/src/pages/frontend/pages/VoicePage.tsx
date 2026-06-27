@@ -45,6 +45,7 @@ export default function VoicePage() {
   const [selectedVoice, setSelectedVoice] = useState<any>(null);
   const [editFields, setEditFields] = useState<Record<string, string>>({});
   const [confirming, setConfirming] = useState(false);
+  const [retrying, setRetrying] = useState(false);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
@@ -253,6 +254,26 @@ export default function VoicePage() {
     setConfirming(false);
   };
 
+  const handleRetry = async () => {
+    if (!orgId || !selectedVoice?.id || retrying) return;
+
+    setRetrying(true);
+    setError('');
+    const res = await api.voiceRetry(orgId, selectedVoice.id);
+    if (res.error) {
+      setError(res.error || 'Retry failed.');
+    } else {
+      setSuccess('Retry requested. Transcription is processing again.');
+      const voice = (res as any).data?.voice_input;
+      if (voice) {
+        selectVoice(voice);
+        if (voice.status === 'pending') pollVoiceStatus(voice.id);
+      }
+      await load();
+    }
+    setRetrying(false);
+  };
+
   const voiceInputs = data?.voice_inputs || [];
   const stats = data?.stats || {};
   const fieldConfidences = selectedVoice?.field_confidences || selectedVoice?.extracted_data?.field_confidences || {};
@@ -276,6 +297,12 @@ export default function VoicePage() {
             <p className="font-semibold">
               Speech: {aiStatus.speech_provider || 'mvp-stub'} ({aiStatus.speech_model_version || 'mvp-stub-1.0'})
             </p>
+            {aiStatus.speech_webhook_health?.status && aiStatus.speech_provider === 'speech-webhook' && (
+              <p className="mt-1 text-xs">
+                Webhook health: {aiStatus.speech_webhook_health.status}
+                {aiStatus.speech_webhook_health.version ? ` (${aiStatus.speech_webhook_health.version})` : ''}
+              </p>
+            )}
             {aiStatus.speech_provider === 'mvp-stub' && (
               <p className="mt-1">
                 Real speech transcription is not configured. Configure OpenAI, Azure OpenAI, or Speech Webhook for real voice-to-text.
@@ -439,7 +466,7 @@ export default function VoicePage() {
               </div>
             )}
 
-            {selectedVoice.status === 'failed' && selectedVoice.dead_letter_reason && (
+            {(selectedVoice.status === 'failed' || selectedVoice.status === 'dead_letter') && selectedVoice.dead_letter_reason && (
               <p className="mt-4 text-sm text-red-700">
                 Transcription failed: {selectedVoice.dead_letter_reason}
               </p>
@@ -478,6 +505,15 @@ export default function VoicePage() {
                 >
                   <CheckCircle2 className="h-4 w-4" />
                   {confirming ? 'Submitting…' : 'Confirm & Submit'}
+                </Button>
+              </div>
+            )}
+
+            {caps.retry && (selectedVoice.status === 'failed' || selectedVoice.status === 'dead_letter') && (
+              <div className="mt-4 flex flex-wrap gap-2">
+                <Button variant="secondary" onClick={() => void handleRetry()} disabled={retrying}>
+                  <RefreshCw className="h-4 w-4" />
+                  {retrying ? 'Retrying…' : 'Retry Transcription'}
                 </Button>
               </div>
             )}
