@@ -15,6 +15,12 @@ class OraBooks_Classification {
     const CONFIDENCE_THRESHOLD = 70.0;
     const MODEL_VERSION        = 'mvp-stub-1.0';
     const TAX_ENGINE_VERSION   = 'sl-305-1.0';
+    const DEFAULT_OVERRIDE_REASONS = [
+        'WRONG_AI_CLASSIFICATION',
+        'LOCAL_TAX_RULE',
+        'CUSTOMER_EXEMPTION',
+        'REGIONAL_COMPLIANCE_OVERRIDE',
+    ];
     const RATE_LIMIT_MAX       = 10;
     const RATE_LIMIT_PERIOD    = 60;
 
@@ -630,7 +636,7 @@ class OraBooks_Classification {
         return self::get_record($record_type, $record_id, $org_id);
     }
 
-    public static function override($record_type, $record_id, $org_id, $user_id, $account_code, $tax_rate = null) {
+    public static function override($record_type, $record_id, $org_id, $user_id, $account_code, $tax_rate = null, $override_reason = '', $override_note = '') {
         global $wpdb;
 
         $record = self::get_record($record_type, $record_id, $org_id);
@@ -639,6 +645,14 @@ class OraBooks_Classification {
         }
 
         $account_code = sanitize_text_field($account_code);
+        $override_reason = strtoupper(sanitize_text_field($override_reason));
+        $override_note = sanitize_textarea_field($override_note);
+        if ($override_reason === '') {
+            return new WP_Error('override_reason_required', __('Override reason is required', 'orabooks'));
+        }
+        if (!in_array($override_reason, self::DEFAULT_OVERRIDE_REASONS, true)) {
+            return new WP_Error('invalid_override_reason', __('Override reason is not allowed', 'orabooks'));
+        }
         $account = class_exists('OraBooks_COA') ? OraBooks_COA::get_account_by_code($org_id, $account_code) : null;
 
         $map = self::$record_types[$record_type];
@@ -652,8 +666,9 @@ class OraBooks_Classification {
                 'classification_status'  => 'overridden',
                 'suggested_account_code' => $account_code,
                 'suggested_account_id'   => $account ? (int) $account->id : null,
+                'classification_reason'  => $override_note !== '' ? ($override_reason . ': ' . $override_note) : $override_reason,
             ],
-            ['%s', '%s', '%d']
+            ['%s', '%s', '%d', '%s']
         );
 
         if ($record_type === 'journal_line' && $account) {
@@ -691,6 +706,8 @@ class OraBooks_Classification {
             'record_id'    => $record_id,
             'account_code' => $account_code,
             'tax_rate'     => $tax_rate,
+            'override_reason' => $override_reason,
+            'override_note' => $override_note,
         ], (int) $user_id, (int) $org_id);
 
         self::record_observability('classification', 'override_count', 1, (int) $org_id, [
@@ -816,8 +833,10 @@ class OraBooks_Classification {
         $record_id = (int) ($_POST['record_id'] ?? 0);
         $account_code = sanitize_text_field($_POST['account_code'] ?? '');
         $tax_rate = isset($_POST['tax_rate']) ? (float) $_POST['tax_rate'] : null;
+        $override_reason = sanitize_text_field($_POST['override_reason'] ?? $_POST['reason_code'] ?? '');
+        $override_note = sanitize_textarea_field($_POST['override_note'] ?? '');
 
-        $result = self::override($record_type, $record_id, $org_id, $user_id, $account_code, $tax_rate);
+        $result = self::override($record_type, $record_id, $org_id, $user_id, $account_code, $tax_rate, $override_reason, $override_note);
 
         if (is_wp_error($result)) {
             orabooks_json_error($result->get_error_message(), 400);
