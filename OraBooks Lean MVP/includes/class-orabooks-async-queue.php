@@ -1096,6 +1096,8 @@ class OraBooks_AsyncQueue {
             $method = strtoupper($payload['method'] ?? 'POST');
             $body   = $payload['body'] ?? $payload['event'] ?? $payload;
             $headers = $payload['headers'] ?? [];
+            $body_json = wp_json_encode($body);
+            $signature_headers = self::build_webhook_signature_headers($job, $payload, $body_json);
 
             if (empty($urls)) {
                 return 'Webhook URL required';
@@ -1114,8 +1116,8 @@ class OraBooks_AsyncQueue {
 
             $response = wp_remote_request($url, [
                 'method'  => $method,
-                'body'    => json_encode($body),
-                'headers' => array_merge(['Content-Type' => 'application/json'], $headers),
+                'body'    => $body_json,
+                'headers' => array_merge(['Content-Type' => 'application/json'], $headers, $signature_headers),
                 'timeout' => 30,
             ]);
 
@@ -1142,6 +1144,23 @@ class OraBooks_AsyncQueue {
             }
 
             return true;
+    }
+
+    private static function build_webhook_signature_headers($job, $payload, $body_json) {
+        $secret = trim((string) ($payload['signing_secret'] ?? ''));
+        if ($secret === '') {
+            return [];
+        }
+
+        $timestamp = current_time('mysql', true);
+        $job_id = is_object($job) ? (int) ($job->id ?? 0) : 0;
+        $signed_payload = $timestamp . "\n" . (string) $body_json;
+
+        return [
+            'X-OraBooks-Webhook-Timestamp' => $timestamp,
+            'X-OraBooks-Webhook-Job-Id' => (string) $job_id,
+            'X-OraBooks-Webhook-Signature' => hash_hmac('sha256', $signed_payload, $secret),
+        ];
     }
 
     public static function handle_export_report_async($job, $payload) {
