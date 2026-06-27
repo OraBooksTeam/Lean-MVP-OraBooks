@@ -1205,16 +1205,23 @@ class OraBooks_Customers {
             return new WP_Error('duplicate', 'Invoice number already exists for this organization');
         }
 
-        $invoice_date = $data['invoice_date'] ?? current_time('Y-m-d');
+        $invoice_date = !empty($data['invoice_date']) ? sanitize_text_field($data['invoice_date']) : current_time('Y-m-d');
         $due_days = $data['due_days'] ?? 30;
+        $transaction_date = !empty($data['transaction_date']) ? sanitize_text_field($data['transaction_date']) : $invoice_date;
+        $due_date = !empty($data['due_date'])
+            ? sanitize_text_field($data['due_date'])
+            : date('Y-m-d', strtotime($invoice_date . " +{$due_days} days"));
+        $idempotency_key = !empty($data['idempotency_key'])
+            ? sanitize_text_field($data['idempotency_key'])
+            : orabooks_uuid();
 
         $insert_row = [
             'org_id'          => $org_id,
             'customer_id'     => (int) $data['customer_id'],
             'invoice_number'  => $data['invoice_number'],
             'invoice_date'    => $invoice_date,
-            'transaction_date' => $data['transaction_date'] ?? $invoice_date,
-            'due_date'        => $data['due_date'] ?? date('Y-m-d', strtotime($invoice_date . " +{$due_days} days")),
+            'transaction_date' => $transaction_date,
+            'due_date'        => $due_date,
             'description'     => $data['description'] ?? '',
             'subtotal_amount' => round(floatval($data['subtotal_amount'] ?? 0), 2),
             'discount_amount' => round(floatval($data['discount_amount'] ?? 0), 2),
@@ -1230,7 +1237,7 @@ class OraBooks_Customers {
             'currency'        => $data['currency'] ?? 'USD',
             'payment_status'  => 'unpaid',
             'workflow_status' => $data['workflow_status'] ?? 'draft',
-            'idempotency_key' => $data['idempotency_key'] ?? orabooks_uuid(),
+            'idempotency_key' => $idempotency_key,
         ];
         $insert_formats = [
             'org_id' => '%d',
@@ -1266,6 +1273,11 @@ class OraBooks_Customers {
             }
             $filtered_row[$column] = $value;
             $filtered_formats[] = $insert_formats[$column] ?? '%s';
+        }
+
+        if (!isset($filtered_row['total_amount']) && in_array('amount', $table_columns, true)) {
+            $filtered_row['amount'] = $data['total_amount'];
+            $filtered_formats[] = '%f';
         }
 
         $inserted = $wpdb->insert($table, $filtered_row, $filtered_formats);
@@ -1315,7 +1327,7 @@ class OraBooks_Customers {
             'customer_id'    => (int) $data['customer_id'],
             'invoice_number' => $data['invoice_number'],
             'total_amount'   => $data['total_amount'],
-            'due_date'       => $data['due_date'] ?? date('Y-m-d', strtotime($invoice_date . " +{$due_days} days")),
+            'due_date'       => $due_date,
             'org_id'         => $org_id,
         ]);
 
