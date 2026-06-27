@@ -139,11 +139,34 @@ class OraBooks_Classification_Test extends TestCase
             return 1;
         };
 
-        OraBooks_Classification::override('expense', 20, 2, 5, '5300', 5.0);
+        OraBooks_Classification::override('expense', 20, 2, 5, '5300', 5.0, 'WRONG_AI_CLASSIFICATION', 'manual review correction');
 
         $this->assertNotEmpty($updates);
         $this->assertEquals('overridden', $updates[0]['classification_status']);
         $this->assertEquals('5300', $updates[0]['suggested_account_code']);
+        $this->assertStringContainsString('WRONG_AI_CLASSIFICATION', $updates[0]['classification_reason']);
+    }
+
+    #[Test]
+    public function test_override_requires_reason_code()
+    {
+        global $wpdb;
+
+        $expense = (object) [
+            'id' => 20,
+            'org_id' => 2,
+            'classification_status' => 'processed',
+            'suggested_account_code' => '5100',
+        ];
+
+        $wpdb->test_get_row_callback = function () use ($expense) {
+            return $expense;
+        };
+
+        $result = OraBooks_Classification::override('expense', 20, 2, 5, '5300', 5.0, '');
+
+        $this->assertInstanceOf(WP_Error::class, $result);
+        $this->assertEquals('override_reason_required', $result->get_error_code());
     }
 
     #[Test]
