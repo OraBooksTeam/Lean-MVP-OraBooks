@@ -56,6 +56,7 @@ export default function VoicePage() {
   const orgId = data?.context?.organization?.id;
   const caps = data?.capabilities || {};
   const aiStatus = data?.ai_status || null;
+  const speechSetup = aiStatus?.speech_setup || null;
   const threshold = data?.threshold ?? 70;
   const maxMb = Math.round((data?.limits?.max_file_size || 10485760) / 1048576);
   const maxDuration = data?.limits?.max_duration_seconds ?? 120;
@@ -297,11 +298,30 @@ export default function VoicePage() {
             <p className="font-semibold">
               Speech: {aiStatus.speech_provider || 'mvp-stub'} ({aiStatus.speech_model_version || 'mvp-stub-1.0'})
             </p>
+            {speechSetup && (
+              <p className="mt-1 text-xs">
+                Setup ready: {speechSetup.ready ? 'yes' : 'no'}
+                {speechSetup.preferred_provider ? ` · preferred: ${speechSetup.preferred_provider}` : ''}
+              </p>
+            )}
             {aiStatus.speech_webhook_health?.status && aiStatus.speech_provider === 'speech-webhook' && (
               <p className="mt-1 text-xs">
                 Webhook health: {aiStatus.speech_webhook_health.status}
                 {aiStatus.speech_webhook_health.version ? ` (${aiStatus.speech_webhook_health.version})` : ''}
               </p>
+            )}
+            {speechSetup && (
+              <div className="mt-2 space-y-1 text-xs">
+                <p>
+                  OpenAI speech key: {speechSetup.openai?.configured ? 'configured' : 'missing'}
+                </p>
+                <p>
+                  Azure OpenAI speech config: {speechSetup.azure_openai?.configured ? 'configured' : 'missing'}
+                </p>
+                <p>
+                  Speech webhook URL: {speechSetup.speech_webhook?.configured ? 'configured' : 'missing'}
+                </p>
+              </div>
             )}
             {aiStatus.speech_provider === 'mvp-stub' && (
               <p className="mt-1">

@@ -78,6 +78,7 @@ class OraBooks_Ai_Providers {
         $ocr_provider = self::provider_name('ocr');
         $speech_provider = self::provider_name('speech');
         $classification_provider = self::provider_name('classification');
+        $speech_setup = self::speech_setup_status();
 
         $azure_di = self::is_document_intelligence_configured();
         $vision_chat = self::is_openai_configured() || self::is_azure_openai_configured();
@@ -95,6 +96,45 @@ class OraBooks_Ai_Providers {
             'vision_chat_configured' => $vision_chat,
             'speech_webhook_configured' => self::is_speech_webhook_configured(),
             'speech_webhook_health' => self::speech_webhook_health_status(),
+            'real_speech_enabled' => (bool) $speech_setup['ready'],
+            'speech_setup' => $speech_setup,
+        ];
+    }
+
+    private static function speech_setup_status() {
+        $openai_ready = self::is_openai_configured();
+        $azure_ready = self::is_azure_openai_configured();
+        $webhook_ready = self::is_speech_webhook_configured();
+
+        $openai_missing = $openai_ready ? [] : ['openai_api_key'];
+        $azure_missing = [];
+        if (!$azure_ready) {
+            if (self::config('azure_openai_endpoint') === '') {
+                $azure_missing[] = 'azure_openai_endpoint';
+            }
+            if (self::config('azure_openai_key') === '') {
+                $azure_missing[] = 'azure_openai_key';
+            }
+            if (self::config('azure_openai_deployment') === '') {
+                $azure_missing[] = 'azure_openai_deployment';
+            }
+        }
+
+        return [
+            'ready' => $openai_ready || $azure_ready || $webhook_ready,
+            'openai' => [
+                'configured' => $openai_ready,
+                'missing' => $openai_missing,
+            ],
+            'azure_openai' => [
+                'configured' => $azure_ready,
+                'missing' => $azure_missing,
+            ],
+            'speech_webhook' => [
+                'configured' => $webhook_ready,
+                'health' => self::speech_webhook_health_status(),
+            ],
+            'preferred_provider' => self::provider_name('speech'),
         ];
     }
 

@@ -92,6 +92,35 @@ class OraBooks_Ai_Providers_Test extends TestCase
         $this->assertSame('faster-whisper-large-v3', $status['speech_model_version']);
         $this->assertTrue((bool) $status['speech_webhook_configured']);
         $this->assertTrue((bool) $status['real_ai_enabled']);
+        $this->assertTrue((bool) $status['real_speech_enabled']);
+        $this->assertTrue((bool) ($status['speech_setup']['speech_webhook']['configured'] ?? false));
+    }
+
+    #[Test]
+    public function test_capability_status_reports_missing_setup_when_no_speech_provider_configured()
+    {
+        $status = OraBooks_Ai_Providers::capability_status();
+
+        $this->assertFalse((bool) ($status['speech_setup']['ready'] ?? true));
+        $this->assertFalse((bool) ($status['speech_setup']['openai']['configured'] ?? true));
+        $this->assertFalse((bool) ($status['speech_setup']['azure_openai']['configured'] ?? true));
+        $this->assertFalse((bool) ($status['speech_setup']['speech_webhook']['configured'] ?? true));
+    }
+
+    #[Test]
+    public function test_capability_status_reports_ready_when_openai_key_is_configured()
+    {
+        $GLOBALS['orabooks_test_secrets'] = [
+            'openai_api_key' => 'test-openai-key',
+            'openai_whisper_model' => 'whisper-1',
+        ];
+
+        $status = OraBooks_Ai_Providers::capability_status();
+
+        $this->assertTrue((bool) ($status['speech_setup']['ready'] ?? false));
+        $this->assertTrue((bool) ($status['speech_setup']['openai']['configured'] ?? false));
+        $this->assertSame('openai', $status['speech_provider']);
+        $this->assertTrue((bool) ($status['real_speech_enabled'] ?? false));
     }
 
     #[Test]
