@@ -2808,7 +2808,11 @@ class OraBooks_Customers {
 
         $result = self::create_invoice($org_id, $data);
         if (is_wp_error($result)) {
-            orabooks_json_error($result->get_error_message(), 400);
+            $message = trim((string) $result->get_error_message());
+            if ($message === '') {
+                $message = sanitize_text_field((string) $result->get_error_code()) ?: 'Invoice creation failed';
+            }
+            orabooks_json_error($message, 400);
         }
 
         orabooks_json_success($result, 'Invoice created');
