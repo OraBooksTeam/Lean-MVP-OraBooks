@@ -55,11 +55,37 @@ class OraBooks_Ajax {
         register_setting('orabooks_settings', 'orabooks_audit_retention_days');
         register_setting('orabooks_settings', 'orabooks_jwt_expiry');
         register_setting('orabooks_settings', 'orabooks_refresh_token_expiry');
+        register_setting('orabooks_settings', 'orabooks_openai_api_key');
+        register_setting('orabooks_settings', 'orabooks_openai_chat_model');
+        register_setting('orabooks_settings', 'orabooks_openai_whisper_model');
+        register_setting('orabooks_settings', 'orabooks_azure_openai_endpoint');
+        register_setting('orabooks_settings', 'orabooks_azure_openai_key');
+        register_setting('orabooks_settings', 'orabooks_azure_openai_deployment');
+        register_setting('orabooks_settings', 'orabooks_azure_openai_whisper_deployment');
+        register_setting('orabooks_settings', 'orabooks_azure_openai_api_version');
+        register_setting('orabooks_settings', 'orabooks_azure_document_intelligence_endpoint');
+        register_setting('orabooks_settings', 'orabooks_azure_document_intelligence_key');
+        register_setting('orabooks_settings', 'orabooks_azure_document_intelligence_model');
+        register_setting('orabooks_settings', 'orabooks_azure_document_intelligence_api_version');
         register_setting('orabooks_settings', 'orabooks_speech_webhook_url');
         register_setting('orabooks_settings', 'orabooks_speech_webhook_token');
         register_setting('orabooks_settings', 'orabooks_speech_webhook_model');
         register_setting('orabooks_settings', 'orabooks_speech_webhook_healthcheck_enabled');
         register_setting('orabooks_settings', 'orabooks_speech_webhook_health_url');
+    }
+
+    private function ai_setting_value($key, $default = '') {
+        if (class_exists('OraBooks_Ai_Providers') && method_exists('OraBooks_Ai_Providers', 'config')) {
+            return (string) OraBooks_Ai_Providers::config($key, $default);
+        }
+        return (string) get_option('orabooks_' . $key, $default);
+    }
+
+    private function save_ai_setting($key, $value, $is_secret = false) {
+        update_option('orabooks_' . $key, $value);
+        if ($is_secret && class_exists('OraBooks_Secrets')) {
+            OraBooks_Secrets::set($key, (string) $value);
+        }
     }
 
     private function get_current_orabooks_context() {
@@ -1348,11 +1374,23 @@ class OraBooks_Ajax {
             'audit_retention_days' => (int) get_option('orabooks_audit_retention_days', 365),
             'jwt_expiry' => (int) get_option('orabooks_jwt_expiry', 900),
             'refresh_token_expiry' => (int) get_option('orabooks_refresh_token_expiry', 604800),
-            'speech_webhook_url' => (string) get_option('orabooks_speech_webhook_url', ''),
-            'speech_webhook_token' => (string) get_option('orabooks_speech_webhook_token', ''),
-            'speech_webhook_model' => (string) get_option('orabooks_speech_webhook_model', 'webhook-v1'),
+            'openai_api_key' => $this->ai_setting_value('openai_api_key', ''),
+            'openai_chat_model' => $this->ai_setting_value('openai_chat_model', 'gpt-4o-mini'),
+            'openai_whisper_model' => $this->ai_setting_value('openai_whisper_model', 'whisper-1'),
+            'azure_openai_endpoint' => $this->ai_setting_value('azure_openai_endpoint', ''),
+            'azure_openai_key' => $this->ai_setting_value('azure_openai_key', ''),
+            'azure_openai_deployment' => $this->ai_setting_value('azure_openai_deployment', 'gpt-4o-mini'),
+            'azure_openai_whisper_deployment' => $this->ai_setting_value('azure_openai_whisper_deployment', ''),
+            'azure_openai_api_version' => $this->ai_setting_value('azure_openai_api_version', '2024-06-01'),
+            'azure_document_intelligence_endpoint' => $this->ai_setting_value('azure_document_intelligence_endpoint', ''),
+            'azure_document_intelligence_key' => $this->ai_setting_value('azure_document_intelligence_key', ''),
+            'azure_document_intelligence_model' => $this->ai_setting_value('azure_document_intelligence_model', 'prebuilt-receipt'),
+            'azure_document_intelligence_api_version' => $this->ai_setting_value('azure_document_intelligence_api_version', '2023-07-31'),
+            'speech_webhook_url' => $this->ai_setting_value('speech_webhook_url', ''),
+            'speech_webhook_token' => $this->ai_setting_value('speech_webhook_token', ''),
+            'speech_webhook_model' => $this->ai_setting_value('speech_webhook_model', 'webhook-v1'),
             'speech_webhook_healthcheck_enabled' => (bool) get_option('orabooks_speech_webhook_healthcheck_enabled', 0),
-            'speech_webhook_health_url' => (string) get_option('orabooks_speech_webhook_health_url', ''),
+            'speech_webhook_health_url' => $this->ai_setting_value('speech_webhook_health_url', ''),
         ]);
     }
 
@@ -1366,6 +1404,18 @@ class OraBooks_Ajax {
         $audit_retention_days = max(30, min(3650, intval($_POST['audit_retention_days'] ?? 365)));
         $jwt_expiry = max(60, min(86400, intval($_POST['jwt_expiry'] ?? 900)));
         $refresh_token_expiry = max(3600, min(2592000, intval($_POST['refresh_token_expiry'] ?? 604800)));
+        $openai_api_key = sanitize_text_field((string) ($_POST['openai_api_key'] ?? ''));
+        $openai_chat_model = sanitize_text_field((string) ($_POST['openai_chat_model'] ?? 'gpt-4o-mini'));
+        $openai_whisper_model = sanitize_text_field((string) ($_POST['openai_whisper_model'] ?? 'whisper-1'));
+        $azure_openai_endpoint = esc_url_raw(trim((string) ($_POST['azure_openai_endpoint'] ?? '')));
+        $azure_openai_key = sanitize_text_field((string) ($_POST['azure_openai_key'] ?? ''));
+        $azure_openai_deployment = sanitize_text_field((string) ($_POST['azure_openai_deployment'] ?? 'gpt-4o-mini'));
+        $azure_openai_whisper_deployment = sanitize_text_field((string) ($_POST['azure_openai_whisper_deployment'] ?? ''));
+        $azure_openai_api_version = sanitize_text_field((string) ($_POST['azure_openai_api_version'] ?? '2024-06-01'));
+        $azure_document_intelligence_endpoint = esc_url_raw(trim((string) ($_POST['azure_document_intelligence_endpoint'] ?? '')));
+        $azure_document_intelligence_key = sanitize_text_field((string) ($_POST['azure_document_intelligence_key'] ?? ''));
+        $azure_document_intelligence_model = sanitize_text_field((string) ($_POST['azure_document_intelligence_model'] ?? 'prebuilt-receipt'));
+        $azure_document_intelligence_api_version = sanitize_text_field((string) ($_POST['azure_document_intelligence_api_version'] ?? '2023-07-31'));
         $speech_webhook_url = esc_url_raw(trim((string) ($_POST['speech_webhook_url'] ?? '')));
         $speech_webhook_token = sanitize_text_field((string) ($_POST['speech_webhook_token'] ?? ''));
         $speech_webhook_model = sanitize_text_field((string) ($_POST['speech_webhook_model'] ?? 'webhook-v1'));
@@ -1377,11 +1427,23 @@ class OraBooks_Ajax {
         update_option('orabooks_audit_retention_days', $audit_retention_days);
         update_option('orabooks_jwt_expiry', $jwt_expiry);
         update_option('orabooks_refresh_token_expiry', $refresh_token_expiry);
-        update_option('orabooks_speech_webhook_url', $speech_webhook_url);
-        update_option('orabooks_speech_webhook_token', $speech_webhook_token);
-        update_option('orabooks_speech_webhook_model', $speech_webhook_model);
+        $this->save_ai_setting('openai_api_key', $openai_api_key, true);
+        $this->save_ai_setting('openai_chat_model', $openai_chat_model);
+        $this->save_ai_setting('openai_whisper_model', $openai_whisper_model);
+        $this->save_ai_setting('azure_openai_endpoint', $azure_openai_endpoint);
+        $this->save_ai_setting('azure_openai_key', $azure_openai_key, true);
+        $this->save_ai_setting('azure_openai_deployment', $azure_openai_deployment);
+        $this->save_ai_setting('azure_openai_whisper_deployment', $azure_openai_whisper_deployment);
+        $this->save_ai_setting('azure_openai_api_version', $azure_openai_api_version);
+        $this->save_ai_setting('azure_document_intelligence_endpoint', $azure_document_intelligence_endpoint);
+        $this->save_ai_setting('azure_document_intelligence_key', $azure_document_intelligence_key, true);
+        $this->save_ai_setting('azure_document_intelligence_model', $azure_document_intelligence_model);
+        $this->save_ai_setting('azure_document_intelligence_api_version', $azure_document_intelligence_api_version);
+        $this->save_ai_setting('speech_webhook_url', $speech_webhook_url);
+        $this->save_ai_setting('speech_webhook_token', $speech_webhook_token, true);
+        $this->save_ai_setting('speech_webhook_model', $speech_webhook_model);
+        $this->save_ai_setting('speech_webhook_health_url', $speech_webhook_health_url);
         update_option('orabooks_speech_webhook_healthcheck_enabled', $speech_webhook_healthcheck_enabled);
-        update_option('orabooks_speech_webhook_health_url', $speech_webhook_health_url);
 
         orabooks_json_success([
             'block_same_email_domain' => (bool) $block_same_email_domain,
@@ -1389,7 +1451,20 @@ class OraBooks_Ajax {
             'audit_retention_days' => $audit_retention_days,
             'jwt_expiry' => $jwt_expiry,
             'refresh_token_expiry' => $refresh_token_expiry,
+            'openai_api_key' => $openai_api_key,
+            'openai_chat_model' => $openai_chat_model,
+            'openai_whisper_model' => $openai_whisper_model,
+            'azure_openai_endpoint' => $azure_openai_endpoint,
+            'azure_openai_key' => $azure_openai_key,
+            'azure_openai_deployment' => $azure_openai_deployment,
+            'azure_openai_whisper_deployment' => $azure_openai_whisper_deployment,
+            'azure_openai_api_version' => $azure_openai_api_version,
+            'azure_document_intelligence_endpoint' => $azure_document_intelligence_endpoint,
+            'azure_document_intelligence_key' => $azure_document_intelligence_key,
+            'azure_document_intelligence_model' => $azure_document_intelligence_model,
+            'azure_document_intelligence_api_version' => $azure_document_intelligence_api_version,
             'speech_webhook_url' => $speech_webhook_url,
+            'speech_webhook_token' => $speech_webhook_token,
             'speech_webhook_model' => $speech_webhook_model,
             'speech_webhook_healthcheck_enabled' => (bool) $speech_webhook_healthcheck_enabled,
             'speech_webhook_health_url' => $speech_webhook_health_url,
