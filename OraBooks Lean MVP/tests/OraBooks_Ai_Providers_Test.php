@@ -48,6 +48,19 @@ class OraBooks_Ai_Providers_Test extends TestCase
     }
 
     #[Test]
+    public function test_provider_name_prefers_speech_webhook_for_speech_capability()
+    {
+        $GLOBALS['orabooks_test_secrets'] = [
+            'speech_webhook_url' => 'https://speech.example.internal/transcribe',
+            'speech_webhook_model' => 'faster-whisper-large-v3',
+        ];
+
+        $this->assertSame('speech-webhook', OraBooks_Ai_Providers::provider_name('speech'));
+        $this->assertSame('faster-whisper-large-v3', OraBooks_Ai_Providers::model_version('speech'));
+        $this->assertSame('mvp-stub', OraBooks_Ai_Providers::provider_name('classification'));
+    }
+
+    #[Test]
     public function test_run_ocr_falls_back_to_stub_without_file_bytes()
     {
         $ocr = OraBooks_Ai_Providers::run_ocr([
@@ -412,5 +425,58 @@ class OraBooks_Ai_Providers_Test extends TestCase
         $this->assertSame('expense', $result['extracted_data']['transaction_type']);
         $this->assertEquals(125.0, $result['extracted_data']['amount']);
         $this->assertContains($result['overall_risk_level'], ['low', 'medium', 'high']);
+    }
+
+    #[Test]
+    public function test_run_voice_nlu_uses_speech_webhook_transcript_and_heuristic_without_chat_provider()
+    {
+        $GLOBALS['orabooks_test_secrets'] = [
+            'speech_webhook_url' => 'https://speech.example.internal/transcribe',
+            'speech_webhook_token' => 'webhook-token',
+            'speech_webhook_model' => 'faster-whisper-large-v3',
+        ];
+
+        $GLOBALS['orabooks_test_wp_remote_request_callback'] = function ($url, $args) {
+            if ($url === 'https://speech.example.internal/transcribe') {
+                $this->assertSame('POST', $args['method']);
+                $this->assertSame('Bearer webhook-token', $args['headers']['Authorization'] ?? '');
+
+                return [
+                    'response' => ['code' => 200],
+                    'headers'  => [],
+                    'body'     => wp_json_encode([
+                        'text' => 'Create expense from Landmark Properties amount 1200 USD for rental expense',
+                    ]),
+                ];
+            }
+
+            if (stripos($url, '/chat/completions') !== false) {
+                return [
+                    'response' => ['code' => 503],
+                    'headers'  => [],
+                    'body'     => 'chat unavailable',
+                ];
+            }
+
+            return [
+                'response' => ['code' => 500],
+                'headers'  => [],
+                'body'     => '',
+            ];
+        };
+
+        $result = OraBooks_Ai_Providers::run_voice_nlu([
+            'filename'   => 'voice-command.webm',
+            'voice_id'   => 21,
+            'file_bytes' => 'binary-audio',
+            'mime_type'  => 'audio/webm',
+            'locale_preference' => 'en-US',
+        ]);
+
+        $this->assertSame('Create expense from Landmark Properties amount 1200 USD for rental expense', $result['transcript']);
+        $this->assertSame('expense', $result['extracted_data']['transaction_type']);
+        $this->assertEquals(1200.0, $result['extracted_data']['amount']);
+        $this->assertContains($result['overall_risk_level'], ['low', 'medium', 'high']);
+        $this->assertSame('speech-webhook', OraBooks_Ai_Providers::provider_name('speech'));
     }
 }
