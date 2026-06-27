@@ -361,13 +361,13 @@ final class OraBooks_AsyncQueue_Test extends TestCase
 
         $job = (object) ['id' => 222, 'job_type' => 'webhook_dispatch'];
         $result = OraBooks_AsyncQueue::handle_webhook_dispatch($job, [
-            'url' => 'https://example.com/webhook',
+            'url' => 'https://hooks.slack.com/services/T000/B000/TEST',
             'body' => ['event' => 'invoice_posted', 'org_id' => 9],
             'signing_secret' => 'test-signing-secret',
         ]);
 
         $this->assertTrue($result);
-        $this->assertSame('https://example.com/webhook', $captured['url']);
+        $this->assertSame('https://hooks.slack.com/services/T000/B000/TEST', $captured['url']);
         $this->assertArrayHasKey('X-OraBooks-Webhook-Timestamp', $captured['args']['headers']);
         $this->assertArrayHasKey('X-OraBooks-Webhook-Job-Id', $captured['args']['headers']);
         $this->assertArrayHasKey('X-OraBooks-Webhook-Signature', $captured['args']['headers']);
