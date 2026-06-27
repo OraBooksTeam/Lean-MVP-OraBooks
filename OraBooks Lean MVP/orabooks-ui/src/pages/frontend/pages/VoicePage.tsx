@@ -369,7 +369,7 @@ export default function VoicePage() {
                 />
                 <Button
                   variant="primary"
-                  className="cursor-pointer bg-accent text-white shadow-sm hover:bg-accent/90"
+                  className="cursor-pointer bg-emerald-600 font-bold text-white shadow-sm hover:bg-emerald-700"
                   onClick={() => void uploadSelectedFile()}
                   disabled={uploading}
                   title="Upload audio and transcribe"
