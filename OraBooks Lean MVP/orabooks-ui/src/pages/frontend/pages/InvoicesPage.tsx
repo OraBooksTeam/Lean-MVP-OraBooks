@@ -399,7 +399,7 @@ export default function InvoicesPage() {
 
     setSaving(true);
     setError('');
-    const payload: Record<string, unknown> = {
+    const res = await api.invoiceCreate({
       org_id: orgId,
       customer_id: parseInt(createForm.customer_id, 10),
       invoice_date: createForm.invoice_date,
@@ -410,18 +410,10 @@ export default function InvoicesPage() {
       currency: createForm.currency || 'USD',
       description: createForm.description,
       workflow_status: 'draft',
-      line_items: lines,
-    };
-
-    if (createForm.use_due_date && createForm.due_date) {
-      payload.due_date = createForm.due_date;
-    } else {
-      payload.due_days = parseInt(createForm.due_days, 10) || 30;
-    }
-
-    const res = await api.invoiceCreate({
-      ...payload,
       line_items: JSON.stringify(lines),
+      ...(createForm.use_due_date && createForm.due_date
+        ? { due_date: createForm.due_date }
+        : { due_days: parseInt(createForm.due_days, 10) || 30 }),
     });
 
     if (res.error) {
@@ -885,7 +877,7 @@ export default function InvoicesPage() {
                   <td className="px-5 py-3 text-right font-bold text-ink">{money(invoice.total_amount, invoice.currency)}</td>
                   <td className="px-5 py-3">
                     <div className="flex flex-wrap gap-1">
-                      <Button size="sm" variant="secondary" onClick={() => setSelectedInvoice(invoice)}>
+                      <Button size="sm" variant="secondary" onClick={() => void openInvoiceDetail(invoice)}>
                         View
                       </Button>
                       {canSend(invoice) && (
