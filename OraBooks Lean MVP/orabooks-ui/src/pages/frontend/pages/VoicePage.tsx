@@ -304,11 +304,24 @@ export default function VoicePage() {
               <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">No microphone? Upload audio instead</p>
               <p className="mt-1 text-sm text-slate-600">Supported: WEBM, MP3, WAV, OGG, M4A (max {maxMb}MB).</p>
               <div className="mt-3 flex flex-wrap items-center gap-3">
+                <label
+                  htmlFor="voice-audio-file"
+                  className={`inline-flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm font-semibold transition ${
+                    selectedFile
+                      ? 'border-emerald-300 bg-emerald-50 text-emerald-700'
+                      : 'border-primary/40 bg-primary/10 text-primary hover:bg-primary/20'
+                  }`}
+                  title="Choose an audio file for transcription"
+                >
+                  <Upload className="h-4 w-4" />
+                  {selectedFile ? 'Change Audio File' : 'Choose Audio File'}
+                </label>
                 <input
+                  id="voice-audio-file"
                   type="file"
                   accept="audio/*,.webm,.mp3,.wav,.ogg,.m4a"
                   onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
-                  className="max-w-full text-sm"
+                  className="sr-only"
                   title="Upload an audio file for transcription"
                 />
                 <Button
@@ -320,9 +333,9 @@ export default function VoicePage() {
                   <Upload className="h-4 w-4" />
                   Upload Audio
                 </Button>
-                {selectedFile && <span className="text-xs text-slate-600">{selectedFile.name}</span>}
+                {selectedFile && <span className="text-xs font-medium text-slate-700">{selectedFile.name}</span>}
                 {!selectedFile && !uploading && (
-                  <span className="text-xs text-slate-500">Choose an audio file first, then click Upload Audio.</span>
+                  <span className="text-xs font-medium text-primary">Step 1: Choose Audio File, তারপর Upload Audio চাপো.</span>
                 )}
               </div>
             </div>
