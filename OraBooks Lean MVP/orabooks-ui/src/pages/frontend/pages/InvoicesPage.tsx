@@ -7,7 +7,17 @@ import Input from '@/components/Input';
 import { api } from '../api';
 import ClientShell from '../components/ClientShell';
 import ResourceAttachmentsPanel from '../components/ResourceAttachmentsPanel';
-import { FileText, Info, Paperclip, Percent, Plus, RefreshCw, Sparkles, Wallet } from 'lucide-react';
+import { Download, FileText, Info, Paperclip, Percent, Plus, RefreshCw, Sparkles, Trash2, Wallet } from 'lucide-react';
+
+type InvoiceLineItem = {
+  id?: number;
+  line_number?: number;
+  description?: string;
+  quantity?: string | number;
+  unit_price?: string | number;
+  line_total?: string | number;
+  sku_code?: string | null;
+};
 
 type Invoice = {
   id: number;
@@ -15,10 +25,13 @@ type Invoice = {
   invoice_number?: string;
   invoice_date?: string;
   due_date?: string;
+  po_reference?: string | null;
   workflow_status?: string;
   payment_status?: string;
   lock_status?: string;
   dunning_stage?: string;
+  subtotal_amount?: string | number;
+  discount_amount?: string | number;
   total_amount?: string | number;
   paid_amount?: string | number;
   tax_amount?: string | number;
@@ -29,6 +42,11 @@ type Invoice = {
   tax_override_by?: number | null;
   tax_override_at?: string | null;
   currency?: string;
+  description?: string | null;
+  line_items?: InvoiceLineItem[];
+  seller_snapshot?: Record<string, string>;
+  buyer_snapshot?: Record<string, string>;
+  rendered_copy?: { rendered_at?: string } | null;
   classification?: {
     status?: string;
     suggested_account_code?: string | null;
@@ -41,6 +59,19 @@ type Invoice = {
 
 type Customer = { id: number; display_name?: string | null; email?: string };
 type TaxConfig = { jurisdiction: string; tax_type?: string; override_reasons?: string[] };
+type LineItemForm = {
+  description: string;
+  quantity: string;
+  unit_price: string;
+  sku_code: string;
+};
+
+const emptyLineItem = (): LineItemForm => ({
+  description: '',
+  quantity: '1',
+  unit_price: '',
+  sku_code: '',
+});
 
 const DEFAULT_REASONS = [
   'WRONG_AI_CLASSIFICATION',
@@ -82,8 +113,11 @@ export default function InvoicesPage() {
     jurisdiction: 'US',
     currency: 'USD',
     description: '',
+    po_reference: '',
+    discount_amount: '0',
   });
-  const [createPreview, setCreatePreview] = useState<{ tax_rate: number; tax_amount: number; total_amount: number; tax_type?: string } | null>(null);
+  const [lineItems, setLineItems] = useState<LineItemForm[]>([emptyLineItem()]);
+  const [createPreview, setCreatePreview] = useState<{ tax_rate: number; tax_amount: number; total_amount: number; tax_type?: string; subtotal_amount?: number } | null>(null);
 
   const [paymentInvoice, setPaymentInvoice] = useState<Invoice | null>(null);
   const [paymentForm, setPaymentForm] = useState({
