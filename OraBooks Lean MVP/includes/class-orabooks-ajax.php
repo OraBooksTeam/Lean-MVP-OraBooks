@@ -41,19 +41,6 @@ class OraBooks_Ajax {
             add_action('wp_ajax_orabooks_ai_review_dashboard', [self::$instance, 'ajax_ai_review_dashboard']);
             add_action('wp_ajax_orabooks_expenses_dashboard', [self::$instance, 'ajax_expenses_dashboard']);
             add_action('wp_ajax_orabooks_voice_dashboard', [self::$instance, 'ajax_voice_dashboard']);
-            add_action('wp_ajax_nopriv_orabooks_frontend_context', [self::$instance, 'ajax_frontend_context']);
-            add_action('wp_ajax_nopriv_orabooks_customer_dashboard', [self::$instance, 'ajax_customer_dashboard']);
-            add_action('wp_ajax_nopriv_orabooks_vendor_dashboard', [self::$instance, 'ajax_vendor_dashboard']);
-            add_action('wp_ajax_nopriv_orabooks_inventory_dashboard', [self::$instance, 'ajax_inventory_dashboard']);
-            add_action('wp_ajax_nopriv_orabooks_bank_dashboard', [self::$instance, 'ajax_bank_dashboard']);
-            add_action('wp_ajax_nopriv_orabooks_reports_dashboard', [self::$instance, 'ajax_reports_dashboard']);
-            add_action('wp_ajax_nopriv_orabooks_csv_imports_dashboard', [self::$instance, 'ajax_csv_imports_dashboard']);
-            add_action('wp_ajax_nopriv_orabooks_team_dashboard', [self::$instance, 'ajax_team_dashboard']);
-            add_action('wp_ajax_nopriv_orabooks_attachments_dashboard', [self::$instance, 'ajax_attachments_dashboard']);
-            add_action('wp_ajax_nopriv_orabooks_approval_dashboard', [self::$instance, 'ajax_approval_dashboard']);
-            add_action('wp_ajax_nopriv_orabooks_ai_review_dashboard', [self::$instance, 'ajax_ai_review_dashboard']);
-            add_action('wp_ajax_nopriv_orabooks_expenses_dashboard', [self::$instance, 'ajax_expenses_dashboard']);
-            add_action('wp_ajax_nopriv_orabooks_voice_dashboard', [self::$instance, 'ajax_voice_dashboard']);
             
             // Register settings
             add_action('admin_init', [self::$instance, 'register_settings']);
