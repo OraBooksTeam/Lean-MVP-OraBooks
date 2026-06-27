@@ -676,6 +676,10 @@ export const api = {
     audit_retention_days: number;
     jwt_expiry: number;
     refresh_token_expiry: number;
+    speech_webhook_url: string;
+    speech_webhook_token: string;
+    speech_webhook_model: string;
+    speech_webhook_health_url: string;
   }) =>
     api.post('orabooks_platform_settings_save', {
       block_same_email_domain: data.block_same_email_domain ? 1 : 0,
@@ -683,6 +687,10 @@ export const api = {
       audit_retention_days: data.audit_retention_days,
       jwt_expiry: data.jwt_expiry,
       refresh_token_expiry: data.refresh_token_expiry,
+      speech_webhook_url: data.speech_webhook_url,
+      speech_webhook_token: data.speech_webhook_token,
+      speech_webhook_model: data.speech_webhook_model,
+      speech_webhook_health_url: data.speech_webhook_health_url,
     }),
   deployChecks: () => api.get('orabooks_deploy_checks'),
   deployRepair: () => api.post('orabooks_deploy_repair', {}),
