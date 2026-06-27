@@ -498,6 +498,48 @@ class OraBooks_Customers_Test extends TestCase
     }
 
     #[Test]
+    public function test_create_invoice_generates_idempotency_key_when_missing()
+    {
+        global $wpdb;
+
+        $wpdb->test_get_var_callback = function ($query) {
+            if (stripos($query, 'SELECT id FROM') !== false) {
+                return 0;
+            }
+            return 0;
+        };
+
+        $callCount = 0;
+        $wpdb->test_get_row_callback = function () use (&$callCount) {
+            $callCount++;
+            if ($callCount === 1) {
+                return (object) ['id' => 1];
+            }
+            return $this->mockInvoice(['id' => 201, 'invoice_number' => 'INV-202606-0099']);
+        };
+        $wpdb->test_get_results_callback = function () {
+            return [];
+        };
+
+        $inserted = null;
+        $wpdb->test_insert_callback = function ($table, $data) use (&$inserted) {
+            $inserted = $data;
+        };
+        $GLOBALS['orabooks_test_use_insert_id'] = 201;
+
+        $result = OraBooks_Customers::create_invoice(5, [
+            'customer_id' => 1,
+            'subtotal_amount' => 100,
+            'total_amount' => 100,
+            'idempotency_key' => '',
+        ]);
+
+        $this->assertIsObject($result);
+        $this->assertIsArray($inserted);
+        $this->assertNotEmpty($inserted['idempotency_key']);
+    }
+
+    #[Test]
     public function test_create_invoice_auto_generates_number()
     {
         global $wpdb;

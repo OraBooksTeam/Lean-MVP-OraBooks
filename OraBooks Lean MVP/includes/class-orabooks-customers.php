@@ -1265,6 +1265,9 @@ class OraBooks_Customers {
         ];
 
         $table_columns = self::get_table_column_names($table);
+        if (empty($table_columns)) {
+            $table_columns = array_keys($insert_row);
+        }
         $filtered_row = [];
         $filtered_formats = [];
         foreach ($insert_row as $column => $value) {

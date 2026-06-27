@@ -410,7 +410,7 @@ export default function InvoicesPage() {
       currency: createForm.currency || 'USD',
       description: createForm.description,
       workflow_status: 'draft',
-      line_items: JSON.stringify(lines),
+      line_items: lines,
       ...(createForm.use_due_date && createForm.due_date
         ? { due_date: createForm.due_date }
         : { due_days: parseInt(createForm.due_days, 10) || 30 }),
