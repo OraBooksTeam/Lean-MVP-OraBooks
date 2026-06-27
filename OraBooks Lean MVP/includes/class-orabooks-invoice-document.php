@@ -70,11 +70,11 @@ class OraBooks_Invoice_Document {
         if ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table_invoices)) === $table_invoices) {
             $fields = self::get_table_column_names($table_invoices);
             $additions = [
-                'subtotal_amount' => "ALTER TABLE {$table_invoices} ADD COLUMN subtotal_amount DECIMAL(20,2) NOT NULL DEFAULT 0 AFTER description",
-                'discount_amount' => "ALTER TABLE {$table_invoices} ADD COLUMN discount_amount DECIMAL(20,2) NOT NULL DEFAULT 0 AFTER subtotal_amount",
-                'po_reference' => "ALTER TABLE {$table_invoices} ADD COLUMN po_reference VARCHAR(100) NULL AFTER discount_amount",
-                'seller_snapshot' => "ALTER TABLE {$table_invoices} ADD COLUMN seller_snapshot JSON NULL AFTER po_reference",
-                'buyer_snapshot' => "ALTER TABLE {$table_invoices} ADD COLUMN buyer_snapshot JSON NULL AFTER seller_snapshot",
+                'subtotal_amount' => "ALTER TABLE {$table_invoices} ADD COLUMN subtotal_amount DECIMAL(20,2) NOT NULL DEFAULT 0",
+                'discount_amount' => "ALTER TABLE {$table_invoices} ADD COLUMN discount_amount DECIMAL(20,2) NOT NULL DEFAULT 0",
+                'po_reference' => "ALTER TABLE {$table_invoices} ADD COLUMN po_reference VARCHAR(100) NULL",
+                'seller_snapshot' => "ALTER TABLE {$table_invoices} ADD COLUMN seller_snapshot LONGTEXT NULL",
+                'buyer_snapshot' => "ALTER TABLE {$table_invoices} ADD COLUMN buyer_snapshot LONGTEXT NULL",
             ];
             foreach ($additions as $column => $sql) {
                 if (!in_array($column, $fields, true)) {
@@ -119,6 +119,14 @@ class OraBooks_Invoice_Document {
     }
 
     public static function normalize_line_items($lines) {
+        if (is_string($lines)) {
+            $decoded = json_decode(wp_unslash($lines), true);
+            if (!is_array($decoded)) {
+                $decoded = json_decode(stripslashes($lines), true);
+            }
+            $lines = is_array($decoded) ? $decoded : [];
+        }
+
         if (!is_array($lines)) {
             return [];
         }

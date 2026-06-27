@@ -30,9 +30,12 @@ type RequestOptions = {
 };
 
 function extractError(data: any, fallback: string) {
-  if (typeof data === 'string') return data;
+  if (typeof data === 'string' && data.trim()) return data;
   if (data?.message) return String(data.message);
   if (data?.error && typeof data.error === 'string') return String(data.error);
+  if (typeof data?.data === 'string' && data.data.trim()) return data.data;
+  if (data?.data?.message) return String(data.data.message);
+  if (data?.code && data?.message) return String(data.message);
   return fallback;
 }
 
@@ -112,6 +115,10 @@ async function parseResponse<T = any>(
       clearPersistedAuthTokens();
     }
     if (hasParsedJson) {
+      const normalized = normalizeResponse<T>(parsed);
+      if ('error' in normalized && normalized.error) {
+        return normalized;
+      }
       return { error: extractError(parsed, `OraBooks request failed with HTTP ${res.status}.`) };
     }
     const trimmed = text.trim();

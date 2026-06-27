@@ -810,7 +810,7 @@ class OraBooks_Ai_Providers {
         }
 
         $content = $payload['choices'][0]['message']['content'] ?? '';
-        $data = json_decode($content, true);
+        $data = self::decode_json_content((string) $content);
         if (!is_array($data)) {
             return new WP_Error('nlu_parse_failed', 'Could not parse voice NLU response.');
         }
