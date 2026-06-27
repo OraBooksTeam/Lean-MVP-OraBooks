@@ -741,9 +741,9 @@ class OraBooks_Ai_Providers {
         ]];
     }
 
-    private static function transcribe_audio($file_bytes, $filename, $mime_type) {
+    private static function transcribe_audio($file_bytes, $filename, $mime_type, $language_hint = '') {
         $boundary = 'orabooks-' . wp_generate_password(16, false);
-        $body = self::multipart_body($boundary, [
+        $parts = [
             [
                 'name'     => 'file',
                 'filename' => $filename,
@@ -754,7 +754,16 @@ class OraBooks_Ai_Providers {
                 'name'     => 'model',
                 'contents' => self::config('openai_whisper_model', 'whisper-1'),
             ],
-        ]);
+        ];
+
+        if ($language_hint !== '') {
+            $parts[] = [
+                'name'     => 'language',
+                'contents' => $language_hint,
+            ];
+        }
+
+        $body = self::multipart_body($boundary, $parts);
 
         if (self::is_azure_openai_configured()) {
             $endpoint = rtrim(self::config('azure_openai_endpoint'), '/');

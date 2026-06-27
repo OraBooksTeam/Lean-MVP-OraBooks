@@ -1208,36 +1208,79 @@ class OraBooks_Customers {
         $invoice_date = $data['invoice_date'] ?? current_time('Y-m-d');
         $due_days = $data['due_days'] ?? 30;
 
-        $wpdb->insert(
-            $table,
-            [
-                'org_id'          => $org_id,
-                'customer_id'     => (int) $data['customer_id'],
-                'invoice_number'  => $data['invoice_number'],
-                'invoice_date'    => $invoice_date,
-                'transaction_date' => $data['transaction_date'] ?? $invoice_date,
-                'due_date'        => $data['due_date'] ?? date('Y-m-d', strtotime($invoice_date . " +{$due_days} days")),
-                'description'     => $data['description'] ?? '',
-                'subtotal_amount' => round(floatval($data['subtotal_amount'] ?? 0), 2),
-                'discount_amount' => round(floatval($data['discount_amount'] ?? 0), 2),
-                'po_reference'    => $data['po_reference'] ?? null,
-                'total_amount'    => $data['total_amount'],
-                'tax_amount'      => $data['tax_amount'] ?? 0,
-                'tax_rate'        => $data['tax_rate'] ?? 0,
-                'tax_jurisdiction'=> !empty($data['tax_jurisdiction']) ? strtoupper(sanitize_text_field($data['tax_jurisdiction'])) : null,
-                'tax_type'        => !empty($data['tax_type']) ? sanitize_text_field($data['tax_type']) : null,
-                'tax_override_reason' => !empty($data['tax_override_reason']) ? sanitize_text_field($data['tax_override_reason']) : null,
-                'tax_override_by' => !empty($data['tax_override_reason']) ? orabooks_get_current_user_id() : null,
-                'tax_override_at' => !empty($data['tax_override_reason']) ? current_time('mysql') : null,
-                'currency'        => $data['currency'] ?? 'USD',
-                'payment_status'  => 'unpaid',
-                'workflow_status' => $data['workflow_status'] ?? 'draft',
-                'idempotency_key' => $data['idempotency_key'] ?? orabooks_uuid(),
-            ],
-            ['%d', '%d', '%s', '%s', '%s', '%s', '%s', '%f', '%f', '%s', '%f', '%f', '%f', '%s', '%s', '%s', '%d', '%s', '%s', '%s', '%s', '%s']
-        );
+        $insert_row = [
+            'org_id'          => $org_id,
+            'customer_id'     => (int) $data['customer_id'],
+            'invoice_number'  => $data['invoice_number'],
+            'invoice_date'    => $invoice_date,
+            'transaction_date' => $data['transaction_date'] ?? $invoice_date,
+            'due_date'        => $data['due_date'] ?? date('Y-m-d', strtotime($invoice_date . " +{$due_days} days")),
+            'description'     => $data['description'] ?? '',
+            'subtotal_amount' => round(floatval($data['subtotal_amount'] ?? 0), 2),
+            'discount_amount' => round(floatval($data['discount_amount'] ?? 0), 2),
+            'po_reference'    => $data['po_reference'] ?? null,
+            'total_amount'    => $data['total_amount'],
+            'tax_amount'      => $data['tax_amount'] ?? 0,
+            'tax_rate'        => $data['tax_rate'] ?? 0,
+            'tax_jurisdiction'=> !empty($data['tax_jurisdiction']) ? strtoupper(sanitize_text_field($data['tax_jurisdiction'])) : null,
+            'tax_type'        => !empty($data['tax_type']) ? sanitize_text_field($data['tax_type']) : null,
+            'tax_override_reason' => !empty($data['tax_override_reason']) ? sanitize_text_field($data['tax_override_reason']) : null,
+            'tax_override_by' => !empty($data['tax_override_reason']) ? orabooks_get_current_user_id() : null,
+            'tax_override_at' => !empty($data['tax_override_reason']) ? current_time('mysql') : null,
+            'currency'        => $data['currency'] ?? 'USD',
+            'payment_status'  => 'unpaid',
+            'workflow_status' => $data['workflow_status'] ?? 'draft',
+            'idempotency_key' => $data['idempotency_key'] ?? orabooks_uuid(),
+        ];
+        $insert_formats = [
+            'org_id' => '%d',
+            'customer_id' => '%d',
+            'invoice_number' => '%s',
+            'invoice_date' => '%s',
+            'transaction_date' => '%s',
+            'due_date' => '%s',
+            'description' => '%s',
+            'subtotal_amount' => '%f',
+            'discount_amount' => '%f',
+            'po_reference' => '%s',
+            'total_amount' => '%f',
+            'tax_amount' => '%f',
+            'tax_rate' => '%f',
+            'tax_jurisdiction' => '%s',
+            'tax_type' => '%s',
+            'tax_override_reason' => '%s',
+            'tax_override_by' => '%d',
+            'tax_override_at' => '%s',
+            'currency' => '%s',
+            'payment_status' => '%s',
+            'workflow_status' => '%s',
+            'idempotency_key' => '%s',
+        ];
 
-        $invoice_id = $wpdb->insert_id;
+        $table_columns = self::get_table_column_names($table);
+        $filtered_row = [];
+        $filtered_formats = [];
+        foreach ($insert_row as $column => $value) {
+            if (!in_array($column, $table_columns, true)) {
+                continue;
+            }
+            $filtered_row[$column] = $value;
+            $filtered_formats[] = $insert_formats[$column] ?? '%s';
+        }
+
+        $inserted = $wpdb->insert($table, $filtered_row, $filtered_formats);
+        if ($inserted === false) {
+            $db_error = trim((string) $wpdb->last_error);
+            return new WP_Error(
+                'db_insert_failed',
+                $db_error !== '' ? $db_error : 'Failed to create invoice record'
+            );
+        }
+
+        $invoice_id = (int) $wpdb->insert_id;
+        if ($invoice_id <= 0) {
+            return new WP_Error('db_insert_failed', 'Failed to create invoice record');
+        }
 
         if (!empty($line_items) && class_exists('OraBooks_Invoice_Document')) {
             OraBooks_Invoice_Document::save_line_items($org_id, $invoice_id, $line_items);
@@ -1280,7 +1323,12 @@ class OraBooks_Customers {
             OraBooks_Classification::request('invoice', (int) $invoice_id, (int) $org_id);
         }
 
-        return self::get_invoice($invoice_id);
+        $invoice = self::get_invoice($invoice_id);
+        if (!$invoice) {
+            return new WP_Error('not_found', 'Invoice was created but could not be loaded');
+        }
+
+        return $invoice;
     }
 
     public static function override_invoice_tax($org_id, $invoice_id, $new_tax_rate, $reason_code, $user_id, $jurisdiction = 'US') {
@@ -2727,7 +2775,11 @@ class OraBooks_Customers {
 
         $line_items = [];
         if (!empty($_POST['line_items'])) {
-            $decoded = json_decode(stripslashes((string) $_POST['line_items']), true);
+            $raw_line_items = wp_unslash((string) $_POST['line_items']);
+            $decoded = json_decode($raw_line_items, true);
+            if (!is_array($decoded)) {
+                $decoded = json_decode(stripslashes($raw_line_items), true);
+            }
             if (is_array($decoded)) {
                 $line_items = $decoded;
             }
