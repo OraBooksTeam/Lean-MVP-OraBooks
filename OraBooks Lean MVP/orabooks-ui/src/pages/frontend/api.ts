@@ -782,6 +782,12 @@ export const api = {
     api.post('orabooks_ar_config_set', { org_id: orgId, ...data }),
   customerStatementsList: (orgId: number, customerId: number) =>
     api.get('orabooks_customer_statements_list', { org_id: orgId, customer_id: customerId }),
+  invoiceRenderedGet: (orgId: number, invoiceId: number) =>
+    api.get('orabooks_invoice_rendered_get', { org_id: orgId, invoice_id: invoiceId }),
+  invoiceDocumentConfigGet: (orgId: number) =>
+    api.get('orabooks_invoice_document_config_get', { org_id: orgId }),
+  invoiceDocumentConfigSet: (orgId: number, data: Record<string, unknown>) =>
+    api.post('orabooks_invoice_document_config_set', { org_id: orgId, ...data }),
 
   // CoA / Audit
   coaGet: (orgId: number) =>
