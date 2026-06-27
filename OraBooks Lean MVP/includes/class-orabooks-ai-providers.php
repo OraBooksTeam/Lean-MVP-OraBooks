@@ -186,6 +186,14 @@ class OraBooks_Ai_Providers {
             }
         }
 
+        $option_key = 'orabooks_' . $key;
+        if (function_exists('get_option')) {
+            $option = get_option($option_key, null);
+            if ($option !== null && $option !== '') {
+                return $option;
+            }
+        }
+
         return $default;
     }
 

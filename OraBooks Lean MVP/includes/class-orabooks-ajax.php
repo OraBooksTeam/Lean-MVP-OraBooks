@@ -54,6 +54,11 @@ class OraBooks_Ajax {
         register_setting('orabooks_settings', 'orabooks_audit_retention_days');
         register_setting('orabooks_settings', 'orabooks_jwt_expiry');
         register_setting('orabooks_settings', 'orabooks_refresh_token_expiry');
+        register_setting('orabooks_settings', 'orabooks_speech_webhook_url');
+        register_setting('orabooks_settings', 'orabooks_speech_webhook_token');
+        register_setting('orabooks_settings', 'orabooks_speech_webhook_model');
+        register_setting('orabooks_settings', 'orabooks_speech_webhook_healthcheck_enabled');
+        register_setting('orabooks_settings', 'orabooks_speech_webhook_health_url');
     }
 
     private function get_current_orabooks_context() {
@@ -1342,6 +1347,11 @@ class OraBooks_Ajax {
             'audit_retention_days' => (int) get_option('orabooks_audit_retention_days', 365),
             'jwt_expiry' => (int) get_option('orabooks_jwt_expiry', 900),
             'refresh_token_expiry' => (int) get_option('orabooks_refresh_token_expiry', 604800),
+            'speech_webhook_url' => (string) get_option('orabooks_speech_webhook_url', ''),
+            'speech_webhook_token' => (string) get_option('orabooks_speech_webhook_token', ''),
+            'speech_webhook_model' => (string) get_option('orabooks_speech_webhook_model', 'webhook-v1'),
+            'speech_webhook_healthcheck_enabled' => (bool) get_option('orabooks_speech_webhook_healthcheck_enabled', 0),
+            'speech_webhook_health_url' => (string) get_option('orabooks_speech_webhook_health_url', ''),
         ]);
     }
 
@@ -1355,12 +1365,22 @@ class OraBooks_Ajax {
         $audit_retention_days = max(30, min(3650, intval($_POST['audit_retention_days'] ?? 365)));
         $jwt_expiry = max(60, min(86400, intval($_POST['jwt_expiry'] ?? 900)));
         $refresh_token_expiry = max(3600, min(2592000, intval($_POST['refresh_token_expiry'] ?? 604800)));
+        $speech_webhook_url = esc_url_raw(trim((string) ($_POST['speech_webhook_url'] ?? '')));
+        $speech_webhook_token = sanitize_text_field((string) ($_POST['speech_webhook_token'] ?? ''));
+        $speech_webhook_model = sanitize_text_field((string) ($_POST['speech_webhook_model'] ?? 'webhook-v1'));
+        $speech_webhook_healthcheck_enabled = !empty($_POST['speech_webhook_healthcheck_enabled']) ? 1 : 0;
+        $speech_webhook_health_url = esc_url_raw(trim((string) ($_POST['speech_webhook_health_url'] ?? '')));
 
         update_option('orabooks_block_same_email_domain', $block_same_email_domain);
         update_option('orabooks_partner_commission_for_staff_viewer', $partner_commission_for_staff_viewer);
         update_option('orabooks_audit_retention_days', $audit_retention_days);
         update_option('orabooks_jwt_expiry', $jwt_expiry);
         update_option('orabooks_refresh_token_expiry', $refresh_token_expiry);
+        update_option('orabooks_speech_webhook_url', $speech_webhook_url);
+        update_option('orabooks_speech_webhook_token', $speech_webhook_token);
+        update_option('orabooks_speech_webhook_model', $speech_webhook_model);
+        update_option('orabooks_speech_webhook_healthcheck_enabled', $speech_webhook_healthcheck_enabled);
+        update_option('orabooks_speech_webhook_health_url', $speech_webhook_health_url);
 
         orabooks_json_success([
             'block_same_email_domain' => (bool) $block_same_email_domain,
@@ -1368,6 +1388,10 @@ class OraBooks_Ajax {
             'audit_retention_days' => $audit_retention_days,
             'jwt_expiry' => $jwt_expiry,
             'refresh_token_expiry' => $refresh_token_expiry,
+            'speech_webhook_url' => $speech_webhook_url,
+            'speech_webhook_model' => $speech_webhook_model,
+            'speech_webhook_healthcheck_enabled' => (bool) $speech_webhook_healthcheck_enabled,
+            'speech_webhook_health_url' => $speech_webhook_health_url,
         ], 'Settings saved');
     }
 
