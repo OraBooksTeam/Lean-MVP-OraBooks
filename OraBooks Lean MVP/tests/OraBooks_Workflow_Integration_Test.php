@@ -139,4 +139,45 @@ class OraBooks_Workflow_Integration_Test extends TestCase
 
         $this->assertTrue($result);
     }
+
+    #[Test]
+    public function test_journal_reject_requires_reason()
+    {
+        $GLOBALS['orabooks_test_has_permission'] = true;
+
+        $record = (object) [
+            'org_id' => 5,
+            'created_by' => 1,
+            'total_amount' => 100,
+        ];
+
+        $result = OraBooks_Workflow_Integration::apply_preconditions(true, 'journal', 'reject', $record, [
+            'user_id' => 2,
+            'org_id' => 5,
+            'reason' => '',
+        ]);
+
+        $this->assertInstanceOf(WP_Error::class, $result);
+        $this->assertEquals('reason_required', $result->get_error_code());
+    }
+
+    #[Test]
+    public function test_journal_reverse_requires_reason()
+    {
+        $GLOBALS['orabooks_test_has_permission'] = true;
+
+        $record = (object) [
+            'org_id' => 5,
+            'created_by' => 1,
+            'total_amount' => 100,
+        ];
+
+        $result = OraBooks_Workflow_Integration::apply_preconditions(true, 'journal', 'reverse', $record, [
+            'user_id' => 2,
+            'org_id' => 5,
+            'reason' => 'posted to wrong period',
+        ]);
+
+        $this->assertTrue($result);
+    }
 }
