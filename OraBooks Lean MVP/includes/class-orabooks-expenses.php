@@ -63,9 +63,7 @@ class OraBooks_Expenses {
             add_action('wp_ajax_orabooks_expense_post', [self::$instance, 'ajax_post']);
             add_action('wp_ajax_nopriv_orabooks_expense_post', [self::$instance, 'ajax_post']);
             add_action('wp_ajax_orabooks_expense_override_tax', [self::$instance, 'ajax_override_tax']);
-            add_action('wp_ajax_nopriv_orabooks_expense_override_tax', [self::$instance, 'ajax_override_tax']);
             add_action('wp_ajax_orabooks_expense_clear_tax_override', [self::$instance, 'ajax_clear_tax_override']);
-            add_action('wp_ajax_nopriv_orabooks_expense_clear_tax_override', [self::$instance, 'ajax_clear_tax_override']);
             add_action('wp_ajax_orabooks_expenses_list', [self::$instance, 'ajax_list']);
             add_action('wp_ajax_nopriv_orabooks_expenses_list', [self::$instance, 'ajax_list']);
         }
