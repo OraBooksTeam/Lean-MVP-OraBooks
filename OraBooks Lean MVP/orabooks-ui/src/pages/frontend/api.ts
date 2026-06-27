@@ -692,6 +692,8 @@ export const api = {
       speech_webhook_model: data.speech_webhook_model,
       speech_webhook_health_url: data.speech_webhook_health_url,
     }),
+  speechWebhookCheck: () =>
+    api.post('orabooks_speech_webhook_check', {}),
   deployChecks: () => api.get('orabooks_deploy_checks'),
   deployRepair: () => api.post('orabooks_deploy_repair', {}),
   customerStats: (orgId = 0) =>

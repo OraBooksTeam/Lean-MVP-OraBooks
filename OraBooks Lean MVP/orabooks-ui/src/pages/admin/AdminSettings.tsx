@@ -53,6 +53,15 @@ export default function AdminSettings() {
   const [deployError, setDeployError] = useState('');
   const [deployRepairing, setDeployRepairing] = useState(false);
   const [deployRepairMessage, setDeployRepairMessage] = useState('');
+  const [speechCheckLoading, setSpeechCheckLoading] = useState(false);
+  const [speechCheckError, setSpeechCheckError] = useState('');
+  const [speechCheckResult, setSpeechCheckResult] = useState<{
+    speech_provider: string;
+    speech_model_version: string;
+    speech_webhook_configured: boolean;
+    speech_webhook_health: { status?: string; message?: string; version?: string };
+    checked_at?: string;
+  } | null>(null);
 
   useEffect(() => {
     setLoading(true);
@@ -139,6 +148,20 @@ export default function AdminSettings() {
         );
       }
       setDeployRepairing(false);
+    });
+  };
+
+  const runSpeechWebhookCheck = () => {
+    setSpeechCheckLoading(true);
+    setSpeechCheckError('');
+    api.speechWebhookCheck().then((res) => {
+      if (res.error) {
+        setSpeechCheckError(typeof res.error === 'string' ? res.error : 'Speech webhook check failed.');
+        setSpeechCheckResult(null);
+      } else {
+        setSpeechCheckResult((res as { data?: any }).data || null);
+      }
+      setSpeechCheckLoading(false);
     });
   };
 
@@ -266,6 +289,15 @@ export default function AdminSettings() {
                     </div>
                   </div>
                   <div className="flex flex-wrap items-center gap-2 text-xs font-semibold">
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      onClick={runSpeechWebhookCheck}
+                      disabled={speechCheckLoading || saving}
+                    >
+                      {speechCheckLoading ? 'Checking…' : 'Test speech webhook'}
+                    </Button>
                     <span
                       className={`rounded-full border px-2 py-1 ${
                         speechWebhookConfigured
@@ -352,6 +384,30 @@ export default function AdminSettings() {
                   <p>2. Open Voice page.</p>
                   <p>3. Check Speech Diagnostics card for provider, model, and health.</p>
                 </div>
+
+                {speechCheckError && (
+                  <div className="mx-5 mb-5 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-xs text-rose-700">
+                    {speechCheckError}
+                  </div>
+                )}
+
+                {speechCheckResult && (
+                  <div className="mx-5 mb-5 rounded-xl border border-slate-200 bg-white px-4 py-3 text-xs text-slate-700">
+                    <p className="font-semibold text-slate-800">Last speech webhook check</p>
+                    <p>Provider: {speechCheckResult.speech_provider || 'mvp-stub'}</p>
+                    <p>Model: {speechCheckResult.speech_model_version || 'mvp-stub-1.0'}</p>
+                    <p>
+                      Health: {speechCheckResult.speech_webhook_health?.status || 'unknown'}
+                      {speechCheckResult.speech_webhook_health?.version
+                        ? ` (${speechCheckResult.speech_webhook_health.version})`
+                        : ''}
+                    </p>
+                    {speechCheckResult.speech_webhook_health?.message && (
+                      <p>Error: {speechCheckResult.speech_webhook_health.message}</p>
+                    )}
+                    {speechCheckResult.checked_at && <p>Checked at: {speechCheckResult.checked_at}</p>}
+                  </div>
+                )}
               </div>
             </div>
           </div>

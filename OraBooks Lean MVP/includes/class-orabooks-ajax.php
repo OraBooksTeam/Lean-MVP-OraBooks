@@ -26,6 +26,7 @@ class OraBooks_Ajax {
             add_action('wp_ajax_orabooks_dashboard_stats', [self::$instance, 'ajax_dashboard_stats']);
             add_action('wp_ajax_orabooks_platform_settings_get', [self::$instance, 'ajax_platform_settings_get']);
             add_action('wp_ajax_orabooks_platform_settings_save', [self::$instance, 'ajax_platform_settings_save']);
+            add_action('wp_ajax_orabooks_speech_webhook_check', [self::$instance, 'ajax_speech_webhook_check']);
             add_action('wp_ajax_orabooks_deploy_checks', [self::$instance, 'ajax_deploy_checks']);
             add_action('wp_ajax_orabooks_deploy_repair', [self::$instance, 'ajax_deploy_repair']);
             add_action('wp_ajax_orabooks_frontend_context', [self::$instance, 'ajax_frontend_context']);
@@ -1393,6 +1394,32 @@ class OraBooks_Ajax {
             'speech_webhook_healthcheck_enabled' => (bool) $speech_webhook_healthcheck_enabled,
             'speech_webhook_health_url' => $speech_webhook_health_url,
         ], 'Settings saved');
+    }
+
+    public function ajax_speech_webhook_check() {
+        if (!current_user_can('manage_options')) {
+            orabooks_json_error('Permission denied', 403);
+        }
+
+        $status = class_exists('OraBooks_Ai_Providers')
+            ? OraBooks_Ai_Providers::capability_status()
+            : [];
+
+        $health = is_array($status)
+            ? ($status['speech_webhook_health'] ?? ['status' => 'unknown'])
+            : ['status' => 'unknown'];
+
+        if (!is_array($health)) {
+            $health = ['status' => 'unknown'];
+        }
+
+        orabooks_json_success([
+            'speech_provider' => is_array($status) ? (string) ($status['speech_provider'] ?? 'mvp-stub') : 'mvp-stub',
+            'speech_model_version' => is_array($status) ? (string) ($status['speech_model_version'] ?? 'mvp-stub-1.0') : 'mvp-stub-1.0',
+            'speech_webhook_configured' => is_array($status) ? (bool) ($status['speech_webhook_configured'] ?? false) : false,
+            'speech_webhook_health' => $health,
+            'checked_at' => current_time('mysql'),
+        ]);
     }
 
     /**
