@@ -236,7 +236,7 @@ class OraBooks_Voice {
             'org_id'     => $org_id,
             'user_id'    => $user_id,
             'audio_hash' => $audio_hash,
-            'status'     => 'pending',
+            'status'     => self::STATUS_PENDING,
         ], ['%d', '%d', '%s', '%s']);
 
         $voice_id = (int) $wpdb->insert_id;
@@ -276,7 +276,7 @@ class OraBooks_Voice {
         self::init()->process_voice_input($voice_id, $org_id, $filename);
 
         if (function_exists('orabooks_publish_event')) {
-            orabooks_publish_event('voice_transcription_requested', $voice_id, [
+            orabooks_publish_event(self::EVENT_TRANSCRIPTION_REQUESTED, $voice_id, [
                 'voice_input_id' => $voice_id,
                 'org_id'         => $org_id,
             ]);
@@ -296,7 +296,7 @@ class OraBooks_Voice {
 
         $table = OraBooks_Database::table(self::TABLE_VOICE);
         $row = self::get_voice_input($voice_id, $org_id);
-        if (!$row || $row->status !== 'pending') {
+        if (!$row || $row->status !== self::STATUS_PENDING) {
             return;
         }
 
@@ -316,7 +316,7 @@ class OraBooks_Voice {
             $retry = (int) $row->processing_retry_count + 1;
             if ($retry > self::MAX_RETRIES) {
                 $wpdb->update($table, [
-                    'status'             => 'failed',
+                    'status'             => self::STATUS_DEAD_LETTER,
                     'processing_retry_count' => $retry,
                     'dead_letter_reason' => $e->getMessage(),
                 ], ['id' => $voice_id], ['%s', '%d', '%s'], ['%d']);
@@ -343,7 +343,7 @@ class OraBooks_Voice {
             'confidence_avg'      => (float) $result['confidence_avg'],
             'risk_scores'         => wp_json_encode($result['risk_scores']),
             'overall_risk_level'  => sanitize_text_field($result['overall_risk_level']),
-            'status'              => 'processed',
+            'status'              => self::STATUS_PROCESSED,
         ], ['id' => $voice_id]);
 
         orabooks_log_event('voice_transcribed', "Voice input #{$voice_id} transcribed", 'info', [
@@ -372,7 +372,7 @@ class OraBooks_Voice {
 
         $table = OraBooks_Database::table(self::TABLE_VOICE);
         $rows = $wpdb->get_results(
-            "SELECT * FROM {$table} WHERE status = 'pending' AND processing_retry_count <= " . self::MAX_RETRIES . " ORDER BY created_at ASC LIMIT 5"
+            "SELECT * FROM {$table} WHERE status = '" . self::STATUS_PENDING . "' AND processing_retry_count <= " . self::MAX_RETRIES . " ORDER BY created_at ASC LIMIT 5"
         );
 
         foreach ($rows ?: [] as $row) {
@@ -475,7 +475,7 @@ class OraBooks_Voice {
             return new WP_Error('not_found', 'Voice input not found');
         }
 
-        if ($voice->status !== 'processed') {
+        if ($voice->status !== self::STATUS_PROCESSED) {
             return new WP_Error('invalid_status', 'Voice input must be processed before confirm');
         }
 
@@ -532,7 +532,7 @@ class OraBooks_Voice {
             $update['derived_resource_id'] = (int) $derived['id'];
 
             if (function_exists('orabooks_publish_event')) {
-                orabooks_publish_event('resource_submitted', (int) $derived['id'], [
+                orabooks_publish_event(self::EVENT_RESOURCE_SUBMITTED, (int) $derived['id'], [
                     'resource_type' => $derived['type'],
                     'resource_id'   => (int) $derived['id'],
                     'org_id'        => (int) $org_id,
@@ -550,7 +550,7 @@ class OraBooks_Voice {
                 'correlation_id' => function_exists('orabooks_get_correlation_id') ? orabooks_get_correlation_id() : '',
             ], $user_id, $org_id);
         } else {
-            $update['status'] = 'escalated';
+            $update['status'] = self::STATUS_ESCALATED;
 
             if (class_exists('OraBooks_Ai_Review')) {
                 OraBooks_Ai_Review::enqueue(
@@ -570,7 +570,7 @@ class OraBooks_Voice {
             }
 
             if (function_exists('orabooks_publish_event')) {
-                orabooks_publish_event('voice_escalated', intval($voice_id), [
+                orabooks_publish_event(self::EVENT_ESCALATED, intval($voice_id), [
                     'voice_input_id' => intval($voice_id),
                     'org_id'         => intval($org_id),
                     'confidence'     => $confidence,
@@ -728,7 +728,7 @@ class OraBooks_Voice {
         $cutoff = gmdate('Y-m-d H:i:s', time() - (self::RETENTION_DAYS * DAY_IN_SECONDS));
 
         $wpdb->query($wpdb->prepare(
-            "DELETE FROM {$table} WHERE retention_class = 'standard' AND created_at < %s AND status IN ('processed','failed','escalated')",
+            "DELETE FROM {$table} WHERE retention_class = 'standard' AND created_at < %s AND status IN ('processed','failed','escalated','dead_letter')",
             $cutoff
         ));
     }
