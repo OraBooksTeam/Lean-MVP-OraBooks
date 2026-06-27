@@ -1097,15 +1097,14 @@ export default function InvoicesPage() {
           >
             {error && <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div>}
             <div className="grid gap-4">
-            <div className="grid gap-4 sm:grid-cols-2">
-                <Field label="Invoice number">
-                  <Input
-                    value={createModalLoading ? 'Loading…' : (nextInvoiceNumber || '—')}
-                    readOnly
-                    className="bg-slate-50 font-semibold text-ink"
-                  />
-                </Field>
-                <Field label="Customer">
+              <Field label="Invoice number">
+                <Input
+                  value={createModalLoading ? 'Loading…' : (nextInvoiceNumber || '—')}
+                  readOnly
+                  className="bg-slate-50 font-semibold text-ink"
+                />
+              </Field>
+              <Field label="Customer">
                 <select
                   value={createForm.customer_id}
                   onChange={(e) => setCreateForm((p) => ({ ...p, customer_id: e.target.value }))}
@@ -1119,7 +1118,6 @@ export default function InvoicesPage() {
                   ))}
                 </select>
               </Field>
-              </div>
               <div className="grid gap-4 sm:grid-cols-2">
                 <Field label="Invoice date">
                   <Input type="date" value={createForm.invoice_date} onChange={(e) => setCreateForm((p) => ({ ...p, invoice_date: e.target.value }))} />
