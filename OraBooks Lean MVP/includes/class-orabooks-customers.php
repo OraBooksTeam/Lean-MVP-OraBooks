@@ -212,6 +212,10 @@ class OraBooks_Customers {
             OraBooks_AR_Wallet::ensure_schema();
         }
 
+        if (class_exists('OraBooks_Invoice_Document')) {
+            OraBooks_Invoice_Document::ensure_schema();
+        }
+
         $table_invoices = OraBooks_Database::table('invoices');
         if ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table_invoices)) !== $table_invoices) {
             return;
