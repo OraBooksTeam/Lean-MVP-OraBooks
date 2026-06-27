@@ -4,7 +4,7 @@ import Button from '@/components/Button';
 import { api } from '../api';
 import ClientShell from '../components/ClientShell';
 import ResourceAttachmentsPanel from '../components/ResourceAttachmentsPanel';
-import { CheckCircle2, HelpCircle, Mic, Paperclip, RefreshCw, Square } from 'lucide-react';
+import { CheckCircle2, HelpCircle, Mic, Paperclip, RefreshCw, Square, Upload } from 'lucide-react';
 
 const fieldClass =
   'w-full rounded-lg border border-border bg-white px-3.5 py-2.5 text-sm text-ink shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20';
@@ -41,6 +41,7 @@ export default function VoicePage() {
   const [recording, setRecording] = useState(false);
   const [recordingSeconds, setRecordingSeconds] = useState(0);
   const [uploading, setUploading] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [selectedVoice, setSelectedVoice] = useState<any>(null);
   const [editFields, setEditFields] = useState<Record<string, string>>({});
   const [confirming, setConfirming] = useState(false);
@@ -179,6 +180,36 @@ export default function VoicePage() {
     setUploading(false);
   };
 
+  const uploadSelectedFile = async () => {
+    if (!orgId || !selectedFile) {
+      setError('Select an audio file first.');
+      return;
+    }
+
+    setUploading(true);
+    setError('');
+    const idempotencyKey =
+      typeof crypto !== 'undefined' && crypto.randomUUID
+        ? crypto.randomUUID()
+        : `voice-file-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
+    const res = await api.uploadVoice(orgId, selectedFile, idempotencyKey);
+    if (res.error) {
+      setError(res.error);
+    } else {
+      setSuccess('Audio uploaded. Transcription in progress…');
+      await load();
+      const voice = (res as any).data?.voice_input;
+      if (voice) {
+        selectVoice(voice);
+        if (voice.status === 'pending') pollVoiceStatus(voice.id);
+        else setSuccess('Voice transcribed. Review extracted data below.');
+      }
+      setSelectedFile(null);
+    }
+    setUploading(false);
+  };
+
   const handleConfirm = async () => {
     if (!orgId || !selectedVoice || selectedVoice.status !== 'processed') return;
 
@@ -267,6 +298,30 @@ export default function VoicePage() {
                 </Button>
               )}
               {uploading && <span className="text-sm text-slate-600">Uploading and transcribing…</span>}
+            </div>
+
+            <div className="mt-4 rounded-lg border border-border bg-slate-50 p-3">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">No microphone? Upload audio instead</p>
+              <p className="mt-1 text-sm text-slate-600">Supported: WEBM, MP3, WAV, OGG, M4A (max {maxMb}MB).</p>
+              <div className="mt-3 flex flex-wrap items-center gap-3">
+                <input
+                  type="file"
+                  accept="audio/*,.webm,.mp3,.wav,.ogg,.m4a"
+                  onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
+                  className="max-w-full text-sm"
+                  title="Upload an audio file for transcription"
+                />
+                <Button
+                  variant="secondary"
+                  onClick={() => void uploadSelectedFile()}
+                  disabled={uploading || !selectedFile}
+                  title="Upload audio and transcribe"
+                >
+                  <Upload className="h-4 w-4" />
+                  Upload Audio
+                </Button>
+                {selectedFile && <span className="text-xs text-slate-600">{selectedFile.name}</span>}
+              </div>
             </div>
           </div>
         ) : (
