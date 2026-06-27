@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import Button from '@/components/Button';
 import AdminPageShell from '@/components/AdminPageShell';
 import { api } from '../api';
-import { CheckCircle2, RefreshCw, ShieldCheck, XCircle } from 'lucide-react';
+import { AudioLines, CheckCircle2, Link2, RefreshCw, ShieldCheck, XCircle } from 'lucide-react';
 
 interface PlatformSettings {
   block_same_email_domain: boolean;
@@ -145,6 +145,8 @@ export default function AdminSettings() {
   const hasCronFailures = Boolean(
     deployChecks?.checks?.some((check) => check.id.startsWith('cron_') && !check.ok)
   );
+  const speechWebhookConfigured = settings.speech_webhook_url.trim().length > 0;
+  const speechHealthConfigured = settings.speech_webhook_health_url.trim().length > 0;
 
   return (
     <AdminPageShell
@@ -249,78 +251,109 @@ export default function AdminSettings() {
               </div>
             </label>
 
-            <label className="flex flex-col gap-2 p-6 sm:flex-row sm:items-center sm:justify-between">
-              <span className="text-sm font-semibold text-ink">Speech webhook URL</span>
-              <div className="sm:max-w-xl sm:flex-1">
-                <input
-                  type="url"
-                  className="w-full rounded-lg border border-border px-3 py-2 text-sm"
-                  placeholder="https://speech.example.com/transcribe"
-                  value={settings.speech_webhook_url}
-                  onChange={(e) =>
-                    setSettings((prev) => ({ ...prev, speech_webhook_url: e.target.value }))
-                  }
-                />
-                <p className="mt-1 text-xs text-slate-500">
-                  Optional endpoint for self-hosted or internal speech-to-text.
-                </p>
-              </div>
-            </label>
+            <div className="p-6">
+              <div className="overflow-hidden rounded-2xl border border-sky-200 bg-gradient-to-br from-sky-50 via-cyan-50 to-white">
+                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-sky-100 bg-white/70 px-5 py-4">
+                  <div className="flex items-center gap-2">
+                    <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-sky-100 text-sky-700">
+                      <AudioLines className="h-4 w-4" />
+                    </span>
+                    <div>
+                      <h3 className="text-sm font-bold text-ink">Speech Webhook Configuration</h3>
+                      <p className="text-xs text-slate-600">
+                        Configure external speech-to-text provider connection for Voice diagnostics and transcription.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2 text-xs font-semibold">
+                    <span
+                      className={`rounded-full border px-2 py-1 ${
+                        speechWebhookConfigured
+                          ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                          : 'border-amber-200 bg-amber-50 text-amber-700'
+                      }`}
+                    >
+                      {speechWebhookConfigured ? 'Webhook configured' : 'Webhook missing'}
+                    </span>
+                    <span
+                      className={`rounded-full border px-2 py-1 ${
+                        speechHealthConfigured
+                          ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                          : 'border-slate-200 bg-slate-100 text-slate-600'
+                      }`}
+                    >
+                      {speechHealthConfigured ? 'Health URL set' : 'Health URL optional'}
+                    </span>
+                  </div>
+                </div>
 
-            <label className="flex flex-col gap-2 p-6 sm:flex-row sm:items-center sm:justify-between">
-              <span className="text-sm font-semibold text-ink">Speech webhook token</span>
-              <div className="sm:max-w-xl sm:flex-1">
-                <input
-                  type="password"
-                  className="w-full rounded-lg border border-border px-3 py-2 text-sm"
-                  value={settings.speech_webhook_token}
-                  onChange={(e) =>
-                    setSettings((prev) => ({ ...prev, speech_webhook_token: e.target.value }))
-                  }
-                />
-                <p className="mt-1 text-xs text-slate-500">
-                  Bearer token sent to the speech webhook when configured.
-                </p>
-              </div>
-            </label>
+                <div className="grid gap-4 px-5 py-5 lg:grid-cols-2">
+                  <label className="space-y-1">
+                    <span className="text-xs font-semibold uppercase tracking-wide text-slate-600">Speech webhook URL</span>
+                    <input
+                      type="url"
+                      className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
+                      placeholder="https://speech.example.com/transcribe"
+                      value={settings.speech_webhook_url}
+                      onChange={(e) =>
+                        setSettings((prev) => ({ ...prev, speech_webhook_url: e.target.value }))
+                      }
+                    />
+                    <p className="text-xs text-slate-500">Main transcription endpoint.</p>
+                  </label>
 
-            <label className="flex flex-col gap-2 p-6 sm:flex-row sm:items-center sm:justify-between">
-              <span className="text-sm font-semibold text-ink">Speech webhook model</span>
-              <div className="sm:max-w-xl sm:flex-1">
-                <input
-                  type="text"
-                  className="w-full rounded-lg border border-border px-3 py-2 text-sm"
-                  value={settings.speech_webhook_model}
-                  onChange={(e) =>
-                    setSettings((prev) => ({ ...prev, speech_webhook_model: e.target.value }))
-                  }
-                />
-                <p className="mt-1 text-xs text-slate-500">
-                  Model label shown in speech diagnostics and transcript metadata.
-                </p>
-              </div>
-            </label>
+                  <label className="space-y-1">
+                    <span className="text-xs font-semibold uppercase tracking-wide text-slate-600">Speech webhook token</span>
+                    <input
+                      type="password"
+                      className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
+                      value={settings.speech_webhook_token}
+                      onChange={(e) =>
+                        setSettings((prev) => ({ ...prev, speech_webhook_token: e.target.value }))
+                      }
+                    />
+                    <p className="text-xs text-slate-500">Bearer token for authenticated speech requests.</p>
+                  </label>
 
-            <label className="flex flex-col gap-2 p-6 sm:flex-row sm:items-center sm:justify-between">
-              <span className="text-sm font-semibold text-ink">Speech webhook health URL</span>
-              <div className="sm:max-w-xl sm:flex-1">
-                <input
-                  type="url"
-                  className="w-full rounded-lg border border-border px-3 py-2 text-sm"
-                  placeholder="https://speech.example.com/health"
-                  value={settings.speech_webhook_health_url}
-                  onChange={(e) =>
-                    setSettings((prev) => ({ ...prev, speech_webhook_health_url: e.target.value }))
-                  }
-                />
-                <p className="mt-1 text-xs text-slate-500">
-                  Optional endpoint used by Voice page diagnostics to verify provider health.
-                </p>
-                <p className="mt-1 text-xs text-slate-500">
-                  After saving, open Voice and check the Speech Diagnostics card for provider, model, and health status.
-                </p>
+                  <label className="space-y-1">
+                    <span className="text-xs font-semibold uppercase tracking-wide text-slate-600">Speech webhook model</span>
+                    <input
+                      type="text"
+                      className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
+                      value={settings.speech_webhook_model}
+                      onChange={(e) =>
+                        setSettings((prev) => ({ ...prev, speech_webhook_model: e.target.value }))
+                      }
+                    />
+                    <p className="text-xs text-slate-500">Displayed in Voice diagnostics and transcript metadata.</p>
+                  </label>
+
+                  <label className="space-y-1">
+                    <span className="text-xs font-semibold uppercase tracking-wide text-slate-600">Speech webhook health URL</span>
+                    <input
+                      type="url"
+                      className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
+                      placeholder="https://speech.example.com/health"
+                      value={settings.speech_webhook_health_url}
+                      onChange={(e) =>
+                        setSettings((prev) => ({ ...prev, speech_webhook_health_url: e.target.value }))
+                      }
+                    />
+                    <p className="text-xs text-slate-500">Optional endpoint for provider health checks.</p>
+                  </label>
+                </div>
+
+                <div className="mx-5 mb-5 rounded-xl border border-sky-100 bg-white/80 px-4 py-3 text-xs text-slate-600">
+                  <p className="mb-2 flex items-center gap-1 font-semibold text-slate-700">
+                    <Link2 className="h-3.5 w-3.5" />
+                    Live verification checklist
+                  </p>
+                  <p>1. Save settings here.</p>
+                  <p>2. Open Voice page.</p>
+                  <p>3. Check Speech Diagnostics card for provider, model, and health.</p>
+                </div>
               </div>
-            </label>
+            </div>
           </div>
 
           <div className="border-t border-border bg-slate-50/60 px-6 py-4">
