@@ -53,6 +53,7 @@ require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-async-queue.php';
 require_once ORABOOKS_PLUGIN_DIR . 'includes/jobs/loader.php';
 require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-exports.php';
 require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-customers.php';
+require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-ar-wallet.php';
 require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-vendors.php';
 require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-inventory.php';
 require_once ORABOOKS_PLUGIN_DIR . 'includes/class-orabooks-bank-reconciliation.php';
@@ -116,6 +117,7 @@ function orabooks_init() {
     OraBooks_AsyncQueue::register_default_handlers();
     OraBooks_Exports::init();
     OraBooks_Customers::init();
+    OraBooks_AR_Wallet::init();
     OraBooks_Vendors::init();
     OraBooks_Inventory::init();
     OraBooks_Bank_Reconciliation::init();

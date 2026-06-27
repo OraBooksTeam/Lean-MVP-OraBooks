@@ -665,13 +665,11 @@ class OraBooks_AR_Wallet {
             ['%d']
         );
 
-        if (empty($invoice->invoice_id)) {
-            $wpdb->query($wpdb->prepare(
-                "UPDATE {$table_payments} SET invoice_id = %d WHERE id = %d AND invoice_id IS NULL",
-                intval($invoice_id),
-                intval($payment_id)
-            ));
-        }
+        $wpdb->query($wpdb->prepare(
+            "UPDATE {$table_payments} SET invoice_id = %d WHERE id = %d AND (invoice_id IS NULL OR invoice_id = 0)",
+            intval($invoice_id),
+            intval($payment_id)
+        ));
     }
 
     public static function apply_auto_credit_to_invoice($org_id, $invoice) {

@@ -208,6 +208,10 @@ class OraBooks_Customers {
         self::ensure_customer_credit_schema();
         self::ensure_customer_profile_schema();
 
+        if (class_exists('OraBooks_AR_Wallet')) {
+            OraBooks_AR_Wallet::ensure_schema();
+        }
+
         $table_invoices = OraBooks_Database::table('invoices');
         if ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table_invoices)) !== $table_invoices) {
             return;
@@ -1137,6 +1141,18 @@ class OraBooks_Customers {
             return new WP_Error('invalid_amount', 'Total amount must be greater than 0');
         }
 
+        if (class_exists('OraBooks_AR_Wallet')) {
+            OraBooks_AR_Wallet::ensure_schema();
+            $credit_check = OraBooks_AR_Wallet::validate_customer_credit_for_new_invoice(
+                $org_id,
+                (int) $data['customer_id'],
+                floatval($data['total_amount'])
+            );
+            if (is_wp_error($credit_check)) {
+                return $credit_check;
+            }
+        }
+
         // Generate invoice number if not provided
         if (empty($data['invoice_number'])) {
             $data['invoice_number'] = self::generate_invoice_number($org_id);
@@ -1508,6 +1524,26 @@ class OraBooks_Customers {
 
         if (class_exists('OraBooks_Tax') && floatval($invoice->tax_amount) > 0) {
             OraBooks_Tax::snapshot_for_invoice($invoice, $user_id);
+        }
+
+        global $wpdb;
+        if ($journal_id) {
+            $table_invoices = OraBooks_Database::table('invoices');
+            $wpdb->update(
+                $table_invoices,
+                ['journal_id' => (int) $journal_id],
+                ['id' => $invoice_id],
+                ['%d'],
+                ['%d']
+            );
+        }
+
+        if (class_exists('OraBooks_AR_Wallet')) {
+            OraBooks_AR_Wallet::ensure_schema();
+            $posted_invoice = self::get_invoice($invoice_id);
+            OraBooks_AR_Wallet::apply_auto_credit_to_invoice($org_id, $posted_invoice);
+            OraBooks_AR_Wallet::lock_invoice_on_post($invoice_id, $org_id);
+            OraBooks_AR_Wallet::save_invoice_rendered_copy($invoice_id, $org_id);
         }
 
         orabooks_log_event('invoice_posted', "Invoice {$invoice->invoice_number} posted", 'info', [

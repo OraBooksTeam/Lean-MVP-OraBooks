@@ -885,8 +885,18 @@ class OraBooks_Database {
         }
         OraBooks_Customers::ensure_schema();
 
+        $ar_wallet_tables = OraBooks_AR_Wallet::get_create_table_sql();
+        foreach ($ar_wallet_tables as $sql) {
+            dbDelta($sql);
+        }
+        OraBooks_AR_Wallet::ensure_schema();
+
         if (!wp_next_scheduled('orabooks_daily_invoice_overdue_check')) {
             wp_schedule_event(time(), 'daily', 'orabooks_daily_invoice_overdue_check');
+        }
+
+        if (!wp_next_scheduled('orabooks_monthly_customer_statement_snapshot')) {
+            wp_schedule_event(strtotime('first day of next month 02:00:00'), 'monthly', 'orabooks_monthly_customer_statement_snapshot');
         }
 
         // ============================================================
