@@ -62,7 +62,14 @@ class OraBooks_Voice_Test extends TestCase
             'audio_hash' => 'abc123',
             'original_transcript' => 'Create expense for vendor',
             'edited_transcript' => null,
-            'extracted_data' => wp_json_encode(['transaction_type' => 'expense', 'amount' => 120]),
+            'extracted_data' => wp_json_encode([
+                'transaction_type' => 'expense',
+                'amount' => 120,
+                '_voice_ai' => [
+                    'provider' => 'speech-webhook',
+                    'model_version' => 'faster-whisper-large-v3',
+                ],
+            ]),
             'language_detected' => 'en',
             'confidence_avg' => 88.5,
             'risk_scores' => wp_json_encode(['amount_risk' => 10]),
@@ -80,6 +87,8 @@ class OraBooks_Voice_Test extends TestCase
         $this->assertSame('processed', $formatted['status']);
         $this->assertSame('expense', $formatted['extracted_data']['transaction_type']);
         $this->assertSame(88.5, $formatted['confidence_avg']);
+        $this->assertSame('speech-webhook', $formatted['ai_provider']);
+        $this->assertSame('faster-whisper-large-v3', $formatted['ai_model_version']);
     }
 
     #[Test]
