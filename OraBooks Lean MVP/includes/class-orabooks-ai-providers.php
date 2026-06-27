@@ -367,10 +367,20 @@ class OraBooks_Ai_Providers {
                 $transcript = new WP_Error('speech_provider_unavailable', 'No speech provider is configured.');
             }
 
-            if (!is_wp_error($transcript) && $transcript !== '') {
-                $nlu = self::extract_voice_intent($transcript);
+            $transcript_text = '';
+            $language_detected = $language_hint !== '' ? $language_hint : 'en';
+            if (is_array($transcript)) {
+                $transcript_text = trim((string) ($transcript['text'] ?? ''));
+                $language_detected = trim((string) ($transcript['language_detected'] ?? $language_detected));
+            } else {
+                $transcript_text = trim((string) $transcript);
+            }
+
+            if (!is_wp_error($transcript) && $transcript_text !== '') {
+                $nlu = self::extract_voice_intent($transcript_text);
                 if (!is_wp_error($nlu)) {
-                    $nlu['transcript'] = $transcript;
+                    $nlu['transcript'] = $transcript_text;
+                    $nlu['language_detected'] = $language_detected !== '' ? $language_detected : ($nlu['language_detected'] ?? 'en');
                     return $nlu;
                 }
 
@@ -378,7 +388,9 @@ class OraBooks_Ai_Providers {
                     'voice_id' => $voice_id,
                 ], null, null);
 
-                return self::heuristic_voice_intent_from_transcript($transcript);
+                $heuristic = self::heuristic_voice_intent_from_transcript($transcript_text);
+                $heuristic['language_detected'] = $language_detected !== '' ? $language_detected : ($heuristic['language_detected'] ?? 'en');
+                return $heuristic;
             }
             if (is_wp_error($transcript)) {
                 orabooks_log_event('voice_provider_fallback', 'Speech transcription failed; using stub', 'warning', [
@@ -829,9 +841,14 @@ class OraBooks_Ai_Providers {
         if ($url === '') {
             return new WP_Error('speech_webhook_unconfigured', 'Speech webhook URL is not configured.');
         }
+        if (!preg_match('#^https?://#i', $url)) {
+            return new WP_Error('speech_webhook_invalid_url', 'Speech webhook URL must start with http:// or https://.');
+        }
 
         $headers = [
             'Content-Type' => 'application/json',
+            'X-OraBooks-Speech-Provider' => self::PROVIDER_SPEECH_WEBHOOK,
+            'X-OraBooks-Speech-Model' => self::model_version('speech'),
         ];
         $token = trim((string) self::config('speech_webhook_token'));
         if ($token !== '') {
@@ -843,6 +860,8 @@ class OraBooks_Ai_Providers {
             'filename' => (string) $filename,
             'mime_type' => (string) ($mime_type ?: 'audio/webm'),
             'language_hint' => (string) $language_hint,
+            'audio_hash_sha256' => hash('sha256', (string) $file_bytes),
+            'audio_size_bytes' => strlen((string) $file_bytes),
             'request_source' => 'orabooks-sl052',
         ];
 
@@ -872,7 +891,16 @@ class OraBooks_Ai_Providers {
             return new WP_Error('speech_webhook_empty_transcript', 'Speech webhook returned an empty transcript.');
         }
 
-        return $text;
+        $language = trim((string) (
+            $decoded['language']
+            ?? $decoded['language_detected']
+            ?? ($decoded['data']['language'] ?? $decoded['data']['language_detected'] ?? '')
+        ));
+
+        return [
+            'text' => $text,
+            'language_detected' => $language !== '' ? strtolower(substr($language, 0, 10)) : 'en',
+        ];
     }
 
     private static function extract_voice_intent($transcript) {
