@@ -1515,19 +1515,48 @@ function Modal({
   }
 
   return createPortal(
-    <div className="orabooks-modal orabooks-modal-overlay" onClick={onClose}>
+    <div
+      className="orabooks-modal orabooks-modal-overlay"
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 100010,
+        overflowY: 'auto',
+        padding: '1rem',
+        background: 'rgb(15 23 42 / 0.4)',
+      }}
+      onClick={onClose}
+    >
       <div className="flex min-h-full items-start justify-center py-2">
         <div
           role="dialog"
           aria-modal="true"
           className={`orabooks-modal-panel rounded-2xl border border-border bg-white shadow-xl ${wide ? 'max-w-3xl' : 'max-w-lg'}`}
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            width: '100%',
+            maxHeight: '90vh',
+            marginInline: 'auto',
+            overflow: 'hidden',
+          }}
           onClick={(e) => e.stopPropagation()}
         >
           <div className="flex shrink-0 items-center justify-between gap-3 border-b border-border bg-white px-6 py-4">
             <h3 className="text-lg font-semibold text-ink">{title}</h3>
             <button type="button" onClick={onClose} className="text-sm text-slate-500 hover:text-slate-700">Close</button>
           </div>
-          <div className="orabooks-modal-body px-6 py-4">{children}</div>
+          <div
+            className="orabooks-modal-body px-6 py-4"
+            style={{
+              flex: '1 1 auto',
+              minHeight: 0,
+              overflowY: 'auto',
+              WebkitOverflowScrolling: 'touch',
+            }}
+          >
+            {children}
+          </div>
           {footer ? (
             <div className="shrink-0 border-t border-border bg-white px-6 py-4">{footer}</div>
           ) : null}

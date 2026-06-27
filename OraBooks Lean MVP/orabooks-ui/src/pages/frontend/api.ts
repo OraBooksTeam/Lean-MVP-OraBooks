@@ -1009,6 +1009,8 @@ export const api = {
   },
   voiceGet: (orgId: number, voiceId: number) =>
     api.get('orabooks_voice_get', { org_id: orgId, voice_id: voiceId }),
+  voiceRetry: (orgId: number, voiceId: number) =>
+    api.post('orabooks_voice_retry', { org_id: orgId, voice_id: voiceId }),
   voiceConfirm: (orgId: number, voiceId: number, idempotencyKey: string, editedFields: Record<string, unknown>) =>
     api.post('orabooks_voice_confirm', {
       org_id: orgId,

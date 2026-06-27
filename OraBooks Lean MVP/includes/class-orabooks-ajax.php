@@ -1065,6 +1065,7 @@ class OraBooks_Ajax {
             'capabilities' => [
                 'record'  => OraBooks_RBAC::require_permission($context['user_id'], $org_id, 'manage_voice_inputs'),
                 'confirm' => OraBooks_RBAC::require_permission($context['user_id'], $org_id, 'manage_voice_inputs'),
+                'retry'   => OraBooks_RBAC::require_permission($context['user_id'], $org_id, 'manage_voice_inputs'),
             ],
             'limits' => [
                 'max_file_size' => OraBooks_Voice::MAX_AUDIO_SIZE,
