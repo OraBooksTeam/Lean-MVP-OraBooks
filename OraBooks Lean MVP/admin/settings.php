@@ -20,6 +20,43 @@
                 </td>
             </tr>
             <tr>
+                <th scope="row"><?php _e('Speech Webhook URL', 'orabooks'); ?></th>
+                <td>
+                    <input type="url" name="orabooks_speech_webhook_url" value="<?php echo esc_attr(get_option('orabooks_speech_webhook_url', '')); ?>" class="regular-text" placeholder="https://speech.example.com/transcribe">
+                    <p class="description"><?php _e('Optional webhook endpoint for self-hosted or internal speech-to-text.', 'orabooks'); ?></p>
+                </td>
+            </tr>
+            <tr>
+                <th scope="row"><?php _e('Speech Webhook Token', 'orabooks'); ?></th>
+                <td>
+                    <input type="password" name="orabooks_speech_webhook_token" value="<?php echo esc_attr(get_option('orabooks_speech_webhook_token', '')); ?>" class="regular-text" autocomplete="new-password">
+                    <p class="description"><?php _e('Bearer token sent to the speech webhook when configured.', 'orabooks'); ?></p>
+                </td>
+            </tr>
+            <tr>
+                <th scope="row"><?php _e('Speech Webhook Model', 'orabooks'); ?></th>
+                <td>
+                    <input type="text" name="orabooks_speech_webhook_model" value="<?php echo esc_attr(get_option('orabooks_speech_webhook_model', 'webhook-v1')); ?>" class="regular-text">
+                    <p class="description"><?php _e('Model label reported in voice diagnostics and transcript metadata.', 'orabooks'); ?></p>
+                </td>
+            </tr>
+            <tr>
+                <th scope="row"><?php _e('Speech Webhook Health Check', 'orabooks'); ?></th>
+                <td>
+                    <label>
+                        <input type="checkbox" name="orabooks_speech_webhook_healthcheck_enabled" value="1" <?php checked(get_option('orabooks_speech_webhook_healthcheck_enabled', 0)); ?>>
+                        <?php _e('Enable a dedicated webhook health check endpoint', 'orabooks'); ?>
+                    </label>
+                </td>
+            </tr>
+            <tr>
+                <th scope="row"><?php _e('Speech Webhook Health URL', 'orabooks'); ?></th>
+                <td>
+                    <input type="url" name="orabooks_speech_webhook_health_url" value="<?php echo esc_attr(get_option('orabooks_speech_webhook_health_url', '')); ?>" class="regular-text" placeholder="https://speech.example.com/health">
+                    <p class="description"><?php _e('Optional endpoint used by the voice diagnostics card to verify provider health.', 'orabooks'); ?></p>
+                </td>
+            </tr>
+            <tr>
                 <th scope="row"><?php _e('Staff/Viewer Commission Access', 'orabooks'); ?></th>
                 <td>
                     <label>
