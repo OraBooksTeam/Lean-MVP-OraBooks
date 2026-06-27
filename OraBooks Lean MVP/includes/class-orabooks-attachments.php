@@ -57,15 +57,10 @@ class OraBooks_Attachments {
             add_action('orabooks_attachments_purge', [self::$instance, 'cron_purge_old_attachments']);
 
             add_action('wp_ajax_orabooks_attachment_upload', [self::$instance, 'ajax_upload']);
-            add_action('wp_ajax_nopriv_orabooks_attachment_upload', [self::$instance, 'ajax_upload']);
             add_action('wp_ajax_orabooks_attachments_list', [self::$instance, 'ajax_list']);
-            add_action('wp_ajax_nopriv_orabooks_attachments_list', [self::$instance, 'ajax_list']);
             add_action('wp_ajax_orabooks_attachment_get', [self::$instance, 'ajax_get']);
-            add_action('wp_ajax_nopriv_orabooks_attachment_get', [self::$instance, 'ajax_get']);
             add_action('wp_ajax_orabooks_attachment_delete', [self::$instance, 'ajax_delete']);
-            add_action('wp_ajax_nopriv_orabooks_attachment_delete', [self::$instance, 'ajax_delete']);
             add_action('wp_ajax_orabooks_attachment_download', [self::$instance, 'ajax_download']);
-            add_action('wp_ajax_nopriv_orabooks_attachment_download', [self::$instance, 'ajax_download']);
         }
 
         return self::$instance;
