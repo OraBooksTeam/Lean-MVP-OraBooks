@@ -14,6 +14,16 @@ class OraBooks_Voice {
 
     const TABLE_VOICE = 'voice_inputs';
 
+    const STATUS_PENDING     = 'pending';
+    const STATUS_PROCESSED   = 'processed';
+    const STATUS_FAILED      = 'failed';
+    const STATUS_ESCALATED   = 'escalated';
+    const STATUS_DEAD_LETTER = 'dead_letter';
+
+    const EVENT_TRANSCRIPTION_REQUESTED = 'voice_transcription_requested';
+    const EVENT_ESCALATED               = 'voice_escalated';
+    const EVENT_RESOURCE_SUBMITTED      = 'resource_submitted';
+
     const CONFIDENCE_THRESHOLD = 70.0;
     const MAX_AUDIO_SIZE       = 10485760; // 10 MB
     const MAX_RECORDING_SECONDS = 120;
@@ -23,7 +33,7 @@ class OraBooks_Voice {
     const RETENTION_DAYS       = 90;
     const NLU_MODEL_VERSION    = 'mvp-stub-1.0';
 
-    const TRANSACTION_TYPES = ['expense', 'invoice', 'journal', 'task', 'reminder'];
+    const TRANSACTION_TYPES = ['expense', 'invoice', 'journal', 'task', 'reminder', 'support_ticket', 'workflow_command'];
 
     private static $instance = null;
 
@@ -66,7 +76,7 @@ class OraBooks_Voice {
                 confidence_avg DECIMAL(5,2) DEFAULT NULL,
                 risk_scores JSON DEFAULT NULL,
                 overall_risk_level ENUM('low','medium','high') NOT NULL DEFAULT 'low',
-                status ENUM('pending','processed','failed','escalated') NOT NULL DEFAULT 'pending',
+                status ENUM('pending','processed','failed','escalated','dead_letter') NOT NULL DEFAULT 'pending',
                 idempotency_key VARCHAR(128) DEFAULT NULL,
                 processing_retry_count INT UNSIGNED NOT NULL DEFAULT 0,
                 dead_letter_reason TEXT DEFAULT NULL,
@@ -80,6 +90,8 @@ class OraBooks_Voice {
                 FOREIGN KEY (audio_file_id) REFERENCES {$table_attachments}(id) ON DELETE SET NULL,
                 UNIQUE KEY uk_idempotency (idempotency_key),
                 INDEX idx_org_status (org_id, status),
+                INDEX idx_org_status_created (org_id, status, created_at),
+                INDEX idx_org_risk_created (org_id, overall_risk_level, created_at),
                 INDEX idx_risk (overall_risk_level),
                 INDEX idx_created (created_at)
             ) {$charset};",
@@ -101,6 +113,7 @@ class OraBooks_Voice {
             'processed' => 0,
             'failed'    => 0,
             'escalated' => 0,
+            'dead_letter' => 0,
         ];
 
         foreach ($rows ?: [] as $row) {
