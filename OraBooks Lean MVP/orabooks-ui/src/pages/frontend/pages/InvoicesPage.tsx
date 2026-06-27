@@ -59,6 +59,18 @@ type Invoice = {
 
 type Customer = { id: number; display_name?: string | null; email?: string };
 type TaxConfig = { jurisdiction: string; tax_type?: string; override_reasons?: string[] };
+type ProductOption = {
+  id: number;
+  sku: string;
+  name: string;
+  stock_keeping_unit?: string | null;
+  sales_price?: string | number;
+  price?: string | number;
+  mrp?: string | number;
+  tax_name?: string | null;
+  tax_percent?: string | number;
+  unit?: string;
+};
 type LineItemForm = {
   description: string;
   quantity: string;
@@ -118,6 +130,10 @@ export default function InvoicesPage() {
   });
   const [lineItems, setLineItems] = useState<LineItemForm[]>([emptyLineItem()]);
   const [createPreview, setCreatePreview] = useState<{ tax_rate: number; tax_amount: number; total_amount: number; tax_type?: string; subtotal_amount?: number } | null>(null);
+  const [nextInvoiceNumber, setNextInvoiceNumber] = useState('');
+  const [products, setProducts] = useState<ProductOption[]>([]);
+  const [createModalLoading, setCreateModalLoading] = useState(false);
+  const [taxPreviewLoading, setTaxPreviewLoading] = useState(false);
 
   const [paymentInvoice, setPaymentInvoice] = useState<Invoice | null>(null);
   const [paymentForm, setPaymentForm] = useState({
@@ -287,6 +303,29 @@ export default function InvoicesPage() {
       const price = parseFloat(line.unit_price) || 0;
       return sum + (qty * price);
     }, 0);
+
+  const lineItemTotal = (line: LineItemForm) => {
+    const qty = parseFloat(line.quantity) || 0;
+    const price = parseFloat(line.unit_price) || 0;
+    return Math.round(qty * price * 100) / 100;
+  };
+
+  const productUnitPrice = (product: ProductOption) => {
+    const price = Number(product.sales_price || product.price || product.mrp || 0);
+    return Number.isFinite(price) && price > 0 ? price : 0;
+  };
+
+  const createTotals = useMemo(() => {
+    const subtotal = lineItemsSubtotal(lineItems);
+    const discount = parseFloat(createForm.discount_amount) || 0;
+    const taxable = Math.max(0, subtotal - discount);
+    const taxRate = createPreview?.tax_rate ?? 0;
+    const taxAmount = createPreview?.tax_amount ?? 0;
+    const jurisdictionConfig = taxConfigs.find((c) => c.jurisdiction === createForm.jurisdiction);
+    const taxType = createPreview?.tax_type || jurisdictionConfig?.tax_type || 'Tax';
+    const total = taxable + taxAmount;
+    return { subtotal, discount, taxable, taxRate, taxAmount, taxType, total };
+  }, [lineItems, createForm.discount_amount, createForm.jurisdiction, createPreview, taxConfigs]);
 
   const buildLineItemsPayload = (items: LineItemForm[]) =>
     items

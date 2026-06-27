@@ -737,6 +737,10 @@ export const api = {
     api.get('orabooks_invoice_get', { invoice_id: invoiceId }),
   invoiceCreate: (data: Record<string, any>) =>
     api.post('orabooks_invoice_create', data),
+  invoiceNextNumber: (orgId: number) =>
+    api.get('orabooks_invoice_next_number', { org_id: orgId }),
+  invoiceProductsSearch: (orgId: number, search = '', limit = 200) =>
+    api.get('orabooks_invoice_products_search', { org_id: orgId, search, limit }),
   invoiceSend: (orgId: number, invoiceId: number) =>
     api.post('orabooks_invoice_send', { org_id: orgId, invoice_id: invoiceId }),
   invoicePost: (orgId: number, invoiceId: number) =>

@@ -2474,6 +2474,13 @@ class OraBooks_Customers {
     }
 
     /**
+     * Preview the next invoice number for an organization (same sequence as create).
+     */
+    public static function peek_next_invoice_number($org_id) {
+        return self::generate_invoice_number((int) $org_id);
+    }
+
+    /**
      * Generate a unique invoice number for an organization.
      */
     private static function generate_invoice_number($org_id) {
@@ -2760,6 +2767,62 @@ class OraBooks_Customers {
         ];
 
         $result = self::get_invoices_list($org_id, $args);
+        orabooks_json_success($result);
+    }
+
+    /**
+     * Preview the next invoice number for the create modal.
+     */
+    public function ajax_invoice_next_number() {
+        $user_id = orabooks_get_current_user_id();
+        $org_id = intval($_GET['org_id'] ?? $_POST['org_id'] ?? 0);
+        $org_id = $this->resolve_request_org_id($user_id, $org_id);
+
+        if (!$user_id) {
+            orabooks_json_error('Not authenticated', 401);
+        }
+
+        if (!$org_id) {
+            orabooks_json_error('Organization ID required', 400);
+        }
+
+        $this->require_customer_access($user_id, $org_id, 'create_invoice');
+
+        orabooks_json_success([
+            'invoice_number' => self::peek_next_invoice_number($org_id),
+        ]);
+    }
+
+    /**
+     * Search active products for invoice line-item autocomplete.
+     */
+    public function ajax_invoice_products_search() {
+        $user_id = orabooks_get_current_user_id();
+        $org_id = intval($_GET['org_id'] ?? $_POST['org_id'] ?? 0);
+        $org_id = $this->resolve_request_org_id($user_id, $org_id);
+
+        if (!$user_id) {
+            orabooks_json_error('Not authenticated', 401);
+        }
+
+        if (!$org_id) {
+            orabooks_json_error('Organization ID required', 400);
+        }
+
+        $this->require_customer_access($user_id, $org_id, 'create_invoice');
+
+        if (!class_exists('OraBooks_Inventory')) {
+            orabooks_json_success(['products' => [], 'total' => 0]);
+        }
+
+        $search = sanitize_text_field(wp_unslash($_GET['search'] ?? $_POST['search'] ?? ''));
+        $result = OraBooks_Inventory::get_products_list($org_id, [
+            'search' => $search,
+            'is_active' => 1,
+            'limit' => min(200, max(1, intval($_GET['limit'] ?? $_POST['limit'] ?? 200))),
+            'offset' => 0,
+        ]);
+
         orabooks_json_success($result);
     }
 
