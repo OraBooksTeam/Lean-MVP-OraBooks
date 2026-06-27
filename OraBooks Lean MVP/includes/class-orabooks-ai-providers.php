@@ -200,7 +200,7 @@ class OraBooks_Ai_Providers {
         }
 
         $content = $payload['choices'][0]['message']['content'] ?? '';
-        $decoded = json_decode((string) $content, true);
+        $decoded = self::decode_json_content((string) $content);
         if (!is_array($decoded)) {
             return new WP_Error('ocr_parse_failed', 'Vision OCR response could not be parsed.');
         }
@@ -333,15 +333,26 @@ class OraBooks_Ai_Providers {
         $filename = (string) ($context['filename'] ?? 'recording.webm');
         $voice_id = (int) ($context['voice_id'] ?? 0);
         $file_bytes = $context['file_bytes'] ?? null;
+        $locale_preference = sanitize_text_field((string) ($context['locale_preference'] ?? ''));
+        $language_hint = '';
+        if (preg_match('/^[a-z]{2}/i', $locale_preference, $matches)) {
+            $language_hint = strtolower($matches[0]);
+        }
 
         if ($file_bytes && (self::is_openai_configured() || self::is_azure_openai_configured())) {
-            $transcript = self::transcribe_audio($file_bytes, $filename, $context['mime_type'] ?? 'audio/webm');
+            $transcript = self::transcribe_audio($file_bytes, $filename, $context['mime_type'] ?? 'audio/webm', $language_hint);
             if (!is_wp_error($transcript) && $transcript !== '') {
                 $nlu = self::extract_voice_intent($transcript);
                 if (!is_wp_error($nlu)) {
                     $nlu['transcript'] = $transcript;
                     return $nlu;
                 }
+
+                orabooks_log_event('voice_nlu_partial_fallback', 'Voice intent extraction failed; using transcript heuristic fallback', 'warning', [
+                    'voice_id' => $voice_id,
+                ], null, null);
+
+                return self::heuristic_voice_intent_from_transcript($transcript);
             }
             if (is_wp_error($transcript)) {
                 orabooks_log_event('voice_provider_fallback', 'Speech transcription failed; using stub', 'warning', [

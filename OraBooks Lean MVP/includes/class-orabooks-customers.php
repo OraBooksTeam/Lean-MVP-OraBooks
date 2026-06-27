@@ -1095,7 +1095,15 @@ class OraBooks_Customers {
         $line_items = [];
         if (class_exists('OraBooks_Invoice_Document') && !empty($data['line_items'])) {
             OraBooks_Invoice_Document::ensure_schema();
-            $line_items = OraBooks_Invoice_Document::normalize_line_items($data['line_items']);
+            $raw_line_items = $data['line_items'];
+            if (is_string($raw_line_items)) {
+                $decoded = json_decode(wp_unslash($raw_line_items), true);
+                if (!is_array($decoded)) {
+                    $decoded = json_decode(stripslashes($raw_line_items), true);
+                }
+                $raw_line_items = is_array($decoded) ? $decoded : [];
+            }
+            $line_items = OraBooks_Invoice_Document::normalize_line_items($raw_line_items);
             if (!empty($line_items)) {
                 $data['subtotal_amount'] = OraBooks_Invoice_Document::subtotal_from_lines($line_items);
             }
