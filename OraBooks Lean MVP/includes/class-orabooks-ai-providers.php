@@ -19,6 +19,7 @@ class OraBooks_Ai_Providers {
     const PROVIDER_AZURE_DI  = 'azure-document-intelligence';
     const PROVIDER_OPENAI    = 'openai';
     const PROVIDER_AZURE_OAI = 'azure-openai';
+    const PROVIDER_SPEECH_WEBHOOK = 'speech-webhook';
 
     /**
      * Active provider id for a capability: ocr | speech | classification.
@@ -30,6 +31,16 @@ class OraBooks_Ai_Providers {
                     ? self::PROVIDER_AZURE_DI
                     : self::STUB_PROVIDER;
             case 'speech':
+                if (self::is_speech_webhook_configured()) {
+                    return self::PROVIDER_SPEECH_WEBHOOK;
+                }
+                if (self::is_azure_openai_configured()) {
+                    return self::PROVIDER_AZURE_OAI;
+                }
+                if (self::is_openai_configured()) {
+                    return self::PROVIDER_OPENAI;
+                }
+                return self::STUB_PROVIDER;
             case 'classification':
                 if (self::is_azure_openai_configured()) {
                     return self::PROVIDER_AZURE_OAI;
@@ -47,6 +58,8 @@ class OraBooks_Ai_Providers {
         switch (self::provider_name($capability)) {
             case self::PROVIDER_AZURE_DI:
                 return 'prebuilt-receipt-2023-07-31';
+            case self::PROVIDER_SPEECH_WEBHOOK:
+                return self::config('speech_webhook_model', 'webhook-v1');
             case self::PROVIDER_OPENAI:
                 return $capability === 'speech'
                     ? self::config('openai_whisper_model', 'whisper-1')
@@ -78,6 +91,7 @@ class OraBooks_Ai_Providers {
             'real_ai_enabled' => ($speech_provider !== self::STUB_PROVIDER) || ($classification_provider !== self::STUB_PROVIDER),
             'azure_document_intelligence_configured' => $azure_di,
             'vision_chat_configured' => $vision_chat,
+            'speech_webhook_configured' => self::is_speech_webhook_configured(),
         ];
     }
 
@@ -94,6 +108,10 @@ class OraBooks_Ai_Providers {
         return self::config('azure_openai_endpoint') !== ''
             && self::config('azure_openai_key') !== ''
             && self::config('azure_openai_deployment') !== '';
+    }
+
+    public static function is_speech_webhook_configured() {
+        return self::config('speech_webhook_url') !== '';
     }
 
     public static function config($key, $default = '') {
@@ -339,8 +357,16 @@ class OraBooks_Ai_Providers {
             $language_hint = strtolower($matches[0]);
         }
 
-        if ($file_bytes && (self::is_openai_configured() || self::is_azure_openai_configured())) {
-            $transcript = self::transcribe_audio($file_bytes, $filename, $context['mime_type'] ?? 'audio/webm', $language_hint);
+        if ($file_bytes) {
+            $speech_provider = self::provider_name('speech');
+            if ($speech_provider === self::PROVIDER_SPEECH_WEBHOOK) {
+                $transcript = self::transcribe_audio_via_webhook($file_bytes, $filename, $context['mime_type'] ?? 'audio/webm', $language_hint);
+            } elseif ($speech_provider === self::PROVIDER_OPENAI || $speech_provider === self::PROVIDER_AZURE_OAI) {
+                $transcript = self::transcribe_audio($file_bytes, $filename, $context['mime_type'] ?? 'audio/webm', $language_hint);
+            } else {
+                $transcript = new WP_Error('speech_provider_unavailable', 'No speech provider is configured.');
+            }
+
             if (!is_wp_error($transcript) && $transcript !== '') {
                 $nlu = self::extract_voice_intent($transcript);
                 if (!is_wp_error($nlu)) {
@@ -358,6 +384,7 @@ class OraBooks_Ai_Providers {
                 orabooks_log_event('voice_provider_fallback', 'Speech transcription failed; using stub', 'warning', [
                     'error' => $transcript->get_error_message(),
                     'voice_id' => $voice_id,
+                    'provider' => $speech_provider,
                 ], null, null);
             }
         }
@@ -795,6 +822,57 @@ class OraBooks_Ai_Providers {
 
         $payload = json_decode($response['body'] ?? '', true);
         return trim((string) ($payload['text'] ?? ''));
+    }
+
+    private static function transcribe_audio_via_webhook($file_bytes, $filename, $mime_type, $language_hint = '') {
+        $url = trim((string) self::config('speech_webhook_url'));
+        if ($url === '') {
+            return new WP_Error('speech_webhook_unconfigured', 'Speech webhook URL is not configured.');
+        }
+
+        $headers = [
+            'Content-Type' => 'application/json',
+        ];
+        $token = trim((string) self::config('speech_webhook_token'));
+        if ($token !== '') {
+            $headers['Authorization'] = 'Bearer ' . $token;
+        }
+
+        $payload = [
+            'audio_base64' => base64_encode((string) $file_bytes),
+            'filename' => (string) $filename,
+            'mime_type' => (string) ($mime_type ?: 'audio/webm'),
+            'language_hint' => (string) $language_hint,
+            'request_source' => 'orabooks-sl052',
+        ];
+
+        $response = self::http_request($url, [
+            'method' => 'POST',
+            'headers' => $headers,
+            'body' => wp_json_encode($payload),
+            'timeout' => 90,
+        ]);
+
+        if (is_wp_error($response)) {
+            return $response;
+        }
+
+        $decoded = json_decode($response['body'] ?? '', true);
+        if (!is_array($decoded)) {
+            return new WP_Error('speech_webhook_invalid_response', 'Speech webhook returned invalid JSON.');
+        }
+
+        $text = trim((string) (
+            $decoded['text']
+            ?? $decoded['transcript']
+            ?? ($decoded['data']['text'] ?? $decoded['data']['transcript'] ?? '')
+        ));
+
+        if ($text === '') {
+            return new WP_Error('speech_webhook_empty_transcript', 'Speech webhook returned an empty transcript.');
+        }
+
+        return $text;
     }
 
     private static function extract_voice_intent($transcript) {
