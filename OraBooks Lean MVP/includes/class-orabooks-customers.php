@@ -1883,6 +1883,11 @@ class OraBooks_Customers {
      * last_paid_invoice_date and is_active status.
      */
     public static function record_payment($org_id, $invoice_id, $data) {
+        if (class_exists('OraBooks_AR_Wallet')) {
+            OraBooks_AR_Wallet::ensure_schema();
+            return OraBooks_AR_Wallet::record_payment($org_id, $invoice_id, $data);
+        }
+
         global $wpdb;
 
         $table_invoices = OraBooks_Database::table('invoices');
@@ -2477,7 +2482,20 @@ class OraBooks_Customers {
 
         $this->require_customer_access($user_id, (int) $customer->org_id, 'view_invoices');
 
-        orabooks_json_success($customer);
+        $payload = $customer;
+        if (class_exists('OraBooks_AR_Wallet')) {
+            $wallet = OraBooks_AR_Wallet::get_customer_wallet((int) $customer->id, (int) $customer->org_id);
+            if (!is_wp_error($wallet)) {
+                $payload = (object) array_merge((array) $customer, [
+                    'wallet_balance' => $wallet['wallet_balance'],
+                    'credit_balance' => $wallet['credit_balance'],
+                    'wallet_invoices' => $wallet['invoices'],
+                    'wallet_payments' => $wallet['payments'],
+                ]);
+            }
+        }
+
+        orabooks_json_success($payload);
     }
 
     /**
