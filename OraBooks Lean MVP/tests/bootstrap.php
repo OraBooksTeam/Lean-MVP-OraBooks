@@ -2062,6 +2062,11 @@ if (!file_exists($customers_file)) {
 }
 require_once $customers_file;
 
+$ar_wallet_file = __DIR__ . '/../includes/class-orabooks-ar-wallet.php';
+if (file_exists($ar_wallet_file)) {
+    require_once $ar_wallet_file;
+}
+
 $notifications_file = __DIR__ . '/../includes/class-orabooks-notifications.php';
 if (!file_exists($notifications_file)) {
     echo "ERROR: Cannot find class-orabooks-notifications.php at {$notifications_file}\n";
