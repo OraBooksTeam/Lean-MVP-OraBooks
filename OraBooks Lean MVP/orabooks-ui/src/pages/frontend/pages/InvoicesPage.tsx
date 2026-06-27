@@ -401,14 +401,17 @@ export default function InvoicesPage() {
 
     if (taxable <= 0) {
       setCreatePreview(null);
+      setTaxPreviewLoading(false);
       return;
     }
 
+    setTaxPreviewLoading(true);
     const res = await api.taxCalculate({
       org_id: orgId,
       amount: taxable,
       jurisdiction: createForm.jurisdiction,
     });
+    setTaxPreviewLoading(false);
     if (!res.error) {
       const data = (res as any).data;
       setCreatePreview({
@@ -419,6 +422,46 @@ export default function InvoicesPage() {
         subtotal_amount: subtotal,
       });
     }
+  };
+
+  const openCreateModal = async () => {
+    setShowCreate(true);
+    setError('');
+    setSuccess('');
+    setNextInvoiceNumber('');
+    setProducts([]);
+    setCreatePreview(null);
+    setLineItems([emptyLineItem()]);
+
+    if (!orgId) return;
+
+    setCreateModalLoading(true);
+    const [numberRes, productsRes] = await Promise.all([
+      api.invoiceNextNumber(orgId),
+      api.invoiceProductsSearch(orgId),
+    ]);
+    setCreateModalLoading(false);
+
+    if (!numberRes.error) {
+      setNextInvoiceNumber(String((numberRes as any).data?.invoice_number || ''));
+    }
+    if (!productsRes.error) {
+      setProducts(((productsRes as any).data?.products || []) as ProductOption[]);
+    }
+  };
+
+  const applyProductToLine = (index: number, product: ProductOption) => {
+    const unitPrice = productUnitPrice(product);
+    setLineItems((items) => items.map((row, i) => (
+      i === index
+        ? {
+            ...row,
+            description: product.name,
+            sku_code: product.sku || product.stock_keeping_unit || '',
+            unit_price: unitPrice > 0 ? String(unitPrice) : row.unit_price,
+          }
+        : row
+    )));
   };
 
   useEffect(() => {
@@ -475,6 +518,8 @@ export default function InvoicesPage() {
         discount_amount: '0',
       });
       setCreatePreview(null);
+      setNextInvoiceNumber('');
+      setProducts([]);
       await load();
     }
     setSaving(false);
@@ -706,7 +751,7 @@ export default function InvoicesPage() {
 
         <div className="flex flex-wrap justify-end gap-2">
           {canCreateInvoice && (
-            <Button size="sm" onClick={() => { setShowCreate(true); setError(''); setSuccess(''); }}>
+            <Button size="sm" onClick={() => { void openCreateModal(); }}>
               <Plus className="h-4 w-4" />
               Create invoice
             </Button>
@@ -1041,6 +1086,13 @@ export default function InvoicesPage() {
           <Modal title="Create invoice" onClose={() => setShowCreate(false)}>
             {error && <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div>}
             <div className="grid gap-4">
+              <Field label="Invoice number">
+                <Input
+                  value={createModalLoading ? 'Loading…' : (nextInvoiceNumber || '—')}
+                  readOnly
+                  className="bg-slate-50 font-semibold text-ink"
+                />
+              </Field>
               <Field label="Customer">
                 <select
                   value={createForm.customer_id}
