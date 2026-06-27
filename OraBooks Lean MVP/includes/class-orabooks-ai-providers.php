@@ -94,6 +94,7 @@ class OraBooks_Ai_Providers {
             'azure_document_intelligence_configured' => $azure_di,
             'vision_chat_configured' => $vision_chat,
             'speech_webhook_configured' => self::is_speech_webhook_configured(),
+            'speech_webhook_health' => self::speech_webhook_health_status(),
         ];
     }
 
@@ -114,6 +115,61 @@ class OraBooks_Ai_Providers {
 
     public static function is_speech_webhook_configured() {
         return self::config('speech_webhook_url') !== '';
+    }
+
+    private static function speech_webhook_health_status() {
+        if (!self::is_speech_webhook_configured()) {
+            return ['status' => 'not_configured'];
+        }
+
+        $enabled = strtolower(trim((string) self::config('speech_webhook_healthcheck_enabled', '0')));
+        if (!in_array($enabled, ['1', 'true', 'yes', 'on'], true)) {
+            return ['status' => 'disabled'];
+        }
+
+        $health_url = trim((string) self::config('speech_webhook_health_url'));
+        if ($health_url === '') {
+            $health_url = rtrim((string) self::config('speech_webhook_url'), '/') . '/health';
+        }
+
+        if (!preg_match('#^https?://#i', $health_url)) {
+            return ['status' => 'invalid_url'];
+        }
+
+        $headers = ['Accept' => 'application/json'];
+        $token = trim((string) self::config('speech_webhook_token'));
+        if ($token !== '') {
+            $headers['Authorization'] = 'Bearer ' . $token;
+        }
+
+        $response = self::http_request($health_url, [
+            'method' => 'GET',
+            'headers' => $headers,
+            'timeout' => 5,
+        ]);
+
+        if (is_wp_error($response)) {
+            return [
+                'status' => 'down',
+                'message' => sanitize_text_field($response->get_error_message()),
+            ];
+        }
+
+        $decoded = json_decode((string) ($response['body'] ?? ''), true);
+        if (is_array($decoded)) {
+            $version = sanitize_text_field((string) ($decoded['version'] ?? $decoded['model'] ?? ''));
+            $status = strtolower(trim((string) ($decoded['status'] ?? 'up')));
+            if ($status === '') {
+                $status = 'up';
+            }
+
+            return [
+                'status' => $status,
+                'version' => $version,
+            ];
+        }
+
+        return ['status' => 'up'];
     }
 
     public static function config($key, $default = '') {
