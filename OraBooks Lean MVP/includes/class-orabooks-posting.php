@@ -326,6 +326,10 @@ class OraBooks_Posting {
             return new WP_Error('unbalanced', 'Journal is unbalanced. Debits must equal credits.');
         }
 
+        if ((float) $totals->total_debit < 0.01 || (float) $totals->total_credit < 0.01) {
+            return new WP_Error('empty_journal', 'Journal line amounts are missing. Recreate the journal entry.');
+        }
+
         return true;
     }
     

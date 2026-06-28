@@ -167,6 +167,9 @@ export default function JournalsPage() {
   const lines: JournalLine[] = detail?.lines || [];
   const approvalHistory = detail?.approval_history || [];
   const wasRejected = approvalHistory.some((row: any) => row.action === 'reject');
+  const linesMissingAmounts = lines.length > 0 && lines.every(
+    (line) => Number(line.debit_amount) <= 0 && Number(line.credit_amount) <= 0
+  );
 
   const approveJournal = async (mfaOtp?: string) => {
     if (!selectedJournal) return;
@@ -229,7 +232,11 @@ export default function JournalsPage() {
       setEntryDescription('');
       const journalId = (res as any).data?.journal_id;
       await load();
-      if (journalId) setSelectedId(Number(journalId));
+      if (journalId) {
+        const nextId = Number(journalId);
+        setSelectedId(nextId);
+        await loadDetail(nextId, orgId);
+      }
     }
     setActionLoading(false);
   };
@@ -399,6 +406,12 @@ export default function JournalsPage() {
 
                 {selectedJournal.rejected_reason ? (
                   <p className="text-sm text-amber-700">Rejected: {selectedJournal.rejected_reason}</p>
+                ) : null}
+
+                {linesMissingAmounts ? (
+                  <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+                    Line amounts were not saved for this journal. Reject it (if submitted) and create a new entry with the correct amount.
+                  </div>
                 ) : null}
 
                 <WpLink to={`/attachments?resource_type=journal&resource_id=${selectedJournal.id}`}>
