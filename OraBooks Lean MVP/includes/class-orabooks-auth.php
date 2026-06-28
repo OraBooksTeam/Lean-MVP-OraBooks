@@ -761,9 +761,17 @@ class OraBooks_Auth {
         $partner_type = $user->pending_partner_type
             ?? $_SESSION['orabooks_partner_type']
             ?? 'individual';
+        if (!in_array($partner_type, ['individual', 'accountant', 'agency', 'reseller', 'strategic_partner'], true)) {
+            $partner_type = 'individual';
+        }
+
         $organization_name = $user->pending_organization_name
             ?? $_SESSION['orabooks_partner_org_name']
             ?? '';
+        $organization_name = sanitize_text_field((string) $organization_name);
+        if (!in_array($partner_type, ['agency', 'reseller', 'strategic_partner'], true)) {
+            $organization_name = '';
+        }
         
         // Create partner org
         $org_name = !empty($organization_name) ? $organization_name : 'Partner ' . $user->id;
@@ -834,6 +842,14 @@ class OraBooks_Auth {
     private static function generate_partner_code($user_id, $org_id, $partner_type, $organization_name) {
         global $wpdb;
         $table_codes = OraBooks_Database::table('partner_codes');
+
+        if (!in_array($partner_type, ['individual', 'accountant', 'agency', 'reseller', 'strategic_partner'], true)) {
+            $partner_type = 'individual';
+        }
+        $organization_name = sanitize_text_field((string) $organization_name);
+        if (!in_array($partner_type, ['agency', 'reseller', 'strategic_partner'], true)) {
+            $organization_name = '';
+        }
         
         // Disable any previous active codes
         $wpdb->query($wpdb->prepare(
