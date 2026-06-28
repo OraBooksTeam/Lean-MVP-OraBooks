@@ -7,6 +7,7 @@ import Button from '@/components/Button';
 import Input from '@/components/Input';
 import { api } from '../api';
 import ClientShell from '../components/ClientShell';
+import CreateCustomerModal, { type CreatedCustomer } from '../components/CreateCustomerModal';
 import ResourceAttachmentsPanel from '../components/ResourceAttachmentsPanel';
 import { Download, FileText, Info, Paperclip, Percent, Plus, RefreshCw, Sparkles, Trash2, Wallet } from 'lucide-react';
 
@@ -135,6 +136,7 @@ export default function InvoicesPage() {
   const [products, setProducts] = useState<ProductOption[]>([]);
   const [createModalLoading, setCreateModalLoading] = useState(false);
   const [taxPreviewLoading, setTaxPreviewLoading] = useState(false);
+  const [showCreateCustomer, setShowCreateCustomer] = useState(false);
 
   const [paymentInvoice, setPaymentInvoice] = useState<Invoice | null>(null);
   const [paymentForm, setPaymentForm] = useState({
@@ -427,6 +429,7 @@ export default function InvoicesPage() {
 
   const openCreateModal = async () => {
     setShowCreate(true);
+    setShowCreateCustomer(false);
     setError('');
     setSuccess('');
     setNextInvoiceNumber('');
@@ -449,6 +452,24 @@ export default function InvoicesPage() {
     if (!productsRes.error) {
       setProducts(((productsRes as any).data?.products || []) as ProductOption[]);
     }
+  };
+
+  const handleCustomerCreated = (customer: CreatedCustomer) => {
+    setCustomers((prev) => {
+      if (prev.some((entry) => entry.id === customer.id)) {
+        return prev;
+      }
+      return [
+        {
+          id: customer.id,
+          display_name: customer.display_name,
+          email: customer.email,
+        },
+        ...prev,
+      ];
+    });
+    setCreateForm((prev) => ({ ...prev, customer_id: String(customer.id) }));
+    setShowCreateCustomer(false);
   };
 
   const applyProductToLine = (index: number, product: ProductOption) => {
