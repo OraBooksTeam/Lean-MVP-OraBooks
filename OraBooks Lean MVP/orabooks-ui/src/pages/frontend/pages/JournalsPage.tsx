@@ -3,6 +3,7 @@ import WpLink from '../components/WpLink';
 
 import Button from '@/components/Button';
 import Input from '@/components/Input';
+import SearchableSelect from '@/components/SearchableSelect';
 import { api } from '../api';
 import ClientShell from '../components/ClientShell';
 import { Bot, Landmark, Paperclip, Plus, RefreshCw, Send } from 'lucide-react';
@@ -148,6 +149,20 @@ export default function JournalsPage() {
     [accounts]
   );
 
+  const accountOptions = useMemo(
+    () => activeAccounts.map((account) => {
+      const code = accountCode(account);
+      const name = account.name || '';
+      const label = name ? `${code} — ${name}` : code;
+      return {
+        value: code,
+        label,
+        searchText: `${code} ${name} ${account.type || ''}`.toLowerCase(),
+      };
+    }),
+    [activeAccounts]
+  );
+
   const lines: JournalLine[] = detail?.lines || [];
   const approvalHistory = detail?.approval_history || [];
   const wasRejected = approvalHistory.some((row: any) => row.action === 'reject');
@@ -266,19 +281,23 @@ export default function JournalsPage() {
           <div className="glass-panel grid gap-4 p-5 md:grid-cols-2">
             <Input label="Transaction date" type="date" value={createDate} onChange={(e) => setCreateDate(e.target.value)} />
             <Input label="Amount" type="number" min="0" step="0.01" value={entryAmount} onChange={(e) => setEntryAmount(e.target.value)} placeholder="0.00" />
-            <AccountSelect
+            <SearchableSelect
               label="Debit account"
               value={debitAccount}
               onChange={setDebitAccount}
-              accounts={activeAccounts}
+              options={accountOptions}
               placeholder="Select debit account…"
+              searchPlaceholder="Search by code or name…"
+              emptyMessage="No accounts found"
             />
-            <AccountSelect
+            <SearchableSelect
               label="Credit account"
               value={creditAccount}
               onChange={setCreditAccount}
-              accounts={activeAccounts}
+              options={accountOptions}
               placeholder="Select credit account…"
+              searchPlaceholder="Search by code or name…"
+              emptyMessage="No accounts found"
             />
             <div className="md:col-span-2">
               <Input label="Description" value={entryDescription} onChange={(e) => setEntryDescription(e.target.value)} placeholder="Journal entry memo" />
@@ -576,46 +595,6 @@ export default function JournalsPage() {
 
 function accountCode(account: CoaAccount) {
   return account.account_code || account.code || '';
-}
-
-function AccountSelect({
-  label,
-  value,
-  onChange,
-  accounts,
-  placeholder,
-}: {
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-  accounts: CoaAccount[];
-  placeholder: string;
-}) {
-  const id = label.toLowerCase().replace(/\s+/g, '-');
-
-  return (
-    <div className="w-full">
-      <label htmlFor={id} className="mb-1.5 block text-sm font-medium text-ink-secondary">
-        {label}
-      </label>
-      <select
-        id={id}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="w-full rounded-lg border border-border bg-white px-3.5 py-2.5 text-sm text-ink shadow-sm transition-all duration-200 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-      >
-        <option value="">{placeholder}</option>
-        {accounts.map((account) => {
-          const code = accountCode(account);
-          return (
-            <option key={String(account.id || code)} value={code}>
-              {code}{account.name ? ` — ${account.name}` : ''}
-            </option>
-          );
-        })}
-      </select>
-    </div>
-  );
 }
 
 function StatusBadge({ status, rejected = false }: { status: string; rejected?: boolean }) {
