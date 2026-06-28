@@ -113,6 +113,16 @@ class OraBooks_Posting {
     }
     
     /**
+     * Normalize debit/credit keys from API payloads (debit vs debit_amount).
+     */
+    public static function normalize_journal_line_amounts(array $line) {
+        return [
+            'debit'  => round((float) ($line['debit'] ?? $line['debit_amount'] ?? 0), 2),
+            'credit' => round((float) ($line['credit'] ?? $line['credit_amount'] ?? 0), 2),
+        ];
+    }
+
+    /**
      * Add lines to a journal
      */
     public static function add_lines($journal_id, $lines) {
@@ -135,8 +145,9 @@ class OraBooks_Posting {
                 return new WP_Error('invalid_account', "Account not found: {$line['account_code']}");
             }
 
-            $debit = (float) ($line['debit'] ?? $line['debit_amount'] ?? 0);
-            $credit = (float) ($line['credit'] ?? $line['credit_amount'] ?? 0);
+            $amounts = self::normalize_journal_line_amounts($line);
+            $debit = $amounts['debit'];
+            $credit = $amounts['credit'];
             
             $wpdb->insert($table_lines, [
                 'journal_id' => $journal_id,
