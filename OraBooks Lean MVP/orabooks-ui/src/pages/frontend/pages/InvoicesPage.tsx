@@ -8,6 +8,7 @@ import Input from '@/components/Input';
 import { api } from '../api';
 import ClientShell from '../components/ClientShell';
 import CreateCustomerModal, { type CreatedCustomer } from '../components/CreateCustomerModal';
+import CreateProductModal, { type CreatedProduct } from '../components/CreateProductModal';
 import ResourceAttachmentsPanel from '../components/ResourceAttachmentsPanel';
 import { Download, FileText, Info, Paperclip, Percent, Plus, RefreshCw, Sparkles, Trash2, Wallet } from 'lucide-react';
 
@@ -137,6 +138,7 @@ export default function InvoicesPage() {
   const [createModalLoading, setCreateModalLoading] = useState(false);
   const [taxPreviewLoading, setTaxPreviewLoading] = useState(false);
   const [showCreateCustomer, setShowCreateCustomer] = useState(false);
+  const [createProductLineIndex, setCreateProductLineIndex] = useState<number | null>(null);
 
   const [paymentInvoice, setPaymentInvoice] = useState<Invoice | null>(null);
   const [paymentForm, setPaymentForm] = useState({
@@ -430,6 +432,7 @@ export default function InvoicesPage() {
   const openCreateModal = async () => {
     setShowCreate(true);
     setShowCreateCustomer(false);
+    setCreateProductLineIndex(null);
     setError('');
     setSuccess('');
     setNextInvoiceNumber('');
@@ -471,6 +474,32 @@ export default function InvoicesPage() {
     });
     setCreateForm((prev) => ({ ...prev, customer_id: String(customer.id) }));
     setShowCreateCustomer(false);
+  };
+
+  const toProductOption = (product: CreatedProduct): ProductOption => ({
+    id: product.id,
+    sku: product.sku || product.stock_keeping_unit || '',
+    name: product.name || '',
+    stock_keeping_unit: product.stock_keeping_unit,
+    sales_price: product.sales_price,
+    price: product.price,
+    mrp: product.mrp,
+    tax_name: product.tax_name,
+    tax_percent: product.tax_percent,
+  });
+
+  const handleProductCreated = (product: CreatedProduct) => {
+    const option = toProductOption(product);
+    setProducts((prev) => {
+      if (prev.some((entry) => entry.id === option.id)) {
+        return prev;
+      }
+      return [option, ...prev];
+    });
+    if (createProductLineIndex !== null) {
+      applyProductToLine(createProductLineIndex, option);
+    }
+    setCreateProductLineIndex(null);
   };
 
   const applyProductToLine = (index: number, product: ProductOption) => {

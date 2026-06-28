@@ -1011,7 +1011,7 @@ class OraBooks_Inventory {
     public function ajax_product_create() {
         $user_id = $this->current_user_id();
         $org_id = intval($_POST['org_id'] ?? 0);
-        $this->require_inventory_permission($user_id, $org_id, ['manage_org_settings']);
+        $this->require_inventory_permission($user_id, $org_id, ['manage_org_settings', 'create_invoice']);
 
         if (!empty($_FILES['item_image']['name'])) {
             if (!function_exists('media_handle_upload')) {
@@ -1067,7 +1067,7 @@ class OraBooks_Inventory {
     public function ajax_lookups_list() {
         $user_id = $this->current_user_id();
         $org_id = intval($_GET['org_id'] ?? 0);
-        $this->require_inventory_permission($user_id, $org_id, ['view_reports']);
+        $this->require_inventory_permission($user_id, $org_id, ['view_reports', 'create_invoice']);
         $lookup_type = sanitize_key($_GET['lookup_type'] ?? '');
         $lookups = self::get_lookups_list($org_id, $lookup_type !== '' ? $lookup_type : null);
         if ($lookup_type !== '') {
