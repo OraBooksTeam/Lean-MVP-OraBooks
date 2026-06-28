@@ -200,7 +200,7 @@ This section governs:
 1. Open Admin Users.
 2. Review:
    - Verified email status
-n   - 2FA status
+  - 2FA status
    - Org ID
 3. If needed, run 2FA recovery with justification.
 
