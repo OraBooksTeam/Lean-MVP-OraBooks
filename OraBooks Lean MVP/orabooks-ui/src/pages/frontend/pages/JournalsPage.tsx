@@ -37,6 +37,7 @@ type CoaAccount = {
   code?: string;
   account_code?: string;
   name?: string;
+  type?: string;
   normal_balance?: string;
   is_active?: number;
 };
