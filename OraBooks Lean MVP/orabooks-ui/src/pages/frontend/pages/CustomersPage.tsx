@@ -5,6 +5,11 @@ import Button from '@/components/Button';
 import Input from '@/components/Input';
 import { api } from '../api';
 import ClientShell from '../components/ClientShell';
+import CustomerFormFields, {
+  customerFormPayload,
+  emptyCustomerForm,
+  type CustomerFormState,
+} from '../components/CustomerFormFields';
 import { Info, Paperclip, Pencil, Plus, RefreshCw, Upload, Users } from 'lucide-react';
 
 type Customer = {
@@ -44,72 +49,10 @@ type Customer = {
   notes?: string | null;
 };
 
-type CustomerFormState = {
-  customer_code: string;
-  name: string;
-  email: string;
-  mobile: string;
-  phone: string;
-  gstin: string;
-  tax_number: string;
-  opening_balance: string;
-  country_id: string;
-  state_id: string;
-  city: string;
-  postcode: string;
-  address: string;
-  location_link: string;
-  ship_country_id: string;
-  ship_state_id: string;
-  ship_city: string;
-  ship_postcode: string;
-  ship_address: string;
-  price_level_type: 'Increase' | 'Decrease';
-  price_level: string;
-  notes: string;
-  payment_terms: string;
-  default_currency: string;
-  credit_limit: string;
-  credit_hold: boolean;
-  auto_apply_credit: boolean;
-};
-
 type CountryStateOption = {
   name: string;
   states: string[];
 };
-
-const selectClassName = 'w-full rounded-lg border border-border bg-white px-3.5 py-2.5 text-sm text-ink shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20';
-
-const emptyCustomerForm = (): CustomerFormState => ({
-  customer_code: '',
-  name: '',
-  email: '',
-  mobile: '',
-  phone: '',
-  gstin: '',
-  tax_number: '',
-  opening_balance: '0',
-  country_id: '',
-  state_id: '',
-  city: '',
-  postcode: '',
-  address: '',
-  location_link: '',
-  ship_country_id: '',
-  ship_state_id: '',
-  ship_city: '',
-  ship_postcode: '',
-  ship_address: '',
-  price_level_type: 'Increase',
-  price_level: '0',
-  notes: '',
-  payment_terms: '30',
-  default_currency: 'USD',
-  credit_limit: '0',
-  credit_hold: false,
-  auto_apply_credit: true,
-});
 
 function customerLabel(customer: Pick<Customer, 'id' | 'display_name' | 'email'>) {
   return customer.display_name?.trim() || customer.email || `Customer #${customer.id}`;
@@ -496,7 +439,7 @@ export default function CustomersPage() {
         {showCustomerForm && (
           <Modal title="Add customer" onClose={() => setShowCustomerForm(false)}>
             {error && <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div>}
-            <CustomerFields form={customerForm} onChange={setCustomerForm} />
+            <CustomerFormFields form={customerForm} onChange={setCustomerForm} />
             <div className="mt-6 flex justify-end gap-2">
               <Button variant="secondary" onClick={() => setShowCustomerForm(false)}>Cancel</Button>
               <Button onClick={handleCreateCustomer} loading={saving} disabled={!customerForm.name.trim()}>
@@ -510,7 +453,7 @@ export default function CustomersPage() {
           <Modal title="Edit customer" onClose={() => setEditing(null)}>
             <p className="mb-4 text-sm text-slate-600">{customerLabel(editing)}</p>
             {error && <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div>}
-            <CustomerFields form={editForm} onChange={setEditForm} />
+            <CustomerFormFields form={editForm} onChange={setEditForm} />
             <div className="mt-6 flex justify-end gap-2">
               <Button variant="secondary" onClick={() => setEditing(null)}>Cancel</Button>
               <Button onClick={saveCustomer} loading={saving} disabled={!editForm.name.trim()}>Save changes</Button>
