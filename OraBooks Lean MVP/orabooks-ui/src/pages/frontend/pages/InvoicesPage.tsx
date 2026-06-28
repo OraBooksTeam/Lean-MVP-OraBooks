@@ -1254,12 +1254,28 @@ export default function InvoicesPage() {
                         <Input value={line.sku_code} onChange={(e) => setLineItems((items) => items.map((row, i) => i === index ? { ...row, sku_code: e.target.value } : row))} placeholder="Code" />
                       </div>
                       <div className="sm:col-span-4">
-                        <ProductAutocomplete
-                          value={line.description}
-                          products={products}
-                          onChange={(value) => setLineItems((items) => items.map((row, i) => i === index ? { ...row, description: value } : row))}
-                          onSelectProduct={(product) => applyProductToLine(index, product)}
-                        />
+                        <div className="flex gap-2">
+                          <div className="min-w-0 flex-1">
+                            <ProductAutocomplete
+                              value={line.description}
+                              products={products}
+                              onChange={(value) => setLineItems((items) => items.map((row, i) => i === index ? { ...row, description: value } : row))}
+                              onSelectProduct={(product) => applyProductToLine(index, product)}
+                            />
+                          </div>
+                          {canCreateInvoice && (
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="secondary"
+                              title="Add product"
+                              className="shrink-0 self-start px-2.5"
+                              onClick={() => setCreateProductLineIndex(index)}
+                            >
+                              <Plus className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
                       </div>
                       <div className="sm:col-span-2">
                         <Input type="number" min="0" step="0.01" value={line.quantity} onChange={(e) => setLineItems((items) => items.map((row, i) => i === index ? { ...row, quantity: e.target.value } : row))} placeholder="Qty" />
@@ -1336,6 +1352,15 @@ export default function InvoicesPage() {
             defaultCurrency={createForm.currency || 'USD'}
             onClose={() => setShowCreateCustomer(false)}
             onCreated={handleCustomerCreated}
+          />
+        )}
+
+        {createProductLineIndex !== null && orgId && (
+          <CreateProductModal
+            open={createProductLineIndex !== null}
+            orgId={orgId}
+            onClose={() => setCreateProductLineIndex(null)}
+            onCreated={handleProductCreated}
           />
         )}
 
