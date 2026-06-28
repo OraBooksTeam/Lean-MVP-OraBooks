@@ -236,8 +236,8 @@ export default function JournalsPage() {
           <div className="glass-panel grid gap-4 p-5 md:grid-cols-2">
             <Input label="Transaction date" type="date" value={createDate} onChange={(e) => setCreateDate(e.target.value)} />
             <Input label="Amount" type="number" min="0" step="0.01" value={entryAmount} onChange={(e) => setEntryAmount(e.target.value)} placeholder="0.00" />
-            <Input label="Debit account code" value={debitAccount} onChange={(e) => setDebitAccount(e.target.value)} placeholder="e.g. 1010" />
-            <Input label="Credit account code" value={creditAccount} onChange={(e) => setCreditAccount(e.target.value)} placeholder="e.g. 4010" />
+            <Input label="Debit account" value={debitAccount} onChange={(e) => setDebitAccount(e.target.value)} placeholder="e.g. 1010" />
+            <Input label="Credit account" value={creditAccount} onChange={(e) => setCreditAccount(e.target.value)} placeholder="e.g. 4010" />
             <div className="md:col-span-2">
               <Input label="Description" value={entryDescription} onChange={(e) => setEntryDescription(e.target.value)} placeholder="Journal entry memo" />
             </div>
