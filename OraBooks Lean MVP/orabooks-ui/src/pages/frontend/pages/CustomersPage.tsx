@@ -90,37 +90,6 @@ function customerToForm(customer: Customer): CustomerFormState {
   };
 }
 
-function customerFormPayload(form: CustomerFormState) {
-  return {
-    display_name: form.name.trim(),
-    email: form.email.trim(),
-    mobile: form.mobile.trim(),
-    phone: form.phone.trim(),
-    gstin: form.gstin.trim(),
-    tax_number: form.tax_number.trim(),
-    opening_balance: parseFloat(form.opening_balance) || 0,
-    country_id: form.country_id.trim(),
-    state_id: form.state_id.trim(),
-    city: form.city.trim(),
-    postcode: form.postcode.trim(),
-    address: form.address.trim(),
-    location_link: form.location_link.trim(),
-    ship_country_id: form.ship_country_id.trim(),
-    ship_state_id: form.ship_state_id.trim(),
-    ship_city: form.ship_city.trim(),
-    ship_postcode: form.ship_postcode.trim(),
-    ship_address: form.ship_address.trim(),
-    price_level_type: form.price_level_type,
-    price_level: parseFloat(form.price_level) || 0,
-    notes: form.notes.trim(),
-    payment_terms: parseInt(form.payment_terms, 10) || 30,
-    default_currency: form.default_currency.trim() || 'USD',
-    credit_limit: parseFloat(form.credit_limit) || 0,
-    credit_hold: form.credit_hold ? 1 : 0,
-    auto_apply_credit: form.auto_apply_credit ? 1 : 0,
-  };
-}
-
 export default function CustomersPage() {
   const [context, setContext] = useState<any>(null);
   const [orgId, setOrgId] = useState<number | null>(null);
