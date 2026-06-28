@@ -134,13 +134,16 @@ class OraBooks_Posting {
             if (!$account) {
                 return new WP_Error('invalid_account', "Account not found: {$line['account_code']}");
             }
+
+            $debit = (float) ($line['debit'] ?? $line['debit_amount'] ?? 0);
+            $credit = (float) ($line['credit'] ?? $line['credit_amount'] ?? 0);
             
             $wpdb->insert($table_lines, [
                 'journal_id' => $journal_id,
                 'account_id' => $account->id,
                 'account_code' => $line['account_code'],
-                'debit_amount' => $line['debit'] ?? 0,
-                'credit_amount' => $line['credit'] ?? 0,
+                'debit_amount' => $debit,
+                'credit_amount' => $credit,
                 'description' => $line['description'] ?? ''
             ], ['%d', '%d', '%s', '%f', '%f', '%s']);
 
@@ -157,8 +160,8 @@ class OraBooks_Posting {
                 }
             }
             
-            $total_debit += $line['debit'] ?? 0;
-            $total_credit += $line['credit'] ?? 0;
+            $total_debit += $debit;
+            $total_credit += $credit;
         }
         
         // Update journal total

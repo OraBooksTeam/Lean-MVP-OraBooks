@@ -425,8 +425,8 @@ export default function JournalsPage() {
                             <div className="font-mono font-semibold text-ink">{line.account_code}</div>
                             {line.description ? <div className="text-xs text-slate-500">{line.description}</div> : null}
                           </td>
-                          <td className="px-4 py-2 text-right text-slate-700">{line.debit_amount ? money(line.debit_amount) : '—'}</td>
-                          <td className="px-4 py-2 text-right text-slate-700">{line.credit_amount ? money(line.credit_amount) : '—'}</td>
+                          <td className="px-4 py-2 text-right text-slate-700">{Number(line.debit_amount) > 0 ? money(line.debit_amount) : '—'}</td>
+                          <td className="px-4 py-2 text-right text-slate-700">{Number(line.credit_amount) > 0 ? money(line.credit_amount) : '—'}</td>
                         </tr>
                       ))}
                     </tbody>
