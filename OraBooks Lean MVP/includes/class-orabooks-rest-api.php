@@ -518,7 +518,9 @@ class OraBooks_Rest_Api {
         return rest_ensure_response([
             'journal' => OraBooks_Posting::format_journal($journal),
             'lines' => array_map(
-                [OraBooks_Posting::class, 'format_journal_line'],
+                static function ($line) use ($context) {
+                    return OraBooks_Posting::format_journal_line($line, (int) $context['org_id']);
+                },
                 OraBooks_Posting::get_journal_lines($journal_id) ?: []
             ),
             'approval_history' => array_map(

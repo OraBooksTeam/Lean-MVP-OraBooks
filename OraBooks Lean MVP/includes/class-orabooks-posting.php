@@ -1825,7 +1825,7 @@ class OraBooks_Posting {
         ];
     }
 
-    public static function format_journal_line($line) {
+    public static function format_journal_line($line, $org_id = 0) {
         $formatted = [
             'id'            => (int) $line->id,
             'account_code'  => $line->account_code,
@@ -1833,6 +1833,13 @@ class OraBooks_Posting {
             'credit_amount' => (float) $line->credit_amount,
             'description'   => $line->description,
         ];
+
+        if (!empty($line->account_id) && class_exists('OraBooks_COA') && (int) $org_id > 0) {
+            $account = OraBooks_COA::get_account((int) $line->account_id, (int) $org_id);
+            if ($account && !empty($account->name)) {
+                $formatted['account_name'] = $account->name;
+            }
+        }
 
         if (class_exists('OraBooks_Classification')) {
             $formatted['classification'] = OraBooks_Classification::format_classification($line);
@@ -2046,7 +2053,12 @@ class OraBooks_Posting {
 
         orabooks_json_success([
             'journal' => self::format_journal($journal),
-            'lines'   => array_map([self::class, 'format_journal_line'], $lines ?: []),
+            'lines'   => array_map(
+                static function ($line) use ($org_id) {
+                    return self::format_journal_line($line, $org_id);
+                },
+                $lines ?: []
+            ),
             'approval_history' => array_map([self::class, 'format_approval_history_row'], $history ?: []),
         ]);
     }

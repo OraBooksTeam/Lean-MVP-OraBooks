@@ -27,6 +27,7 @@ type Journal = {
 type JournalLine = {
   id: number;
   account_code: string;
+  account_name?: string;
   debit_amount: number;
   credit_amount: number;
   description?: string;
@@ -163,6 +164,17 @@ export default function JournalsPage() {
     }),
     [activeAccounts]
   );
+
+  const accountNameByCode = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const account of accounts) {
+      const code = accountCode(account);
+      if (code && account.name) {
+        map.set(code, account.name);
+      }
+    }
+    return map;
+  }, [accounts]);
 
   const lines: JournalLine[] = detail?.lines || [];
   const approvalHistory = detail?.approval_history || [];
@@ -435,7 +447,9 @@ export default function JournalsPage() {
                       {lines.map((line) => (
                         <tr key={line.id}>
                           <td className="px-4 py-2">
-                            <div className="font-mono font-semibold text-ink">{line.account_code}</div>
+                            <div className="font-semibold text-ink">
+                              {formatAccountLabel(line.account_code, line.account_name || accountNameByCode.get(line.account_code))}
+                            </div>
                             {line.description ? <div className="text-xs text-slate-500">{line.description}</div> : null}
                           </td>
                           <td className="px-4 py-2 text-right text-slate-700">{Number(line.debit_amount) > 0 ? money(line.debit_amount) : '—'}</td>
@@ -609,6 +623,17 @@ export default function JournalsPage() {
 
 function accountCode(account: CoaAccount) {
   return account.account_code || account.code || '';
+}
+
+function formatAccountLabel(code: string, name?: string) {
+  if (!code) return '—';
+  if (!name) return code;
+  return (
+    <>
+      <span className="font-mono">{code}</span>
+      <span className="text-slate-600">{` — ${name}`}</span>
+    </>
+  );
 }
 
 function StatusBadge({ status, rejected = false }: { status: string; rejected?: boolean }) {
