@@ -27,6 +27,7 @@
                 <label for="reg-partner-type"><?php esc_html_e('Partner Type', 'orabooks'); ?></label>
                 <select id="reg-partner-type">
                     <option value="individual"><?php esc_html_e('Individual', 'orabooks'); ?></option>
+                    <option value="accountant"><?php esc_html_e('Accountant', 'orabooks'); ?></option>
                     <option value="agency"><?php esc_html_e('Agency', 'orabooks'); ?></option>
                     <option value="reseller"><?php esc_html_e('Reseller', 'orabooks'); ?></option>
                     <option value="strategic_partner"><?php esc_html_e('Strategic Partner', 'orabooks'); ?></option>
@@ -40,12 +41,13 @@
                 <label for="reg-partner-code"><?php esc_html_e('Partner Code (optional)', 'orabooks'); ?></label>
                 <input type="text" id="reg-partner-code" autocomplete="off">
             </div>
-            <div class="orabooks-form-group">
+            <div class="orabooks-form-group orabooks-partner-only" style="display:none;">
                 <label>
                     <input type="checkbox" id="reg-accept-terms" value="1">
-                    <?php esc_html_e('I accept the terms and conditions', 'orabooks'); ?>
+                    <?php esc_html_e('I agree to Partner Terms v1.0', 'orabooks'); ?>
                 </label>
             </div>
+            <input type="hidden" id="reg-terms-version" value="1.0">
             <div class="orabooks-form-actions">
                 <button type="submit" class="orabooks-btn orabooks-btn-primary"><?php esc_html_e('Create Account', 'orabooks'); ?></button>
             </div>
