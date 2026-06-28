@@ -17,6 +17,7 @@ type SearchableSelectProps = {
   searchPlaceholder?: string;
   emptyMessage?: string;
   disabled?: boolean;
+  ariaLabel?: string;
 };
 
 export default function SearchableSelect({
@@ -28,6 +29,7 @@ export default function SearchableSelect({
   searchPlaceholder = 'Search…',
   emptyMessage = 'No results found',
   disabled = false,
+  ariaLabel,
 }: SearchableSelectProps) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
@@ -77,6 +79,7 @@ export default function SearchableSelect({
         disabled={disabled}
         aria-expanded={open}
         aria-haspopup="listbox"
+        aria-label={ariaLabel || label}
         onClick={() => {
           if (disabled) return;
           setOpen((current) => !current);
@@ -112,7 +115,7 @@ export default function SearchableSelect({
               <li className="px-3 py-2 text-sm text-slate-500">{emptyMessage}</li>
             ) : (
               filtered.map((option) => (
-                <li key={option.value} role="option" aria-selected={option.value === value}>
+                <li key={option.value || '__empty__'} role="option" aria-selected={option.value === value}>
                   <button
                     type="button"
                     className={cn(

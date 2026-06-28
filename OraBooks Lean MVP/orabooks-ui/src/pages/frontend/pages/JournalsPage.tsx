@@ -176,6 +176,14 @@ export default function JournalsPage() {
     return map;
   }, [accounts]);
 
+  const filterAccountOptions = useMemo(
+    () => [
+      { value: '', label: 'All accounts', searchText: 'all accounts' },
+      ...accountOptions,
+    ],
+    [accountOptions]
+  );
+
   const lines: JournalLine[] = detail?.lines || [];
   const approvalHistory = detail?.approval_history || [];
   const wasRejected = approvalHistory.some((row: any) => row.action === 'reject');
@@ -283,7 +291,15 @@ export default function JournalsPage() {
             </select>
             <Input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} aria-label="Filter from date" />
             <Input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} aria-label="Filter to date" />
-            <Input value={accountFilter} onChange={(e) => setAccountFilter(e.target.value)} placeholder="Account code" />
+            <SearchableSelect
+              value={accountFilter}
+              onChange={setAccountFilter}
+              options={filterAccountOptions}
+              placeholder="All accounts"
+              searchPlaceholder="Search by code or name…"
+              emptyMessage="No accounts found"
+              ariaLabel="Filter by account"
+            />
           </div>
           <div className="flex gap-2">
             <Button onClick={() => setShowCreate((v) => !v)} size="sm">
