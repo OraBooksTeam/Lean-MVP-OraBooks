@@ -369,6 +369,44 @@ class OraBooks_Posting_Test extends TestCase
     }
 
     #[Test]
+    public function test_normalize_journal_line_amounts_accepts_api_keys()
+    {
+        $legacy = OraBooks_Posting::normalize_journal_line_amounts([
+            'debit' => 10,
+            'credit' => 0,
+        ]);
+        $modern = OraBooks_Posting::normalize_journal_line_amounts([
+            'debit_amount' => 25.5,
+            'credit_amount' => 0,
+        ]);
+
+        $this->assertSame(10.0, $legacy['debit']);
+        $this->assertSame(0.0, $legacy['credit']);
+        $this->assertSame(25.5, $modern['debit']);
+        $this->assertSame(0.0, $modern['credit']);
+    }
+
+    #[Test]
+    public function test_validate_journal_balance_rejects_zero_amounts()
+    {
+        global $wpdb;
+
+        $wpdb->test_get_row_callback = function ($query) {
+            if (stripos($query, 'SUM(debit_amount)') !== false) {
+                return (object) ['total_debit' => 0, 'total_credit' => 0];
+            }
+            return null;
+        };
+
+        $method = new ReflectionMethod(OraBooks_Posting::class, 'validate_journal_balance');
+        $method->setAccessible(true);
+        $result = $method->invoke(null, 8);
+
+        $this->assertInstanceOf(WP_Error::class, $result);
+        $this->assertSame('empty_journal', $result->get_error_code());
+    }
+
+    #[Test]
     public function test_post_journal_atomic_is_idempotent_when_already_locked()
     {
         global $wpdb;
