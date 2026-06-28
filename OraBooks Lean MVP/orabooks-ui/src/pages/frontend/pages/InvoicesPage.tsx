@@ -1097,27 +1097,29 @@ export default function InvoicesPage() {
           >
             {error && <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div>}
             <div className="grid gap-4">
-              <Field label="Invoice number">
-                <Input
-                  value={createModalLoading ? 'Loading…' : (nextInvoiceNumber || '—')}
-                  readOnly
-                  className="bg-slate-50 font-semibold text-ink"
-                />
-              </Field>
-              <Field label="Customer">
-                <select
-                  value={createForm.customer_id}
-                  onChange={(e) => setCreateForm((p) => ({ ...p, customer_id: e.target.value }))}
-                  className="w-full rounded-lg border border-border px-3 py-2.5 text-sm"
-                >
-                  <option value="">Select customer…</option>
-                  {customers.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.display_name?.trim() || c.email || `Customer #${c.id}`}
-                    </option>
-                  ))}
-                </select>
-              </Field>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Field label="Invoice number">
+                  <Input
+                    value={createModalLoading ? 'Loading…' : (nextInvoiceNumber || '—')}
+                    readOnly
+                    className="bg-slate-50 font-semibold text-ink"
+                  />
+                </Field>
+                <Field label="Customer">
+                  <select
+                    value={createForm.customer_id}
+                    onChange={(e) => setCreateForm((p) => ({ ...p, customer_id: e.target.value }))}
+                    className="w-full rounded-lg border border-border px-3 py-2.5 text-sm"
+                  >
+                    <option value="">Select customer…</option>
+                    {customers.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.display_name?.trim() || c.email || `Customer #${c.id}`}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
+              </div>
               <div className="grid gap-4 sm:grid-cols-2">
                 <Field label="Invoice date">
                   <Input type="date" value={createForm.invoice_date} onChange={(e) => setCreateForm((p) => ({ ...p, invoice_date: e.target.value }))} />
@@ -1126,23 +1128,25 @@ export default function InvoicesPage() {
                   <Input value={createForm.currency} onChange={(e) => setCreateForm((p) => ({ ...p, currency: e.target.value.toUpperCase() }))} maxLength={3} />
                 </Field>
               </div>
-              <div className="flex items-center gap-2 text-sm text-slate-700">
-                <input
-                  type="checkbox"
-                  checked={createForm.use_due_date}
-                  onChange={(e) => setCreateForm((p) => ({ ...p, use_due_date: e.target.checked }))}
-                />
-                Use explicit due date
+              <div className="grid gap-4 sm:grid-cols-2 sm:items-end">
+                <label className="flex items-center gap-2 pb-2.5 text-sm text-slate-700">
+                  <input
+                    type="checkbox"
+                    checked={createForm.use_due_date}
+                    onChange={(e) => setCreateForm((p) => ({ ...p, use_due_date: e.target.checked }))}
+                  />
+                  Use explicit due date
+                </label>
+                {createForm.use_due_date ? (
+                  <Field label="Due date">
+                    <Input type="date" value={createForm.due_date} onChange={(e) => setCreateForm((p) => ({ ...p, due_date: e.target.value }))} />
+                  </Field>
+                ) : (
+                  <Field label="Due days">
+                    <Input type="number" min="1" value={createForm.due_days} onChange={(e) => setCreateForm((p) => ({ ...p, due_days: e.target.value }))} />
+                  </Field>
+                )}
               </div>
-              {createForm.use_due_date ? (
-                <Field label="Due date">
-                  <Input type="date" value={createForm.due_date} onChange={(e) => setCreateForm((p) => ({ ...p, due_date: e.target.value }))} />
-                </Field>
-              ) : (
-                <Field label="Due days">
-                  <Input type="number" min="1" value={createForm.due_days} onChange={(e) => setCreateForm((p) => ({ ...p, due_days: e.target.value }))} />
-                </Field>
-              )}
               <div className="grid gap-4 sm:grid-cols-2">
                 <Field label="PO / Reference">
                   <Input value={createForm.po_reference} onChange={(e) => setCreateForm((p) => ({ ...p, po_reference: e.target.value }))} placeholder="Optional customer PO" />
