@@ -1127,18 +1127,32 @@ export default function InvoicesPage() {
                   />
                 </Field>
                 <Field label="Customer">
-                  <select
-                    value={createForm.customer_id}
-                    onChange={(e) => setCreateForm((p) => ({ ...p, customer_id: e.target.value }))}
-                    className="w-full rounded-lg border border-border px-3 py-2.5 text-sm"
-                  >
-                    <option value="">Select customer…</option>
-                    {customers.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.display_name?.trim() || c.email || `Customer #${c.id}`}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="flex gap-2">
+                    <select
+                      value={createForm.customer_id}
+                      onChange={(e) => setCreateForm((p) => ({ ...p, customer_id: e.target.value }))}
+                      className="min-w-0 flex-1 rounded-lg border border-border px-3 py-2.5 text-sm"
+                    >
+                      <option value="">Select customer…</option>
+                      {customers.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.display_name?.trim() || c.email || `Customer #${c.id}`}
+                        </option>
+                      ))}
+                    </select>
+                    {canCreateInvoice && (
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="secondary"
+                        title="Add customer"
+                        className="shrink-0 px-2.5"
+                        onClick={() => setShowCreateCustomer(true)}
+                      >
+                        <Plus className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
                 </Field>
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
@@ -1283,6 +1297,16 @@ export default function InvoicesPage() {
               )}
             </div>
           </Modal>
+        )}
+
+        {showCreateCustomer && orgId && (
+          <CreateCustomerModal
+            open={showCreateCustomer}
+            orgId={orgId}
+            defaultCurrency={createForm.currency || 'USD'}
+            onClose={() => setShowCreateCustomer(false)}
+            onCreated={handleCustomerCreated}
+          />
         )}
 
         {paymentInvoice && (
