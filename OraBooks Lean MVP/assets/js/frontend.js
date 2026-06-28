@@ -39,21 +39,28 @@ jQuery(document).ready(function($) {
         var isPartner = $(this).val() === 'partner';
         $('.orabooks-partner-only').toggle(isPartner);
         $('.orabooks-customer-only').toggle(!isPartner);
+        $('#reg-accept-terms').prop('required', isPartner);
         if (isPartner) {
             $('.orabooks-partner-org').toggle(
                 $('#reg-partner-type').val() === 'agency' || 
                 $('#reg-partner-type').val() === 'reseller' || 
                 $('#reg-partner-type').val() === 'strategic_partner'
             );
+        } else {
+            $('#reg-accept-terms').prop('checked', false);
+            $('#reg-org-name').val('');
         }
     });
     
     // Toggle organization name for partner types
     $('#reg-partner-type').on('change', function() {
         var val = $(this).val();
-        $('.orabooks-partner-org').toggle(
-            val === 'agency' || val === 'reseller' || val === 'strategic_partner'
-        );
+        var orgRequired = (val === 'agency' || val === 'reseller' || val === 'strategic_partner');
+        $('.orabooks-partner-org').toggle(orgRequired);
+        $('#reg-org-name').prop('required', orgRequired);
+        if (!orgRequired) {
+            $('#reg-org-name').val('');
+        }
     });
     
     // Registration form
@@ -65,6 +72,20 @@ jQuery(document).ready(function($) {
         // Check password match
         if ($('#reg-password').val() !== $('#reg-confirm-password').val()) {
             $msg.removeClass('success').addClass('error').text('Passwords do not match').show();
+            return;
+        }
+
+        var isPartner = $('#reg-user-type').val() === 'partner';
+        var partnerType = $('#reg-partner-type').val();
+        var orgRequired = (partnerType === 'agency' || partnerType === 'reseller' || partnerType === 'strategic_partner');
+        var organizationName = orgRequired ? $('#reg-org-name').val() : '';
+
+        if (isPartner && !$('#reg-accept-terms').is(':checked')) {
+            $msg.removeClass('success').addClass('error').text('Partner terms must be accepted.').show();
+            return;
+        }
+        if (isPartner && orgRequired && !organizationName.trim()) {
+            $msg.removeClass('success').addClass('error').text('Organization name is required for this partner type.').show();
             return;
         }
         
@@ -80,10 +101,11 @@ jQuery(document).ready(function($) {
                 email: $('#reg-email').val(),
                 password: $('#reg-password').val(),
                 user_type: $('#reg-user-type').val(),
-                partner_type: $('#reg-partner-type').val(),
-                organization_name: $('#reg-org-name').val(),
+                partner_type: partnerType,
+                organization_name: organizationName,
                 partner_code: $('#reg-partner-code').val(),
-                accept_terms: $('#reg-accept-terms').is(':checked') ? 1 : 0
+                accept_terms: $('#reg-accept-terms').is(':checked') ? 1 : 0,
+                terms_version: $('#reg-terms-version').val() || '1.0'
             }
         }).done(function(response) {
             orabooksHandleAjaxResponse(response, $msg, function(message) {
@@ -106,6 +128,10 @@ jQuery(document).ready(function($) {
             $form.find('button').prop('disabled', false).text('Create Account');
         });
     });
+
+    // Initialize conditional registration fields on page load.
+    $('#reg-user-type').trigger('change');
+    $('#reg-partner-type').trigger('change');
     
     // Login form
     $('#orabooks-login-form').on('submit', function(e) {
