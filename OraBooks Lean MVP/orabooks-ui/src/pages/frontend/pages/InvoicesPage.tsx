@@ -1212,7 +1212,7 @@ export default function InvoicesPage() {
                   </Button>
                 </div>
                 <div className="mb-2 hidden text-xs font-semibold uppercase tracking-wide text-slate-500 sm:grid sm:grid-cols-12 sm:gap-2 sm:px-3">
-                  <div className="sm:col-span-2">SKU</div>
+                  <div className="sm:col-span-2">Code</div>
                   <div className="sm:col-span-4">Product</div>
                   <div className="sm:col-span-2">Qty</div>
                   <div className="sm:col-span-2">Unit price</div>
