@@ -1128,14 +1128,17 @@ export default function InvoicesPage() {
                   <Input value={createForm.currency} onChange={(e) => setCreateForm((p) => ({ ...p, currency: e.target.value.toUpperCase() }))} maxLength={3} />
                 </Field>
               </div>
-              <div className="grid gap-4 sm:grid-cols-2 sm:items-end">
-                <label className="flex items-center gap-2 pb-2.5 text-sm text-slate-700">
-                  <input
-                    type="checkbox"
-                    checked={createForm.use_due_date}
-                    onChange={(e) => setCreateForm((p) => ({ ...p, use_due_date: e.target.checked }))}
-                  />
-                  Use explicit due date
+              <div className="grid grid-cols-2 gap-4 items-end">
+                <label className="block space-y-1.5 text-sm">
+                  <span className="font-medium text-slate-700">Due terms</span>
+                  <span className="flex h-[42px] items-center gap-2 text-slate-700">
+                    <input
+                      type="checkbox"
+                      checked={createForm.use_due_date}
+                      onChange={(e) => setCreateForm((p) => ({ ...p, use_due_date: e.target.checked }))}
+                    />
+                    Use explicit due date
+                  </span>
                 </label>
                 {createForm.use_due_date ? (
                   <Field label="Due date">
