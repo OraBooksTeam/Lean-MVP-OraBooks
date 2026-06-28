@@ -31,9 +31,19 @@ type JournalLine = {
   description?: string;
 };
 
+type CoaAccount = {
+  id?: number;
+  code?: string;
+  account_code?: string;
+  name?: string;
+  normal_balance?: string;
+  is_active?: number;
+};
+
 export default function JournalsPage() {
   const [context, setContext] = useState<any>(null);
   const [journals, setJournals] = useState<Journal[]>([]);
+  const [accounts, setAccounts] = useState<CoaAccount[]>([]);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [detail, setDetail] = useState<any>(null);
   const [status, setStatus] = useState('');
@@ -84,16 +94,26 @@ export default function JournalsPage() {
       return;
     }
 
-    const res = await api.journalsList(nextOrgId, {
-      status: nextStatus,
-      from_date: fromDate,
-      to_date: toDate,
-      account_code: accountFilter.trim(),
-    });
+    const [res, coaRes, dash] = await Promise.all([
+      api.journalsList(nextOrgId, {
+        status: nextStatus,
+        from_date: fromDate,
+        to_date: toDate,
+        account_code: accountFilter.trim(),
+      }),
+      api.coaGet(nextOrgId),
+      api.approvalDashboard(),
+    ]);
     if (res.error) setError(res.error || 'Unable to load journals.');
     else setJournals((res as any).data?.journals || []);
 
-    const dash = await api.approvalDashboard();
+    if (!(coaRes as any).error) {
+      const coaData = (coaRes as any).data;
+      const nextAccounts = Array.isArray(coaData) ? coaData : coaData?.accounts || [];
+      setAccounts(nextAccounts);
+    }
+
+    const dash = dash;
     if (!(dash as any).error) {
       setMfaThreshold(Number((dash as any).data?.policy?.mfa_amount_threshold ?? 10000));
     }
