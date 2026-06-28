@@ -9,6 +9,7 @@ export type CreatedCustomer = {
   id: number;
   display_name?: string | null;
   email?: string;
+  contact_email?: string | null;
 };
 
 type CreateCustomerModalProps = {

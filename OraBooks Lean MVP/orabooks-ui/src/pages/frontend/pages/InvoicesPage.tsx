@@ -455,6 +455,7 @@ export default function InvoicesPage() {
   };
 
   const handleCustomerCreated = (customer: CreatedCustomer) => {
+    const email = customer.email || customer.contact_email || undefined;
     setCustomers((prev) => {
       if (prev.some((entry) => entry.id === customer.id)) {
         return prev;
@@ -463,7 +464,7 @@ export default function InvoicesPage() {
         {
           id: customer.id,
           display_name: customer.display_name,
-          email: customer.email,
+          email,
         },
         ...prev,
       ];
