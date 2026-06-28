@@ -71,7 +71,7 @@ class OraBooks_Auth {
     }
 
     public function handle_multisite_blog_activation($blog_id, $user_id, $password, $title, $meta) {
-        self::sync_orabooks_user_after_wp_activation((int) $user_id, is_array($meta) ? $meta : []);
+        self::sync_orabooks_user_after_wp_activation((int) $user_id, is_array($meta) ? $meta : [], (int) $blog_id);
     }
     
     /**
@@ -81,14 +81,15 @@ class OraBooks_Auth {
         global $wpdb;
         
         $table_users = OraBooks_Database::table('users');
-        $email = sanitize_email($data['email']);
+        $email = sanitize_email($data['email'] ?? '');
         $password = $data['password'] ?? '';
-        $user_type = $data['user_type'] ?? 'customer';
+        $user_type = (($data['user_type'] ?? 'customer') === 'partner') ? 'partner' : 'customer';
         $partner_code = $data['partner_code'] ?? '';
         $accept_terms = !empty($data['accept_terms']);
         $terms_version = $data['terms_version'] ?? '';
-        $partner_type = $data['partner_type'] ?? 'individual';
-        $organization_name = $data['organization_name'] ?? '';
+        $partner_type = sanitize_text_field((string) ($data['partner_type'] ?? 'individual'));
+        $organization_name = sanitize_text_field((string) ($data['organization_name'] ?? ''));
+        $organization_partner_types = ['agency', 'reseller', 'strategic_partner'];
         
         // Validate email
         if (!is_email($email)) {
@@ -128,11 +129,14 @@ class OraBooks_Auth {
             if (!$accept_terms) {
                 return new WP_Error('terms_required', 'Partner terms must be accepted');
             }
-            if (!in_array($partner_type, ['individual', 'accountant', 'agency', 'reseller', 'strategic_partner'])) {
+            if (!in_array($partner_type, ['individual', 'accountant', 'agency', 'reseller', 'strategic_partner'], true)) {
                 $partner_type = 'individual';
             }
-            if (in_array($partner_type, ['agency', 'reseller', 'strategic_partner']) && empty($organization_name)) {
+            if (in_array($partner_type, $organization_partner_types, true) && $organization_name === '') {
                 return new WP_Error('org_name_required', 'Organization name is required for this partner type');
+            }
+            if (!in_array($partner_type, $organization_partner_types, true)) {
+                $organization_name = '';
             }
         }
         
@@ -292,7 +296,7 @@ class OraBooks_Auth {
     /**
      * Link an OraBooks user after WordPress multisite signup activation.
      */
-    private static function sync_orabooks_user_after_wp_activation($wp_user_id, $meta) {
+    private static function sync_orabooks_user_after_wp_activation($wp_user_id, $meta, $target_blog_id = null) {
         if (!$wp_user_id || empty($meta['orabooks_user_id'])) {
             return;
         }
@@ -317,7 +321,7 @@ class OraBooks_Auth {
         }
 
         if (function_exists('is_multisite') && is_multisite() && function_exists('add_user_to_blog')) {
-            $blog_id = get_current_blog_id();
+            $blog_id = $target_blog_id ? (int) $target_blog_id : get_current_blog_id();
             if (!is_user_member_of_blog($wp_user_id, $blog_id)) {
                 add_user_to_blog($blog_id, $wp_user_id, 'subscriber');
             }
@@ -1548,6 +1552,9 @@ class OraBooks_Auth {
         }
 
         $organization_name = isset($data['organization_name']) ? sanitize_text_field($data['organization_name']) : '';
+        if (!in_array($partner_type, ['agency', 'reseller', 'strategic_partner'], true)) {
+            $organization_name = '';
+        }
 
         return [
             'user_type'      => $user_type,
@@ -1595,7 +1602,13 @@ class OraBooks_Auth {
         $state_data = self::decode_oidc_state_data($state);
         $user_type = $state_data['user_type'] ?? 'customer';
         $partner_type = $state_data['partner_type'] ?? 'individual';
-        $organization_name = $state_data['organization_name'] ?? '';
+        if (!in_array($partner_type, ['individual', 'accountant', 'agency', 'reseller', 'strategic_partner'], true)) {
+            $partner_type = 'individual';
+        }
+        $organization_name = sanitize_text_field((string) ($state_data['organization_name'] ?? ''));
+        if (!in_array($partner_type, ['agency', 'reseller', 'strategic_partner'], true)) {
+            $organization_name = '';
+        }
         $accept_terms = !empty($state_data['accept_terms']);
         $terms_version = $state_data['terms_version'] ?? '1.0';
 
@@ -1671,7 +1684,7 @@ class OraBooks_Auth {
                 );
             }
 
-            if ($state_data) {
+            if ($state_data && !empty($existing->is_partner)) {
                 $_SESSION['orabooks_partner_type'] = $partner_type;
                 $_SESSION['orabooks_partner_org_name'] = $organization_name;
             }
@@ -2014,8 +2027,10 @@ class OraBooks_Auth {
      *
      * @return string The detected subdomain, lowercased and trimmed
      */
-    public static function detect_subdomain_from_host() {
-        $host = $_SERVER['HTTP_HOST'] ?? '';
+    public static function detect_subdomain_from_host($host = null) {
+        if ($host === null || $host === '') {
+            $host = $_SERVER['HTTP_HOST'] ?? '';
+        }
         if (empty($host)) {
             return '';
         }
