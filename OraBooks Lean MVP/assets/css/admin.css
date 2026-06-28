@@ -868,3 +868,26 @@
     background: rgba(26, 105, 180, 0.06);
     color: #1A69B4;
 }
+
+/* Ensure blue primary buttons keep accessible white labels in wp-admin */
+.orabooks-admin .button-primary,
+.orabooks-admin .page-title-action.button-primary,
+.orabooks-admin .orabooks-btn-primary,
+.orabooks-admin-react #orabooks-admin-root .orabooks-wp-admin button[class*="bg-primary"],
+.orabooks-admin-react #orabooks-admin-root .orabooks-wp-admin a[class*="bg-primary"],
+.orabooks-admin-react #orabooks-admin-root .orabooks-wp-admin [class*="bg-primary"][class*="text-primary"] {
+    color: #ffffff !important;
+}
+
+.orabooks-admin .button-primary:hover,
+.orabooks-admin .button-primary:focus,
+.orabooks-admin .page-title-action.button-primary:hover,
+.orabooks-admin .page-title-action.button-primary:focus,
+.orabooks-admin .orabooks-btn-primary:hover,
+.orabooks-admin .orabooks-btn-primary:focus,
+.orabooks-admin-react #orabooks-admin-root .orabooks-wp-admin button[class*="bg-primary"]:hover,
+.orabooks-admin-react #orabooks-admin-root .orabooks-wp-admin button[class*="bg-primary"]:focus,
+.orabooks-admin-react #orabooks-admin-root .orabooks-wp-admin a[class*="bg-primary"]:hover,
+.orabooks-admin-react #orabooks-admin-root .orabooks-wp-admin a[class*="bg-primary"]:focus {
+    color: #ffffff !important;
+}
