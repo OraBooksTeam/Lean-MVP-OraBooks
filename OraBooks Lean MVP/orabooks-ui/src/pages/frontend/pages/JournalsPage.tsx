@@ -113,7 +113,6 @@ export default function JournalsPage() {
       setAccounts(nextAccounts);
     }
 
-    const dash = dash;
     if (!(dash as any).error) {
       setMfaThreshold(Number((dash as any).data?.policy?.mfa_amount_threshold ?? 10000));
     }
@@ -140,6 +139,13 @@ export default function JournalsPage() {
   const selectedJournal: Journal | undefined = useMemo(
     () => detail?.journal || journals.find((j) => j.id === selectedId),
     [detail, journals, selectedId]
+  );
+
+  const activeAccounts = useMemo(
+    () => accounts
+      .filter((a) => (a.is_active ?? 1) === 1 && accountCode(a))
+      .sort((a, b) => accountCode(a).localeCompare(accountCode(b), undefined, { numeric: true })),
+    [accounts]
   );
 
   const lines: JournalLine[] = detail?.lines || [];
@@ -175,8 +181,12 @@ export default function JournalsPage() {
   const createJournal = async () => {
     if (!orgId) return;
     const amount = Number(entryAmount);
-    if (!debitAccount.trim() || !creditAccount.trim() || !amount || amount <= 0) {
-      setError('Enter debit account, credit account, and a positive amount.');
+    if (!debitAccount || !creditAccount || !amount || amount <= 0) {
+      setError('Select debit account, credit account, and enter a positive amount.');
+      return;
+    }
+    if (debitAccount === creditAccount) {
+      setError('Debit and credit accounts must be different.');
       return;
     }
 
@@ -188,8 +198,8 @@ export default function JournalsPage() {
       source_type: 'manual',
       description: entryDescription,
       lines: [
-        { account_code: debitAccount.trim(), debit_amount: amount, description: entryDescription },
-        { account_code: creditAccount.trim(), credit_amount: amount, description: entryDescription },
+        { account_code: debitAccount, debit_amount: amount, description: entryDescription },
+        { account_code: creditAccount, credit_amount: amount, description: entryDescription },
       ],
     });
     if (res.error) {
@@ -256,8 +266,20 @@ export default function JournalsPage() {
           <div className="glass-panel grid gap-4 p-5 md:grid-cols-2">
             <Input label="Transaction date" type="date" value={createDate} onChange={(e) => setCreateDate(e.target.value)} />
             <Input label="Amount" type="number" min="0" step="0.01" value={entryAmount} onChange={(e) => setEntryAmount(e.target.value)} placeholder="0.00" />
-            <Input label="Debit account" value={debitAccount} onChange={(e) => setDebitAccount(e.target.value)} placeholder="e.g. 1010" />
-            <Input label="Credit account" value={creditAccount} onChange={(e) => setCreditAccount(e.target.value)} placeholder="e.g. 4010" />
+            <AccountSelect
+              label="Debit account"
+              value={debitAccount}
+              onChange={setDebitAccount}
+              accounts={activeAccounts}
+              placeholder="Select debit account…"
+            />
+            <AccountSelect
+              label="Credit account"
+              value={creditAccount}
+              onChange={setCreditAccount}
+              accounts={activeAccounts}
+              placeholder="Select credit account…"
+            />
             <div className="md:col-span-2">
               <Input label="Description" value={entryDescription} onChange={(e) => setEntryDescription(e.target.value)} placeholder="Journal entry memo" />
             </div>
