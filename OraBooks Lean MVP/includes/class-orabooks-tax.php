@@ -57,8 +57,8 @@ class OraBooks_Tax {
     private static function maybe_ensure_tax_schema() {
         static $ran = false;
         if ($ran) {
-                        $rate = isset($config->default_tax_rate) ? floatval($config->default_tax_rate) : 0.0;
-                        $tax_type = isset($config->tax_type) ? sanitize_text_field((string) $config->tax_type) : 'Sales Tax';
+            return;
+        }
         $ran = true;
 
         global $wpdb;
