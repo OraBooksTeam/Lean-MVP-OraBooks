@@ -1097,7 +1097,7 @@ export default function InvoicesPage() {
           >
             {error && <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div>}
             <div className="grid gap-4">
-              <div className="grid gap-4 sm:grid-cols-2">
+              <div className="grid grid-cols-2 gap-4">
                 <Field label="Invoice number">
                   <Input
                     value={createModalLoading ? 'Loading…' : (nextInvoiceNumber || '—')}
