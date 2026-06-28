@@ -1222,7 +1222,7 @@ export default function InvoicesPage() {
                   {lineItems.map((line, index) => (
                     <div key={index} className="grid gap-2 rounded-lg border border-border p-3 sm:grid-cols-12">
                       <div className="sm:col-span-2">
-                        <Input value={line.sku_code} onChange={(e) => setLineItems((items) => items.map((row, i) => i === index ? { ...row, sku_code: e.target.value } : row))} placeholder="SKU" />
+                        <Input value={line.sku_code} onChange={(e) => setLineItems((items) => items.map((row, i) => i === index ? { ...row, sku_code: e.target.value } : row))} placeholder="Code" />
                       </div>
                       <div className="sm:col-span-4">
                         <ProductAutocomplete
