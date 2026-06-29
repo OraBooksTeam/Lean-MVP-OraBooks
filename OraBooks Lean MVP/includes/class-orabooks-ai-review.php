@@ -489,14 +489,14 @@ class OraBooks_Ai_Review {
             return;
         }
 
-        $retry_count = (int) $item->retry_count + 1;
+        $retry_count = self::next_retry_count((int) $item->retry_count);
 
-        if ($retry_count > self::MAX_RETRIES) {
+        if (self::should_escalate_after_retry($retry_count)) {
             $this->escalate_item($item, $evaluation);
             return;
         }
 
-        $backoff = pow(2, $retry_count) * 5;
+        $backoff = self::backoff_seconds_for_retry($retry_count);
         $next_retry = gmdate('Y-m-d H:i:s', time() + $backoff);
 
         $wpdb->update($table, [
@@ -634,6 +634,19 @@ class OraBooks_Ai_Review {
         $score += min(50, (int) round(((float) $total_amount) / 1000));
         $score += max(0, (int) round((self::CONFIDENCE_THRESHOLD - (float) ($evaluation['confidence'] ?? 0)) / 2));
         return $score;
+    }
+
+    public static function next_retry_count($current_retry_count) {
+        return max(0, (int) $current_retry_count) + 1;
+    }
+
+    public static function should_escalate_after_retry($retry_count) {
+        return (int) $retry_count > self::MAX_RETRIES;
+    }
+
+    public static function backoff_seconds_for_retry($retry_count) {
+        $retry_count = max(1, (int) $retry_count);
+        return (int) (pow(2, $retry_count) * 5);
     }
 
     private static function record_history($queue_id, $org_id, $action, $user_id, $details = []) {
