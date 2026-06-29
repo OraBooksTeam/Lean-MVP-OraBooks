@@ -32,6 +32,7 @@ class OraBooks_Vendors {
             add_action('wp_ajax_orabooks_ap_config_get', [self::$instance, 'ajax_ap_config_get']);
             add_action('wp_ajax_orabooks_ap_config_set', [self::$instance, 'ajax_ap_config_set']);
             add_action('wp_ajax_orabooks_vendor_get', [self::$instance, 'ajax_vendor_get']);
+            add_action('wp_ajax_orabooks_vendor_wallet', [self::$instance, 'ajax_vendor_wallet']);
             add_action('wp_ajax_orabooks_bill_get', [self::$instance, 'ajax_bill_get']);
             add_action('wp_ajax_orabooks_vendor_payments_list', [self::$instance, 'ajax_vendor_payments_list']);
             add_action('wp_ajax_orabooks_vendor_credit_notes_list', [self::$instance, 'ajax_vendor_credit_notes_list']);
@@ -1190,6 +1191,51 @@ class OraBooks_Vendors {
             'vendor' => $vendor,
             'bills' => self::get_bills_list($org_id, ['vendor_id' => $vendor_id, 'limit' => 50])['bills'],
             'payments' => self::get_vendor_payments_list($org_id, ['vendor_id' => $vendor_id, 'limit' => 50])['payments'],
+            'credit_notes' => self::get_vendor_credit_notes_list($org_id, ['vendor_id' => $vendor_id, 'limit' => 50])['credit_notes'],
+        ];
+    }
+
+    public static function get_vendor_wallet($vendor_id, $org_id) {
+        global $wpdb;
+
+        $vendor = self::get_vendor($vendor_id, $org_id);
+        if (!$vendor) {
+            return new WP_Error('not_found', 'Vendor not found');
+        }
+
+        $table_bills = OraBooks_Database::table('bills');
+        $payable_balance = (float) $wpdb->get_var($wpdb->prepare(
+            "SELECT COALESCE(SUM(total_amount - COALESCE(paid_amount, 0)), 0)
+             FROM {$table_bills}
+             WHERE vendor_id = %d AND org_id = %d
+               AND workflow_status = 'posted'
+               AND payment_status IN ('unpaid', 'partial')",
+            intval($vendor_id),
+            intval($org_id)
+        ));
+
+        $open_bills = $wpdb->get_results($wpdb->prepare(
+            "SELECT b.*, v.name AS vendor_name
+             FROM {$table_bills} b
+             JOIN " . OraBooks_Database::table('vendors') . " v ON b.vendor_id = v.id
+             WHERE b.vendor_id = %d AND b.org_id = %d
+               AND b.workflow_status = 'posted'
+               AND b.payment_status IN ('unpaid', 'partial')
+             ORDER BY b.due_date ASC, b.id ASC
+             LIMIT 100",
+            intval($vendor_id),
+            intval($org_id)
+        ));
+
+        return [
+            'vendor' => $vendor,
+            'payable_balance' => round($payable_balance, 2),
+            'credit_balance' => round(floatval($vendor->credit_balance ?? 0), 2),
+            'payment_terms' => intval($vendor->payment_terms ?? 30),
+            'default_currency' => sanitize_text_field($vendor->default_currency ?? 'USD'),
+            'auto_apply_credit' => (int) ($vendor->auto_apply_credit ?? 1),
+            'bills' => $open_bills ?: [],
+            'payments' => self::get_vendor_payments_list($org_id, ['vendor_id' => $vendor_id, 'limit' => 100])['payments'],
             'credit_notes' => self::get_vendor_credit_notes_list($org_id, ['vendor_id' => $vendor_id, 'limit' => 50])['credit_notes'],
         ];
     }
