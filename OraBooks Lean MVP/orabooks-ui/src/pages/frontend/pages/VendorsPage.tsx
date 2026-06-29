@@ -602,6 +602,9 @@ export default function VendorsPage() {
         description: '',
       });
       setBillPreview(null);
+      if (viewingWalletVendor && String(viewingWalletVendor.id) === billForm.vendor_id) {
+        await refreshWalletData(viewingWalletVendor, { updatePaymentAmount: true });
+      }
       await load();
     }
     setSaving(false);
