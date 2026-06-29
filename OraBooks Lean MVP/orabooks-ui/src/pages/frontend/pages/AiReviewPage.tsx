@@ -111,7 +111,7 @@ export default function AiReviewPage() {
           icon={AlertTriangle}
           items={data?.escalated || []}
           loading={loading}
-          emptyText="No escalated AI review items."
+          emptyText="No pending AI review items."
           showReview={caps.review}
           showDismiss={caps.review}
           threshold={threshold}
@@ -124,7 +124,7 @@ export default function AiReviewPage() {
           icon={Bot}
           items={data?.pending || []}
           loading={loading}
-          emptyText="No items waiting for AI processing."
+          emptyText="No items currently being processed by AI."
           showReview={false}
           showDismiss={false}
           threshold={threshold}
@@ -247,7 +247,7 @@ function QueueSection({
                       <div className="flex flex-wrap gap-2">
                         {showReview && href && (
                           <WpLink to={href}>
-                            <Button size="sm">
+                            <Button size="sm" className="bg-amber-500 text-white hover:bg-amber-600 shadow-sm shadow-amber-500/20">
                               <ShieldCheck className="h-3.5 w-3.5" />
                               Review
                             </Button>
