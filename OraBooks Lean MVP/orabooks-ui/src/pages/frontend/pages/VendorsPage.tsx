@@ -99,6 +99,17 @@ type BillLineItemForm = {
   sku_code: string;
 };
 
+type ProductOption = {
+  id: number;
+  sku: string;
+  name: string;
+  stock_keeping_unit?: string | null;
+  sales_price?: string | number;
+  price?: string | number;
+  mrp?: string | number;
+  tax_name?: string | null;
+};
+
 const emptyBillLineItem = (): BillLineItemForm => ({
   description: '',
   quantity: '1',
@@ -168,6 +179,8 @@ export default function VendorsPage() {
   });
   const [billPreview, setBillPreview] = useState<{ tax_amount: number; total_amount: number; tax_rate: number } | null>(null);
   const [billLineItems, setBillLineItems] = useState<BillLineItemForm[]>([emptyBillLineItem()]);
+  const [products, setProducts] = useState<ProductOption[]>([]);
+  const [billFormLoading, setBillFormLoading] = useState(false);
 
   const [paymentVendor, setPaymentVendor] = useState<Vendor | null>(null);
   const [paymentForm, setPaymentForm] = useState({
@@ -384,6 +397,39 @@ export default function VendorsPage() {
     const taxRate = billPreview?.tax_rate ?? 0;
     return { subtotal, taxAmount, taxRate, total: subtotal + taxAmount };
   }, [billLineItems, billPreview]);
+
+  const productUnitPrice = (product: ProductOption) => {
+    const price = Number(product.sales_price || product.price || product.mrp || 0);
+    return Number.isFinite(price) && price > 0 ? price : 0;
+  };
+
+  const applyProductToLine = (index: number, product: ProductOption) => {
+    const unitPrice = productUnitPrice(product);
+    setBillLineItems((items) => items.map((row, i) => (
+      i === index
+        ? {
+            ...row,
+            description: product.name,
+            sku_code: product.sku || product.stock_keeping_unit || '',
+            unit_price: unitPrice > 0 ? String(unitPrice) : row.unit_price,
+          }
+        : row
+    )));
+  };
+
+  useEffect(() => {
+    if (!showBillForm || !orgId) {
+      return;
+    }
+    void (async () => {
+      setBillFormLoading(true);
+      const res = await api.invoiceProductsSearch(orgId);
+      if (!res.error) {
+        setProducts(((res as any).data?.products || []) as ProductOption[]);
+      }
+      setBillFormLoading(false);
+    })();
+  }, [showBillForm, orgId]);
 
   const handleCreateVendor = async () => {
     if (!orgId || !vendorForm.name.trim()) {
