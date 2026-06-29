@@ -123,7 +123,31 @@ export default function VendorsPage() {
   });
 
   const [creditNoteVendor, setCreditNoteVendor] = useState<Vendor | null>(null);
-  const [creditNoteForm, setCreditNoteForm] = useState({ amount: '', reason: '', credit_date: new Date().toISOString().slice(0, 10) });
+  const [creditNoteBill, setCreditNoteBill] = useState<Bill | null>(null);
+  const [creditNoteForm, setCreditNoteForm] = useState({
+    amount: '',
+    reason: '',
+    credit_date: new Date().toISOString().slice(0, 10),
+    is_adjustment: false,
+  });
+
+  const [selectedVendorId, setSelectedVendorId] = useState<number | null>(null);
+  const [vendorDetail, setVendorDetail] = useState<any>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [selectedBillId, setSelectedBillId] = useState<number | null>(null);
+  const [billDetail, setBillDetail] = useState<any>(null);
+  const [billDetailLoading, setBillDetailLoading] = useState(false);
+  const [showApSettings, setShowApSettings] = useState(false);
+  const [apConfig, setApConfig] = useState<any>(null);
+  const [apConfigForm, setApConfigForm] = useState({
+    auto_post_bill_on_approve: true,
+    auto_apply_vendor_credit: true,
+    adjustment_threshold: '1000',
+    vendor_adjustment_account: '5000',
+    ap_account_code: '2000',
+    expense_account_code: '5000',
+    cash_account_code: '1000',
+  });
 
   const orgId = context?.organization?.id;
 
@@ -148,12 +172,13 @@ export default function VendorsPage() {
       return;
     }
 
-    const [dashRes, vendorsRes, billsRes, agingRes, taxRes] = await Promise.all([
+    const [dashRes, vendorsRes, billsRes, agingRes, taxRes, apConfigRes] = await Promise.all([
       api.vendorDashboard(),
       api.vendorsList(nextOrgId, { limit: 100 }),
       api.billsList(nextOrgId, { limit: 100 }),
       api.apAging(nextOrgId),
       api.taxListConfigs(nextOrgId),
+      api.apConfigGet(nextOrgId),
     ]);
 
     if (dashRes.error) setError(dashRes.error);

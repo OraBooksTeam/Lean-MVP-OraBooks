@@ -598,7 +598,7 @@ class OraBooks_Tax {
         $payload = [
             'org_id' => (int) $bill->org_id,
             'transaction_id' => (int) $bill->id,
-            'transaction_type' => 'expense',
+            'transaction_type' => 'vendor_bill',
             'amount' => $tax_base,
             'jurisdiction' => sanitize_text_field($bill->tax_jurisdiction ?? 'US'),
             'transaction_date' => $bill->bill_date ?? current_time('Y-m-d'),

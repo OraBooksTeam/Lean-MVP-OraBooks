@@ -429,6 +429,36 @@ export const api = {
     api.post('orabooks_vendor_payment_record', { org_id: orgId, ...data }),
   apAging: (orgId: number, asOfDate?: string) =>
     api.get('orabooks_ap_aging', { org_id: orgId, ...(asOfDate ? { as_of_date: asOfDate } : {}) }),
+  apConfigGet: (orgId: number) =>
+    api.get('orabooks_ap_config_get', { org_id: orgId }),
+  apConfigSet: (orgId: number, data: Record<string, unknown>) =>
+    api.post('orabooks_ap_config_set', { org_id: orgId, ...data }),
+  vendorGet: (orgId: number, vendorId: number) =>
+    api.get('orabooks_vendor_get', { org_id: orgId, vendor_id: vendorId }),
+  billGet: (orgId: number, billId: number) =>
+    api.get('orabooks_bill_get', { org_id: orgId, bill_id: billId }),
+  vendorPaymentsList: (orgId: number, filters: Record<string, unknown> = {}) =>
+    api.get('orabooks_vendor_payments_list', { org_id: orgId, ...filters }),
+  vendorCreditNotesList: (orgId: number, filters: Record<string, unknown> = {}) =>
+    api.get('orabooks_vendor_credit_notes_list', { org_id: orgId, ...filters }),
+  vendorCreditNoteSubmit: (orgId: number, creditNoteId: number) =>
+    api.post('orabooks_vendor_credit_note_submit', { org_id: orgId, credit_note_id: creditNoteId }),
+  vendorCreditNoteApprove: (orgId: number, creditNoteId: number, secondApproverId?: number) =>
+    api.post('orabooks_vendor_credit_note_approve', {
+      org_id: orgId,
+      credit_note_id: creditNoteId,
+      ...(secondApproverId ? { second_approver_id: secondApproverId } : {}),
+    }),
+  vendorCreditNotePost: (orgId: number, creditNoteId: number, secondApproverId?: number) =>
+    api.post('orabooks_vendor_credit_note_post', {
+      org_id: orgId,
+      credit_note_id: creditNoteId,
+      ...(secondApproverId ? { second_approver_id: secondApproverId } : {}),
+    }),
+  vendorCreditNoteVoid: (orgId: number, creditNoteId: number) =>
+    api.post('orabooks_vendor_credit_note_void', { org_id: orgId, credit_note_id: creditNoteId }),
+  vendorPaymentReverse: (orgId: number, paymentId: number, reason: string) =>
+    api.post('orabooks_vendor_payment_reverse', { org_id: orgId, payment_id: paymentId, reason }),
   inventoryDashboard: () =>
     api.get('orabooks_inventory_dashboard'),
   inventoryProductsList: (orgId: number, filters: Record<string, unknown> = {}) =>
