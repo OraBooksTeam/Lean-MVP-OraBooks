@@ -5,7 +5,7 @@ import Button from '@/components/Button';
 import Input from '@/components/Input';
 import { api } from '../api';
 import ClientShell from '../components/ClientShell';
-import { Building2, FileText, Info, Paperclip, Plus, RefreshCw, Wallet } from 'lucide-react';
+import { Building2, FileText, Info, Paperclip, Plus, RefreshCw, Settings2, Wallet } from 'lucide-react';
 
 type Vendor = {
   id: number;
@@ -540,6 +540,10 @@ export default function VendorsPage() {
             <Plus className="h-4 w-4" />
             Create bill
           </Button>
+          <Button size="sm" variant="secondary" onClick={() => { setShowApSettings(true); setError(''); setSuccess(''); }}>
+            <Settings2 className="h-4 w-4" />
+            AP settings
+          </Button>
           <Button onClick={load} variant="secondary" size="sm">
             <RefreshCw className="h-4 w-4" />
             Refresh
@@ -553,6 +557,8 @@ export default function VendorsPage() {
           <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-medium text-emerald-700">{success}</div>
         )}
 
+        <div className="grid gap-5 xl:grid-cols-[1.2fr_1fr]">
+        <div className="space-y-5">
         <div className="glass-panel overflow-hidden">
           <div className="border-b border-border px-5 py-4">
             <h2 className="font-bold text-ink">Vendors</h2>
@@ -579,7 +585,11 @@ export default function VendorsPage() {
                   </td>
                 </tr>
               ) : vendors.map((vendor) => (
-                <tr key={vendor.id} className="hover:bg-slate-50/70">
+                <tr
+                  key={vendor.id}
+                  className={`cursor-pointer hover:bg-slate-50/70 ${selectedVendorId === vendor.id ? 'bg-accent/10 ring-2 ring-inset ring-accent/30' : ''}`}
+                  onClick={() => void loadVendorDetail(vendor.id)}
+                >
                   <td className="px-5 py-3">
                     <p className="font-semibold text-ink">{vendor.name}</p>
                     {vendor.email && <p className="text-xs text-slate-500">{vendor.email}</p>}
