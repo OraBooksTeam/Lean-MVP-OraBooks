@@ -88,5 +88,12 @@ export function migrateLegacyPathAliases() {
     return;
   }
 
-  window.location.replace(toWpUrl(canonical));
+  const target = toWpUrl(canonical);
+  const currentPath = window.location.pathname.replace(/\/+$/, '') || '/';
+  const targetPath = target.replace(/\/+$/, '') || '/';
+  if (currentPath === targetPath) {
+    return;
+  }
+
+  window.location.replace(target);
 }
