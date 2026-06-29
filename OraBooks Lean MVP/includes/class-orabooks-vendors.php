@@ -29,11 +29,50 @@ class OraBooks_Vendors {
             add_action('wp_ajax_orabooks_vendor_payment_record', [self::$instance, 'ajax_record_payment']);
             add_action('wp_ajax_orabooks_vendor_credit_note_create', [self::$instance, 'ajax_create_credit_note']);
             add_action('wp_ajax_orabooks_ap_aging', [self::$instance, 'ajax_ap_aging']);
+            add_action('wp_ajax_orabooks_ap_config_get', [self::$instance, 'ajax_ap_config_get']);
+            add_action('wp_ajax_orabooks_ap_config_set', [self::$instance, 'ajax_ap_config_set']);
+            add_action('wp_ajax_orabooks_vendor_get', [self::$instance, 'ajax_vendor_get']);
+            add_action('wp_ajax_orabooks_bill_get', [self::$instance, 'ajax_bill_get']);
+            add_action('wp_ajax_orabooks_vendor_payments_list', [self::$instance, 'ajax_vendor_payments_list']);
+            add_action('wp_ajax_orabooks_vendor_credit_notes_list', [self::$instance, 'ajax_vendor_credit_notes_list']);
+            add_action('wp_ajax_orabooks_vendor_credit_note_submit', [self::$instance, 'ajax_credit_note_submit']);
+            add_action('wp_ajax_orabooks_vendor_credit_note_approve', [self::$instance, 'ajax_credit_note_approve']);
+            add_action('wp_ajax_orabooks_vendor_credit_note_post', [self::$instance, 'ajax_credit_note_post']);
+            add_action('wp_ajax_orabooks_vendor_credit_note_void', [self::$instance, 'ajax_credit_note_void']);
+            add_action('wp_ajax_orabooks_vendor_payment_reverse', [self::$instance, 'ajax_reverse_payment']);
 
             add_action('orabooks_daily_ap_aging_snapshot', [self::$instance, 'daily_ap_aging_snapshot']);
             self::maybe_ensure_bill_tax_schema();
+            self::maybe_ensure_ap_config_schema();
         }
         return self::$instance;
+    }
+
+    private static function maybe_ensure_ap_config_schema() {
+        static $ran = false;
+        if ($ran) {
+            return;
+        }
+        $ran = true;
+
+        global $wpdb;
+        $table = OraBooks_Database::table('vendor_ap_configs');
+        if ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table)) !== $table) {
+            return;
+        }
+
+        $existing = $wpdb->get_col("SHOW COLUMNS FROM {$table}", 0);
+        $columns = [
+            'ap_account_code' => "ALTER TABLE {$table} ADD COLUMN ap_account_code VARCHAR(50) DEFAULT '2000' AFTER vendor_adjustment_account",
+            'expense_account_code' => "ALTER TABLE {$table} ADD COLUMN expense_account_code VARCHAR(50) DEFAULT '5000' AFTER ap_account_code",
+            'cash_account_code' => "ALTER TABLE {$table} ADD COLUMN cash_account_code VARCHAR(50) DEFAULT '1000' AFTER expense_account_code",
+        ];
+
+        foreach ($columns as $column => $sql) {
+            if (!in_array($column, $existing, true)) {
+                $wpdb->query($sql);
+            }
+        }
     }
 
     private static function maybe_ensure_bill_tax_schema() {
@@ -208,6 +247,9 @@ class OraBooks_Vendors {
             auto_apply_vendor_credit TINYINT(1) DEFAULT 1,
             adjustment_threshold DECIMAL(20,2) DEFAULT 1000,
             vendor_adjustment_account VARCHAR(50) DEFAULT '5000',
+            ap_account_code VARCHAR(50) DEFAULT '2000',
+            expense_account_code VARCHAR(50) DEFAULT '5000',
+            cash_account_code VARCHAR(50) DEFAULT '1000',
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
             FOREIGN KEY (org_id) REFERENCES {$wpdb->prefix}orabooks_organizations(id) ON DELETE CASCADE
@@ -701,6 +743,13 @@ class OraBooks_Vendors {
             'vendor_id' => intval($bill->vendor_id),
             'total_amount' => floatval($bill->total_amount),
         ]);
+        do_action('orabooks_bill_posted', intval($bill_id), [
+            'org_id' => intval($org_id),
+            'vendor_id' => intval($bill->vendor_id),
+            'total_amount' => floatval($bill->total_amount),
+        ]);
+
+        self::apply_auto_credit_to_bill($org_id, self::get_bill($bill_id, $org_id));
 
         return true;
     }
