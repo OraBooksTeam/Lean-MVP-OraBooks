@@ -849,17 +849,57 @@ export default function VendorsPage() {
         )}
 
         {creditNoteVendor && (
-          <Modal title="Create vendor credit note" onClose={() => setCreditNoteVendor(null)}>
-            <p className="mb-4 text-sm text-slate-600">{creditNoteVendor.name}</p>
+          <Modal title="Create vendor credit note" onClose={() => { setCreditNoteVendor(null); setCreditNoteBill(null); }}>
+            <p className="mb-4 text-sm text-slate-600">
+              {creditNoteVendor.name}
+              {creditNoteBill ? ` — bill ${creditNoteBill.bill_number || `#${creditNoteBill.id}`}` : ''}
+            </p>
             {error && <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div>}
             <div className="grid gap-4">
               <Field label="Amount"><Input type="number" min="0" step="0.01" value={creditNoteForm.amount} onChange={(e) => setCreditNoteForm((p) => ({ ...p, amount: e.target.value }))} /></Field>
               <Field label="Credit date"><Input type="date" value={creditNoteForm.credit_date} onChange={(e) => setCreditNoteForm((p) => ({ ...p, credit_date: e.target.value }))} /></Field>
               <Field label="Reason"><Input value={creditNoteForm.reason} onChange={(e) => setCreditNoteForm((p) => ({ ...p, reason: e.target.value }))} placeholder="Return, adjustment, etc." /></Field>
+              <label className="flex items-start gap-2 text-sm text-slate-700" title="Uses company's vendor adjustment account (configurable).">
+                <input
+                  type="checkbox"
+                  checked={creditNoteForm.is_adjustment}
+                  onChange={(e) => setCreditNoteForm((p) => ({ ...p, is_adjustment: e.target.checked }))}
+                  className="mt-1"
+                />
+                <span>
+                  Treat as adjustment
+                  <span className="block text-xs text-slate-500">Uses vendor adjustment account from AP settings.</span>
+                </span>
+              </label>
             </div>
             <div className="mt-6 flex justify-end gap-2">
-              <Button variant="secondary" onClick={() => setCreditNoteVendor(null)}>Cancel</Button>
+              <Button variant="secondary" onClick={() => { setCreditNoteVendor(null); setCreditNoteBill(null); }}>Cancel</Button>
               <Button onClick={handleCreateCreditNote} disabled={saving}>Create credit note</Button>
+            </div>
+          </Modal>
+        )}
+
+        {showApSettings && (
+          <Modal title="AP company settings" onClose={() => setShowApSettings(false)}>
+            {error && <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div>}
+            <div className="grid gap-4">
+              <label className="flex items-center gap-2 text-sm text-slate-700" title="Approve and post immediately.">
+                <input type="checkbox" checked={apConfigForm.auto_post_bill_on_approve} onChange={(e) => setApConfigForm((p) => ({ ...p, auto_post_bill_on_approve: e.target.checked }))} />
+                Auto-post bill on approve
+              </label>
+              <label className="flex items-center gap-2 text-sm text-slate-700" title="Use credit balance automatically.">
+                <input type="checkbox" checked={apConfigForm.auto_apply_vendor_credit} onChange={(e) => setApConfigForm((p) => ({ ...p, auto_apply_vendor_credit: e.target.checked }))} />
+                Auto-apply vendor credit
+              </label>
+              <Field label="Adjustment threshold"><Input type="number" min="0" step="0.01" value={apConfigForm.adjustment_threshold} onChange={(e) => setApConfigForm((p) => ({ ...p, adjustment_threshold: e.target.value }))} /></Field>
+              <Field label="Vendor adjustment account"><Input value={apConfigForm.vendor_adjustment_account} onChange={(e) => setApConfigForm((p) => ({ ...p, vendor_adjustment_account: e.target.value }))} /></Field>
+              <Field label="AP account code"><Input value={apConfigForm.ap_account_code} onChange={(e) => setApConfigForm((p) => ({ ...p, ap_account_code: e.target.value }))} /></Field>
+              <Field label="Expense account code"><Input value={apConfigForm.expense_account_code} onChange={(e) => setApConfigForm((p) => ({ ...p, expense_account_code: e.target.value }))} /></Field>
+              <Field label="Cash account code"><Input value={apConfigForm.cash_account_code} onChange={(e) => setApConfigForm((p) => ({ ...p, cash_account_code: e.target.value }))} /></Field>
+            </div>
+            <div className="mt-6 flex justify-end gap-2">
+              <Button variant="secondary" onClick={() => setShowApSettings(false)}>Cancel</Button>
+              <Button onClick={() => void saveApConfig()} disabled={saving}>Save settings</Button>
             </div>
           </Modal>
         )}
