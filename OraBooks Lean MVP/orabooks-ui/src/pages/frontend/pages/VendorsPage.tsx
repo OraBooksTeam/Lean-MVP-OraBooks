@@ -749,6 +749,9 @@ export default function VendorsPage() {
         credit_date: new Date().toISOString().slice(0, 10),
         is_adjustment: false,
       });
+      if (viewingWalletVendor && creditNoteVendor.id === viewingWalletVendor.id) {
+        await refreshWalletData(viewingWalletVendor, { updatePaymentAmount: true });
+      }
       if (selectedVendorId) await loadVendorDetail(selectedVendorId);
       await load();
     }
