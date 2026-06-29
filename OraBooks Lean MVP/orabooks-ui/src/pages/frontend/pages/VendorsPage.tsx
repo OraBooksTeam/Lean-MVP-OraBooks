@@ -675,10 +675,6 @@ export default function VendorsPage() {
     setWalletLoading(false);
   };
 
-  const handleRecordPayment = async () => {
-    await recordWalletPayment();
-  };
-
   const recordWalletPayment = async () => {
     if (!orgId || !viewingWalletVendor) return;
     setSaving(true);
@@ -984,7 +980,6 @@ export default function VendorsPage() {
               loading={detailLoading}
               saving={saving}
               onClose={() => { setSelectedVendorId(null); setVendorDetail(null); }}
-              onPayment={(vendor) => openPayment(vendor)}
               onOpenWallet={(vendor) => void openWallet(vendor)}
               onCreditNote={(vendor) => { setCreditNoteVendor(vendor); setCreditNoteBill(null); setError(''); }}
               onCreateBill={(vendorId) => {
@@ -1610,7 +1605,6 @@ function VendorDetailPanel({
   loading,
   saving,
   onClose,
-  onPayment,
   onOpenWallet,
   onCreditNote,
   onCreateBill,
@@ -1621,7 +1615,6 @@ function VendorDetailPanel({
   loading: boolean;
   saving: boolean;
   onClose: () => void;
-  onPayment: (vendor: Vendor) => void;
   onOpenWallet: (vendor: Vendor) => void;
   onCreditNote: (vendor: Vendor) => void;
   onCreateBill: (vendorId: number) => void;
