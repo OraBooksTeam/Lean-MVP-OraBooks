@@ -222,6 +222,31 @@ class OraBooks_Operational_Reports {
         return ['summary' => self::aging_totals($rows), 'rows' => self::aging_rows($rows, 'vendor_id')];
     }
 
+    private static function ap_aging_vendor_rows(array $bills) {
+        $result = [];
+        foreach ($bills as $bill) {
+            $vendor_id = intval($bill['vendor_id'] ?? 0);
+            if ($vendor_id <= 0) {
+                continue;
+            }
+            if (!isset($result[$vendor_id])) {
+                $result[$vendor_id] = [
+                    'vendor_id' => $vendor_id,
+                    'current' => 0.0,
+                    '30' => 0.0,
+                    '60' => 0.0,
+                    '90_plus' => 0.0,
+                    'total_due' => 0.0,
+                ];
+            }
+            $bucket = self::normalize_bucket($bill['bucket'] ?? 'current');
+            $amount = floatval($bill['outstanding'] ?? 0);
+            $result[$vendor_id][$bucket] += $amount;
+            $result[$vendor_id]['total_due'] += $amount;
+        }
+        return array_values($result);
+    }
+
     private static function aging_rows($rows, $entity_key) {
         $result = [];
         foreach ($rows as $row) {
