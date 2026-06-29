@@ -12,6 +12,7 @@ class OraBooks_Ai_Review_Test extends TestCase
     {
         global $wpdb;
 
+        $GLOBALS['orabooks_test_current_user_id'] = 1;
         $wpdb->test_query_callback = null;
         $wpdb->test_get_row_callback = null;
         $wpdb->test_get_results_callback = null;
@@ -23,6 +24,7 @@ class OraBooks_Ai_Review_Test extends TestCase
     {
         global $wpdb;
 
+        $GLOBALS['orabooks_test_current_user_id'] = 1;
         $wpdb->test_query_callback = null;
         $wpdb->test_get_row_callback = null;
         $wpdb->test_get_results_callback = null;
@@ -267,5 +269,119 @@ class OraBooks_Ai_Review_Test extends TestCase
 
         $this->assertFalse(OraBooks_Ai_Review::should_escalate_after_retry(3));
         $this->assertTrue(OraBooks_Ai_Review::should_escalate_after_retry(4));
+    }
+
+    #[Test]
+    public function test_list_queue_uses_org_and_status_filters()
+    {
+        global $wpdb;
+
+        $captured_query = null;
+        $wpdb->test_get_results_callback = function ($query) use (&$captured_query) {
+            $captured_query = $query;
+            return [
+                (object) [
+                    'id' => 1,
+                    'org_id' => 9,
+                    'resource_type' => 'journal',
+                    'resource_id' => 88,
+                    'journal_id' => 88,
+                    'journal_number' => 'JE-88',
+                    'confidence_score' => 61.0,
+                    'risk_level' => 'high',
+                    'escalation_reason' => 'low_confidence',
+                    'explanation' => 'Ambiguous journal',
+                    'total_amount' => 500,
+                    'priority_score' => 101,
+                    'status' => 'escalated',
+                    'retry_count' => 2,
+                    'created_at' => '2026-06-01 00:00:00',
+                    'updated_at' => '2026-06-01 00:00:00',
+                ],
+            ];
+        };
+
+        $rows = OraBooks_Ai_Review::list_queue(9, ['statuses' => ['escalated'], 'limit' => 5]);
+
+        $this->assertCount(1, $rows);
+        $this->assertStringContainsString("q.org_id = 9", (string) $captured_query);
+        $this->assertStringContainsString("q.status IN ('escalated')", (string) $captured_query);
+    }
+
+    #[Test]
+    public function test_get_queue_stats_aggregates_status_counts()
+    {
+        global $wpdb;
+
+        $wpdb->test_get_results_callback = function ($query) {
+            if (strpos((string) $query, 'GROUP BY status') !== false) {
+                return [
+                    (object) ['status' => 'pending', 'total' => 2],
+                    (object) ['status' => 'processing', 'total' => 1],
+                    (object) ['status' => 'escalated', 'total' => 3],
+                    (object) ['status' => 'resolved', 'total' => 4],
+                ];
+            }
+            return [];
+        };
+
+        $stats = OraBooks_Ai_Review::get_queue_stats(7);
+
+        $this->assertSame(2, $stats['pending']);
+        $this->assertSame(1, $stats['processing']);
+        $this->assertSame(3, $stats['escalated']);
+        $this->assertSame(4, $stats['resolved']);
+        $this->assertSame(6, $stats['total_open']);
+    }
+
+    #[Test]
+    public function test_resolve_ai_review_marks_all_matching_items_resolved()
+    {
+        global $wpdb;
+
+        $items = [
+            (object) ['id' => 31, 'org_id' => 4, 'journal_id' => 12, 'status' => 'pending'],
+            (object) ['id' => 32, 'org_id' => 4, 'journal_id' => 12, 'status' => 'escalated'],
+        ];
+        $updated_ids = [];
+        $history_actions = [];
+
+        $wpdb->test_get_results_callback = function ($query) use ($items) {
+            if (strpos((string) $query, 'journal_id') !== false) {
+                return $items;
+            }
+            return [];
+        };
+
+        $wpdb->test_update_callback = function ($table, $data, $where) use (&$updated_ids) {
+            $updated_ids[] = (int) ($where['id'] ?? 0);
+            return 1;
+        };
+
+        $wpdb->test_insert_callback = function ($table, $data) use (&$history_actions) {
+            if (strpos((string) $table, 'ai_review_history') !== false) {
+                $history_actions[] = $data['action'] ?? null;
+            }
+        };
+
+        $resolved = OraBooks_Ai_Review::resolve_ai_review(12, 4, 99);
+
+        sort($updated_ids);
+        $this->assertSame(2, $resolved);
+        $this->assertSame([31, 32], $updated_ids);
+        $this->assertSame(['resolve', 'resolve'], $history_actions);
+    }
+
+    #[Test]
+    public function test_ajax_list_requires_authentication()
+    {
+        $GLOBALS['orabooks_test_current_user_id'] = 0;
+        $_GET = ['org_id' => 1];
+        $_POST = [];
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('Not authenticated');
+
+        OraBooks_Ai_Review::init()->ajax_list();
     }
 }
