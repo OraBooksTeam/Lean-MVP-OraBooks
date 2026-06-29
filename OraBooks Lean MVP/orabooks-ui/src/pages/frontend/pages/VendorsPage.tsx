@@ -951,20 +951,20 @@ export default function VendorsPage() {
                     Add line
                   </Button>
                 </div>
-                <div className="mb-2 hidden text-xs font-semibold uppercase tracking-wide text-slate-500 sm:grid sm:grid-cols-12 sm:gap-2 sm:px-3">
-                  <div className="sm:col-span-2">Code</div>
-                  <div className="sm:col-span-4">Product</div>
-                  <div className="sm:col-span-2">Qty</div>
-                  <div className="sm:col-span-2">Unit price</div>
-                  <div className="sm:col-span-2 text-right">Line total</div>
+                <div className="mb-2 grid grid-cols-12 gap-2 px-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  <div className="col-span-2">Code</div>
+                  <div className="col-span-4">Product</div>
+                  <div className="col-span-2">Qty</div>
+                  <div className="col-span-2">Unit price</div>
+                  <div className="col-span-2 text-right">Line total</div>
                 </div>
                 <div className="space-y-2">
                   {billLineItems.map((line, index) => (
-                    <div key={index} className="grid gap-2 rounded-lg border border-border p-3 sm:grid-cols-12">
-                      <div className="sm:col-span-2">
+                    <div key={index} className="grid grid-cols-12 gap-2 rounded-lg border border-border p-3">
+                      <div className="col-span-2">
                         <Input value={line.sku_code} onChange={(e) => setBillLineItems((items) => items.map((row, i) => i === index ? { ...row, sku_code: e.target.value } : row))} placeholder="Code" />
                       </div>
-                      <div className="sm:col-span-4">
+                      <div className="col-span-4">
                         <ProductAutocomplete
                           value={line.description}
                           products={products}
@@ -972,13 +972,13 @@ export default function VendorsPage() {
                           onSelectProduct={(product) => applyProductToLine(index, product)}
                         />
                       </div>
-                      <div className="sm:col-span-2">
+                      <div className="col-span-2">
                         <Input type="number" min="0" step="0.01" value={line.quantity} onChange={(e) => setBillLineItems((items) => items.map((row, i) => i === index ? { ...row, quantity: e.target.value } : row))} placeholder="Qty" />
                       </div>
-                      <div className="sm:col-span-2">
+                      <div className="col-span-2">
                         <Input type="number" min="0" step="0.01" value={line.unit_price} onChange={(e) => setBillLineItems((items) => items.map((row, i) => i === index ? { ...row, unit_price: e.target.value } : row))} placeholder="Unit price" />
                       </div>
-                      <div className="flex items-center justify-end sm:col-span-2">
+                      <div className="col-span-2 flex items-center justify-end">
                         <span className="mr-2 text-sm font-medium text-ink">{money(billLineItemTotal(line), billForm.currency)}</span>
                         {billLineItems.length > 1 && (
                           <Button size="sm" variant="secondary" onClick={() => setBillLineItems((items) => items.filter((_, i) => i !== index))}>
