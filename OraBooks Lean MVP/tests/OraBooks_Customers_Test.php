@@ -35,6 +35,9 @@ class OraBooks_Customers_Test extends TestCase
         $wpdb->test_get_var_callback    = null;
         $wpdb->test_get_row_callback    = null;
         $wpdb->test_get_results_callback = null;
+        $wpdb->test_insert_callback     = null;
+        $wpdb->test_update_callback     = null;
+        $wpdb->test_query_callback      = null;
         $wpdb->insert_id = 0;
         $wpdb->last_query = '';
         $wpdb->last_result = [];
@@ -53,6 +56,8 @@ class OraBooks_Customers_Test extends TestCase
             'is_active'             => 1,
             'last_paid_invoice_date' => null,
             'lifetime_value'        => '0.00',
+            'credit_hold'           => 0,
+            'credit_limit'          => '0.00',
             'notes'                 => null,
             'created_at'            => '2026-06-01 12:00:00',
             'updated_at'            => '2026-06-15 12:00:00',
@@ -78,6 +83,7 @@ class OraBooks_Customers_Test extends TestCase
             'currency'          => 'USD',
             'payment_status'    => 'unpaid',
             'workflow_status'   => 'draft',
+            'lock_status'       => 'unlocked',
             'paid_amount'       => '0.00',
             'paid_at'           => null,
             'last_payment_date' => null,
@@ -513,7 +519,7 @@ class OraBooks_Customers_Test extends TestCase
         $wpdb->test_get_row_callback = function () use (&$callCount) {
             $callCount++;
             if ($callCount === 1) {
-                return (object) ['id' => 1];
+                return $this->mockCustomer(['id' => 1]);
             }
             return $this->mockInvoice(['id' => 201, 'invoice_number' => 'INV-202606-0099']);
         };
@@ -523,7 +529,9 @@ class OraBooks_Customers_Test extends TestCase
 
         $inserted = null;
         $wpdb->test_insert_callback = function ($table, $data) use (&$inserted) {
-            $inserted = $data;
+            if (stripos((string) $table, 'orabooks_invoices') !== false) {
+                $inserted = $data;
+            }
         };
         $GLOBALS['orabooks_test_use_insert_id'] = 201;
 
@@ -629,6 +637,12 @@ class OraBooks_Customers_Test extends TestCase
                 return 99; // Duplicate found
             }
             return 0;
+        };
+        $wpdb->test_get_row_callback = function ($query) {
+            if (stripos($query, 'credit_hold') !== false) {
+                return $this->mockCustomer(['id' => 1]);
+            }
+            return null;
         };
 
         $result = OraBooks_Customers::create_invoice(5, [
@@ -773,7 +787,7 @@ class OraBooks_Customers_Test extends TestCase
         // get_row: retrieve invoice
         $wpdb->test_get_row_callback = function ($query) {
             if (stripos($query, 'WHERE id') !== false && stripos($query, 'AND org_id') !== false) {
-                return $this->mockInvoice(['id' => 100, 'total_amount' => '500.00']);
+                return $this->mockInvoice(['id' => 100, 'total_amount' => '500.00', 'workflow_status' => 'posted']);
             }
             if (stripos($query, 'FROM orabooks_customers') !== false) {
                 return (object)['user_id' => 10];
@@ -815,7 +829,7 @@ class OraBooks_Customers_Test extends TestCase
 
         $wpdb->test_get_row_callback = function ($query) {
             if (stripos($query, 'WHERE id') !== false && stripos($query, 'AND org_id') !== false) {
-                return $this->mockInvoice(['id' => 100, 'total_amount' => '500.00']);
+                return $this->mockInvoice(['id' => 100, 'total_amount' => '500.00', 'workflow_status' => 'posted']);
             }
             if (stripos($query, 'FROM orabooks_customers') !== false) {
                 return (object)['user_id' => 10];
@@ -852,7 +866,7 @@ class OraBooks_Customers_Test extends TestCase
 
         $wpdb->test_get_row_callback = function ($query) {
             if (stripos($query, 'WHERE id') !== false && stripos($query, 'AND org_id') !== false) {
-                return $this->mockInvoice(['id' => 100, 'total_amount' => '500.00']);
+                return $this->mockInvoice(['id' => 100, 'total_amount' => '500.00', 'workflow_status' => 'posted', 'paid_amount' => '200.00']);
             }
             if (stripos($query, 'FROM orabooks_customers') !== false) {
                 return (object)['user_id' => 10];
@@ -1555,4 +1569,3 @@ class OraBooks_Customers_Test extends TestCase
         $this->assertEquals('SRV-01', $lines[0]['sku_code']);
     }
 }
-
