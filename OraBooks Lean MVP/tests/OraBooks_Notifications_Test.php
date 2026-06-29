@@ -981,6 +981,53 @@ class OraBooks_Notifications_Test extends TestCase
 
         $this->setUserNotifPrefs(100);
         $this->setUpCommonMocks();
+
+    #[Test]
+    public function test_on_ai_review_escalated_notifies_org_admins()
+    {
+        global $wpdb;
+
+        $this->setUserNotifPrefs(70);
+        $this->setUserNotifPrefs(71);
+        $this->setUpCommonMocks();
+
+        $wpdb->test_get_results_callback = function ($query) {
+            if (stripos($query, 'user_org') !== false) {
+                return [
+                    (object) ['user_id' => 70],
+                    (object) ['user_id' => 71],
+                ];
+            }
+            if (stripos($query, 'delivery_provider_health') !== false) {
+                return [];
+            }
+            return [];
+        };
+
+        $captured = [];
+        $wpdb->test_insert_callback = function ($table, $data) use (&$captured) {
+            if (strpos($table, 'notifications') !== false
+                && $data['event_type'] === 'ai_review_escalated') {
+                $captured[] = $data;
+            }
+        };
+
+        $handler = $this->createHandler();
+        $handler->on_ai_review_escalated(55, [
+            'queue_id' => 33,
+            'org_id' => 10,
+            'journal_id' => 55,
+            'resource_type' => 'journal',
+            'confidence' => 48.0,
+            'risk_level' => 'high',
+        ]);
+
+        $this->assertCount(2, $captured);
+        $this->assertSame('ai_review_escalated', $captured[0]['event_type']);
+        $this->assertSame(10, (int) $captured[0]['org_id']);
+        $this->assertSame('high', $captured[0]['priority']);
+        $this->assertStringContainsString('Manual review is required', $captured[0]['message']);
+    }
         $this->setUpResultsMock(function ($query) {
             return [(object) ['user_id' => 100]];
         });
