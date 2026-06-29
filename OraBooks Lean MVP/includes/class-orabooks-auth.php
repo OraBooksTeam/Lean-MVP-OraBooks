@@ -1911,17 +1911,18 @@ class OraBooks_Auth {
         }
 
         $post = get_queried_object();
-        if (!$post || empty($post->post_name)) {
+        $logical_slug = orabooks_get_frontend_page_slug($post);
+        if ($logical_slug === '') {
             return;
         }
 
-        if (!in_array($post->post_name, orabooks_get_accounting_page_slugs(), true)) {
+        if (!in_array($logical_slug, orabooks_get_accounting_page_slugs(), true)) {
             return;
         }
 
-        orabooks_log_event('accounting_isolation_blocked', "Partner subdomain blocked from accounting page: {$post->post_name}", 'warning', [
+        orabooks_log_event('accounting_isolation_blocked', "Partner subdomain blocked from accounting page: {$logical_slug}", 'warning', [
             'subdomain' => $subdomain,
-            'page' => $post->post_name,
+            'page' => $logical_slug,
         ], orabooks_get_current_user_id(), (int) $org->id);
 
         status_header(403);

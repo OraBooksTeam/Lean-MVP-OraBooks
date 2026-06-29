@@ -170,13 +170,11 @@ function orabooks_get_required_page_slugs() {
 }
 
 /**
- * Whether the current (or given) page is an OraBooks frontend page.
- *
- * Detects shortcodes in post content, known page slugs, and stored page IDs.
+ * Whether the given page is owned by OraBooks.
  *
  * @param WP_Post|null $post
  */
-function orabooks_is_registered_frontend_page($post = null) {
+function orabooks_is_owned_frontend_page($post = null) {
     if ($post === null) {
         if (!is_singular('page')) {
             return false;
@@ -188,12 +186,12 @@ function orabooks_is_registered_frontend_page($post = null) {
         return false;
     }
 
-    $content = (string) $post->post_content;
-    if ($content !== '' && strpos($content, '[orabooks_') !== false) {
+    if ((string) get_post_meta($post->ID, '_orabooks_page', true) === '1') {
         return true;
     }
 
-    if (in_array($post->post_name, orabooks_get_required_page_slugs(), true)) {
+    $content = (string) $post->post_content;
+    if ($content !== '' && strpos($content, '[orabooks_') !== false) {
         return true;
     }
 
@@ -203,6 +201,115 @@ function orabooks_is_registered_frontend_page($post = null) {
     }
 
     return false;
+}
+
+/**
+ * Resolve the logical OraBooks page slug for an owned frontend page.
+ *
+ * @param WP_Post|null $post
+ */
+function orabooks_get_frontend_page_slug($post = null) {
+    if ($post === null) {
+        if (!is_singular('page')) {
+            return '';
+        }
+        $post = get_queried_object();
+    }
+
+    if (!$post instanceof WP_Post || $post->post_type !== 'page') {
+        return '';
+    }
+
+    if (!orabooks_is_owned_frontend_page($post)) {
+        return '';
+    }
+
+    $stored_slug = sanitize_title((string) get_post_meta($post->ID, '_orabooks_page_slug', true));
+    if ($stored_slug !== '') {
+        return $stored_slug;
+    }
+
+    $page_ids = get_option('orabooks_pages', []);
+    if (is_array($page_ids)) {
+        foreach ($page_ids as $logical_slug => $page_id) {
+            if ((int) $page_id === (int) $post->ID) {
+                return sanitize_title((string) $logical_slug);
+            }
+        }
+    }
+
+    if (strpos((string) $post->post_content, '[orabooks_') !== false && in_array($post->post_name, orabooks_get_required_page_slugs(), true)) {
+        return (string) $post->post_name;
+    }
+
+    return '';
+}
+
+/**
+ * Resolve the stored OraBooks page ID for a logical page slug.
+ */
+function orabooks_get_frontend_page_id($slug) {
+    $slug = sanitize_title((string) $slug);
+    if ($slug === '') {
+        return 0;
+    }
+
+    $page_ids = get_option('orabooks_pages', []);
+    $page_id = is_array($page_ids) ? (int) ($page_ids[$slug] ?? 0) : 0;
+    if ($page_id <= 0) {
+        return 0;
+    }
+
+    $post = get_post($page_id);
+    if (!$post instanceof WP_Post || !orabooks_is_owned_frontend_page($post)) {
+        return 0;
+    }
+
+    return $page_id;
+}
+
+/**
+ * Resolve the OraBooks frontend page URL for a logical page slug.
+ */
+function orabooks_get_frontend_page_url($slug) {
+    $slug = sanitize_title((string) $slug);
+    if ($slug === '') {
+        return home_url('/');
+    }
+
+    $page_id = 0;
+    if (function_exists('orabooks_with_data_blog')) {
+        $page_id = (int) orabooks_with_data_blog(function () use ($slug) {
+            return orabooks_get_frontend_page_id($slug);
+        });
+    } else {
+        $page_id = orabooks_get_frontend_page_id($slug);
+    }
+
+    if ($page_id > 0) {
+        $permalink = function_exists('orabooks_with_data_blog')
+            ? orabooks_with_data_blog(function () use ($page_id) {
+                return get_permalink($page_id);
+            })
+            : get_permalink($page_id);
+
+        if (is_string($permalink) && $permalink !== '') {
+            return $permalink;
+        }
+    }
+
+    return home_url('/' . $slug . '/');
+}
+
+/**
+ * Whether the current (or given) page is an OraBooks frontend page.
+ *
+ * Detects shortcodes in post content, known page slugs, and stored page IDs.
+ *
+ * @param WP_Post|null $post
+ */
+function orabooks_is_registered_frontend_page($post = null) {
+    return orabooks_get_frontend_page_slug($post) !== '';
 }
 
 /**
@@ -453,6 +560,11 @@ function orabooks_get_network_login_url($path = 'login') {
     $path = trim((string) $path, '/');
     if ($path === '') {
         $path = 'login';
+    }
+
+    $page_url = orabooks_get_frontend_page_url($path);
+    if ($page_url !== home_url('/' . $path . '/')) {
+        return $page_url;
     }
 
     if (function_exists('is_multisite') && is_multisite() && function_exists('get_site_url')) {
@@ -999,27 +1111,28 @@ function orabooks_redirect_tenant_auth_to_network() {
     }
 
     $post = get_queried_object();
-    if (!$post || empty($post->post_name)) {
+    $logical_slug = orabooks_get_frontend_page_slug($post);
+    if ($logical_slug === '') {
         return;
     }
 
     $shared_auth_slugs = ['login', 'register', 'reset-password', 'verify-email', 'tier-selection', 'accept-invite'];
-    if (!in_array($post->post_name, $shared_auth_slugs, true)) {
+    if (!in_array($logical_slug, $shared_auth_slugs, true)) {
         return;
     }
 
-    if ($post->post_name === 'login' && function_exists('orabooks_is_user_logged_in') && orabooks_is_user_logged_in()) {
+    if ($logical_slug === 'login' && function_exists('orabooks_is_user_logged_in') && orabooks_is_user_logged_in()) {
         if (orabooks_is_explicit_logout_request()) {
             wp_redirect(orabooks_get_logout_redirect_url());
             exit;
         }
 
-        wp_redirect(orabooks_append_auth_tokens_to_url(home_url('/dashboard/')));
+        wp_redirect(orabooks_append_auth_tokens_to_url(orabooks_get_frontend_page_url('dashboard')));
         exit;
     }
 
-    $target = orabooks_get_network_login_url($post->post_name);
-    if ($post->post_name === 'login' && orabooks_is_explicit_logout_request()) {
+    $target = orabooks_get_network_login_url($logical_slug);
+    if ($logical_slug === 'login' && orabooks_is_explicit_logout_request()) {
         $target = orabooks_get_logout_redirect_url();
     }
 
@@ -1042,7 +1155,7 @@ function orabooks_handle_login_oidc_callback() {
     }
 
     $post = get_queried_object();
-    if (!$post || $post->post_name !== 'login') {
+    if (orabooks_get_frontend_page_slug($post) !== 'login') {
         return;
     }
 
@@ -1137,9 +1250,10 @@ function orabooks_maybe_redirect_to_org_subdomain() {
         return;
     }
 
+    $logical_slug = orabooks_get_frontend_page_slug($post);
     $shared_auth_slugs = ['login', 'register', 'reset-password', 'verify-email', 'tier-selection', 'accept-invite'];
-    if (in_array($post->post_name, $shared_auth_slugs, true)) {
-        if ($post->post_name === 'login') {
+    if (in_array($logical_slug, $shared_auth_slugs, true)) {
+        if ($logical_slug === 'login') {
             if (orabooks_is_network_auth_host() && orabooks_orabooks_user_can_manage_platform($user_id)) {
                 wp_redirect(orabooks_get_platform_admin_url());
                 exit;
@@ -1155,11 +1269,11 @@ function orabooks_maybe_redirect_to_org_subdomain() {
         return;
     }
 
-    if (!function_exists('orabooks_get_accounting_page_slugs') || !in_array($post->post_name, orabooks_get_accounting_page_slugs(), true)) {
+    if (!function_exists('orabooks_get_accounting_page_slugs') || !in_array($logical_slug, orabooks_get_accounting_page_slugs(), true)) {
         return;
     }
 
-    $destination = orabooks_build_org_url($org->subdomain, '/' . $post->post_name . '/');
+    $destination = orabooks_build_org_url($org->subdomain, '/' . $logical_slug . '/');
     wp_redirect(orabooks_append_auth_tokens_to_url($destination));
     exit;
 }

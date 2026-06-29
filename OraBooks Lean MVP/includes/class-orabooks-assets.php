@@ -250,7 +250,7 @@ class OraBooks_Assets {
                 ? orabooks_get_platform_admin_url()
                 : admin_url('admin.php?page=orabooks'),
             'is_admin' => current_user_can('manage_options'),
-            'accounting_url' => home_url('/dashboard/'),
+            'accounting_url' => orabooks_get_frontend_page_url('dashboard'),
         ];
 
         if ($context === 'admin' && function_exists('orabooks_get_admin_nav_items')) {

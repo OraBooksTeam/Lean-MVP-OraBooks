@@ -243,31 +243,50 @@ add_action('init', 'orabooks_mirror_jwt_ajax_nopriv_handlers', 999);
 /**
  * Create a WordPress page with shortcode content if it doesn't already exist
  */
-function orabooks_create_page($slug, $title, $shortcode, $parent_slug = '') {
-    $path = $parent_slug ? trim($parent_slug, '/') . '/' . $slug : $slug;
-    $existing = get_page_by_path($path, OBJECT, 'page');
-    if ($existing) {
+function orabooks_create_page($slug, $title, $shortcode, $parent_id = 0) {
+    $existing_page_id = orabooks_get_frontend_page_id($slug);
+    if ($existing_page_id > 0) {
+        return $existing_page_id;
+    }
+
+    $conflict_path = $slug;
+    if ($parent_id > 0) {
+        $parent = get_post($parent_id);
+        if ($parent instanceof WP_Post) {
+            $conflict_path = trim($parent->post_name, '/') . '/' . $slug;
+        }
+    }
+
+    $existing = get_page_by_path($conflict_path, OBJECT, 'page');
+    if ($existing && orabooks_is_owned_frontend_page($existing)) {
+        update_post_meta($existing->ID, '_orabooks_page', '1');
+        update_post_meta($existing->ID, '_orabooks_page_slug', $slug);
         return $existing->ID;
     }
+
+    $page_slug = $existing ? 'orabooks-' . $slug : $slug;
     
     $page_data = [
         'post_title'    => $title,
         'post_content'  => '<!-- wp:shortcode -->' . $shortcode . '<!-- /wp:shortcode -->',
         'post_status'   => 'publish',
         'post_type'     => 'page',
-        'post_name'     => $slug,
+        'post_name'     => $page_slug,
         'comment_status' => 'closed',
         'ping_status'   => 'closed',
     ];
-    
-    if (!empty($parent_slug)) {
-        $parent = get_page_by_path($parent_slug, OBJECT, 'page');
-        if ($parent) {
-            $page_data['post_parent'] = $parent->ID;
-        }
+
+    if ($parent_id > 0) {
+        $page_data['post_parent'] = (int) $parent_id;
     }
-    
-    return wp_insert_post($page_data);
+
+    $page_id = wp_insert_post($page_data);
+    if (!is_wp_error($page_id) && (int) $page_id > 0) {
+        update_post_meta($page_id, '_orabooks_page', '1');
+        update_post_meta($page_id, '_orabooks_page_slug', $slug);
+    }
+
+    return $page_id;
 }
 
 /**
@@ -275,18 +294,22 @@ function orabooks_create_page($slug, $title, $shortcode, $parent_slug = '') {
  */
 function orabooks_create_required_pages() {
     $pages = orabooks_get_lean_mvp_page_definitions();
-    
-    // Create a parent page "OraBooks" if needed (optional)
     $created_ids = [];
-    
+
     foreach ($pages as $slug => $config) {
-        $page_id = orabooks_create_page($slug, $config[0], $config[1], $config[2] ?? '');
+        $parent_slug = $config[2] ?? '';
+        $parent_id = 0;
+        if ($parent_slug !== '') {
+            $parent_id = (int) ($created_ids[$parent_slug] ?? orabooks_get_frontend_page_id($parent_slug));
+        }
+
+        $page_id = orabooks_create_page($slug, $config[0], $config[1], $parent_id);
         $created_ids[$slug] = $page_id;
     }
-    
+
     // Store created page IDs in options for reference
     update_option('orabooks_pages', $created_ids);
-    
+
     return $created_ids;
 }
 
