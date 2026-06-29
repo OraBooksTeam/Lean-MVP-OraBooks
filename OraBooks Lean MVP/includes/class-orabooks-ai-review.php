@@ -385,24 +385,69 @@ class OraBooks_Ai_Review {
     }
 
     public function cron_process_queue() {
+        for ($processed = 0; $processed < 5; $processed++) {
+            $item = $this->claim_next_item();
+            if (!$item) {
+                break;
+            }
+
+            $this->process_queue_item($item);
+        }
+    }
+
+    private function claim_next_item() {
         global $wpdb;
 
         $table = OraBooks_Database::table(self::TABLE_QUEUE);
         $now = current_time('mysql', true);
+        $token = orabooks_uuid();
+        $lease = gmdate('Y-m-d H:i:s', time() + self::LEASE_SECONDS);
 
-        $items = $wpdb->get_results($wpdb->prepare(
-            "SELECT * FROM {$table}
-             WHERE status = 'pending'
-               AND (next_retry_at IS NULL OR next_retry_at <= %s)
-               AND (lease_expires_at IS NULL OR lease_expires_at <= %s)
-             ORDER BY priority_score DESC, created_at ASC
-             LIMIT 5",
-            $now,
-            $now
-        ));
+        $wpdb->query('START TRANSACTION');
 
-        foreach ($items ?: [] as $item) {
-            $this->process_queue_item($item);
+        try {
+            $item = $wpdb->get_row($wpdb->prepare(
+                "SELECT * FROM {$table}
+                 WHERE status = 'pending'
+                   AND (next_retry_at IS NULL OR next_retry_at <= %s)
+                   AND (lease_expires_at IS NULL OR lease_expires_at <= %s)
+                 ORDER BY priority_score DESC, created_at ASC
+                 LIMIT 1
+                 FOR UPDATE SKIP LOCKED",
+                $now,
+                $now
+            ));
+
+            if (!$item) {
+                $wpdb->query('ROLLBACK');
+                return null;
+            }
+
+            $updated = $wpdb->update($table, [
+                'status' => 'processing',
+                'processing_token' => $token,
+                'lease_expires_at' => $lease,
+            ], [
+                'id' => (int) $item->id,
+                'status' => 'pending',
+            ], ['%s', '%s', '%s'], ['%d', '%s']);
+
+            if (!$updated) {
+                $wpdb->query('ROLLBACK');
+                return null;
+            }
+
+            self::record_history((int) $item->id, (int) $item->org_id, 'claim', 0, ['token' => $token]);
+            $wpdb->query('COMMIT');
+
+            $item->status = 'processing';
+            $item->processing_token = $token;
+            $item->lease_expires_at = $lease;
+
+            return $item;
+        } catch (\Throwable $e) {
+            $wpdb->query('ROLLBACK');
+            return null;
         }
     }
 
@@ -410,16 +455,6 @@ class OraBooks_Ai_Review {
         global $wpdb;
 
         $table = OraBooks_Database::table(self::TABLE_QUEUE);
-        $token = orabooks_uuid();
-        $lease = gmdate('Y-m-d H:i:s', time() + self::LEASE_SECONDS);
-
-        $wpdb->update($table, [
-            'status'           => 'processing',
-            'processing_token' => $token,
-            'lease_expires_at' => $lease,
-        ], ['id' => (int) $item->id, 'status' => 'pending'], ['%s', '%s', '%s'], ['%d', '%s']);
-
-        self::record_history((int) $item->id, (int) $item->org_id, 'claim', 0, ['token' => $token]);
 
         if ($item->resource_type === 'journal' && $item->journal_id) {
             $evaluation = self::evaluate_journal((int) $item->journal_id, (int) $item->org_id);
