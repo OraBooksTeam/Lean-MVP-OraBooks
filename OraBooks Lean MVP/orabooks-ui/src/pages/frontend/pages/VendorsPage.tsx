@@ -1422,6 +1422,15 @@ function WorkflowBadge({ value }: { value: string }) {
   return <span className="badge border border-border bg-slate-50 text-slate-700">{value}</span>;
 }
 
+function VendorDetailField({ label, value, multiline = false }: { label: string; value: string; multiline?: boolean }) {
+  return (
+    <div className="rounded-lg border border-border bg-slate-50/70 p-3">
+      <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">{label}</dt>
+      <dd className={`mt-1 font-medium text-ink ${multiline ? 'whitespace-pre-wrap' : ''}`}>{value}</dd>
+    </div>
+  );
+}
+
 function VendorDetailPanel({
   detail,
   loading,
@@ -1456,21 +1465,24 @@ function VendorDetailPanel({
       <div className="flex items-start justify-between gap-3">
         <div>
           <h3 className="text-lg font-bold text-ink">{vendor.name}</h3>
-          <p className="text-sm text-slate-500">{vendor.email || 'No email'} · {vendor.payment_terms ?? 30} day terms</p>
+          <p className="text-sm text-slate-500">Vendor details</p>
         </div>
         <Button variant="secondary" size="sm" onClick={onClose}>Close</Button>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2 text-sm">
-        <div className="rounded-lg border border-border bg-slate-50/70 p-3">
-          <p className="text-xs uppercase text-slate-500">Payable balance</p>
-          <p className="mt-1 text-xl font-bold text-ink">{money(vendor.payable_balance)}</p>
+      <dl className="grid gap-3 sm:grid-cols-2 text-sm">
+        <VendorDetailField label="Name" value={vendor.name} />
+        <VendorDetailField label="Email" value={vendor.email || '—'} />
+        <VendorDetailField label="Phone" value={vendor.phone || '—'} />
+        <VendorDetailField label="Payment Terms" value={`${vendor.payment_terms ?? 30} days`} />
+        <VendorDetailField label="Default Currency" value={vendor.default_currency || 'USD'} />
+        <VendorDetailField label="Payable Balance" value={money(vendor.payable_balance, vendor.default_currency)} />
+        <VendorDetailField label="Credit Balance" value={money(vendor.credit_balance, vendor.default_currency)} />
+        <VendorDetailField label="Auto Apply Credit" value={Number(vendor.auto_apply_credit ?? 1) === 1 ? 'Yes' : 'No'} />
+        <div className="sm:col-span-2">
+          <VendorDetailField label="Address" value={vendor.address?.trim() || '—'} multiline />
         </div>
-        <div className="rounded-lg border border-border bg-slate-50/70 p-3">
-          <p className="text-xs uppercase text-slate-500">Credit balance</p>
-          <p className="mt-1 text-xl font-bold text-ink">{money(vendor.credit_balance)}</p>
-        </div>
-      </div>
+      </dl>
 
       <div className="flex flex-wrap gap-2">
         <Button size="sm" onClick={() => onCreateBill(vendor.id)}>Create bill</Button>
