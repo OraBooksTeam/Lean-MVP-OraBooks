@@ -600,10 +600,13 @@ class OraBooks_Tax {
             'transaction_id' => (int) $bill->id,
             'transaction_type' => 'vendor_bill',
             'amount' => $tax_base,
+            'tax_amount' => round(floatval($bill->tax_amount ?? 0), 2),
+            'tax_rate' => $tax_base > 0 ? round((floatval($bill->tax_amount ?? 0) / $tax_base) * 100, 4) : 0.0,
             'jurisdiction' => sanitize_text_field($bill->tax_jurisdiction ?? 'US'),
             'transaction_date' => $bill->bill_date ?? current_time('Y-m-d'),
             'tax_type' => sanitize_text_field($bill->tax_type ?? 'Sales Tax'),
-            'override' => false,
+            'posted_tax' => true,
+            'rule_id' => 'vendor_bill_posted',
         ];
 
         return self::create_snapshot($payload, $user_id);
