@@ -23,7 +23,9 @@ class OraBooks_Pwa {
     }
 
     public static function get_manifest() {
-        $start = orabooks_get_frontend_page_url('dashboard');
+        $start = function_exists('orabooks_get_frontend_page_url')
+            ? orabooks_get_frontend_page_url('dashboard')
+            : home_url('/dashboard/');
         $scope = home_url('/');
 
         return [
@@ -43,7 +45,9 @@ class OraBooks_Pwa {
                     'name'        => 'Expenses',
                     'short_name'  => 'Expenses',
                     'description' => 'Scan or upload a receipt',
-                    'url'         => orabooks_get_frontend_page_url('expenses'),
+                    'url'         => function_exists('orabooks_get_frontend_page_url')
+                        ? orabooks_get_frontend_page_url('expenses')
+                        : home_url('/expenses/'),
                 ],
             ],
         ];
