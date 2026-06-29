@@ -32,7 +32,7 @@ const defaults: PlatformSettings = {
   block_same_email_domain: false,
   partner_commission_for_staff_viewer: false,
   audit_retention_days: 365,
-  jwt_expiry: 900,
+  jwt_expiry: 3600,
   refresh_token_expiry: 604800,
   openai_api_key: '',
   openai_chat_model: 'gpt-4o-mini',
