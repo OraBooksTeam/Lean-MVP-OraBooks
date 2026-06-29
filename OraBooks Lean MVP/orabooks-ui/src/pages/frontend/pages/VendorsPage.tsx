@@ -421,8 +421,11 @@ export default function VendorsPage() {
   };
 
   const handleCreateBill = async () => {
-    if (!orgId || !billForm.vendor_id || !billForm.subtotal_amount) {
-      setError('Vendor and subtotal are required.');
+    const lines = buildBillLineItemsPayload(billLineItems);
+    const subtotal = lines.length ? billLineItemsSubtotal(billLineItems) : 0;
+
+    if (!orgId || !billForm.vendor_id || subtotal <= 0) {
+      setError('Vendor and at least one valid line item are required.');
       return;
     }
     setSaving(true);
@@ -430,10 +433,11 @@ export default function VendorsPage() {
     const payload: Record<string, unknown> = {
       vendor_id: parseInt(billForm.vendor_id, 10),
       bill_date: billForm.bill_date,
-      subtotal_amount: parseFloat(billForm.subtotal_amount) || 0,
+      subtotal_amount: subtotal,
       jurisdiction: billForm.jurisdiction,
       currency: billForm.currency || 'USD',
       description: billForm.description,
+      line_items: lines,
     };
     if (billForm.use_due_date && billForm.due_date) {
       payload.due_date = billForm.due_date;
@@ -445,6 +449,7 @@ export default function VendorsPage() {
     else {
       setSuccess('Bill created in draft.');
       setShowBillForm(false);
+      setBillLineItems([emptyBillLineItem()]);
       setBillForm({
         vendor_id: '',
         bill_date: new Date().toISOString().slice(0, 10),
@@ -589,7 +594,12 @@ export default function VendorsPage() {
         </div>
 
         <section className="glass-panel p-5">
-          <h2 className="text-sm font-bold uppercase tracking-wide text-slate-500">AP Aging</h2>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h2 className="text-sm font-bold uppercase tracking-wide text-slate-500">AP Aging</h2>
+            <Button size="sm" variant="secondary" asChild>
+              <WpLink href="/ap-aging">Full AP aging report</WpLink>
+            </Button>
+          </div>
           <div className="mt-4 grid gap-3 sm:grid-cols-4">
             <AgingBucket label="Current" value={aging.current} />
             <AgingBucket label="1–30 days" value={aging['30']} />
@@ -603,7 +613,7 @@ export default function VendorsPage() {
             <Plus className="h-4 w-4" />
             Add vendor
           </Button>
-          <Button size="sm" onClick={() => { setShowBillForm(true); setError(''); setSuccess(''); }}>
+          <Button size="sm" onClick={() => { setShowBillForm(true); setBillLineItems([emptyBillLineItem()]); setError(''); setSuccess(''); }}>
             <Plus className="h-4 w-4" />
             Create bill
           </Button>
@@ -774,6 +784,7 @@ export default function VendorsPage() {
           ) : selectedBillId ? (
             <BillDetailPanel
               bill={billDetail?.bill}
+              lineItems={billDetail?.line_items || []}
               creditNotes={billDetail?.credit_notes || []}
               loading={billDetailLoading}
               actionBillId={actionBillId}
@@ -804,6 +815,7 @@ export default function VendorsPage() {
               onCreditNote={(vendor) => { setCreditNoteVendor(vendor); setCreditNoteBill(null); setError(''); }}
               onCreateBill={(vendorId) => {
                 setShowBillForm(true);
+                setBillLineItems([emptyBillLineItem()]);
                 setBillForm((p) => ({ ...p, vendor_id: String(vendorId) }));
               }}
               onCreditNoteAction={runCreditNoteAction}
