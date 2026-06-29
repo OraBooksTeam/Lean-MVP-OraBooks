@@ -599,7 +599,7 @@ export default function VendorsPage() {
                   <td className="px-5 py-3 text-right font-bold text-ink">{money(vendor.payable_balance)}</td>
                   <td className="px-5 py-3 text-right text-slate-600">{money(vendor.credit_balance)}</td>
                   <td className="px-5 py-3">
-                    <div className="flex flex-wrap gap-1">
+                    <div className="flex flex-wrap gap-1" onClick={(e) => e.stopPropagation()}>
                       <Button size="sm" variant="secondary" onClick={() => { setEditingVendor(vendor); setVendorForm(vendorToForm(vendor)); setError(''); }}>
                         Edit
                       </Button>
@@ -609,7 +609,7 @@ export default function VendorsPage() {
                           Pay
                         </Button>
                       )}
-                      <Button size="sm" variant="secondary" onClick={() => { setCreditNoteVendor(vendor); setError(''); }}>
+                      <Button size="sm" variant="secondary" onClick={() => { setCreditNoteVendor(vendor); setCreditNoteBill(null); setError(''); }}>
                         Credit note
                       </Button>
                       <WpLink to={`/attachments?resource_type=vendor&resource_id=${vendor.id}`}>
@@ -653,7 +653,11 @@ export default function VendorsPage() {
                   </td>
                 </tr>
               ) : bills.map((bill) => (
-                <tr key={bill.id} className="hover:bg-slate-50/70">
+                <tr
+                  key={bill.id}
+                  className={`cursor-pointer hover:bg-slate-50/70 ${selectedBillId === bill.id ? 'bg-accent/10 ring-2 ring-inset ring-accent/30' : ''}`}
+                  onClick={() => void loadBillDetail(bill.id)}
+                >
                   <td className="px-5 py-3 font-semibold text-ink">{bill.bill_number || `Bill #${bill.id}`}</td>
                   <td className="px-5 py-3 text-slate-600">{bill.vendor_name || '—'}</td>
                   <td className="px-5 py-3 text-slate-600">{bill.due_date || '—'}</td>
@@ -661,7 +665,7 @@ export default function VendorsPage() {
                   <td className="px-5 py-3"><WorkflowBadge value={bill.payment_status || 'unpaid'} /></td>
                   <td className="px-5 py-3 text-right font-bold text-ink">{money(bill.total_amount, bill.currency)}</td>
                   <td className="px-5 py-3">
-                    <div className="flex flex-wrap gap-1">
+                    <div className="flex flex-wrap gap-1" onClick={(e) => e.stopPropagation()}>
                       {bill.workflow_status === 'draft' && (
                         <Button size="sm" variant="secondary" disabled={actionBillId === bill.id} onClick={() => void runBillAction('submit', bill.id)}>
                           Submit
