@@ -1396,6 +1396,24 @@ html body.orabooks-react-page .orabooks-client-main button[title="Upload audio a
 }
 
 /* =============================================
+   ENSURE BLUE PRIMARY BUTTONS HAVE VISIBLE WHITE TEXT
+   Fixes: bg-primary + text-primary combos that produce blue-on-blue
+   ============================================= */
+#orabooks-app-root button[class*="bg-primary"],
+#orabooks-app-root .orabooks-btn-primary,
+#orabooks-app-root a[class*="bg-primary"],
+#orabooks-app-root [class*="bg-primary"][class*="text-primary"] {
+    color: #ffffff !important;
+}
+#orabooks-app-root button[class*="bg-primary"]:hover,
+#orabooks-app-root .orabooks-btn-primary:hover,
+#orabooks-app-root a[class*="bg-primary"]:hover,
+#orabooks-app-root button[class*="bg-primary"]:focus-visible,
+#orabooks-app-root .orabooks-btn-primary:focus-visible {
+    color: #ffffff !important;
+}
+
+/* =============================================
    FULL-PAGE OraBooks FRONTEND SHELL
    Break out of theme content width + page backgrounds
    ============================================= */
