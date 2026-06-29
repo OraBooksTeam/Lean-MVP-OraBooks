@@ -253,4 +253,19 @@ class OraBooks_Ai_Review_Test extends TestCase
         $this->assertNotNull($claim_query, 'Expected atomic claim query to be executed.');
         $this->assertStringContainsString('FOR UPDATE SKIP LOCKED', $claim_query);
     }
+
+    #[Test]
+    public function test_retry_helpers_are_deterministic()
+    {
+        $this->assertSame(1, OraBooks_Ai_Review::next_retry_count(0));
+        $this->assertSame(2, OraBooks_Ai_Review::next_retry_count(1));
+        $this->assertSame(4, OraBooks_Ai_Review::next_retry_count(3));
+
+        $this->assertSame(10, OraBooks_Ai_Review::backoff_seconds_for_retry(1));
+        $this->assertSame(20, OraBooks_Ai_Review::backoff_seconds_for_retry(2));
+        $this->assertSame(40, OraBooks_Ai_Review::backoff_seconds_for_retry(3));
+
+        $this->assertFalse(OraBooks_Ai_Review::should_escalate_after_retry(3));
+        $this->assertTrue(OraBooks_Ai_Review::should_escalate_after_retry(4));
+    }
 }
