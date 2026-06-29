@@ -900,7 +900,7 @@ export default function VendorsPage() {
           <Modal title="Create bill" onClose={() => setShowBillForm(false)} wide>
             {error && <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div>}
             <div className="grid gap-4">
-              <div className="grid gap-4 sm:grid-cols-2">
+              <div className="grid grid-cols-2 gap-4">
                 <Field label="Vendor">
                   <select value={billForm.vendor_id} onChange={(e) => setBillForm((p) => ({ ...p, vendor_id: e.target.value }))} className="w-full rounded-lg border border-border px-3 py-2.5 text-sm">
                     <option value="">Select vendor…</option>
@@ -912,7 +912,7 @@ export default function VendorsPage() {
                 </Field>
               </div>
 
-              <div className="grid gap-4 sm:grid-cols-2">
+              <div className="grid grid-cols-2 gap-4">
                 <Field label="Currency">
                   <Input value={billForm.currency} onChange={(e) => setBillForm((p) => ({ ...p, currency: e.target.value.toUpperCase() }))} maxLength={3} />
                 </Field>
@@ -925,7 +925,7 @@ export default function VendorsPage() {
                 </Field>
               </div>
 
-              <div className="grid gap-4 sm:grid-cols-2">
+              <div className="grid grid-cols-2 gap-4">
                 <div className="flex items-end pb-2">
                   <label className="flex items-center gap-2 text-sm text-slate-700">
                     <input type="checkbox" checked={billForm.use_due_date} onChange={(e) => setBillForm((p) => ({ ...p, use_due_date: e.target.checked }))} />
