@@ -1008,7 +1008,13 @@ export default function VendorsPage() {
         </div>
 
         {showVendorForm && (
-          <Modal title="Add vendor" onClose={closeVendorForm} elevated={vendorFormContext === 'bill'} wide>
+          <Modal
+            title="Add vendor"
+            onClose={closeVendorForm}
+            elevated={vendorFormContext === 'bill'}
+            elevatedZIndex={viewingWalletVendor ? 100040 : 100030}
+            wide
+          >
             {error && <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div>}
             <VendorFields form={vendorForm} onChange={setVendorForm} />
             <div className="mt-6 flex justify-end gap-2">
@@ -1030,7 +1036,13 @@ export default function VendorsPage() {
         )}
 
         {showBillForm && (
-          <Modal title="Create bill" onClose={() => setShowBillForm(false)} wide>
+          <Modal
+            title="Create bill"
+            onClose={() => setShowBillForm(false)}
+            wide
+            elevated={!!viewingWalletVendor}
+            elevatedZIndex={100030}
+          >
             {error && <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div>}
             <div className="grid gap-4">
               <div className="grid grid-cols-2 gap-4">
@@ -1197,11 +1209,20 @@ export default function VendorsPage() {
         )}
 
         {viewingWalletVendor && (
-          <Modal title={`Vendor wallet — ${viewingWalletVendor.name}`} onClose={() => { setViewingWalletVendor(null); setWalletData(null); }} wide>
+          <Modal
+            title={`Vendor wallet — ${viewingWalletVendor.name}`}
+            onClose={() => { setViewingWalletVendor(null); setWalletData(null); setWalletError(''); }}
+            wide
+            elevated
+            elevatedZIndex={100010}
+          >
             {walletLoading ? (
               <p className="text-sm text-slate-500">Loading wallet…</p>
             ) : (
               <div className="space-y-5">
+                {walletError && (
+                  <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{walletError}</div>
+                )}
                 <div className="grid gap-4 sm:grid-cols-4">
                   <Metric label="AP payable" value={money(walletData?.payable_balance, walletData?.default_currency || viewingWalletVendor.default_currency)} />
                   <Metric label="Credit balance" value={money(walletData?.credit_balance, walletData?.default_currency || viewingWalletVendor.default_currency)} />
@@ -1233,7 +1254,7 @@ export default function VendorsPage() {
                       </Field>
                     </div>
                     <div className="mt-3 flex justify-end">
-                      <Button onClick={() => void recordWalletPayment()} disabled={saving}>Record payment</Button>
+                      <Button type="button" onClick={() => void recordWalletPayment()} disabled={saving}>Record payment</Button>
                     </div>
                   </div>
                 )}
