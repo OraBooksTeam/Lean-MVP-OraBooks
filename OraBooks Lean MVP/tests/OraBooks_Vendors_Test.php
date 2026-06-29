@@ -360,6 +360,12 @@ class OraBooks_Vendors_Test extends TestCase
                     'org_id' => 5,
                     'status' => 'draft',
                     'total_amount' => '100.00',
+                    'approval_round' => 0,
+                    'revision_number' => 1,
+                    'source_id' => 100,
+                    'source_type' => 'vendor_bill',
+                    'transaction_date' => '2026-06-01',
+                    'metadata' => '{}',
                 ];
             }
             if (stripos($query, 'orabooks_accounts') !== false) {
@@ -370,8 +376,8 @@ class OraBooks_Vendors_Test extends TestCase
         $wpdb->test_get_results_callback = function ($query) {
             if (stripos($query, 'orabooks_journal_lines') !== false) {
                 return [
-                    (object) ['debit_amount' => '100.00', 'credit_amount' => '0.00', 'description' => 'Expense'],
-                    (object) ['debit_amount' => '0.00', 'credit_amount' => '100.00', 'description' => 'AP'],
+                    (object) ['id' => 1, 'account_id' => 1, 'debit_amount' => '100.00', 'credit_amount' => '0.00', 'description' => 'Expense', 'currency_code' => 'USD'],
+                    (object) ['id' => 2, 'account_id' => 2, 'debit_amount' => '0.00', 'credit_amount' => '100.00', 'description' => 'AP', 'currency_code' => 'USD'],
                 ];
             }
             return [];
