@@ -120,7 +120,7 @@ export default function ApAgingPage() {
               Refresh
             </Button>
             <WpLink
-              href="/vendors"
+              to="/vendors"
               className="inline-flex items-center justify-center rounded-lg border border-primary/30 bg-white px-4 py-2 text-sm font-semibold text-primary hover:border-primary hover:bg-primary/5"
             >
               Vendors & Bills
@@ -177,7 +177,7 @@ export default function ApAgingPage() {
                 ) : filteredBills.map((bill) => (
                   <tr key={bill.bill_id} className="border-t border-border">
                     <td className="px-5 py-3 font-medium">
-                      <WpLink href="/vendors" className="text-accent hover:underline">
+                      <WpLink to="/vendors" className="text-accent hover:underline">
                         {bill.bill_number || `#${bill.bill_id}`}
                       </WpLink>
                     </td>

@@ -125,6 +125,10 @@ class OraBooks_Shortcodes {
         return $this->customer_react_page('/vendors');
     }
 
+    public function ap_aging_page() {
+        return $this->customer_react_page('/ap-aging');
+    }
+
     public function inventory_page() {
         return $this->customer_react_page('/inventory');
     }

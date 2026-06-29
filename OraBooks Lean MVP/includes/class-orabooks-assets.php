@@ -104,6 +104,7 @@ class OraBooks_Assets {
             'orabooks_dashboard',
             'orabooks_customers',
             'orabooks_vendors',
+            'orabooks_ap_aging',
             'orabooks_inventory',
             'orabooks_bank_reconciliation',
             'orabooks_reports',
