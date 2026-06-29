@@ -1187,31 +1187,166 @@ export default function VendorsPage() {
           />
         )}
 
-        {paymentVendor && (
-          <Modal title="Record vendor payment" onClose={() => setPaymentVendor(null)}>
-            <p className="mb-4 text-sm text-slate-600">
-              {paymentVendor.name} — payable {money(paymentVendor.payable_balance)}
-            </p>
-            {error && <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div>}
-            <div className="grid gap-4">
-              <Field label="Amount"><Input type="number" min="0" step="0.01" value={paymentForm.amount} onChange={(e) => setPaymentForm((p) => ({ ...p, amount: e.target.value }))} /></Field>
-              <Field label="Payment date"><Input type="date" value={paymentForm.payment_date} onChange={(e) => setPaymentForm((p) => ({ ...p, payment_date: e.target.value }))} /></Field>
-              <Field label="Method">
-                <select value={paymentForm.payment_method} onChange={(e) => setPaymentForm((p) => ({ ...p, payment_method: e.target.value }))} className="w-full rounded-lg border border-border px-3 py-2.5 text-sm">
-                  <option value="bank_transfer">Bank transfer</option>
-                  <option value="credit_card">Credit card</option>
-                  <option value="cash">Cash</option>
-                  <option value="check">Check</option>
-                  <option value="other">Other</option>
-                </select>
-              </Field>
-              <Field label="Reference"><Input value={paymentForm.reference} onChange={(e) => setPaymentForm((p) => ({ ...p, reference: e.target.value }))} /></Field>
-              <Field label="Notes"><Input value={paymentForm.notes} onChange={(e) => setPaymentForm((p) => ({ ...p, notes: e.target.value }))} /></Field>
-            </div>
-            <div className="mt-6 flex justify-end gap-2">
-              <Button variant="secondary" onClick={() => setPaymentVendor(null)}>Cancel</Button>
-              <Button onClick={handleRecordPayment} disabled={saving}>Record payment</Button>
-            </div>
+        {viewingWalletVendor && (
+          <Modal title={`Vendor wallet — ${viewingWalletVendor.name}`} onClose={() => { setViewingWalletVendor(null); setWalletData(null); }} wide>
+            {walletLoading ? (
+              <p className="text-sm text-slate-500">Loading wallet…</p>
+            ) : (
+              <div className="space-y-5">
+                <div className="grid gap-4 sm:grid-cols-4">
+                  <Metric label="AP payable" value={money(walletData?.payable_balance, walletData?.default_currency || viewingWalletVendor.default_currency)} />
+                  <Metric label="Credit balance" value={money(walletData?.credit_balance, walletData?.default_currency || viewingWalletVendor.default_currency)} />
+                  <Metric label="Payment terms" value={`${walletData?.payment_terms ?? viewingWalletVendor.payment_terms ?? 30} days`} />
+                  <Metric label="Auto apply credit" value={Number(walletData?.auto_apply_credit ?? viewingWalletVendor.auto_apply_credit ?? 1) === 1 ? 'Yes' : 'No'} />
+                </div>
+
+                {canManageAp && (
+                  <div className="rounded-xl border border-border bg-slate-50/70 p-4">
+                    <h4 className="text-sm font-semibold text-ink">Record payment (FIFO)</h4>
+                    <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                      <Field label="Amount">
+                        <Input type="number" min="0" step="0.01" value={paymentForm.amount} onChange={(e) => setPaymentForm((p) => ({ ...p, amount: e.target.value }))} />
+                      </Field>
+                      <Field label="Date">
+                        <Input type="date" value={paymentForm.payment_date} onChange={(e) => setPaymentForm((p) => ({ ...p, payment_date: e.target.value }))} />
+                      </Field>
+                      <Field label="Method">
+                        <select value={paymentForm.payment_method} onChange={(e) => setPaymentForm((p) => ({ ...p, payment_method: e.target.value }))} className="w-full rounded-lg border border-border px-3 py-2.5 text-sm">
+                          <option value="bank_transfer">Bank transfer</option>
+                          <option value="credit_card">Credit card</option>
+                          <option value="cash">Cash</option>
+                          <option value="check">Check</option>
+                          <option value="other">Other</option>
+                        </select>
+                      </Field>
+                      <Field label="Reference">
+                        <Input value={paymentForm.reference} onChange={(e) => setPaymentForm((p) => ({ ...p, reference: e.target.value }))} />
+                      </Field>
+                    </div>
+                    <div className="mt-3 flex justify-end">
+                      <Button onClick={() => void recordWalletPayment()} disabled={saving}>Record payment</Button>
+                    </div>
+                  </div>
+                )}
+
+                <div>
+                  <h4 className="mb-2 text-sm font-semibold text-ink">Open bills</h4>
+                  <div className="overflow-x-auto rounded-xl border border-border">
+                    <table className="min-w-full text-left text-sm">
+                      <thead>
+                        <tr className="border-b border-border bg-slate-50 text-xs uppercase text-slate-500">
+                          <th className="px-4 py-2">Bill</th>
+                          <th className="px-4 py-2">Due</th>
+                          <th className="px-4 py-2">Status</th>
+                          <th className="px-4 py-2 text-right">Total</th>
+                          <th className="px-4 py-2 text-right">Outstanding</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {(walletData?.bills || []).length === 0 ? (
+                          <tr><td colSpan={5} className="px-4 py-4 text-slate-500">No open bills.</td></tr>
+                        ) : (walletData?.bills || []).map((bill: Bill) => {
+                          const outstanding = Math.max(0, Number(bill.total_amount || 0) - Number(bill.paid_amount || 0));
+                          return (
+                            <tr key={bill.id} className="border-t border-border">
+                              <td className="px-4 py-2">{bill.bill_number || `#${bill.id}`}</td>
+                              <td className="px-4 py-2">{bill.due_date || '—'}</td>
+                              <td className="px-4 py-2">{bill.payment_status || 'unpaid'}</td>
+                              <td className="px-4 py-2 text-right">{money(bill.total_amount, bill.currency)}</td>
+                              <td className="px-4 py-2 text-right">{money(outstanding, bill.currency)}</td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <div>
+                  <h4 className="mb-2 text-sm font-semibold text-ink">Payments</h4>
+                  <div className="overflow-x-auto rounded-xl border border-border">
+                    <table className="min-w-full text-left text-sm">
+                      <thead>
+                        <tr className="border-b border-border bg-slate-50 text-xs uppercase text-slate-500">
+                          <th className="px-4 py-2">Date</th>
+                          <th className="px-4 py-2">Type</th>
+                          <th className="px-4 py-2 text-right">Amount</th>
+                          <th className="px-4 py-2">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {(walletData?.payments || []).length === 0 ? (
+                          <tr><td colSpan={4} className="px-4 py-4 text-slate-500">No payments.</td></tr>
+                        ) : (walletData?.payments || []).map((payment: any) => (
+                          <tr key={payment.id} className="border-t border-border">
+                            <td className="px-4 py-2">{payment.payment_date}</td>
+                            <td className="px-4 py-2">{payment.type || 'payment'}</td>
+                            <td className="px-4 py-2 text-right">{money(payment.amount, walletData?.default_currency || viewingWalletVendor.default_currency)}</td>
+                            <td className="px-4 py-2">
+                              {canManageAp && payment.type === 'payment' && (
+                                <Button size="sm" variant="secondary" onClick={() => void reverseWalletPayment(payment.id)} disabled={saving}>
+                                  Reverse
+                                </Button>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <div>
+                  <h4 className="mb-2 text-sm font-semibold text-ink">Credit notes</h4>
+                  <div className="overflow-x-auto rounded-xl border border-border">
+                    <table className="min-w-full text-left text-sm">
+                      <thead>
+                        <tr className="border-b border-border bg-slate-50 text-xs uppercase text-slate-500">
+                          <th className="px-4 py-2">Number</th>
+                          <th className="px-4 py-2">Status</th>
+                          <th className="px-4 py-2 text-right">Amount</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {(walletData?.credit_notes || []).length === 0 ? (
+                          <tr><td colSpan={3} className="px-4 py-4 text-slate-500">No credit notes.</td></tr>
+                        ) : (walletData?.credit_notes || []).map((note: any) => (
+                          <tr key={note.id} className="border-t border-border">
+                            <td className="px-4 py-2">{note.credit_note_number || `#${note.id}`}</td>
+                            <td className="px-4 py-2">{note.workflow_status || 'draft'}</td>
+                            <td className="px-4 py-2 text-right">{money(note.amount, walletData?.default_currency || viewingWalletVendor.default_currency)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    size="sm"
+                    onClick={() => {
+                      setShowBillForm(true);
+                      setBillLineItems([emptyBillLineItem()]);
+                      setBillForm((prev) => ({ ...prev, vendor_id: String(viewingWalletVendor.id) }));
+                    }}
+                  >
+                    Create bill
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => {
+                      setCreditNoteVendor(viewingWalletVendor);
+                      setCreditNoteBill(null);
+                      setError('');
+                    }}
+                  >
+                    Issue credit note
+                  </Button>
+                </div>
+              </div>
+            )}
           </Modal>
         )}
 
@@ -1524,6 +1659,7 @@ function VendorDetailPanel({
 
       <div className="flex flex-wrap gap-2">
         <Button size="sm" onClick={() => onCreateBill(vendor.id)}>Create bill</Button>
+        <Button size="sm" variant="secondary" onClick={() => onOpenWallet(vendor)}>Wallet</Button>
         <Button size="sm" variant="secondary" onClick={() => onPayment(vendor)}>Record payment</Button>
         <Button size="sm" variant="secondary" onClick={() => onCreditNote(vendor)}>Issue credit note</Button>
       </div>
