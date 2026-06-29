@@ -12,6 +12,7 @@ class OraBooks_Ai_Review_Test extends TestCase
     {
         global $wpdb;
 
+        $wpdb->test_query_callback = null;
         $wpdb->test_get_row_callback = null;
         $wpdb->test_get_results_callback = null;
         $wpdb->test_insert_callback = null;
@@ -22,6 +23,7 @@ class OraBooks_Ai_Review_Test extends TestCase
     {
         global $wpdb;
 
+        $wpdb->test_query_callback = null;
         $wpdb->test_get_row_callback = null;
         $wpdb->test_get_results_callback = null;
         $wpdb->test_insert_callback = null;
@@ -123,7 +125,6 @@ class OraBooks_Ai_Review_Test extends TestCase
     {
         global $wpdb;
 
-        $queue_table = OraBooks_Database::table(OraBooks_Ai_Review::TABLE_QUEUE);
         $history_table = OraBooks_Database::table(OraBooks_Ai_Review::TABLE_HISTORY);
         $dead_table = OraBooks_Database::table(OraBooks_Ai_Review::TABLE_DEAD_LETTERS);
 
@@ -146,13 +147,14 @@ class OraBooks_Ai_Review_Test extends TestCase
         ];
 
         $insert_calls = [];
+        $claim_calls = 0;
 
-        $wpdb->test_get_results_callback = function ($query) use ($pending_item, $queue_table) {
-            if (strpos((string) $query, "FROM {$queue_table}") !== false
-                && strpos((string) $query, "status = 'pending'") !== false) {
-                return [$pending_item];
+        $wpdb->test_get_row_callback = function ($query) use ($pending_item, &$claim_calls) {
+            if (strpos((string) $query, 'FOR UPDATE SKIP LOCKED') !== false) {
+                $claim_calls++;
+                return $claim_calls === 1 ? $pending_item : null;
             }
-            return [];
+            return null;
         };
 
         $wpdb->test_insert_callback = function ($table, $data) use (&$insert_calls) {
@@ -179,5 +181,76 @@ class OraBooks_Ai_Review_Test extends TestCase
 
         $this->assertNotNull($dead_letter_history, 'Expected dead_letter action in history log.');
         $this->assertSame(11, (int) ($dead_letter_history['data']['queue_id'] ?? 0));
+    }
+
+    #[Test]
+    public function test_cron_process_queue_uses_atomic_claim_query()
+    {
+        global $wpdb;
+
+        $pending_item = (object) [
+            'id' => 19,
+            'org_id' => 4,
+            'resource_type' => 'journal',
+            'resource_id' => 19,
+            'journal_id' => 19,
+            'confidence_score' => 84.0,
+            'risk_level' => 'low',
+            'explanation' => 'Ready for review',
+            'model_version' => 'mvp-stub-1.0',
+            'retry_count' => 0,
+            'priority_score' => 15,
+            'total_amount' => 1000,
+            'status' => 'pending',
+            'created_at' => '2026-06-01 00:00:00',
+            'updated_at' => '2026-06-01 00:00:00',
+        ];
+
+        $queries = [];
+        $claim_calls = 0;
+
+        $wpdb->test_query_callback = function ($query) use (&$queries) {
+            $queries[] = $query;
+            return 1;
+        };
+
+        $wpdb->test_get_row_callback = function ($query) use ($pending_item, &$claim_calls, &$queries) {
+            $queries[] = $query;
+            if (strpos((string) $query, 'FOR UPDATE SKIP LOCKED') !== false) {
+                $claim_calls++;
+                return $claim_calls === 1 ? $pending_item : null;
+            }
+
+            if (strpos((string) $query, 'FROM ' . OraBooks_Database::table('journals')) !== false) {
+                return (object) [
+                    'id' => 19,
+                    'org_id' => 4,
+                    'total_amount' => 1000,
+                ];
+            }
+
+            return null;
+        };
+
+        $wpdb->test_get_results_callback = function ($query) use (&$queries) {
+            $queries[] = $query;
+            return [
+                (object) ['description' => 'Office supplies'],
+                (object) ['description' => 'Cash'],
+            ];
+        };
+
+        OraBooks_Ai_Review::init()->cron_process_queue();
+
+        $claim_query = null;
+        foreach ($queries as $query) {
+            if (strpos((string) $query, 'FOR UPDATE SKIP LOCKED') !== false) {
+                $claim_query = $query;
+                break;
+            }
+        }
+
+        $this->assertNotNull($claim_query, 'Expected atomic claim query to be executed.');
+        $this->assertStringContainsString('FOR UPDATE SKIP LOCKED', $claim_query);
     }
 }
