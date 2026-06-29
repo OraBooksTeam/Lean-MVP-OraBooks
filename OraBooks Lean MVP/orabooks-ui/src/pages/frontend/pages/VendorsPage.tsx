@@ -596,9 +596,12 @@ export default function VendorsPage() {
         <section className="glass-panel p-5">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <h2 className="text-sm font-bold uppercase tracking-wide text-slate-500">AP Aging</h2>
-            <Button size="sm" variant="secondary" asChild>
-              <WpLink href="/ap-aging">Full AP aging report</WpLink>
-            </Button>
+            <WpLink
+              href="/ap-aging"
+              className="inline-flex items-center justify-center rounded-lg border border-primary/30 bg-white px-3 py-1.5 text-sm font-semibold text-primary hover:border-primary hover:bg-primary/5"
+            >
+              Full AP aging report
+            </WpLink>
           </div>
           <div className="mt-4 grid gap-3 sm:grid-cols-4">
             <AgingBucket label="Current" value={aging.current} />
