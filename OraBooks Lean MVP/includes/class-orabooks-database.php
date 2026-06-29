@@ -913,6 +913,14 @@ class OraBooks_Database {
             dbDelta($sql);
         }
 
+        if (class_exists('OraBooks_Bill_Document')) {
+            $bill_document_tables = OraBooks_Bill_Document::get_create_table_sql();
+            foreach ($bill_document_tables as $sql) {
+                dbDelta($sql);
+            }
+            OraBooks_Bill_Document::ensure_schema();
+        }
+
         if (!wp_next_scheduled('orabooks_daily_ap_aging_snapshot')) {
             wp_schedule_event(time(), 'daily', 'orabooks_daily_ap_aging_snapshot');
         }
