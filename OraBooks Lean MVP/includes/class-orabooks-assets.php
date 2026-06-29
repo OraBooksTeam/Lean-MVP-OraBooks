@@ -362,7 +362,7 @@ class OraBooks_Assets {
             'orabooks-react-admin',
             self::react_bundle_url('admin.js'),
             [],
-            $version,
+            self::get_react_bundle_version('admin.js'),
             true
         );
         wp_localize_script('orabooks-react-admin', 'orabooks_ajax', $ajax_config);
