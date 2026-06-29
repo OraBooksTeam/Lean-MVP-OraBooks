@@ -569,7 +569,7 @@ class OraBooks_Tax_Test extends TestCase
 
         $this->assertIsArray($result);
         $this->assertEquals(902, $result['snapshot_id']);
-        $this->assertEquals('bill', $GLOBALS['tax_bill_snapshot']['transaction_type']);
+        $this->assertEquals('vendor_bill', $GLOBALS['tax_bill_snapshot']['transaction_type']);
         $this->assertEquals(15.0, $GLOBALS['tax_bill_snapshot']['tax_amount']);
     }
 }
