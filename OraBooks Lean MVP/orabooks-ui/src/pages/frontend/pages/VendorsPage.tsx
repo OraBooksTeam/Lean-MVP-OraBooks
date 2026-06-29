@@ -243,6 +243,13 @@ export default function VendorsPage() {
   const orgId = context?.organization?.id;
   const permissions: string[] = context?.permissions || [];
   const canCreateProduct = permissions.includes('create_invoice') || permissions.includes('manage_inventory');
+  const canManageAp = permissions.some((permission) =>
+    ['manage_org_settings', 'approve_journal', 'submit_transaction', 'manage_billing'].includes(permission)
+  );
+
+  const [viewingWalletVendor, setViewingWalletVendor] = useState<Vendor | null>(null);
+  const [walletData, setWalletData] = useState<any>(null);
+  const [walletLoading, setWalletLoading] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -379,6 +386,7 @@ export default function VendorsPage() {
     else {
       setSuccess('Payment reversed.');
       if (selectedVendorId) await loadVendorDetail(selectedVendorId);
+      if (viewingWalletVendor) await openWallet(viewingWalletVendor);
       await load();
     }
     setSaving(false);
