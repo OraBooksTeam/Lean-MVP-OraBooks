@@ -51,6 +51,7 @@ function writeManifest() {
   }
 
   const files = walk(outDir).sort();
+  fs.mkdirSync(outDir, { recursive: true });
   fs.writeFileSync(
     path.join(outDir, 'deploy-manifest.json'),
     JSON.stringify(

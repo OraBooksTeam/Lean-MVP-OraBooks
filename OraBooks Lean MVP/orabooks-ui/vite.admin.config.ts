@@ -2,6 +2,10 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 import path from 'path';
+import { fileURLToPath } from 'node:url';
+
+const configDir = path.dirname(fileURLToPath(import.meta.url));
+const pluginAssetsDir = path.resolve(configDir, '../assets/react');
 
 /** Single-file admin bundle for WordPress (no runtime chunk fetches). */
 export default defineConfig({
@@ -15,13 +19,13 @@ export default defineConfig({
     'import.meta.env.DEV': 'false',
   },
   build: {
-    outDir: path.resolve(__dirname, '../assets/react'),
+    outDir: pluginAssetsDir,
     emptyOutDir: false,
     cssCodeSplit: false,
     codeSplitting: false,
     modulePreload: false,
     rollupOptions: {
-      input: path.resolve(__dirname, 'src/pages/admin/main.tsx'),
+      input: path.resolve(configDir, 'src/pages/admin/main.tsx'),
       output: {
         format: 'iife',
         name: 'OraBooksAdmin',
@@ -33,7 +37,7 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, 'src'),
+      '@': path.resolve(configDir, 'src'),
     },
   },
 });
