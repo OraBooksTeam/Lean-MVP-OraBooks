@@ -190,7 +190,22 @@ class OraBooks_Assets {
 
         foreach ($files as $file) {
             if (preg_match('/\.css$/i', $file)) {
-                return $file;
+                $path = ORABOOKS_PLUGIN_DIR . 'assets/react/' . ltrim($file, '/');
+                if (file_exists($path)) {
+                    return $file;
+                }
+            }
+        }
+
+        $assets_dir = ORABOOKS_PLUGIN_DIR . 'assets/react/assets';
+        if (is_dir($assets_dir)) {
+            $css_files = glob($assets_dir . '/*.css') ?: [];
+            if (!empty($css_files)) {
+                usort($css_files, static function ($a, $b) {
+                    return filemtime($b) <=> filemtime($a);
+                });
+
+                return 'assets/' . basename($css_files[0]);
             }
         }
 

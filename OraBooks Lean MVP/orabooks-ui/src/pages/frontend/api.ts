@@ -1216,7 +1216,6 @@ export const api = {
   exportsList: (page = 1) => api.get('orabooks_exports_list', { page }),
   exportCancel: (exportId: number) => api.post('orabooks_export_cancel', { export_id: exportId }),
   exportDownload: (exportId: number) => api.get('orabooks_export_download', { export_id: exportId }),
-  csvImportsDashboard: () => api.get('orabooks_csv_imports_dashboard'),
 
   commissionConfigGet: () => api.get('orabooks_commission_config'),
   commissionConfigUpdate: (data: Record<string, any>) =>
