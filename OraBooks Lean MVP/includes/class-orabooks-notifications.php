@@ -50,6 +50,9 @@ class OraBooks_Notifications {
             add_action('orabooks_csv_import_failed', [self::$instance, 'on_csv_import_failed'], 10, 2);
             add_action('orabooks_csv_row_escalated', [self::$instance, 'on_csv_row_escalated'], 10, 2);
 
+            // AI review escalation alerts (SL-076 integration)
+            add_action('orabooks_ai_review_escalated', [self::$instance, 'on_ai_review_escalated'], 10, 2);
+
             // Listen for invoice events (SL-021 integration)
             add_action('orabooks_invoice_created', [self::$instance, 'on_invoice_created'], 10, 2);
             add_action('orabooks_payment_recorded', [self::$instance, 'on_payment_recorded'], 10, 2);
@@ -2214,6 +2217,46 @@ class OraBooks_Notifications {
             'import_id'      => (int) $import_id,
             'row_index'      => $row_index,
             'confidence'     => $confidence,
+        ]);
+    }
+
+    /**
+     * Handle ai_review_escalated from SL-076.
+     */
+    public function on_ai_review_escalated($resource_id, $data) {
+        $org_id = !empty($data['org_id']) ? (int) $data['org_id'] : 0;
+        $journal_id = !empty($data['journal_id']) ? (int) $data['journal_id'] : 0;
+        $queue_id = !empty($data['queue_id']) ? (int) $data['queue_id'] : 0;
+        $confidence = isset($data['confidence']) ? (float) $data['confidence'] : 0;
+        $risk_level = !empty($data['risk_level']) ? sanitize_text_field((string) $data['risk_level']) : 'high';
+        $resource_type = !empty($data['resource_type']) ? sanitize_text_field((string) $data['resource_type']) : 'journal';
+
+        if (!$org_id) {
+            return;
+        }
+
+        $target_id = $journal_id ?: (int) $resource_id;
+        $title_target = $journal_id > 0
+            ? sprintf(__('Journal #%d Needs Manual Review', 'orabooks'), $journal_id)
+            : sprintf(__('AI Review Escalated: %s #%d', 'orabooks'), ucfirst($resource_type), $target_id);
+
+        self::notify_org_admins($org_id, 'ai_review_escalated', [
+            'title'          => $title_target,
+            'message'        => sprintf(
+                __('AI review escalation detected for %s #%d. Confidence: %.0f%%. Risk: %s. Manual review is required.', 'orabooks'),
+                $resource_type,
+                $target_id,
+                $confidence,
+                strtoupper($risk_level)
+            ),
+            'priority'       => 'high',
+            'correlation_id' => 'ai_review_escalated_' . $org_id . '_' . $queue_id,
+            'queue_id'       => $queue_id,
+            'journal_id'     => $journal_id,
+            'resource_id'    => (int) $resource_id,
+            'resource_type'  => $resource_type,
+            'confidence'     => $confidence,
+            'risk_level'     => $risk_level,
         ]);
     }
 
