@@ -249,6 +249,7 @@ export default function VendorsPage() {
   const [viewingWalletVendor, setViewingWalletVendor] = useState<Vendor | null>(null);
   const [walletData, setWalletData] = useState<any>(null);
   const [walletLoading, setWalletLoading] = useState(false);
+  const [walletError, setWalletError] = useState('');
 
   const load = async () => {
     setLoading(true);
@@ -385,7 +386,7 @@ export default function VendorsPage() {
     else {
       setSuccess('Payment reversed.');
       if (selectedVendorId) await loadVendorDetail(selectedVendorId);
-      if (viewingWalletVendor) await openWallet(viewingWalletVendor);
+      if (viewingWalletVendor) await refreshWalletData(viewingWalletVendor, { updatePaymentAmount: true });
       await load();
     }
     setSaving(false);
@@ -648,11 +649,35 @@ export default function VendorsPage() {
     void openWallet(vendor);
   };
 
+  const refreshWalletData = async (
+    vendor: Vendor,
+    options?: { updatePaymentAmount?: boolean; clearPaymentFields?: boolean }
+  ) => {
+    if (!orgId) return;
+    const res = await api.vendorWallet(vendor.id, orgId);
+    if (res.error) {
+      setWalletError(typeof res.error === 'string' ? res.error : 'Unable to load vendor wallet.');
+      setWalletData(null);
+      return;
+    }
+
+    const data = (res as any).data;
+    setWalletData(data);
+    setWalletError('');
+    if (options?.updatePaymentAmount) {
+      setPaymentForm((prev) => ({
+        ...prev,
+        amount: String(Number(data?.payable_balance || 0) || ''),
+        ...(options.clearPaymentFields ? { reference: '', notes: '' } : {}),
+      }));
+    }
+  };
+
   const openWallet = async (vendor: Vendor) => {
     if (!orgId) return;
     setViewingWalletVendor(vendor);
     setWalletLoading(true);
-    setError('');
+    setWalletError('');
     setPaymentForm({
       amount: '',
       payment_date: new Date().toISOString().slice(0, 10),
@@ -660,25 +685,14 @@ export default function VendorsPage() {
       reference: '',
       notes: '',
     });
-    const res = await api.vendorWallet(vendor.id, orgId);
-    if (res.error) {
-      setError(typeof res.error === 'string' ? res.error : 'Unable to load vendor wallet.');
-      setWalletData(null);
-    } else {
-      const data = (res as any).data;
-      setWalletData(data);
-      setPaymentForm((prev) => ({
-        ...prev,
-        amount: String(Number(data?.payable_balance || vendor.payable_balance || 0) || ''),
-      }));
-    }
+    await refreshWalletData(vendor, { updatePaymentAmount: true });
     setWalletLoading(false);
   };
 
   const recordWalletPayment = async () => {
     if (!orgId || !viewingWalletVendor) return;
     setSaving(true);
-    setError('');
+    setWalletError('');
     const res = await api.vendorPaymentRecord(orgId, {
       vendor_id: viewingWalletVendor.id,
       amount: parseFloat(paymentForm.amount) || 0,
@@ -688,11 +702,10 @@ export default function VendorsPage() {
       notes: paymentForm.notes,
     });
     if (res.error) {
-      setError(typeof res.error === 'string' ? res.error : 'Unable to record payment.');
+      setWalletError(typeof res.error === 'string' ? res.error : 'Unable to record payment.');
     } else {
       setSuccess('Vendor payment recorded (FIFO allocation).');
-      setPaymentForm((prev) => ({ ...prev, amount: '', reference: '', notes: '' }));
-      await openWallet(viewingWalletVendor);
+      await refreshWalletData(viewingWalletVendor, { updatePaymentAmount: true, clearPaymentFields: true });
       if (selectedVendorId === viewingWalletVendor.id) await loadVendorDetail(viewingWalletVendor.id);
       await load();
     }
