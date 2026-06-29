@@ -1154,20 +1154,6 @@ class OraBooks_Vendors {
         }
 
         global $wpdb;
-        $table_allocations = OraBooks_Database::table('vendor_payment_allocations');
-        $wpdb->insert(
-            $table_allocations,
-            [
-                'org_id' => (int) $org_id,
-                'vendor_id' => (int) $bill->vendor_id,
-                'payment_id' => 0,
-                'bill_id' => (int) $bill->id,
-                'amount' => $applied,
-                'allocation_method' => 'auto_credit',
-            ],
-            ['%d', '%d', '%d', '%d', '%f', '%s']
-        );
-
         $new_paid = round(floatval($bill->paid_amount) + $applied, 2);
         $new_status = $new_paid >= floatval($bill->total_amount) ? 'paid' : 'partial';
 
