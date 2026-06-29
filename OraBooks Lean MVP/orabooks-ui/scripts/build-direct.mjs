@@ -7,7 +7,7 @@ const root = path.resolve(fileURLToPath(new URL('.', import.meta.url)), '..');
 const node = process.execPath;
 const vite = 'node_modules/vite/bin/vite.js';
 const outDir = path.resolve(root, '../assets/react');
-const drive = 'Z:';
+const drive = 'Y:';
 
 function run(label, command, args, options = {}) {
   console.log(`\n>> ${label}`);
@@ -70,7 +70,7 @@ function mapDrive() {
   spawnSync('subst', [`${drive} /D`], { shell: false, stdio: 'ignore' });
   const mapped = spawnSync('subst', [drive, root], { shell: false, stdio: 'pipe', encoding: 'utf8' });
   if (mapped.status !== 0) {
-    console.error('Failed to map drive Z:');
+    console.error('Failed to map drive Y:');
     console.error(mapped.stderr || mapped.stdout || mapped.error?.message);
     process.exit(1);
   }
