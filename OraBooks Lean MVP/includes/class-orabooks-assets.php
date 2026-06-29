@@ -173,6 +173,18 @@ class OraBooks_Assets {
         return ORABOOKS_PLUGIN_URL . 'assets/react/' . ltrim($file, '/');
     }
 
+    /**
+     * Cache-busting version for React bundles (manifest timestamp + file mtime).
+     */
+    public static function get_react_bundle_version($file = 'frontend.js') {
+        $manifest = self::get_react_manifest();
+        $path = ORABOOKS_PLUGIN_DIR . 'assets/react/' . ltrim($file, '/');
+        $mtime = (file_exists($path) && !is_dir($path)) ? (string) filemtime($path) : '';
+        $generated = sanitize_text_field($manifest['generated_at'] ?? '');
+
+        return ORABOOKS_VERSION . '-' . ($generated !== '' ? $generated : 'dev') . ($mtime !== '' ? '-' . $mtime : '');
+    }
+
     public static function get_react_stylesheet() {
         $files = self::get_react_manifest()['files'] ?? [];
 
@@ -268,7 +280,7 @@ class OraBooks_Assets {
     public static function enqueue_frontend_react($ajax_config = null) {
         $ajax_config = $ajax_config ?: self::get_ajax_config('frontend');
         $style = self::get_react_stylesheet();
-        $version = ORABOOKS_VERSION . '-' . (self::get_react_manifest()['generated_at'] ?? 'dev');
+        $version = self::get_react_bundle_version('frontend.js');
 
         wp_enqueue_style(
             'orabooks-react',
@@ -337,7 +349,7 @@ class OraBooks_Assets {
     public static function enqueue_admin_react($ajax_config = null) {
         $ajax_config = $ajax_config ?: self::get_ajax_config('admin');
         $style = self::get_react_stylesheet();
-        $version = ORABOOKS_VERSION . '-' . (self::get_react_manifest()['generated_at'] ?? 'dev');
+        $version = self::get_react_bundle_version('frontend.js');
 
         wp_enqueue_style(
             'orabooks-react',
