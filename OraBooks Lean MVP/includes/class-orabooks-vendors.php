@@ -1515,6 +1515,10 @@ class OraBooks_Vendors {
             return null;
         }
 
+        $config = self::get_ap_config((int) $bill->org_id);
+        $expense_code = $config->expense_account_code ?: '5000';
+        $ap_code = $config->ap_account_code ?: '2000';
+
         $journal_id = OraBooks_Posting::create_journal([
             'org_id' => intval($bill->org_id),
             'transaction_date' => $bill->transaction_date,
@@ -1529,21 +1533,177 @@ class OraBooks_Vendors {
 
         OraBooks_Posting::add_lines($journal_id, [
             [
-                'account_code' => '5000',
-                'debit' => floatval($bill->subtotal_amount) + floatval($bill->tax_amount),
-                'credit' => 0,
+                'account_code' => $expense_code,
+                'debit_amount' => floatval($bill->subtotal_amount) + floatval($bill->tax_amount),
+                'credit_amount' => 0,
                 'description' => 'Vendor bill ' . $bill->bill_number,
             ],
             [
-                'account_code' => '2000',
-                'debit' => 0,
-                'credit' => floatval($bill->total_amount),
+                'account_code' => $ap_code,
+                'debit_amount' => 0,
+                'credit_amount' => floatval($bill->total_amount),
                 'description' => 'AP for ' . $bill->bill_number,
             ],
         ]);
 
+        $submit = OraBooks_Posting::submit_journal((int) $journal_id, (int) $user_id);
+        if (is_wp_error($submit)) {
+            return $submit;
+        }
+
         return $journal_id;
     }
+
+    private static function create_vendor_payment_journal($org_id, $payment_id, $amount, $payment_date, $vendor_id, $user_id) {
+        $config = self::get_ap_config((int) $org_id);
+        $cash_code = $config->cash_account_code ?: '1000';
+        $ap_code = $config->ap_account_code ?: '2000';
+
+        if (!class_exists('OraBooks_Posting') || !class_exists('OraBooks_COA')) {
+            return null;
+        }
+
+        if (!OraBooks_COA::get_account_by_code($org_id, $cash_code) || !OraBooks_COA::get_account_by_code($org_id, $ap_code)) {
+            return new WP_Error('invalid_accounts', 'Cash or AP account not found in chart of accounts');
+        }
+
+        $journal_id = OraBooks_Posting::create_journal([
+            'org_id' => (int) $org_id,
+            'transaction_date' => $payment_date,
+            'source_type' => 'vendor_payment',
+            'source_id' => (int) $payment_id,
+            'idempotency_key' => 'vendor_payment_' . (int) $payment_id,
+            'metadata' => [
+                'payment_id' => (int) $payment_id,
+                'vendor_id' => (int) $vendor_id,
+            ],
+        ], (int) $user_id);
+
+        if (is_wp_error($journal_id)) {
+            return $journal_id;
+        }
+
+        OraBooks_Posting::add_lines($journal_id, [
+            [
+                'account_code' => $ap_code,
+                'debit_amount' => floatval($amount),
+                'credit_amount' => 0,
+                'description' => 'Vendor payment #' . (int) $payment_id,
+            ],
+            [
+                'account_code' => $cash_code,
+                'debit_amount' => 0,
+                'credit_amount' => floatval($amount),
+                'description' => 'Cash out for vendor payment #' . (int) $payment_id,
+            ],
+        ]);
+
+        self::auto_post_system_journal((int) $journal_id);
+        return (int) $journal_id;
+    }
+
+    private static function create_vendor_payment_reversal_journal($org_id, $reversal_id, $amount, $payment_date, $vendor_id, $user_id) {
+        $config = self::get_ap_config((int) $org_id);
+        $cash_code = $config->cash_account_code ?: '1000';
+        $ap_code = $config->ap_account_code ?: '2000';
+
+        if (!class_exists('OraBooks_Posting')) {
+            return null;
+        }
+
+        $journal_id = OraBooks_Posting::create_journal([
+            'org_id' => (int) $org_id,
+            'transaction_date' => $payment_date,
+            'source_type' => 'vendor_payment_reversal',
+            'source_id' => (int) $reversal_id,
+            'idempotency_key' => 'vendor_payment_reversal_' . (int) $reversal_id,
+            'metadata' => [
+                'reversal_id' => (int) $reversal_id,
+                'vendor_id' => (int) $vendor_id,
+            ],
+        ], (int) $user_id);
+
+        if (is_wp_error($journal_id)) {
+            return $journal_id;
+        }
+
+        OraBooks_Posting::add_lines($journal_id, [
+            [
+                'account_code' => $cash_code,
+                'debit_amount' => floatval($amount),
+                'credit_amount' => 0,
+                'description' => 'Reverse vendor payment #' . (int) $reversal_id,
+            ],
+            [
+                'account_code' => $ap_code,
+                'debit_amount' => 0,
+                'credit_amount' => floatval($amount),
+                'description' => 'AP restore for payment reversal #' . (int) $reversal_id,
+            ],
+        ]);
+
+        self::auto_post_system_journal((int) $journal_id);
+        return (int) $journal_id;
+    }
+
+    private static function create_vendor_credit_note_journal($note, $user_id, $config) {
+        if (!class_exists('OraBooks_Posting') || !class_exists('OraBooks_COA')) {
+            return new WP_Error('posting_unavailable', 'Posting engine unavailable');
+        }
+
+        $ap_code = $config->ap_account_code ?: '2000';
+        $credit_code = (int) $note->is_adjustment === 1
+            ? ($note->adjustment_account_code ?: $config->vendor_adjustment_account ?: '5000')
+            : ($config->expense_account_code ?: '5000');
+
+        $journal_id = OraBooks_Posting::create_journal([
+            'org_id' => (int) $note->org_id,
+            'transaction_date' => $note->credit_date,
+            'source_type' => 'vendor_credit_note',
+            'source_id' => (int) $note->id,
+            'metadata' => ['credit_note_number' => $note->credit_note_number],
+        ], (int) $user_id);
+
+        if (is_wp_error($journal_id)) {
+            return $journal_id;
+        }
+
+        OraBooks_Posting::add_lines($journal_id, [
+            [
+                'account_code' => $ap_code,
+                'debit_amount' => floatval($note->amount),
+                'credit_amount' => 0,
+                'description' => 'Vendor credit note ' . $note->credit_note_number,
+            ],
+            [
+                'account_code' => $credit_code,
+                'debit_amount' => 0,
+                'credit_amount' => floatval($note->amount),
+                'description' => 'Credit for ' . $note->credit_note_number,
+            ],
+        ]);
+
+        return (int) $journal_id;
+    }
+
+    private static function auto_post_system_journal($journal_id) {
+        if (!class_exists('OraBooks_Posting')) {
+            return;
+        }
+
+        $system_user = 0;
+        $submit = OraBooks_Posting::submit_journal($journal_id, $system_user);
+        if (is_wp_error($submit)) {
+            return;
+        }
+        $approve = OraBooks_Posting::approve_journal($journal_id, $system_user);
+        if (is_wp_error($approve)) {
+            return;
+        }
+        OraBooks_Posting::post_journal($journal_id, $system_user);
+    }
+
+    private static function create_bill_journal_legacy_removed($bill, $user_id) {
 
     private static function snapshot_bill_tax($bill, $user_id) {
         if (!class_exists('OraBooks_Tax') || floatval($bill->tax_amount) <= 0) {
