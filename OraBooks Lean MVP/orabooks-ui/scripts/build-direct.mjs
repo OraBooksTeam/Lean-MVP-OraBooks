@@ -135,15 +135,20 @@ function unmapDrive() {
 
 console.log('Build root:', root);
 
-mapDrive();
-const buildRoot = `${drive}\\`;
+const useSubst = process.platform === 'win32';
+if (useSubst) {
+  mapDrive();
+}
+const buildRoot = useSubst ? `${drive}\\` : root;
 
 try {
   run('clean', node, ['scripts/clean-react-output.mjs'], { cwd: buildRoot, env: buildEnv() });
   run('admin', node, [vite, 'build', '--config', 'vite.admin.config.ts'], { cwd: buildRoot, env: buildEnv() });
   run('frontend', node, [vite, 'build', '--config', 'vite.frontend.config.ts'], { cwd: buildRoot, env: buildEnv() });
 } finally {
-  unmapDrive();
+  if (useSubst) {
+    unmapDrive();
+  }
 }
 
 syncMisplacedBuildOutput();
