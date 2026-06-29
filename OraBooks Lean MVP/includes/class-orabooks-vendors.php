@@ -1703,8 +1703,6 @@ class OraBooks_Vendors {
         OraBooks_Posting::post_journal($journal_id, $system_user);
     }
 
-    private static function create_bill_journal_legacy_removed($bill, $user_id) {
-
     private static function snapshot_bill_tax($bill, $user_id) {
         if (!class_exists('OraBooks_Tax') || floatval($bill->tax_amount) <= 0) {
             return null;
