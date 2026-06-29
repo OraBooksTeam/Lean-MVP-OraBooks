@@ -848,7 +848,7 @@ export default function VendorsPage() {
         )}
 
         {showBillForm && (
-          <Modal title="Create bill" onClose={() => setShowBillForm(false)}>
+          <Modal title="Create bill" onClose={() => setShowBillForm(false)} wide>
             {error && <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div>}
             <div className="grid gap-4">
               <Field label="Vendor">
@@ -874,27 +874,81 @@ export default function VendorsPage() {
               ) : (
                 <Field label="Due days"><Input type="number" min="1" value={billForm.due_days} onChange={(e) => setBillForm((p) => ({ ...p, due_days: e.target.value }))} /></Field>
               )}
-              <div className="grid gap-4 sm:grid-cols-2">
-                <Field label="Subtotal"><Input type="number" min="0" step="0.01" value={billForm.subtotal_amount} onChange={(e) => setBillForm((p) => ({ ...p, subtotal_amount: e.target.value }))} /></Field>
-                <Field label="Jurisdiction">
-                  <select value={billForm.jurisdiction} onChange={(e) => setBillForm((p) => ({ ...p, jurisdiction: e.target.value }))} className="w-full rounded-lg border border-border px-3 py-2.5 text-sm">
-                    {(taxConfigs.length ? taxConfigs : [{ jurisdiction: 'US' }]).map((c) => (
-                      <option key={c.jurisdiction} value={c.jurisdiction}>{c.jurisdiction}</option>
-                    ))}
-                  </select>
-                </Field>
+              <Field label="Jurisdiction">
+                <select value={billForm.jurisdiction} onChange={(e) => setBillForm((p) => ({ ...p, jurisdiction: e.target.value }))} className="w-full rounded-lg border border-border px-3 py-2.5 text-sm">
+                  {(taxConfigs.length ? taxConfigs : [{ jurisdiction: 'US' }]).map((c) => (
+                    <option key={c.jurisdiction} value={c.jurisdiction}>{c.jurisdiction}</option>
+                  ))}
+                </select>
+              </Field>
+
+              <div>
+                <div className="mb-2 flex items-center justify-between">
+                  <span className="text-sm font-medium text-slate-700">Line items</span>
+                  <Button size="sm" variant="secondary" onClick={() => setBillLineItems((items) => [...items, emptyBillLineItem()])}>
+                    <Plus className="h-3.5 w-3.5" />
+                    Add line
+                  </Button>
+                </div>
+                <div className="mb-2 hidden text-xs font-semibold uppercase tracking-wide text-slate-500 sm:grid sm:grid-cols-12 sm:gap-2 sm:px-3">
+                  <div className="sm:col-span-2">Code</div>
+                  <div className="sm:col-span-4">Description</div>
+                  <div className="sm:col-span-2">Qty</div>
+                  <div className="sm:col-span-2">Unit price</div>
+                  <div className="sm:col-span-2 text-right">Line total</div>
+                </div>
+                <div className="space-y-2">
+                  {billLineItems.map((line, index) => (
+                    <div key={index} className="grid gap-2 rounded-lg border border-border p-3 sm:grid-cols-12">
+                      <div className="sm:col-span-2">
+                        <Input value={line.sku_code} onChange={(e) => setBillLineItems((items) => items.map((row, i) => i === index ? { ...row, sku_code: e.target.value } : row))} placeholder="Code" />
+                      </div>
+                      <div className="sm:col-span-4">
+                        <Input value={line.description} onChange={(e) => setBillLineItems((items) => items.map((row, i) => i === index ? { ...row, description: e.target.value } : row))} placeholder="Description" />
+                      </div>
+                      <div className="sm:col-span-2">
+                        <Input type="number" min="0" step="0.01" value={line.quantity} onChange={(e) => setBillLineItems((items) => items.map((row, i) => i === index ? { ...row, quantity: e.target.value } : row))} placeholder="Qty" />
+                      </div>
+                      <div className="sm:col-span-2">
+                        <Input type="number" min="0" step="0.01" value={line.unit_price} onChange={(e) => setBillLineItems((items) => items.map((row, i) => i === index ? { ...row, unit_price: e.target.value } : row))} placeholder="Unit price" />
+                      </div>
+                      <div className="flex items-center justify-end sm:col-span-2">
+                        <span className="mr-2 text-sm font-medium text-ink">{money(billLineItemTotal(line), billForm.currency)}</span>
+                        {billLineItems.length > 1 && (
+                          <Button size="sm" variant="secondary" onClick={() => setBillLineItems((items) => items.filter((_, i) => i !== index))}>
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
-              <Field label="Description"><Input value={billForm.description} onChange={(e) => setBillForm((p) => ({ ...p, description: e.target.value }))} /></Field>
-              {billPreview && (
-                <div className="rounded-lg border border-border bg-slate-50 p-3 text-sm">
-                  <div>Tax ({billPreview.tax_rate.toFixed(2)}%): {money(billPreview.tax_amount)}</div>
-                  <div className="font-semibold">Total: {money(billPreview.total_amount)}</div>
+
+              <Field label="Notes"><Input value={billForm.description} onChange={(e) => setBillForm((p) => ({ ...p, description: e.target.value }))} placeholder="Optional bill note" /></Field>
+              {billCreateTotals.subtotal > 0 && (
+                <div className="rounded-lg border border-border bg-slate-50 p-4 text-sm">
+                  <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Bill totals</div>
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-600">Subtotal</span>
+                      <span>{money(billCreateTotals.subtotal, billForm.currency)}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-600">Tax ({billCreateTotals.taxRate.toFixed(2)}%)</span>
+                      <span>{money(billCreateTotals.taxAmount, billForm.currency)}</span>
+                    </div>
+                    <div className="mt-2 flex items-center justify-between border-t border-border pt-2 text-base font-semibold text-ink">
+                      <span>Total</span>
+                      <span>{money(billCreateTotals.total, billForm.currency)}</span>
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
             <div className="mt-6 flex justify-end gap-2">
               <Button variant="secondary" onClick={() => setShowBillForm(false)}>Cancel</Button>
-              <Button onClick={handleCreateBill} disabled={saving || !billForm.vendor_id}>Create bill</Button>
+              <Button onClick={handleCreateBill} disabled={saving || !billForm.vendor_id || billCreateTotals.subtotal <= 0}>Create bill</Button>
             </div>
           </Modal>
         )}
@@ -1033,10 +1087,10 @@ function VendorFields({
   );
 }
 
-function Modal({ title, children, onClose }: { title: string; children: ReactNode; onClose: () => void }) {
+function Modal({ title, children, onClose, wide = false }: { title: string; children: ReactNode; onClose: () => void; wide?: boolean }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4" onClick={onClose}>
-      <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-border bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+      <div className={`max-h-[90vh] w-full overflow-y-auto rounded-2xl border border-border bg-white p-6 shadow-xl ${wide ? 'max-w-3xl' : 'max-w-lg'}`} onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between gap-3">
           <h3 className="text-lg font-semibold text-ink">{title}</h3>
           <button type="button" onClick={onClose} className="text-sm text-slate-500 hover:text-slate-700">Close</button>
@@ -1208,6 +1262,7 @@ function VendorDetailPanel({
 
 function BillDetailPanel({
   bill,
+  lineItems,
   creditNotes,
   loading,
   actionBillId,
@@ -1219,6 +1274,7 @@ function BillDetailPanel({
   canVoid,
 }: {
   bill: Bill | undefined;
+  lineItems: BillLineItem[];
   creditNotes: any[];
   loading: boolean;
   actionBillId: number | null;
@@ -1279,6 +1335,20 @@ function BillDetailPanel({
       </div>
 
       {bill.description && <p className="text-sm text-slate-600">{bill.description}</p>}
+
+      {lineItems.length > 0 && (
+        <DetailTable title="Line items" empty="No line items.">
+          {lineItems.map((line) => (
+            <tr key={line.id || `${line.line_number}-${line.description}`}>
+              <td className="px-3 py-2 text-slate-500">{line.sku_code || '—'}</td>
+              <td className="px-3 py-2">{line.description}</td>
+              <td className="px-3 py-2 text-right">{Number(line.quantity || 0)}</td>
+              <td className="px-3 py-2 text-right">{money(line.unit_price, bill.currency)}</td>
+              <td className="px-3 py-2 text-right font-medium">{money(line.line_total, bill.currency)}</td>
+            </tr>
+          ))}
+        </DetailTable>
+      )}
 
       <DetailTable title="Credit notes" empty="No credit notes for this bill.">
         {creditNotes.map((note: any) => (
