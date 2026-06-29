@@ -73,7 +73,32 @@ class OraBooks_Secrets {
         return true;
     }
 
+    /**
+     * One-time migration: bump legacy short JWT expiry defaults to 3600 seconds.
+     */
+    private static function maybe_migrate_auth_ttl_defaults() {
+        self::with_shared_options(function () {
+            $flag_key = 'orabooks_migrated_jwt_expiry_default_202606';
+            if (get_option($flag_key, '0') === '1') {
+                return;
+            }
 
+            $jwt_expiry = get_option('orabooks_jwt_expiry', null);
+            if ($jwt_expiry !== null && (int) $jwt_expiry === 900) {
+                update_option('orabooks_jwt_expiry', 3600);
+
+                if (function_exists('orabooks_log_event')) {
+                    orabooks_log_event('settings_migrated', 'Upgraded legacy jwt_expiry default from 900 to 3600', 'info', [
+                        'setting' => 'orabooks_jwt_expiry',
+                        'from' => 900,
+                        'to' => 3600,
+                    ]);
+                }
+            }
+
+            update_option($flag_key, '1');
+        });
+    }
 
     /**
      * Whether the deployment should enforce production-grade TLS/secrets rules.
