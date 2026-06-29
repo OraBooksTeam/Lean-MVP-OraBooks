@@ -87,7 +87,7 @@ export default function AdminNotifications() {
           type="button"
           onClick={() => setTab('feed')}
           className={`rounded-lg px-3 py-2 text-sm font-semibold transition ${
-            tab === 'feed' ? 'bg-primary text-white' : 'bg-primary/10 text-white hover:bg-primary/25'
+            tab === 'feed' ? 'bg-primary text-white' : 'bg-primary/60 text-white hover:bg-primary/80'
           }`}
         >
           Activity feed
@@ -96,7 +96,7 @@ export default function AdminNotifications() {
           type="button"
           onClick={() => setTab('prefs')}
           className={`rounded-lg px-3 py-2 text-sm font-semibold transition ${
-            tab === 'prefs' ? 'bg-primary text-white' : 'bg-primary/10 text-white hover:bg-primary/25'
+            tab === 'prefs' ? 'bg-primary text-white' : 'bg-primary/60 text-white hover:bg-primary/80'
           }`}
         >
           Preferences
