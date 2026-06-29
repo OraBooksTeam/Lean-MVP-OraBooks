@@ -3,8 +3,8 @@ import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 import path from 'path';
 
-const configDir = process.cwd();
-const pluginAssetsDir = path.resolve(configDir, '../assets/react');
+const configDir = process.env.ORABOOKS_UI_ROOT || process.cwd();
+const pluginAssetsDir = process.env.ORABOOKS_PLUGIN_ASSETS || path.resolve(configDir, '..', 'assets', 'react');
 
 /** Single-file admin bundle for WordPress (no runtime chunk fetches). */
 export default defineConfig({
