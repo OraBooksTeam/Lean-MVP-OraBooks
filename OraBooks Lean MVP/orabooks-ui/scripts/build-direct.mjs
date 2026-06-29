@@ -86,9 +86,9 @@ mapDrive();
 const buildRoot = `${drive}\\`;
 
 try {
-  run('clean', node, [path.join(root, 'scripts', 'clean-react-output.mjs')], { cwd: buildRoot });
-  run('admin', node, [vite, 'build', '--config', path.join(root, 'vite.admin.config.ts')], { cwd: buildRoot });
-  run('frontend', node, [vite, 'build', '--config', path.join(root, 'vite.frontend.config.ts')], { cwd: buildRoot });
+  run('clean', node, ['scripts/clean-react-output.mjs'], { cwd: buildRoot });
+  run('admin', node, [vite, 'build', '--config', 'vite.admin.config.ts'], { cwd: buildRoot });
+  run('frontend', node, [vite, 'build', '--config', 'vite.frontend.config.ts'], { cwd: buildRoot });
 } finally {
   unmapDrive();
 }
