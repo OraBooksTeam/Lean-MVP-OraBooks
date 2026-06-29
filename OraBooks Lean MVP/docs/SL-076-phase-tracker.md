@@ -24,7 +24,7 @@ Scope: SL-076 AI Review Queue completion to 100%
 | 4 | Atomic Claim Hardening | Replace claim race window with transaction-safe claim | Completed | Claim path uses row-lock pattern and passes concurrency tests |
 | 5 | Retry/Backoff Reliability | Enforce retry policy deterministically | Completed | Retry/backoff tests pass and timings match spec |
 | 6 | API and UI Consistency Sweep | Ensure queue visibility and action UX are aligned | Completed | Role-safe API/UI behavior validated |
-| 7 | Test Expansion and Regression Shield | Add missing safety tests and run integrated suites | Pending | New tests pass with no regressions |
+| 7 | Test Expansion and Regression Shield | Add missing safety tests and run integrated suites | Completed | New tests pass with no regressions |
 | 8 | Release Gate and Sign-off | Final UAT, docs, and sign-off evidence | Pending | UAT pass + sign-off checklist complete |
 
 ## Phase Completion Note Template
