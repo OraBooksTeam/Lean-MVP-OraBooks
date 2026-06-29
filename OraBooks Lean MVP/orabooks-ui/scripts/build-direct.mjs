@@ -31,8 +31,9 @@ function run(label, command, args, options = {}) {
     if (result.error) {
       console.error(result.error.message);
     }
-    process.exit(result.status ?? 1);
+    return false;
   }
+  return true;
 }
 
 function cleanOutput() {
