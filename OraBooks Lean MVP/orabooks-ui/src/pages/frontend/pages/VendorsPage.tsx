@@ -204,7 +204,6 @@ export default function VendorsPage() {
   const [products, setProducts] = useState<ProductOption[]>([]);
   const [billFormLoading, setBillFormLoading] = useState(false);
 
-  const [paymentVendor, setPaymentVendor] = useState<Vendor | null>(null);
   const [paymentForm, setPaymentForm] = useState({
     amount: '',
     payment_date: new Date().toISOString().slice(0, 10),
@@ -677,24 +676,7 @@ export default function VendorsPage() {
   };
 
   const handleRecordPayment = async () => {
-    if (!orgId || !paymentVendor) return;
-    setSaving(true);
-    setError('');
-    const res = await api.vendorPaymentRecord(orgId, {
-      vendor_id: paymentVendor.id,
-      amount: parseFloat(paymentForm.amount) || 0,
-      payment_date: paymentForm.payment_date,
-      payment_method: paymentForm.payment_method,
-      reference: paymentForm.reference,
-      notes: paymentForm.notes,
-    });
-    if (res.error) setError(res.error);
-    else {
-      setSuccess('Vendor payment recorded (FIFO allocation).');
-      setPaymentVendor(null);
-      await load();
-    }
-    setSaving(false);
+    await recordWalletPayment();
   };
 
   const recordWalletPayment = async () => {
@@ -820,7 +802,7 @@ export default function VendorsPage() {
           </Button>
         </div>
 
-        {error && !showVendorForm && !showBillForm && !paymentVendor && !editingVendor && !creditNoteVendor && (
+        {error && !showVendorForm && !showBillForm && !viewingWalletVendor && !editingVendor && !creditNoteVendor && (
           <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-medium text-red-700">{error}</div>
         )}
         {success && (
