@@ -13,6 +13,8 @@ type Vendor = {
   id: number;
   name: string;
   email?: string;
+  phone?: string;
+  address?: string;
   tax_id?: string;
   payment_terms?: number;
   default_currency?: string;
@@ -26,20 +28,28 @@ type Vendor = {
 type VendorFormState = {
   name: string;
   email: string;
-  tax_id: string;
+  phone: string;
+  address: string;
   payment_terms: string;
   default_currency: string;
+  payable_balance: string;
+  credit_balance: string;
   auto_apply_credit: boolean;
+  tax_id: string;
   notes: string;
 };
 
 const emptyVendorForm = (): VendorFormState => ({
   name: '',
   email: '',
-  tax_id: '',
+  phone: '',
+  address: '',
   payment_terms: '30',
   default_currency: 'USD',
+  payable_balance: '0',
+  credit_balance: '0',
   auto_apply_credit: true,
+  tax_id: '',
   notes: '',
 });
 
@@ -47,10 +57,14 @@ function vendorToForm(vendor: Vendor): VendorFormState {
   return {
     name: vendor.name,
     email: vendor.email || '',
-    tax_id: vendor.tax_id || '',
+    phone: vendor.phone || '',
+    address: vendor.address || '',
     payment_terms: String(vendor.payment_terms ?? 30),
     default_currency: vendor.default_currency || 'USD',
+    payable_balance: String(vendor.payable_balance ?? 0),
+    credit_balance: String(vendor.credit_balance ?? 0),
     auto_apply_credit: Number(vendor.auto_apply_credit ?? 1) === 1,
+    tax_id: vendor.tax_id || '',
     notes: vendor.notes || '',
   };
 }
@@ -59,10 +73,14 @@ function vendorFormPayload(form: VendorFormState) {
   return {
     name: form.name.trim(),
     email: form.email.trim(),
-    tax_id: form.tax_id.trim(),
+    phone: form.phone.trim(),
+    address: form.address.trim(),
     payment_terms: parseInt(form.payment_terms, 10) || 30,
     default_currency: form.default_currency.trim() || 'USD',
+    payable_balance: parseFloat(form.payable_balance) || 0,
+    credit_balance: parseFloat(form.credit_balance) || 0,
     auto_apply_credit: form.auto_apply_credit ? 1 : 0,
+    tax_id: form.tax_id.trim(),
     notes: form.notes.trim(),
   };
 }
@@ -943,7 +961,7 @@ export default function VendorsPage() {
         </div>
 
         {showVendorForm && (
-          <Modal title="Add vendor" onClose={closeVendorForm} elevated={vendorFormContext === 'bill'}>
+          <Modal title="Add vendor" onClose={closeVendorForm} elevated={vendorFormContext === 'bill'} wide>
             {error && <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div>}
             <VendorFields form={vendorForm} onChange={setVendorForm} />
             <div className="mt-6 flex justify-end gap-2">
@@ -954,7 +972,7 @@ export default function VendorsPage() {
         )}
 
         {editingVendor && (
-          <Modal title="Edit vendor" onClose={() => setEditingVendor(null)}>
+          <Modal title="Edit vendor" onClose={() => setEditingVendor(null)} wide>
             {error && <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div>}
             <VendorFields form={vendorForm} onChange={setVendorForm} />
             <div className="mt-6 flex justify-end gap-2">
@@ -1248,19 +1266,38 @@ function VendorFields({
   const set = (patch: Partial<VendorFormState>) => onChange({ ...form, ...patch });
 
   return (
-    <div className="grid gap-4">
+    <div className="grid gap-4 sm:grid-cols-2">
       <Field label="Name"><Input value={form.name} onChange={(e) => set({ name: e.target.value })} /></Field>
       <Field label="Email"><Input type="email" value={form.email} onChange={(e) => set({ email: e.target.value })} /></Field>
-      <Field label="Tax ID"><Input value={form.tax_id} onChange={(e) => set({ tax_id: e.target.value })} /></Field>
-      <div className="grid gap-4 sm:grid-cols-2">
-        <Field label="Payment terms (days)"><Input type="number" min="0" value={form.payment_terms} onChange={(e) => set({ payment_terms: e.target.value })} /></Field>
-        <Field label="Default currency"><Input value={form.default_currency} onChange={(e) => set({ default_currency: e.target.value.toUpperCase() })} maxLength={3} /></Field>
+      <Field label="Phone"><Input value={form.phone} onChange={(e) => set({ phone: e.target.value })} /></Field>
+      <Field label="Payment Terms">
+        <Input type="number" min="0" value={form.payment_terms} onChange={(e) => set({ payment_terms: e.target.value })} />
+      </Field>
+      <div className="sm:col-span-2">
+        <Field label="Address">
+          <textarea
+            value={form.address}
+            onChange={(e) => set({ address: e.target.value })}
+            rows={3}
+            className="w-full rounded-lg border border-border bg-white px-3 py-2.5 text-sm text-ink shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+          />
+        </Field>
       </div>
-      <label className="flex items-center gap-2 text-sm text-slate-700">
-        <input type="checkbox" checked={form.auto_apply_credit} onChange={(e) => set({ auto_apply_credit: e.target.checked })} />
-        Auto-apply vendor credit on new bills
-      </label>
-      <Field label="Notes"><Input value={form.notes} onChange={(e) => set({ notes: e.target.value })} /></Field>
+      <Field label="Default Currency">
+        <Input value={form.default_currency} onChange={(e) => set({ default_currency: e.target.value.toUpperCase() })} maxLength={3} />
+      </Field>
+      <Field label="Payable Balance">
+        <Input type="number" min="0" step="0.01" value={form.payable_balance} onChange={(e) => set({ payable_balance: e.target.value })} />
+      </Field>
+      <Field label="Credit Balance">
+        <Input type="number" min="0" step="0.01" value={form.credit_balance} onChange={(e) => set({ credit_balance: e.target.value })} />
+      </Field>
+      <div className="flex items-end pb-2">
+        <label className="flex items-center gap-2 text-sm text-slate-700">
+          <input type="checkbox" checked={form.auto_apply_credit} onChange={(e) => set({ auto_apply_credit: e.target.checked })} />
+          Auto Apply Credit
+        </label>
+      </div>
     </div>
   );
 }
