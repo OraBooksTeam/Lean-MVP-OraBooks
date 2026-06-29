@@ -485,10 +485,33 @@ export default function VendorsPage() {
     const res = await api.vendorCreate(orgId, vendorFormPayload(vendorForm));
     if (res.error) setError(res.error);
     else {
+      const created = (res as any).data?.vendor as Vendor | undefined;
+      const fromBill = vendorFormContext === 'bill';
+      if (created?.id) {
+        setVendors((prev) => {
+          if (prev.some((entry) => entry.id === created.id)) {
+            return prev;
+          }
+          return [created, ...prev];
+        });
+        if (fromBill) {
+          setBillForm((prev) => ({ ...prev, vendor_id: String(created.id) }));
+        }
+      }
       setSuccess('Vendor created.');
-      setShowVendorForm(false);
-      setVendorForm(emptyVendorForm());
-      await load();
+      closeVendorForm();
+      if (fromBill) {
+        const vendorsRes = await api.vendorsList(orgId, { limit: 100 });
+        if (!vendorsRes.error) {
+          setVendors((vendorsRes as any).data?.vendors || []);
+        }
+        const dashRes = await api.vendorDashboard();
+        if (!dashRes.error) {
+          setStats((dashRes as any).data?.stats || null);
+        }
+      } else {
+        await load();
+      }
     }
     setSaving(false);
   };
@@ -702,7 +725,7 @@ export default function VendorsPage() {
         </section>
 
         <div className="flex flex-wrap justify-end gap-2">
-          <Button size="sm" onClick={() => { setShowVendorForm(true); setVendorForm(emptyVendorForm()); setError(''); setSuccess(''); }}>
+          <Button size="sm" onClick={() => { openVendorForm('page'); setSuccess(''); }}>
             <Plus className="h-4 w-4" />
             Add vendor
           </Button>
@@ -919,11 +942,11 @@ export default function VendorsPage() {
         </div>
 
         {showVendorForm && (
-          <Modal title="Add vendor" onClose={() => setShowVendorForm(false)}>
+          <Modal title="Add vendor" onClose={closeVendorForm}>
             {error && <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div>}
             <VendorFields form={vendorForm} onChange={setVendorForm} />
             <div className="mt-6 flex justify-end gap-2">
-              <Button variant="secondary" onClick={() => setShowVendorForm(false)}>Cancel</Button>
+              <Button variant="secondary" onClick={closeVendorForm}>Cancel</Button>
               <Button onClick={handleCreateVendor} disabled={saving}>Create vendor</Button>
             </div>
           </Modal>
@@ -946,10 +969,26 @@ export default function VendorsPage() {
             <div className="grid gap-4">
               <div className="grid grid-cols-2 gap-4">
                 <Field label="Vendor">
-                  <select value={billForm.vendor_id} onChange={(e) => setBillForm((p) => ({ ...p, vendor_id: e.target.value }))} className="w-full rounded-lg border border-border px-3 py-2.5 text-sm">
-                    <option value="">Select vendor…</option>
-                    {vendors.map((v) => <option key={v.id} value={v.id}>{v.name}</option>)}
-                  </select>
+                  <div className="flex gap-2">
+                    <select
+                      value={billForm.vendor_id}
+                      onChange={(e) => setBillForm((p) => ({ ...p, vendor_id: e.target.value }))}
+                      className="min-w-0 flex-1 rounded-lg border border-border px-3 py-2.5 text-sm"
+                    >
+                      <option value="">Select vendor…</option>
+                      {vendors.map((v) => <option key={v.id} value={v.id}>{v.name}</option>)}
+                    </select>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="secondary"
+                      title="Add vendor"
+                      className="shrink-0 px-2.5"
+                      onClick={() => openVendorForm('bill')}
+                    >
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </Field>
                 <Field label="Bill date">
                   <Input type="date" value={billForm.bill_date} onChange={(e) => setBillForm((p) => ({ ...p, bill_date: e.target.value }))} />
@@ -1009,12 +1048,28 @@ export default function VendorsPage() {
                         <Input value={line.sku_code} onChange={(e) => setBillLineItems((items) => items.map((row, i) => i === index ? { ...row, sku_code: e.target.value } : row))} placeholder="Code" />
                       </div>
                       <div className="col-span-4">
-                        <ProductAutocomplete
-                          value={line.description}
-                          products={products}
-                          onChange={(value) => setBillLineItems((items) => items.map((row, i) => i === index ? { ...row, description: value } : row))}
-                          onSelectProduct={(product) => applyProductToLine(index, product)}
-                        />
+                        <div className="flex gap-2">
+                          <div className="min-w-0 flex-1">
+                            <ProductAutocomplete
+                              value={line.description}
+                              products={products}
+                              onChange={(value) => setBillLineItems((items) => items.map((row, i) => i === index ? { ...row, description: value } : row))}
+                              onSelectProduct={(product) => applyProductToLine(index, product)}
+                            />
+                          </div>
+                          {canCreateProduct && (
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="secondary"
+                              title="Add product"
+                              className="shrink-0 self-start px-2.5"
+                              onClick={() => setCreateProductLineIndex(index)}
+                            >
+                              <Plus className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
                       </div>
                       <div className="col-span-2">
                         <Input type="number" min="0" step="0.01" value={line.quantity} onChange={(e) => setBillLineItems((items) => items.map((row, i) => i === index ? { ...row, quantity: e.target.value } : row))} placeholder="Qty" />
@@ -1064,6 +1119,15 @@ export default function VendorsPage() {
               <Button onClick={handleCreateBill} disabled={saving || !billForm.vendor_id || billCreateTotals.subtotal <= 0}>Create bill</Button>
             </div>
           </Modal>
+        )}
+
+        {createProductLineIndex !== null && orgId && (
+          <CreateProductModal
+            open={createProductLineIndex !== null}
+            orgId={orgId}
+            onClose={() => setCreateProductLineIndex(null)}
+            onCreated={handleProductCreated}
+          />
         )}
 
         {paymentVendor && (
