@@ -981,6 +981,33 @@ class OraBooks_Notifications_Test extends TestCase
 
         $this->setUserNotifPrefs(100);
         $this->setUpCommonMocks();
+        $this->setUpResultsMock(function ($query) {
+            return [(object) ['user_id' => 100]];
+        });
+
+        $captured = null;
+        $wpdb->test_insert_callback = function ($table, $data) use (&$captured) {
+            if (
+                stripos($table, 'orabooks_notifications') !== false
+                && isset($data['event_type'])
+                && $data['event_type'] === 'projection_integrity_failed'
+            ) {
+                $captured = $data;
+            }
+        };
+
+        $GLOBALS['orabooks_test_use_insert_id'] = 9102;
+
+        $handler = $this->createHandler();
+        $handler->on_projection_integrity_failed(10, [
+            'org_id' => 10,
+            'difference' => 12.50,
+            'priority' => 'critical',
+        ]);
+
+        $this->assertNotNull($captured, 'Projection integrity notification should be inserted');
+        $this->assertEquals('critical', $captured['priority']);
+    }
 
     #[Test]
     public function test_on_ai_review_escalated_notifies_org_admins()
@@ -1027,33 +1054,6 @@ class OraBooks_Notifications_Test extends TestCase
         $this->assertSame(10, (int) $captured[0]['org_id']);
         $this->assertSame('high', $captured[0]['priority']);
         $this->assertStringContainsString('Manual review is required', $captured[0]['message']);
-    }
-        $this->setUpResultsMock(function ($query) {
-            return [(object) ['user_id' => 100]];
-        });
-
-        $captured = null;
-        $wpdb->test_insert_callback = function ($table, $data) use (&$captured) {
-            if (
-                stripos($table, 'orabooks_notifications') !== false
-                && isset($data['event_type'])
-                && $data['event_type'] === 'projection_integrity_failed'
-            ) {
-                $captured = $data;
-            }
-        };
-
-        $GLOBALS['orabooks_test_use_insert_id'] = 9102;
-
-        $handler = $this->createHandler();
-        $handler->on_projection_integrity_failed(10, [
-            'org_id' => 10,
-            'difference' => 12.50,
-            'priority' => 'critical',
-        ]);
-
-        $this->assertNotNull($captured, 'Projection integrity notification should be inserted');
-        $this->assertEquals('critical', $captured['priority']);
     }
 
     // ================================================================
