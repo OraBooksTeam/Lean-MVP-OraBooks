@@ -23,9 +23,9 @@ export default function Button({
     secondary:
       'bg-primary text-white hover:bg-primary-dark active:scale-[0.98] shadow-sm shadow-primary/10',
     ghost:
-      'bg-primary/10 text-white hover:bg-primary/25 active:scale-[0.98]',
+      'bg-primary/80 text-white hover:bg-primary active:scale-[0.98]',
     danger:
-      'bg-primary text-white hover:bg-primary-dark active:scale-[0.98] shadow-sm shadow-danger/20',
+      'bg-primary text-white hover:bg-primary-dark active:scale-[0.98] shadow-sm shadow-primary/20',
   };
 
   const sizes: Record<string, string> = {
