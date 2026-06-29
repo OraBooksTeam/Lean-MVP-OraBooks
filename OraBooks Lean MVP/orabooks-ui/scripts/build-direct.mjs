@@ -10,13 +10,21 @@ const outDir = path.resolve(root, '../assets/react');
 const driveCandidates = ['X:', 'W:', 'V:', 'U:', 'Y:', 'Z:'];
 let drive = driveCandidates[0];
 
+function buildEnv() {
+  return {
+    ...process.env,
+    ORABOOKS_UI_ROOT: root,
+    ORABOOKS_PLUGIN_ASSETS: outDir,
+  };
+}
+
 function run(label, command, args, options = {}) {
   console.log(`\n>> ${label}`);
   const result = spawnSync(command, args, {
     cwd: options.cwd ?? root,
     stdio: 'inherit',
     shell: false,
-    env: process.env,
+    env: options.env ?? process.env,
   });
   if (result.status !== 0) {
     console.error(`${label} failed with exit ${result.status}`);
@@ -131,9 +139,9 @@ mapDrive();
 const buildRoot = `${drive}\\`;
 
 try {
-  run('clean', node, ['scripts/clean-react-output.mjs'], { cwd: buildRoot });
-  run('admin', node, [vite, 'build', '--config', 'vite.admin.config.ts'], { cwd: buildRoot });
-  run('frontend', node, [vite, 'build', '--config', 'vite.frontend.config.ts'], { cwd: buildRoot });
+  run('clean', node, ['scripts/clean-react-output.mjs'], { cwd: buildRoot, env: buildEnv() });
+  run('admin', node, [vite, 'build', '--config', 'vite.admin.config.ts'], { cwd: buildRoot, env: buildEnv() });
+  run('frontend', node, [vite, 'build', '--config', 'vite.frontend.config.ts'], { cwd: buildRoot, env: buildEnv() });
 } finally {
   unmapDrive();
 }
