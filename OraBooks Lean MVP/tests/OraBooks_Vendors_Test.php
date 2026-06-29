@@ -340,15 +340,35 @@ class OraBooks_Vendors_Test extends TestCase
                     'auto_post_bill_on_approve' => 0,
                     'adjustment_threshold' => 1000,
                     'vendor_adjustment_account' => '5000',
+                    'ap_account_code' => '2000',
+                    'expense_account_code' => '5000',
+                    'cash_account_code' => '1000',
                 ];
             }
             if (stripos($query, 'orabooks_bills') !== false) {
                 return $this->mockBill(['workflow_status' => 'approved']);
             }
+            if (stripos($query, 'orabooks_journals') !== false) {
+                return (object) [
+                    'id' => 1,
+                    'org_id' => 5,
+                    'status' => 'draft',
+                    'total_amount' => '100.00',
+                ];
+            }
             if (stripos($query, 'orabooks_accounts') !== false) {
                 return (object) ['id' => 1, 'code' => '2000'];
             }
             return null;
+        };
+        $wpdb->test_get_results_callback = function ($query) {
+            if (stripos($query, 'orabooks_journal_lines') !== false) {
+                return [
+                    (object) ['debit_amount' => '100.00', 'credit_amount' => '0.00', 'description' => 'Expense'],
+                    (object) ['debit_amount' => '0.00', 'credit_amount' => '100.00', 'description' => 'AP'],
+                ];
+            }
+            return [];
         };
 
         $result = OraBooks_Vendors::post_bill(5, 100, 2);
