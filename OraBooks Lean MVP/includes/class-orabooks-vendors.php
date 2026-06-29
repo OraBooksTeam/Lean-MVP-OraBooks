@@ -44,8 +44,35 @@ class OraBooks_Vendors {
             add_action('orabooks_daily_ap_aging_snapshot', [self::$instance, 'daily_ap_aging_snapshot']);
             self::maybe_ensure_bill_tax_schema();
             self::maybe_ensure_ap_config_schema();
+            self::maybe_ensure_vendor_schema();
         }
         return self::$instance;
+    }
+
+    private static function maybe_ensure_vendor_schema() {
+        static $ran = false;
+        if ($ran) {
+            return;
+        }
+        $ran = true;
+
+        global $wpdb;
+        $table = OraBooks_Database::table('vendors');
+        if ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table)) !== $table) {
+            return;
+        }
+
+        $existing = $wpdb->get_col("SHOW COLUMNS FROM {$table}", 0);
+        $columns = [
+            'phone' => "ALTER TABLE {$table} ADD COLUMN phone VARCHAR(50) NULL AFTER email",
+            'address' => "ALTER TABLE {$table} ADD COLUMN address TEXT NULL AFTER phone",
+        ];
+
+        foreach ($columns as $column => $sql) {
+            if (!in_array($column, $existing, true)) {
+                $wpdb->query($sql);
+            }
+        }
     }
 
     private static function maybe_ensure_ap_config_schema() {
@@ -121,6 +148,8 @@ class OraBooks_Vendors {
             org_id BIGINT UNSIGNED NOT NULL,
             name VARCHAR(255) NOT NULL,
             email VARCHAR(255) NULL,
+            phone VARCHAR(50) NULL,
+            address TEXT NULL,
             tax_id VARCHAR(100) NULL,
             payment_terms INT DEFAULT 30,
             default_currency CHAR(3) DEFAULT 'USD',
@@ -289,14 +318,18 @@ class OraBooks_Vendors {
                 'org_id' => $org_id,
                 'name' => $name,
                 'email' => !empty($data['email']) ? sanitize_email($data['email']) : null,
+                'phone' => !empty($data['phone']) ? sanitize_text_field($data['phone']) : null,
+                'address' => isset($data['address']) ? sanitize_textarea_field($data['address']) : null,
                 'tax_id' => !empty($data['tax_id']) ? sanitize_text_field($data['tax_id']) : null,
                 'payment_terms' => intval($data['payment_terms'] ?? 30),
                 'default_currency' => strtoupper(sanitize_text_field($data['default_currency'] ?? 'USD')),
                 'auto_apply_credit' => isset($data['auto_apply_credit']) ? (int) (bool) $data['auto_apply_credit'] : 1,
+                'payable_balance' => max(0, floatval($data['payable_balance'] ?? 0)),
+                'credit_balance' => max(0, floatval($data['credit_balance'] ?? 0)),
                 'notes' => isset($data['notes']) ? sanitize_textarea_field($data['notes']) : null,
                 'is_active' => 1,
             ],
-            ['%d', '%s', '%s', '%s', '%d', '%s', '%d', '%s', '%d']
+            ['%d', '%s', '%s', '%s', '%s', '%s', '%d', '%s', '%d', '%f', '%f', '%s', '%d']
         );
 
         $vendor_id = intval($wpdb->insert_id);
@@ -335,6 +368,16 @@ class OraBooks_Vendors {
             $formats[] = '%s';
         }
 
+        if (array_key_exists('phone', $data)) {
+            $updates['phone'] = !empty($data['phone']) ? sanitize_text_field($data['phone']) : null;
+            $formats[] = '%s';
+        }
+
+        if (array_key_exists('address', $data)) {
+            $updates['address'] = sanitize_textarea_field($data['address']);
+            $formats[] = '%s';
+        }
+
         if (isset($data['tax_id'])) {
             $updates['tax_id'] = !empty($data['tax_id']) ? sanitize_text_field($data['tax_id']) : null;
             $formats[] = '%s';
@@ -353,6 +396,16 @@ class OraBooks_Vendors {
         if (isset($data['auto_apply_credit'])) {
             $updates['auto_apply_credit'] = (int) (bool) $data['auto_apply_credit'];
             $formats[] = '%d';
+        }
+
+        if (isset($data['payable_balance'])) {
+            $updates['payable_balance'] = max(0, floatval($data['payable_balance']));
+            $formats[] = '%f';
+        }
+
+        if (isset($data['credit_balance'])) {
+            $updates['credit_balance'] = max(0, floatval($data['credit_balance']));
+            $formats[] = '%f';
         }
 
         if (isset($data['notes'])) {
