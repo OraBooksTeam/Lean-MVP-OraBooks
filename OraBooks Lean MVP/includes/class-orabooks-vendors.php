@@ -2115,6 +2115,18 @@ class OraBooks_Vendors {
         orabooks_json_success($result);
     }
 
+    public function ajax_vendor_wallet() {
+        $user_id = $this->current_user_id();
+        $org_id = intval($_GET['org_id'] ?? 0);
+        $vendor_id = intval($_GET['vendor_id'] ?? 0);
+        $this->require_ap_permission($user_id, $org_id, ['view_reports']);
+        $wallet = self::get_vendor_wallet($vendor_id, $org_id);
+        if (is_wp_error($wallet)) {
+            orabooks_json_error($wallet->get_error_message(), 404);
+        }
+        orabooks_json_success($wallet);
+    }
+
     public function ajax_bill_get() {
         $user_id = $this->current_user_id();
         $org_id = intval($_GET['org_id'] ?? 0);

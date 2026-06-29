@@ -439,6 +439,8 @@ export const api = {
     api.post('orabooks_ap_config_set', { org_id: orgId, ...data }),
   vendorGet: (orgId: number, vendorId: number) =>
     api.get('orabooks_vendor_get', { org_id: orgId, vendor_id: vendorId }),
+  vendorWallet: (vendorId: number, orgId: number) =>
+    api.get('orabooks_vendor_wallet', { org_id: orgId, vendor_id: vendorId }),
   billGet: (orgId: number, billId: number) =>
     api.get('orabooks_bill_get', { org_id: orgId, bill_id: billId }),
   vendorPaymentsList: (orgId: number, filters: Record<string, unknown> = {}) =>
