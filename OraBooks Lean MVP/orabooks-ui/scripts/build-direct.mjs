@@ -33,6 +33,38 @@ function cleanOutput() {
   }
 }
 
+function syncMisplacedBuildOutput() {
+  const wrongDir = path.join(root, 'assets/react');
+  const pluginBundle = path.join(outDir, 'frontend.js');
+  const wrongBundle = path.join(wrongDir, 'frontend.js');
+
+  if (!fs.existsSync(wrongBundle)) {
+    return;
+  }
+
+  if (!fs.existsSync(pluginBundle) || fs.statSync(wrongBundle).mtimeMs > fs.statSync(pluginBundle).mtimeMs) {
+    console.log('\n>> sync misplaced build output to plugin assets/react');
+    if (fs.existsSync(outDir)) {
+      fs.rmSync(outDir, { recursive: true, force: true });
+    }
+    copyRecursive(wrongDir, outDir);
+    fs.rmSync(wrongDir, { recursive: true, force: true });
+  }
+}
+
+function copyRecursive(src, dest) {
+  fs.mkdirSync(dest, { recursive: true });
+  for (const name of fs.readdirSync(src)) {
+    const from = path.join(src, name);
+    const to = path.join(dest, name);
+    if (fs.statSync(from).isDirectory()) {
+      copyRecursive(from, to);
+    } else {
+      fs.copyFileSync(from, to);
+    }
+  }
+}
+
 function writeManifest() {
   function walk(dir, base = '') {
     const entries = [];
@@ -51,7 +83,9 @@ function writeManifest() {
     return entries;
   }
 
-  const files = walk(outDir).sort();
+  const files = walk(outDir)
+    .filter((file) => file !== 'deploy-manifest.json')
+    .sort();
   fs.mkdirSync(outDir, { recursive: true });
   fs.writeFileSync(
     path.join(outDir, 'deploy-manifest.json'),
@@ -104,6 +138,7 @@ try {
   unmapDrive();
 }
 
+syncMisplacedBuildOutput();
 writeManifest();
 
 const bundlePath = path.join(outDir, 'frontend.js');

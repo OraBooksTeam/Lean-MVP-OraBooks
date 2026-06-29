@@ -2,9 +2,8 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 import path from 'path';
-import { fileURLToPath } from 'node:url';
 
-const configDir = path.dirname(fileURLToPath(import.meta.url));
+const configDir = process.cwd();
 const pluginAssetsDir = path.resolve(configDir, '../assets/react');
 
 export default defineConfig({
