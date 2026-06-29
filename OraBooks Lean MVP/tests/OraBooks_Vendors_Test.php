@@ -348,6 +348,12 @@ class OraBooks_Vendors_Test extends TestCase
             if (stripos($query, 'orabooks_bills') !== false) {
                 return $this->mockBill(['workflow_status' => 'approved']);
             }
+            if (stripos($query, 'SUM(debit_amount)') !== false) {
+                return (object) [
+                    'total_debit' => '100.00',
+                    'total_credit' => '100.00',
+                ];
+            }
             if (stripos($query, 'orabooks_journals') !== false) {
                 return (object) [
                     'id' => 1,
