@@ -900,36 +900,48 @@ export default function VendorsPage() {
           <Modal title="Create bill" onClose={() => setShowBillForm(false)} wide>
             {error && <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div>}
             <div className="grid gap-4">
-              <Field label="Vendor">
-                <select value={billForm.vendor_id} onChange={(e) => setBillForm((p) => ({ ...p, vendor_id: e.target.value }))} className="w-full rounded-lg border border-border px-3 py-2.5 text-sm">
-                  <option value="">Select vendor…</option>
-                  {vendors.map((v) => <option key={v.id} value={v.id}>{v.name}</option>)}
-                </select>
-              </Field>
-              <Field label="Bill date"><Input type="date" value={billForm.bill_date} onChange={(e) => setBillForm((p) => ({ ...p, bill_date: e.target.value }))} /></Field>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Field label="Vendor">
+                  <select value={billForm.vendor_id} onChange={(e) => setBillForm((p) => ({ ...p, vendor_id: e.target.value }))} className="w-full rounded-lg border border-border px-3 py-2.5 text-sm">
+                    <option value="">Select vendor…</option>
+                    {vendors.map((v) => <option key={v.id} value={v.id}>{v.name}</option>)}
+                  </select>
+                </Field>
+                <Field label="Bill date">
+                  <Input type="date" value={billForm.bill_date} onChange={(e) => setBillForm((p) => ({ ...p, bill_date: e.target.value }))} />
+                </Field>
+              </div>
+
               <div className="grid gap-4 sm:grid-cols-2">
                 <Field label="Currency">
                   <Input value={billForm.currency} onChange={(e) => setBillForm((p) => ({ ...p, currency: e.target.value.toUpperCase() }))} maxLength={3} />
                 </Field>
+                <Field label="Jurisdiction">
+                  <select value={billForm.jurisdiction} onChange={(e) => setBillForm((p) => ({ ...p, jurisdiction: e.target.value }))} className="w-full rounded-lg border border-border px-3 py-2.5 text-sm">
+                    {(taxConfigs.length ? taxConfigs : [{ jurisdiction: 'US' }]).map((c) => (
+                      <option key={c.jurisdiction} value={c.jurisdiction}>{c.jurisdiction}</option>
+                    ))}
+                  </select>
+                </Field>
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-2">
                 <div className="flex items-end pb-2">
                   <label className="flex items-center gap-2 text-sm text-slate-700">
                     <input type="checkbox" checked={billForm.use_due_date} onChange={(e) => setBillForm((p) => ({ ...p, use_due_date: e.target.checked }))} />
                     Explicit due date
                   </label>
                 </div>
+                {billForm.use_due_date ? (
+                  <Field label="Due date">
+                    <Input type="date" value={billForm.due_date} onChange={(e) => setBillForm((p) => ({ ...p, due_date: e.target.value }))} />
+                  </Field>
+                ) : (
+                  <Field label="Due days">
+                    <Input type="number" min="1" value={billForm.due_days} onChange={(e) => setBillForm((p) => ({ ...p, due_days: e.target.value }))} />
+                  </Field>
+                )}
               </div>
-              {billForm.use_due_date ? (
-                <Field label="Due date"><Input type="date" value={billForm.due_date} onChange={(e) => setBillForm((p) => ({ ...p, due_date: e.target.value }))} /></Field>
-              ) : (
-                <Field label="Due days"><Input type="number" min="1" value={billForm.due_days} onChange={(e) => setBillForm((p) => ({ ...p, due_days: e.target.value }))} /></Field>
-              )}
-              <Field label="Jurisdiction">
-                <select value={billForm.jurisdiction} onChange={(e) => setBillForm((p) => ({ ...p, jurisdiction: e.target.value }))} className="w-full rounded-lg border border-border px-3 py-2.5 text-sm">
-                  {(taxConfigs.length ? taxConfigs : [{ jurisdiction: 'US' }]).map((c) => (
-                    <option key={c.jurisdiction} value={c.jurisdiction}>{c.jurisdiction}</option>
-                  ))}
-                </select>
-              </Field>
 
               <div>
                 <div className="mb-2 flex items-center justify-between">
@@ -941,7 +953,7 @@ export default function VendorsPage() {
                 </div>
                 <div className="mb-2 hidden text-xs font-semibold uppercase tracking-wide text-slate-500 sm:grid sm:grid-cols-12 sm:gap-2 sm:px-3">
                   <div className="sm:col-span-2">Code</div>
-                  <div className="sm:col-span-4">Description</div>
+                  <div className="sm:col-span-4">Product</div>
                   <div className="sm:col-span-2">Qty</div>
                   <div className="sm:col-span-2">Unit price</div>
                   <div className="sm:col-span-2 text-right">Line total</div>
@@ -953,7 +965,12 @@ export default function VendorsPage() {
                         <Input value={line.sku_code} onChange={(e) => setBillLineItems((items) => items.map((row, i) => i === index ? { ...row, sku_code: e.target.value } : row))} placeholder="Code" />
                       </div>
                       <div className="sm:col-span-4">
-                        <Input value={line.description} onChange={(e) => setBillLineItems((items) => items.map((row, i) => i === index ? { ...row, description: e.target.value } : row))} placeholder="Description" />
+                        <ProductAutocomplete
+                          value={line.description}
+                          products={products}
+                          onChange={(value) => setBillLineItems((items) => items.map((row, i) => i === index ? { ...row, description: value } : row))}
+                          onSelectProduct={(product) => applyProductToLine(index, product)}
+                        />
                       </div>
                       <div className="sm:col-span-2">
                         <Input type="number" min="0" step="0.01" value={line.quantity} onChange={(e) => setBillLineItems((items) => items.map((row, i) => i === index ? { ...row, quantity: e.target.value } : row))} placeholder="Qty" />
@@ -972,6 +989,9 @@ export default function VendorsPage() {
                     </div>
                   ))}
                 </div>
+                {products.length === 0 && !billFormLoading && (
+                  <p className="mt-2 text-xs text-slate-500">No products in inventory yet. You can still type product names manually.</p>
+                )}
               </div>
 
               <Field label="Notes"><Input value={billForm.description} onChange={(e) => setBillForm((p) => ({ ...p, description: e.target.value }))} placeholder="Optional bill note" /></Field>
