@@ -21,9 +21,11 @@ export default function Button({
   const variants: Record<string, string> = {
     primary: 'bg-primary text-white hover:bg-primary-dark active:scale-[0.98] shadow-sm shadow-primary/20',
     secondary:
-      'bg-white text-primary border border-primary/30 hover:border-primary hover:bg-primary/5 active:scale-[0.98]',
-    ghost: 'text-ink-secondary hover:text-primary hover:bg-primary/5',
-    danger: 'bg-danger text-white hover:opacity-90 active:scale-[0.98]',
+      'bg-primary text-white hover:bg-primary-dark active:scale-[0.98] shadow-sm shadow-primary/10',
+    ghost:
+      'bg-primary/10 text-white hover:bg-primary/25 active:scale-[0.98]',
+    danger:
+      'bg-primary text-white hover:bg-primary-dark active:scale-[0.98] shadow-sm shadow-danger/20',
   };
 
   const sizes: Record<string, string> = {
