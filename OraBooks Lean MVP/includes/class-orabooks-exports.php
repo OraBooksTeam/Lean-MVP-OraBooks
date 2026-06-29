@@ -137,6 +137,23 @@ class OraBooks_Exports {
                 return null;
             }
         }
+
+        if (strpos((string) $export_type, 'financial_') === 0
+            && class_exists('OraBooks_Financial_Reports')
+            && method_exists('OraBooks_Financial_Reports', 'export_report_data')) {
+            return OraBooks_Financial_Reports::export_report_data(array_merge((array) $parameters, [
+                'export_type' => $export_type,
+            ]));
+        }
+
+        if (strpos((string) $export_type, 'operational_') === 0
+            && class_exists('OraBooks_Operational_Reports')
+            && method_exists('OraBooks_Operational_Reports', 'export_report_data')) {
+            return OraBooks_Operational_Reports::export_report_data(array_merge((array) $parameters, [
+                'export_type' => $export_type,
+            ]));
+        }
+
         return null;
     }
 
