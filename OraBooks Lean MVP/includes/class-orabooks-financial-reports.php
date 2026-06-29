@@ -218,6 +218,9 @@ class OraBooks_Financial_Reports {
             case 'trial_balance':
                 $data = self::build_trial_balance($org_id, $period_start, $period_end);
                 break;
+            case 'general_ledger':
+                $data = self::build_general_ledger($org_id, $period_start, $period_end, $args);
+                break;
             case 'changes_equity':
                 $data = self::build_changes_equity($org_id, $period_start, $period_end);
                 break;
@@ -234,7 +237,7 @@ class OraBooks_Financial_Reports {
     }
 
     private static function valid_report_type($type) {
-        return in_array($type, ['profit_loss', 'balance_sheet', 'cash_flow', 'trial_balance', 'changes_equity'], true);
+        return in_array($type, ['profit_loss', 'balance_sheet', 'cash_flow', 'trial_balance', 'general_ledger', 'changes_equity'], true);
     }
 
     private static function build_profit_loss($org_id, $period_start, $period_end) {
@@ -444,6 +447,63 @@ class OraBooks_Financial_Reports {
         ];
     }
 
+    private static function build_general_ledger($org_id, $period_start, $period_end, $args = []) {
+        $account_id = (int) ($args['account_id'] ?? 0);
+        $rows = self::ledger_detail_export_rows($org_id, [
+            'date_from' => $period_start,
+            'date_to' => $period_end,
+            'account_id' => $account_id,
+        ]);
+
+        $running_by_account = [];
+        $lines = [];
+        $total_debits = 0.0;
+        $total_credits = 0.0;
+
+        foreach ($rows as $row) {
+            $code = (string) ($row['account_code'] ?? '');
+            $type = strtolower((string) ($row['account_type'] ?? ''));
+            $debit = round((float) ($row['debit'] ?? 0), 2);
+            $credit = round((float) ($row['credit'] ?? 0), 2);
+
+            if (!array_key_exists($code, $running_by_account)) {
+                $running_by_account[$code] = 0.0;
+            }
+
+            $delta = in_array($type, ['liability', 'equity', 'revenue'], true)
+                ? ($credit - $debit)
+                : ($debit - $credit);
+            $running_by_account[$code] = round($running_by_account[$code] + $delta, 2);
+
+            $lines[] = [
+                'transaction_date' => $row['transaction_date'] ?? '',
+                'journal_number' => $row['journal_number'] ?? '',
+                'source_type' => $row['source_type'] ?? '',
+                'account_code' => $code,
+                'account_name' => $row['account_name'] ?? '',
+                'account_type' => $row['account_type'] ?? '',
+                'description' => $row['description'] ?? '',
+                'debit' => $debit,
+                'credit' => $credit,
+                'running_balance' => $running_by_account[$code],
+            ];
+
+            $total_debits += $debit;
+            $total_credits += $credit;
+        }
+
+        return [
+            'report_type' => 'general_ledger',
+            'period_start' => $period_start,
+            'period_end' => $period_end,
+            'account_id' => $account_id,
+            'rows' => $lines,
+            'entry_count' => count($lines),
+            'total_debits' => round($total_debits, 2),
+            'total_credits' => round($total_credits, 2),
+        ];
+    }
+
     private static function build_changes_equity($org_id, $period_start, $period_end) {
         $pl = self::build_profit_loss($org_id, $period_start, $period_end);
         $equity_rows = self::ledger_rows_for_report($org_id, null, $period_end, ['equity']);
@@ -507,14 +567,14 @@ class OraBooks_Financial_Reports {
     }
 
     /**
-     * Prefer posted ledger; fall back to projection read model when ledger is empty.
+     * Prefer projection read model; fall back to posted ledger when projection is empty.
      */
     private static function ledger_rows_for_report($org_id, $period_start, $period_end, $types = []) {
-        $rows = self::posted_ledger_rows($org_id, $period_start, $period_end, $types);
+        $rows = self::ledger_summary_rows($org_id, $period_start, $period_end, $types);
         if (!empty($rows)) {
             return $rows;
         }
-        return self::ledger_summary_rows($org_id, $period_start, $period_end, $types);
+        return self::posted_ledger_rows($org_id, $period_start, $period_end, $types);
     }
 
     public static function posted_ledger_has_activity($org_id) {
@@ -1640,6 +1700,27 @@ class OraBooks_Financial_Reports {
                     'rows' => $rows,
                     'balanced' => !empty($report['balanced']),
                     'balance_message' => $report['balance_message'] ?? '',
+                ];
+
+            case 'general_ledger':
+                foreach ($report['rows'] ?? [] as $item) {
+                    $rows[] = $item;
+                }
+                $rows[] = [
+                    'transaction_date' => '',
+                    'journal_number' => '',
+                    'source_type' => '',
+                    'account_code' => '',
+                    'account_name' => 'Totals',
+                    'account_type' => 'summary',
+                    'description' => '',
+                    'debit' => $report['total_debits'] ?? 0,
+                    'credit' => $report['total_credits'] ?? 0,
+                    'running_balance' => '',
+                ];
+                return [
+                    'columns' => ['transaction_date', 'journal_number', 'source_type', 'account_code', 'account_name', 'account_type', 'description', 'debit', 'credit', 'running_balance'],
+                    'rows' => $rows,
                 ];
 
             case 'changes_equity':
