@@ -1628,8 +1628,8 @@ class OraBooks_Vendors {
         }
 
         $config = self::get_ap_config((int) $bill->org_id);
-        $expense_code = $config->expense_account_code ?: '5000';
-        $ap_code = $config->ap_account_code ?: '2000';
+        $expense_code = ($config->expense_account_code ?? '') ?: '5000';
+        $ap_code = ($config->ap_account_code ?? '') ?: '2000';
 
         $journal_id = OraBooks_Posting::create_journal([
             'org_id' => intval($bill->org_id),
@@ -1655,8 +1655,8 @@ class OraBooks_Vendors {
 
     private static function create_vendor_payment_journal($org_id, $payment_id, $amount, $payment_date, $vendor_id, $user_id) {
         $config = self::get_ap_config((int) $org_id);
-        $cash_code = $config->cash_account_code ?: '1000';
-        $ap_code = $config->ap_account_code ?: '2000';
+        $cash_code = ($config->cash_account_code ?? '') ?: '1000';
+        $ap_code = ($config->ap_account_code ?? '') ?: '2000';
 
         if (!class_exists('OraBooks_Posting') || !class_exists('OraBooks_COA')) {
             return null;
