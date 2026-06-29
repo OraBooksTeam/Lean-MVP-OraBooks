@@ -14,6 +14,7 @@ import ChartOfAccountsPage from './pages/ChartOfAccountsPage';
 import JournalsPage from './pages/JournalsPage';
 import CustomersPage from './pages/CustomersPage';
 import VendorsPage from './pages/VendorsPage';
+import ApAgingPage from './pages/ApAgingPage';
 import InventoryPage from './pages/InventoryPage';
 import BankReconciliationPage from './pages/BankReconciliationPage';
 import ReportsPage from './pages/ReportsPage';
@@ -57,6 +58,7 @@ const ROUTES: Record<string, RouteConfig> = {
   '/dashboard': { element: <DashboardPage /> },
   '/customers': { element: <CustomersPage /> },
   '/vendors': { element: <VendorsPage /> },
+  '/ap-aging': { element: <ApAgingPage /> },
   '/inventory': { element: <InventoryPage /> },
   '/bank-reconciliation': { element: <BankReconciliationPage /> },
   '/reports': { element: <ReportsPage /> },

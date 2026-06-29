@@ -69,6 +69,7 @@ const customerNav: NavItem[] = [
   { label: 'Customers', href: '/customers', icon: Users, permission: 'view_invoices' },
   { label: 'Invoices & Sales', href: '/invoices', icon: FileText, permission: 'view_invoices' },
   { label: 'Vendors & Bills', href: '/vendors', icon: Building2, permission: 'view_reports' },
+  { label: 'AP Aging', href: '/ap-aging', icon: BarChart3, permission: 'view_reports' },
   { label: 'Inventory', href: '/inventory', icon: Package, permission: 'manage_inventory' },
   { label: 'Reports', href: '/reports', icon: BarChart3, permission: 'view_reports' },
   { label: 'Expenses', href: '/expenses', icon: Receipt, permission: 'view_expenses' },
