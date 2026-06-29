@@ -5,6 +5,7 @@ import Button from '@/components/Button';
 import Input from '@/components/Input';
 import { api } from '../api';
 import ClientShell from '../components/ClientShell';
+import CreateProductModal, { type CreatedProduct } from '../components/CreateProductModal';
 import { Building2, FileText, Info, Paperclip, Plus, RefreshCw, Settings2, Trash2, Wallet } from 'lucide-react';
 
 type Vendor = {
@@ -162,6 +163,8 @@ export default function VendorsPage() {
   const [voidReason, setVoidReason] = useState('');
 
   const [showVendorForm, setShowVendorForm] = useState(false);
+  const [vendorFormContext, setVendorFormContext] = useState<'page' | 'bill' | null>(null);
+  const [createProductLineIndex, setCreateProductLineIndex] = useState<number | null>(null);
   const [editingVendor, setEditingVendor] = useState<Vendor | null>(null);
   const [vendorForm, setVendorForm] = useState<VendorFormState>(emptyVendorForm());
 
@@ -219,6 +222,8 @@ export default function VendorsPage() {
   });
 
   const orgId = context?.organization?.id;
+  const permissions: string[] = context?.permissions || [];
+  const canCreateProduct = permissions.includes('create_invoice') || permissions.includes('manage_inventory');
 
   const load = async () => {
     setLoading(true);
@@ -415,6 +420,45 @@ export default function VendorsPage() {
           }
         : row
     )));
+  };
+
+  const toProductOption = (product: CreatedProduct): ProductOption => ({
+    id: product.id,
+    sku: product.sku || product.stock_keeping_unit || '',
+    name: product.name || '',
+    stock_keeping_unit: product.stock_keeping_unit,
+    sales_price: product.sales_price,
+    price: product.price,
+    mrp: product.mrp,
+    tax_name: product.tax_name,
+    tax_percent: product.tax_percent,
+  });
+
+  const handleProductCreated = (product: CreatedProduct) => {
+    const option = toProductOption(product);
+    setProducts((prev) => {
+      if (prev.some((entry) => entry.id === option.id)) {
+        return prev;
+      }
+      return [option, ...prev];
+    });
+    if (createProductLineIndex !== null) {
+      applyProductToLine(createProductLineIndex, option);
+    }
+    setCreateProductLineIndex(null);
+  };
+
+  const openVendorForm = (target: 'page' | 'bill') => {
+    setVendorFormContext(target);
+    setVendorForm(emptyVendorForm());
+    setError('');
+    setShowVendorForm(true);
+  };
+
+  const closeVendorForm = () => {
+    setShowVendorForm(false);
+    setVendorFormContext(null);
+    setVendorForm(emptyVendorForm());
   };
 
   useEffect(() => {
