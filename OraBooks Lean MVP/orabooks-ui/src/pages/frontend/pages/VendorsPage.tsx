@@ -985,6 +985,7 @@ export default function VendorsPage() {
               saving={saving}
               onClose={() => { setSelectedVendorId(null); setVendorDetail(null); }}
               onPayment={(vendor) => openPayment(vendor)}
+              onOpenWallet={(vendor) => void openWallet(vendor)}
               onCreditNote={(vendor) => { setCreditNoteVendor(vendor); setCreditNoteBill(null); setError(''); }}
               onCreateBill={(vendorId) => {
                 setShowBillForm(true);
@@ -1610,6 +1611,7 @@ function VendorDetailPanel({
   saving,
   onClose,
   onPayment,
+  onOpenWallet,
   onCreditNote,
   onCreateBill,
   onCreditNoteAction,
@@ -1620,6 +1622,7 @@ function VendorDetailPanel({
   saving: boolean;
   onClose: () => void;
   onPayment: (vendor: Vendor) => void;
+  onOpenWallet: (vendor: Vendor) => void;
   onCreditNote: (vendor: Vendor) => void;
   onCreateBill: (vendorId: number) => void;
   onCreditNoteAction: (action: 'submit' | 'approve' | 'post' | 'void', id: number) => void;
@@ -1660,7 +1663,6 @@ function VendorDetailPanel({
       <div className="flex flex-wrap gap-2">
         <Button size="sm" onClick={() => onCreateBill(vendor.id)}>Create bill</Button>
         <Button size="sm" variant="secondary" onClick={() => onOpenWallet(vendor)}>Wallet</Button>
-        <Button size="sm" variant="secondary" onClick={() => onPayment(vendor)}>Record payment</Button>
         <Button size="sm" variant="secondary" onClick={() => onCreditNote(vendor)}>Issue credit note</Button>
       </div>
 
