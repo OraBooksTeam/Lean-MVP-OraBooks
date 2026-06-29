@@ -592,16 +592,18 @@ function JournalDetailPanel({
                   lines.map((line: any) => (
                     <tr key={line.id}>
                       <td className="px-4 py-2">
-                        <div className="font-mono font-semibold text-ink">{line.account_code}</div>
+                        <div className="font-semibold text-ink">
+                          {formatAccountLabel(line.account_code, line.account_name)}
+                        </div>
                         {line.description && (
                           <div className="text-xs text-slate-500">{line.description}</div>
                         )}
                       </td>
                       <td className="px-4 py-2 text-right text-slate-700">
-                        {line.debit_amount ? money(line.debit_amount) : '—'}
+                        {Number(line.debit_amount) > 0 ? money(line.debit_amount) : '—'}
                       </td>
                       <td className="px-4 py-2 text-right text-slate-700">
-                        {line.credit_amount ? money(line.credit_amount) : '—'}
+                        {Number(line.credit_amount) > 0 ? money(line.credit_amount) : '—'}
                       </td>
                     </tr>
                   ))
@@ -754,4 +756,15 @@ function formatDate(value: string) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
   return date.toLocaleString();
+}
+
+function formatAccountLabel(code: string, name?: string) {
+  if (!code) return '—';
+  if (!name) return code;
+  return (
+    <>
+      <span className="font-mono">{code}</span>
+      <span className="text-slate-600">{` — ${name}`}</span>
+    </>
+  );
 }
