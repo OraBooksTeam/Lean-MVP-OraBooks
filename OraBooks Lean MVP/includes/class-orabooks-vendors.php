@@ -1582,6 +1582,46 @@ class OraBooks_Vendors {
         ));
     }
 
+    private static function build_bill_journal_lines($bill, $expense_code, $ap_code) {
+        $lines = [];
+        if (class_exists('OraBooks_Bill_Document')) {
+            $line_items = OraBooks_Bill_Document::get_line_items((int) $bill->id);
+            foreach ($line_items as $line_item) {
+                $lines[] = [
+                    'account_code' => $expense_code,
+                    'debit_amount' => floatval($line_item->line_total),
+                    'credit_amount' => 0,
+                    'description' => sanitize_text_field($line_item->description),
+                ];
+            }
+        }
+
+        if (empty($lines)) {
+            $lines[] = [
+                'account_code' => $expense_code,
+                'debit_amount' => floatval($bill->subtotal_amount) + floatval($bill->tax_amount),
+                'credit_amount' => 0,
+                'description' => 'Vendor bill ' . $bill->bill_number,
+            ];
+        } elseif (floatval($bill->tax_amount) > 0) {
+            $lines[] = [
+                'account_code' => $expense_code,
+                'debit_amount' => floatval($bill->tax_amount),
+                'credit_amount' => 0,
+                'description' => 'Tax on bill ' . $bill->bill_number,
+            ];
+        }
+
+        $lines[] = [
+            'account_code' => $ap_code,
+            'debit_amount' => 0,
+            'credit_amount' => floatval($bill->total_amount),
+            'description' => 'AP for ' . $bill->bill_number,
+        ];
+
+        return $lines;
+    }
+
     private static function create_bill_journal($bill, $user_id) {
         if (!class_exists('OraBooks_Posting')) {
             return null;
@@ -1941,7 +1981,12 @@ class OraBooks_Vendors {
         $user_id = $this->current_user_id();
         $org_id = intval($_GET['org_id'] ?? 0);
         $this->require_ap_permission($user_id, $org_id, ['view_reports']);
-        orabooks_json_success(self::get_ap_aging($org_id, $_GET['as_of_date'] ?? null));
+        $detail = self::get_ap_aging_detail($org_id, $_GET['as_of_date'] ?? null);
+        if (!empty($_GET['include_bills'])) {
+            orabooks_json_success($detail);
+        } else {
+            orabooks_json_success($detail['summary']);
+        }
     }
 
     public function ajax_ap_config_get() {
@@ -1982,6 +2027,9 @@ class OraBooks_Vendors {
         }
         orabooks_json_success([
             'bill' => $bill,
+            'line_items' => class_exists('OraBooks_Bill_Document')
+                ? OraBooks_Bill_Document::get_line_items($bill_id)
+                : [],
             'credit_notes' => self::get_vendor_credit_notes_list($org_id, ['bill_id' => $bill_id, 'limit' => 20])['credit_notes'],
         ]);
     }

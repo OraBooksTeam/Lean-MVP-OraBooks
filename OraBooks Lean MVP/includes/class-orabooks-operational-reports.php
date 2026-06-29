@@ -192,10 +192,11 @@ class OraBooks_Operational_Reports {
     }
 
     public static function get_ap_aging($org_id, $as_of_date = null, $vendor_id = 0) {
-        if (class_exists('OraBooks_Vendors') && method_exists('OraBooks_Vendors', 'get_ap_aging') && $vendor_id <= 0) {
+        if (class_exists('OraBooks_Vendors') && method_exists('OraBooks_Vendors', 'get_ap_aging_detail') && $vendor_id <= 0) {
+            $detail = OraBooks_Vendors::get_ap_aging_detail($org_id, $as_of_date);
             return [
-                'summary' => OraBooks_Vendors::get_ap_aging($org_id, $as_of_date),
-                'rows' => [],
+                'summary' => $detail['summary'],
+                'rows' => self::ap_aging_vendor_rows($detail['bills']),
             ];
         }
 
