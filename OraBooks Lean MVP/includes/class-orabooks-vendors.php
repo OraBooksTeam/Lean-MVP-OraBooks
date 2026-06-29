@@ -796,18 +796,476 @@ class OraBooks_Vendors {
             );
         }
 
+        $journal_id = self::create_vendor_payment_journal(
+            $org_id,
+            $payment_id,
+            $amount,
+            $data['payment_date'] ?? current_time('Y-m-d'),
+            $vendor_id,
+            orabooks_get_current_user_id()
+        );
+        if (!is_wp_error($journal_id) && $journal_id) {
+            $wpdb->update(
+                $table_payments,
+                ['journal_id' => (int) $journal_id],
+                ['id' => $payment_id],
+                ['%d'],
+                ['%d']
+            );
+        }
+
         orabooks_log_event('vendor_payment_recorded', 'Vendor payment recorded', 'info', [
             'payment_id' => $payment_id,
             'vendor_id' => $vendor_id,
             'amount' => $amount,
             'unapplied_amount' => $remaining,
+            'journal_id' => is_wp_error($journal_id) ? null : $journal_id,
         ], orabooks_get_current_user_id(), $org_id);
+
+        do_action('orabooks_bill_payment_recorded', $payment_id, [
+            'org_id' => $org_id,
+            'vendor_id' => $vendor_id,
+            'amount' => $amount,
+        ]);
 
         return [
             'payment_id' => $payment_id,
             'allocated_amount' => round($amount - $remaining, 2),
             'unapplied_amount' => round($remaining, 2),
+            'journal_id' => is_wp_error($journal_id) ? null : (int) $journal_id,
         ];
+    }
+
+    public static function reverse_payment($org_id, $payment_id, $user_id, $reason = '') {
+        global $wpdb;
+
+        $table_payments = OraBooks_Database::table('vendor_payments');
+        $payment = $wpdb->get_row($wpdb->prepare(
+            "SELECT * FROM {$table_payments} WHERE id = %d AND org_id = %d",
+            intval($payment_id),
+            intval($org_id)
+        ));
+
+        if (!$payment) {
+            return new WP_Error('not_found', 'Payment not found');
+        }
+
+        if ($payment->type !== 'payment') {
+            return new WP_Error('invalid_type', 'Only standard payments can be reversed');
+        }
+
+        $existing = $wpdb->get_var($wpdb->prepare(
+            "SELECT id FROM {$table_payments} WHERE reverses_payment_id = %d AND type = 'reversal'",
+            intval($payment_id)
+        ));
+        if ($existing) {
+            return new WP_Error('already_reversed', 'Payment has already been reversed');
+        }
+
+        $table_allocations = OraBooks_Database::table('vendor_payment_allocations');
+        $allocations = $wpdb->get_results($wpdb->prepare(
+            "SELECT * FROM {$table_allocations} WHERE payment_id = %d",
+            intval($payment_id)
+        ));
+
+        foreach ($allocations as $allocation) {
+            self::reverse_vendor_allocation($allocation, $org_id);
+        }
+
+        $unapplied = floatval($payment->unapplied_amount ?? 0);
+        if ($unapplied > 0) {
+            self::adjust_vendor_balance((int) $payment->vendor_id, (int) $org_id, 0, -$unapplied);
+        }
+
+        $wpdb->insert(
+            $table_payments,
+            [
+                'org_id' => (int) $org_id,
+                'vendor_id' => (int) $payment->vendor_id,
+                'payment_date' => current_time('Y-m-d'),
+                'amount' => floatval($payment->amount),
+                'unapplied_amount' => 0,
+                'payment_method' => $payment->payment_method,
+                'type' => 'reversal',
+                'reference' => 'REV-' . intval($payment_id),
+                'notes' => sanitize_textarea_field($reason),
+                'reverses_payment_id' => (int) $payment_id,
+                'idempotency_key' => 'vendor_reversal_' . intval($payment_id),
+            ],
+            ['%d', '%d', '%s', '%f', '%f', '%s', '%s', '%s', '%s', '%d', '%s']
+        );
+
+        $reversal_id = (int) $wpdb->insert_id;
+        $journal_id = self::create_vendor_payment_reversal_journal(
+            (int) $org_id,
+            $reversal_id,
+            floatval($payment->amount),
+            current_time('Y-m-d'),
+            (int) $payment->vendor_id,
+            (int) $user_id
+        );
+
+        if (!is_wp_error($journal_id) && $journal_id) {
+            $wpdb->update(
+                $table_payments,
+                ['journal_id' => (int) $journal_id],
+                ['id' => $reversal_id],
+                ['%d'],
+                ['%d']
+            );
+        }
+
+        orabooks_log_event('vendor_payment_reversed', 'Vendor payment reversed', 'info', [
+            'payment_id' => (int) $payment_id,
+            'reversal_id' => $reversal_id,
+            'reason' => $reason,
+        ], (int) $user_id, (int) $org_id);
+
+        return [
+            'reversal_id' => $reversal_id,
+            'journal_id' => is_wp_error($journal_id) ? null : (int) $journal_id,
+        ];
+    }
+
+    public static function get_vendor_payments_list($org_id, $args = []) {
+        global $wpdb;
+
+        $table = OraBooks_Database::table('vendor_payments');
+        $where = 'org_id = %d';
+        $params = [(int) $org_id];
+
+        if (!empty($args['vendor_id'])) {
+            $where .= ' AND vendor_id = %d';
+            $params[] = (int) $args['vendor_id'];
+        }
+
+        $limit = max(1, min(100, (int) ($args['limit'] ?? 50)));
+        $params[] = $limit;
+
+        $payments = $wpdb->get_results($wpdb->prepare(
+            "SELECT * FROM {$table} WHERE {$where} ORDER BY payment_date DESC, id DESC LIMIT %d",
+            $params
+        ));
+
+        return ['payments' => $payments ?: []];
+    }
+
+    public static function get_vendor_credit_notes_list($org_id, $args = []) {
+        global $wpdb;
+
+        $table = OraBooks_Database::table('vendor_credit_notes');
+        $where = 'org_id = %d';
+        $params = [(int) $org_id];
+
+        if (!empty($args['vendor_id'])) {
+            $where .= ' AND vendor_id = %d';
+            $params[] = (int) $args['vendor_id'];
+        }
+        if (!empty($args['bill_id'])) {
+            $where .= ' AND bill_id = %d';
+            $params[] = (int) $args['bill_id'];
+        }
+
+        $limit = max(1, min(100, (int) ($args['limit'] ?? 50)));
+        $params[] = $limit;
+
+        $notes = $wpdb->get_results($wpdb->prepare(
+            "SELECT * FROM {$table} WHERE {$where} ORDER BY credit_date DESC, id DESC LIMIT %d",
+            $params
+        ));
+
+        return ['credit_notes' => $notes ?: []];
+    }
+
+    public static function submit_credit_note($org_id, $credit_note_id, $user_id) {
+        return self::transition_credit_note($org_id, $credit_note_id, 'submitted', ['draft']);
+    }
+
+    public static function approve_credit_note($org_id, $credit_note_id, $user_id, $second_approver_id = 0) {
+        global $wpdb;
+
+        $note = self::get_credit_note($credit_note_id, $org_id);
+        if (!$note) {
+            return new WP_Error('not_found', 'Credit note not found');
+        }
+
+        $config = self::get_ap_config($org_id);
+        if ((int) $note->is_adjustment === 1 && floatval($note->amount) > floatval($config->adjustment_threshold)) {
+            if ((int) $second_approver_id <= 0 || (int) $second_approver_id === (int) $user_id) {
+                return new WP_Error('approval_required', 'Adjustment above threshold requires a second approver');
+            }
+        }
+
+        return self::transition_credit_note($org_id, $credit_note_id, 'approved', ['submitted'], [
+            'approved_by' => (int) ($second_approver_id > 0 ? $second_approver_id : $user_id),
+        ]);
+    }
+
+    public static function post_credit_note($org_id, $credit_note_id, $user_id, $second_approver_id = 0) {
+        global $wpdb;
+
+        $note = self::get_credit_note($credit_note_id, $org_id);
+        if (!$note) {
+            return new WP_Error('not_found', 'Credit note not found');
+        }
+
+        if ($note->workflow_status === 'posted') {
+            return new WP_Error('already_posted', 'Credit note is already posted');
+        }
+
+        if ($note->workflow_status === 'void') {
+            return new WP_Error('void', 'Cannot post a void credit note');
+        }
+
+        if (!in_array($note->workflow_status, ['draft', 'submitted', 'approved'], true)) {
+            return new WP_Error('invalid_status', 'Credit note cannot be posted from current status');
+        }
+
+        $config = self::get_ap_config($org_id);
+        if ((int) $note->is_adjustment === 1 && floatval($note->amount) > floatval($config->adjustment_threshold)) {
+            if ((int) $second_approver_id <= 0 || (int) $second_approver_id === (int) $user_id) {
+                return new WP_Error('approval_required', 'Adjustment above threshold requires a second approver');
+            }
+        }
+
+        $journal_id = self::create_vendor_credit_note_journal($note, (int) $user_id, $config);
+        if (is_wp_error($journal_id)) {
+            return $journal_id;
+        }
+
+        if ($journal_id && class_exists('OraBooks_Posting')) {
+            $submit = OraBooks_Posting::submit_journal((int) $journal_id, (int) $user_id);
+            if (is_wp_error($submit)) {
+                return $submit;
+            }
+        }
+
+        $table = OraBooks_Database::table('vendor_credit_notes');
+        $wpdb->update(
+            $table,
+            [
+                'workflow_status' => 'posted',
+                'journal_id' => (int) $journal_id,
+                'approved_by' => (int) ($second_approver_id > 0 ? $second_approver_id : $user_id),
+            ],
+            ['id' => (int) $credit_note_id],
+            ['%s', '%d', '%d'],
+            ['%d']
+        );
+
+        self::adjust_vendor_balance((int) $note->vendor_id, (int) $org_id, -floatval($note->amount), 0);
+
+        if (!empty($note->bill_id)) {
+            self::apply_credit_note_to_bill((int) $note->bill_id, floatval($note->amount));
+        } else {
+            self::adjust_vendor_balance((int) $note->vendor_id, (int) $org_id, 0, floatval($note->amount));
+        }
+
+        orabooks_log_event('vendor_credit_note_posted', 'Vendor credit note posted', 'info', [
+            'credit_note_id' => (int) $credit_note_id,
+            'amount' => floatval($note->amount),
+        ], (int) $user_id, (int) $org_id);
+
+        return self::get_credit_note($credit_note_id, $org_id);
+    }
+
+    public static function void_credit_note($org_id, $credit_note_id, $user_id) {
+        return self::transition_credit_note($org_id, $credit_note_id, 'void', ['draft', 'submitted']);
+    }
+
+    public static function get_credit_note($credit_note_id, $org_id) {
+        global $wpdb;
+
+        return $wpdb->get_row($wpdb->prepare(
+            "SELECT * FROM " . OraBooks_Database::table('vendor_credit_notes') . " WHERE id = %d AND org_id = %d",
+            (int) $credit_note_id,
+            (int) $org_id
+        ));
+    }
+
+    public static function get_vendor_detail($org_id, $vendor_id) {
+        $vendor = self::get_vendor($vendor_id, $org_id);
+        if (!$vendor) {
+            return new WP_Error('not_found', 'Vendor not found');
+        }
+
+        return [
+            'vendor' => $vendor,
+            'bills' => self::get_bills_list($org_id, ['vendor_id' => $vendor_id, 'limit' => 50])['bills'],
+            'payments' => self::get_vendor_payments_list($org_id, ['vendor_id' => $vendor_id, 'limit' => 50])['payments'],
+            'credit_notes' => self::get_vendor_credit_notes_list($org_id, ['vendor_id' => $vendor_id, 'limit' => 50])['credit_notes'],
+        ];
+    }
+
+    public static function save_ap_config($org_id, $data) {
+        global $wpdb;
+
+        $org_id = (int) $org_id;
+        $table = OraBooks_Database::table('vendor_ap_configs');
+        $row = [
+            'org_id' => $org_id,
+            'auto_post_bill_on_approve' => isset($data['auto_post_bill_on_approve']) ? (int) (bool) $data['auto_post_bill_on_approve'] : 1,
+            'auto_apply_vendor_credit' => isset($data['auto_apply_vendor_credit']) ? (int) (bool) $data['auto_apply_vendor_credit'] : 1,
+            'adjustment_threshold' => round(floatval($data['adjustment_threshold'] ?? 1000), 2),
+            'vendor_adjustment_account' => sanitize_text_field($data['vendor_adjustment_account'] ?? '5000'),
+            'ap_account_code' => sanitize_text_field($data['ap_account_code'] ?? '2000'),
+            'expense_account_code' => sanitize_text_field($data['expense_account_code'] ?? '5000'),
+            'cash_account_code' => sanitize_text_field($data['cash_account_code'] ?? '1000'),
+        ];
+
+        $exists = $wpdb->get_var($wpdb->prepare("SELECT org_id FROM {$table} WHERE org_id = %d", $org_id));
+        if ($exists) {
+            unset($row['org_id']);
+            $wpdb->update($table, $row, ['org_id' => $org_id]);
+        } else {
+            $wpdb->insert($table, $row, ['%d', '%d', '%d', '%f', '%s', '%s', '%s', '%s']);
+        }
+
+        return self::get_ap_config($org_id);
+    }
+
+    public static function apply_auto_credit_to_bill($org_id, $bill) {
+        if (!$bill || $bill->workflow_status !== 'posted') {
+            return false;
+        }
+
+        $config = self::get_ap_config($org_id);
+        if (empty($config->auto_apply_vendor_credit)) {
+            return false;
+        }
+
+        $vendor = self::get_vendor((int) $bill->vendor_id, (int) $org_id);
+        if (!$vendor || floatval($vendor->credit_balance) <= 0) {
+            return false;
+        }
+
+        if (!(int) ($vendor->auto_apply_credit ?? 1)) {
+            return false;
+        }
+
+        $outstanding = max(0, floatval($bill->total_amount) - floatval($bill->paid_amount));
+        if ($outstanding <= 0) {
+            return false;
+        }
+
+        $applied = min($outstanding, floatval($vendor->credit_balance));
+        if ($applied <= 0) {
+            return false;
+        }
+
+        global $wpdb;
+        $table_allocations = OraBooks_Database::table('vendor_payment_allocations');
+        $wpdb->insert(
+            $table_allocations,
+            [
+                'org_id' => (int) $org_id,
+                'vendor_id' => (int) $bill->vendor_id,
+                'payment_id' => 0,
+                'bill_id' => (int) $bill->id,
+                'amount' => $applied,
+                'allocation_method' => 'auto_credit',
+            ],
+            ['%d', '%d', '%d', '%d', '%f', '%s']
+        );
+
+        $new_paid = round(floatval($bill->paid_amount) + $applied, 2);
+        $new_status = $new_paid >= floatval($bill->total_amount) ? 'paid' : 'partial';
+
+        $wpdb->update(
+            OraBooks_Database::table('bills'),
+            [
+                'paid_amount' => $new_paid,
+                'payment_status' => $new_status,
+                'lock_status' => $new_status === 'paid' ? 'locked' : $bill->lock_status,
+            ],
+            ['id' => (int) $bill->id],
+            ['%f', '%s', '%s'],
+            ['%d']
+        );
+
+        self::adjust_vendor_balance((int) $bill->vendor_id, (int) $org_id, -$applied, -$applied);
+        return true;
+    }
+
+    private static function transition_credit_note($org_id, $credit_note_id, $next_status, array $allowed_from, array $extra = []) {
+        global $wpdb;
+
+        $note = self::get_credit_note($credit_note_id, $org_id);
+        if (!$note) {
+            return new WP_Error('not_found', 'Credit note not found');
+        }
+
+        if (!in_array($note->workflow_status, $allowed_from, true)) {
+            return new WP_Error('invalid_status', 'Credit note cannot transition from current status');
+        }
+
+        $updates = array_merge(['workflow_status' => $next_status], $extra);
+        $wpdb->update(
+            OraBooks_Database::table('vendor_credit_notes'),
+            $updates,
+            ['id' => (int) $credit_note_id],
+            array_fill(0, count($updates), '%s'),
+            ['%d']
+        );
+
+        return self::get_credit_note($credit_note_id, $org_id);
+    }
+
+    private static function apply_credit_note_to_bill($bill_id, $amount) {
+        global $wpdb;
+
+        $table = OraBooks_Database::table('bills');
+        $bill = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$table} WHERE id = %d", (int) $bill_id));
+        if (!$bill) {
+            return;
+        }
+
+        $new_paid = min(floatval($bill->total_amount), round(floatval($bill->paid_amount) + $amount, 2));
+        $new_status = $new_paid >= floatval($bill->total_amount) ? 'credited' : 'partial';
+
+        $wpdb->update(
+            $table,
+            [
+                'paid_amount' => $new_paid,
+                'payment_status' => $new_status,
+            ],
+            ['id' => (int) $bill_id],
+            ['%f', '%s'],
+            ['%d']
+        );
+
+        self::adjust_vendor_balance((int) $bill->vendor_id, (int) $bill->org_id, -$amount, 0);
+    }
+
+    private static function reverse_vendor_allocation($allocation, $org_id) {
+        global $wpdb;
+
+        $table_bills = OraBooks_Database::table('bills');
+        $bill = $wpdb->get_row($wpdb->prepare(
+            "SELECT * FROM {$table_bills} WHERE id = %d AND org_id = %d",
+            (int) $allocation->bill_id,
+            (int) $org_id
+        ));
+        if (!$bill) {
+            return;
+        }
+
+        $new_paid = max(0, round(floatval($bill->paid_amount) - floatval($allocation->amount), 2));
+        $new_status = $new_paid <= 0 ? 'unpaid' : 'partial';
+
+        $wpdb->update(
+            $table_bills,
+            [
+                'paid_amount' => $new_paid,
+                'payment_status' => $new_status,
+                'lock_status' => 'unlocked',
+            ],
+            ['id' => (int) $bill->id],
+            ['%f', '%s', '%s'],
+            ['%d']
+        );
+
+        self::adjust_vendor_balance((int) $allocation->vendor_id, (int) $org_id, floatval($allocation->amount), 0);
     }
 
     public static function create_credit_note($org_id, $data) {
