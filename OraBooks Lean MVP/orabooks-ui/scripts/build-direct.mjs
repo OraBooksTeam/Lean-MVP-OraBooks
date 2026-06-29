@@ -134,6 +134,7 @@ function unmapDrive() {
 
 console.log('Build root:', root);
 
+const useSubst = process.platform === 'win32';
 const mappedDrive = useSubst && mapDrive();
 const buildRoot = mappedDrive ? `${drive}\\` : root;
 if (useSubst && !mappedDrive) {
