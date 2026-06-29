@@ -427,8 +427,12 @@ export const api = {
     api.post('orabooks_bill_void', { org_id: orgId, bill_id: billId, reason }),
   vendorPaymentRecord: (orgId: number, data: Record<string, unknown>) =>
     api.post('orabooks_vendor_payment_record', { org_id: orgId, ...data }),
-  apAging: (orgId: number, asOfDate?: string) =>
-    api.get('orabooks_ap_aging', { org_id: orgId, ...(asOfDate ? { as_of_date: asOfDate } : {}) }),
+  apAging: (orgId: number, asOfDate?: string, includeBills = false) =>
+    api.get('orabooks_ap_aging', {
+      org_id: orgId,
+      ...(asOfDate ? { as_of_date: asOfDate } : {}),
+      ...(includeBills ? { include_bills: '1' } : {}),
+    }),
   apConfigGet: (orgId: number) =>
     api.get('orabooks_ap_config_get', { org_id: orgId }),
   apConfigSet: (orgId: number, data: Record<string, unknown>) =>
