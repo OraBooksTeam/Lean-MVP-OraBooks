@@ -119,12 +119,11 @@ function mapDrive() {
     const mapped = spawnSync('subst', [letter, root], { shell: false, stdio: 'pipe', encoding: 'utf8' });
     if (mapped.status === 0) {
       drive = letter;
-      return;
+      return true;
     }
   }
 
-  console.error('Failed to map a build drive letter');
-  process.exit(1);
+  return false;
 }
 
 function unmapDrive() {
@@ -135,18 +134,18 @@ function unmapDrive() {
 
 console.log('Build root:', root);
 
-const useSubst = process.platform === 'win32';
-if (useSubst) {
-  mapDrive();
+const mappedDrive = useSubst && mapDrive();
+const buildRoot = mappedDrive ? `${drive}\\` : root;
+if (useSubst && !mappedDrive) {
+  console.log('Drive mapping unavailable; building from UNC path.');
 }
-const buildRoot = useSubst ? `${drive}\\` : root;
 
 try {
   run('clean', node, ['scripts/clean-react-output.mjs'], { cwd: buildRoot, env: buildEnv() });
   run('admin', node, [vite, 'build', '--config', 'vite.admin.config.ts'], { cwd: buildRoot, env: buildEnv() });
   run('frontend', node, [vite, 'build', '--config', 'vite.frontend.config.ts'], { cwd: buildRoot, env: buildEnv() });
 } finally {
-  if (useSubst) {
+  if (mappedDrive) {
     unmapDrive();
   }
 }
