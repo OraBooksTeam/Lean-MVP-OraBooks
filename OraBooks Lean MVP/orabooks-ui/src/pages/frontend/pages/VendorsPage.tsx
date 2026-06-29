@@ -1354,6 +1354,7 @@ export default function VendorsPage() {
 
                 <div className="flex flex-wrap gap-2">
                   <Button
+                    type="button"
                     size="sm"
                     onClick={() => {
                       setShowBillForm(true);
@@ -1364,6 +1365,7 @@ export default function VendorsPage() {
                     Create bill
                   </Button>
                   <Button
+                    type="button"
                     size="sm"
                     variant="secondary"
                     onClick={() => {
@@ -1381,7 +1383,12 @@ export default function VendorsPage() {
         )}
 
         {creditNoteVendor && (
-          <Modal title="Create vendor credit note" onClose={() => { setCreditNoteVendor(null); setCreditNoteBill(null); }}>
+          <Modal
+            title="Create vendor credit note"
+            onClose={() => { setCreditNoteVendor(null); setCreditNoteBill(null); }}
+            elevated={!!viewingWalletVendor}
+            elevatedZIndex={100030}
+          >
             <p className="mb-4 text-sm text-slate-600">
               {creditNoteVendor.name}
               {creditNoteBill ? ` — bill ${creditNoteBill.bill_number || `#${creditNoteBill.id}`}` : ''}
@@ -1511,12 +1518,14 @@ function Modal({
   onClose,
   wide = false,
   elevated = false,
+  elevatedZIndex = 100020,
 }: {
   title: string;
   children: ReactNode;
   onClose: () => void;
   wide?: boolean;
   elevated?: boolean;
+  elevatedZIndex?: number;
 }) {
   useEffect(() => {
     if (!elevated) return;
@@ -1555,7 +1564,7 @@ function Modal({
           display: 'block',
           position: 'fixed',
           inset: 0,
-          zIndex: 100020,
+          zIndex: elevatedZIndex,
           overflowY: 'auto',
           padding: '1rem',
           background: 'rgb(15 23 42 / 0.4)',
