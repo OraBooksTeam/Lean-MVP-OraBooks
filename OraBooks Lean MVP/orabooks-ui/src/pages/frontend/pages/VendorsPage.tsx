@@ -785,7 +785,7 @@ export default function VendorsPage() {
             <h2 className="text-sm font-bold uppercase tracking-wide text-slate-500">AP Aging</h2>
             <WpLink
               to="/ap-aging"
-              className="inline-flex items-center justify-center rounded-lg border border-primary/30 bg-white px-3 py-1.5 text-sm font-semibold text-primary hover:border-primary hover:bg-primary/5"
+              className="inline-flex items-center justify-center rounded-lg bg-primary px-3 py-1.5 text-sm font-semibold text-white hover:bg-primary-dark shadow-sm shadow-primary/10"
             >
               Full AP aging report
             </WpLink>

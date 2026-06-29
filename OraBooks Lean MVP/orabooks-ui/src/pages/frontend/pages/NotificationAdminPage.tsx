@@ -169,7 +169,7 @@ export default function NotificationAdminPage() {
             type="button"
             onClick={() => setTab(t.id)}
             className={`rounded-lg px-3 py-2 text-sm font-semibold transition ${
-              tab === t.id ? 'bg-primary text-white' : 'bg-white text-ink-secondary hover:bg-primary/5'
+              tab === t.id ? 'bg-primary text-white' : 'bg-primary/10 text-white hover:bg-primary/25'
             }`}
           >
             {t.label}

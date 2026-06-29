@@ -384,7 +384,7 @@ export default function AttachmentsPage() {
                         {caps.download && item.virus_scan_status !== 'infected' && (
                           <a
                             href={api.attachmentDownloadUrl(orgId, item.id, item.version_id || 0)}
-                            className="inline-flex items-center gap-1 rounded-lg border border-border bg-white px-2.5 py-1.5 text-xs font-semibold text-primary hover:bg-primary/5"
+                            className="inline-flex items-center gap-1 rounded-lg bg-primary px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-primary-dark shadow-sm shadow-primary/10"
                           >
                             <Download className="h-3.5 w-3.5" />
                             Download
