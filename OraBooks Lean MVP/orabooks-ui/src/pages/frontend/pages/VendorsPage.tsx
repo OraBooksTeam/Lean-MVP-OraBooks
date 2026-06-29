@@ -1007,6 +1007,241 @@ function WorkflowBadge({ value }: { value: string }) {
   return <span className="badge border border-border bg-slate-50 text-slate-700">{value}</span>;
 }
 
+function VendorDetailPanel({
+  detail,
+  loading,
+  saving,
+  onClose,
+  onPayment,
+  onCreditNote,
+  onCreateBill,
+  onCreditNoteAction,
+  onReversePayment,
+}: {
+  detail: any;
+  loading: boolean;
+  saving: boolean;
+  onClose: () => void;
+  onPayment: (vendor: Vendor) => void;
+  onCreditNote: (vendor: Vendor) => void;
+  onCreateBill: (vendorId: number) => void;
+  onCreditNoteAction: (action: 'submit' | 'approve' | 'post' | 'void', id: number) => void;
+  onReversePayment: (paymentId: number, reason: string) => void;
+}) {
+  const vendor = detail?.vendor as Vendor | undefined;
+  const bills = detail?.bills || [];
+  const payments = detail?.payments || [];
+  const creditNotes = detail?.credit_notes || [];
+
+  if (loading) return <p className="text-sm text-slate-500">Loading vendor detail…</p>;
+  if (!vendor) return <p className="text-sm text-slate-500">Vendor not found.</p>;
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h3 className="text-lg font-bold text-ink">{vendor.name}</h3>
+          <p className="text-sm text-slate-500">{vendor.email || 'No email'} · {vendor.payment_terms ?? 30} day terms</p>
+        </div>
+        <Button variant="secondary" size="sm" onClick={onClose}>Close</Button>
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-2 text-sm">
+        <div className="rounded-lg border border-border bg-slate-50/70 p-3">
+          <p className="text-xs uppercase text-slate-500">Payable balance</p>
+          <p className="mt-1 text-xl font-bold text-ink">{money(vendor.payable_balance)}</p>
+        </div>
+        <div className="rounded-lg border border-border bg-slate-50/70 p-3">
+          <p className="text-xs uppercase text-slate-500">Credit balance</p>
+          <p className="mt-1 text-xl font-bold text-ink">{money(vendor.credit_balance)}</p>
+        </div>
+      </div>
+
+      <div className="flex flex-wrap gap-2">
+        <Button size="sm" onClick={() => onCreateBill(vendor.id)}>Create bill</Button>
+        <Button size="sm" variant="secondary" onClick={() => onPayment(vendor)}>Record payment</Button>
+        <Button size="sm" variant="secondary" onClick={() => onCreditNote(vendor)}>Issue credit note</Button>
+      </div>
+
+      <DetailTable title="Bills" empty="No bills for this vendor.">
+        {bills.map((bill: Bill) => (
+          <tr key={bill.id}>
+            <td className="px-3 py-2 font-medium">{bill.bill_number || `#${bill.id}`}</td>
+            <td className="px-3 py-2"><WorkflowBadge value={bill.workflow_status || 'draft'} /></td>
+            <td className="px-3 py-2 text-right">{money(bill.total_amount, bill.currency)}</td>
+          </tr>
+        ))}
+      </DetailTable>
+
+      <DetailTable title="Payments" empty="No payments recorded.">
+        {payments.map((payment: any) => (
+          <tr key={payment.id}>
+            <td className="px-3 py-2">{payment.payment_date}</td>
+            <td className="px-3 py-2">{payment.type || 'payment'}</td>
+            <td className="px-3 py-2 text-right">{money(payment.amount)}</td>
+            <td className="px-3 py-2">
+              {payment.type === 'payment' && (
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  disabled={saving}
+                  onClick={() => {
+                    const reason = window.prompt('Reversal reason:');
+                    if (reason) void onReversePayment(Number(payment.id), reason);
+                  }}
+                >
+                  Reverse
+                </Button>
+              )}
+            </td>
+          </tr>
+        ))}
+      </DetailTable>
+
+      <DetailTable title="Credit notes" empty="No credit notes.">
+        {creditNotes.map((note: any) => (
+          <tr key={note.id}>
+            <td className="px-3 py-2 font-medium">{note.credit_note_number}</td>
+            <td className="px-3 py-2"><WorkflowBadge value={note.workflow_status} /></td>
+            <td className="px-3 py-2 text-right">{money(note.amount)}</td>
+            <td className="px-3 py-2">
+              <div className="flex flex-wrap gap-1">
+                {note.workflow_status === 'draft' && (
+                  <Button size="sm" variant="secondary" disabled={saving} onClick={() => void onCreditNoteAction('submit', note.id)}>Submit</Button>
+                )}
+                {note.workflow_status === 'submitted' && (
+                  <Button size="sm" variant="secondary" disabled={saving} onClick={() => void onCreditNoteAction('approve', note.id)}>Approve</Button>
+                )}
+                {['draft', 'submitted', 'approved'].includes(note.workflow_status) && (
+                  <Button size="sm" variant="secondary" disabled={saving} onClick={() => void onCreditNoteAction('post', note.id)}>Post</Button>
+                )}
+                {['draft', 'submitted'].includes(note.workflow_status) && (
+                  <Button size="sm" variant="secondary" disabled={saving} onClick={() => void onCreditNoteAction('void', note.id)}>Void</Button>
+                )}
+              </div>
+            </td>
+          </tr>
+        ))}
+      </DetailTable>
+    </div>
+  );
+}
+
+function BillDetailPanel({
+  bill,
+  creditNotes,
+  loading,
+  actionBillId,
+  onClose,
+  onAction,
+  onVoid,
+  onCreditNote,
+  onPayment,
+  canVoid,
+}: {
+  bill: Bill | undefined;
+  creditNotes: any[];
+  loading: boolean;
+  actionBillId: number | null;
+  onClose: () => void;
+  onAction: (action: 'submit' | 'approve' | 'post', billId: number) => void;
+  onVoid: (bill: Bill) => void;
+  onCreditNote: (bill: Bill) => void;
+  onPayment: (bill: Bill) => void;
+  canVoid: (bill: Bill) => boolean;
+}) {
+  if (loading) return <p className="text-sm text-slate-500">Loading bill detail…</p>;
+  if (!bill) return <p className="text-sm text-slate-500">Bill not found.</p>;
+
+  const outstanding = Math.max(0, Number(bill.total_amount || 0) - Number(bill.paid_amount || 0));
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h3 className="text-lg font-bold text-ink">{bill.bill_number || `Bill #${bill.id}`}</h3>
+          <p className="text-sm text-slate-500">{bill.vendor_name} · Due {bill.due_date || '—'}</p>
+        </div>
+        <Button variant="secondary" size="sm" onClick={onClose}>Close</Button>
+      </div>
+
+      <div className="flex flex-wrap gap-2">
+        <WorkflowBadge value={bill.workflow_status || 'draft'} />
+        <WorkflowBadge value={bill.payment_status || 'unpaid'} />
+      </div>
+
+      <div className="grid gap-2 text-sm">
+        <p><span className="text-slate-500">Subtotal:</span> {money(bill.subtotal_amount, bill.currency)}</p>
+        <p><span className="text-slate-500">Tax:</span> {money(bill.tax_amount, bill.currency)}</p>
+        <p><span className="text-slate-500">Total:</span> <strong>{money(bill.total_amount, bill.currency)}</strong></p>
+        <p><span className="text-slate-500">Paid:</span> {money(bill.paid_amount, bill.currency)}</p>
+        <p><span className="text-slate-500">Outstanding:</span> <strong>{money(outstanding, bill.currency)}</strong></p>
+      </div>
+
+      <div className="flex flex-wrap gap-2">
+        {bill.workflow_status === 'draft' && (
+          <Button size="sm" variant="secondary" disabled={actionBillId === bill.id} onClick={() => void onAction('submit', bill.id)}>Submit</Button>
+        )}
+        {bill.workflow_status === 'submitted' && (
+          <Button size="sm" variant="secondary" disabled={actionBillId === bill.id} onClick={() => void onAction('approve', bill.id)}>Approve</Button>
+        )}
+        {bill.workflow_status === 'approved' && (
+          <Button size="sm" variant="secondary" disabled={actionBillId === bill.id} onClick={() => void onAction('post', bill.id)}>Post</Button>
+        )}
+        {bill.workflow_status === 'posted' && outstanding > 0 && (
+          <Button size="sm" variant="secondary" onClick={() => onPayment(bill)}>Record payment</Button>
+        )}
+        {bill.workflow_status === 'posted' && (
+          <Button size="sm" variant="secondary" onClick={() => onCreditNote(bill)}>Issue credit note</Button>
+        )}
+        {canVoid(bill) && (
+          <Button size="sm" variant="secondary" disabled={actionBillId === bill.id} onClick={() => onVoid(bill)}>Void</Button>
+        )}
+      </div>
+
+      {bill.description && <p className="text-sm text-slate-600">{bill.description}</p>}
+
+      <DetailTable title="Credit notes" empty="No credit notes for this bill.">
+        {creditNotes.map((note: any) => (
+          <tr key={note.id}>
+            <td className="px-3 py-2">{note.credit_note_number}</td>
+            <td className="px-3 py-2"><WorkflowBadge value={note.workflow_status} /></td>
+            <td className="px-3 py-2 text-right">{money(note.amount)}</td>
+          </tr>
+        ))}
+      </DetailTable>
+    </div>
+  );
+}
+
+function DetailTable({
+  title,
+  empty,
+  children,
+}: {
+  title: string;
+  empty: string;
+  children: ReactNode;
+}) {
+  const rows = Array.isArray(children) ? children : [children];
+  const hasRows = rows.some((row) => row);
+
+  return (
+    <div>
+      <h4 className="mb-2 text-sm font-bold text-ink">{title}</h4>
+      <div className="overflow-hidden rounded-xl border border-border">
+        <table className="min-w-full text-left text-sm">
+          <tbody className="divide-y divide-border">
+            {!hasRows ? (
+              <tr><td className="px-3 py-4 text-center text-slate-500">{empty}</td></tr>
+            ) : children}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
 function money(value?: string | number, currency = 'USD') {
   return new Intl.NumberFormat(undefined, { style: 'currency', currency }).format(Number(value || 0));
 }
