@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import WpLink from '../components/WpLink';
 
 import Button from '@/components/Button';
@@ -942,7 +943,7 @@ export default function VendorsPage() {
         </div>
 
         {showVendorForm && (
-          <Modal title="Add vendor" onClose={closeVendorForm}>
+          <Modal title="Add vendor" onClose={closeVendorForm} elevated={vendorFormContext === 'bill'}>
             {error && <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div>}
             <VendorFields form={vendorForm} onChange={setVendorForm} />
             <div className="mt-6 flex justify-end gap-2">
@@ -1264,15 +1265,82 @@ function VendorFields({
   );
 }
 
-function Modal({ title, children, onClose, wide = false }: { title: string; children: ReactNode; onClose: () => void; wide?: boolean }) {
+function Modal({
+  title,
+  children,
+  onClose,
+  wide = false,
+  elevated = false,
+}: {
+  title: string;
+  children: ReactNode;
+  onClose: () => void;
+  wide?: boolean;
+  elevated?: boolean;
+}) {
+  useEffect(() => {
+    if (!elevated) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onClose();
+    };
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    window.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener('keydown', onKeyDown);
+    };
+  }, [onClose, elevated]);
+
+  const panelClass = `max-h-[90vh] w-full overflow-y-auto rounded-2xl border border-border bg-white p-6 shadow-xl ${wide ? 'max-w-3xl' : 'max-w-lg'}`;
+  const header = (
+    <>
+      <div className="flex items-center justify-between gap-3">
+        <h3 className="text-lg font-semibold text-ink">{title}</h3>
+        <button type="button" onClick={onClose} className="text-sm text-slate-500 hover:text-slate-700">Close</button>
+      </div>
+      <div className="mt-4">{children}</div>
+    </>
+  );
+
+  if (elevated) {
+    if (typeof document === 'undefined') {
+      return null;
+    }
+
+    return createPortal(
+      <div
+        className="orabooks-modal-overlay"
+        style={{
+          display: 'block',
+          position: 'fixed',
+          inset: 0,
+          zIndex: 100020,
+          overflowY: 'auto',
+          padding: '1rem',
+          background: 'rgb(15 23 42 / 0.4)',
+        }}
+        onClick={onClose}
+      >
+        <div className="flex min-h-full items-start justify-center py-2">
+          <div
+            role="dialog"
+            aria-modal="true"
+            className={`orabooks-modal-panel ${panelClass}`}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {header}
+          </div>
+        </div>
+      </div>,
+      document.body
+    );
+  }
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4" onClick={onClose}>
-      <div className={`max-h-[90vh] w-full overflow-y-auto rounded-2xl border border-border bg-white p-6 shadow-xl ${wide ? 'max-w-3xl' : 'max-w-lg'}`} onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between gap-3">
-          <h3 className="text-lg font-semibold text-ink">{title}</h3>
-          <button type="button" onClick={onClose} className="text-sm text-slate-500 hover:text-slate-700">Close</button>
-        </div>
-        <div className="mt-4">{children}</div>
+      <div className={panelClass} onClick={(e) => e.stopPropagation()}>
+        {header}
       </div>
     </div>
   );
