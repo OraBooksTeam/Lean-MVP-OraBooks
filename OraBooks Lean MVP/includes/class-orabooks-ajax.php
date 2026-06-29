@@ -578,6 +578,7 @@ class OraBooks_Ajax {
                 ['id' => 'balance_sheet', 'label' => 'Balance Sheet'],
                 ['id' => 'cash_flow', 'label' => 'Cash Flow'],
                 ['id' => 'trial_balance', 'label' => 'Trial Balance'],
+                ['id' => 'general_ledger', 'label' => 'General Ledger'],
                 ['id' => 'changes_equity', 'label' => 'Changes in Equity'],
             ],
             'operational_types' => [
