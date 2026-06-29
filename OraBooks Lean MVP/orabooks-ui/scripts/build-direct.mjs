@@ -47,7 +47,7 @@ function syncMisplacedBuildOutput() {
   const wrongBundle = path.join(wrongDir, 'frontend.js');
 
   if (!fs.existsSync(wrongBundle)) {
-    return;
+    return false;
   }
 
   if (!fs.existsSync(pluginBundle) || fs.statSync(wrongBundle).mtimeMs > fs.statSync(pluginBundle).mtimeMs) {
@@ -57,7 +57,28 @@ function syncMisplacedBuildOutput() {
     }
     copyRecursive(wrongDir, outDir);
     fs.rmSync(wrongDir, { recursive: true, force: true });
+    return true;
   }
+
+  return fs.existsSync(pluginBundle);
+}
+
+function ensurePluginAssets() {
+  if (syncMisplacedBuildOutput()) {
+    return true;
+  }
+
+  const pluginBundle = path.join(outDir, 'frontend.js');
+  const wrongDir = path.join(root, 'assets/react');
+  const wrongBundle = path.join(wrongDir, 'frontend.js');
+
+  if (!fs.existsSync(pluginBundle) && fs.existsSync(wrongBundle)) {
+    console.log('\n>> restore plugin assets from orabooks-ui/assets/react');
+    copyRecursive(wrongDir, outDir);
+    return true;
+  }
+
+  return fs.existsSync(pluginBundle);
 }
 
 function copyRecursive(src, dest) {
@@ -152,9 +173,18 @@ try {
 }
 
 syncMisplacedBuildOutput();
+if (!ensurePluginAssets()) {
+  console.error('\nERROR: frontend.js is missing from OraBooks Lean MVP/assets/react/ after build.');
+  console.error('Run: node scripts/copy-build-to-plugin.mjs');
+  process.exit(1);
+}
 writeManifest();
 
 const bundlePath = path.join(outDir, 'frontend.js');
+if (!fs.existsSync(bundlePath)) {
+  console.error('\nERROR: deploy manifest written but frontend.js is still missing.');
+  process.exit(1);
+}
 const bundle = fs.readFileSync(bundlePath, 'utf8');
 console.log('\nBundle checks:');
 console.log('  valid line item:', bundle.includes('Vendor and at least one valid line item'));
