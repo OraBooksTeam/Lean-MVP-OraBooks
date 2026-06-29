@@ -710,7 +710,14 @@ class OraBooks_Vendors {
         }
 
         $journal_id = self::create_bill_journal($bill, $user_id);
+        if (is_wp_error($journal_id)) {
+            return $journal_id;
+        }
+
         $tax_snapshot_id = self::snapshot_bill_tax($bill, $user_id);
+        if (is_wp_error($tax_snapshot_id)) {
+            return $tax_snapshot_id;
+        }
 
         if (!class_exists('OraBooks_Workflow')) {
             return new WP_Error('workflow_unavailable', 'Workflow engine unavailable');
@@ -1185,13 +1192,11 @@ class OraBooks_Vendors {
             return new WP_Error('invalid_status', 'Credit note cannot transition from current status');
         }
 
-        $updates = array_merge(['workflow_status' => $next_status], $extra);
+        $table = OraBooks_Database::table('vendor_credit_notes');
         $wpdb->update(
-            OraBooks_Database::table('vendor_credit_notes'),
-            $updates,
-            ['id' => (int) $credit_note_id],
-            array_fill(0, count($updates), '%s'),
-            ['%d']
+            $table,
+            array_merge(['workflow_status' => $next_status], $extra),
+            ['id' => (int) $credit_note_id]
         );
 
         return self::get_credit_note($credit_note_id, $org_id);
