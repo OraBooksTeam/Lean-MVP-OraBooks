@@ -1371,7 +1371,7 @@ class OraBooks_Vendors {
         }
     }
 
-    private static function get_ap_config($org_id) {
+    public static function get_ap_config($org_id) {
         global $wpdb;
 
         $table = OraBooks_Database::table('vendor_ap_configs');
@@ -1390,6 +1390,9 @@ class OraBooks_Vendors {
             'auto_apply_vendor_credit' => 1,
             'adjustment_threshold' => 1000,
             'vendor_adjustment_account' => '5000',
+            'ap_account_code' => '2000',
+            'expense_account_code' => '5000',
+            'cash_account_code' => '1000',
         ];
     }
 
