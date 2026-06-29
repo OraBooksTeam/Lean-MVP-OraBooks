@@ -163,31 +163,32 @@ if (useSubst && !mappedDrive) {
   console.log('Drive mapping unavailable; building from UNC path.');
 }
 
+let buildOk = true;
 try {
-  run('clean', node, ['scripts/clean-react-output.mjs'], { cwd: buildRoot, env: buildEnv() });
-  run('admin', node, [vite, 'build', '--config', 'vite.admin.config.ts'], { cwd: buildRoot, env: buildEnv() });
-  run('frontend', node, [vite, 'build', '--config', 'vite.frontend.config.ts'], { cwd: buildRoot, env: buildEnv() });
+  buildOk = run('clean', node, ['scripts/clean-react-output.mjs'], { cwd: buildRoot, env: buildEnv() }) && buildOk;
+  buildOk = run('admin', node, [vite, 'build', '--config', 'vite.admin.config.ts'], { cwd: buildRoot, env: buildEnv() }) && buildOk;
+  buildOk = run('frontend', node, [vite, 'build', '--config', 'vite.frontend.config.ts'], { cwd: buildRoot, env: buildEnv() }) && buildOk;
 } finally {
   if (mappedDrive) {
     unmapDrive();
   }
 }
 
-syncMisplacedBuildOutput();
 if (!ensurePluginAssets()) {
-  console.error('\nERROR: frontend.js is missing from OraBooks Lean MVP/assets/react/ after build.');
+  console.error('\nERROR: frontend.js is missing from OraBooks Lean MVP/assets/react/.');
   console.error('Run: node scripts/copy-build-to-plugin.mjs');
   process.exit(1);
 }
 writeManifest();
 
 const bundlePath = path.join(outDir, 'frontend.js');
-if (!fs.existsSync(bundlePath)) {
-  console.error('\nERROR: deploy manifest written but frontend.js is still missing.');
-  process.exit(1);
-}
 const bundle = fs.readFileSync(bundlePath, 'utf8');
 console.log('\nBundle checks:');
 console.log('  valid line item:', bundle.includes('Vendor and at least one valid line item'));
 console.log('  old subtotal msg:', bundle.includes('Vendor and subtotal are required'));
 console.log('  AP aging link:', bundle.includes('Full AP aging report'));
+
+if (!buildOk) {
+  console.error('\nBuild failed, but plugin assets were restored from the last successful UI output.');
+  process.exit(1);
+}
