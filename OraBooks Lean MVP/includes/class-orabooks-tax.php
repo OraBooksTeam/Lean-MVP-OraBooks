@@ -579,6 +579,29 @@ class OraBooks_Tax {
     }
 
     /**
+     * Create or return an immutable tax snapshot for a posted vendor bill.
+     */
+    public static function snapshot_for_vendor_bill($bill, $user_id = null) {
+        if (!$bill) {
+            return new WP_Error('invalid_bill', 'Bill is required for tax snapshot');
+        }
+
+        $tax_base = max(0, round(floatval($bill->subtotal_amount ?? 0), 2));
+        $payload = [
+            'org_id' => (int) $bill->org_id,
+            'transaction_id' => (int) $bill->id,
+            'transaction_type' => 'expense',
+            'amount' => $tax_base,
+            'jurisdiction' => sanitize_text_field($bill->tax_jurisdiction ?? 'US'),
+            'transaction_date' => $bill->bill_date ?? current_time('Y-m-d'),
+            'tax_type' => sanitize_text_field($bill->tax_type ?? 'Sales Tax'),
+            'override' => false,
+        ];
+
+        return self::create_snapshot($payload, $user_id);
+    }
+
+    /**
      * Create or return an immutable tax snapshot for a posted expense.
      */
     public static function create_snapshot_from_expense($expense, $user_id = null) {

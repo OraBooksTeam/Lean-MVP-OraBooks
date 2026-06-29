@@ -1884,4 +1884,130 @@ class OraBooks_Vendors {
         $this->require_ap_permission($user_id, $org_id, ['view_reports']);
         orabooks_json_success(self::get_ap_aging($org_id, $_GET['as_of_date'] ?? null));
     }
+
+    public function ajax_ap_config_get() {
+        $user_id = $this->current_user_id();
+        $org_id = intval($_GET['org_id'] ?? 0);
+        $this->require_ap_permission($user_id, $org_id, ['view_reports']);
+        orabooks_json_success(['config' => self::get_ap_config($org_id)]);
+    }
+
+    public function ajax_ap_config_set() {
+        $user_id = $this->current_user_id();
+        $org_id = intval($_POST['org_id'] ?? 0);
+        $this->require_ap_permission($user_id, $org_id, ['manage_org_settings']);
+        $config = self::save_ap_config($org_id, $_POST);
+        orabooks_json_success(['config' => $config], 'AP configuration saved');
+    }
+
+    public function ajax_vendor_get() {
+        $user_id = $this->current_user_id();
+        $org_id = intval($_GET['org_id'] ?? 0);
+        $vendor_id = intval($_GET['vendor_id'] ?? 0);
+        $this->require_ap_permission($user_id, $org_id, ['view_reports']);
+        $result = self::get_vendor_detail($org_id, $vendor_id);
+        if (is_wp_error($result)) {
+            orabooks_json_error($result->get_error_message(), 404);
+        }
+        orabooks_json_success($result);
+    }
+
+    public function ajax_bill_get() {
+        $user_id = $this->current_user_id();
+        $org_id = intval($_GET['org_id'] ?? 0);
+        $bill_id = intval($_GET['bill_id'] ?? 0);
+        $this->require_ap_permission($user_id, $org_id, ['view_reports']);
+        $bill = self::get_bill($bill_id, $org_id);
+        if (!$bill) {
+            orabooks_json_error('Bill not found', 404);
+        }
+        orabooks_json_success([
+            'bill' => $bill,
+            'credit_notes' => self::get_vendor_credit_notes_list($org_id, ['bill_id' => $bill_id, 'limit' => 20])['credit_notes'],
+        ]);
+    }
+
+    public function ajax_vendor_payments_list() {
+        $user_id = $this->current_user_id();
+        $org_id = intval($_GET['org_id'] ?? 0);
+        $this->require_ap_permission($user_id, $org_id, ['view_reports']);
+        orabooks_json_success(self::get_vendor_payments_list($org_id, $_GET));
+    }
+
+    public function ajax_vendor_credit_notes_list() {
+        $user_id = $this->current_user_id();
+        $org_id = intval($_GET['org_id'] ?? 0);
+        $this->require_ap_permission($user_id, $org_id, ['view_reports']);
+        orabooks_json_success(self::get_vendor_credit_notes_list($org_id, $_GET));
+    }
+
+    public function ajax_credit_note_submit() {
+        $user_id = $this->current_user_id();
+        $org_id = intval($_POST['org_id'] ?? 0);
+        $this->require_ap_permission($user_id, $org_id, ['submit_transaction']);
+        $result = self::submit_credit_note($org_id, intval($_POST['credit_note_id'] ?? 0), $user_id);
+        if (is_wp_error($result)) {
+            orabooks_json_error($result->get_error_message(), 400);
+        }
+        orabooks_json_success(['credit_note' => $result], 'Credit note submitted');
+    }
+
+    public function ajax_credit_note_approve() {
+        $user_id = $this->current_user_id();
+        $org_id = intval($_POST['org_id'] ?? 0);
+        $this->require_ap_permission($user_id, $org_id, ['approve_journal']);
+        $result = self::approve_credit_note(
+            $org_id,
+            intval($_POST['credit_note_id'] ?? 0),
+            $user_id,
+            intval($_POST['second_approver_id'] ?? 0)
+        );
+        if (is_wp_error($result)) {
+            orabooks_json_error($result->get_error_message(), 400);
+        }
+        orabooks_json_success(['credit_note' => $result], 'Credit note approved');
+    }
+
+    public function ajax_credit_note_post() {
+        $user_id = $this->current_user_id();
+        $org_id = intval($_POST['org_id'] ?? 0);
+        $this->require_ap_permission($user_id, $org_id, ['manage_org_settings', 'approve_journal']);
+        $result = self::post_credit_note(
+            $org_id,
+            intval($_POST['credit_note_id'] ?? 0),
+            $user_id,
+            intval($_POST['second_approver_id'] ?? 0)
+        );
+        if (is_wp_error($result)) {
+            orabooks_json_error($result->get_error_message(), 400);
+        }
+        orabooks_json_success(['credit_note' => $result], 'Credit note posted');
+    }
+
+    public function ajax_credit_note_void() {
+        $user_id = $this->current_user_id();
+        $org_id = intval($_POST['org_id'] ?? 0);
+        $this->require_ap_permission($user_id, $org_id, ['manage_org_settings']);
+        $result = self::void_credit_note($org_id, intval($_POST['credit_note_id'] ?? 0), $user_id);
+        if (is_wp_error($result)) {
+            orabooks_json_error($result->get_error_message(), 400);
+        }
+        orabooks_json_success(['credit_note' => $result], 'Credit note voided');
+    }
+
+    public function ajax_reverse_payment() {
+        $user_id = $this->current_user_id();
+        $org_id = intval($_POST['org_id'] ?? 0);
+        $this->require_ap_permission($user_id, $org_id, ['manage_org_settings']);
+        $result = self::reverse_payment(
+            $org_id,
+            intval($_POST['payment_id'] ?? 0),
+            $user_id,
+            sanitize_textarea_field($_POST['reason'] ?? '')
+        );
+        if (is_wp_error($result)) {
+            orabooks_json_error($result->get_error_message(), 400);
+        }
+        orabooks_json_success($result, 'Payment reversed');
+    }
 }
