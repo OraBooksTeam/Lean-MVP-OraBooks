@@ -85,7 +85,6 @@ const ROUTES: Record<string, RouteConfig> = {
   '/my-exports': { element: <ExportStatusPage /> },
   '/profile': { element: <ProfilePage /> },
   '/security/2fa': { element: <Security2faPage /> },
-  '/security-2fa': { element: <Security2faPage /> },
   '/audit-log': { element: <AuditLogPage /> },
   '/job-queue': { element: <JobQueuePage /> },
   '/webhook-settings': { element: <WebhookSettingsPage /> },
