@@ -432,11 +432,29 @@ class OraBooks_Vendors {
 
         $org_id = intval($org_id);
         $vendor_id = intval($data['vendor_id'] ?? 0);
-        $subtotal = round(floatval($data['subtotal_amount'] ?? $data['total_amount'] ?? 0), 2);
 
         if ($org_id <= 0 || $vendor_id <= 0) {
             return new WP_Error('missing_field', 'Vendor is required');
         }
+
+        $line_items = [];
+        if (class_exists('OraBooks_Bill_Document') && !empty($data['line_items'])) {
+            OraBooks_Bill_Document::ensure_schema();
+            $raw_line_items = $data['line_items'];
+            if (is_string($raw_line_items)) {
+                $decoded = json_decode(wp_unslash($raw_line_items), true);
+                if (!is_array($decoded)) {
+                    $decoded = json_decode(stripslashes($raw_line_items), true);
+                }
+                $raw_line_items = is_array($decoded) ? $decoded : [];
+            }
+            $line_items = OraBooks_Bill_Document::normalize_line_items($raw_line_items);
+            if (!empty($line_items)) {
+                $data['subtotal_amount'] = OraBooks_Bill_Document::subtotal_from_lines($line_items);
+            }
+        }
+
+        $subtotal = round(floatval($data['subtotal_amount'] ?? $data['total_amount'] ?? 0), 2);
 
         $tax_amount = array_key_exists('tax_amount', $data)
             ? round(floatval($data['tax_amount']), 2)
@@ -524,6 +542,25 @@ class OraBooks_Vendors {
             'vendor_id' => $vendor_id,
             'total_amount' => $total,
         ], orabooks_get_current_user_id(), $org_id);
+
+        if (class_exists('OraBooks_Bill_Document')) {
+            OraBooks_Bill_Document::ensure_schema();
+            if (!empty($line_items)) {
+                OraBooks_Bill_Document::save_line_items($org_id, $bill_id, $line_items);
+            } elseif ($subtotal > 0) {
+                $fallback_description = !empty($data['description'])
+                    ? sanitize_textarea_field($data['description'])
+                    : 'Bill ' . $bill_number;
+                OraBooks_Bill_Document::save_line_items($org_id, $bill_id, [[
+                    'line_number' => 1,
+                    'description' => $fallback_description,
+                    'quantity' => 1,
+                    'unit_price' => $subtotal,
+                    'line_total' => $subtotal,
+                    'sku_code' => null,
+                ]]);
+            }
+        }
 
         return self::get_bill($bill_id, $org_id);
     }
@@ -1314,15 +1351,22 @@ class OraBooks_Vendors {
     }
 
     public static function get_ap_aging($org_id, $as_of_date = null) {
+        return self::get_ap_aging_detail($org_id, $as_of_date)['summary'];
+    }
+
+    public static function get_ap_aging_detail($org_id, $as_of_date = null) {
         global $wpdb;
 
         $as_of_date = $as_of_date ?: current_time('Y-m-d');
         $table_bills = OraBooks_Database::table('bills');
+        $table_vendors = OraBooks_Database::table('vendors');
         $bills = $wpdb->get_results($wpdb->prepare(
-            "SELECT id, vendor_id, bill_number, due_date, total_amount, paid_amount, payment_status
-             FROM {$table_bills}
-             WHERE org_id = %d AND workflow_status = 'posted' AND payment_status IN ('unpaid','partial')
-             ORDER BY due_date ASC",
+            "SELECT b.id, b.vendor_id, b.bill_number, b.bill_date, b.due_date, b.total_amount, b.paid_amount,
+                    b.payment_status, b.currency, v.name AS vendor_name
+             FROM {$table_bills} b
+             JOIN {$table_vendors} v ON b.vendor_id = v.id
+             WHERE b.org_id = %d AND b.workflow_status = 'posted' AND b.payment_status IN ('unpaid','partial')
+             ORDER BY b.due_date ASC, b.id ASC",
             intval($org_id)
         ));
 
@@ -1332,9 +1376,13 @@ class OraBooks_Vendors {
             '60' => 0.0,
             '90_plus' => 0.0,
         ];
+        $bill_rows = [];
 
         foreach ($bills as $bill) {
             $outstanding = max(0, floatval($bill->total_amount) - floatval($bill->paid_amount));
+            if ($outstanding <= 0) {
+                continue;
+            }
             $days = floor((strtotime($as_of_date) - strtotime($bill->due_date)) / DAY_IN_SECONDS);
             if ($days <= 0) {
                 $bucket = 'current';
@@ -1346,9 +1394,28 @@ class OraBooks_Vendors {
                 $bucket = '90_plus';
             }
             $buckets[$bucket] += $outstanding;
+            $bill_rows[] = [
+                'bill_id' => (int) $bill->id,
+                'bill_number' => $bill->bill_number,
+                'vendor_id' => (int) $bill->vendor_id,
+                'vendor_name' => $bill->vendor_name,
+                'bill_date' => $bill->bill_date,
+                'due_date' => $bill->due_date,
+                'total_amount' => floatval($bill->total_amount),
+                'paid_amount' => floatval($bill->paid_amount),
+                'outstanding' => $outstanding,
+                'days_overdue' => max(0, (int) $days),
+                'bucket' => $bucket,
+                'currency' => $bill->currency,
+                'payment_status' => $bill->payment_status,
+            ];
         }
 
-        return $buckets;
+        return [
+            'as_of_date' => $as_of_date,
+            'summary' => $buckets,
+            'bills' => $bill_rows,
+        ];
     }
 
     public function daily_ap_aging_snapshot() {
@@ -1536,20 +1603,7 @@ class OraBooks_Vendors {
             return $journal_id;
         }
 
-        OraBooks_Posting::add_lines($journal_id, [
-            [
-                'account_code' => $expense_code,
-                'debit_amount' => floatval($bill->subtotal_amount) + floatval($bill->tax_amount),
-                'credit_amount' => 0,
-                'description' => 'Vendor bill ' . $bill->bill_number,
-            ],
-            [
-                'account_code' => $ap_code,
-                'debit_amount' => 0,
-                'credit_amount' => floatval($bill->total_amount),
-                'description' => 'AP for ' . $bill->bill_number,
-            ],
-        ]);
+        OraBooks_Posting::add_lines($journal_id, self::build_bill_journal_lines($bill, $expense_code, $ap_code));
 
         $submit = OraBooks_Posting::submit_journal((int) $journal_id, (int) $user_id);
         if (is_wp_error($submit)) {
