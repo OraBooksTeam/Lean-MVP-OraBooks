@@ -699,6 +699,52 @@ export default function VendorsPage() {
             </tbody>
           </table>
         </div>
+        </div>
+
+        <div className="glass-panel p-5">
+          {!selectedVendorId && !selectedBillId ? (
+            <p className="text-sm text-slate-500">Select a vendor or bill to view details, payments, and credit notes.</p>
+          ) : selectedBillId ? (
+            <BillDetailPanel
+              bill={billDetail?.bill}
+              creditNotes={billDetail?.credit_notes || []}
+              loading={billDetailLoading}
+              actionBillId={actionBillId}
+              onClose={() => { setSelectedBillId(null); setBillDetail(null); }}
+              onAction={runBillAction}
+              onVoid={(bill) => { setVoidBill(bill); setVoidReason(''); }}
+              onCreditNote={(bill) => {
+                const vendor = vendors.find((v) => v.id === bill.vendor_id);
+                if (vendor) {
+                  setCreditNoteVendor(vendor);
+                  setCreditNoteBill(bill);
+                  setCreditNoteForm((p) => ({ ...p, amount: String(Number(bill.total_amount || 0) - Number(bill.paid_amount || 0)) }));
+                }
+              }}
+              onPayment={(bill) => {
+                const vendor = vendors.find((v) => v.id === bill.vendor_id);
+                if (vendor) openPayment(vendor);
+              }}
+              canVoid={canVoidBill}
+            />
+          ) : (
+            <VendorDetailPanel
+              detail={vendorDetail}
+              loading={detailLoading}
+              saving={saving}
+              onClose={() => { setSelectedVendorId(null); setVendorDetail(null); }}
+              onPayment={(vendor) => openPayment(vendor)}
+              onCreditNote={(vendor) => { setCreditNoteVendor(vendor); setCreditNoteBill(null); setError(''); }}
+              onCreateBill={(vendorId) => {
+                setShowBillForm(true);
+                setBillForm((p) => ({ ...p, vendor_id: String(vendorId) }));
+              }}
+              onCreditNoteAction={runCreditNoteAction}
+              onReversePayment={reversePayment}
+            />
+          )}
+        </div>
+        </div>
 
         {showVendorForm && (
           <Modal title="Add vendor" onClose={() => setShowVendorForm(false)}>
