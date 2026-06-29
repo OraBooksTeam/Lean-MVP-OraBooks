@@ -7,7 +7,8 @@ const root = path.resolve(fileURLToPath(new URL('.', import.meta.url)), '..');
 const node = process.execPath;
 const vite = 'node_modules/vite/bin/vite.js';
 const outDir = path.resolve(root, '../assets/react');
-const drive = 'Y:';
+const driveCandidates = ['X:', 'W:', 'V:', 'U:', 'Y:', 'Z:'];
+let drive = driveCandidates[0];
 
 function run(label, command, args, options = {}) {
   console.log(`\n>> ${label}`);
@@ -68,20 +69,25 @@ function writeManifest() {
 }
 
 function mapDrive() {
-  for (const letter of ['Y:', 'Z:']) {
+  for (const letter of driveCandidates) {
     spawnSync('subst', [`${letter} /D`], { shell: false, stdio: 'ignore' });
   }
-  const mapped = spawnSync('subst', [drive, root], { shell: false, stdio: 'pipe', encoding: 'utf8' });
-  if (mapped.status !== 0) {
-    console.error('Failed to map drive Y:');
-    console.error(mapped.stderr || mapped.stdout || mapped.error?.message);
-    process.exit(1);
+
+  for (const letter of driveCandidates) {
+    const mapped = spawnSync('subst', [letter, root], { shell: false, stdio: 'pipe', encoding: 'utf8' });
+    if (mapped.status === 0) {
+      drive = letter;
+      return;
+    }
   }
+
+  console.error('Failed to map a build drive letter');
+  process.exit(1);
 }
 
 function unmapDrive() {
-  for (const letter of ['Y:', 'Z:']) {
-    spawnSync('subst', [`${letter} /D`], { shell: false, stdio: 'ignore' });
+  if (drive) {
+    spawnSync('subst', [`${drive} /D`], { shell: false, stdio: 'ignore' });
   }
 }
 
