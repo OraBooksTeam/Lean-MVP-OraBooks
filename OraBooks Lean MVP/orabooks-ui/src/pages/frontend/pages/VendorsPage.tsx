@@ -1,11 +1,11 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import WpLink from '../components/WpLink';
 
 import Button from '@/components/Button';
 import Input from '@/components/Input';
 import { api } from '../api';
 import ClientShell from '../components/ClientShell';
-import { Building2, FileText, Info, Paperclip, Plus, RefreshCw, Settings2, Wallet } from 'lucide-react';
+import { Building2, FileText, Info, Paperclip, Plus, RefreshCw, Settings2, Trash2, Wallet } from 'lucide-react';
 
 type Vendor = {
   id: number;
@@ -78,7 +78,62 @@ type Bill = {
   total_amount?: string | number;
   paid_amount?: string | number;
   currency?: string;
+  description?: string | null;
+  line_items?: BillLineItem[];
 };
+
+type BillLineItem = {
+  id?: number;
+  line_number?: number;
+  description?: string;
+  quantity?: string | number;
+  unit_price?: string | number;
+  line_total?: string | number;
+  sku_code?: string | null;
+};
+
+type BillLineItemForm = {
+  description: string;
+  quantity: string;
+  unit_price: string;
+  sku_code: string;
+};
+
+const emptyBillLineItem = (): BillLineItemForm => ({
+  description: '',
+  quantity: '1',
+  unit_price: '',
+  sku_code: '',
+});
+
+const billLineItemsSubtotal = (items: BillLineItemForm[]) =>
+  items.reduce((sum, line) => {
+    const qty = parseFloat(line.quantity) || 0;
+    const price = parseFloat(line.unit_price) || 0;
+    return sum + (qty * price);
+  }, 0);
+
+const billLineItemTotal = (line: BillLineItemForm) => {
+  const qty = parseFloat(line.quantity) || 0;
+  const price = parseFloat(line.unit_price) || 0;
+  return Math.round(qty * price * 100) / 100;
+};
+
+const buildBillLineItemsPayload = (items: BillLineItemForm[]) =>
+  items
+    .filter((line) => line.description.trim())
+    .map((line) => {
+      const quantity = parseFloat(line.quantity) || 1;
+      const unit_price = parseFloat(line.unit_price) || 0;
+      return {
+        description: line.description.trim(),
+        quantity,
+        unit_price,
+        line_total: Math.round(quantity * unit_price * 100) / 100,
+        sku_code: line.sku_code.trim() || undefined,
+      };
+    })
+    .filter((line) => line.line_total > 0);
 
 export default function VendorsPage() {
   const [context, setContext] = useState<any>(null);
@@ -112,6 +167,7 @@ export default function VendorsPage() {
     description: '',
   });
   const [billPreview, setBillPreview] = useState<{ tax_amount: number; total_amount: number; tax_rate: number } | null>(null);
+  const [billLineItems, setBillLineItems] = useState<BillLineItemForm[]>([emptyBillLineItem()]);
 
   const [paymentVendor, setPaymentVendor] = useState<Vendor | null>(null);
   const [paymentForm, setPaymentForm] = useState({
@@ -294,20 +350,24 @@ export default function VendorsPage() {
   useEffect(() => { void load(); }, []);
 
   useEffect(() => {
-    if (!showBillForm || !orgId || !billForm.subtotal_amount) {
+    if (!showBillForm || !orgId) {
+      setBillPreview(null);
+      return;
+    }
+    const subtotal = billLineItemsSubtotal(billLineItems);
+    if (subtotal <= 0) {
       setBillPreview(null);
       return;
     }
     const timer = setTimeout(async () => {
       const res = await api.taxCalculate({
         org_id: orgId,
-        amount: parseFloat(billForm.subtotal_amount) || 0,
+        amount: subtotal,
         jurisdiction: billForm.jurisdiction,
       });
       if (!res.error) {
         const data = (res as any).data;
         const tax = Number(data.tax_amount || 0);
-        const subtotal = parseFloat(billForm.subtotal_amount) || 0;
         setBillPreview({
           tax_rate: Number(data.tax_rate || 0),
           tax_amount: tax,
@@ -316,7 +376,14 @@ export default function VendorsPage() {
       }
     }, 300);
     return () => clearTimeout(timer);
-  }, [showBillForm, billForm.subtotal_amount, billForm.jurisdiction, orgId]);
+  }, [showBillForm, billLineItems, billForm.jurisdiction, orgId]);
+
+  const billCreateTotals = useMemo(() => {
+    const subtotal = billLineItemsSubtotal(billLineItems);
+    const taxAmount = billPreview?.tax_amount ?? 0;
+    const taxRate = billPreview?.tax_rate ?? 0;
+    return { subtotal, taxAmount, taxRate, total: subtotal + taxAmount };
+  }, [billLineItems, billPreview]);
 
   const handleCreateVendor = async () => {
     if (!orgId || !vendorForm.name.trim()) {
