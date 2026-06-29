@@ -507,6 +507,55 @@ class OraBooks_Ai_Review {
                 'risk_level'    => $evaluation['risk_level'] ?? 'high',
             ]);
         }
+
+        // Keep escalated item visible in queue UI, and also archive a dead-letter copy
+        // for manual forensic inspection and operational triage.
+        $dead_letter_id = $this->copy_to_dead_letters($item, $evaluation, 'max_retries_exceeded');
+        self::record_history((int) $item->id, (int) $item->org_id, 'dead_letter', 0, [
+            'dead_letter_id' => $dead_letter_id,
+            'reason' => 'max_retries_exceeded',
+            'retry_count' => (int) $item->retry_count + 1,
+        ]);
+    }
+
+    private function copy_to_dead_letters($item, array $evaluation, $reason = 'unknown') {
+        global $wpdb;
+
+        $table_dead = OraBooks_Database::table(self::TABLE_DEAD_LETTERS);
+
+        $payload = [
+            'reason' => sanitize_text_field((string) $reason),
+            'retry_count' => (int) $item->retry_count + 1,
+            'evaluation' => [
+                'confidence' => (float) ($evaluation['confidence'] ?? $item->confidence_score ?? 0),
+                'risk_level' => sanitize_text_field((string) ($evaluation['risk_level'] ?? $item->risk_level ?? 'high')),
+                'explanation' => sanitize_textarea_field((string) ($evaluation['explanation'] ?? $item->explanation ?? '')),
+                'model_version' => sanitize_text_field((string) ($evaluation['model_version'] ?? $item->model_version ?? self::active_model_version())),
+            ],
+            'queue_snapshot' => [
+                'queue_id' => (int) $item->id,
+                'org_id' => (int) $item->org_id,
+                'resource_type' => sanitize_text_field((string) $item->resource_type),
+                'resource_id' => (int) $item->resource_id,
+                'journal_id' => $item->journal_id ? (int) $item->journal_id : null,
+                'status' => sanitize_text_field((string) $item->status),
+                'priority_score' => (int) ($item->priority_score ?? 0),
+                'total_amount' => (float) ($item->total_amount ?? 0),
+                'created_at' => $item->created_at ?? null,
+                'updated_at' => $item->updated_at ?? null,
+            ],
+        ];
+
+        $wpdb->insert($table_dead, [
+            'queue_id' => (int) $item->id,
+            'org_id' => (int) $item->org_id,
+            'resource_type' => sanitize_text_field((string) $item->resource_type),
+            'resource_id' => (int) $item->resource_id,
+            'journal_id' => $item->journal_id ? (int) $item->journal_id : null,
+            'payload' => wp_json_encode($payload),
+        ], ['%d', '%d', '%s', '%d', '%d', '%s']);
+
+        return (int) $wpdb->insert_id;
     }
 
     public function on_csv_row_escalated($import_id, $data) {
