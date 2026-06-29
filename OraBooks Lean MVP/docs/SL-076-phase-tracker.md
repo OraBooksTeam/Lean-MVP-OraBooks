@@ -19,7 +19,7 @@ Scope: SL-076 AI Review Queue completion to 100%
 | Phase | Title | Goal | Status | Exit Criteria |
 |---|---|---|---|---|
 | 1 | Baseline Freeze and Evidence Lock | Freeze scope, collect baseline tests, freeze gaps | Completed | Baseline tests pass and gap list documented |
-| 2 | Dead-Letter Completion | Move terminal failures to dead-letter table and log history | Pending | Dead-letter flow implemented and tested |
+| 2 | Dead-Letter Completion | Move terminal failures to dead-letter table and log history | Completed | Dead-letter flow implemented and tested |
 | 3 | Escalation Notification Wiring | Ensure ai_review_escalated reaches notification layer | Pending | Notification event listener and tests pass |
 | 4 | Atomic Claim Hardening | Replace claim race window with transaction-safe claim | Pending | Claim path uses row-lock pattern and passes concurrency tests |
 | 5 | Retry/Backoff Reliability | Enforce retry policy deterministically | Pending | Retry/backoff tests pass and timings match spec |
