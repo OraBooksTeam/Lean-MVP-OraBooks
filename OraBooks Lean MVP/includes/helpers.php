@@ -76,6 +76,7 @@ function orabooks_get_lean_mvp_page_definitions() {
         'customers' => ['Customers', '[orabooks_customers]'],
         'invoices' => ['Invoices', '[orabooks_invoices]'],
         'vendors' => ['Vendors & Bills', '[orabooks_vendors]'],
+        'ap-aging' => ['AP Aging', '[orabooks_ap_aging]'],
         'inventory' => ['Inventory', '[orabooks_inventory]'],
         'reports' => ['Reports', '[orabooks_reports]'],
         'csv-imports' => ['CSV Imports', '[orabooks_csv_import]'],

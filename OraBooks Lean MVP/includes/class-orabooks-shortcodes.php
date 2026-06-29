@@ -44,6 +44,7 @@ class OraBooks_Shortcodes {
             add_shortcode('orabooks_export_button', [self::$instance, 'export_button']);
             add_shortcode('orabooks_customers', [self::$instance, 'customers_page']);
             add_shortcode('orabooks_vendors', [self::$instance, 'vendors_page']);
+            add_shortcode('orabooks_ap_aging', [self::$instance, 'ap_aging_page']);
             add_shortcode('orabooks_inventory', [self::$instance, 'inventory_page']);
             add_shortcode('orabooks_bank_reconciliation', [self::$instance, 'bank_reconciliation_page']);
             add_shortcode('orabooks_reports', [self::$instance, 'reports_page']);
