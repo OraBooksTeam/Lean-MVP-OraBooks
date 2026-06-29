@@ -325,7 +325,7 @@ class OraBooks_AR_Wallet {
             return new WP_Error('not_found', 'Customer not found');
         }
 
-        if ((int) $customer->credit_hold === 1) {
+        if ((int) ($customer->credit_hold ?? 0) === 1) {
             return new WP_Error('credit_hold', 'Customer is on credit hold. New invoices are blocked.');
         }
 
@@ -439,11 +439,32 @@ class OraBooks_AR_Wallet {
             $method = 'manual';
         }
 
-        return self::record_customer_payment(intval($org_id), intval($invoice->customer_id), array_merge($data, [
+        $result = self::record_customer_payment(intval($org_id), intval($invoice->customer_id), array_merge($data, [
             'amount' => $amount,
             'allocation_method' => $method,
             'target_invoice_id' => intval($invoice_id),
         ]));
+
+        if (is_array($result) && empty($result['duplicate'])) {
+            $allocated = round(floatval($result['allocated_amount'] ?? 0), 2);
+            $total_paid = round(floatval($invoice->paid_amount ?? 0) + $allocated, 2);
+            $new_status = 'unpaid';
+            if ($total_paid >= round(floatval($invoice->total_amount ?? 0), 2)) {
+                $new_status = 'paid';
+            } elseif ($total_paid > 0) {
+                $new_status = 'partial';
+            }
+
+            $result += [
+                'invoice_id' => intval($invoice_id),
+                'amount' => $amount,
+                'new_status' => $new_status,
+                'total_paid' => $total_paid,
+                'payment_date' => $data['payment_date'] ?? current_time('Y-m-d'),
+            ];
+        }
+
+        return $result;
     }
 
     public static function record_customer_payment($org_id, $customer_id, $data) {
