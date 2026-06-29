@@ -646,15 +646,34 @@ export default function VendorsPage() {
   };
 
   const openPayment = (vendor: Vendor) => {
-    setPaymentVendor(vendor);
+    void openWallet(vendor);
+  };
+
+  const openWallet = async (vendor: Vendor) => {
+    if (!orgId) return;
+    setViewingWalletVendor(vendor);
+    setWalletLoading(true);
+    setError('');
     setPaymentForm({
-      amount: String(Number(vendor.payable_balance || 0) || ''),
+      amount: '',
       payment_date: new Date().toISOString().slice(0, 10),
       payment_method: 'bank_transfer',
       reference: '',
       notes: '',
     });
-    setError('');
+    const res = await api.vendorWallet(vendor.id, orgId);
+    if (res.error) {
+      setError(typeof res.error === 'string' ? res.error : 'Unable to load vendor wallet.');
+      setWalletData(null);
+    } else {
+      const data = (res as any).data;
+      setWalletData(data);
+      setPaymentForm((prev) => ({
+        ...prev,
+        amount: String(Number(data?.payable_balance || vendor.payable_balance || 0) || ''),
+      }));
+    }
+    setWalletLoading(false);
   };
 
   const handleRecordPayment = async () => {
@@ -676,6 +695,37 @@ export default function VendorsPage() {
       await load();
     }
     setSaving(false);
+  };
+
+  const recordWalletPayment = async () => {
+    if (!orgId || !viewingWalletVendor) return;
+    setSaving(true);
+    setError('');
+    const res = await api.vendorPaymentRecord(orgId, {
+      vendor_id: viewingWalletVendor.id,
+      amount: parseFloat(paymentForm.amount) || 0,
+      payment_date: paymentForm.payment_date,
+      payment_method: paymentForm.payment_method,
+      reference: paymentForm.reference,
+      notes: paymentForm.notes,
+    });
+    if (res.error) {
+      setError(typeof res.error === 'string' ? res.error : 'Unable to record payment.');
+    } else {
+      setSuccess('Vendor payment recorded (FIFO allocation).');
+      setPaymentForm((prev) => ({ ...prev, amount: '', reference: '', notes: '' }));
+      await openWallet(viewingWalletVendor);
+      if (selectedVendorId === viewingWalletVendor.id) await loadVendorDetail(viewingWalletVendor.id);
+      await load();
+    }
+    setSaving(false);
+  };
+
+  const reverseWalletPayment = async (paymentId: number) => {
+    if (!orgId || !viewingWalletVendor) return;
+    const reason = window.prompt('Reversal reason:');
+    if (!reason?.trim()) return;
+    await reversePayment(paymentId, reason.trim());
   };
 
   const handleCreateCreditNote = async () => {
@@ -722,7 +772,7 @@ export default function VendorsPage() {
         <div className="flex items-start gap-3 rounded-xl border border-sky-200 bg-sky-50/80 p-4 text-sm text-sky-900">
           <Info className="mt-0.5 h-4 w-4 shrink-0" />
           <p>
-            Manage vendor master data, bill lifecycle (draft → submitted → approved → posted), FIFO payments, and AP aging.
+            Manage vendor master data, bill lifecycle (draft → submitted → approved → posted), FIFO payments, vendor wallet, and AP aging.
           </p>
         </div>
 
@@ -823,12 +873,10 @@ export default function VendorsPage() {
                       <Button size="sm" variant="secondary" onClick={() => { setEditingVendor(vendor); setVendorForm(vendorToForm(vendor)); setError(''); }}>
                         Edit
                       </Button>
-                      {Number(vendor.payable_balance || 0) > 0 && (
-                        <Button size="sm" variant="secondary" onClick={() => openPayment(vendor)}>
-                          <Wallet className="h-3.5 w-3.5" />
-                          Pay
-                        </Button>
-                      )}
+                      <Button size="sm" variant="secondary" onClick={() => void openWallet(vendor)}>
+                        <Wallet className="h-3.5 w-3.5" />
+                        Wallet
+                      </Button>
                       <Button size="sm" variant="secondary" onClick={() => { setCreditNoteVendor(vendor); setCreditNoteBill(null); setError(''); }}>
                         Credit note
                       </Button>
