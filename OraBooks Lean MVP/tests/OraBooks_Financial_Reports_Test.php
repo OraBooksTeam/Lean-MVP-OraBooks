@@ -574,6 +574,54 @@ class OraBooks_Financial_Reports_Test extends TestCase
     }
 
     #[Test]
+    public function test_generate_general_ledger_includes_running_balance_and_totals()
+    {
+        global $wpdb;
+
+        $wpdb->test_get_row_callback = fn() => null;
+        $wpdb->test_get_results_callback = function ($query) {
+            if (stripos($query, 'FROM wp_test_orabooks_ledger_entries') !== false) {
+                return [
+                    [
+                        'transaction_date' => '2026-01-10',
+                        'journal_number' => 'JE-2026-000001',
+                        'source_type' => 'invoice',
+                        'account_code' => '1000',
+                        'account_name' => 'Cash',
+                        'account_type' => 'asset',
+                        'debit' => 500,
+                        'credit' => 0,
+                        'description' => 'Invoice payment',
+                    ],
+                    [
+                        'transaction_date' => '2026-01-11',
+                        'journal_number' => 'JE-2026-000002',
+                        'source_type' => 'expense',
+                        'account_code' => '1000',
+                        'account_name' => 'Cash',
+                        'account_type' => 'asset',
+                        'debit' => 0,
+                        'credit' => 120,
+                        'description' => 'Office supplies',
+                    ],
+                ];
+            }
+            return [];
+        };
+        $wpdb->test_insert_callback = fn() => true;
+        $GLOBALS['orabooks_test_use_insert_id'] = 305;
+
+        $result = OraBooks_Financial_Reports::generate_report(10, 'general_ledger', '2026-01-01', '2026-01-31');
+
+        $this->assertEquals('general_ledger', $result['report_type']);
+        $this->assertEquals(2, $result['report']['entry_count']);
+        $this->assertEquals(500.0, $result['report']['rows'][0]['running_balance']);
+        $this->assertEquals(380.0, $result['report']['rows'][1]['running_balance']);
+        $this->assertEquals(500.0, $result['report']['total_debits']);
+        $this->assertEquals(120.0, $result['report']['total_credits']);
+    }
+
+    #[Test]
     public function test_generate_balance_sheet_adds_current_period_net_income_to_equity()
     {
         global $wpdb;
@@ -689,5 +737,46 @@ class OraBooks_Financial_Reports_Test extends TestCase
         $this->assertArrayHasKey('columns', $data);
         $this->assertArrayHasKey('rows', $data);
         $this->assertNotEmpty($data['rows']);
+    }
+
+    #[Test]
+    public function test_export_report_data_resolves_general_ledger_export_type()
+    {
+        global $wpdb;
+
+        $wpdb->test_get_row_callback = fn() => null;
+        $wpdb->test_get_results_callback = function ($query) {
+            if (stripos($query, 'FROM wp_test_orabooks_ledger_entries') !== false) {
+                return [
+                    [
+                        'transaction_date' => '2026-01-10',
+                        'journal_number' => 'JE-2026-000001',
+                        'source_type' => 'invoice',
+                        'account_code' => '1000',
+                        'account_name' => 'Cash',
+                        'account_type' => 'asset',
+                        'debit' => 500,
+                        'credit' => 0,
+                        'description' => 'Invoice payment',
+                    ],
+                ];
+            }
+            return [];
+        };
+        $wpdb->test_insert_callback = fn() => true;
+        $GLOBALS['orabooks_test_use_insert_id'] = 9002;
+
+        $data = OraBooks_Financial_Reports::export_report_data([
+            'org_id' => 10,
+            'export_type' => 'financial_general_ledger',
+            'period_start' => '2026-01-01',
+            'period_end' => '2026-01-31',
+        ]);
+
+        $this->assertIsArray($data);
+        $this->assertArrayHasKey('columns', $data);
+        $this->assertArrayHasKey('rows', $data);
+        $this->assertNotEmpty($data['rows']);
+        $this->assertSame('transaction_date', $data['columns'][0]);
     }
 }
