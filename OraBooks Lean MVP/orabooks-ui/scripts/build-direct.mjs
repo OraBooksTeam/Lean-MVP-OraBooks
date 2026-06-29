@@ -5,7 +5,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const root = path.resolve(fileURLToPath(new URL('.', import.meta.url)), '..');
 const node = process.execPath;
-const vite = path.join(root, 'node_modules', 'vite', 'bin', 'vite.js');
+const vite = 'node_modules/vite/bin/vite.js';
 const outDir = path.resolve(root, '../assets/react');
 const drive = 'Z:';
 
