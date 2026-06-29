@@ -65,18 +65,28 @@ function syncMisplacedBuildOutput() {
 }
 
 function ensurePluginAssets() {
-  if (syncMisplacedBuildOutput()) {
-    return true;
-  }
-
   const pluginBundle = path.join(outDir, 'frontend.js');
   const wrongDir = path.join(root, 'assets/react');
   const wrongBundle = path.join(wrongDir, 'frontend.js');
+
+  if (syncMisplacedBuildOutput()) {
+    return true;
+  }
 
   if (!fs.existsSync(pluginBundle) && fs.existsSync(wrongBundle)) {
     console.log('\n>> restore plugin assets from orabooks-ui/assets/react');
     copyRecursive(wrongDir, outDir);
     return true;
+  }
+
+  if (fs.existsSync(wrongBundle) && fs.existsSync(pluginBundle)) {
+    const wrongTime = fs.statSync(wrongBundle).mtimeMs;
+    const pluginTime = fs.statSync(pluginBundle).mtimeMs;
+    if (wrongTime > pluginTime) {
+      console.log('\n>> deploy newer UI build to plugin assets/react');
+      copyRecursive(wrongDir, outDir);
+      return true;
+    }
   }
 
   return fs.existsSync(pluginBundle);
