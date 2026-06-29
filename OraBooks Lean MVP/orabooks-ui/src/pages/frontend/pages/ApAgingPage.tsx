@@ -119,9 +119,12 @@ export default function ApAgingPage() {
               <RefreshCw className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
               Refresh
             </Button>
-            <Button variant="secondary" asChild>
-              <WpLink href="/vendors">Vendors & Bills</WpLink>
-            </Button>
+            <WpLink
+              href="/vendors"
+              className="inline-flex items-center justify-center rounded-lg border border-primary/30 bg-white px-4 py-2 text-sm font-semibold text-primary hover:border-primary hover:bg-primary/5"
+            >
+              Vendors & Bills
+            </WpLink>
           </div>
         </div>
 

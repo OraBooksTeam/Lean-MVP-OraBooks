@@ -1340,7 +1340,11 @@ function BillDetailPanel({
       {bill.description && <p className="text-sm text-slate-600">{bill.description}</p>}
 
       {lineItems.length > 0 && (
-        <DetailTable title="Line items" empty="No line items.">
+        <DetailTable
+          title="Line items"
+          empty="No line items."
+          headers={['Code', 'Description', 'Qty', 'Unit price', 'Total']}
+        >
           {lineItems.map((line) => (
             <tr key={line.id || `${line.line_number}-${line.description}`}>
               <td className="px-3 py-2 text-slate-500">{line.sku_code || '—'}</td>
@@ -1370,10 +1374,12 @@ function DetailTable({
   title,
   empty,
   children,
+  headers,
 }: {
   title: string;
   empty: string;
   children: ReactNode;
+  headers?: string[];
 }) {
   const rows = Array.isArray(children) ? children : [children];
   const hasRows = rows.some((row) => row);
@@ -1383,9 +1389,18 @@ function DetailTable({
       <h4 className="mb-2 text-sm font-bold text-ink">{title}</h4>
       <div className="overflow-hidden rounded-xl border border-border">
         <table className="min-w-full text-left text-sm">
+          {headers && headers.length > 0 && (
+            <thead className="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500">
+              <tr>
+                {headers.map((header) => (
+                  <th key={header} className="px-3 py-2">{header}</th>
+                ))}
+              </tr>
+            </thead>
+          )}
           <tbody className="divide-y divide-border">
             {!hasRows ? (
-              <tr><td className="px-3 py-4 text-center text-slate-500">{empty}</td></tr>
+              <tr><td colSpan={headers?.length || 1} className="px-3 py-4 text-center text-slate-500">{empty}</td></tr>
             ) : children}
           </tbody>
         </table>
