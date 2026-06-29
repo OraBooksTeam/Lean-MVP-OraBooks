@@ -191,8 +191,104 @@ export default function VendorsPage() {
     if (!billsRes.error) setBills((billsRes as any).data?.bills || []);
     if (!agingRes.error) setAging((agingRes as any).data || {});
     if (!taxRes.error) setTaxConfigs((taxRes as any).data?.configs || []);
+    if (!(apConfigRes as any).error) {
+      const cfg = (apConfigRes as any).data?.config || {};
+      setApConfig(cfg);
+      setApConfigForm({
+        auto_post_bill_on_approve: Number(cfg.auto_post_bill_on_approve ?? 1) === 1,
+        auto_apply_vendor_credit: Number(cfg.auto_apply_vendor_credit ?? 1) === 1,
+        adjustment_threshold: String(cfg.adjustment_threshold ?? 1000),
+        vendor_adjustment_account: cfg.vendor_adjustment_account || '5000',
+        ap_account_code: cfg.ap_account_code || '2000',
+        expense_account_code: cfg.expense_account_code || '5000',
+        cash_account_code: cfg.cash_account_code || '1000',
+      });
+    }
 
     setLoading(false);
+  };
+
+  const loadVendorDetail = async (vendorId: number) => {
+    if (!orgId) return;
+    setSelectedVendorId(vendorId);
+    setDetailLoading(true);
+    const res = await api.vendorGet(orgId, vendorId);
+    if (res.error) setError(res.error);
+    else setVendorDetail((res as any).data);
+    setDetailLoading(false);
+  };
+
+  const loadBillDetail = async (billId: number) => {
+    if (!orgId) return;
+    setSelectedBillId(billId);
+    setBillDetailLoading(true);
+    const res = await api.billGet(orgId, billId);
+    if (res.error) setError(res.error);
+    else setBillDetail((res as any).data);
+    setBillDetailLoading(false);
+  };
+
+  const saveApConfig = async () => {
+    if (!orgId) return;
+    setSaving(true);
+    setError('');
+    const res = await api.apConfigSet(orgId, {
+      auto_post_bill_on_approve: apConfigForm.auto_post_bill_on_approve ? 1 : 0,
+      auto_apply_vendor_credit: apConfigForm.auto_apply_vendor_credit ? 1 : 0,
+      adjustment_threshold: parseFloat(apConfigForm.adjustment_threshold) || 1000,
+      vendor_adjustment_account: apConfigForm.vendor_adjustment_account.trim(),
+      ap_account_code: apConfigForm.ap_account_code.trim(),
+      expense_account_code: apConfigForm.expense_account_code.trim(),
+      cash_account_code: apConfigForm.cash_account_code.trim(),
+    });
+    if (res.error) setError(res.error);
+    else {
+      setSuccess('AP settings saved.');
+      setShowApSettings(false);
+      await load();
+    }
+    setSaving(false);
+  };
+
+  const runCreditNoteAction = async (
+    action: 'submit' | 'approve' | 'post' | 'void',
+    creditNoteId: number
+  ) => {
+    if (!orgId) return;
+    setSaving(true);
+    setError('');
+    const res = action === 'submit'
+      ? await api.vendorCreditNoteSubmit(orgId, creditNoteId)
+      : action === 'approve'
+        ? await api.vendorCreditNoteApprove(orgId, creditNoteId)
+        : action === 'post'
+          ? await api.vendorCreditNotePost(orgId, creditNoteId)
+          : await api.vendorCreditNoteVoid(orgId, creditNoteId);
+    if (res.error) setError(res.error);
+    else {
+      setSuccess(`Credit note ${action === 'void' ? 'voided' : action + 'ed'}.`);
+      if (selectedVendorId) await loadVendorDetail(selectedVendorId);
+      if (selectedBillId) await loadBillDetail(selectedBillId);
+      await load();
+    }
+    setSaving(false);
+  };
+
+  const reversePayment = async (paymentId: number, reason: string) => {
+    if (!orgId || !reason.trim()) {
+      setError('Reversal reason is required.');
+      return;
+    }
+    setSaving(true);
+    setError('');
+    const res = await api.vendorPaymentReverse(orgId, paymentId, reason.trim());
+    if (res.error) setError(res.error);
+    else {
+      setSuccess('Payment reversed.');
+      if (selectedVendorId) await loadVendorDetail(selectedVendorId);
+      await load();
+    }
+    setSaving(false);
   };
 
   useEffect(() => { void load(); }, []);
@@ -380,15 +476,24 @@ export default function VendorsPage() {
     setError('');
     const res = await api.vendorCreditNoteCreate(orgId, {
       vendor_id: creditNoteVendor.id,
+      bill_id: creditNoteBill?.id,
       amount: parseFloat(creditNoteForm.amount) || 0,
       reason: creditNoteForm.reason.trim(),
       credit_date: creditNoteForm.credit_date,
+      is_adjustment: creditNoteForm.is_adjustment ? 1 : 0,
     });
     if (res.error) setError(res.error);
     else {
       setSuccess('Vendor credit note created.');
       setCreditNoteVendor(null);
-      setCreditNoteForm({ amount: '', reason: '', credit_date: new Date().toISOString().slice(0, 10) });
+      setCreditNoteBill(null);
+      setCreditNoteForm({
+        amount: '',
+        reason: '',
+        credit_date: new Date().toISOString().slice(0, 10),
+        is_adjustment: false,
+      });
+      if (selectedVendorId) await loadVendorDetail(selectedVendorId);
       await load();
     }
     setSaving(false);
