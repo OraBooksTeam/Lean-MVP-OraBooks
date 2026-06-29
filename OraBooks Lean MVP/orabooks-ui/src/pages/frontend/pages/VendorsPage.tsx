@@ -1475,6 +1475,80 @@ function DetailTable({
   );
 }
 
+function ProductAutocomplete({
+  value,
+  products,
+  onChange,
+  onSelectProduct,
+}: {
+  value: string;
+  products: ProductOption[];
+  onChange: (value: string) => void;
+  onSelectProduct: (product: ProductOption) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const query = value.trim().toLowerCase();
+  const matches = useMemo(() => {
+    if (!query) {
+      return products.slice(0, 8);
+    }
+    return products.filter((product) => {
+      const sku = String(product.sku || '').toLowerCase();
+      const name = String(product.name || '').toLowerCase();
+      const stockSku = String(product.stock_keeping_unit || '').toLowerCase();
+      return sku.includes(query) || name.includes(query) || stockSku.includes(query);
+    }).slice(0, 8);
+  }, [products, query]);
+
+  return (
+    <div className="relative">
+      <Input
+        value={value}
+        onChange={(e) => {
+          onChange(e.target.value);
+          setOpen(true);
+        }}
+        onFocus={() => setOpen(true)}
+        onBlur={() => {
+          window.setTimeout(() => setOpen(false), 150);
+        }}
+        placeholder="Search product…"
+        autoComplete="off"
+      />
+      {open && matches.length > 0 && (
+        <div className="absolute z-20 mt-1 max-h-56 w-full overflow-auto rounded-lg border border-border bg-white shadow-lg">
+          {matches.map((product) => {
+            const price = Number(product.sales_price || product.price || product.mrp || 0);
+            return (
+              <button
+                key={product.id}
+                type="button"
+                className="flex w-full items-start justify-between gap-3 border-b border-border px-3 py-2 text-left text-sm last:border-b-0 hover:bg-slate-50"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => {
+                  onSelectProduct(product);
+                  setOpen(false);
+                }}
+              >
+                <span>
+                  <span className="block font-medium text-ink">{product.name}</span>
+                  <span className="block text-xs text-slate-500">
+                    {product.sku}
+                    {product.tax_name ? ` · ${product.tax_name}` : ''}
+                  </span>
+                </span>
+                <span className="shrink-0 text-xs font-medium text-slate-700">
+                  {price > 0 ? money(price) : '—'}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function money(value?: string | number, currency = 'USD') {
   return new Intl.NumberFormat(undefined, { style: 'currency', currency }).format(Number(value || 0));
 }
