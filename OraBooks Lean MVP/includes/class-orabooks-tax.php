@@ -80,6 +80,14 @@ class OraBooks_Tax {
                 }
             }
         }
+
+        $table_snapshots = OraBooks_Database::table('tax_snapshots');
+        if ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table_snapshots)) === $table_snapshots) {
+            $column = $wpdb->get_row("SHOW COLUMNS FROM {$table_snapshots} LIKE 'transaction_type'");
+            if ($column && strpos((string) $column->Type, 'vendor_bill') === false) {
+                $wpdb->query("ALTER TABLE {$table_snapshots} MODIFY transaction_type ENUM('invoice','expense','journal','vendor_bill') NOT NULL");
+            }
+        }
     }
 
     public static function get_create_table_sql() {
@@ -473,7 +481,7 @@ class OraBooks_Tax {
             return new WP_Error('invalid_transaction', 'Organization and transaction are required');
         }
 
-        if (!in_array($transaction_type, ['invoice', 'expense', 'journal'], true)) {
+        if (!in_array($transaction_type, ['invoice', 'expense', 'journal', 'vendor_bill'], true)) {
             return new WP_Error('invalid_transaction_type', 'Invalid transaction type');
         }
 
