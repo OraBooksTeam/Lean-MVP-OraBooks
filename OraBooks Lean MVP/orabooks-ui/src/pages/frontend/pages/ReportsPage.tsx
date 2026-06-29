@@ -181,7 +181,7 @@ export default function ReportsPage() {
         <div className="grid gap-5 xl:grid-cols-2">
           <section className="glass-panel p-5">
             <h2 className="font-bold text-ink">Financial Reports (SL-074)</h2>
-            <p className="mt-1 text-sm text-slate-600">P&amp;L, balance sheet, cash flow, trial balance, and equity changes.</p>
+            <p className="mt-1 text-sm text-slate-600">P&amp;L, balance sheet, cash flow, trial balance, general ledger, and equity changes.</p>
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
               <Field label="Report">
                 <select className={fieldClass} value={financialType} onChange={(e) => setFinancialType(e.target.value)}>
@@ -455,6 +455,50 @@ function ReportOutput({ title, payload, kind }: { title: string; payload: any; k
           <SummaryLine label="Total liabilities" value={money(report.total_liabilities)} />
           <SummaryLine label="Total equity" value={money(report.total_equity)} bold />
         </div>
+      </div>
+    );
+  }
+
+  if (kind === 'financial' && payload?.report_type === 'general_ledger') {
+    const report = payload.report || {};
+    return (
+      <div className="mt-5 rounded-xl border border-border bg-slate-50/70 p-4">
+        <p className="text-sm font-bold text-ink">{title}</p>
+        <div className="mt-3 grid gap-2 sm:grid-cols-3">
+          <SummaryLine label="Entries" value={report.entry_count ?? 0} />
+          <SummaryLine label="Total debits" value={money(report.total_debits)} />
+          <SummaryLine label="Total credits" value={money(report.total_credits)} bold />
+        </div>
+        {(report.rows || []).length > 0 && (
+          <div className="mt-4 overflow-auto">
+            <table className="min-w-full text-left text-sm">
+              <thead>
+                <tr className="border-b border-border text-xs uppercase text-slate-500">
+                  <th className="py-2 pr-3">Date</th>
+                  <th className="py-2 pr-3">Journal</th>
+                  <th className="py-2 pr-3">Account</th>
+                  <th className="py-2 pr-3">Description</th>
+                  <th className="py-2 pr-3">Debit</th>
+                  <th className="py-2 pr-3">Credit</th>
+                  <th className="py-2">Running</th>
+                </tr>
+              </thead>
+              <tbody>
+                {report.rows.slice(0, 50).map((row: any, idx: number) => (
+                  <tr key={idx} className="border-b border-border/60">
+                    <td className="py-2 pr-3">{row.transaction_date || '—'}</td>
+                    <td className="py-2 pr-3">{row.journal_number || '—'}</td>
+                    <td className="py-2 pr-3">{row.account_code} {row.account_name ? `- ${row.account_name}` : ''}</td>
+                    <td className="py-2 pr-3">{row.description || '—'}</td>
+                    <td className="py-2 pr-3">{formatCell(row.debit)}</td>
+                    <td className="py-2 pr-3">{formatCell(row.credit)}</td>
+                    <td className="py-2">{formatCell(row.running_balance)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     );
   }
