@@ -1372,7 +1372,7 @@ class OraBooks_Ajax {
             'block_same_email_domain' => (bool) get_option('orabooks_block_same_email_domain', 0),
             'partner_commission_for_staff_viewer' => (bool) get_option('orabooks_partner_commission_for_staff_viewer', 0),
             'audit_retention_days' => (int) get_option('orabooks_audit_retention_days', 365),
-            'jwt_expiry' => (int) get_option('orabooks_jwt_expiry', 900),
+            'jwt_expiry' => (int) get_option('orabooks_jwt_expiry', 3600),
             'refresh_token_expiry' => (int) get_option('orabooks_refresh_token_expiry', 604800),
             'openai_api_key' => $this->ai_setting_value('openai_api_key', ''),
             'openai_chat_model' => $this->ai_setting_value('openai_chat_model', 'gpt-4o-mini'),
@@ -1402,7 +1402,7 @@ class OraBooks_Ajax {
         $block_same_email_domain = !empty($_POST['block_same_email_domain']) ? 1 : 0;
         $partner_commission_for_staff_viewer = !empty($_POST['partner_commission_for_staff_viewer']) ? 1 : 0;
         $audit_retention_days = max(30, min(3650, intval($_POST['audit_retention_days'] ?? 365)));
-        $jwt_expiry = max(60, min(86400, intval($_POST['jwt_expiry'] ?? 900)));
+        $jwt_expiry = max(60, min(86400, intval($_POST['jwt_expiry'] ?? 3600)));
         $refresh_token_expiry = max(3600, min(2592000, intval($_POST['refresh_token_expiry'] ?? 604800)));
         $openai_api_key = sanitize_text_field((string) ($_POST['openai_api_key'] ?? ''));
         $openai_chat_model = sanitize_text_field((string) ($_POST['openai_chat_model'] ?? 'gpt-4o-mini'));
