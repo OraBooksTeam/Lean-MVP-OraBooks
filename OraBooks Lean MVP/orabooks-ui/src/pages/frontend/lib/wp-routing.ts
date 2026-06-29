@@ -25,7 +25,7 @@ export function normalizeAppRoute(route: string): string {
   if (APP_ROUTE_ALIASES[path]) {
     return APP_ROUTE_ALIASES[path];
   }
-  return WP_PATH_ALIASES[path] ?? path;
+  return path;
 }
 
 /** Build a clean WordPress URL (trailing slash, optional query string). */
