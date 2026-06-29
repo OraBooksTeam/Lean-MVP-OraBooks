@@ -1156,7 +1156,7 @@ export default function VendorsPage() {
                         </div>
                       </div>
                       <div className="col-span-2">
-                        <Input type="number" min="0" step="0.01" value={line.quantity} onChange={(e) => setBillLineItems((items) => items.map((row, i) => i === index ? { ...row, quantity: e.target.value } : row))} placeholder="Qty" />
+                        <Input type="number" min="0" step="1" value={line.quantity} onChange={(e) => setBillLineItems((items) => items.map((row, i) => i === index ? { ...row, quantity: e.target.value } : row))} placeholder="Qty" />
                       </div>
                       <div className="col-span-2">
                         <Input type="number" min="0" step="0.01" value={line.unit_price} onChange={(e) => setBillLineItems((items) => items.map((row, i) => i === index ? { ...row, unit_price: e.target.value } : row))} placeholder="Unit price" />
