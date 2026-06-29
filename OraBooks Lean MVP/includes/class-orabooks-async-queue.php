@@ -989,7 +989,7 @@ class OraBooks_AsyncQueue {
             orabooks_json_error('Permission denied', 403);
         }
         $report_type = sanitize_key($_POST['report_type'] ?? '');
-        $allowed = ['journal', 'trial_balance', 'ledger', 'income_statement', 'balance_sheet'];
+        $allowed = ['journal', 'trial_balance', 'ledger', 'general_ledger', 'income_statement', 'balance_sheet'];
         if (!in_array($report_type, $allowed, true)) {
             orabooks_json_error('Unsupported report type', 400);
         }
@@ -1165,7 +1165,7 @@ class OraBooks_AsyncQueue {
 
     public static function handle_export_report_async($job, $payload) {
         $report_type = sanitize_key($payload['report_type'] ?? $payload['export_type'] ?? '');
-        $allowed = ['journal', 'trial_balance', 'ledger', 'income_statement', 'balance_sheet'];
+        $allowed = ['journal', 'trial_balance', 'ledger', 'general_ledger', 'income_statement', 'balance_sheet'];
         if (!in_array($report_type, $allowed, true)) {
             return 'Unsupported report_type';
         }
@@ -1234,6 +1234,24 @@ class OraBooks_AsyncQueue {
                 'date_to' => $date_to,
                 'account_id' => intval($payload['account_id'] ?? 0),
             ]);
+        }
+
+        if ($report_type === 'general_ledger' && class_exists('OraBooks_Financial_Reports')) {
+            $result = OraBooks_Financial_Reports::generate_report(
+                $org_id,
+                'general_ledger',
+                $date_from ?: date('Y-01-01'),
+                $date_to ?: current_time('Y-m-d'),
+                [
+                    'generated_by' => get_current_user_id(),
+                    'account_id' => intval($payload['account_id'] ?? 0),
+                ]
+            );
+            if (is_wp_error($result)) {
+                return [];
+            }
+            $flat = OraBooks_Financial_Reports::flatten_for_export($result);
+            return $flat['rows'] ?? [];
         }
 
         $financial_map = [
