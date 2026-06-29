@@ -68,7 +68,9 @@ function writeManifest() {
 }
 
 function mapDrive() {
-  spawnSync('subst', [`${drive} /D`], { shell: false, stdio: 'ignore' });
+  for (const letter of ['Y:', 'Z:']) {
+    spawnSync('subst', [`${letter} /D`], { shell: false, stdio: 'ignore' });
+  }
   const mapped = spawnSync('subst', [drive, root], { shell: false, stdio: 'pipe', encoding: 'utf8' });
   if (mapped.status !== 0) {
     console.error('Failed to map drive Y:');
@@ -78,7 +80,9 @@ function mapDrive() {
 }
 
 function unmapDrive() {
-  spawnSync('subst', [`${drive} /D`], { shell: false, stdio: 'ignore' });
+  for (const letter of ['Y:', 'Z:']) {
+    spawnSync('subst', [`${letter} /D`], { shell: false, stdio: 'ignore' });
+  }
 }
 
 console.log('Build root:', root);
