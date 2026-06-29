@@ -81,7 +81,7 @@ const customerNav: NavItem[] = [
   { label: 'Bank Reconciliation', href: '/bank-reconciliation', icon: Wallet, permission: 'view_reports' },
   { label: 'Voice Input', href: '/voice', icon: Mic, permission: 'view_voice_inputs' },
   { label: 'Attachments', href: '/attachments', icon: Paperclip, permission: 'view_reports' },
-  { label: 'AI Review', href: '/ai-review', icon: Bot, permission: 'view_ai_review_queue' },
+  { label: 'AI Review Queue', href: '/ai-review', icon: Bot, permission: 'view_ai_review_queue' },
   { label: 'Approvals', href: '/approvals', icon: ShieldCheck, permission: 'approve_journal' },
   { label: 'Approval Settings', href: '/approval-settings', icon: ShieldCheck, permission: 'manage_org_settings' },
   { label: 'My Exports', href: '/my-exports', icon: Download, permission: 'export_reports' },
