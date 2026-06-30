@@ -436,7 +436,7 @@ class OraBooks_Partner_Onboarding_E2E_Test extends TestCase
 
         $dashboardResponse = $this->callAjax('ajax_partner_dashboard');
 
-        $this->assertFalse($dashboardResponse['error'], 'Step 8: Dashboard API should succeed');
+        $this->assertFalse($dashboardResponse['error'], 'Step 8: Dashboard API should succeed. Got: ' . ($dashboardResponse['message'] ?? json_encode($dashboardResponse)));
         $this->assertArrayHasKey('data', $dashboardResponse);
         $dashData = $dashboardResponse['data'];
 
