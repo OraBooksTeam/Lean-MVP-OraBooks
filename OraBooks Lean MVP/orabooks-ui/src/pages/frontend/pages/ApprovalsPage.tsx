@@ -502,7 +502,6 @@ function JournalDetailPanel({
   onReject,
   onPost,
   onSubmit,
-  mfaThreshold = 10000,
 }: {
   journalId: number;
   detail: any;
@@ -514,7 +513,6 @@ function JournalDetailPanel({
   onReject: (id: number) => void;
   onPost: (id: number) => void;
   onSubmit: (id: number, round?: number) => void;
-  mfaThreshold?: number;
 }) {
   const journal = detail?.journal;
   const lines = detail?.lines || [];
