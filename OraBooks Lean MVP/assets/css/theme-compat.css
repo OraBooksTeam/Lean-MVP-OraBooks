@@ -10,16 +10,6 @@ body.orabooks-page {
     overflow-x: clip;
 }
 
-body.orabooks-page.admin-bar {
-    --orabooks-wp-admin-bar: 32px;
-}
-
-@media screen and (max-width: 782px) {
-    body.orabooks-page.admin-bar {
-        --orabooks-wp-admin-bar: 46px;
-    }
-}
-
 /* Full-width: break out of common theme content columns */
 body.orabooks-page .site-content,
 body.orabooks-page .content-area,
