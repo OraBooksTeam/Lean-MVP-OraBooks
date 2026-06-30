@@ -570,6 +570,7 @@
     margin-bottom: 0;
     border-bottom: 2px solid #e0e0e0;
     overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
 }
 .orabooks-tab {
     padding: 10px 18px;
@@ -1653,4 +1654,112 @@ body.orabooks-page .orabooks-form-container {
     max-width: none;
     width: 100%;
     margin: 0;
+}
+
+/* =============================================
+   RESPONSIVE MOBILE FIXES
+   ============================================= */
+
+/* Ensure mobile header hamburger button is visible on small screens */
+@media screen and (max-width: 1023px) {
+    body.orabooks-page #orabooks-app-root .orabooks-client-main > div.sticky {
+        display: flex !important;
+    }
+}
+
+/* Mobile drawer: ensure proper z-index and visibility */
+.orabooks-mobile-drawer-backdrop {
+    z-index: 110 !important;
+}
+
+.orabooks-mobile-drawer {
+    z-index: 111 !important;
+}
+
+/* Responsive table containers */
+@media screen and (max-width: 768px) {
+    .orabooks-table-scroll {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        margin: 0 -4px;
+        padding: 0 4px;
+    }
+    
+    .orabooks-table-scroll table {
+        min-width: 600px;
+    }
+}
+
+/* Fix stat cards on very small screens */
+@media screen and (max-width: 480px) {
+    .orabooks-commission-stats .orabooks-stat-card,
+    .orabooks-partner-stats .orabooks-stat-card {
+        padding: 12px;
+    }
+    
+    .orabooks-stat-amount {
+        font-size: 20px;
+    }
+}
+
+/* Ensure buttons don't overflow on mobile */
+@media screen and (max-width: 480px) {
+    .orabooks-btn {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 100%;
+    }
+}
+
+/* Fix flex-wrap for action bars on mobile */
+@media screen and (max-width: 640px) {
+    .orabooks-invoice-actions,
+    .orabooks-export-actions,
+    .orabooks-nc-actions {
+        flex-direction: column;
+        width: 100%;
+    }
+    
+    .orabooks-invoice-actions .orabooks-btn,
+    .orabooks-export-actions .orabooks-btn,
+    .orabooks-nc-actions .orabooks-btn {
+        width: 100%;
+    }
+}
+
+/* Ensure modal content doesn't overflow on small screens */
+@media screen and (max-width: 480px) {
+    .orabooks-modal-content {
+        max-width: calc(100vw - 16px);
+        margin: 5% 8px;
+        padding: 16px;
+    }
+}
+
+/* Fix tabs overflow on mobile */
+@media screen and (max-width: 640px) {
+    .orabooks-tabs {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        flex-wrap: nowrap;
+    }
+    
+    .orabooks-tab {
+        flex-shrink: 0;
+    }
+}
+
+/* Ensure page shell inner doesn't overflow */
+@media screen and (max-width: 480px) {
+    .orabooks-page-shell-inner {
+        padding: 0;
+    }
+}
+
+/* Fix auth shell padding on very small screens */
+@media screen and (max-width: 360px) {
+    .orabooks-auth-shell {
+        padding: 16px 8px;
+    }
 }
