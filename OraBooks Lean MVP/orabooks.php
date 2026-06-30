@@ -945,15 +945,6 @@ function orabooks_frontend_enqueue() {
 add_action('wp_footer', ['OraBooks_Assets', 'print_late_frontend_styles'], 1);
 add_action('wp_footer', ['OraBooks_Assets', 'maybe_enqueue_missed_frontend_assets'], 5);
 
-// Hide WordPress admin bar on OraBooks frontend pages
-add_action('wp', 'orabooks_maybe_hide_admin_bar');
-function orabooks_maybe_hide_admin_bar() {
-    if (orabooks_is_registered_frontend_page()) {
-        add_filter('show_admin_bar', '__return_false');
-    }
-}
-
-// Add body classes on OraBooks frontend pages for full-width layout
 // Hide admin bar on OraBooks frontend pages (already hidden via CSS, but also block PHP output)
 add_filter('show_admin_bar', 'orabooks_hide_admin_bar_frontend');
 function orabooks_hide_admin_bar_frontend($show) {
