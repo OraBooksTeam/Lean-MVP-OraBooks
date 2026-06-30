@@ -116,7 +116,7 @@ async function parseResponse<T = any>(
     }
     if (hasParsedJson) {
       const normalized = normalizeResponse<T>(parsed);
-      if ('error' in normalized && normalized.error) {
+      if (typeof normalized === 'object' && normalized !== null && 'error' in normalized && normalized.error) {
         return normalized;
       }
       return { error: extractError(parsed, `OraBooks request failed with HTTP ${res.status}.`) };
