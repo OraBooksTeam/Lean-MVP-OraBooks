@@ -5,15 +5,21 @@
 #   - Push tag v*              → build & deploy to production
 #   - Manual (workflow_dispatch)
 #
-# Required secrets:
+# Required secrets (SFTP):
 #   DEPLOY_HOST       – SFTP hostname (e.g. sftp.example.com)
 #   DEPLOY_PORT       – SFTP port (default 22)
 #   DEPLOY_USER       – SFTP username
 #   DEPLOY_KEY        – SSH private key (base64 encoded PEM)
-#   DEPLOY_TARGET_DIR – Remote path to wp-content/plugins/OraBooks\ Lean\ MVP/
+#   DEPLOY_TARGET_DIR – Remote path to wp-content/plugins/OraBooks Lean MVP/
 #
-# For WP Engine: set DEPLOY_HOST to the git service host, or use the
-#   wpengine-deploy action instead of rsync/sftp.
+# Optional secrets (cache invalidation — set one per host):
+#   Kinsta:
+#     KINSTA_API_TOKEN      – API key from MyKinsta > Company settings > API Keys
+#     KINSTA_ENVIRONMENT_ID – Environment UUID (from MyKinsta site URL)
+#   WP Engine:
+#     WPE_API_USERNAME      – API username from User Portal > API Credentials
+#     WPE_API_PASSWORD      – API password
+#     WPE_INSTALL_ID        – Install UUID (from WP Engine portal URL)
 
 name: Deploy
 
@@ -84,8 +90,7 @@ jobs:
           echo "$KEY" | base64 -d > /tmp/deploy_key
           chmod 600 /tmp/deploy_key
 
-          # Rsync-like sync over SSH using tar + ssh (works on any host with SSH)
-          # Syncs the assets/react/ directory to the remote plugin directory
+          # Rsync-like sync over SSH using tar + ssh
           echo "--- Deploying to $HOST:$TARGET ---"
           cd ../assets/react
 
@@ -112,6 +117,59 @@ jobs:
 
           rm /tmp/deploy_key /tmp/deploy-bundle.tar.gz
           echo "--- Deploy finished ---"
+
+      # ---------------------------------------------------------------------------
+      # Cache Invalidation (optional — only runs if the relevant secrets are set)
+      # ---------------------------------------------------------------------------
+
+      - name: Purge Kinsta cache
+        if: ${{ !inputs.dry_run && secrets.KINSTA_API_TOKEN != '' && secrets.KINSTA_ENVIRONMENT_ID != '' }}
+        env:
+          KINSTA_TOKEN: ${{ secrets.KINSTA_API_TOKEN }}
+          KINSTA_ENV_ID: ${{ secrets.KINSTA_ENVIRONMENT_ID }}
+        run: |
+          echo "--- Purging Kinsta cache for environment $KINSTA_ENV_ID ---"
+          RESPONSE=$(curl -s -w "\n%{http_code}" -X POST \
+            "https://api.kinsta.com/v2/sites/environments/${KINSTA_ENV_ID}/clear-cache" \
+            -H "Authorization: Bearer $KINSTA_TOKEN" \
+            -H "Content-Type: application/json")
+
+          HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+          BODY=$(echo "$RESPONSE" | sed '$d')
+
+          if [ "$HTTP_CODE" = "202" ]; then
+            OPERATION_ID=$(echo "$BODY" | python3 -c "import sys,json; print(json.load(sys.stdin).get('operation_id',''))" 2>/dev/null)
+            echo "Kinsta cache purge started. Operation ID: $OPERATION_ID"
+          else
+            echo "Warning: Kinsta cache purge returned HTTP $HTTP_CODE"
+            echo "$BODY"
+          fi
+          echo "--- Kinsta cache purge finished ---"
+
+      - name: Purge WP Engine cache
+        if: ${{ !inputs.dry_run && secrets.WPE_API_USERNAME != '' && secrets.WPE_API_PASSWORD != '' && secrets.WPE_INSTALL_ID != '' }}
+        env:
+          WPE_USER: ${{ secrets.WPE_API_USERNAME }}
+          WPE_PASS: ${{ secrets.WPE_API_PASSWORD }}
+          WPE_INSTALL: ${{ secrets.WPE_INSTALL_ID }}
+        run: |
+          echo "--- Purging WP Engine cache for install $WPE_INSTALL ---"
+          AUTH=$(echo -n "$WPE_USER:$WPE_PASS" | base64 -w0)
+          RESPONSE=$(curl -s -w "\n%{http_code}" -X POST \
+            "https://api.wpengineapi.com/v1/installs/${WPE_INSTALL}/caches/all" \
+            -H "Authorization: Basic $AUTH" \
+            -H "Content-Type: application/json")
+
+          HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+          BODY=$(echo "$RESPONSE" | sed '$d')
+
+          if [ "$HTTP_CODE" = "204" ]; then
+            echo "WP Engine cache purged successfully."
+          else
+            echo "Warning: WP Engine cache purge returned HTTP $HTTP_CODE"
+            echo "$BODY"
+          fi
+          echo "--- WP Engine cache purge finished ---"
 
       - name: Notify on failure
         if: failure()
