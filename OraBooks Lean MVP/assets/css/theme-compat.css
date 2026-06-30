@@ -395,10 +395,58 @@ body.orabooks-page #orabooks-app-root .orabooks-table-scroll {
     body.orabooks-page #orabooks-app-root .rounded-3xl {
         border-radius: 1rem !important;
     }
+
+    /* Ensure mobile sticky header with hamburger is always visible */
+    body.orabooks-page #orabooks-app-root .orabooks-client-main > .sticky {
+        display: flex !important;
+    }
+    
+    /* Ensure hamburger menu button is visible and properly sized */
+    body.orabooks-page #orabooks-app-root .orabooks-client-main button[aria-label="Open navigation menu"] {
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        min-width: 36px !important;
+        min-height: 36px !important;
+    }
+}
+
+@media screen and (max-width: 640px) {
+    /* Fix grid layouts on small screens - ensure single column */
+    body.orabooks-page #orabooks-app-root .grid-cols-2,
+    body.orabooks-page #orabooks-app-root .sm\:grid-cols-2 {
+        grid-template-columns: 1fr !important;
+    }
+    
+    /* Ensure proper spacing in main content */
+    body.orabooks-page #orabooks-app-root .orabooks-client-main > .w-full > .px-4 {
+        padding-left: 0.75rem !important;
+        padding-right: 0.75rem !important;
+    }
+    
+    /* Fix overflow issues on small screens */
+    body.orabooks-page #orabooks-app-root .overflow-x-auto {
+        max-width: 100vw !important;
+    }
 }
 
 @media screen and (max-width: 480px) {
     body.orabooks-page.orabooks-auth-page #orabooks-app-root.orabooks-theme-portal {
         min-height: 100dvh;
+    }
+    
+    /* Ensure minimal padding on very small screens */
+    body.orabooks-page #orabooks-app-root .orabooks-client-main .p-5 {
+        padding: 1rem !important;
+    }
+    
+    /* Fix stat card layout on very small screens */
+    body.orabooks-page #orabooks-app-root .stat-card {
+        padding: 0.875rem !important;
+    }
+    
+    /* Ensure header breadcrumb text doesn't overflow */
+    body.orabooks-page #orabooks-app-root .orabooks-client-main header .text-2xl {
+        font-size: 1.25rem !important;
     }
 }
