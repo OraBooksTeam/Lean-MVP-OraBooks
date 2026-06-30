@@ -338,8 +338,7 @@ export default function ClientShell({
       {mobileNavOpen && (
         <button
           type="button"
-          className="orabooks-mobile-drawer-backdrop fixed inset-x-0 bottom-0 bg-black/40 lg:hidden"
-          style={adminBarTop}
+          className="orabooks-mobile-drawer-backdrop fixed inset-0 bg-black/40 lg:hidden"
           aria-label="Close navigation menu"
           onClick={closeMobileNav}
         />
@@ -347,22 +346,44 @@ export default function ClientShell({
 
       <aside
         className={cn(
-          'orabooks-mobile-drawer fixed left-0 z-[111] flex w-[min(100vw,18rem)] flex-col bg-primary p-5 text-white shadow-xl transition-transform duration-200 lg:hidden',
+          'orabooks-mobile-drawer fixed left-0 top-0 z-[111] flex h-dvh w-[min(100vw,18rem)] flex-col bg-primary p-5 text-white shadow-xl transition-transform duration-200 lg:hidden',
           mobileNavOpen ? 'translate-x-0' : 'pointer-events-none -translate-x-full'
         )}
-        style={{ ...adminBarTop, ...sidebarHeight }}
         aria-hidden={!mobileNavOpen}
       >
-        <div className="flex shrink-0 items-center justify-between gap-3">
-          {brandBlock}
-          <button
-            type="button"
-            className="rounded-lg p-2 text-white/80 hover:bg-white/10 hover:text-white"
-            aria-label="Close navigation menu"
-            onClick={closeMobileNav}
-          >
-            <X className="h-5 w-5" />
-          </button>
+        <div className="flex shrink-0 items-start justify-between gap-2">
+          <div className="flex min-w-0 items-center gap-2.5">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white text-sm font-black text-primary">
+              OB
+            </div>
+            <div className="min-w-0">
+              <p className="truncate text-sm font-bold text-white">OraBooks</p>
+              <p className="truncate text-xs text-white/70">{isPartner ? 'Partner Account' : 'Accounting Workspace'}</p>
+            </div>
+          </div>
+          <div className="flex shrink-0 items-center gap-1">
+            <WpLink
+              to="/notifications"
+              onClick={closeMobileNav}
+              className="relative rounded-lg p-2 text-white/80 hover:bg-white/10 hover:text-white"
+              aria-label="Notifications"
+            >
+              <Bell className="h-5 w-5" />
+              {unreadCount > 0 && (
+                <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-accent px-1 text-[9px] font-bold text-white">
+                  {unreadCount > 99 ? '99+' : unreadCount}
+                </span>
+              )}
+            </WpLink>
+            <button
+              type="button"
+              className="rounded-lg p-2 text-white/80 hover:bg-white/10 hover:text-white"
+              aria-label="Close navigation menu"
+              onClick={closeMobileNav}
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
         </div>
 
         {orgBlock}
@@ -387,41 +408,41 @@ export default function ClientShell({
           style={adminBarTop}
         >
           <div className="flex items-center justify-between px-4 py-3">
-            <div className="flex min-w-0 items-center gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary text-sm font-black text-white">
+            <div className="flex min-w-0 items-center gap-2.5 sm:gap-3">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary text-xs font-black text-white sm:h-10 sm:w-10 sm:text-sm">
                 OB
               </div>
               <div className="min-w-0">
-                <p className="truncate text-sm font-bold text-ink">OraBooks</p>
+                <p className="truncate text-sm font-bold text-ink xs:text-sm">OraBooks</p>
                 <p className="truncate text-xs text-ink-secondary">{title}</p>
               </div>
             </div>
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-0.5 sm:gap-1">
               <WpLink
                 to="/notifications"
                 className={cn(
-                  'relative rounded-lg p-2 transition',
+                  'relative rounded-lg p-1.5 transition sm:p-2',
                   currentRoute === '/notifications'
                     ? 'bg-accent text-white shadow-sm'
                     : 'text-primary hover:bg-primary/10'
                 )}
                 aria-label="Notifications"
               >
-                <Bell className="h-5 w-5" />
+                <Bell className="h-4 w-4 sm:h-5 sm:w-5" />
                 {unreadCount > 0 && (
-                  <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-accent px-1 text-[9px] font-bold text-white">
+                  <span className="absolute -right-0.5 -top-0.5 flex h-3.5 min-w-[0.875rem] items-center justify-center rounded-full bg-accent px-1 text-[8px] font-bold text-white sm:h-4 sm:min-w-[1rem] sm:text-[9px]">
                     {unreadCount > 99 ? '99+' : unreadCount}
                   </span>
                 )}
               </WpLink>
               <button
                 type="button"
-                className="rounded-lg p-2 text-primary hover:bg-primary/10"
+                className="rounded-lg p-1.5 text-primary hover:bg-primary/10 sm:p-2"
                 aria-label="Open navigation menu"
                 aria-expanded={mobileNavOpen}
                 onClick={() => setMobileNavOpen(true)}
               >
-                <Menu className="h-5 w-5" />
+                <Menu className="h-4 w-4 sm:h-5 sm:w-5" />
               </button>
             </div>
           </div>
