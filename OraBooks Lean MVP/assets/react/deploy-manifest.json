@@ -1,10 +1,11 @@
 {
-  "generated_at": "2026-06-30T08:12:33.714Z",
+  "generated_at": "2026-06-30T08:49:05.579Z",
   "deploy_path": "wp-content/plugins/OraBooks Lean MVP/assets/react/",
   "files": [
     "admin.js",
     "assets/style-BKssdqOY.css",
     "assets/style-BhNCZYrW.css",
+    "assets/style-hHysiz4O.css",
     "assets/style-rcHFhY-m.css",
     "frontend.js",
     "nul"
