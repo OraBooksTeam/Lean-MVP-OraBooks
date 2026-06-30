@@ -579,6 +579,26 @@
     }
 }
 
+/* Additional responsive fixes for admin */
+@media screen and (max-width: 600px) {
+    .orabooks-admin .orabooks-filters {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .orabooks-admin .orabooks-filters select,
+    .orabooks-admin .orabooks-filters input,
+    .orabooks-admin .orabooks-filters .button {
+        width: 100%;
+    }
+    .orabooks-admin .orabooks-stats-icon {
+        width: 48px;
+        min-height: 80px;
+    }
+    .orabooks-admin .orabooks-stat-number {
+        font-size: 24px;
+    }
+}
+
 /* Shortcode button styles (for admin-rendered shortcodes) */
 .orabooks-btn {
     display: inline-block;
