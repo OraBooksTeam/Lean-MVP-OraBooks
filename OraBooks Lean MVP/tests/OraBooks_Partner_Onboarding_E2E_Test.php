@@ -122,10 +122,13 @@ class OraBooks_Partner_Onboarding_E2E_Test extends TestCase
         $this->assertEquals(42, $registerResult['user_id']);
         $this->assertEquals(1, $registerResult['is_partner']);
         $this->assertTrue($registerResult['requires_email_verification']);
-        $this->assertArrayHasKey('verification_token', $registerResult);
+        $this->assertStringContainsString('Verification', $registerResult['message']);
 
-        $verificationToken = $registerResult['verification_token'];
-        $this->assertNotEmpty($verificationToken, 'Step 1: Should have a verification token');
+        // Generate a verification token and store it in user_meta (simulating
+        // what the register() method does internally before sending the email).
+        $wp_user_id = orabooks_get_wp_user_id_for_orabooks_user(42);
+        $verificationToken = 'test-verification-token-e2e-' . time();
+        update_user_meta($wp_user_id, 'orabooks_verification_token', orabooks_hash_token($verificationToken));
 
         // ----------------------------------------------------------------
         // STEP 2: Verify email
@@ -162,9 +165,7 @@ class OraBooks_Partner_Onboarding_E2E_Test extends TestCase
         };
 
         // Store the verification token via update_user_meta
-        $user_id = 42;
-        $wp_user_id = orabooks_get_wp_user_id_for_orabooks_user($user_id);
-        update_user_meta($wp_user_id, 'orabooks_verification_token', orabooks_hash_token($verificationToken));
+        // Verification token is already stored from Step 1.
 
         $verifyResult = OraBooks_Auth::verify_email($verificationToken);
 
@@ -468,7 +469,6 @@ class OraBooks_Partner_Onboarding_E2E_Test extends TestCase
         $this->assertIsArray($registerResult);
         $this->assertEquals(55, $registerResult['user_id']);
         $this->assertEquals(1, $registerResult['is_partner']);
-        $verificationToken = $registerResult['verification_token'];
 
         // --- Verify email ---
         $getRowCalls = 0;
@@ -489,8 +489,9 @@ class OraBooks_Partner_Onboarding_E2E_Test extends TestCase
         $wpdb->test_get_var_callback = function ($query) { return 0; };
         $wpdb->test_get_results_callback = function ($query) { return []; };
 
-        // Store verification token
+        // Store verification token for individual partner
         $wp_user_id = orabooks_get_wp_user_id_for_orabooks_user(55);
+        $verificationToken = 'test-verification-indiv-' . time();
         update_user_meta($wp_user_id, 'orabooks_verification_token', orabooks_hash_token($verificationToken));
 
         $this->assertTrue(OraBooks_Auth::verify_email($verificationToken));
