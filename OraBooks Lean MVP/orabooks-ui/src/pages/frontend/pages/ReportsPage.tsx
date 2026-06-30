@@ -185,78 +185,7 @@ export default function ReportsPage() {
         {error && <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-medium text-red-700">{error}</div>}
         {success && <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-medium text-emerald-700">{success}</div>}
 
-        <div className="grid gap-5 xl:grid-cols-2">
-          <section className="glass-panel p-5">
-            <h2 className="font-bold text-ink">Financial Reports (SL-074)</h2>
-            <p className="mt-1 text-sm text-slate-600">P&amp;L, balance sheet, cash flow, trial balance, general ledger, and equity changes.</p>
-            <div className="mt-4 grid gap-3 sm:grid-cols-2">
-              <Field label="Report">
-                <select className={fieldClass} value={financialType} onChange={(e) => setFinancialType(e.target.value)}>
-                  {(data?.financial_types || []).map((item: any) => (
-                    <option key={item.id} value={item.id}>{item.label}</option>
-                  ))}
-                </select>
-              </Field>
-              <Field label="Period start">
-                <input type="date" className={fieldClass} value={periodStart} onChange={(e) => setPeriodStart(e.target.value)} />
-              </Field>
-              <Field label="Period end">
-                <input type="date" className={fieldClass} value={periodEnd} onChange={(e) => setPeriodEnd(e.target.value)} />
-              </Field>
-            </div>
-            <div className="mt-4 flex flex-wrap gap-2">
-              <Button onClick={runFinancial} disabled={generatingFinancial || !orgId}>
-                {generatingFinancial ? 'Generating...' : 'Generate Financial Report'}
-              </Button>
-              {canExport && (
-                <>
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => exportFinancial('csv')}
-                    disabled={!!exportingFinancial || !orgId}
-                  >
-                    <FileText className="h-4 w-4" />
-                    {exportingFinancial === 'csv' ? 'Exporting...' : 'Export CSV'}
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => exportFinancial('pdf')}
-                    disabled={!!exportingFinancial || !orgId}
-                  >
-                    <Download className="h-4 w-4" />
-                    {exportingFinancial === 'pdf' ? 'Exporting...' : 'Export PDF'}
-                  </Button>
-                </>
-              )}
-            </div>
-            {financialResult && (
-              <>
-                <ReportOutput title="Financial result" payload={financialResult} kind="financial" />
-                {financialResult.snapshot_id && (
-                  <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-slate-500">
-                    <span>Snapshot #{financialResult.snapshot_id}</span>
-                    {financialResult.frozen && <span className="badge border border-slate-200 bg-slate-50">Frozen</span>}
-                    {canSign && (
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        onClick={() => openSignModal(
-                          financialResult.snapshot_id,
-                          `${financialResult.report_type} (${financialResult.period_start} → ${financialResult.period_end})`,
-                        )}
-                      >
-                        <PenLine className="h-3.5 w-3.5" />
-                        Sign snapshot
-                      </Button>
-                    )}
-                  </div>
-                )}
-              </>
-            )}
-          </section>
-
+        <div className="grid gap-5 xl:grid-cols-1">
           <section className="glass-panel p-5">
             <h2 className="font-bold text-ink">Operational Reports (SL-075)</h2>
             <p className="mt-1 text-sm text-slate-600">AR/AP aging, inventory, bank reconciliation, sales and purchase summaries.</p>
