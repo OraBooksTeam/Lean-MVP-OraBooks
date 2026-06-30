@@ -1,0 +1,119 @@
+# OraBooks Production Deploy
+#
+# Triggers:
+#   - Push to main             → build & deploy to production
+#   - Push tag v*              → build & deploy to production
+#   - Manual (workflow_dispatch)
+#
+# Required secrets:
+#   DEPLOY_HOST       – SFTP hostname (e.g. sftp.example.com)
+#   DEPLOY_PORT       – SFTP port (default 22)
+#   DEPLOY_USER       – SFTP username
+#   DEPLOY_KEY        – SSH private key (base64 encoded PEM)
+#   DEPLOY_TARGET_DIR – Remote path to wp-content/plugins/OraBooks\ Lean\ MVP/
+#
+# For WP Engine: set DEPLOY_HOST to the git service host, or use the
+#   wpengine-deploy action instead of rsync/sftp.
+
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Dry-run (skip actual deploy)'
+        type: boolean
+        default: false
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build & Deploy
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: OraBooks\ Lean\ MVP/orabooks-ui
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: OraBooks\ Lean\ MVP/orabooks-ui/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type check
+        run: npm run typecheck
+
+      - name: Build UI
+        run: npm run build
+        env:
+          CI: true
+
+      - name: Verify deploy manifest
+        run: |
+          if [ ! -f ../assets/react/deploy-manifest.json ]; then
+            echo "ERROR: deploy-manifest.json not found. Build may have failed."
+            exit 1
+          fi
+          echo "Build manifest:"
+          cat ../assets/react/deploy-manifest.json
+
+      - name: Deploy via SFTP
+        if: ${{ !inputs.dry_run }}
+        env:
+          HOST: ${{ secrets.DEPLOY_HOST }}
+          PORT: ${{ secrets.DEPLOY_PORT || '22' }}
+          USER: ${{ secrets.DEPLOY_USER }}
+          KEY: ${{ secrets.DEPLOY_KEY }}
+          TARGET: ${{ secrets.DEPLOY_TARGET_DIR }}
+        run: |
+          # Decode SSH key
+          echo "$KEY" | base64 -d > /tmp/deploy_key
+          chmod 600 /tmp/deploy_key
+
+          # Rsync-like sync over SSH using tar + ssh (works on any host with SSH)
+          # Syncs the assets/react/ directory to the remote plugin directory
+          echo "--- Deploying to $HOST:$TARGET ---"
+          cd ../assets/react
+
+          tar czf /tmp/deploy-bundle.tar.gz \
+            --exclude=deploy-manifest.json \
+            .
+
+          scp -o StrictHostKeyChecking=accept-new \
+            -o UserKnownHostsFile=/dev/null \
+            -P "$PORT" \
+            -i /tmp/deploy_key \
+            /tmp/deploy-bundle.tar.gz \
+            "$USER@$HOST:/tmp/orabooks-deploy.tar.gz"
+
+          ssh -o StrictHostKeyChecking=accept-new \
+            -o UserKnownHostsFile=/dev/null \
+            -p "$PORT" \
+            -i /tmp/deploy_key \
+            "$USER@$HOST" \
+            "mkdir -p '$TARGET/assets/react' && \
+             tar xzf /tmp/orabooks-deploy.tar.gz -C '$TARGET/assets/react' && \
+             rm /tmp/orabooks-deploy.tar.gz && \
+             echo 'Deploy complete: $(date)'"
+
+          rm /tmp/deploy_key /tmp/deploy-bundle.tar.gz
+          echo "--- Deploy finished ---"
+
+      - name: Notify on failure
+        if: failure()
+        run: |
+          echo "::error::Deploy failed. Check the logs above for details."
