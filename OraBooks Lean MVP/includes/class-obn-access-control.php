@@ -36,6 +36,7 @@ class OBN_Access_Control {
         'approve_expense',
         'manage_inventory',
         'export_reports',
+        'admin_replay',
         'sign_report',
     ];
 

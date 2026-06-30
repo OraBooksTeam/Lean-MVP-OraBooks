@@ -2109,8 +2109,8 @@ class OraBooks_Financial_Reports {
         $governance = self::get_governance_dashboard($org_id);
 
         $accounts = [];
-        if (class_exists('OraBooks_Chart_Of_Accounts')) {
-            $accounts = OraBooks_Chart_Of_Accounts::list_accounts($org_id, ['active_only' => true]) ?: [];
+        if (class_exists('OraBooks_COA')) {
+            $accounts = OraBooks_COA::get_accounts($org_id) ?: [];
         }
 
         orabooks_json_success([
