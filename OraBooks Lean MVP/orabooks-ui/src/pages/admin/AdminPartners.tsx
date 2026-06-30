@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import AdminPageShell from '@/components/AdminPageShell';
 import { api } from '../api';
 import Button from '@/components/Button';
-import { UserCheck, UserX, RefreshCw } from 'lucide-react';
+import { RefreshCw } from 'lucide-react';
 
 interface Partner {
   id: number;

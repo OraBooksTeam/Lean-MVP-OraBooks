@@ -436,7 +436,7 @@ export default function VoicePage() {
             <label className="mt-4 block text-sm">
               <span className="mb-1 flex items-center gap-1 font-semibold text-slate-700">
                 Transcript
-                <HelpCircle className="h-3.5 w-3.5 text-slate-400" title="What you said (readonly transcript)." />
+                <span title="What you said (readonly transcript)."><HelpCircle className="h-3.5 w-3.5 text-slate-400" /></span>
               </span>
               <textarea
                 className={`${fieldClass} min-h-[80px] bg-slate-50`}

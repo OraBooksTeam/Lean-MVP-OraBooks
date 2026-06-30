@@ -3,7 +3,7 @@ import Button from '@/components/Button';
 import AdminPageShell from '@/components/AdminPageShell';
 import NotificationPreferencesForm from '@/components/NotificationPreferencesForm';
 import { api } from '../api';
-import { Bell, Mail, Monitor, RefreshCw, Smartphone } from 'lucide-react';
+import { Mail, Monitor, RefreshCw, Smartphone } from 'lucide-react';
 
 const fieldClass =
   'w-full rounded-lg border border-border bg-white px-3.5 py-2.5 text-sm text-ink shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20';

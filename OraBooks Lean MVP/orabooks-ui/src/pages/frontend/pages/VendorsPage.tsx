@@ -228,7 +228,7 @@ export default function VendorsPage() {
   const [billDetail, setBillDetail] = useState<any>(null);
   const [billDetailLoading, setBillDetailLoading] = useState(false);
   const [showApSettings, setShowApSettings] = useState(false);
-  const [apConfig, setApConfig] = useState<any>(null);
+  const [, setApConfig] = useState<any>(null);
   const [apConfigForm, setApConfigForm] = useState({
     auto_post_bill_on_approve: true,
     auto_apply_vendor_credit: true,
@@ -457,8 +457,7 @@ export default function VendorsPage() {
     sales_price: product.sales_price,
     price: product.price,
     mrp: product.mrp,
-    tax_name: product.tax_name,
-    tax_percent: product.tax_percent,
+    tax_name: product.tax_name
   });
 
   const handleProductCreated = (product: CreatedProduct) => {

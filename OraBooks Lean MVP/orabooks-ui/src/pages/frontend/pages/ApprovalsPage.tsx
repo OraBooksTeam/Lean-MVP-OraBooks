@@ -19,7 +19,7 @@ export default function ApprovalsPage() {
   const [journalDetail, setJournalDetail] = useState<any>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [sort, setSort] = useState('age');
-  const [sortOrder, setSortOrder] = useState('ASC');
+  const [sortOrder] = useState('ASC');
   const [rejectModal, setRejectModal] = useState<{ open: boolean; journalId: number | null; reason: string }>({
     open: false,
     journalId: null,
