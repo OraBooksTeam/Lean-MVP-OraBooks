@@ -152,7 +152,7 @@ export default function ReportsPage() {
   const op = data?.operational_preview;
 
   return (
-    <ClientShell title="Reports" eyebrow="Financial & operational" organization={data?.context?.organization}>
+    <ClientShell title="Reports" eyebrow="Operational reporting (SL-075)" organization={data?.context?.organization}>
       <div className="space-y-5">
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <Metric label="Net Income (MTD)" value={money(fin?.net_income)} />
@@ -162,6 +162,13 @@ export default function ReportsPage() {
         </div>
 
         <div className="flex flex-wrap items-center justify-end gap-2">
+          <WpLink
+            to="/financial-reports"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-sm font-medium text-primary shadow-sm transition hover:bg-primary/10"
+          >
+            <BarChart3 className="h-4 w-4" />
+            Financial Reports
+          </WpLink>
           <WpLink
             to="/my-exports"
             className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
