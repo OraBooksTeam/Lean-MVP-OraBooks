@@ -181,8 +181,8 @@ export default function LoginPage() {
         </div>
         <h2 className="text-center text-2xl font-bold text-ink">Log In</h2>
         <p className="mt-2 text-center text-sm text-slate-600">Welcome back. Sign in to your account.</p>
-        {notice && (
-          <p className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+                {notice && (
+          <p className="mt-4 rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-sm text-sky-800">
             {notice}
           </p>
         )}
