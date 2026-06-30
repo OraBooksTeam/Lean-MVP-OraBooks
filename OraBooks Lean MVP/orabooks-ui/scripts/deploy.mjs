@@ -34,7 +34,7 @@ const pluginRoot = path.resolve(root, '..');
 // ---------------------------------------------------------------------------
 const args = process.argv.slice(2);
 const isCI = process.env.CI === 'true';
-const dryRun = args.includes('--dry-run') || (isCI && (!HOST || !USER || !TARGET_DIR));
+const dryRun = args.includes('--dry-run');
 const envFileIndex = args.indexOf('--env');
 const envFilePath = envFileIndex !== -1 ? args[envFileIndex + 1] : null;
 
@@ -156,7 +156,7 @@ async function deploy() {
   console.log(`\nBuild manifest: ${manifest.files.length} files ready for deploy.`);
   manifest.files.forEach((f) => console.log(`  ${f}`));
 
-  // ---- Step 4: Prompt confirmation (skip in CI) ----
+  // ---- Step 4: Prompt confirmation (skip in CI, or auto-proceed) ----
   if (!dryRun && HOST && USER && TARGET_DIR && !isCI) {
     const ok = await confirm(`\nDeploy ${manifest.files.length} files to ${USER}@${HOST}:${TARGET_DIR}?`);
     if (!ok) {
