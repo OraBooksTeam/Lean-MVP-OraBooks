@@ -93,7 +93,7 @@ export default function AdminOrganizations() {
       </div>
       <div className="-mx-4 overflow-x-auto overflow-y-hidden px-4 sm:mx-0 sm:px-0">
         <div className="glass-panel min-w-0 overflow-hidden">
-          <div className="min-w-[960px]">
+          <div className="min-w-[1030px]">
             <table className="w-full text-left text-sm">
               <thead>
                 <tr className="border-b border-border bg-slate-50/60 text-xs uppercase text-slate-500">

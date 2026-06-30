@@ -196,7 +196,7 @@ export default function AdminSecurity() {
               <div className="border-b border-border px-5 py-3">
                 <h3 className="text-sm font-semibold text-ink">Security Headers</h3>
               </div>
-              <div className="-mx-5 overflow-x-auto overflow-y-hidden px-5">
+              <div className="overflow-x-auto overflow-y-hidden">
                 <div className="min-w-[400px]">
                   <table className="w-full text-left text-sm">
                     <thead>
@@ -232,7 +232,7 @@ export default function AdminSecurity() {
               <div className="border-b border-border px-5 py-3">
                 <h3 className="text-sm font-semibold text-ink">Incident Breakdown (24h)</h3>
               </div>
-              <div className="-mx-5 overflow-x-auto overflow-y-hidden px-5">
+              <div className="overflow-x-auto overflow-y-hidden">
                 <div className="min-w-[400px]">
                   <table className="w-full text-left text-sm">
                     <tbody className="divide-y divide-border">
@@ -263,7 +263,7 @@ export default function AdminSecurity() {
               <div className="border-b border-border px-5 py-3">
                 <h3 className="text-sm font-semibold text-ink">Scheduled Scans</h3>
               </div>
-              <div className="-mx-5 overflow-x-auto overflow-y-hidden px-5">
+              <div className="overflow-x-auto overflow-y-hidden">
                 <div className="min-w-[450px]">
                   <table className="w-full text-left text-sm">
                     <tbody className="divide-y divide-border">
@@ -306,7 +306,7 @@ export default function AdminSecurity() {
               <div className="border-b border-border px-5 py-3">
                 <h3 className="text-sm font-semibold text-ink">Rate Limits (centralized)</h3>
               </div>
-              <div className="-mx-5 overflow-x-auto overflow-y-hidden px-5">
+              <div className="overflow-x-auto overflow-y-hidden">
                 <div className="min-w-[350px]">
                   <table className="w-full text-left text-sm">
                     <tbody className="divide-y divide-border">
