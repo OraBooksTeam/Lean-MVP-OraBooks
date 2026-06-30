@@ -414,6 +414,9 @@ class OraBooks_Partner_Onboarding_E2E_Test extends TestCase
         // ----------------------------------------------------------------
         // STEP 8: Dashboard accessible after onboarding
         // ----------------------------------------------------------------
+        // Initialize RBAC permissions (init() is not called in bootstrap)
+        OraBooks_RBAC::init();
+
         // Update org callback to active status so RBAC check passes
         // (real OraBooks_RBAC::require_permission checks org.status === 'active')
         $GLOBALS['orabooks_test_org_callback'] = function ($id) use ($orgId) {
