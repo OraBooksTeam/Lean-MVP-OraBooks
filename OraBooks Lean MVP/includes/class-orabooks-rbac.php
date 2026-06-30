@@ -53,6 +53,7 @@ class OraBooks_RBAC {
             'manage_coa'                  => ['owner', 'admin'],
             'manage_fiscal_periods'       => ['owner', 'admin'],
             'export_reports'              => ['owner', 'admin', 'staff'],
+            'admin_replay'                => ['owner', 'admin'],
             'view_audit_logs'             => ['owner', 'admin'],
             'manage_org_settings'         => ['owner', 'admin'],
             'manage_settings'             => ['owner', 'admin'],

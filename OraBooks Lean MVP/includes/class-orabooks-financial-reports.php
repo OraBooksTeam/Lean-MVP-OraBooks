@@ -26,6 +26,9 @@ class OraBooks_Financial_Reports {
             add_action('wp_ajax_orabooks_financial_report_sign', [self::$instance, 'ajax_sign_report']);
             add_action('wp_ajax_orabooks_financial_report_rebuild', [self::$instance, 'ajax_rebuild_projection']);
             add_action('wp_ajax_orabooks_financial_report_replay', [self::$instance, 'ajax_replay_projection']);
+            add_action('wp_ajax_orabooks_financial_reports_dashboard', [self::$instance, 'ajax_financial_reports_dashboard']);
+            add_action('wp_ajax_orabooks_financial_report_config_get', [self::$instance, 'ajax_report_config_get']);
+            add_action('wp_ajax_orabooks_financial_report_config_save', [self::$instance, 'ajax_report_config_save']);
 
             add_action('orabooks_journal_posted', [self::$instance, 'project_journal_posted'], 10, 2);
             add_action('orabooks_monthly_report_snapshot_archive', [self::$instance, 'archive_old_snapshots']);
