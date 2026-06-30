@@ -475,6 +475,11 @@ export const api = {
     formData.set('org_id', String(orgId));
     return uploadRequest('orabooks_inventory_product_create', formData);
   },
+  inventoryProductUpdateUpload: (orgId: number, productId: number, formData: FormData) => {
+    formData.set('org_id', String(orgId));
+    formData.set('product_id', String(productId));
+    return uploadRequest('orabooks_inventory_product_update', formData);
+  },
   inventoryAdjustStock: (
     orgId: number,
     productId: number,

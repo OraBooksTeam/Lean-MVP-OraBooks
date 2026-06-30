@@ -6,7 +6,7 @@ import Input from '@/components/Input';
 import { api } from '../api';
 import ClientShell from '../components/ClientShell';
 import ResourceAttachmentsPanel from '../components/ResourceAttachmentsPanel';
-import { Info, Package, Paperclip, Plus, RefreshCw, TrendingDown } from 'lucide-react';
+import { Info, Package, Paperclip, PenLine, Plus, RefreshCw, TrendingDown } from 'lucide-react';
 
 type Product = {
   id: number;
@@ -167,6 +167,7 @@ export default function InventoryPage() {
   const [search, setSearch] = useState('');
 
   const [showProductForm, setShowProductForm] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [productForm, setProductForm] = useState<ProductFormState>(emptyProductForm());
   const [lookups, setLookups] = useState<LookupsMap>(emptyLookups());
   const [lookupModal, setLookupModal] = useState<LookupType | null>(null);
