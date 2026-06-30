@@ -401,7 +401,7 @@ class OraBooks_Financial_Reports {
         }
 
         $fiscal_start = self::fiscal_year_start_for_date($org_id, $as_of_date);
-        $pl = self::build_profit_loss($org_id, $fiscal_start, $as_of_date);
+        $pl = self::build_profit_loss($org_id, $fiscal_start, $as_of_date, $build_args);
         $current_period_net_income = (float) ($pl['net_income'] ?? 0);
         if (abs($current_period_net_income) > 0.001) {
             $sections['equity'][] = [
@@ -438,13 +438,20 @@ class OraBooks_Financial_Reports {
         ];
     }
 
-    private static function build_cash_flow($org_id, $period_start, $period_end, $method = 'indirect') {
+    private static function build_cash_flow($org_id, $period_start, $period_end, $method = 'indirect', $build_args = []) {
         global $wpdb;
 
         $method = in_array($method, ['indirect', 'direct'], true) ? $method : 'indirect';
         $table_summary = OraBooks_Database::table('report_ledger_summary');
         $table_accounts = OraBooks_Database::table('accounts');
         $table_mappings = OraBooks_Database::table('cash_flow_mappings');
+
+        $account_filter = '';
+        $account_params = [];
+        if (!empty($build_args['account_id'])) {
+            $account_filter = ' AND a.id = %d';
+            $account_params[] = (int) $build_args['account_id'];
+        }
 
         $rows = $wpdb->get_results($wpdb->prepare(
             "SELECT COALESCE(m.cash_flow_category, 'operating') as cash_flow_category,
@@ -454,13 +461,10 @@ class OraBooks_Financial_Reports {
              JOIN {$table_accounts} a ON a.id = s.account_id
              LEFT JOIN {$table_mappings} m ON m.org_id = s.org_id AND m.account_id = s.account_id
              WHERE s.org_id = %d AND s.period_date BETWEEN %s AND %s
-               AND (m.method IS NULL OR m.method = %s)
+               AND (m.method IS NULL OR m.method = %s){$account_filter}
              GROUP BY COALESCE(m.cash_flow_category, 'operating'), a.id, a.code, a.name, a.type, a.normal_balance
              ORDER BY a.code",
-            $org_id,
-            $period_start,
-            $period_end,
-            $method
+            array_merge([$org_id, $period_start, $period_end, $method], $account_params)
         ));
 
         $sections = ['operating' => [], 'investing' => [], 'financing' => []];
@@ -483,10 +487,14 @@ class OraBooks_Financial_Reports {
         ];
     }
 
-    private static function build_trial_balance($org_id, $period_start, $period_end) {
-        $closing_rows = self::ledger_rows_for_report($org_id, null, $period_end, []);
+    private static function build_trial_balance($org_id, $period_start, $period_end, $build_args = []) {
+        $types = [];
+        if (!empty($build_args['account_type'])) {
+            $types = [$build_args['account_type']];
+        }
+        $closing_rows = self::ledger_rows_for_report($org_id, null, $period_end, $types, $build_args);
         $opening_rows = ($period_start && $period_start < $period_end)
-            ? self::ledger_rows_for_report($org_id, null, self::day_before($period_start), [])
+            ? self::ledger_rows_for_report($org_id, null, self::day_before($period_start), $types, $build_args)
             : [];
         $opening_map = [];
         foreach ($opening_rows as $row) {
@@ -603,9 +611,9 @@ class OraBooks_Financial_Reports {
         ];
     }
 
-    private static function build_changes_equity($org_id, $period_start, $period_end) {
-        $pl = self::build_profit_loss($org_id, $period_start, $period_end);
-        $equity_rows = self::ledger_rows_for_report($org_id, null, $period_end, ['equity']);
+    private static function build_changes_equity($org_id, $period_start, $period_end, $build_args = []) {
+        $pl = self::build_profit_loss($org_id, $period_start, $period_end, $build_args);
+        $equity_rows = self::ledger_rows_for_report($org_id, null, $period_end, ['equity'], $build_args);
         $ending_equity = 0.0;
         foreach ($equity_rows as $row) {
             $ending_equity += self::account_amount($row);
