@@ -70,12 +70,7 @@ export default function AdminRoutes() {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const navItems = getAdminNavItems();
 
-  // Close mobile nav on route change
   const closeMobileNav = () => setMobileNavOpen(false);
-
-  useEffect(() => {
-    setMobileNavOpen(false);
-  }, []);
 
   useEffect(() => {
     document.body.style.overflow = mobileNavOpen ? 'hidden' : '';
@@ -115,6 +110,7 @@ export default function AdminRoutes() {
             {item.label}
           </a>
         ))}
+        ))}
       </nav>
     </>
   );
@@ -122,7 +118,7 @@ export default function AdminRoutes() {
   return (
     <div className="orabooks-wp-admin min-h-[640px] rounded-xl bg-muted/40 p-1 text-ink">
       {/* Mobile header bar */}
-      <div className="sticky top-0 z-[99] -mx-1 mb-4 rounded-t-xl border-b border-border bg-white/95 backdrop-blur sm:static sm:-mx-0 lg:hidden">
+      <div className="sticky top-0 z-[99] -mx-1 mb-4 rounded-t-xl border-b border-border bg-white/95 backdrop-blur lg:hidden">
         <div className="flex items-center justify-between px-4 py-3">
           <div className="flex min-w-0 items-center gap-2.5">
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary text-xs font-black text-white">
