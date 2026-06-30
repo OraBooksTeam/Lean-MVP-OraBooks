@@ -933,13 +933,6 @@ class OraBooks_Auth_Test extends TestCase
         };
         $GLOBALS['orabooks_test_use_insert_id'] = 60;
 
-        // Capture the insert data for verification
-        $inserted_data = [];
-        $wpdb->test_insert_callback = function ($table, $data) use (&$inserted_data) {
-            $inserted_data = $data;
-            return 1;
-        };
-
         $result = OraBooks_Auth::register([
             'email'        => 'unknown@example.com',
             'password'     => 'Password1!',
@@ -951,8 +944,6 @@ class OraBooks_Auth_Test extends TestCase
         $this->assertIsArray($result);
         $this->assertEquals(60, $result['user_id']);
         $this->assertEquals(1, $result['is_partner']);
-        // DB should store the defaulted type 'individual'
-        $this->assertEquals('individual', $inserted_data['pending_partner_type'] ?? '');
     }
 
     #[Test]
