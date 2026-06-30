@@ -675,15 +675,31 @@ class OraBooks_Partner_Onboarding_E2E_Test extends TestCase
             return null;
         };
 
-        $getVarCalls = 0;
-        $wpdb->test_get_var_callback = function ($query) use (&$getVarCalls) {
-            $getVarCalls++;
-            if ($getVarCalls === 1) {
+        $orgId = $partner['org_id'];
+        $wpdb->test_get_var_callback = function ($query) use ($orgId) {
+            $q = strtoupper(trim((string) $query));
+
+            // ajax_partner_dashboard() RBAC check: SELECT org_id FROM users WHERE id = ?
+            if (strpos($q, 'SELECT ORG_ID') !== false && strpos($q, 'ORABOOKS_USERS') !== false) {
+                return $orgId;
+            }
+
+            // get_dashboard_data(): SHOW TABLES check
+            if (strpos($q, 'SHOW TABLES') !== false) {
                 return 'wp_test_orabooks_customers';
             }
-            if ($getVarCalls === 2) {
+
+            // get_dashboard_data(): active_customer_count (customers table exists path)
+            if (strpos($q, 'ORABOOKS_CUSTOMERS') !== false && strpos($q, 'IS_ACTIVE') !== false) {
                 return 0;
             }
+
+            // Fallback verified count (if customers table doesn't exist)
+            if (strpos($q, 'ORABOOKS_PARTNER_ATTRIBUTIONS') !== false && strpos($q, 'VERIFIED') !== false) {
+                return 0;
+            }
+
+            // Commission/earned queries — return null
             return null;
         };
 
