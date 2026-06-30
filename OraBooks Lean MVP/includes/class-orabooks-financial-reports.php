@@ -195,8 +195,7 @@ class OraBooks_Financial_Reports {
         $report_type = sanitize_text_field($report_type);
         $period_start = sanitize_text_field($period_start);
         $period_end = sanitize_text_field($period_end);
-        $generated_by = intval($args['generated_by'] ?? get_current_user_id());
-        $correlation_id = sanitize_text_field($args['correlation_id'] ?? self::correlation_id());
+        $build_args = self::normalize_report_build_args($args);
 
         if ($org_id <= 0 || !self::valid_report_type($report_type) || !$period_start || !$period_end) {
             return new WP_Error('invalid_report_request', 'Invalid report request.');
@@ -205,46 +204,143 @@ class OraBooks_Financial_Reports {
         $is_hard_closed = self::is_period_hard_closed($org_id, $period_start, $period_end);
         $cached = self::get_cached_snapshot($org_id, $report_type, $period_start, $period_end, $is_hard_closed);
         if ($cached) {
-            return self::snapshot_response($cached, true);
+            $response = self::snapshot_response($cached, true);
+            return self::attach_comparison_report($org_id, $report_type, $period_start, $period_end, $build_args, $response);
         }
 
-        switch ($report_type) {
-            case 'profit_loss':
-                $data = self::build_profit_loss($org_id, $period_start, $period_end);
-                break;
-            case 'balance_sheet':
-                $data = self::build_balance_sheet($org_id, $period_end);
-                break;
-            case 'cash_flow':
-                $data = self::build_cash_flow($org_id, $period_start, $period_end, $args['method'] ?? 'indirect');
-                break;
-            case 'trial_balance':
-                $data = self::build_trial_balance($org_id, $period_start, $period_end);
-                break;
-            case 'general_ledger':
-                $data = self::build_general_ledger($org_id, $period_start, $period_end, $args);
-                break;
-            case 'changes_equity':
-                $data = self::build_changes_equity($org_id, $period_start, $period_end);
-                break;
-            default:
-                return new WP_Error('unsupported_report', 'Unsupported report type.');
-        }
-
+        $data = self::build_report_data($org_id, $report_type, $period_start, $period_end, $build_args);
         if (is_wp_error($data)) {
             return $data;
         }
 
-        $snapshot = self::create_snapshot($org_id, $report_type, $period_start, $period_end, $data, $generated_by, $correlation_id, $is_hard_closed);
-        return self::snapshot_response($snapshot, false);
+        $snapshot = self::create_snapshot(
+            $org_id,
+            $report_type,
+            $period_start,
+            $period_end,
+            $data,
+            $build_args['generated_by'],
+            $build_args['correlation_id'],
+            $is_hard_closed
+        );
+        $response = self::snapshot_response($snapshot, false);
+        return self::attach_comparison_report($org_id, $report_type, $period_start, $period_end, $build_args, $response);
+    }
+
+    private static function normalize_report_build_args($args) {
+        $method = sanitize_text_field($args['method'] ?? 'indirect');
+        if (!in_array($method, ['indirect', 'direct'], true)) {
+            $method = 'indirect';
+        }
+
+        $account_type = sanitize_text_field($args['account_type'] ?? '');
+        if ($account_type && !in_array($account_type, ['asset', 'liability', 'equity', 'revenue', 'expense'], true)) {
+            $account_type = '';
+        }
+
+        return [
+            'generated_by' => intval($args['generated_by'] ?? get_current_user_id()),
+            'correlation_id' => sanitize_text_field($args['correlation_id'] ?? self::correlation_id()),
+            'method' => $method,
+            'account_type' => $account_type,
+            'account_id' => max(0, intval($args['account_id'] ?? 0)),
+            'compare_with' => sanitize_text_field($args['compare_with'] ?? ''),
+        ];
+    }
+
+    private static function build_report_data($org_id, $report_type, $period_start, $period_end, $build_args = []) {
+        switch ($report_type) {
+            case 'profit_loss':
+                return self::build_profit_loss($org_id, $period_start, $period_end, $build_args);
+            case 'balance_sheet':
+                return self::build_balance_sheet($org_id, $period_end, $build_args);
+            case 'cash_flow':
+                return self::build_cash_flow($org_id, $period_start, $period_end, $build_args['method'] ?? 'indirect', $build_args);
+            case 'trial_balance':
+                return self::build_trial_balance($org_id, $period_start, $period_end, $build_args);
+            case 'general_ledger':
+                return self::build_general_ledger($org_id, $period_start, $period_end, $build_args);
+            case 'changes_equity':
+                return self::build_changes_equity($org_id, $period_start, $period_end, $build_args);
+            default:
+                return new WP_Error('unsupported_report', 'Unsupported report type.');
+        }
+    }
+
+    public static function resolve_comparison_period($period_start, $period_end, $compare_with) {
+        $compare_with = sanitize_text_field($compare_with);
+        $start_ts = strtotime($period_start . ' 00:00:00');
+        $end_ts = strtotime($period_end . ' 00:00:00');
+        if (!$start_ts || !$end_ts || $end_ts < $start_ts) {
+            return null;
+        }
+
+        $days = max(1, (int) floor(($end_ts - $start_ts) / DAY_IN_SECONDS) + 1);
+
+        switch ($compare_with) {
+            case 'previous_year':
+                return [
+                    gmdate('Y-m-d', strtotime('-1 year', $start_ts)),
+                    gmdate('Y-m-d', strtotime('-1 year', $end_ts)),
+                ];
+            case 'previous_period':
+                return [
+                    gmdate('Y-m-d', $start_ts - ($days * DAY_IN_SECONDS)),
+                    gmdate('Y-m-d', $start_ts - DAY_IN_SECONDS),
+                ];
+            case 'rolling_12':
+                return [
+                    gmdate('Y-m-d', strtotime('-11 months', $end_ts)),
+                    gmdate('Y-m-d', $end_ts),
+                ];
+            case 'quarter_over_quarter':
+                return [
+                    gmdate('Y-m-d', strtotime('-3 months', $start_ts)),
+                    gmdate('Y-m-d', strtotime('-3 months', $end_ts)),
+                ];
+            default:
+                return null;
+        }
+    }
+
+    private static function attach_comparison_report($org_id, $report_type, $period_start, $period_end, $build_args, $response) {
+        $compare_with = $build_args['compare_with'] ?? '';
+        if ($compare_with === '') {
+            return $response;
+        }
+
+        $range = self::resolve_comparison_period($period_start, $period_end, $compare_with);
+        if (!$range) {
+            return $response;
+        }
+
+        [$cmp_start, $cmp_end] = $range;
+        $cmp_end_effective = $report_type === 'balance_sheet' ? $cmp_end : $cmp_end;
+        $cmp_data = self::build_report_data($org_id, $report_type, $cmp_start, $cmp_end_effective, $build_args);
+        if (is_wp_error($cmp_data)) {
+            return $response;
+        }
+
+        $response['comparison'] = [
+            'compare_with' => $compare_with,
+            'period_start' => $cmp_start,
+            'period_end' => $cmp_end,
+            'report' => $cmp_data,
+        ];
+
+        return $response;
     }
 
     private static function valid_report_type($type) {
         return in_array($type, ['profit_loss', 'balance_sheet', 'cash_flow', 'trial_balance', 'general_ledger', 'changes_equity'], true);
     }
 
-    private static function build_profit_loss($org_id, $period_start, $period_end) {
-        $rows = self::ledger_rows_for_report($org_id, $period_start, $period_end, ['revenue', 'expense']);
+    private static function build_profit_loss($org_id, $period_start, $period_end, $build_args = []) {
+        $types = ['revenue', 'expense'];
+        if (!empty($build_args['account_type'])) {
+            $types = [$build_args['account_type']];
+        }
+        $rows = self::ledger_rows_for_report($org_id, $period_start, $period_end, $types, $build_args);
         $revenue = [];
         $cogs = [];
         $operating_expenses = [];
