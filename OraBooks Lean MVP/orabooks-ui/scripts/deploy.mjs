@@ -33,7 +33,8 @@ const pluginRoot = path.resolve(root, '..');
 // Parse args
 // ---------------------------------------------------------------------------
 const args = process.argv.slice(2);
-const dryRun = args.includes('--dry-run');
+const isCI = process.env.CI === 'true';
+const dryRun = args.includes('--dry-run') || (isCI && (!HOST || !USER || !TARGET_DIR));
 const envFileIndex = args.indexOf('--env');
 const envFilePath = envFileIndex !== -1 ? args[envFileIndex + 1] : null;
 
@@ -72,6 +73,24 @@ const BUILD_OUTPUT = path.resolve(root, env.BUILD_OUTPUT_DIR || '../assets/react
 function osHomedir() {
   return process.env.HOME || process.env.USERPROFILE || '.';
 }
+
+// ---------------------------------------------------------------------------
+// Check prerequisites
+// ---------------------------------------------------------------------------
+function checkCommand(cmd) {
+  const result = spawnSync(process.platform === 'win32' ? 'where' : 'which', [cmd], {
+    stdio: 'pipe',
+    shell: process.platform === 'win32',
+  });
+  if (result.status !== 0) {
+    console.warn(`Warning: '${cmd}' not found. Windows users: run from Git Bash or WSL.`);
+    return false;
+  }
+  return true;
+}
+
+checkCommand('ssh');
+checkCommand('tar');
 
 // ---------------------------------------------------------------------------
 // Utilities
@@ -135,9 +154,10 @@ async function deploy() {
 
   const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
   console.log(`\nBuild manifest: ${manifest.files.length} files ready for deploy.`);
+  manifest.files.forEach((f) => console.log(`  ${f}`));
 
-  // ---- Step 4: Prompt confirmation ----
-  if (!dryRun && HOST && USER && TARGET_DIR) {
+  // ---- Step 4: Prompt confirmation (skip in CI) ----
+  if (!dryRun && HOST && USER && TARGET_DIR && !isCI) {
     const ok = await confirm(`\nDeploy ${manifest.files.length} files to ${USER}@${HOST}:${TARGET_DIR}?`);
     if (!ok) {
       console.log('Deploy cancelled.');
