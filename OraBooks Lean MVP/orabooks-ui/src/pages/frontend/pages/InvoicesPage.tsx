@@ -1030,107 +1030,111 @@ export default function InvoicesPage() {
           </div>
         )}
 
-        <div className="glass-panel overflow-hidden">
-          <table className="min-w-full text-left text-sm">
-            <thead>
-              <tr className="border-b border-border bg-slate-50/70 text-xs uppercase text-slate-500">
-                <th className="px-5 py-3 font-semibold">Invoice</th>
-                <th className="px-5 py-3 font-semibold">Due Date</th>
-                <th className="px-5 py-3 font-semibold">Workflow</th>
-                <th className="px-5 py-3 font-semibold">Payment</th>
-                <th className="px-5 py-3 font-semibold">Tax</th>
-                <th className="px-5 py-3 text-right font-semibold">Total</th>
-                <th className="px-5 py-3 font-semibold">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {loading ? (
-                <tr><td colSpan={7} className="px-5 py-8 text-center text-slate-500">Loading invoices…</td></tr>
-              ) : invoices.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="px-5 py-10 text-center">
-                    <FileText className="mx-auto h-8 w-8 text-slate-300" />
-                    <p className="mt-2 text-sm text-slate-500">
-                      {canCreateInvoice
-                        ? 'No invoices found. Create your first invoice.'
-                        : 'No invoices found.'}
-                    </p>
-                  </td>
-                </tr>
-              ) : invoices.map((invoice) => (
-                <tr key={invoice.id} className="hover:bg-slate-50/70">
-                  <td className="px-5 py-3">
-                    <div className="font-semibold text-ink">{invoice.invoice_number || `Invoice #${invoice.id}`}</div>
-                    {invoice.tax_override_reason && (
-                      <span className="mt-1 inline-block rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800" title={`Override: ${invoice.tax_override_reason}`}>
-                        Overridden
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-5 py-3 text-slate-600">{invoice.due_date || '—'}</td>
-                  <td className="px-5 py-3"><Badge value={invoice.workflow_status || 'draft'} /></td>
-                  <td className="px-5 py-3"><Badge value={invoice.payment_status || 'unpaid'} /></td>
-                  <td className="px-5 py-3 text-slate-600">
-                    <span className="inline-flex items-center gap-1">
-                      <Percent className="h-3.5 w-3.5" />
-                      {invoiceTaxLabel(invoice)} {Number(invoice.tax_rate || 0).toFixed(2)}%
-                    </span>
-                    <div className="text-xs text-slate-500">{money(invoice.tax_amount, invoice.currency)}</div>
-                  </td>
-                  <td className="px-5 py-3 text-right font-bold text-ink">{money(invoice.total_amount, invoice.currency)}</td>
-                  <td className="px-5 py-3">
-                    <div className="flex flex-wrap gap-1">
-                      <Button size="sm" variant="secondary" onClick={() => void openInvoiceDetail(invoice)}>
-                        View
-                      </Button>
-                      {canSend(invoice) && (
-                        <Button size="sm" variant="secondary" disabled={actionInvoiceId === invoice.id} onClick={() => void runInvoiceAction('send', invoice.id)}>
-                          Send
-                        </Button>
-                      )}
-                      {canPost(invoice) && (
-                        <Button size="sm" variant="secondary" disabled={actionInvoiceId === invoice.id} onClick={() => void runInvoiceAction('post', invoice.id)}>
-                          Post
-                        </Button>
-                      )}
-                      {canPay(invoice) && (
-                        <Button size="sm" variant="secondary" onClick={() => openPayment(invoice)}>
-                          <Wallet className="h-3.5 w-3.5" />
-                          Pay
-                        </Button>
-                      )}
-                      {canCreditNote(invoice) && (
-                        <Button size="sm" variant="secondary" onClick={() => void openCreditNote(invoice)}>
-                          Credit note
-                        </Button>
-                      )}
-                      {canCancel(invoice) && (
-                        <Button size="sm" variant="secondary" disabled={actionInvoiceId === invoice.id} onClick={() => { setCancelInvoice(invoice); setCancelReason(''); setError(''); }}>
-                          Cancel
-                        </Button>
-                      )}
-                      {canOverride(invoice) && (
-                        <Button
-                          size="sm"
-                          variant="secondary"
-                          title="Manually change tax rate."
-                          onClick={() => void openOverride(invoice)}
-                        >
-                          Override Tax
-                        </Button>
-                      )}
-                      <WpLink to={`/attachments?resource_type=invoice&resource_id=${invoice.id}`}>
-                        <Button size="sm" variant="secondary">
-                          <Paperclip className="h-3.5 w-3.5" />
-                          Files
-                        </Button>
-                      </WpLink>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="-mx-4 overflow-x-auto overflow-y-hidden px-4 sm:mx-0 sm:px-0">
+          <div className="glass-panel min-w-0 overflow-hidden">
+            <div className="min-w-[700px]">
+              <table className="w-full text-left text-sm">
+                <thead>
+                  <tr className="border-b border-border bg-slate-50/70 text-xs uppercase text-slate-500">
+                    <th className="px-5 py-3 font-semibold">Invoice</th>
+                    <th className="px-5 py-3 font-semibold">Due Date</th>
+                    <th className="px-5 py-3 font-semibold">Workflow</th>
+                    <th className="px-5 py-3 font-semibold">Payment</th>
+                    <th className="px-5 py-3 font-semibold">Tax</th>
+                    <th className="px-5 py-3 text-right font-semibold">Total</th>
+                    <th className="px-5 py-3 font-semibold">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {loading ? (
+                    <tr><td colSpan={7} className="px-5 py-8 text-center text-slate-500">Loading invoices…</td></tr>
+                  ) : invoices.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="px-5 py-10 text-center">
+                        <FileText className="mx-auto h-8 w-8 text-slate-300" />
+                        <p className="mt-2 text-sm text-slate-500">
+                          {canCreateInvoice
+                            ? 'No invoices found. Create your first invoice.'
+                            : 'No invoices found.'}
+                        </p>
+                      </td>
+                    </tr>
+                  ) : invoices.map((invoice) => (
+                    <tr key={invoice.id} className="hover:bg-slate-50/70">
+                      <td className="px-5 py-3">
+                        <div className="font-semibold text-ink">{invoice.invoice_number || `Invoice #${invoice.id}`}</div>
+                        {invoice.tax_override_reason && (
+                          <span className="mt-1 inline-block rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800" title={`Override: ${invoice.tax_override_reason}`}>
+                            Overridden
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-5 py-3 text-slate-600">{invoice.due_date || '—'}</td>
+                      <td className="px-5 py-3"><Badge value={invoice.workflow_status || 'draft'} /></td>
+                      <td className="px-5 py-3"><Badge value={invoice.payment_status || 'unpaid'} /></td>
+                      <td className="px-5 py-3 text-slate-600">
+                        <span className="inline-flex items-center gap-1">
+                          <Percent className="h-3.5 w-3.5" />
+                          {invoiceTaxLabel(invoice)} {Number(invoice.tax_rate || 0).toFixed(2)}%
+                        </span>
+                        <div className="text-xs text-slate-500">{money(invoice.tax_amount, invoice.currency)}</div>
+                      </td>
+                      <td className="px-5 py-3 text-right font-bold text-ink">{money(invoice.total_amount, invoice.currency)}</td>
+                      <td className="px-5 py-3">
+                        <div className="flex flex-wrap gap-1">
+                          <Button size="sm" variant="secondary" onClick={() => void openInvoiceDetail(invoice)}>
+                            View
+                          </Button>
+                          {canSend(invoice) && (
+                            <Button size="sm" variant="secondary" disabled={actionInvoiceId === invoice.id} onClick={() => void runInvoiceAction('send', invoice.id)}>
+                              Send
+                            </Button>
+                          )}
+                          {canPost(invoice) && (
+                            <Button size="sm" variant="secondary" disabled={actionInvoiceId === invoice.id} onClick={() => void runInvoiceAction('post', invoice.id)}>
+                              Post
+                            </Button>
+                          )}
+                          {canPay(invoice) && (
+                            <Button size="sm" variant="secondary" onClick={() => openPayment(invoice)}>
+                              <Wallet className="h-3.5 w-3.5" />
+                              Pay
+                            </Button>
+                          )}
+                          {canCreditNote(invoice) && (
+                            <Button size="sm" variant="secondary" onClick={() => void openCreditNote(invoice)}>
+                              Credit note
+                            </Button>
+                          )}
+                          {canCancel(invoice) && (
+                            <Button size="sm" variant="secondary" disabled={actionInvoiceId === invoice.id} onClick={() => { setCancelInvoice(invoice); setCancelReason(''); setError(''); }}>
+                              Cancel
+                            </Button>
+                          )}
+                          {canOverride(invoice) && (
+                            <Button
+                              size="sm"
+                              variant="secondary"
+                              title="Manually change tax rate."
+                              onClick={() => void openOverride(invoice)}
+                            >
+                              Override Tax
+                            </Button>
+                          )}
+                          <WpLink to={`/attachments?resource_type=invoice&resource_id=${invoice.id}`}>
+                            <Button size="sm" variant="secondary">
+                              <Paperclip className="h-3.5 w-3.5" />
+                              Files
+                            </Button>
+                          </WpLink>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
 
         {showCreate && canCreateInvoice && (
