@@ -23,6 +23,7 @@ class OraBooks_Inventory {
 
             add_action('wp_ajax_orabooks_inventory_products_list', [self::$instance, 'ajax_products_list']);
             add_action('wp_ajax_orabooks_inventory_product_create', [self::$instance, 'ajax_product_create']);
+            add_action('wp_ajax_orabooks_inventory_product_update', [self::$instance, 'ajax_product_update']);
             add_action('wp_ajax_orabooks_inventory_product_adjust', [self::$instance, 'ajax_adjust_stock']);
             add_action('wp_ajax_orabooks_inventory_movements', [self::$instance, 'ajax_movements']);
             add_action('wp_ajax_orabooks_inventory_lookups_list', [self::$instance, 'ajax_lookups_list']);
@@ -556,6 +557,97 @@ class OraBooks_Inventory {
         return self::get_product($product_id, $org_id);
     }
 
+    public static function update_product($org_id, $product_id, $data) {
+        global $wpdb;
+
+        self::maybe_ensure_product_schema();
+
+        $org_id = intval($org_id);
+        $product_id = intval($product_id);
+        $product = self::get_product($product_id, $org_id);
+
+        if (!$product) {
+            return new WP_Error('not_found', 'Product not found');
+        }
+
+        $name = sanitize_text_field($data['name'] ?? $data['item_name'] ?? '');
+        if ($org_id <= 0 || $product_id <= 0 || $name === '') {
+            return new WP_Error('missing_field', 'Organization, product, and item name are required');
+        }
+
+        $price = round(floatval($data['price'] ?? $product->price ?? 0), 2);
+        $tax_percent = round(floatval($data['tax_percent'] ?? $product->tax_percent ?? 0), 4);
+        $tax_type = sanitize_text_field($data['tax_type'] ?? $product->tax_type ?? 'Inclusive');
+        $profit_margin = round(floatval($data['profit_margin'] ?? $product->profit_margin ?? 0), 2);
+        $purchase_price = array_key_exists('purchase_price', $data)
+            ? round(floatval($data['purchase_price']), 6)
+            : self::calculate_purchase_price($price, $tax_percent, $tax_type);
+        $sales_price = array_key_exists('sales_price', $data)
+            ? round(floatval($data['sales_price']), 2)
+            : self::calculate_sales_price($price, $profit_margin);
+        $mrp = array_key_exists('mrp', $data) ? round(floatval($data['mrp']), 2) : $sales_price;
+
+        if ($price < 0 || $purchase_price < 0) {
+            return new WP_Error('invalid_cost', 'Price cannot be negative');
+        }
+
+        $table = OraBooks_Database::table('products');
+        $updated = $wpdb->update(
+            $table,
+            [
+                'name' => $name,
+                'unit' => sanitize_text_field($data['unit'] ?? $product->unit ?? 'piece'),
+                'brand_name' => sanitize_text_field($data['brand_name'] ?? $product->brand_name ?? ''),
+                'category_name' => sanitize_text_field($data['category_name'] ?? $product->category_name ?? ''),
+                'hsn' => sanitize_text_field($data['hsn'] ?? $product->hsn ?? ''),
+                'stock_keeping_unit' => sanitize_text_field($data['stock_keeping_unit'] ?? $product->stock_keeping_unit ?? ''),
+                'barcode' => sanitize_text_field($data['barcode'] ?? $product->barcode ?? ''),
+                'description' => sanitize_textarea_field($data['description'] ?? $product->description ?? ''),
+                'item_image_url' => esc_url_raw($data['item_image_url'] ?? $product->item_image_url ?? ''),
+                'discount_type' => self::enum_value($data['discount_type'] ?? $product->discount_type ?? 'Percentage', ['Percentage', 'Fixed'], 'Percentage'),
+                'discount' => round(floatval($data['discount'] ?? $product->discount ?? 0), 2),
+                'price' => $price,
+                'purchase_price' => $purchase_price,
+                'sales_price' => $sales_price,
+                'mrp' => $mrp,
+                'profit_margin' => $profit_margin,
+                'tax_name' => sanitize_text_field($data['tax_name'] ?? $product->tax_name ?? ''),
+                'tax_percent' => $tax_percent,
+                'tax_type' => self::enum_value($tax_type, ['Inclusive', 'Exclusive'], 'Inclusive'),
+                'warehouse_name' => sanitize_text_field($data['warehouse_name'] ?? $product->warehouse_name ?? ''),
+                'item_type' => self::enum_value($data['item_type'] ?? $product->item_type ?? 'Single', ['Single', 'Variants', 'service'], 'Single'),
+                'seller_points' => round(floatval($data['seller_points'] ?? $product->seller_points ?? 0), 2),
+                'low_stock_threshold' => array_key_exists('low_stock_threshold', $data)
+                    ? ($data['low_stock_threshold'] === '' || $data['low_stock_threshold'] === null
+                        ? null
+                        : floatval($data['low_stock_threshold']))
+                    : $product->low_stock_threshold,
+                'is_active' => array_key_exists('is_active', $data) ? (int) !empty($data['is_active']) : (int) ($product->is_active ?? 1),
+            ],
+            [
+                'id' => $product_id,
+                'org_id' => $org_id,
+            ],
+            [
+                '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s',
+                '%f', '%f', '%f', '%f', '%f', '%f', '%s', '%f', '%s', '%s',
+                '%s', '%f', '%f', '%d',
+            ],
+            ['%d', '%d']
+        );
+
+        if ($updated === false) {
+            return new WP_Error('update_failed', 'Unable to update product.');
+        }
+
+        orabooks_log_event('inventory_product_updated', "Product updated: {$product->sku}", 'info', [
+            'product_id' => $product_id,
+            'sku' => $product->sku,
+        ], orabooks_get_current_user_id(), $org_id);
+
+        return self::get_product($product_id, $org_id);
+    }
+
     public static function get_product($product_id, $org_id) {
         global $wpdb;
 
@@ -1029,6 +1121,34 @@ class OraBooks_Inventory {
         }
 
         $result = self::create_product($org_id, $_POST);
+        if (is_wp_error($result)) {
+            orabooks_json_error($result->get_error_message(), 400);
+        }
+        orabooks_json_success(['product' => $result]);
+    }
+
+    public function ajax_product_update() {
+        $user_id = $this->current_user_id();
+        $org_id = intval($_POST['org_id'] ?? 0);
+        $product_id = intval($_POST['product_id'] ?? 0);
+        $this->require_inventory_permission($user_id, $org_id, ['manage_org_settings', 'create_invoice', 'manage_inventory']);
+
+        if (!empty($_FILES['item_image']['name'])) {
+            if (!function_exists('media_handle_upload')) {
+                require_once ABSPATH . 'wp-admin/includes/file.php';
+                require_once ABSPATH . 'wp-admin/includes/image.php';
+                require_once ABSPATH . 'wp-admin/includes/media.php';
+            }
+
+            $attachment_id = media_handle_upload('item_image', 0);
+            if (is_wp_error($attachment_id)) {
+                orabooks_json_error($attachment_id->get_error_message(), 400);
+            }
+
+            $_POST['item_image_url'] = wp_get_attachment_url($attachment_id);
+        }
+
+        $result = self::update_product($org_id, $product_id, $_POST);
         if (is_wp_error($result)) {
             orabooks_json_error($result->get_error_message(), 400);
         }
