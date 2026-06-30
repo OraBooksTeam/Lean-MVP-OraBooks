@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import AdminPageShell from '@/components/AdminPageShell';
 import { api } from '../api';
 import Button from '@/components/Button';
-import { } from 'lucide-react';
 
 interface User {
   id: number;
