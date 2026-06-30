@@ -58,7 +58,7 @@ export default function FinancialReportsPage() {
   const [replayProjection, setReplayProjection] = useState('ledger_summary');
   const [replayUseQueue, setReplayUseQueue] = useState(false);
 
-  const orgId = context?.organization?.id as number | undefined;
+  const orgId = context?.context?.organization?.id as number | undefined;
   const permissions = dash?.permissions || {};
   const reportConfig = dash?.report_config || {};
 
