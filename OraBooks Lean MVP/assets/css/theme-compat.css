@@ -227,11 +227,6 @@ body.orabooks-page #wpadminbar {
     display: none !important;
 }
 
-body.orabooks-page {
-    margin-top: 0 !important;
-    padding-top: 0 !important;
-}
-
 /* Additional theme sidebar/widget area hide fallbacks for broad theme coverage */
 body.orabooks-page.orabooks-react-page aside:not(.orabooks-client-sidebar):not([class*="orabooks"]),
 body.orabooks-page.orabooks-auth-page aside:not(.orabooks-client-sidebar):not([class*="orabooks"]),
