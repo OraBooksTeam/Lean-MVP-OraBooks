@@ -172,38 +172,32 @@ class OraBooks_Partner {
                 }
             }
             
-            // Low-activity reminder (dormant partners only — SL-250 doctrine)
-            // active_customer_count = 0 AND last attribution >= 6 months; repeat every 3 months
-            if ($active_customers == 0) {
-                $six_months = $now - (6 * 30 * 86400);
-                $three_months_ago = $now - (3 * 30 * 86400);
+            // Low-activity reminder — sent to ALL partners (regardless of active customers)
+            // Per SL-013 spec: if no attribution for 6+ months; repeat every 3 months
+            $six_months = $now - (6 * 30 * 86400);
+            $three_months_ago = $now - (3 * 30 * 86400);
 
-                if ($last_attr_ts === 0 || $last_attr_ts < $six_months) {
-                    $reminder_sent = $p->low_activity_reminder_sent_at ? strtotime($p->low_activity_reminder_sent_at) : 0;
-                    if ($reminder_sent === 0 || $reminder_sent < $three_months_ago) {
-                        $wpdb->update(
-                            $table_codes,
-                            ['low_activity_reminder_sent_at' => current_time('mysql')],
-                            ['id' => $p->id],
-                            ['%s'],
-                            ['%d']
-                        );
+            if ($last_attr_ts === 0 || $last_attr_ts < $six_months) {
+                $reminder_sent = $p->low_activity_reminder_sent_at ? strtotime($p->low_activity_reminder_sent_at) : 0;
+                if ($reminder_sent === 0 || $reminder_sent < $three_months_ago) {
+                    $wpdb->update(
+                        $table_codes,
+                        ['low_activity_reminder_sent_at' => current_time('mysql')],
+                        ['id' => $p->id],
+                        ['%s'],
+                        ['%d']
+                    );
 
-                        orabooks_log_event('partner_low_activity_reminder_sent', "Low activity reminder sent to partner {$p->user_id}", 'info', [
+                    orabooks_log_event('partner_low_activity_reminder_sent', "Low activity reminder sent to partner {$p->user_id}", 'info', [
+                        'months' => 6,
+                        'active_customer_count' => $active_customers,
+                    ], $p->user_id, null);
+
+                    if (class_exists('OraBooks_Notifications')) {
+                        do_action('orabooks_partner_low_activity_reminder_sent', $p->user_id, [
                             'months' => 6,
-                            'active_customer_count' => 0,
-                        ], $p->user_id, null);
-                        orabooks_log_event('partner_became_dormant', 'Partner became dormant (zero active customers)', 'warning', [
-                            'active_customer_count' => 0,
-                            'partner_user_id' => (int) $p->user_id,
-                        ], $p->user_id, null);
-
-                        if (class_exists('OraBooks_Notifications')) {
-                            do_action('orabooks_partner_low_activity_reminder_sent', $p->user_id, [
-                                'months' => 6,
-                                'active_customer_count' => 0,
-                            ]);
-                        }
+                            'active_customer_count' => $active_customers,
+                        ]);
                     }
                 }
             }
