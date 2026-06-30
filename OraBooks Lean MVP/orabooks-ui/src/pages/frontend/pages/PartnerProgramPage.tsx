@@ -7,6 +7,7 @@ import {
   AlertTriangle,
   CheckCircle2,
   Copy,
+  Lightbulb,
   Lock,
   RefreshCw,
   TrendingUp,
@@ -318,7 +319,11 @@ function StatusBanner({
   return (
     <div className={`flex flex-col gap-3 rounded-2xl border p-4 sm:flex-row sm:items-center sm:justify-between ${cls}`}>
       <div className="flex gap-3">
-        <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0" />
+        {banner.type === 'info' ? (
+          <Lightbulb className="mt-0.5 h-5 w-5 shrink-0" />
+        ) : (
+          <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0" />
+        )}
         <p className="text-sm font-medium">{banner.message}</p>
       </div>
       {canReactivate && banner.type === 'inactive' && (
