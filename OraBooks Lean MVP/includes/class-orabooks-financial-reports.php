@@ -2094,4 +2094,98 @@ class OraBooks_Financial_Reports {
         }
         orabooks_json_success($result);
     }
+
+    public function ajax_financial_reports_dashboard() {
+        $user_id = $this->current_user_id();
+        $org_id = intval($_REQUEST['org_id'] ?? 0);
+        $this->require_customer_org_access($user_id, $org_id);
+        if (!OraBooks_RBAC::require_permission($user_id, $org_id, 'view_financial_reports')) {
+            orabooks_json_error('Permission denied', 403);
+        }
+
+        $period_start = sanitize_text_field($_REQUEST['period_start'] ?? '') ?: date('Y-m-01');
+        $period_end = sanitize_text_field($_REQUEST['period_end'] ?? '') ?: current_time('Y-m-d');
+        $report_config = self::get_org_report_config($org_id);
+        $governance = self::get_governance_dashboard($org_id);
+
+        $accounts = [];
+        if (class_exists('OraBooks_Chart_Of_Accounts')) {
+            $accounts = OraBooks_Chart_Of_Accounts::list_accounts($org_id, ['active_only' => true]) ?: [];
+        }
+
+        orabooks_json_success([
+            'period' => [
+                'start' => $period_start,
+                'end' => $period_end,
+            ],
+            'financial_types' => [
+                ['id' => 'profit_loss', 'label' => 'Profit & Loss'],
+                ['id' => 'balance_sheet', 'label' => 'Balance Sheet'],
+                ['id' => 'cash_flow', 'label' => 'Cash Flow'],
+                ['id' => 'trial_balance', 'label' => 'Trial Balance'],
+                ['id' => 'general_ledger', 'label' => 'General Ledger'],
+                ['id' => 'changes_equity', 'label' => 'Changes in Equity'],
+            ],
+            'comparison_options' => [
+                ['id' => '', 'label' => 'None'],
+                ['id' => 'previous_period', 'label' => 'Previous Period'],
+                ['id' => 'previous_year', 'label' => 'Previous Year'],
+                ['id' => 'quarter_over_quarter', 'label' => 'Quarter over Quarter'],
+                ['id' => 'rolling_12', 'label' => 'Rolling 12 Months'],
+            ],
+            'account_types' => [
+                ['id' => '', 'label' => 'All account types'],
+                ['id' => 'asset', 'label' => 'Asset'],
+                ['id' => 'liability', 'label' => 'Liability'],
+                ['id' => 'equity', 'label' => 'Equity'],
+                ['id' => 'revenue', 'label' => 'Revenue'],
+                ['id' => 'expense', 'label' => 'Expense'],
+            ],
+            'report_config' => $report_config,
+            'governance' => $governance,
+            'recent_snapshots' => self::get_recent_snapshots($org_id, ['limit' => 10]),
+            'accounts' => $accounts,
+            'permissions' => [
+                'can_export' => OraBooks_RBAC::require_permission($user_id, $org_id, 'export_reports'),
+                'can_sign' => OraBooks_RBAC::require_permission($user_id, $org_id, 'sign_report'),
+                'can_admin_replay' => OraBooks_RBAC::require_permission($user_id, $org_id, 'admin_replay'),
+                'can_manage_config' => OraBooks_RBAC::require_permission($user_id, $org_id, 'manage_org_settings'),
+            ],
+            'snapshot_ttl_hours' => (int) (self::SNAPSHOT_TTL_SECONDS / HOUR_IN_SECONDS),
+        ]);
+    }
+
+    public function ajax_report_config_get() {
+        $user_id = $this->current_user_id();
+        $org_id = intval($_REQUEST['org_id'] ?? 0);
+        $this->require_customer_org_access($user_id, $org_id);
+        if (!OraBooks_RBAC::require_permission($user_id, $org_id, 'manage_org_settings')) {
+            orabooks_json_error('Permission denied', 403);
+        }
+
+        orabooks_json_success([
+            'report_config' => self::get_org_report_config($org_id),
+        ]);
+    }
+
+    public function ajax_report_config_save() {
+        $user_id = $this->current_user_id();
+        $org_id = intval($_POST['org_id'] ?? 0);
+        $this->require_customer_org_access($user_id, $org_id);
+        if (!OraBooks_RBAC::require_permission($user_id, $org_id, 'manage_org_settings')) {
+            orabooks_json_error('Permission denied', 403);
+        }
+
+        $result = self::save_org_report_config($org_id, [
+            'cash_flow_method' => sanitize_text_field($_POST['cash_flow_method'] ?? ''),
+            'snapshot_retention_days' => intval($_POST['snapshot_retention_days'] ?? 365),
+            'encrypt_snapshots' => !empty($_POST['encrypt_snapshots']),
+        ]);
+
+        if (is_wp_error($result)) {
+            orabooks_json_error($result->get_error_message(), 400);
+        }
+
+        orabooks_json_success(['report_config' => $result]);
+    }
 }
