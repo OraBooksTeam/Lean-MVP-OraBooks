@@ -108,8 +108,8 @@ class OraBooks_Organization {
         if ($organization_type === 'partner') {
             $wpdb->insert(
                 $table_quotas,
-                ['org_id' => $org_id, 'api_calls_limit' => null, 'storage_limit_mb' => null, 'user_limit' => null],
-                ['%d', null, null, null]
+                ['org_id' => $org_id],
+                ['%d']
             );
         } else {
             $limits = self::get_tier_limits($tier);
