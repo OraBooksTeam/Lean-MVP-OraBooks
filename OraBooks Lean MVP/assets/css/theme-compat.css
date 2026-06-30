@@ -399,6 +399,10 @@ body.orabooks-page #orabooks-app-root .orabooks-table-scroll {
     /* Ensure mobile sticky header with hamburger is always visible */
     body.orabooks-page #orabooks-app-root .orabooks-client-main > .sticky {
         display: flex !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        position: sticky !important;
+        top: 0 !important;
     }
     
     /* Ensure hamburger menu button is visible and properly sized */
@@ -408,6 +412,31 @@ body.orabooks-page #orabooks-app-root .orabooks-table-scroll {
         justify-content: center !important;
         min-width: 36px !important;
         min-height: 36px !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        cursor: pointer !important;
+    }
+    
+    /* Ensure the entire mobile header bar is visible */
+    body.orabooks-page #orabooks-app-root .orabooks-client-main > div.sticky {
+        display: flex !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        height: auto !important;
+        min-height: 48px !important;
+        overflow: visible !important;
+    }
+    
+    /* Force show all children in mobile header */
+    body.orabooks-page #orabooks-app-root .orabooks-client-main > div.sticky > div {
+        display: flex !important;
+        visibility: visible !important;
+    }
+    
+    /* Ensure notification bell and hamburger container is visible */
+    body.orabooks-page #orabooks-app-root .orabooks-client-main > div.sticky .flex.items-center.gap-0\\.5 {
+        display: flex !important;
+        visibility: visible !important;
     }
 }
 
