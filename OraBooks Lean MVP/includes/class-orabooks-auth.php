@@ -227,13 +227,8 @@ class OraBooks_Auth {
                 'error' => $email_warning
             ], $user_id, null);
         }
-        
-        // Store partner type and org name in session for backward compatibility
+        // Record terms acceptance (partner only)
         if ($user_type === 'partner') {
-            $_SESSION['orabooks_partner_type'] = $partner_type;
-            $_SESSION['orabooks_partner_org_name'] = $organization_name;
-            
-            // Record terms acceptance
             $table_terms = OraBooks_Database::table('partner_terms_acceptance');
             $wpdb->insert(
                 $table_terms,
@@ -759,14 +754,12 @@ class OraBooks_Auth {
      */
     private static function handle_partner_first_login($user) {
         $partner_type = $user->pending_partner_type
-            ?? $_SESSION['orabooks_partner_type']
             ?? 'individual';
         if (!in_array($partner_type, ['individual', 'accountant', 'agency', 'reseller', 'strategic_partner'], true)) {
             $partner_type = 'individual';
         }
 
         $organization_name = $user->pending_organization_name
-            ?? $_SESSION['orabooks_partner_org_name']
             ?? '';
         $organization_name = sanitize_text_field((string) $organization_name);
         if (!in_array($partner_type, ['agency', 'reseller', 'strategic_partner'], true)) {
@@ -799,10 +792,9 @@ class OraBooks_Auth {
                 'pending_organization_name' => null,
             ],
             ['id' => $user->id],
-            [null, null],
+            ['%s', '%s'],
             ['%d']
         );
-        unset($_SESSION['orabooks_partner_type'], $_SESSION['orabooks_partner_org_name']);
         
         $jwt = OraBooks_Secrets::generate_jwt([
             'user_id' => $user->id,
@@ -907,9 +899,13 @@ class OraBooks_Auth {
         
         $wpdb->update(
             $table_users,
-            ['is_email_verified' => 1, 'email_verification_token' => null, 'email_verification_expires_at' => null],
+            [
+                'is_email_verified' => 1,
+                'email_verification_token' => null,
+                'email_verification_expires_at' => null
+            ],
             ['id' => $user->id],
-            ['%d', null, null],
+            ['%d', '%s', '%s'],
             ['%d']
         );
 
@@ -963,7 +959,7 @@ class OraBooks_Auth {
                     'low_activity_reminder_sent_at' => null
                 ],
                 ['user_id' => $pending->partner_user_id],
-                ['%s', null, null],
+                ['%s', '%s', '%s'],
                 ['%d']
             );
             
@@ -1200,7 +1196,7 @@ class OraBooks_Auth {
                 'password_reset_expires_at' => null
             ],
             ['id' => $user->id],
-            ['%s', null, null],
+            ['%s', '%s', '%s'],
             ['%d']
         );
         
@@ -1700,11 +1696,6 @@ class OraBooks_Auth {
                 );
             }
 
-            if ($state_data && !empty($existing->is_partner)) {
-                $_SESSION['orabooks_partner_type'] = $partner_type;
-                $_SESSION['orabooks_partner_org_name'] = $organization_name;
-            }
-
             // Check if 2FA is required for this existing user
             if ($existing->is_2fa_enabled) {
                 $temp_token = OraBooks_Secrets::generate_jwt([
@@ -1742,7 +1733,7 @@ class OraBooks_Auth {
                 'org_id' => null,
                 'is_partner' => $is_partner,
             ];
-            $insert_format = ['%s', '%s', '%d', '%d', '%s', null, '%d'];
+            $insert_format = ['%s', '%s', '%d', '%d', '%s', '%d'];
 
             if ($is_partner) {
                 $insert_data['pending_partner_type'] = $partner_type;
@@ -1753,7 +1744,17 @@ class OraBooks_Auth {
                 $insert_format[] = '%s';
             }
 
-            $wpdb->insert($table_users, $insert_data, $insert_format);
+            // Filter out null values and build matching format array
+            $filtered_data = [];
+            $filtered_formats = [];
+            $data_keys = array_keys($insert_data);
+            foreach ($data_keys as $i => $key) {
+                if ($insert_data[$key] !== null) {
+                    $filtered_data[$key] = $insert_data[$key];
+                    $filtered_formats[] = isset($insert_format[$i]) && $insert_format[$i] !== null ? $insert_format[$i] : '%s';
+                }
+            }
+            $wpdb->insert($table_users, $filtered_data, $filtered_formats);
 
             $user_id = $wpdb->insert_id;
             if (!$user_id) {
@@ -1789,9 +1790,6 @@ class OraBooks_Auth {
             ];
 
             if ($is_partner) {
-                $_SESSION['orabooks_partner_type'] = $partner_type;
-                $_SESSION['orabooks_partner_org_name'] = $organization_name;
-
                 $table_terms = OraBooks_Database::table('partner_terms_acceptance');
                 $wpdb->insert(
                     $table_terms,
