@@ -878,8 +878,7 @@
 .orabooks-admin .page-title-action.button-primary,
 .orabooks-admin .orabooks-btn-primary,
 .orabooks-admin-react #orabooks-admin-root .orabooks-wp-admin button[class*="bg-primary"],
-.orabooks-admin-react #orabooks-admin-root .orabooks-wp-admin a[class*="bg-primary"],
-.orabooks-admin-react #orabooks-admin-root .orabooks-wp-admin [class*="bg-primary"][class*="text-primary"] {
+.orabooks-admin-react #orabooks-admin-root .orabooks-wp-admin a[class*="bg-primary"] {
     color: #ffffff !important;
 }
 
