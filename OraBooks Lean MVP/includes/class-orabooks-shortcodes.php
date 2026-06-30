@@ -48,6 +48,7 @@ class OraBooks_Shortcodes {
             add_shortcode('orabooks_inventory', [self::$instance, 'inventory_page']);
             add_shortcode('orabooks_bank_reconciliation', [self::$instance, 'bank_reconciliation_page']);
             add_shortcode('orabooks_reports', [self::$instance, 'reports_page']);
+            add_shortcode('orabooks_financial_reports', [self::$instance, 'financial_reports_page']);
             add_shortcode('orabooks_invoices', [self::$instance, 'invoices_page']);
             add_shortcode('orabooks_chart_of_accounts', [self::$instance, 'chart_of_accounts_page']);
             add_shortcode('orabooks_fiscal_periods', [self::$instance, 'fiscal_periods_page']);
@@ -139,6 +140,10 @@ class OraBooks_Shortcodes {
 
     public function reports_page() {
         return $this->customer_react_page('/reports');
+    }
+
+    public function financial_reports_page() {
+        return $this->customer_react_page('/financial-reports');
     }
 
     public function invoices_page() {

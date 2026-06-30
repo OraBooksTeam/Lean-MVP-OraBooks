@@ -108,6 +108,7 @@ class OraBooks_Assets {
             'orabooks_inventory',
             'orabooks_bank_reconciliation',
             'orabooks_reports',
+            'orabooks_financial_reports',
             'orabooks_csv_import',
             'orabooks_team',
             'orabooks_attachments',
