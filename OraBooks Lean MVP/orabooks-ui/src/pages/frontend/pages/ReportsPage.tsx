@@ -5,7 +5,6 @@ import { api } from '../api';
 import ClientShell from '../components/ClientShell';
 import { BarChart3, Download, FileText, PenLine, RefreshCw } from 'lucide-react';
 
-const FINANCIAL_DEFAULT = 'profit_loss';
 const OPERATIONAL_DEFAULT = 'ar_aging';
 
 const fieldClass = 'w-full rounded-lg border border-border bg-white px-3.5 py-2.5 text-sm text-ink shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20';
@@ -15,20 +14,13 @@ export default function ReportsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [financialType, setFinancialType] = useState(FINANCIAL_DEFAULT);
   const [operationalType, setOperationalType] = useState(OPERATIONAL_DEFAULT);
   const [periodStart, setPeriodStart] = useState('');
   const [periodEnd, setPeriodEnd] = useState('');
   const [asOfDate, setAsOfDate] = useState('');
-  const [financialResult, setFinancialResult] = useState<any>(null);
   const [operationalResult, setOperationalResult] = useState<any>(null);
-  const [generatingFinancial, setGeneratingFinancial] = useState(false);
   const [generatingOperational, setGeneratingOperational] = useState(false);
-  const [exportingFinancial, setExportingFinancial] = useState<'csv' | 'pdf' | null>(null);
   const [exportingOperational, setExportingOperational] = useState<'csv' | 'pdf' | null>(null);
-  const [signTarget, setSignTarget] = useState<{ id: number; label: string } | null>(null);
-  const [boardRef, setBoardRef] = useState('');
-  const [signing, setSigning] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -49,24 +41,7 @@ export default function ReportsPage() {
   useEffect(() => { void load(); }, []);
 
   const orgId = data?.context?.organization?.id;
-  const role = data?.context?.role;
-  const canSign = ['owner', 'admin'].includes(role);
-  const canExport = ['owner', 'admin', 'staff'].includes(role);
-
-  const runFinancial = async () => {
-    if (!orgId) return;
-    setGeneratingFinancial(true);
-    setFinancialResult(null);
-    setError('');
-    setSuccess('');
-    const res = await api.generateFinancialReport(orgId, financialType, periodStart, periodEnd);
-    if (res.error) setError(res.error);
-    else {
-      setFinancialResult((res as any).data);
-      await load();
-    }
-    setGeneratingFinancial(false);
-  };
+  const canExport = ['owner', 'admin', 'staff'].includes(data?.context?.role);
 
   const runOperational = async () => {
     if (!orgId) return;
@@ -82,24 +57,6 @@ export default function ReportsPage() {
     if (res.error) setError(res.error);
     else setOperationalResult((res as any).data);
     setGeneratingOperational(false);
-  };
-
-  const exportFinancial = async (format: 'csv' | 'pdf') => {
-    if (!orgId) return;
-    setExportingFinancial(format);
-    setError('');
-    setSuccess('');
-    const res = await api.financialReportExport(orgId, financialType, format, periodStart, periodEnd);
-    if (res.error) setError(res.error);
-    else {
-      const exportId = (res as any).data?.id;
-      setSuccess(
-        exportId
-          ? `Financial report export queued (#${exportId}). Check My Exports when ready.`
-          : 'Financial report export queued. Check My Exports when ready.',
-      );
-    }
-    setExportingFinancial(null);
   };
 
   const exportOperational = async (format: 'csv' | 'pdf') => {
@@ -122,30 +79,6 @@ export default function ReportsPage() {
       );
     }
     setExportingOperational(null);
-  };
-
-  const openSignModal = (snapshotId: number, label: string) => {
-    setSignTarget({ id: snapshotId, label });
-    setBoardRef('');
-    setError('');
-    setSuccess('');
-  };
-
-  const submitSign = async () => {
-    if (!orgId || !signTarget) return;
-    setSigning(true);
-    setError('');
-    setSuccess('');
-    const res = await api.financialReportSign(orgId, signTarget.id, boardRef.trim());
-    if (res.error) {
-      setError(res.error);
-    } else {
-      const watermark = (res as any).data?.watermark;
-      setSuccess(watermark ? `Report signed (${watermark}).` : 'Report signed.');
-      setSignTarget(null);
-      await load();
-    }
-    setSigning(false);
   };
 
   const fin = data?.financial_preview;
