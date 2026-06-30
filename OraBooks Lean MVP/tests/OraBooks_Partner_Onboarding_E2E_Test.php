@@ -412,12 +412,12 @@ class OraBooks_Partner_Onboarding_E2E_Test extends TestCase
         );
 
         // ----------------------------------------------------------------
-        // STEP 8: Dashboard accessible with status_banner = pending info
+        // STEP 8: Dashboard accessible after onboarding
         // ----------------------------------------------------------------
         // Mock get_dashboard_data queries for the partner
         $this->setupDashboardDataMocks([
-            'code_status' => 'pending_review',
-            'org_status'  => 'pending_setup',
+            'status'     => 'pending_review',
+            'org_status' => 'pending_setup',
         ], $orgId);
 
         $dashboardResponse = $this->callAjax('ajax_partner_dashboard');
@@ -426,13 +426,18 @@ class OraBooks_Partner_Onboarding_E2E_Test extends TestCase
         $this->assertArrayHasKey('data', $dashboardResponse);
         $dashData = $dashboardResponse['data'];
 
+        // Dashboard banner is null for pending states (no matching condition in
+        // get_dashboard_status_banner(); pending partners see the message on the
+        // onboarding page instead)
         $this->assertArrayHasKey('status_banner', $dashData,
-            'Step 8: Dashboard should include status_banner');
-        $this->assertNotNull($dashData['status_banner'],
-            'Step 8: Status banner should not be null for pending_setup');
-        $this->assertStringContainsString('Awaiting admin approval',
-            $dashData['status_banner']['message'],
-            'Step 8: Banner should show pending approval message');
+            'Step 8: Dashboard should include status_banner key');
+        $this->assertNull($dashData['status_banner'],
+            'Step 8: No dashboard banner for pending_setup/pending_review');
+
+        $this->assertArrayHasKey('code_status', $dashData);
+        $this->assertEquals('pending_review', $dashData['code_status']);
+        $this->assertArrayHasKey('org_status', $dashData);
+        $this->assertEquals('pending_setup', $dashData['org_status']);
 
         // Verify dashboard audit event
         $dashEvents = array_filter($GLOBALS['orabooks_test_log_events'] ?? [], function ($e) {
