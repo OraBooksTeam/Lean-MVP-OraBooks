@@ -59,6 +59,7 @@
         </testsuite>
         <testsuite name="OraBooks Partner Tests">
             <file>OraBooks_Partner_Test.php</file>
+            <file>OraBooks_Partner_Onboarding_E2E_Test.php</file>
         </testsuite>
         <testsuite name="OraBooks Notification Tests">
             <file>OraBooks_Notifications_Test.php</file>
