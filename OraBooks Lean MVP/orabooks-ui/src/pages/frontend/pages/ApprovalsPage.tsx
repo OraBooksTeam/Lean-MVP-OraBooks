@@ -219,7 +219,6 @@ export default function ApprovalsPage() {
             onReject={(id) => openRejectModal(id)}
             onPost={(id) => void handlePost(id)}
             onSubmit={(id, round) => void handleSubmit(id, round)}
-            mfaThreshold={Number(data?.policy?.mfa_amount_threshold ?? 10000)}
           />
         )}
 
