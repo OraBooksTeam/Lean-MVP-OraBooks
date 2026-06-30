@@ -325,7 +325,7 @@ class OraBooks_Partner {
             case 'active':
                 return '✅ Your code is active. Share it to earn commissions.';
             case 'inactive':
-                return "🚫 Your partner code is inactive because you have no active customers and haven't brought any new customer in the last 12 months. Request reactivation from dashboard.";
+                return "🚫 Your partner code is inactive because you have no active customers and haven't brought any new customer in the last 12 months. Contact support to reactivate.";
             default:
                 return 'Partner code status: ' . $code_status;
         }
