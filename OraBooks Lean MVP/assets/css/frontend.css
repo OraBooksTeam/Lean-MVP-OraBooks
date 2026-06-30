@@ -402,6 +402,36 @@
     .orabooks-table td {
         padding: 8px 10px;
     }
+    .orabooks-form-container::before,
+    .orabooks-dashboard::before,
+    .orabooks-commission-dashboard::before,
+    .orabooks-partner-dashboard::before,
+    .orabooks-notification-center::before,
+    .orabooks-export-status::before {
+        margin: -20px -20px 20px;
+    }
+    .orabooks-partner-header {
+        padding: 16px;
+    }
+    .orabooks-nc-item-header {
+        flex-direction: column;
+    }
+    .orabooks-nc-item-meta {
+        flex-direction: column;
+        gap: 4px;
+    }
+    .orabooks-export-actions {
+        flex-direction: column;
+    }
+    .orabooks-export-actions .orabooks-export-trigger {
+        width: 100%;
+    }
+    .orabooks-invoice-actions {
+        flex-direction: column;
+    }
+    .orabooks-invoice-actions .orabooks-btn {
+        width: 100%;
+    }
 }
 @media screen and (max-width: 480px) {
     .orabooks-commission-stats {
@@ -422,6 +452,59 @@
     }
     .orabooks-code-display {
         flex-direction: column;
+    }
+    .orabooks-auth-shell {
+        padding: 24px 12px;
+    }
+    .orabooks-page-shell {
+        padding: 12px 8px;
+    }
+    .orabooks-notification-center,
+    .orabooks-notification-preferences,
+    .orabooks-notification-admin,
+    .orabooks-export-status,
+    .orabooks-commission-dashboard,
+    .orabooks-partner-dashboard {
+        padding: 12px;
+        margin: 8px 4px;
+    }
+    .orabooks-partner-stats .orabooks-stat-number {
+        font-size: 22px;
+    }
+    .orabooks-modal-content {
+        margin: 5% 8px;
+        padding: 16px;
+    }
+    .orabooks-stats-row {
+        margin-bottom: 16px;
+    }
+}
+@media screen and (max-width: 380px) {
+    .orabooks-form-container {
+        margin: 8px 4px;
+        padding: 12px;
+    }
+    .orabooks-form-container::before,
+    .orabooks-dashboard::before,
+    .orabooks-commission-dashboard::before,
+    .orabooks-partner-dashboard::before,
+    .orabooks-notification-center::before,
+    .orabooks-export-status::before {
+        margin: -12px -12px 16px;
+    }
+    .orabooks-btn {
+        padding: 8px 16px;
+        font-size: 13px;
+    }
+    .orabooks-banner {
+        flex-direction: column;
+        gap: 4px;
+    }
+    .orabooks-nc-item {
+        padding: 12px;
+    }
+    .orabooks-stat-amount {
+        font-size: 20px;
     }
 }
 
