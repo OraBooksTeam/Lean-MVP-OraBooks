@@ -181,6 +181,8 @@ export default function ReportsPage() {
 
 function ReportOutput({ title, payload }: { title: string; payload: any }) {
   const report = payload?.data;
+
+  if (Array.isArray(report) && report.length > 0) {
     const sample = report[0];
     const columns = typeof sample === 'object' ? Object.keys(sample) : ['value'];
 
@@ -241,15 +243,6 @@ function Metric({ label, value }: { label: string; value: string | number }) {
     <div className="stat-card">
       <p className="text-xs font-bold uppercase tracking-wide text-slate-500">{label}</p>
       <p className="mt-2 text-3xl font-black text-ink">{value}</p>
-    </div>
-  );
-}
-
-function SummaryLine({ label, value, bold = false }: { label: string; value: string; bold?: boolean }) {
-  return (
-    <div>
-      <p className="text-xs uppercase text-slate-500">{label}</p>
-      <p className={`text-lg ${bold ? 'font-black text-ink' : 'font-semibold text-slate-700'}`}>{value}</p>
     </div>
   );
 }
