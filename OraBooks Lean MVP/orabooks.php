@@ -945,6 +945,14 @@ function orabooks_frontend_enqueue() {
 add_action('wp_footer', ['OraBooks_Assets', 'print_late_frontend_styles'], 1);
 add_action('wp_footer', ['OraBooks_Assets', 'maybe_enqueue_missed_frontend_assets'], 5);
 
+// Hide WordPress admin bar on OraBooks frontend pages
+add_action('wp', 'orabooks_maybe_hide_admin_bar');
+function orabooks_maybe_hide_admin_bar() {
+    if (orabooks_is_registered_frontend_page()) {
+        add_filter('show_admin_bar', '__return_false');
+    }
+}
+
 // Add body classes on OraBooks frontend pages for full-width layout
 add_filter('body_class', 'orabooks_body_class');
 function orabooks_body_class($classes) {
