@@ -879,9 +879,8 @@ export default function InvoicesPage() {
                 {selectedInvoice.buyer_snapshot?.tax_id && <p className="mt-1">Tax ID: {selectedInvoice.buyer_snapshot.tax_id}</p>}
               </div>
             </div>
-
-            <div className="mt-4 overflow-x-auto rounded-xl border border-border">
-              <table className="min-w-full text-left text-sm">
+              <div className="mt-4 overflow-x-auto overflow-y-hidden rounded-xl border border-border">
+                <table className="min-w-[600px] w-full text-left text-sm">
                 <thead>
                   <tr className="border-b border-border bg-slate-50 text-xs uppercase text-slate-500">
                     <th className="px-4 py-2">SKU</th>
