@@ -657,12 +657,51 @@ export const api = {
     if (cfg.current_user_id) qs.set('current_user_id', String(cfg.current_user_id));
     return `${cfg.ajax_url}?${qs.toString()}`;
   },
-  generateFinancialReport: (orgId: number, reportType: string, periodStart: string, periodEnd: string) =>
+  generateFinancialReport: (
+    orgId: number,
+    reportType: string,
+    periodStart: string,
+    periodEnd: string,
+    options: Record<string, string | number | boolean> = {},
+  ) =>
     api.get('orabooks_financial_report_generate', {
       org_id: orgId,
       report_type: reportType,
       period_start: periodStart,
       period_end: periodEnd,
+      ...options,
+    }),
+  financialReportsDashboard: (orgId: number) =>
+    api.get('orabooks_financial_reports_dashboard', { org_id: orgId }),
+  financialReportConfigSave: (
+    orgId: number,
+    config: { cash_flow_method: string; snapshot_retention_days: number; encrypt_snapshots: boolean },
+  ) =>
+    api.post('orabooks_financial_report_config_save', {
+      org_id: orgId,
+      cash_flow_method: config.cash_flow_method,
+      snapshot_retention_days: config.snapshot_retention_days,
+      encrypt_snapshots: config.encrypt_snapshots ? 1 : 0,
+    }),
+  financialReportRebuild: (
+    orgId: number,
+    projectionName: string,
+    options: Record<string, string | number | boolean> = {},
+  ) =>
+    api.post('orabooks_financial_report_rebuild', {
+      org_id: orgId,
+      projection_name: projectionName,
+      ...options,
+    }),
+  financialReportReplay: (
+    orgId: number,
+    projectionName: string,
+    options: Record<string, string | number | boolean> = {},
+  ) =>
+    api.post('orabooks_financial_report_replay', {
+      org_id: orgId,
+      projection_name: projectionName,
+      ...options,
     }),
   generateOperationalReport: (orgId: number, reportType: string, params: Record<string, string> = {}) =>
     api.get('orabooks_operational_report', {
