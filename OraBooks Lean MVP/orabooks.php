@@ -954,6 +954,32 @@ function orabooks_maybe_hide_admin_bar() {
 }
 
 // Add body classes on OraBooks frontend pages for full-width layout
+// Hide admin bar on OraBooks frontend pages (already hidden via CSS, but also block PHP output)
+add_filter('show_admin_bar', 'orabooks_hide_admin_bar_frontend');
+function orabooks_hide_admin_bar_frontend($show) {
+    if (!is_admin() && orabooks_is_frontend_page()) {
+        return false;
+    }
+    return $show;
+}
+
+/**
+ * Check if current page is an OraBooks frontend page.
+ */
+function orabooks_is_frontend_page() {
+    if (!is_singular('page')) {
+        return false;
+    }
+    $post = get_post();
+    if (!$post) {
+        return false;
+    }
+    if (function_exists('orabooks_page_needs_frontend_assets') && orabooks_page_needs_frontend_assets($post)) {
+        return true;
+    }
+    return false;
+}
+
 add_filter('body_class', 'orabooks_body_class');
 function orabooks_body_class($classes) {
     if (!is_singular('page')) {
