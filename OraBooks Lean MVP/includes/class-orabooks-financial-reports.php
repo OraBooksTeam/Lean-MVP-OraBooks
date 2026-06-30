@@ -637,7 +637,7 @@ class OraBooks_Financial_Reports {
     /**
      * Posted ledger rows (source of truth) with optional period window.
      */
-    public static function posted_ledger_rows($org_id, $period_start, $period_end, $types = []) {
+    public static function posted_ledger_rows($org_id, $period_start, $period_end, $types = [], $filters = []) {
         global $wpdb;
 
         $org_id = (int) $org_id;
@@ -664,6 +664,11 @@ class OraBooks_Financial_Reports {
             $params = array_merge($params, $types);
         }
 
+        if (!empty($filters['account_id'])) {
+            $where .= ' AND a.id = %d';
+            $params[] = (int) $filters['account_id'];
+        }
+
         $sql = "SELECT a.id as account_id, a.code, a.name, a.type, a.normal_balance,
                        COALESCE(SUM(le.debit_amount), 0) as debit_sum,
                        COALESCE(SUM(le.credit_amount), 0) as credit_sum
@@ -680,12 +685,12 @@ class OraBooks_Financial_Reports {
     /**
      * Prefer projection read model; fall back to posted ledger when projection is empty.
      */
-    private static function ledger_rows_for_report($org_id, $period_start, $period_end, $types = []) {
-        $rows = self::ledger_summary_rows($org_id, $period_start, $period_end, $types);
+    private static function ledger_rows_for_report($org_id, $period_start, $period_end, $types = [], $filters = []) {
+        $rows = self::ledger_summary_rows($org_id, $period_start, $period_end, $types, $filters);
         if (!empty($rows)) {
             return $rows;
         }
-        return self::posted_ledger_rows($org_id, $period_start, $period_end, $types);
+        return self::posted_ledger_rows($org_id, $period_start, $period_end, $types, $filters);
     }
 
     public static function posted_ledger_has_activity($org_id) {
@@ -810,7 +815,7 @@ class OraBooks_Financial_Reports {
         return $wpdb->get_results($wpdb->prepare($sql, $params), ARRAY_A) ?: [];
     }
 
-    private static function ledger_summary_rows($org_id, $period_start, $period_end, $types = []) {
+    private static function ledger_summary_rows($org_id, $period_start, $period_end, $types = [], $filters = []) {
         global $wpdb;
 
         $table_summary = OraBooks_Database::table('report_ledger_summary');
@@ -827,6 +832,11 @@ class OraBooks_Financial_Reports {
             $placeholders = implode(',', array_fill(0, count($types), '%s'));
             $where .= " AND a.type IN ({$placeholders})";
             $params = array_merge($params, $types);
+        }
+
+        if (!empty($filters['account_id'])) {
+            $where .= ' AND a.id = %d';
+            $params[] = (int) $filters['account_id'];
         }
 
         $sql = "SELECT a.id as account_id, a.code, a.name, a.type, a.normal_balance,
