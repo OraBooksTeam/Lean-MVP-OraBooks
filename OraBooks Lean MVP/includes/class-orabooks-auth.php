@@ -160,7 +160,7 @@ class OraBooks_Auth {
             'is_partner' => ($user_type === 'partner') ? 1 : 0,
             'wp_user_id' => null,
         ];
-        $insert_format = ['%s', '%s', '%d', '%d', '%s', '%s', '%d', '%s', null, '%d', null];
+        $insert_format = ['%s', '%s', '%d', '%d', '%s', '%s', '%d', '%s', '%d'];
 
         if ($user_type === 'partner') {
             $insert_data['pending_partner_type'] = $partner_type;
@@ -171,7 +171,17 @@ class OraBooks_Auth {
             $insert_format[] = '%s';
         }
 
-        $wpdb->insert($table_users, $insert_data, $insert_format);
+        // Filter out null values and build matching format array
+        $filtered_data = [];
+        $filtered_formats = [];
+        $data_keys = array_keys($insert_data);
+        foreach ($data_keys as $i => $key) {
+            if ($insert_data[$key] !== null) {
+                $filtered_data[$key] = $insert_data[$key];
+                $filtered_formats[] = isset($insert_format[$i]) && $insert_format[$i] !== null ? $insert_format[$i] : '%s';
+            }
+        }
+        $wpdb->insert($table_users, $filtered_data, $filtered_formats);
         
         $user_id = $wpdb->insert_id;
         if (!$user_id) {
