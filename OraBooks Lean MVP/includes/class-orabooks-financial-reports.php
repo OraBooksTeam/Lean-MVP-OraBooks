@@ -1614,6 +1614,96 @@ class OraBooks_Financial_Reports {
         ], $report);
     }
 
+    public static function save_org_report_config($org_id, $patch = []) {
+        global $wpdb;
+
+        $org_id = (int) $org_id;
+        if ($org_id <= 0) {
+            return new WP_Error('invalid_org', 'Invalid organization.');
+        }
+
+        $allowed_keys = ['cash_flow_method', 'snapshot_retention_days', 'encrypt_snapshots'];
+        $current = self::get_org_report_config($org_id);
+        foreach ($allowed_keys as $key) {
+            if (!array_key_exists($key, $patch)) {
+                continue;
+            }
+            if ($key === 'cash_flow_method') {
+                $value = in_array($patch[$key], ['indirect', 'direct'], true) ? $patch[$key] : 'indirect';
+            } elseif ($key === 'snapshot_retention_days') {
+                $value = max(30, min(3650, (int) $patch[$key]));
+            } else {
+                $value = !empty($patch[$key]);
+            }
+            $current[$key] = $value;
+        }
+
+        $table = OraBooks_Database::table('organizations');
+        $raw = $wpdb->get_var($wpdb->prepare("SELECT config FROM {$table} WHERE id = %d", $org_id));
+        $parsed = $raw ? json_decode($raw, true) : [];
+        if (!is_array($parsed)) {
+            $parsed = [];
+        }
+        $parsed['report_config'] = $current;
+
+        $updated = $wpdb->update(
+            $table,
+            ['config' => wp_json_encode($parsed)],
+            ['id' => $org_id],
+            ['%s'],
+            ['%d']
+        );
+
+        if ($updated === false) {
+            return new WP_Error('config_save_failed', 'Unable to save report configuration.');
+        }
+
+        orabooks_log_event('financial_report_config_saved', 'Financial report configuration saved', 'info', [
+            'report_config' => $current,
+        ], get_current_user_id(), $org_id);
+
+        return $current;
+    }
+
+    public static function get_governance_dashboard($org_id) {
+        global $wpdb;
+
+        $org_id = (int) $org_id;
+        self::seed_projection_dependencies();
+
+        $deps_table = OraBooks_Database::table('projection_dependencies');
+        $checkpoints_table = OraBooks_Database::table('projector_checkpoints');
+        $integrity_table = OraBooks_Database::table('projection_integrity_checks');
+
+        $dependencies = $wpdb->get_results(
+            "SELECT projection_name, depends_on, rebuild_order, is_partitioned, partition_key
+             FROM {$deps_table}
+             ORDER BY rebuild_order ASC"
+        ) ?: [];
+
+        $checkpoints = $wpdb->get_results(
+            "SELECT projection_name, last_event_id, last_processed_at, status, lag_seconds
+             FROM {$checkpoints_table}
+             ORDER BY projection_name ASC"
+        ) ?: [];
+
+        $integrity_checks = $wpdb->get_results($wpdb->prepare(
+            "SELECT id, check_date, projection_name, ledger_total, projection_total, difference, status, repaired_at
+             FROM {$integrity_table}
+             WHERE org_id = %d
+             ORDER BY check_date DESC, id DESC
+             LIMIT 20",
+            $org_id
+        )) ?: [];
+
+        return [
+            'dependencies' => $dependencies,
+            'checkpoints' => $checkpoints,
+            'integrity_checks' => $integrity_checks,
+            'report_config' => self::get_org_report_config($org_id),
+        ];
+    }
+
     public static function kms_encryption_key_id($org_id) {
         return 'orabooks-kms-v1-org-' . (int) $org_id;
     }
@@ -1900,7 +1990,10 @@ class OraBooks_Financial_Reports {
             [
                 'generated_by' => $user_id,
                 'correlation_id' => $_REQUEST['correlation_id'] ?? null,
-                'method' => $_REQUEST['method'] ?? 'indirect',
+                'method' => $_REQUEST['method'] ?? null,
+                'compare_with' => $_REQUEST['compare_with'] ?? '',
+                'account_type' => $_REQUEST['account_type'] ?? '',
+                'account_id' => intval($_REQUEST['account_id'] ?? 0),
             ]
         );
 
@@ -1958,7 +2051,10 @@ class OraBooks_Financial_Reports {
     }
 
     public function ajax_rebuild_projection() {
-        if (!current_user_can('manage_options')) {
+        $user_id = $this->current_user_id();
+        $org_id = intval($_POST['org_id'] ?? 0);
+        $this->require_customer_org_access($user_id, $org_id);
+        if (!OraBooks_RBAC::require_permission($user_id, $org_id, 'admin_replay')) {
             orabooks_json_error('Permission denied', 403);
         }
 
@@ -1978,7 +2074,10 @@ class OraBooks_Financial_Reports {
     }
 
     public function ajax_replay_projection() {
-        if (!current_user_can('manage_options')) {
+        $user_id = $this->current_user_id();
+        $org_id = intval($_POST['org_id'] ?? 0);
+        $this->require_customer_org_access($user_id, $org_id);
+        if (!OraBooks_RBAC::require_permission($user_id, $org_id, 'admin_replay')) {
             orabooks_json_error('Permission denied', 403);
         }
 
