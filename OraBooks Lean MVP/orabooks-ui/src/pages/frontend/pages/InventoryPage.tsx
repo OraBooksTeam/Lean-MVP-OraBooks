@@ -244,12 +244,56 @@ export default function InventoryPage() {
     setError('');
     setSuccess('');
     setLookupError('');
+    setEditingProduct(null);
     const nextLookups = await loadLookups(orgId);
     const form = emptyProductForm();
     form.category_name = nextLookups.category[0]?.name || '';
     form.unit = nextLookups.unit[0]?.name || '';
     form.warehouse_name = defaultWarehouseName(nextLookups);
     setProductForm(form);
+    setShowProductForm(true);
+  };
+
+  const productToForm = (product: Product): ProductFormState => ({
+    name: product.name || '',
+    brand_name: product.brand_name || '',
+    category_name: product.category_name || '',
+    unit: product.unit || '',
+    hsn: product.hsn || '',
+    stock_keeping_unit: product.stock_keeping_unit || '',
+    barcode: product.barcode || '',
+    low_stock_threshold: product.low_stock_threshold != null ? String(product.low_stock_threshold) : '',
+    seller_points: String(product.seller_points ?? '0'),
+    description: product.description || '',
+    item_image_url: product.item_image_url || '',
+    item_image_file: null,
+    discount_type: product.discount_type === 'Fixed' ? 'Fixed' : 'Percentage',
+    discount: String(product.discount ?? '0'),
+    price: product.price != null ? String(product.price) : '',
+    purchase_price: product.purchase_price != null ? String(product.purchase_price) : '',
+    tax_name: product.tax_name || '',
+    tax_percent: String(product.tax_percent ?? '0'),
+    tax_type: product.tax_type === 'Exclusive' ? 'Exclusive' : 'Inclusive',
+    profit_margin: String(product.profit_margin ?? '0'),
+    sales_price: product.sales_price != null ? String(product.sales_price) : '',
+    mrp: product.mrp != null ? String(product.mrp) : '',
+    warehouse_name: product.warehouse_name || '',
+    initial_stock: '',
+    item_type: (product.item_type === 'Variants' || product.item_type === 'service'
+      ? product.item_type
+      : 'Single') as ProductFormState['item_type'],
+  });
+
+  const openEditProduct = async (product: Product) => {
+    if (!orgId) {
+      return;
+    }
+    setError('');
+    setSuccess('');
+    setLookupError('');
+    await loadLookups(orgId);
+    setEditingProduct(product);
+    setProductForm(productToForm(product));
     setShowProductForm(true);
   };
 
@@ -302,19 +346,7 @@ export default function InventoryPage() {
 
   const handleSearch = () => { void load(); };
 
-  const handleCreateProduct = async () => {
-    if (!orgId || !productForm.name.trim() || !productForm.category_name.trim() || !productForm.unit.trim() || !productForm.price.trim()) {
-      setError('Item name, category, unit, and price are required.');
-      return;
-    }
-
-    if (parseFloat(productForm.price) < 0) {
-      setError('Price cannot be negative.');
-      return;
-    }
-
-    setSaving(true);
-    setError('');
+  const buildProductFormData = () => {
     const payload: Record<string, string | number | undefined> = {
       name: productForm.name.trim(),
       unit: productForm.unit.trim(),
@@ -338,12 +370,16 @@ export default function InventoryPage() {
       mrp: parseFloat(productForm.mrp) || 0,
       warehouse_name: productForm.warehouse_name.trim(),
       item_type: productForm.item_type,
-      initial_stock: parseFloat(productForm.initial_stock) || 0,
-      initial_cost: parseFloat(productForm.purchase_price) || parseFloat(productForm.price) || 0,
       low_stock_threshold: productForm.low_stock_threshold
         ? parseFloat(productForm.low_stock_threshold)
         : undefined,
     };
+
+    if (!editingProduct) {
+      payload.initial_stock = parseFloat(productForm.initial_stock) || 0;
+      payload.initial_cost = parseFloat(productForm.purchase_price) || parseFloat(productForm.price) || 0;
+    }
+
     const formData = new FormData();
     Object.entries(payload).forEach(([key, value]) => {
       if (value !== undefined) {
@@ -353,17 +389,73 @@ export default function InventoryPage() {
     if (productForm.item_image_file) {
       formData.set('item_image', productForm.item_image_file);
     }
+    return formData;
+  };
 
-    const res = await api.inventoryProductCreateUpload(orgId, formData);
+  const handleCreateProduct = async () => {
+    if (!orgId || !productForm.name.trim() || !productForm.category_name.trim() || !productForm.unit.trim() || !productForm.price.trim()) {
+      setError('Item name, category, unit, and price are required.');
+      return;
+    }
+
+    if (parseFloat(productForm.price) < 0) {
+      setError('Price cannot be negative.');
+      return;
+    }
+
+    setSaving(true);
+    setError('');
+    const res = await api.inventoryProductCreateUpload(orgId, buildProductFormData());
 
     if (res.error) setError(res.error);
     else {
       setSuccess('Product created.');
       setShowProductForm(false);
+      setEditingProduct(null);
       setProductForm(emptyProductForm());
       await load();
     }
     setSaving(false);
+  };
+
+  const handleUpdateProduct = async () => {
+    if (!orgId || !editingProduct) {
+      return;
+    }
+    if (!productForm.name.trim() || !productForm.category_name.trim() || !productForm.unit.trim() || !productForm.price.trim()) {
+      setError('Item name, category, unit, and price are required.');
+      return;
+    }
+
+    if (parseFloat(productForm.price) < 0) {
+      setError('Price cannot be negative.');
+      return;
+    }
+
+    setSaving(true);
+    setError('');
+    const res = await api.inventoryProductUpdateUpload(orgId, editingProduct.id, buildProductFormData());
+
+    if (res.error) setError(res.error);
+    else {
+      setSuccess('Product updated.');
+      setShowProductForm(false);
+      setEditingProduct(null);
+      setProductForm(emptyProductForm());
+      if (selectedProduct?.id === editingProduct.id) {
+        setSelectedProduct((res as any).data?.product || selectedProduct);
+      }
+      await load();
+    }
+    setSaving(false);
+  };
+
+  const handleSaveProduct = () => {
+    if (editingProduct) {
+      void handleUpdateProduct();
+    } else {
+      void handleCreateProduct();
+    }
   };
 
   const openAdjust = (product: Product) => {
@@ -538,6 +630,10 @@ export default function InventoryPage() {
                       <div className="flex flex-wrap gap-1">
                         <Button size="sm" variant="secondary" onClick={() => setSelectedProduct(product)}>
                           View
+                        </Button>
+                        <Button size="sm" variant="secondary" onClick={() => { void openEditProduct(product); }}>
+                          <PenLine className="h-3.5 w-3.5" />
+                          Edit
                         </Button>
                         <Button size="sm" variant="secondary" onClick={() => openAdjust(product)}>
                           Adjust
