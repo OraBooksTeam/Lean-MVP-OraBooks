@@ -72,21 +72,6 @@ class OraBooks_Partner_Onboarding_E2E_Test extends TestCase
         }
     }
 
-    /**
-     * Invoke OraBooks_Auth AJAX handler and return the decoded JSON response.
-     */
-    private function callAuthAjax(string $method, array $post = []): array
-    {
-        $_POST = array_merge($_POST, $post);
-        $auth = new OraBooks_Auth();
-        try {
-            $auth->$method();
-            $this->fail("Expected RuntimeException (JSON response) was not thrown by {$method}");
-        } catch (RuntimeException $e) {
-            return json_decode($e->getMessage(), true);
-        }
-    }
-
     // ================================================================
     // E2E: Full partner onboarding flow
     // ================================================================
@@ -605,6 +590,8 @@ class OraBooks_Partner_Onboarding_E2E_Test extends TestCase
         $this->assertEquals('Individual', $data['partner_type_label']);
         $this->assertNull($data['organization_name'],
             'Individual partners should have null organization_name');
+        $this->assertFalse($data['bank_info_required'],
+            'Individual partners should also not require bank info in MVP');
     }
 
     // ================================================================
