@@ -727,18 +727,12 @@ class OraBooks_Partner {
             }
         }
         
-        // Compute dormant flag (single definition per spec)
-        // Dormant = no active customers, but had attribution within 6-12 months ago
+        // Compute low-activity flag (per SL-139 spec)
+        // Low-activity = no new attribution for 6+ months (applies to ALL partners)
         $last_attr_ts = $partner->last_attribution_at ? strtotime($partner->last_attribution_at) : 0;
         $six_months_ago = time() - (6 * 30 * 86400);
-        $twelve_months_ago = time() - (12 * 30 * 86400);
         
-        $is_dormant = (
-            $active_customer_count == 0 
-            && $last_attr_ts > 0
-            && $last_attr_ts < $six_months_ago
-            && $last_attr_ts >= $twelve_months_ago
-        );
+        $is_dormant = ($last_attr_ts === 0 || $last_attr_ts < $six_months_ago);
         
         // ATTRIBUTION STATS
         $attribution_stats = (object) [
@@ -909,7 +903,7 @@ class OraBooks_Partner {
         }
 
         if ($is_dormant) {
-            return ['type' => 'info', 'message' => '💡 You have no active customers. Refer new customers to earn commissions.'];
+            return ['type' => 'info', 'message' => '💡 You haven\'t referred any new customer in the last 6 months. Share your code to earn more commissions!'];
         }
 
         return null;
