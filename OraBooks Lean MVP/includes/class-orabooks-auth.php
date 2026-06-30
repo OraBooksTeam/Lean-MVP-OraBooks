@@ -142,6 +142,7 @@ class OraBooks_Auth {
         
         $password_hash = OraBooks_Secrets::hash_password($password);
         $verification_token = orabooks_random_string(32);
+        $verification_token_hash = orabooks_hash_token($verification_token);
         $verification_expires = date('Y-m-d H:i:s', time() + 86400); // 24 hours
         $pending_wp_signup = orabooks_multisite_uses_signup_activation();
         $wp_user_id = null;
@@ -152,7 +153,7 @@ class OraBooks_Auth {
             'password_hash' => $password_hash,
             'is_active' => 1,
             'is_email_verified' => 0,
-            'email_verification_token' => $verification_token,
+            'email_verification_token' => $verification_token_hash,
             'email_verification_expires_at' => $verification_expires,
             'is_2fa_enabled' => 0,
             'auth_provider' => 'local',
@@ -896,10 +897,10 @@ class OraBooks_Auth {
         
         $table_users = OraBooks_Database::table('users');
         
-        // Token is stored in plaintext in the database (not hashed), per spec
+        $token_hash = orabooks_hash_token($token);
         $user = $wpdb->get_row($wpdb->prepare(
             "SELECT * FROM {$table_users} WHERE email_verification_token = %s AND email_verification_expires_at > NOW()",
-            $token
+            $token_hash
         ));
         
         if (!$user) {
@@ -1147,12 +1148,13 @@ class OraBooks_Auth {
         }
         
         $reset_token = orabooks_random_string(32);
+        $reset_token_hash = orabooks_hash_token($reset_token);
         $expires = date('Y-m-d H:i:s', time() + 3600); // 1 hour
         
         $wpdb->update(
             $table_users,
             [
-                'password_reset_token' => $reset_token,
+                'password_reset_token' => $reset_token_hash,
                 'password_reset_expires_at' => $expires
             ],
             ['id' => $user->id],
@@ -1186,9 +1188,10 @@ class OraBooks_Auth {
             return new WP_Error('weak_password', $password_check);
         }
         
+        $token_hash = orabooks_hash_token($token);
         $user = $wpdb->get_row($wpdb->prepare(
             "SELECT * FROM {$table_users} WHERE password_reset_token = %s AND password_reset_expires_at > NOW()",
-            $token
+            $token_hash
         ));
         
         if (!$user) {
@@ -1326,11 +1329,12 @@ class OraBooks_Auth {
         
         if ($user) {
             $new_token = orabooks_random_string(32);
+            $new_token_hash = orabooks_hash_token($new_token);
             $expires = date('Y-m-d H:i:s', time() + 86400);
             
             $wpdb->update(
                 $table_users,
-                ['email_verification_token' => $new_token, 'email_verification_expires_at' => $expires],
+                ['email_verification_token' => $new_token_hash, 'email_verification_expires_at' => $expires],
                 ['id' => $user->id],
                 ['%s', '%s'],
                 ['%d']
