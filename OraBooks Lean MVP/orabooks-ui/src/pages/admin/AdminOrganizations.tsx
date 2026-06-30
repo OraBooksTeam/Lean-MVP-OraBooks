@@ -91,45 +91,49 @@ export default function AdminOrganizations() {
           <option value="fraud_freeze">Fraud Freeze</option>
         </select>
       </div>
-      <div className="glass-panel overflow-hidden">
-        <table className="min-w-full text-left text-sm">
-          <thead>
-            <tr className="border-b border-border bg-slate-50/60 text-xs uppercase text-slate-500">
-              <th className="px-5 py-3 font-semibold">ID</th>
-              <th className="px-5 py-3 font-semibold">Name</th>
-              <th className="px-5 py-3 font-semibold">Subdomain</th>
-              <th className="px-5 py-3 font-semibold">Type</th>
-              <th className="px-5 py-3 font-semibold">Tier</th>
-              <th className="px-5 py-3 font-semibold">Region</th>
-              <th className="px-5 py-3 font-semibold">Status</th>
-              <th className="px-5 py-3 font-semibold">Created</th>
-              <th className="px-5 py-3 font-semibold">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-border">
-            {loading ? (
-              <tr><td colSpan={9} className="px-5 py-6 text-center text-slate-500">Loading…</td></tr>
-            ) : orgs.length === 0 ? (
-              <tr><td colSpan={9} className="px-5 py-6 text-center text-slate-500">No organizations found.</td></tr>
-            ) : orgs.map((org) => (
-              <tr key={org.id} className="transition hover:bg-slate-50/60">
-                <td className="px-5 py-3 font-mono text-slate-600">{org.id}</td>
-                <td className="px-5 py-3 font-medium text-ink">{org.name}</td>
-                <td className="px-5 py-3 font-mono text-xs text-slate-600">{org.subdomain}</td>
-                <td className="px-5 py-3 capitalize text-slate-600">{org.organization_type}</td>
-                <td className="px-5 py-3 capitalize text-slate-600">{org.tier}</td>
-                <td className="px-5 py-3">
-                  <RegionCell org={org} onChange={changeRegion} />
-                </td>
-                <td className="px-5 py-3"><StatusBadge status={org.status} /></td>
-                <td className="px-5 py-3 text-slate-600">{org.created_at}</td>
-                <td className="px-5 py-3">
-                  <OrgActions org={org} onSuspend={suspend} onActivate={activate} />
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      <div className="-mx-4 overflow-x-auto overflow-y-hidden px-4 sm:mx-0 sm:px-0">
+        <div className="glass-panel min-w-0 overflow-hidden">
+          <div className="min-w-[960px]">
+            <table className="w-full text-left text-sm">
+              <thead>
+                <tr className="border-b border-border bg-slate-50/60 text-xs uppercase text-slate-500">
+                  <th className="px-5 py-3 font-semibold">ID</th>
+                  <th className="px-5 py-3 font-semibold">Name</th>
+                  <th className="px-5 py-3 font-semibold">Subdomain</th>
+                  <th className="px-5 py-3 font-semibold">Type</th>
+                  <th className="px-5 py-3 font-semibold">Tier</th>
+                  <th className="px-5 py-3 font-semibold">Region</th>
+                  <th className="px-5 py-3 font-semibold">Status</th>
+                  <th className="px-5 py-3 font-semibold">Created</th>
+                  <th className="px-5 py-3 font-semibold">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {loading ? (
+                  <tr><td colSpan={9} className="px-5 py-6 text-center text-slate-500">Loading…</td></tr>
+                ) : orgs.length === 0 ? (
+                  <tr><td colSpan={9} className="px-5 py-6 text-center text-slate-500">No organizations found.</td></tr>
+                ) : orgs.map((org) => (
+                  <tr key={org.id} className="transition hover:bg-slate-50/60">
+                    <td className="px-5 py-3 font-mono text-slate-600">{org.id}</td>
+                    <td className="px-5 py-3 font-medium text-ink">{org.name}</td>
+                    <td className="px-5 py-3 font-mono text-xs text-slate-600">{org.subdomain}</td>
+                    <td className="px-5 py-3 capitalize text-slate-600">{org.organization_type}</td>
+                    <td className="px-5 py-3 capitalize text-slate-600">{org.tier}</td>
+                    <td className="px-5 py-3">
+                      <RegionCell org={org} onChange={changeRegion} />
+                    </td>
+                    <td className="px-5 py-3"><StatusBadge status={org.status} /></td>
+                    <td className="px-5 py-3 text-slate-600">{org.created_at}</td>
+                    <td className="px-5 py-3">
+                      <OrgActions org={org} onSuspend={suspend} onActivate={activate} />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
     </AdminPageShell>
   );

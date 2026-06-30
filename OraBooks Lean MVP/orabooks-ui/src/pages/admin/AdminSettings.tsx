@@ -679,31 +679,33 @@ export default function AdminSettings() {
               </div>
             )}
 
-            <div className="overflow-hidden rounded-xl border border-border">
-              <table className="min-w-full text-left text-sm">
-                <thead>
-                  <tr className="border-b border-border bg-slate-50/80 text-xs uppercase text-slate-500">
-                    <th className="px-4 py-2 font-semibold">Check</th>
-                    <th className="px-4 py-2 font-semibold">Status</th>
-                    <th className="px-4 py-2 font-semibold">Detail</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  {(deployChecks.checks || []).map((check) => (
-                    <tr key={check.id}>
-                      <td className="px-4 py-2.5 font-medium text-ink">{check.label}</td>
-                      <td className="px-4 py-2.5">
-                        <span
-                          className={`badge ${check.ok ? 'bg-success/10 text-success' : 'bg-danger/10 text-danger'}`}
-                        >
-                          {check.ok ? 'OK' : 'FAIL'}
-                        </span>
-                      </td>
-                      <td className="px-4 py-2.5 text-xs text-slate-500">{check.detail || '—'}</td>
+            <div className="-mx-6 overflow-x-auto overflow-y-hidden px-6">
+              <div className="min-w-[500px] overflow-hidden rounded-xl border border-border">
+                <table className="w-full text-left text-sm">
+                  <thead>
+                    <tr className="border-b border-border bg-slate-50/80 text-xs uppercase text-slate-500">
+                      <th className="px-4 py-2 font-semibold">Check</th>
+                      <th className="px-4 py-2 font-semibold">Status</th>
+                      <th className="px-4 py-2 font-semibold">Detail</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {(deployChecks.checks || []).map((check) => (
+                      <tr key={check.id}>
+                        <td className="px-4 py-2.5 font-medium text-ink">{check.label}</td>
+                        <td className="px-4 py-2.5">
+                          <span
+                            className={`badge ${check.ok ? 'bg-success/10 text-success' : 'bg-danger/10 text-danger'}`}
+                          >
+                            {check.ok ? 'OK' : 'FAIL'}
+                          </span>
+                        </td>
+                        <td className="px-4 py-2.5 text-xs text-slate-500">{check.detail || '—'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
 
             {deployChecks.timestamp && (

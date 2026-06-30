@@ -61,37 +61,41 @@ export default function AdminCustomers() {
               </p>
             </div>
           </div>
-          <div className="glass-panel overflow-hidden">
-            <table className="min-w-full text-left text-sm">
-              <thead>
-                <tr className="border-b border-border bg-slate-50/60 text-xs uppercase text-slate-500">
-                  <th className="px-5 py-3 font-semibold">ID</th>
-                  <th className="px-5 py-3 font-semibold">Email</th>
-                  <th className="px-5 py-3 font-semibold">Status</th>
-                  <th className="px-5 py-3 font-semibold">Invoices</th>
-                  <th className="px-5 py-3 font-semibold">Total Paid</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {customers.length === 0 ? (
-                  <tr><td colSpan={5} className="px-5 py-6 text-center text-slate-500">No customers found.</td></tr>
-                ) : (
-                  customers.map((c) => (
-                    <tr key={c.id} className="hover:bg-slate-50/60">
-                      <td className="px-5 py-3 font-mono text-slate-600">{c.id}</td>
-                      <td className="px-5 py-3 font-medium text-ink">{c.email}</td>
-                      <td className="px-5 py-3">
-                        <span className={`badge border ${c.is_active ? 'bg-success/10 text-success border-success/20' : 'bg-slate-100 text-slate-600 border-slate-200'}`}>
-                          {c.is_active ? 'Active' : 'Inactive'}
-                        </span>
-                      </td>
-                      <td className="px-5 py-3">{c.invoice_count ?? 0}</td>
-                      <td className="px-5 py-3">${Number(c.total_paid || 0).toFixed(2)}</td>
+          <div className="-mx-4 overflow-x-auto overflow-y-hidden px-4 sm:mx-0 sm:px-0">
+            <div className="glass-panel min-w-0 overflow-hidden">
+              <div className="min-w-[550px]">
+                <table className="w-full text-left text-sm">
+                  <thead>
+                    <tr className="border-b border-border bg-slate-50/60 text-xs uppercase text-slate-500">
+                      <th className="px-5 py-3 font-semibold">ID</th>
+                      <th className="px-5 py-3 font-semibold">Email</th>
+                      <th className="px-5 py-3 font-semibold">Status</th>
+                      <th className="px-5 py-3 font-semibold">Invoices</th>
+                      <th className="px-5 py-3 font-semibold">Total Paid</th>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {customers.length === 0 ? (
+                      <tr><td colSpan={5} className="px-5 py-6 text-center text-slate-500">No customers found.</td></tr>
+                    ) : (
+                      customers.map((c) => (
+                        <tr key={c.id} className="hover:bg-slate-50/60">
+                          <td className="px-5 py-3 font-mono text-slate-600">{c.id}</td>
+                          <td className="px-5 py-3 font-medium text-ink">{c.email}</td>
+                          <td className="px-5 py-3">
+                            <span className={`badge border ${c.is_active ? 'bg-success/10 text-success border-success/20' : 'bg-slate-100 text-slate-600 border-slate-200'}`}>
+                              {c.is_active ? 'Active' : 'Inactive'}
+                            </span>
+                          </td>
+                          <td className="px-5 py-3">{c.invoice_count ?? 0}</td>
+                          <td className="px-5 py-3">${Number(c.total_paid || 0).toFixed(2)}</td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
         </div>
       )}

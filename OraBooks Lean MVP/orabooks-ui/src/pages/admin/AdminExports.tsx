@@ -31,43 +31,47 @@ export default function AdminExports() {
         </Button>
       }
     >
-      <div className="glass-panel overflow-hidden">
-        <table className="min-w-full text-left text-sm">
-          <thead>
-            <tr className="border-b border-border bg-slate-50/60 text-xs uppercase text-slate-500">
-              <th className="px-5 py-3 font-semibold">Type</th>
-              <th className="px-5 py-3 font-semibold">Format</th>
-              <th className="px-5 py-3 font-semibold">Status</th>
-              <th className="px-5 py-3 font-semibold">Created</th>
-              <th className="px-5 py-3 font-semibold">Download</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-border">
-            {loading ? (
-              <tr><td colSpan={5} className="px-5 py-6 text-center text-slate-500">Loading exports…</td></tr>
-            ) : exports.length === 0 ? (
-              <tr><td colSpan={5} className="px-5 py-6 text-center text-slate-500">No exports yet.</td></tr>
-            ) : (
-              exports.map((row) => (
-                <tr key={row.id} className="hover:bg-slate-50/60">
-                  <td className="px-5 py-3 font-medium text-ink">{row.export_type}</td>
-                  <td className="px-5 py-3 uppercase text-slate-600">{row.format}</td>
-                  <td className="px-5 py-3">
-                    <span className="badge border border-primary/20 bg-primary/10 text-primary">{row.status}</span>
-                  </td>
-                  <td className="px-5 py-3 text-slate-600">{row.created_at}</td>
-                  <td className="px-5 py-3">
-                    {row.download_url ? (
-                      <a href={row.download_url} className="inline-flex items-center gap-1 text-sm font-semibold text-primary hover:text-primary-dark">
-                        <Download className="h-4 w-4" /> Download
-                      </a>
-                    ) : '—'}
-                  </td>
+      <div className="-mx-4 overflow-x-auto overflow-y-hidden px-4 sm:mx-0 sm:px-0">
+        <div className="glass-panel min-w-0 overflow-hidden">
+          <div className="min-w-[550px]">
+            <table className="w-full text-left text-sm">
+              <thead>
+                <tr className="border-b border-border bg-slate-50/60 text-xs uppercase text-slate-500">
+                  <th className="px-5 py-3 font-semibold">Type</th>
+                  <th className="px-5 py-3 font-semibold">Format</th>
+                  <th className="px-5 py-3 font-semibold">Status</th>
+                  <th className="px-5 py-3 font-semibold">Created</th>
+                  <th className="px-5 py-3 font-semibold">Download</th>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {loading ? (
+                  <tr><td colSpan={5} className="px-5 py-6 text-center text-slate-500">Loading exports…</td></tr>
+                ) : exports.length === 0 ? (
+                  <tr><td colSpan={5} className="px-5 py-6 text-center text-slate-500">No exports yet.</td></tr>
+                ) : (
+                  exports.map((row) => (
+                    <tr key={row.id} className="hover:bg-slate-50/60">
+                      <td className="px-5 py-3 font-medium text-ink">{row.export_type}</td>
+                      <td className="px-5 py-3 uppercase text-slate-600">{row.format}</td>
+                      <td className="px-5 py-3">
+                        <span className="badge border border-primary/20 bg-primary/10 text-primary">{row.status}</span>
+                      </td>
+                      <td className="px-5 py-3 text-slate-600">{row.created_at}</td>
+                      <td className="px-5 py-3">
+                        {row.download_url ? (
+                          <a href={row.download_url} className="inline-flex items-center gap-1 text-sm font-semibold text-primary hover:text-primary-dark">
+                            <Download className="h-4 w-4" /> Download
+                          </a>
+                        ) : '—'}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
     </AdminPageShell>
   );

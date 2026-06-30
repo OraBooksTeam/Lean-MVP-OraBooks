@@ -72,51 +72,55 @@ export default function AdminCsvImports() {
         ))}
       </div>
 
-      <div className="glass-panel overflow-hidden">
-        <table className="min-w-full text-left text-sm">
-          <thead>
-            <tr className="border-b border-border bg-slate-50/60 text-xs uppercase text-slate-500">
-              <th className="px-5 py-3 font-semibold">ID</th>
-              {isPlatformAdmin && <th className="px-5 py-3 font-semibold">Org</th>}
-              <th className="px-5 py-3 font-semibold">Type</th>
-              <th className="px-5 py-3 font-semibold">File</th>
-              <th className="px-5 py-3 font-semibold">Status</th>
-              <th className="px-5 py-3 font-semibold">Rows</th>
-              <th className="px-5 py-3 font-semibold">Created</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-border">
-            {loading ? (
-              <tr>
-                <td colSpan={isPlatformAdmin ? 7 : 6} className="px-5 py-6 text-center text-slate-500">Loading…</td>
-              </tr>
-            ) : imports.length === 0 ? (
-              <tr>
-                <td colSpan={isPlatformAdmin ? 7 : 6} className="px-5 py-6 text-center text-slate-500">
-                  No import jobs yet. Upload CSV files from your organization workspace.
-                </td>
-              </tr>
-            ) : (
-              imports.map((row) => (
-                <tr key={row.id} className="hover:bg-slate-50/60">
-                  <td className="px-5 py-3 font-mono text-xs text-slate-600">#{row.id}</td>
-                  {isPlatformAdmin && (
-                    <td className="px-5 py-3 font-mono text-xs text-slate-600">{row.org_id}</td>
-                  )}
-                  <td className="px-5 py-3 font-medium text-ink">{row.resource_type.replace(/_/g, ' ')}</td>
-                  <td className="px-5 py-3 text-slate-600">{row.original_filename}</td>
-                  <td className="px-5 py-3">
-                    <StatusBadge status={row.status} />
-                  </td>
-                  <td className="px-5 py-3 text-slate-600">
-                    {row.processed_rows}/{row.total_rows}
-                  </td>
-                  <td className="px-5 py-3 text-slate-600">{row.created_at}</td>
+      <div className="-mx-4 overflow-x-auto overflow-y-hidden px-4 sm:mx-0 sm:px-0">
+        <div className="glass-panel min-w-0 overflow-hidden">
+          <div className="min-w-[700px]">
+            <table className="w-full text-left text-sm">
+              <thead>
+                <tr className="border-b border-border bg-slate-50/60 text-xs uppercase text-slate-500">
+                  <th className="px-5 py-3 font-semibold">ID</th>
+                  {isPlatformAdmin && <th className="px-5 py-3 font-semibold">Org</th>}
+                  <th className="px-5 py-3 font-semibold">Type</th>
+                  <th className="px-5 py-3 font-semibold">File</th>
+                  <th className="px-5 py-3 font-semibold">Status</th>
+                  <th className="px-5 py-3 font-semibold">Rows</th>
+                  <th className="px-5 py-3 font-semibold">Created</th>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {loading ? (
+                  <tr>
+                    <td colSpan={isPlatformAdmin ? 7 : 6} className="px-5 py-6 text-center text-slate-500">Loading…</td>
+                  </tr>
+                ) : imports.length === 0 ? (
+                  <tr>
+                    <td colSpan={isPlatformAdmin ? 7 : 6} className="px-5 py-6 text-center text-slate-500">
+                      No import jobs yet. Upload CSV files from your organization workspace.
+                    </td>
+                  </tr>
+                ) : (
+                  imports.map((row) => (
+                    <tr key={row.id} className="hover:bg-slate-50/60">
+                      <td className="px-5 py-3 font-mono text-xs text-slate-600">#{row.id}</td>
+                      {isPlatformAdmin && (
+                        <td className="px-5 py-3 font-mono text-xs text-slate-600">{row.org_id}</td>
+                      )}
+                      <td className="px-5 py-3 font-medium text-ink">{row.resource_type.replace(/_/g, ' ')}</td>
+                      <td className="px-5 py-3 text-slate-600">{row.original_filename}</td>
+                      <td className="px-5 py-3">
+                        <StatusBadge status={row.status} />
+                      </td>
+                      <td className="px-5 py-3 text-slate-600">
+                        {row.processed_rows}/{row.total_rows}
+                      </td>
+                      <td className="px-5 py-3 text-slate-600">{row.created_at}</td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
 
       <p className="text-sm text-ink-secondary">
