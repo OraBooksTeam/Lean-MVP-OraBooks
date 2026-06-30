@@ -110,7 +110,6 @@ export default function AdminRoutes() {
             {item.label}
           </a>
         ))}
-        ))}
       </nav>
     </>
   );
