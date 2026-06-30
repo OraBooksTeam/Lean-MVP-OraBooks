@@ -18,6 +18,7 @@ import ApAgingPage from './pages/ApAgingPage';
 import InventoryPage from './pages/InventoryPage';
 import BankReconciliationPage from './pages/BankReconciliationPage';
 import ReportsPage from './pages/ReportsPage';
+import FinancialReportsPage from './pages/FinancialReportsPage';
 import CsvImportsPage from './pages/CsvImportsPage';
 import TeamPage from './pages/TeamPage';
 import AttachmentsPage from './pages/AttachmentsPage';
@@ -62,6 +63,7 @@ const ROUTES: Record<string, RouteConfig> = {
   '/inventory': { element: <InventoryPage /> },
   '/bank-reconciliation': { element: <BankReconciliationPage /> },
   '/reports': { element: <ReportsPage /> },
+  '/financial-reports': { element: <FinancialReportsPage /> },
   '/csv-imports': { element: <CsvImportsPage /> },
   '/team': { element: <TeamPage /> },
   '/attachments': { element: <AttachmentsPage /> },
