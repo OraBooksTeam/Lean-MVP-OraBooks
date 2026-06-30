@@ -385,7 +385,6 @@ class OraBooks_Auth {
         $wpdb->insert(
             $table_attributions,
             [
-                'org_id' => null,
                 'partner_user_id' => $code->user_id,
                 'customer_user_id' => $customer_user_id,
                 'customer_email' => $customer_email,
@@ -393,7 +392,7 @@ class OraBooks_Auth {
                 'status' => 'pending',
                 'idempotency_key' => $idempotency_key
             ],
-            ['%d', '%d', '%d', '%s', '%s', '%s', '%s']
+            ['%d', '%d', '%s', '%s', '%s', '%s']
         );
         
         orabooks_log_event('partner_attribution_created', "Partner attribution created (pending)", 'info', [
