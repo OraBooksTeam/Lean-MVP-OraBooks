@@ -388,8 +388,12 @@ class OraBooks_Financial_Reports {
         ];
     }
 
-    private static function build_balance_sheet($org_id, $as_of_date) {
-        $rows = self::ledger_rows_for_report($org_id, null, $as_of_date, ['asset', 'liability', 'equity']);
+    private static function build_balance_sheet($org_id, $as_of_date, $build_args = []) {
+        $types = ['asset', 'liability', 'equity'];
+        if (!empty($build_args['account_type']) && in_array($build_args['account_type'], $types, true)) {
+            $types = [$build_args['account_type']];
+        }
+        $rows = self::ledger_rows_for_report($org_id, null, $as_of_date, $types, $build_args);
         $sections = ['assets' => [], 'liabilities' => [], 'equity' => []];
         $totals = ['assets' => 0.0, 'liabilities' => 0.0, 'equity' => 0.0];
 
