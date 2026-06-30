@@ -196,54 +196,62 @@ export default function AdminSecurity() {
               <div className="border-b border-border px-5 py-3">
                 <h3 className="text-sm font-semibold text-ink">Security Headers</h3>
               </div>
-              <table className="min-w-full text-left text-sm">
-                <thead>
-                  <tr className="border-b border-border bg-slate-50/60 text-xs uppercase text-slate-500">
-                    <th className="px-5 py-3 font-semibold">Header</th>
-                    <th className="px-5 py-3 font-semibold">Status</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  {Object.entries(headers).map(([key, val]) => (
-                    <tr key={key} className="hover:bg-slate-50/60">
-                      <td className="px-5 py-3 font-medium text-ink">{key}</td>
-                      <td className="px-5 py-3">
-                        <span
-                          className={`badge border ${
-                            val
-                              ? 'border-green-200 bg-green-50 text-green-700'
-                              : 'border-amber-200 bg-amber-50 text-amber-700'
-                          }`}
-                        >
-                          {val ? 'Configured' : 'Needs attention'}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              <div className="-mx-5 overflow-x-auto overflow-y-hidden px-5">
+                <div className="min-w-[400px]">
+                  <table className="w-full text-left text-sm">
+                    <thead>
+                      <tr className="border-b border-border bg-slate-50/60 text-xs uppercase text-slate-500">
+                        <th className="px-5 py-3 font-semibold">Header</th>
+                        <th className="px-5 py-3 font-semibold">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border">
+                      {Object.entries(headers).map(([key, val]) => (
+                        <tr key={key} className="hover:bg-slate-50/60">
+                          <td className="px-5 py-3 font-medium text-ink">{key}</td>
+                          <td className="px-5 py-3">
+                            <span
+                              className={`badge border ${
+                                val
+                                  ? 'border-green-200 bg-green-50 text-green-700'
+                                  : 'border-amber-200 bg-amber-50 text-amber-700'
+                              }`}
+                            >
+                              {val ? 'Configured' : 'Needs attention'}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
             </div>
 
             <div className="glass-panel overflow-hidden">
               <div className="border-b border-border px-5 py-3">
                 <h3 className="text-sm font-semibold text-ink">Incident Breakdown (24h)</h3>
               </div>
-              <table className="min-w-full text-left text-sm">
-                <tbody className="divide-y divide-border">
-                  {Object.keys(incidents).length === 0 ? (
-                    <tr>
-                      <td className="px-5 py-6 text-center text-slate-500">No incidents in period</td>
-                    </tr>
-                  ) : (
-                    Object.entries(incidents).map(([type, count]) => (
-                      <tr key={type} className="hover:bg-slate-50/60">
-                        <td className="px-5 py-3 font-medium text-ink">{type}</td>
-                        <td className="px-5 py-3 font-mono text-xs text-slate-600">{count as number}</td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
+              <div className="-mx-5 overflow-x-auto overflow-y-hidden px-5">
+                <div className="min-w-[400px]">
+                  <table className="w-full text-left text-sm">
+                    <tbody className="divide-y divide-border">
+                      {Object.keys(incidents).length === 0 ? (
+                        <tr>
+                          <td className="px-5 py-6 text-center text-slate-500">No incidents in period</td>
+                        </tr>
+                      ) : (
+                        Object.entries(incidents).map(([type, count]) => (
+                          <tr key={type} className="hover:bg-slate-50/60">
+                            <td className="px-5 py-3 font-medium text-ink">{type}</td>
+                            <td className="px-5 py-3 font-mono text-xs text-slate-600">{count as number}</td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
               <div className="border-t border-border px-5 py-3 text-xs text-slate-500">
                 Audit volume: {data?.audit_volume ?? 0} events
               </div>
@@ -255,25 +263,29 @@ export default function AdminSecurity() {
               <div className="border-b border-border px-5 py-3">
                 <h3 className="text-sm font-semibold text-ink">Scheduled Scans</h3>
               </div>
-              <table className="min-w-full text-left text-sm">
-                <tbody className="divide-y divide-border">
-                  {scans.length === 0 ? (
-                    <tr>
-                      <td className="px-5 py-6 text-center text-slate-500">No scan results yet</td>
-                    </tr>
-                  ) : (
-                    scans.map((scan: any) => (
-                      <tr key={scan.id} className="hover:bg-slate-50/60">
-                        <td className="px-5 py-3 font-medium text-ink">{scan.scan_type}</td>
-                        <td className="px-5 py-3">
-                          <span className={`badge border ${scanBadge(scan.status)}`}>{scan.status}</span>
-                        </td>
-                        <td className="px-5 py-3 text-xs text-slate-600">{scan.summary}</td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
+              <div className="-mx-5 overflow-x-auto overflow-y-hidden px-5">
+                <div className="min-w-[450px]">
+                  <table className="w-full text-left text-sm">
+                    <tbody className="divide-y divide-border">
+                      {scans.length === 0 ? (
+                        <tr>
+                          <td className="px-5 py-6 text-center text-slate-500">No scan results yet</td>
+                        </tr>
+                      ) : (
+                        scans.map((scan: any) => (
+                          <tr key={scan.id} className="hover:bg-slate-50/60">
+                            <td className="px-5 py-3 font-medium text-ink">{scan.scan_type}</td>
+                            <td className="px-5 py-3">
+                              <span className={`badge border ${scanBadge(scan.status)}`}>{scan.status}</span>
+                            </td>
+                            <td className="px-5 py-3 text-xs text-slate-600">{scan.summary}</td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
               {secretsRotation && (
                 <div className="border-t border-border px-5 py-3 text-xs text-slate-600">
                   Secret rotation:{' '}
@@ -294,18 +306,22 @@ export default function AdminSecurity() {
               <div className="border-b border-border px-5 py-3">
                 <h3 className="text-sm font-semibold text-ink">Rate Limits (centralized)</h3>
               </div>
-              <table className="min-w-full text-left text-sm">
-                <tbody className="divide-y divide-border">
-                  {Object.entries(rateLimits).map(([key, cfg]: [string, any]) => (
-                    <tr key={key} className="hover:bg-slate-50/60">
-                      <td className="px-5 py-3">{cfg.label || key}</td>
-                      <td className="px-5 py-3 font-mono text-xs text-slate-600">
-                        {cfg.max} / {cfg.period}s
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              <div className="-mx-5 overflow-x-auto overflow-y-hidden px-5">
+                <div className="min-w-[350px]">
+                  <table className="w-full text-left text-sm">
+                    <tbody className="divide-y divide-border">
+                      {Object.entries(rateLimits).map(([key, cfg]: [string, any]) => (
+                        <tr key={key} className="hover:bg-slate-50/60">
+                          <td className="px-5 py-3">{cfg.label || key}</td>
+                          <td className="px-5 py-3 font-mono text-xs text-slate-600">
+                            {cfg.max} / {cfg.period}s
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
             </div>
           </div>
 

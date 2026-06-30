@@ -170,45 +170,49 @@ export default function AdminAudit() {
 
       {error && <p className="text-sm text-danger">{error}</p>}
 
-      <div className="glass-panel overflow-hidden">
-        <table className="min-w-full text-left text-sm">
-          <thead>
-            <tr className="border-b border-border bg-slate-50/60 text-xs uppercase text-slate-500">
-              <th className="px-5 py-3 font-semibold">Timestamp</th>
-              {isAdmin && <th className="px-5 py-3 font-semibold">Org</th>}
-              <th className="px-5 py-3 font-semibold">User</th>
-              <th className="px-5 py-3 font-semibold">Event</th>
-              <th className="px-5 py-3 font-semibold">Severity</th>
-              <th className="px-5 py-3 font-semibold">Description</th>
-              <th className="px-5 py-3 font-semibold">IP</th>
-              <th className="px-5 py-3 font-semibold">Correlation ID</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-border">
-            {loading ? (
-              <tr>
-                <td colSpan={isAdmin ? 8 : 7} className="px-5 py-6 text-center text-slate-500">Loading…</td>
-              </tr>
-            ) : rows.length === 0 ? (
-              <tr>
-                <td colSpan={isAdmin ? 8 : 7} className="px-5 py-6 text-center text-slate-500">No logs found.</td>
-              </tr>
-            ) : (
-              rows.map((r, i) => (
-                <tr key={i} className="transition hover:bg-slate-50/60">
-                  <td className="px-5 py-3 text-slate-600">{r.created_at}</td>
-                  {isAdmin && <td className="px-5 py-3 font-mono text-xs text-slate-600">{r.org_id ?? 0}</td>}
-                  <td className="px-5 py-3 font-mono text-xs text-slate-600">{r.user_id}</td>
-                  <td className="px-5 py-3 font-medium text-ink">{r.event_type}</td>
-                  <td className="px-5 py-3"><SeverityBadge severity={r.severity} /></td>
-                  <td className="px-5 py-3 text-slate-600">{r.description}</td>
-                  <td className="px-5 py-3 font-mono text-xs text-slate-600">{r.ip_address}</td>
-                  <td className="px-5 py-3 font-mono text-xs text-slate-400">#{r.correlation_id?.slice(0, 12)}</td>
+      <div className="-mx-4 overflow-x-auto overflow-y-hidden px-4 sm:mx-0 sm:px-0">
+        <div className="glass-panel min-w-0 overflow-hidden">
+          <div className="min-w-[950px]">
+            <table className="w-full text-left text-sm">
+              <thead>
+                <tr className="border-b border-border bg-slate-50/60 text-xs uppercase text-slate-500">
+                  <th className="px-5 py-3 font-semibold">Timestamp</th>
+                  {isAdmin && <th className="px-5 py-3 font-semibold">Org</th>}
+                  <th className="px-5 py-3 font-semibold">User</th>
+                  <th className="px-5 py-3 font-semibold">Event</th>
+                  <th className="px-5 py-3 font-semibold">Severity</th>
+                  <th className="px-5 py-3 font-semibold">Description</th>
+                  <th className="px-5 py-3 font-semibold">IP</th>
+                  <th className="px-5 py-3 font-semibold">Correlation ID</th>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {loading ? (
+                  <tr>
+                    <td colSpan={isAdmin ? 8 : 7} className="px-5 py-6 text-center text-slate-500">Loading…</td>
+                  </tr>
+                ) : rows.length === 0 ? (
+                  <tr>
+                    <td colSpan={isAdmin ? 8 : 7} className="px-5 py-6 text-center text-slate-500">No logs found.</td>
+                  </tr>
+                ) : (
+                  rows.map((r, i) => (
+                    <tr key={i} className="transition hover:bg-slate-50/60">
+                      <td className="px-5 py-3 text-slate-600">{r.created_at}</td>
+                      {isAdmin && <td className="px-5 py-3 font-mono text-xs text-slate-600">{r.org_id ?? 0}</td>}
+                      <td className="px-5 py-3 font-mono text-xs text-slate-600">{r.user_id}</td>
+                      <td className="px-5 py-3 font-medium text-ink">{r.event_type}</td>
+                      <td className="px-5 py-3"><SeverityBadge severity={r.severity} /></td>
+                      <td className="px-5 py-3 text-slate-600">{r.description}</td>
+                      <td className="px-5 py-3 font-mono text-xs text-slate-600">{r.ip_address}</td>
+                      <td className="px-5 py-3 font-mono text-xs text-slate-400">#{r.correlation_id?.slice(0, 12)}</td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
     </AdminPageShell>
   );

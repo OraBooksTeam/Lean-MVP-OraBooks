@@ -54,35 +54,39 @@ export default function AdminCoA() {
           Load
         </button>
       </div>
-      <div className="glass-panel overflow-hidden">
-        <table className="min-w-full text-left text-sm">
-          <thead>
-            <tr className="border-b border-border bg-slate-50/60 text-xs uppercase text-slate-500">
-              <th className="px-5 py-3 font-semibold">Code</th>
-              <th className="px-5 py-3 font-semibold">Name</th>
-              <th className="px-5 py-3 font-semibold">Type</th>
-              <th className="px-5 py-3 font-semibold">Balance</th>
-              <th className="px-5 py-3 font-semibold">System</th>
-              <th className="px-5 py-3 font-semibold">Active</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-border">
-            {loading ? (
-              <tr><td colSpan={6} className="px-5 py-6 text-center text-slate-500">Loading…</td></tr>
-            ) : accounts.length === 0 ? (
-              <tr><td colSpan={6} className="px-5 py-6 text-center text-slate-500">Select organization and click Load.</td></tr>
-            ) : accounts.map((a, i) => (
-              <tr key={i} className="transition hover:bg-slate-50/60">
-                <td className="px-5 py-3 font-mono font-semibold text-ink">{a.code}</td>
-                <td className="px-5 py-3 text-ink">{a.name}</td>
-                <td className="px-5 py-3"><span className={`badge border ${badgeClass(a.type)}`}>{a.type}</span></td>
-                <td className="px-5 py-3 text-slate-600 capitalize">{a.normal_balance}</td>
-                <td className="px-5 py-3 text-slate-600">{Number(a.system_generated) ? '✅' : '—'}</td>
-                <td className="px-5 py-3 text-slate-600">{Number(a.is_active) ? '✅ Active' : '❌ Inactive'}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      <div className="-mx-4 overflow-x-auto overflow-y-hidden px-4 sm:mx-0 sm:px-0">
+        <div className="glass-panel min-w-0 overflow-hidden">
+          <div className="min-w-[700px]">
+            <table className="w-full text-left text-sm">
+              <thead>
+                <tr className="border-b border-border bg-slate-50/60 text-xs uppercase text-slate-500">
+                  <th className="px-5 py-3 font-semibold">Code</th>
+                  <th className="px-5 py-3 font-semibold">Name</th>
+                  <th className="px-5 py-3 font-semibold">Type</th>
+                  <th className="px-5 py-3 font-semibold">Balance</th>
+                  <th className="px-5 py-3 font-semibold">System</th>
+                  <th className="px-5 py-3 font-semibold">Active</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {loading ? (
+                  <tr><td colSpan={6} className="px-5 py-6 text-center text-slate-500">Loading…</td></tr>
+                ) : accounts.length === 0 ? (
+                  <tr><td colSpan={6} className="px-5 py-6 text-center text-slate-500">Select organization and click Load.</td></tr>
+                ) : accounts.map((a, i) => (
+                  <tr key={i} className="transition hover:bg-slate-50/60">
+                    <td className="px-5 py-3 font-mono font-semibold text-ink">{a.code}</td>
+                    <td className="px-5 py-3 text-ink">{a.name}</td>
+                    <td className="px-5 py-3"><span className={`badge border ${badgeClass(a.type)}`}>{a.type}</span></td>
+                    <td className="px-5 py-3 text-slate-600 capitalize">{a.normal_balance}</td>
+                    <td className="px-5 py-3 text-slate-600">{Number(a.system_generated) ? '✅' : '—'}</td>
+                    <td className="px-5 py-3 text-slate-600">{Number(a.is_active) ? '✅ Active' : '❌ Inactive'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
     </AdminPageShell>
   );
