@@ -1797,6 +1797,10 @@ class OraBooks_Auth {
                 'auth_provider' => 'google',
                 'org_id' => null,
                 'is_partner' => $is_partner,
+                'pending_partner_type' => $is_partner ? $partner_type : null,
+                'pending_organization_name' => $is_partner
+                    ? (in_array($partner_type, ['agency', 'reseller', 'strategic_partner'], true) ? $organization_name : null)
+                    : null,
             ];
 
             if ($is_partner) {
