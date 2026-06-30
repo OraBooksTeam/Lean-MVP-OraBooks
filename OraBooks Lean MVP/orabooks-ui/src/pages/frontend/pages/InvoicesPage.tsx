@@ -880,7 +880,7 @@ export default function InvoicesPage() {
               </div>
             </div>
               <div className="mt-4 overflow-x-auto overflow-y-hidden rounded-xl border border-border">
-                <table className="min-w-[600px] w-full text-left text-sm">
+                <table className="min-w-[640px] w-full text-left text-sm">
                 <thead>
                   <tr className="border-b border-border bg-slate-50 text-xs uppercase text-slate-500">
                     <th className="px-4 py-2">SKU</th>
@@ -1032,7 +1032,7 @@ export default function InvoicesPage() {
 
         <div className="-mx-4 overflow-x-auto overflow-y-hidden px-4 sm:mx-0 sm:px-0">
           <div className="glass-panel min-w-0 overflow-hidden">
-            <div className="min-w-[700px]">
+            <div className="min-w-[780px]">
               <table className="w-full text-left text-sm">
                 <thead>
                   <tr className="border-b border-border bg-slate-50/70 text-xs uppercase text-slate-500">
