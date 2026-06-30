@@ -1398,11 +1398,12 @@ html body.orabooks-react-page .orabooks-client-main button[title="Upload audio a
 /* =============================================
    ENSURE BLUE PRIMARY BUTTONS HAVE VISIBLE WHITE TEXT
    Fixes: bg-primary + text-primary combos that produce blue-on-blue
+   NOTE: Avoid [class*="bg-primary"] which also matches bg-primary/5, bg-primary/60, etc.
+   Only buttons, links, and .orabooks-btn-primary need the forced white color.
    ============================================= */
 #orabooks-app-root button[class*="bg-primary"],
 #orabooks-app-root .orabooks-btn-primary,
-#orabooks-app-root a[class*="bg-primary"],
-#orabooks-app-root [class*="bg-primary"][class*="text-primary"] {
+#orabooks-app-root a[class*="bg-primary"] {
     color: #ffffff !important;
 }
 #orabooks-app-root button[class*="bg-primary"]:hover,
