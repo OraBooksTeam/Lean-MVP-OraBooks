@@ -3,7 +3,7 @@ import WpLink from '../components/WpLink';
 import Button from '@/components/Button';
 import { api } from '../api';
 import ClientShell from '../components/ClientShell';
-import { BarChart3, Download, FileText, PenLine, RefreshCw } from 'lucide-react';
+import { BarChart3, Download, FileText, RefreshCw } from 'lucide-react';
 
 const OPERATIONAL_DEFAULT = 'ar_aging';
 
@@ -161,218 +161,26 @@ export default function ReportsPage() {
                 </>
               )}
             </div>
-            {operationalResult && <ReportOutput title="Operational result" payload={operationalResult} kind="operational" />}
+            {operationalResult && <ReportOutput title="Operational result" payload={operationalResult} />}
           </section>
         </div>
 
-        <div className="glass-panel overflow-hidden">
-          <div className="border-b border-border px-5 py-4">
-            <h2 className="font-bold text-ink">Recent Financial Snapshots</h2>
-          </div>
-          <table className="min-w-full text-left text-sm">
-            <thead>
-              <tr className="border-b border-border bg-slate-50/70 text-xs uppercase text-slate-500">
-                <th className="px-5 py-3 font-semibold">Type</th>
-                <th className="px-5 py-3 font-semibold">Period</th>
-                <th className="px-5 py-3 font-semibold">Frozen</th>
-                <th className="px-5 py-3 font-semibold">Created</th>
-                {canSign && <th className="px-5 py-3 font-semibold">Actions</th>}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {loading ? (
-                <tr><td colSpan={canSign ? 5 : 4} className="px-5 py-8 text-center text-slate-500">Loading snapshots...</td></tr>
-              ) : (data?.recent_snapshots || []).length === 0 ? (
-                <tr>
-                  <td colSpan={canSign ? 5 : 4} className="px-5 py-10 text-center">
-                    <BarChart3 className="mx-auto h-8 w-8 text-slate-300" />
-                    <p className="mt-2 text-sm text-slate-500">No report snapshots yet. Generate a financial report to create one.</p>
-                  </td>
-                </tr>
-              ) : data.recent_snapshots.map((snap: any) => (
-                <tr key={snap.id} className="hover:bg-slate-50/70">
-                  <td className="px-5 py-3 font-semibold text-ink">{snap.report_type}</td>
-                  <td className="px-5 py-3 text-slate-600">{snap.period_start} → {snap.period_end}</td>
-                  <td className="px-5 py-3">{Number(snap.frozen) === 1 ? 'Yes' : 'No'}</td>
-                  <td className="px-5 py-3 text-slate-600">{snap.created_at || '—'}</td>
-                  {canSign && (
-                    <td className="px-5 py-3">
-                      <button
-                        type="button"
-                        onClick={() => openSignModal(snap.id, `${snap.report_type} (${snap.period_start} → ${snap.period_end})`)}
-                        className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:text-primary-dark"
-                      >
-                        <PenLine className="h-4 w-4" />
-                        Sign
-                      </button>
-                    </td>
-                  )}
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="glass-panel p-5">
+          <h2 className="font-bold text-ink">Core financial statements</h2>
+          <p className="mt-1 text-sm text-slate-600">
+            P&amp;L, Balance Sheet, Cash Flow, Trial Balance, General Ledger, and Changes in Equity live on the dedicated financial reports page.
+          </p>
+          <WpLink to="/financial-reports" className="mt-3 inline-flex">
+            <Button size="sm">Open Financial Reports</Button>
+          </WpLink>
         </div>
       </div>
-
-      {signTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-md rounded-2xl border border-border bg-white p-6 shadow-xl">
-            <h3 className="text-lg font-bold text-ink">Sign financial report</h3>
-            <p className="mt-1 text-sm text-slate-600">{signTarget.label}</p>
-            <p className="mt-2 text-xs text-slate-500">Snapshot #{signTarget.id}</p>
-            <div className="mt-4">
-              <Field label="Board approval reference (optional)">
-                <input
-                  type="text"
-                  className={fieldClass}
-                  value={boardRef}
-                  onChange={(e) => setBoardRef(e.target.value)}
-                  placeholder="e.g. Board resolution 2026-04"
-                />
-              </Field>
-            </div>
-            <div className="mt-6 flex justify-end gap-2">
-              <Button variant="secondary" onClick={() => setSignTarget(null)} disabled={signing}>
-                Cancel
-              </Button>
-              <Button onClick={submitSign} disabled={signing}>
-                {signing ? 'Signing...' : 'Sign report'}
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
     </ClientShell>
   );
 }
 
-function ReportOutput({ title, payload, kind }: { title: string; payload: any; kind: 'financial' | 'operational' }) {
-  const report = kind === 'financial' ? payload?.report : payload?.data;
-
-  if (kind === 'financial' && payload?.report_type === 'profit_loss') {
-    return (
-      <div className="mt-5 rounded-xl border border-border bg-slate-50/70 p-4">
-        <p className="text-sm font-bold text-ink">{title}</p>
-        <div className="mt-3 grid gap-2 sm:grid-cols-3 lg:grid-cols-6">
-          <SummaryLine label="Revenue" value={money(payload.report?.total_revenue)} />
-          <SummaryLine label="COGS" value={money(payload.report?.total_cogs)} />
-          <SummaryLine label="Gross profit" value={money(payload.report?.gross_profit)} />
-          <SummaryLine label="Operating exp." value={money(payload.report?.total_operating_expenses)} />
-          <SummaryLine label="Operating income" value={money(payload.report?.operating_income)} />
-          <SummaryLine label="Net income" value={money(payload.report?.net_income)} bold />
-        </div>
-      </div>
-    );
-  }
-
-  if (kind === 'financial' && payload?.report_type === 'trial_balance') {
-    const report = payload.report || {};
-    return (
-      <div className="mt-5 rounded-xl border border-border bg-slate-50/70 p-4">
-        <p className="text-sm font-bold text-ink">{title}</p>
-        <p className="mt-1 text-xs text-slate-500">Closing balance as of {report.period_end || payload.period_end}</p>
-        <div className={`mt-3 rounded-lg border px-3 py-2 text-sm ${report.balanced ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-amber-200 bg-amber-50 text-amber-900'}`}>
-          {report.balance_message || (report.balanced ? 'Balanced' : 'Unbalanced')}
-        </div>
-        <div className="mt-3 grid gap-2 sm:grid-cols-3">
-          <SummaryLine label="Total debits" value={money(report.total_debits)} />
-          <SummaryLine label="Total credits" value={money(report.total_credits)} />
-          <SummaryLine label="Difference" value={money(report.difference)} bold />
-        </div>
-        {(report.accounts || []).length > 0 && (
-          <div className="mt-4 overflow-auto">
-            <table className="min-w-full text-left text-sm">
-              <thead>
-                <tr className="border-b border-border text-xs uppercase text-slate-500">
-                  <th className="py-2 pr-3">Code</th>
-                  <th className="py-2 pr-3">Account</th>
-                  <th className="py-2 pr-3">Opening</th>
-                  <th className="py-2 pr-3">Closing</th>
-                  <th className="py-2 pr-3">Debit</th>
-                  <th className="py-2">Credit</th>
-                </tr>
-              </thead>
-              <tbody>
-                {report.accounts.slice(0, 30).map((row: any, idx: number) => (
-                  <tr key={idx} className="border-b border-border/60">
-                    <td className="py-2 pr-3">{row.code}</td>
-                    <td className="py-2 pr-3">{row.name}</td>
-                    <td className="py-2 pr-3">{formatCell(row.opening_balance)}</td>
-                    <td className="py-2 pr-3">{formatCell(row.closing_balance)}</td>
-                    <td className="py-2 pr-3">{formatCell(row.debit)}</td>
-                    <td className="py-2">{formatCell(row.credit)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-    );
-  }
-
-  if (kind === 'financial' && payload?.report_type === 'balance_sheet') {
-    const report = payload.report || {};
-    return (
-      <div className="mt-5 rounded-xl border border-border bg-slate-50/70 p-4">
-        <p className="text-sm font-bold text-ink">{title}</p>
-        <div className={`mt-3 rounded-lg border px-3 py-2 text-sm ${report.balanced ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-amber-200 bg-amber-50 text-amber-900'}`}>
-          {report.balance_message || (report.balanced ? 'Balanced' : 'Unbalanced')}
-        </div>
-        <div className="mt-3 grid gap-2 sm:grid-cols-3">
-          <SummaryLine label="Total assets" value={money(report.total_assets)} />
-          <SummaryLine label="Total liabilities" value={money(report.total_liabilities)} />
-          <SummaryLine label="Total equity" value={money(report.total_equity)} bold />
-        </div>
-      </div>
-    );
-  }
-
-  if (kind === 'financial' && payload?.report_type === 'general_ledger') {
-    const report = payload.report || {};
-    return (
-      <div className="mt-5 rounded-xl border border-border bg-slate-50/70 p-4">
-        <p className="text-sm font-bold text-ink">{title}</p>
-        <div className="mt-3 grid gap-2 sm:grid-cols-3">
-          <SummaryLine label="Entries" value={report.entry_count ?? 0} />
-          <SummaryLine label="Total debits" value={money(report.total_debits)} />
-          <SummaryLine label="Total credits" value={money(report.total_credits)} bold />
-        </div>
-        {(report.rows || []).length > 0 && (
-          <div className="mt-4 overflow-auto">
-            <table className="min-w-full text-left text-sm">
-              <thead>
-                <tr className="border-b border-border text-xs uppercase text-slate-500">
-                  <th className="py-2 pr-3">Date</th>
-                  <th className="py-2 pr-3">Journal</th>
-                  <th className="py-2 pr-3">Account</th>
-                  <th className="py-2 pr-3">Description</th>
-                  <th className="py-2 pr-3">Debit</th>
-                  <th className="py-2 pr-3">Credit</th>
-                  <th className="py-2">Running</th>
-                </tr>
-              </thead>
-              <tbody>
-                {report.rows.slice(0, 50).map((row: any, idx: number) => (
-                  <tr key={idx} className="border-b border-border/60">
-                    <td className="py-2 pr-3">{row.transaction_date || '—'}</td>
-                    <td className="py-2 pr-3">{row.journal_number || '—'}</td>
-                    <td className="py-2 pr-3">{row.account_code} {row.account_name ? `- ${row.account_name}` : ''}</td>
-                    <td className="py-2 pr-3">{row.description || '—'}</td>
-                    <td className="py-2 pr-3">{formatCell(row.debit)}</td>
-                    <td className="py-2 pr-3">{formatCell(row.credit)}</td>
-                    <td className="py-2">{formatCell(row.running_balance)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-    );
-  }
-
-  if (Array.isArray(report) && report.length > 0) {
+function ReportOutput({ title, payload }: { title: string; payload: any }) {
+  const report = payload?.data;
     const sample = report[0];
     const columns = typeof sample === 'object' ? Object.keys(sample) : ['value'];
 
