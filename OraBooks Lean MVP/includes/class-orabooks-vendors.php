@@ -2295,7 +2295,12 @@ class OraBooks_Vendors {
         $this->require_ap_permission($user_id, $org_id, ['manage_org_settings', 'approve_journal', 'submit_transaction', 'manage_billing']);
         $result = self::record_payment($org_id, intval($_POST['vendor_id'] ?? 0), $_POST);
         if (is_wp_error($result)) {
-            orabooks_json_error($result->get_error_message(), 400);
+            $status = 400;
+            $data = $result->get_error_data();
+            if (is_array($data) && isset($data['status'])) {
+                $status = (int) $data['status'];
+            }
+            orabooks_json_error($result->get_error_message(), $status);
         }
         orabooks_json_success($result);
     }
@@ -2306,7 +2311,12 @@ class OraBooks_Vendors {
         $this->require_ap_permission($user_id, $org_id, ['manage_org_settings', 'approve_journal', 'manage_billing']);
         $result = self::create_credit_note($org_id, $_POST);
         if (is_wp_error($result)) {
-            orabooks_json_error($result->get_error_message(), 400);
+            $status = 400;
+            $data = $result->get_error_data();
+            if (is_array($data) && isset($data['status'])) {
+                $status = (int) $data['status'];
+            }
+            orabooks_json_error($result->get_error_message(), $status);
         }
         orabooks_json_success($result);
     }
@@ -2459,7 +2469,12 @@ class OraBooks_Vendors {
             sanitize_textarea_field($_POST['reason'] ?? '')
         );
         if (is_wp_error($result)) {
-            orabooks_json_error($result->get_error_message(), 400);
+            $status = 400;
+            $data = $result->get_error_data();
+            if (is_array($data) && isset($data['status'])) {
+                $status = (int) $data['status'];
+            }
+            orabooks_json_error($result->get_error_message(), $status);
         }
         orabooks_json_success($result, 'Payment reversed');
     }
