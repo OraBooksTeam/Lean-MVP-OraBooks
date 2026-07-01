@@ -210,6 +210,61 @@ class OraBooks_Inventory_Test extends TestCase
     }
 
     #[Test]
+    public function test_update_product_current_stock_persists_and_logs_adjustment_movement()
+    {
+        global $wpdb;
+
+        $movementInserted = false;
+        $productSelectCalls = 0;
+
+        $wpdb->test_get_row_callback = function ($query) use (&$productSelectCalls) {
+            if (stripos($query, 'orabooks_products') !== false) {
+                $productSelectCalls++;
+                if ($productSelectCalls === 1) {
+                    return $this->mockProduct([
+                        'id' => 10,
+                        'org_id' => 5,
+                        'sku' => 'SKU-001',
+                        'name' => 'Widget',
+                        'current_stock' => '10.0000',
+                        'average_cost' => '5.000000',
+                    ]);
+                }
+
+                return $this->mockProduct([
+                    'id' => 10,
+                    'org_id' => 5,
+                    'sku' => 'SKU-001',
+                    'name' => 'Widget Renamed',
+                    'current_stock' => '14.0000',
+                    'average_cost' => '5.000000',
+                ]);
+            }
+            return null;
+        };
+
+        $wpdb->test_insert_callback = function ($table, $data) use (&$movementInserted) {
+            if (stripos($table, 'inventory_movements') !== false) {
+                $movementInserted = true;
+                $this->assertEquals(4.0, $data['quantity_change']);
+                $this->assertEquals(10.0, $data['stock_before']);
+                $this->assertEquals(14.0, $data['stock_after']);
+                $this->assertEquals('adjustment', $data['reference_type']);
+            }
+        };
+
+        $result = OraBooks_Inventory::update_product(5, 10, [
+            'name' => 'Widget Renamed',
+            'price' => '10',
+            'current_stock' => '14',
+        ]);
+
+        $this->assertIsObject($result);
+        $this->assertEquals('14.0000', $result->current_stock);
+        $this->assertTrue($movementInserted);
+    }
+
+    #[Test]
     public function test_get_recent_movements_joins_product_details()
     {
         global $wpdb;
