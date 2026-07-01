@@ -156,7 +156,8 @@ export default function RegisterPage() {
                   .
                 </p>
                 <p className="mt-2 text-slate-600">
-                  After email verification and login, you will join that team directly. You do not need to create your own company workspace.
+                  Create your account first, verify your email, then log in and open this invitation link again to join the team.
+                  You do not need to create your own company workspace.
                 </p>
               </div>
             ) : (
@@ -226,7 +227,7 @@ export default function RegisterPage() {
             {error && <p className="text-sm text-danger">{error}</p>}
 
             <Button type="submit" loading={loading} className="w-full">
-              {invitedFlow ? 'Create account & join team' : 'Create Account'}
+              {invitedFlow ? 'Create account' : 'Create Account'}
             </Button>
           </form>
 

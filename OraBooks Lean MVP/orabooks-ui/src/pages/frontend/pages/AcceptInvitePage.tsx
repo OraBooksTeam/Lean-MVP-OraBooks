@@ -118,7 +118,7 @@ export default function AcceptInvitePage() {
               <p className="mt-2 text-sm font-semibold text-ink">{preview.email}</p>
             )}
             <p className="mt-3 text-sm text-slate-600">
-              After you sign in, you will be added to the organization automatically.
+              If you do not have an account yet, create one first and verify your email address. Then log in and open this invitation link again.
             </p>
             <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-center">
               <Button type="button" onClick={() => { window.location.href = loginUrl; }}>
