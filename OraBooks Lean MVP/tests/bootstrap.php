@@ -1947,6 +1947,8 @@ if (!function_exists('orabooks_user_has_any_pending_invite')) {
 
 if (!function_exists('orabooks_resolve_auth_org_id')) {
     function orabooks_resolve_auth_org_id($user_id, $stored_org_id = 0) {
+        global $wpdb;
+
         $user_id = (int) $user_id;
         $stored_org_id = (int) $stored_org_id;
 
@@ -1954,6 +1956,26 @@ if (!function_exists('orabooks_resolve_auth_org_id')) {
             $resolved = (int) orabooks_get_current_org_id($user_id);
             if ($resolved > 0) {
                 return $resolved;
+            }
+        }
+
+        if ($user_id > 0) {
+            $table_user_org = OraBooks_Database::table('user_org');
+            $member_org_id = (int) $wpdb->get_var($wpdb->prepare(
+                "SELECT org_id FROM {$table_user_org} WHERE user_id = %d ORDER BY joined_at DESC, id DESC LIMIT 1",
+                $user_id
+            ));
+            if ($member_org_id > 0) {
+                return $member_org_id;
+            }
+
+            $table_orgs = OraBooks_Database::table('organizations');
+            $owner_org_id = (int) $wpdb->get_var($wpdb->prepare(
+                "SELECT id FROM {$table_orgs} WHERE owner_id = %d ORDER BY id DESC LIMIT 1",
+                $user_id
+            ));
+            if ($owner_org_id > 0) {
+                return $owner_org_id;
             }
         }
 
