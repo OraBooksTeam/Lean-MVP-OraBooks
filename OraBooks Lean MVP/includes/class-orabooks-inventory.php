@@ -630,7 +630,7 @@ class OraBooks_Inventory {
                     ? ($data['low_stock_threshold'] === '' || $data['low_stock_threshold'] === null
                         ? null
                         : floatval($data['low_stock_threshold']))
-                    : $product->low_stock_threshold,
+                    : ($product->low_stock_threshold ?? null),
                 'is_active' => array_key_exists('is_active', $data) ? (int) !empty($data['is_active']) : (int) ($product->is_active ?? 1),
             ],
             [
