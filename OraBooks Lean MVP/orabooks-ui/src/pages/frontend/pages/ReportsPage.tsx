@@ -432,9 +432,9 @@ function ReportOutput({ reportType, payload }: { reportType: string; payload: an
               {rows.map((row, idx) => (
                 <tr key={`${row[entityKey] || idx}`}>
                   <td className="px-4 py-2 text-slate-700">#{row[entityKey] || '—'}</td>
-                  <td className="px-4 py-2 text-right text-slate-700">{formatCell(row['30'] || row.current)}</td>
+                  <td className="px-4 py-2 text-right text-slate-700">{formatCell(Number(row.current || 0) + Number(row['30'] || 0))}</td>
                   <td className="px-4 py-2 text-right text-slate-700">{formatCell(row['60'])}</td>
-                  <td className="px-4 py-2 text-right text-slate-700">{formatCell(row['90_plus'])}</td>
+                  <td className="px-4 py-2 text-right text-slate-700">{formatCell(row['90'])}</td>
                   <td className="px-4 py-2 text-right text-slate-700">{formatCell(row['90_plus'])}</td>
                   <td className="px-4 py-2 text-right font-semibold text-slate-800">{formatCell(row.total_due)}</td>
                 </tr>
