@@ -63,19 +63,6 @@
     border-radius: 1rem;
     box-shadow: 0 14px 40px rgba(26, 105, 180, 0.08);
   }
-  .orabooks-auth-panel-inner {
-    padding: 2rem;
-  }
-  @media (min-width: 640px) {
-    .orabooks-auth-panel-inner {
-      padding: 2.5rem;
-    }
-  }
-  @media (min-width: 1024px) {
-    .orabooks-auth-panel-inner {
-      padding: 3rem;
-    }
-  }
   .stat-card {
     background: #ffffff;
     border: 1px solid theme(colors.border);
