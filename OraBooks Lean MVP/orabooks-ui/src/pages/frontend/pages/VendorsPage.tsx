@@ -564,11 +564,14 @@ export default function VendorsPage() {
     }
 
     const productByCode = new Map<string, ProductOption>();
+    const productByName = new Map<string, ProductOption>();
     for (const product of productOptions) {
       const sku = String(product.sku || '').trim().toUpperCase();
       const stockKeepingUnit = String(product.stock_keeping_unit || '').trim().toUpperCase();
+      const name = String(product.name || '').trim().toLowerCase();
       if (sku) productByCode.set(sku, product);
       if (stockKeepingUnit) productByCode.set(stockKeepingUnit, product);
+      if (name) productByName.set(name, product);
     }
 
     const detailLines = ((data.line_items || []) as BillLineItem[]).map((line) => {
@@ -588,7 +591,18 @@ export default function VendorsPage() {
         if (byDescriptionCode) {
           resolvedCode = String(byDescriptionCode.sku || byDescriptionCode.stock_keeping_unit || '').trim();
           resolvedDescription = String(byDescriptionCode.name || resolvedDescription);
+        } else {
+          const byName = productByName.get(resolvedDescription.toLowerCase());
+          if (byName) {
+            resolvedCode = String(byName.sku || byName.stock_keeping_unit || '').trim();
+            resolvedDescription = String(byName.name || resolvedDescription);
+          }
         }
+      }
+
+      // Legacy fallback: old bills can store "Bill BILL-xxxx" as the only line description.
+      if (!resolvedCode && /^bill\s+bill-\d{4}-\d+$/i.test(resolvedDescription)) {
+        resolvedDescription = '';
       }
 
       return {
