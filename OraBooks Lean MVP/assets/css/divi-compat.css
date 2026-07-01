@@ -360,6 +360,30 @@ body.orabooks-page.orabooks-divi-theme.orabooks-auth-page #orabooks-app-root .gl
     box-shadow: 0 14px 40px rgba(26, 105, 180, 0.08) !important;
 }
 
+body.orabooks-page.orabooks-divi-theme.orabooks-auth-page #orabooks-app-root .orabooks-register-panel {
+    width: min(100%, 720px);
+}
+
+body.orabooks-page.orabooks-divi-theme.orabooks-auth-page #orabooks-app-root .orabooks-register-panel-inner {
+    display: block;
+}
+
+body.orabooks-page.orabooks-divi-theme.orabooks-auth-page #orabooks-app-root .orabooks-register-form {
+    width: 100%;
+}
+
+body.orabooks-page.orabooks-divi-theme.orabooks-auth-page #orabooks-app-root .orabooks-register-section {
+    width: 100%;
+}
+
+body.orabooks-page.orabooks-divi-theme.orabooks-auth-page #orabooks-app-root .orabooks-register-invite {
+    max-width: 100%;
+}
+
+body.orabooks-page.orabooks-divi-theme.orabooks-auth-page #orabooks-app-root .orb-register-select-group {
+    width: 100%;
+}
+
 body.orabooks-page.orabooks-divi-theme.orabooks-auth-page #orabooks-app-root h1,
 body.orabooks-page.orabooks-divi-theme.orabooks-auth-page #orabooks-app-root h2,
 body.orabooks-page.orabooks-divi-theme.orabooks-auth-page #orabooks-app-root h3,
@@ -420,5 +444,9 @@ body.orabooks-page.orabooks-divi-theme.orabooks-auth-page #orabooks-app-root a.t
 
     body.orabooks-page.orabooks-divi-theme.orabooks-auth-page #orabooks-app-root .glass-panel {
         border-radius: 12px !important;
+    }
+
+    body.orabooks-page.orabooks-divi-theme.orabooks-auth-page #orabooks-app-root .orabooks-register-panel {
+        width: 100%;
     }
 }
