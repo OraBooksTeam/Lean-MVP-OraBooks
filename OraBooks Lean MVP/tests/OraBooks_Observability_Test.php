@@ -203,7 +203,6 @@ class OraBooks_Observability_Test extends TestCase
         };
 
         $ref = new ReflectionMethod(OraBooks_Observability::class, 'collect_sli');
-        $ref->setAccessible(true);
         $result = $ref->invoke(null, 'notifications_delivery', 30);
 
         $this->assertStringContainsString("status IN ('delivered', 'failed', 'dead_letter')", $captured_query);
@@ -222,7 +221,6 @@ class OraBooks_Observability_Test extends TestCase
         };
 
         $ref = new ReflectionMethod(OraBooks_Observability::class, 'collect_sli');
-        $ref->setAccessible(true);
         $result = $ref->invoke(null, 'eventbus_processing', 30);
 
         $this->assertStringContainsString("status IN ('sent', 'failed', 'dead_letter')", $captured_query);

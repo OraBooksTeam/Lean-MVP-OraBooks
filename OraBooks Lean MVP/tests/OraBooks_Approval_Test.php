@@ -435,7 +435,6 @@ class OraBooks_Approval_Test extends TestCase
         $ref = new ReflectionClass(OraBooks_EventBus::class);
         if ($ref->hasProperty('consumers')) {
             $prop = $ref->getProperty('consumers');
-            $prop->setAccessible(true);
             $prop->setValue(null, []);
         }
 

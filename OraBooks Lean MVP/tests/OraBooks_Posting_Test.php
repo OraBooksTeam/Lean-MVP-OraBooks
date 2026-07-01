@@ -399,7 +399,6 @@ class OraBooks_Posting_Test extends TestCase
         };
 
         $method = new ReflectionMethod(OraBooks_Posting::class, 'validate_journal_balance');
-        $method->setAccessible(true);
         $result = $method->invoke(null, 8);
 
         $this->assertInstanceOf(WP_Error::class, $result);
@@ -423,7 +422,6 @@ class OraBooks_Posting_Test extends TestCase
         };
 
         $method = new ReflectionMethod(OraBooks_Posting::class, 'post_journal_atomic');
-        $method->setAccessible(true);
         $result = $method->invoke(null, 10, 1);
 
         $this->assertTrue($result['already_posted']);

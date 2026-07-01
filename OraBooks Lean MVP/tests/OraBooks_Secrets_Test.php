@@ -27,7 +27,6 @@ class OraBooks_Secrets_Test extends TestCase
                 continue;
             }
             $prop = $ref->getProperty($property);
-            $prop->setAccessible(true);
             $prop->setValue(null, $property === 'bootstrapped' ? false : []);
         }
     }
@@ -92,9 +91,7 @@ class OraBooks_Secrets_Test extends TestCase
         $time_slice = floor(time() / 30);
         $ref = new ReflectionClass(OraBooks_Secrets::class);
         $method = $ref->getMethod('generate_totp_code');
-        $method->setAccessible(true);
         $decode = $ref->getMethod('decode_totp_secret');
-        $decode->setAccessible(true);
         $key = $decode->invoke(null, $secret);
         $code = $method->invoke(null, $key, $time_slice);
 

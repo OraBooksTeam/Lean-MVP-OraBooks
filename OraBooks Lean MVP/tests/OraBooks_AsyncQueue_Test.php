@@ -19,7 +19,6 @@ final class OraBooks_AsyncQueue_Test extends TestCase
         $GLOBALS['orabooks_test_use_insert_id'] = null;
 
         $ref = new ReflectionProperty(OraBooks_AsyncQueue::class, 'handlers');
-        $ref->setAccessible(true);
         $ref->setValue(null, []);
     }
 

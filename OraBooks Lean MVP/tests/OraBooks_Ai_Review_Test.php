@@ -293,7 +293,6 @@ class OraBooks_Ai_Review_Test extends TestCase
 
         $instance = OraBooks_Ai_Review::init();
         $method = new ReflectionMethod(OraBooks_Ai_Review::class, 'claim_next_item');
-        $method->setAccessible(true);
 
         $first = $method->invoke($instance);
         $second = $method->invoke($instance);
@@ -357,7 +356,6 @@ class OraBooks_Ai_Review_Test extends TestCase
 
         $instance = OraBooks_Ai_Review::init();
         $method = new ReflectionMethod(OraBooks_Ai_Review::class, 'process_queue_item');
-        $method->setAccessible(true);
         $method->invoke($instance, $item);
 
         $this->assertNotNull($retry_update);

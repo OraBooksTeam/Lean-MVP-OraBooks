@@ -26,11 +26,9 @@ class OraBooks_EventBus_Test extends TestCase
         $GLOBALS['orabooks_test_log_events'] = [];
 
         $ref = new ReflectionProperty(OraBooks_EventBus::class, 'consumers');
-        $ref->setAccessible(true);
         $ref->setValue(null, []);
 
         $moduleRef = new ReflectionProperty(OraBooks_Event_Module::class, 'consumers');
-        $moduleRef->setAccessible(true);
         $moduleRef->setValue(null, []);
     }
 
