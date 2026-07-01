@@ -18,13 +18,17 @@ class OraBooks_Bank_Reconciliation {
     public static function init() {
         if (self::$instance === null) {
             self::$instance = new self();
+            self::ensure_schema();
 
             add_action('wp_ajax_orabooks_bank_accounts_list', [self::$instance, 'ajax_accounts_list']);
             add_action('wp_ajax_orabooks_bank_account_create', [self::$instance, 'ajax_account_create']);
             add_action('wp_ajax_orabooks_bank_import_rows', [self::$instance, 'ajax_import_rows']);
+            add_action('wp_ajax_orabooks_bank_import_csv', [self::$instance, 'ajax_import_csv']);
             add_action('wp_ajax_orabooks_bank_transactions_list', [self::$instance, 'ajax_transactions_list']);
             add_action('wp_ajax_orabooks_bank_match', [self::$instance, 'ajax_manual_match']);
+            add_action('wp_ajax_orabooks_bank_create_transaction', [self::$instance, 'ajax_create_transaction']);
             add_action('wp_ajax_orabooks_bank_skip', [self::$instance, 'ajax_skip_transaction']);
+            add_action('wp_ajax_orabooks_bank_feed_connect', [self::$instance, 'ajax_feed_connect']);
             add_action('wp_ajax_orabooks_bank_reconcile', [self::$instance, 'ajax_finalize_reconciliation']);
         }
         return self::$instance;
@@ -67,6 +71,8 @@ class OraBooks_Bank_Reconciliation {
                 amount DECIMAL(20,2) NOT NULL,
                 description TEXT NULL,
                 reference VARCHAR(100) NULL,
+                external_id VARCHAR(120) NULL,
+                import_source VARCHAR(20) DEFAULT 'csv',
                 status ENUM('unmatched','matched','reconciled','skipped') DEFAULT 'unmatched',
                 treasury_workflow_id BIGINT UNSIGNED NULL,
                 liquidity_pool_id BIGINT UNSIGNED NULL,
@@ -76,6 +82,7 @@ class OraBooks_Bank_Reconciliation {
                 FOREIGN KEY (org_id) REFERENCES {$table_orgs}(id) ON DELETE CASCADE,
                 FOREIGN KEY (bank_account_id) REFERENCES {$table_accounts}(id) ON DELETE CASCADE,
                 UNIQUE KEY uk_bank_dedupe (bank_account_id, transaction_date, amount, reference),
+                UNIQUE KEY uk_bank_external (bank_account_id, external_id),
                 INDEX idx_status (status),
                 INDEX idx_date_amount (transaction_date, amount),
                 INDEX idx_org_account (org_id, bank_account_id)
@@ -87,8 +94,10 @@ class OraBooks_Bank_Reconciliation {
                 provider VARCHAR(50) NOT NULL,
                 access_token TEXT NULL,
                 refresh_token TEXT NULL,
+                token_expires_at TIMESTAMP NULL,
                 last_sync_at TIMESTAMP NULL,
                 status VARCHAR(20) DEFAULT 'inactive',
+                last_error TEXT NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                 FOREIGN KEY (org_id) REFERENCES {$table_orgs}(id) ON DELETE CASCADE,
@@ -124,6 +133,45 @@ class OraBooks_Bank_Reconciliation {
                 INDEX idx_org_account_date (org_id, bank_account_id, statement_date)
             ) {$charset_collate};",
         ];
+    }
+
+    public static function ensure_schema() {
+        global $wpdb;
+
+        $table_transactions = OraBooks_Database::table('bank_transactions');
+        $table_feeds = OraBooks_Database::table('bank_feeds');
+
+        if ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table_transactions)) === $table_transactions) {
+            $columns = $wpdb->get_col("DESCRIBE {$table_transactions}", 0);
+            if (is_array($columns) && !in_array('external_id', $columns, true)) {
+                $wpdb->query("ALTER TABLE {$table_transactions} ADD COLUMN external_id VARCHAR(120) NULL AFTER reference");
+            }
+            if (is_array($columns) && !in_array('import_source', $columns, true)) {
+                $wpdb->query("ALTER TABLE {$table_transactions} ADD COLUMN import_source VARCHAR(20) DEFAULT 'csv' AFTER external_id");
+            }
+
+            $indexes = $wpdb->get_results("SHOW INDEX FROM {$table_transactions}");
+            $has_external_idx = false;
+            foreach ((array) $indexes as $index) {
+                if (!empty($index->Key_name) && $index->Key_name === 'uk_bank_external') {
+                    $has_external_idx = true;
+                    break;
+                }
+            }
+            if (!$has_external_idx) {
+                $wpdb->query("ALTER TABLE {$table_transactions} ADD UNIQUE KEY uk_bank_external (bank_account_id, external_id)");
+            }
+        }
+
+        if ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table_feeds)) === $table_feeds) {
+            $feed_columns = $wpdb->get_col("DESCRIBE {$table_feeds}", 0);
+            if (is_array($feed_columns) && !in_array('token_expires_at', $feed_columns, true)) {
+                $wpdb->query("ALTER TABLE {$table_feeds} ADD COLUMN token_expires_at TIMESTAMP NULL AFTER refresh_token");
+            }
+            if (is_array($feed_columns) && !in_array('last_error', $feed_columns, true)) {
+                $wpdb->query("ALTER TABLE {$table_feeds} ADD COLUMN last_error TEXT NULL AFTER status");
+            }
+        }
     }
 
     public static function create_bank_account($org_id, $data) {
@@ -206,13 +254,15 @@ class OraBooks_Bank_Reconciliation {
             $amount = round(floatval($row['amount'] ?? 0), 2);
             $description = sanitize_textarea_field($row['description'] ?? '');
             $reference = sanitize_text_field($row['reference'] ?? '');
+            $external_id = sanitize_text_field($row['external_id'] ?? '');
+            $import_source = sanitize_text_field($row['import_source'] ?? 'csv');
 
             if ($date === '' || $amount == 0.0) {
                 $summary['errors'][] = ['row' => $index + 1, 'error' => 'date and non-zero amount are required'];
                 continue;
             }
 
-            if (self::transaction_exists($bank_account_id, $date, $amount, $reference)) {
+            if (self::transaction_exists($bank_account_id, $date, $amount, $reference, $external_id)) {
                 $summary['duplicates']++;
                 continue;
             }
@@ -226,10 +276,12 @@ class OraBooks_Bank_Reconciliation {
                     'amount' => $amount,
                     'description' => $description,
                     'reference' => $reference ?: null,
+                    'external_id' => $external_id ?: null,
+                    'import_source' => $import_source ?: 'csv',
                     'status' => 'unmatched',
                     'raw_data' => wp_json_encode($row),
                 ],
-                ['%d', '%d', '%s', '%f', '%s', '%s', '%s', '%s']
+                ['%d', '%d', '%s', '%f', '%s', '%s', '%s', '%s', '%s', '%s']
             );
 
             $bank_transaction_id = intval($wpdb->insert_id);
@@ -249,6 +301,30 @@ class OraBooks_Bank_Reconciliation {
         return $summary;
     }
 
+    public static function import_csv($org_id, $bank_account_id, $file, $user_id = null) {
+        $org_id = intval($org_id);
+        $bank_account_id = intval($bank_account_id);
+
+        if ($org_id <= 0 || $bank_account_id <= 0) {
+            return new WP_Error('invalid_import', 'Organization and bank account are required');
+        }
+
+        if (empty($file) || !is_array($file) || !empty($file['error']) || empty($file['tmp_name'])) {
+            return new WP_Error('invalid_file', 'CSV file upload failed');
+        }
+
+        if (!empty($file['size']) && intval($file['size']) > 10 * 1024 * 1024) {
+            return new WP_Error('file_too_large', 'CSV max size is 10MB');
+        }
+
+        $csv_rows = self::parse_csv_file($file['tmp_name']);
+        if (is_wp_error($csv_rows)) {
+            return $csv_rows;
+        }
+
+        return self::import_rows($org_id, $bank_account_id, $csv_rows, $user_id);
+    }
+
     public static function suggest_match($org_id, $bank_transaction_id, $bank_transaction = null) {
         global $wpdb;
 
@@ -263,6 +339,9 @@ class OraBooks_Bank_Reconciliation {
         }
 
         $candidate = self::find_rule_based_candidate($org_id, $bank_transaction);
+        if (!$candidate) {
+            $candidate = self::find_ai_candidate($org_id, $bank_transaction);
+        }
         if (!$candidate) {
             return ['suggested' => false];
         }
@@ -306,8 +385,16 @@ class OraBooks_Bank_Reconciliation {
             return new WP_Error('invalid_status', 'Only unmatched bank transactions can be matched');
         }
 
+        $existing_confirmed = intval($wpdb->get_var($wpdb->prepare(
+            "SELECT id FROM " . OraBooks_Database::table('reconciliation_matches') . " WHERE bank_transaction_id = %d AND match_status = 'confirmed' LIMIT 1",
+            intval($bank_transaction_id)
+        )));
+        if ($existing_confirmed > 0) {
+            return new WP_Error('already_matched', 'Bank transaction already has a confirmed match');
+        }
+
         $transaction_type = sanitize_text_field($transaction_type);
-        if (!in_array($transaction_type, ['payment', 'expense', 'journal', 'commission_payout'], true)) {
+        if (!in_array($transaction_type, ['payment', 'expense', 'invoice', 'journal', 'commission_payout'], true)) {
             return new WP_Error('invalid_transaction_type', 'Invalid transaction type');
         }
 
@@ -354,6 +441,146 @@ class OraBooks_Bank_Reconciliation {
         ], intval($user_id), intval($org_id));
 
         return ['match_id' => intval($wpdb->insert_id), 'status' => 'matched'];
+    }
+
+    public static function create_transaction_from_bank_entry($org_id, $bank_transaction_id, $transaction_type, $data, $user_id) {
+        $bank_transaction = self::get_bank_transaction($bank_transaction_id, $org_id);
+        if (!$bank_transaction) {
+            return new WP_Error('not_found', 'Bank transaction not found');
+        }
+
+        if ($bank_transaction->status !== 'unmatched') {
+            return new WP_Error('invalid_status', 'Only unmatched bank transactions can create linked records');
+        }
+
+        $transaction_type = sanitize_text_field($transaction_type);
+        $created_id = 0;
+
+        if ($transaction_type === 'expense') {
+            if (!class_exists('OraBooks_Expenses')) {
+                return new WP_Error('missing_module', 'Expenses module unavailable');
+            }
+
+            $created = OraBooks_Expenses::create_draft_from_voice(intval($org_id), intval($user_id), [
+                'vendor' => sanitize_text_field($data['vendor'] ?? 'Bank Entry'),
+                'transaction_date' => sanitize_text_field($bank_transaction->transaction_date),
+                'amount' => abs(floatval($bank_transaction->amount)),
+                'currency' => sanitize_text_field($data['currency'] ?? 'USD'),
+                'payment_method' => 'Bank',
+                'category' => sanitize_text_field($data['category'] ?? 'General'),
+                'description' => sanitize_textarea_field($data['description'] ?? ($bank_transaction->description ?: 'Created from bank reconciliation')),
+            ], 95, 'low');
+
+            if (is_wp_error($created)) {
+                return $created;
+            }
+
+            $created_id = intval($created['id'] ?? 0);
+        } elseif ($transaction_type === 'invoice') {
+            if (!class_exists('OraBooks_Customers')) {
+                return new WP_Error('missing_module', 'Customers/Invoice module unavailable');
+            }
+
+            $customer_id = intval($data['customer_id'] ?? 0);
+            if ($customer_id <= 0) {
+                $customer_name = sanitize_text_field($data['customer_name'] ?? ($bank_transaction->description ?: 'Bank Customer'));
+                $customer = OraBooks_Customers::create_customer(intval($org_id), [
+                    'display_name' => $customer_name,
+                    'contact_email' => sanitize_email($data['customer_email'] ?? ''),
+                    'default_currency' => sanitize_text_field($data['currency'] ?? 'USD'),
+                ]);
+                if (is_wp_error($customer)) {
+                    return $customer;
+                }
+                $customer_id = intval($customer->id ?? 0);
+            }
+
+            $created = OraBooks_Customers::create_invoice(intval($org_id), [
+                'customer_id' => $customer_id,
+                'invoice_date' => sanitize_text_field($bank_transaction->transaction_date),
+                'transaction_date' => sanitize_text_field($bank_transaction->transaction_date),
+                'description' => sanitize_textarea_field($data['description'] ?? ($bank_transaction->description ?: 'Created from bank reconciliation')),
+                'subtotal_amount' => abs(floatval($bank_transaction->amount)),
+                'total_amount' => abs(floatval($bank_transaction->amount)),
+                'currency' => sanitize_text_field($data['currency'] ?? 'USD'),
+            ]);
+
+            if (is_wp_error($created)) {
+                return $created;
+            }
+
+            $created_id = intval($created->id ?? 0);
+        } else {
+            return new WP_Error('invalid_transaction_type', 'Only expense or invoice creation is supported');
+        }
+
+        if ($created_id <= 0) {
+            return new WP_Error('create_failed', 'Failed to create transaction');
+        }
+
+        $match_type = $transaction_type === 'invoice' ? 'invoice' : 'expense';
+        $match = self::manual_match($org_id, $bank_transaction_id, $match_type, $created_id, $user_id);
+        if (is_wp_error($match)) {
+            return $match;
+        }
+
+        return [
+            'transaction_type' => $transaction_type,
+            'transaction_id' => $created_id,
+            'match' => $match,
+        ];
+    }
+
+    public static function connect_feed($org_id, $bank_account_id, $provider, $access_token, $refresh_token, $token_expires_at = null) {
+        global $wpdb;
+
+        $provider = strtolower(sanitize_text_field($provider));
+        if (!in_array($provider, ['plaid', 'yodlee'], true)) {
+            return new WP_Error('invalid_provider', 'Provider must be plaid or yodlee');
+        }
+
+        $org_id = intval($org_id);
+        $bank_account_id = intval($bank_account_id);
+        if ($org_id <= 0 || $bank_account_id <= 0) {
+            return new WP_Error('invalid_feed', 'Organization and bank account are required');
+        }
+
+        $table = OraBooks_Database::table('bank_feeds');
+        $existing_id = intval($wpdb->get_var($wpdb->prepare(
+            "SELECT id FROM {$table} WHERE org_id = %d AND bank_account_id = %d AND provider = %s LIMIT 1",
+            $org_id,
+            $bank_account_id,
+            $provider
+        )));
+
+        $payload = [
+            'access_token' => sanitize_text_field($access_token),
+            'refresh_token' => sanitize_text_field($refresh_token),
+            'token_expires_at' => $token_expires_at ? sanitize_text_field($token_expires_at) : null,
+            'status' => 'active',
+            'last_error' => null,
+            'last_sync_at' => null,
+        ];
+
+        if ($existing_id > 0) {
+            $wpdb->update($table, $payload, ['id' => $existing_id], ['%s', '%s', '%s', '%s', '%s', '%s'], ['%d']);
+            $feed_id = $existing_id;
+        } else {
+            $wpdb->insert($table, array_merge($payload, [
+                'org_id' => $org_id,
+                'bank_account_id' => $bank_account_id,
+                'provider' => $provider,
+            ]), ['%s', '%s', '%s', '%s', '%s', '%s', '%d', '%d', '%s']);
+            $feed_id = intval($wpdb->insert_id);
+        }
+
+        orabooks_log_event('bank_feed_connected', 'Bank feed connected', 'info', [
+            'bank_feed_id' => $feed_id,
+            'bank_account_id' => $bank_account_id,
+            'provider' => $provider,
+        ], orabooks_get_current_user_id(), $org_id);
+
+        return ['feed_id' => $feed_id, 'provider' => $provider, 'status' => 'active'];
     }
 
     public static function skip_transaction($org_id, $bank_transaction_id, $reason, $user_id) {
@@ -473,7 +700,13 @@ class OraBooks_Bank_Reconciliation {
         $params[] = $offset;
 
         return $wpdb->get_results($wpdb->prepare(
-            "SELECT * FROM " . OraBooks_Database::table('bank_transactions') . " WHERE {$where} ORDER BY transaction_date DESC, id DESC LIMIT %d OFFSET %d",
+            "SELECT t.*,
+                (SELECT rm.transaction_type FROM " . OraBooks_Database::table('reconciliation_matches') . " rm WHERE rm.bank_transaction_id = t.id AND rm.match_status = 'suggested' ORDER BY rm.confidence_score DESC, rm.id DESC LIMIT 1) AS suggested_transaction_type,
+                (SELECT rm.transaction_id FROM " . OraBooks_Database::table('reconciliation_matches') . " rm WHERE rm.bank_transaction_id = t.id AND rm.match_status = 'suggested' ORDER BY rm.confidence_score DESC, rm.id DESC LIMIT 1) AS suggested_transaction_id,
+                (SELECT rm.confidence_score FROM " . OraBooks_Database::table('reconciliation_matches') . " rm WHERE rm.bank_transaction_id = t.id AND rm.match_status = 'suggested' ORDER BY rm.confidence_score DESC, rm.id DESC LIMIT 1) AS suggested_confidence
+             FROM " . OraBooks_Database::table('bank_transactions') . " t
+             WHERE {$where}
+             ORDER BY t.transaction_date DESC, t.id DESC LIMIT %d OFFSET %d",
             $params
         ));
     }
@@ -487,7 +720,10 @@ class OraBooks_Bank_Reconciliation {
         $offset = intval($args['offset'] ?? 0);
 
         return $wpdb->get_results($wpdb->prepare(
-            "SELECT t.*, a.account_name
+            "SELECT t.*, a.account_name,
+                (SELECT rm.transaction_type FROM " . OraBooks_Database::table('reconciliation_matches') . " rm WHERE rm.bank_transaction_id = t.id AND rm.match_status = 'suggested' ORDER BY rm.confidence_score DESC, rm.id DESC LIMIT 1) AS suggested_transaction_type,
+                (SELECT rm.transaction_id FROM " . OraBooks_Database::table('reconciliation_matches') . " rm WHERE rm.bank_transaction_id = t.id AND rm.match_status = 'suggested' ORDER BY rm.confidence_score DESC, rm.id DESC LIMIT 1) AS suggested_transaction_id,
+                (SELECT rm.confidence_score FROM " . OraBooks_Database::table('reconciliation_matches') . " rm WHERE rm.bank_transaction_id = t.id AND rm.match_status = 'suggested' ORDER BY rm.confidence_score DESC, rm.id DESC LIMIT 1) AS suggested_confidence
              FROM {$table_transactions} t
              JOIN {$table_accounts} a ON t.bank_account_id = a.id
              WHERE t.org_id = %d
@@ -518,8 +754,20 @@ class OraBooks_Bank_Reconciliation {
         ));
     }
 
-    private static function transaction_exists($bank_account_id, $date, $amount, $reference) {
+    private static function transaction_exists($bank_account_id, $date, $amount, $reference, $external_id = '') {
         global $wpdb;
+
+        $external_id = sanitize_text_field($external_id);
+        if ($external_id !== '') {
+            $existing_external = intval($wpdb->get_var($wpdb->prepare(
+                "SELECT id FROM " . OraBooks_Database::table('bank_transactions') . " WHERE bank_account_id = %d AND external_id = %s LIMIT 1",
+                intval($bank_account_id),
+                $external_id
+            )));
+            if ($existing_external > 0) {
+                return true;
+            }
+        }
 
         return (bool) $wpdb->get_var($wpdb->prepare(
             "SELECT id FROM " . OraBooks_Database::table('bank_transactions') . "
@@ -569,6 +817,140 @@ class OraBooks_Bank_Reconciliation {
         }
 
         return null;
+    }
+
+    private static function find_ai_candidate($org_id, $bank_transaction) {
+        global $wpdb;
+
+        $amount = abs(floatval($bank_transaction->amount));
+        $date = sanitize_text_field($bank_transaction->transaction_date);
+        $needle = trim(strtolower((string) ($bank_transaction->description ?: $bank_transaction->reference ?: '')));
+        if ($needle === '') {
+            return null;
+        }
+
+        $candidates = [];
+
+        $payments = $wpdb->get_results($wpdb->prepare(
+            "SELECT id, COALESCE(reference, '') AS text_ref FROM " . OraBooks_Database::table('payments') . "
+             WHERE org_id = %d AND ABS(amount) = %f AND payment_date BETWEEN DATE_SUB(%s, INTERVAL 10 DAY) AND DATE_ADD(%s, INTERVAL 10 DAY)
+             ORDER BY ABS(DATEDIFF(payment_date, %s)) ASC LIMIT 8",
+            intval($org_id),
+            $amount,
+            $date,
+            $date,
+            $date
+        ));
+
+        foreach ((array) $payments as $payment) {
+            $score = self::similarity_score($needle, strtolower((string) ($payment->text_ref ?? '')));
+            if ($score >= 60) {
+                $candidates[] = [
+                    'transaction_type' => 'payment',
+                    'transaction_id' => intval($payment->id),
+                    'confidence_score' => min(95, max(60, $score)),
+                ];
+            }
+        }
+
+        $expenses = $wpdb->get_results($wpdb->prepare(
+            "SELECT id, COALESCE(description, '') AS text_ref FROM " . OraBooks_Database::table('expenses') . "
+             WHERE org_id = %d AND ABS(total_amount) = %f AND transaction_date BETWEEN DATE_SUB(%s, INTERVAL 10 DAY) AND DATE_ADD(%s, INTERVAL 10 DAY)
+             ORDER BY ABS(DATEDIFF(transaction_date, %s)) ASC LIMIT 8",
+            intval($org_id),
+            $amount,
+            $date,
+            $date,
+            $date
+        ));
+
+        foreach ((array) $expenses as $expense) {
+            $score = self::similarity_score($needle, strtolower((string) ($expense->text_ref ?? '')));
+            if ($score >= 60) {
+                $candidates[] = [
+                    'transaction_type' => 'expense',
+                    'transaction_id' => intval($expense->id),
+                    'confidence_score' => min(92, max(60, $score)),
+                ];
+            }
+        }
+
+        if (empty($candidates)) {
+            return null;
+        }
+
+        usort($candidates, static function ($a, $b) {
+            return (float) $b['confidence_score'] <=> (float) $a['confidence_score'];
+        });
+
+        return $candidates[0];
+    }
+
+    private static function similarity_score($left, $right) {
+        $left = trim((string) $left);
+        $right = trim((string) $right);
+        if ($left === '' || $right === '') {
+            return 0;
+        }
+
+        $percent = 0.0;
+        similar_text($left, $right, $percent);
+        return round(floatval($percent), 2);
+    }
+
+    private static function parse_csv_file($tmp_name) {
+        $handle = @fopen($tmp_name, 'r');
+        if (!$handle) {
+            return new WP_Error('invalid_csv', 'Unable to read CSV file');
+        }
+
+        $header = fgetcsv($handle);
+        if (!is_array($header) || empty($header)) {
+            fclose($handle);
+            return new WP_Error('invalid_csv', 'CSV header is required');
+        }
+
+        $map = [];
+        foreach ($header as $index => $column) {
+            $normalized = strtolower(trim((string) $column));
+            $map[$normalized] = intval($index);
+        }
+
+        foreach (['date', 'amount', 'description'] as $required) {
+            if (!array_key_exists($required, $map)) {
+                fclose($handle);
+                return new WP_Error('invalid_csv', 'CSV columns must include: date, amount, description');
+            }
+        }
+
+        $rows = [];
+        while (($row = fgetcsv($handle)) !== false) {
+            if (!is_array($row)) {
+                continue;
+            }
+
+            $date = isset($map['date']) ? trim((string) ($row[$map['date']] ?? '')) : '';
+            $amount = isset($map['amount']) ? floatval($row[$map['amount']] ?? 0) : 0;
+            $description = isset($map['description']) ? trim((string) ($row[$map['description']] ?? '')) : '';
+            $reference = isset($map['reference']) ? trim((string) ($row[$map['reference']] ?? '')) : '';
+            $external_id = isset($map['external_id']) ? trim((string) ($row[$map['external_id']] ?? '')) : '';
+
+            if ($date === '' && $amount === 0.0 && $description === '') {
+                continue;
+            }
+
+            $rows[] = [
+                'date' => $date,
+                'amount' => $amount,
+                'description' => $description,
+                'reference' => $reference,
+                'external_id' => $external_id,
+                'import_source' => 'csv',
+            ];
+        }
+
+        fclose($handle);
+        return $rows;
     }
 
     private static function get_unresolved_transactions($org_id, $bank_account_id, $statement_date) {
@@ -621,7 +1003,23 @@ class OraBooks_Bank_Reconciliation {
         }
 
         foreach ((array) $permissions as $permission) {
-            if (OraBooks_RBAC::require_permission($user_id, $org_id, $permission)) {
+            $alternatives = is_array($permission) ? $permission : [$permission];
+            foreach ($alternatives as $single) {
+                if (OraBooks_RBAC::require_permission($user_id, $org_id, $single)) {
+                    return;
+                }
+            }
+        }
+
+        foreach ((array) $permissions as $permission) {
+            $alternatives = is_array($permission) ? $permission : [$permission];
+            if (in_array('view_bank_reconciliation', $alternatives, true) && OraBooks_RBAC::require_permission($user_id, $org_id, 'view_reports')) {
+                return;
+            }
+            if (in_array('match_transaction', $alternatives, true) && OraBooks_RBAC::require_permission($user_id, $org_id, 'submit_transaction')) {
+                return;
+            }
+            if (in_array('reconcile_bank', $alternatives, true) && OraBooks_RBAC::require_permission($user_id, $org_id, 'manage_org_settings')) {
                 return;
             }
         }
@@ -632,7 +1030,7 @@ class OraBooks_Bank_Reconciliation {
     public function ajax_accounts_list() {
         $user_id = $this->current_user_id();
         $org_id = intval($_GET['org_id'] ?? 0);
-        $this->require_bank_permission($user_id, $org_id, ['view_reports']);
+        $this->require_bank_permission($user_id, $org_id, [['view_bank_reconciliation', 'view_reports']]);
         orabooks_json_success(['accounts' => self::get_accounts_list($org_id)]);
     }
 
@@ -650,7 +1048,7 @@ class OraBooks_Bank_Reconciliation {
     public function ajax_import_rows() {
         $user_id = $this->current_user_id();
         $org_id = intval($_POST['org_id'] ?? 0);
-        $this->require_bank_permission($user_id, $org_id, ['submit_transaction', 'manage_org_settings']);
+        $this->require_bank_permission($user_id, $org_id, [['match_transaction', 'submit_transaction'], ['reconcile_bank', 'manage_org_settings']]);
         $rows = json_decode(stripslashes($_POST['rows_json'] ?? '[]'), true);
         $result = self::import_rows($org_id, intval($_POST['bank_account_id'] ?? 0), is_array($rows) ? $rows : [], $user_id);
         if (is_wp_error($result)) {
@@ -659,17 +1057,34 @@ class OraBooks_Bank_Reconciliation {
         orabooks_json_success($result);
     }
 
+    public function ajax_import_csv() {
+        $user_id = $this->current_user_id();
+        $org_id = intval($_POST['org_id'] ?? 0);
+        $this->require_bank_permission($user_id, $org_id, [['match_transaction', 'submit_transaction'], ['reconcile_bank', 'manage_org_settings']]);
+
+        if (empty($_FILES['statement_file'])) {
+            orabooks_json_error('CSV statement_file is required', 400);
+        }
+
+        $result = self::import_csv($org_id, intval($_POST['bank_account_id'] ?? 0), $_FILES['statement_file'], $user_id);
+        if (is_wp_error($result)) {
+            orabooks_json_error($result->get_error_message(), 400);
+        }
+
+        orabooks_json_success($result);
+    }
+
     public function ajax_transactions_list() {
         $user_id = $this->current_user_id();
         $org_id = intval($_GET['org_id'] ?? 0);
-        $this->require_bank_permission($user_id, $org_id, ['view_reports']);
+        $this->require_bank_permission($user_id, $org_id, [['view_bank_reconciliation', 'view_reports']]);
         orabooks_json_success(['transactions' => self::get_transactions_list($org_id, intval($_GET['bank_account_id'] ?? 0), $_GET)]);
     }
 
     public function ajax_manual_match() {
         $user_id = $this->current_user_id();
         $org_id = intval($_POST['org_id'] ?? 0);
-        $this->require_bank_permission($user_id, $org_id, ['submit_transaction', 'approve_journal']);
+        $this->require_bank_permission($user_id, $org_id, [['match_transaction', 'submit_transaction'], ['approve_journal']]);
         $result = self::manual_match($org_id, intval($_POST['bank_transaction_id'] ?? 0), $_POST['transaction_type'] ?? '', intval($_POST['transaction_id'] ?? 0), $user_id);
         if (is_wp_error($result)) {
             orabooks_json_error($result->get_error_message(), 400);
@@ -677,10 +1092,35 @@ class OraBooks_Bank_Reconciliation {
         orabooks_json_success($result);
     }
 
+    public function ajax_create_transaction() {
+        $user_id = $this->current_user_id();
+        $org_id = intval($_POST['org_id'] ?? 0);
+        $this->require_bank_permission($user_id, $org_id, [['match_transaction', 'submit_transaction'], ['approve_journal']]);
+
+        $data = json_decode(stripslashes($_POST['payload_json'] ?? '{}'), true);
+        if (!is_array($data)) {
+            $data = [];
+        }
+
+        $result = self::create_transaction_from_bank_entry(
+            $org_id,
+            intval($_POST['bank_transaction_id'] ?? 0),
+            sanitize_text_field($_POST['transaction_type'] ?? ''),
+            $data,
+            $user_id
+        );
+
+        if (is_wp_error($result)) {
+            orabooks_json_error($result->get_error_message(), 400);
+        }
+
+        orabooks_json_success($result);
+    }
+
     public function ajax_skip_transaction() {
         $user_id = $this->current_user_id();
         $org_id = intval($_POST['org_id'] ?? 0);
-        $this->require_bank_permission($user_id, $org_id, ['submit_transaction', 'approve_journal']);
+        $this->require_bank_permission($user_id, $org_id, [['match_transaction', 'submit_transaction'], ['approve_journal']]);
         $result = self::skip_transaction($org_id, intval($_POST['bank_transaction_id'] ?? 0), $_POST['reason'] ?? '', $user_id);
         if (is_wp_error($result)) {
             orabooks_json_error($result->get_error_message(), 400);
@@ -688,10 +1128,31 @@ class OraBooks_Bank_Reconciliation {
         orabooks_json_success([], 'Bank transaction skipped');
     }
 
+    public function ajax_feed_connect() {
+        $user_id = $this->current_user_id();
+        $org_id = intval($_POST['org_id'] ?? 0);
+        $this->require_bank_permission($user_id, $org_id, [['connect_bank_feed', 'manage_org_settings']]);
+
+        $result = self::connect_feed(
+            $org_id,
+            intval($_POST['bank_account_id'] ?? 0),
+            sanitize_text_field($_POST['provider'] ?? ''),
+            sanitize_text_field($_POST['access_token'] ?? ''),
+            sanitize_text_field($_POST['refresh_token'] ?? ''),
+            sanitize_text_field($_POST['token_expires_at'] ?? '')
+        );
+
+        if (is_wp_error($result)) {
+            orabooks_json_error($result->get_error_message(), 400);
+        }
+
+        orabooks_json_success($result);
+    }
+
     public function ajax_finalize_reconciliation() {
         $user_id = $this->current_user_id();
         $org_id = intval($_POST['org_id'] ?? 0);
-        $this->require_bank_permission($user_id, $org_id, ['manage_org_settings', 'approve_journal']);
+        $this->require_bank_permission($user_id, $org_id, [['reconcile_bank', 'manage_org_settings'], ['approve_journal']]);
         $result = self::finalize_reconciliation(
             $org_id,
             intval($_POST['bank_account_id'] ?? 0),
