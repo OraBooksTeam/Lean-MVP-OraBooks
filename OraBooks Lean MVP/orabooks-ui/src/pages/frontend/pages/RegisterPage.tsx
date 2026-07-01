@@ -131,6 +131,14 @@ export default function RegisterPage() {
 
   const needsOrg = ['agency', 'reseller', 'strategic_partner'].includes(partnerType);
   const invitedFlow = Boolean(invitePreview?.org_name || invitePreview?.role);
+  const authLogoStyle = {
+    height: '100px',
+    width: '100%',
+    objectFit: 'contain' as const,
+    objectPosition: 'center',
+    display: 'block',
+    marginInline: 'auto',
+  };
 
   return (
     <div className="brand-auth-bg orabooks-register-auth flex min-h-screen items-center justify-center px-4 py-8 sm:px-6 sm:py-10 lg:py-12">
@@ -138,7 +146,8 @@ export default function RegisterPage() {
         <div className="orabooks-register-panel-inner p-8 sm:p-10 lg:p-12">
           <BrandLogo
             wrapperClassName="mx-auto mb-5 w-full max-w-[240px]"
-            imageClassName="h-[100px] w-full object-contain"
+            imageClassName="w-full"
+            imageStyle={authLogoStyle}
             fallbackClassName="flex h-12 w-12 items-center justify-center rounded-xl bg-primary"
             fallbackTextClassName="text-2xl font-black text-white"
           />
