@@ -64,25 +64,37 @@ export default function RegisterPage() {
   const submit = async (e: FormEvent) => {
     e.preventDefault();
     setError('');
+    const normalizedEmail = email.trim();
+
+    if (!normalizedEmail || !password) {
+      return setError('Email and password are required.');
+    }
     if (password !== confirm) return setError('Passwords do not match');
-    if (invitePreview?.email && email.trim().toLowerCase() !== invitePreview.email.trim().toLowerCase()) {
+    if (invitePreview?.email && normalizedEmail.toLowerCase() !== invitePreview.email.trim().toLowerCase()) {
       return setError('Use the same email address that received the team invitation.');
     }
+    if (userType === 'partner' && !acceptTerms) {
+      return setError('Partner terms must be accepted.');
+    }
+    if (userType === 'partner' && needsOrg && !orgName.trim()) {
+      return setError('Organization name is required for this partner type.');
+    }
+
     setLoading(true);
     try {
       const res = await api.register({
-        email,
+        email: normalizedEmail,
         password,
         user_type: userType,
-        partner_type: partnerType,
-        organization_name: orgName,
-        partner_code: partnerCode,
-        accept_terms: acceptTerms ? 1 : 0,
+        partner_type: userType === 'partner' ? partnerType : 'individual',
+        organization_name: userType === 'partner' ? orgName.trim() : '',
+        partner_code: userType === 'customer' ? partnerCode.trim() : '',
+        accept_terms: userType === 'partner' && acceptTerms ? 1 : 0,
         terms_version: '1.0',
       });
       if (res.error) setError(typeof res.error === 'string' ? res.error : 'Registration failed');
       else {
-        window.sessionStorage.setItem('orabooks_last_registered_email', email);
+        window.sessionStorage.setItem('orabooks_last_registered_email', normalizedEmail);
         window.location.replace(getNetworkAuthUrl('verify-email'));
       }
     } finally {
