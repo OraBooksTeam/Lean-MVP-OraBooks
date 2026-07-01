@@ -278,7 +278,7 @@ export default function InventoryPage() {
     sales_price: product.sales_price != null ? String(product.sales_price) : '',
     mrp: product.mrp != null ? String(product.mrp) : '',
     warehouse_name: product.warehouse_name || '',
-    initial_stock: '',
+    initial_stock: product.current_stock != null ? String(product.current_stock) : '0',
     item_type: (product.item_type === 'Variants' || product.item_type === 'service'
       ? product.item_type
       : 'Single') as ProductFormState['item_type'],
@@ -378,6 +378,8 @@ export default function InventoryPage() {
     if (!editingProduct) {
       payload.initial_stock = parseFloat(productForm.initial_stock) || 0;
       payload.initial_cost = parseFloat(productForm.purchase_price) || parseFloat(productForm.price) || 0;
+    } else if (productForm.initial_stock !== '') {
+      payload.current_stock = parseFloat(productForm.initial_stock);
     }
 
     const formData = new FormData();
@@ -424,6 +426,11 @@ export default function InventoryPage() {
     }
     if (!productForm.name.trim() || !productForm.category_name.trim() || !productForm.unit.trim() || !productForm.price.trim()) {
       setError('Item name, category, unit, and price are required.');
+      return;
+    }
+
+    if (productForm.initial_stock === '' || Number.isNaN(parseFloat(productForm.initial_stock)) || parseFloat(productForm.initial_stock) < 0) {
+      setError('Current stock must be a valid non-negative number.');
       return;
     }
 
@@ -993,13 +1000,19 @@ function ProductFields({
             />
           </Field>
           <Field label={mode === 'edit' ? 'Current stock' : 'Opening Stock'}>
+            <Input
+              type="number"
+              min="0"
+              step="0.01"
+              value={form.initial_stock}
+              onChange={(e) => set({ initial_stock: e.target.value })}
+              placeholder="0.00"
+            />
             {mode === 'edit' ? (
-              <div className="rounded-lg border border-border bg-slate-100 px-3 py-2.5 text-sm text-slate-600">
-                {formatQty(currentStock ?? 0)} — use Adjust to change stock
-              </div>
-            ) : (
-              <Input type="number" min="0" step="0.01" value={form.initial_stock} onChange={(e) => set({ initial_stock: e.target.value })} placeholder="0.00" />
-            )}
+              <span className="mt-1 block text-xs text-slate-500">
+                Previous stock: {formatQty(currentStock ?? 0)}
+              </span>
+            ) : null}
           </Field>
         </div>
 
