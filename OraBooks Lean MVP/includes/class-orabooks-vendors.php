@@ -611,7 +611,7 @@ class OraBooks_Vendors {
             } elseif ($subtotal > 0) {
                 $fallback_description = !empty($data['description'])
                     ? sanitize_textarea_field($data['description'])
-                    : 'Bill ' . $bill_number;
+                    : 'Line item';
                 OraBooks_Bill_Document::save_line_items($org_id, $bill_id, [[
                     'line_number' => 1,
                     'description' => $fallback_description,
