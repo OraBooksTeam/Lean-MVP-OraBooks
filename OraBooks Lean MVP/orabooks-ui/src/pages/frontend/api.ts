@@ -538,10 +538,17 @@ export const api = {
       bank_account_id: bankAccountId,
       rows_json: JSON.stringify(rows),
     }),
+  bankImportCsv: (orgId: number, bankAccountId: number, file: File) => {
+    const formData = new FormData();
+    formData.set('org_id', String(orgId));
+    formData.set('bank_account_id', String(bankAccountId));
+    formData.set('statement_file', file);
+    return uploadRequest('orabooks_bank_import_csv', formData);
+  },
   bankManualMatch: (
     orgId: number,
     bankTransactionId: number,
-    transactionType: 'payment' | 'expense' | 'journal',
+    transactionType: 'payment' | 'expense' | 'invoice' | 'journal',
     transactionId: number
   ) =>
     api.post('orabooks_bank_match', {
@@ -549,6 +556,34 @@ export const api = {
       bank_transaction_id: bankTransactionId,
       transaction_type: transactionType,
       transaction_id: transactionId,
+    }),
+  bankCreateTransaction: (
+    orgId: number,
+    bankTransactionId: number,
+    transactionType: 'expense' | 'invoice',
+    payload: Record<string, unknown> = {}
+  ) =>
+    api.post('orabooks_bank_create_transaction', {
+      org_id: orgId,
+      bank_transaction_id: bankTransactionId,
+      transaction_type: transactionType,
+      payload_json: JSON.stringify(payload),
+    }),
+  bankFeedConnect: (
+    orgId: number,
+    bankAccountId: number,
+    provider: 'plaid' | 'yodlee',
+    accessToken: string,
+    refreshToken: string,
+    tokenExpiresAt = ''
+  ) =>
+    api.post('orabooks_bank_feed_connect', {
+      org_id: orgId,
+      bank_account_id: bankAccountId,
+      provider,
+      access_token: accessToken,
+      refresh_token: refreshToken,
+      token_expires_at: tokenExpiresAt,
     }),
   bankSkip: (orgId: number, bankTransactionId: number, reason: string) =>
     api.post('orabooks_bank_skip', {
