@@ -15,6 +15,24 @@ type InvitePreview = {
   org_name?: string;
 };
 
+function getAuthRedirectDataFromFrontendContext(ctxData: any) {
+  const orgId = Number(ctxData?.org_id || ctxData?.organization?.id || 0);
+  const subdomain = String(ctxData?.subdomain || ctxData?.organization?.subdomain || '').trim();
+  const isPartner = Boolean(ctxData?.is_partner ?? ctxData?.user?.is_partner);
+
+  return {
+    org_id: orgId,
+    subdomain,
+    is_partner: isPartner,
+    needs_accept_invite: false,
+  };
+}
+
+function hasResolvedOrganization(ctxData: any) {
+  const authData = getAuthRedirectDataFromFrontendContext(ctxData);
+  return authData.org_id > 0 || authData.subdomain !== '';
+}
+
 export default function AcceptInvitePage() {
   const token = useMemo(() => {
     const fromUrl = new URLSearchParams(window.location.search).get('token') || '';
@@ -35,10 +53,10 @@ export default function AcceptInvitePage() {
       if (hasStoredAuthToken()) {
         void api.frontendContext().then((ctxRes) => {
           const ctxData = (ctxRes as any).data || {};
-          const hasOrg = Number(ctxData?.org_id || 0) > 0 || String(ctxData?.subdomain || '').trim() !== '';
+          const hasOrg = hasResolvedOrganization(ctxData);
           if (!ctxRes.error && hasOrg) {
             clearPendingInviteToken();
-            redirectAfterAuth({ ...ctxData, needs_accept_invite: false });
+            redirectAfterAuth(getAuthRedirectDataFromFrontendContext(ctxData));
             return;
           }
           setError('This invitation link is invalid or missing a token.');
@@ -76,11 +94,11 @@ export default function AcceptInvitePage() {
           if (looksInvalidOrExpired && hasStoredAuthToken()) {
             const ctxRes = await api.frontendContext();
             const ctxData = (ctxRes as any).data || {};
-            const hasOrg = Number(ctxData?.org_id || 0) > 0 || String(ctxData?.subdomain || '').trim() !== '';
+            const hasOrg = hasResolvedOrganization(ctxData);
             if (!ctxRes.error && hasOrg) {
               clearPendingInviteToken();
               setSuccess('Invitation already processed. Redirecting to your workspace…');
-              redirectAfterAuth({ ...ctxData, needs_accept_invite: false });
+              redirectAfterAuth(getAuthRedirectDataFromFrontendContext(ctxData));
               setLoading(false);
               return;
             }
