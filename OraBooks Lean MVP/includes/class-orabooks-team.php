@@ -299,6 +299,11 @@ class OraBooks_Team {
             return new WP_Error('user_not_found', 'Please create an account first before accepting the invite');
         }
 
+        if (property_exists($user, 'is_email_verified') && (int) $user->is_email_verified !== 1) {
+            $wpdb->query('ROLLBACK');
+            return new WP_Error('email_not_verified', 'Please verify your email before accepting this invitation.');
+        }
+
         if ($expected_user_id > 0 && (int) $user->id !== $expected_user_id) {
             $wpdb->query('ROLLBACK');
             return new WP_Error(
@@ -353,7 +358,7 @@ class OraBooks_Team {
 
         orabooks_log_event('invite_accepted', "User {$user->email} accepted invite to org {$invite->org_id}", 'info', [
             'role' => $invite->role,
-            'via' => 'invite_first_onboarding',
+            'via' => 'invite_link',
         ], $user->id, $invite->org_id);
 
         return [
