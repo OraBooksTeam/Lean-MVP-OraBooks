@@ -1,7 +1,7 @@
 import { useState, useEffect, type FormEvent } from 'react';
+import BrandLogo from '@/components/BrandLogo';
 import Button from '@/components/Button';
 import Input from '@/components/Input';
-import { Flame } from 'lucide-react';
 import { api } from '../api';
 import {
   clearRedirectGuard,
@@ -163,9 +163,12 @@ export default function LoginPage() {
       <div className="brand-auth-bg flex min-h-screen items-center justify-center px-4 py-8 sm:px-6 sm:py-10 lg:py-12">
         <div className="glass-panel w-full max-w-lg overflow-hidden">
           <div className="p-8 sm:p-10 lg:p-12">
-          <div className="mx-auto mb-6 flex h-12 w-12 items-center justify-center rounded-xl bg-primary">
-            <Flame className="h-6 w-6 text-white" />
-          </div>
+          <BrandLogo
+            wrapperClassName="mx-auto mb-6"
+            imageClassName="h-14 w-auto object-contain"
+            fallbackClassName="flex h-12 w-12 items-center justify-center rounded-xl bg-primary"
+            fallbackTextClassName="text-2xl font-black text-white"
+          />
           <h2 className="text-center text-xl font-bold text-ink">Two-Factor Authentication</h2>
           <p className="mt-2 text-center text-sm text-slate-600">Enter the 6‑digit code from your authenticator app, or use a backup code.</p>
           <form onSubmit={submit2fa} className="mt-6 space-y-4">
@@ -197,9 +200,12 @@ export default function LoginPage() {
     <div className="brand-auth-bg flex min-h-screen items-center justify-center px-4 py-8 sm:px-6 sm:py-10 lg:py-12">
       <div className="glass-panel w-full max-w-lg overflow-hidden">
         <div className="p-8 sm:p-10 lg:p-12">
-        <div className="mx-auto mb-6 flex h-12 w-12 items-center justify-center rounded-xl bg-primary">
-          <span className="text-2xl font-black text-white">OB</span>
-        </div>
+        <BrandLogo
+          wrapperClassName="mx-auto mb-6"
+          imageClassName="h-14 w-auto object-contain"
+          fallbackClassName="flex h-12 w-12 items-center justify-center rounded-xl bg-primary"
+          fallbackTextClassName="text-2xl font-black text-white"
+        />
         <h2 className="text-center text-2xl font-bold text-ink">Log In</h2>
         <p className="mt-2 text-center text-sm text-slate-600">Welcome back. Sign in to your account.</p>
                 {notice && (

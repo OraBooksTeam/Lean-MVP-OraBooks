@@ -1,9 +1,9 @@
 import { useMemo, useState, type FormEvent } from 'react';
+import BrandLogo from '@/components/BrandLogo';
 import Button from '@/components/Button';
 import Input from '@/components/Input';
 import { api } from '../api';
 import { getNetworkAuthUrl, getAuthResetLoginUrl } from '../lib/auth-routing';
-import { KeyRound } from 'lucide-react';
 
 export default function ResetPasswordPage() {
   const token = useMemo(() => {
@@ -59,9 +59,12 @@ export default function ResetPasswordPage() {
     <div className="brand-auth-bg flex min-h-screen items-center justify-center px-4 py-12">
       <div className="glass-panel w-full max-w-lg overflow-hidden">
         <div className="p-8">
-          <div className="mx-auto mb-6 flex h-12 w-12 items-center justify-center rounded-xl bg-primary">
-            <KeyRound className="h-6 w-6 text-white" />
-          </div>
+          <BrandLogo
+            wrapperClassName="mx-auto mb-6"
+            imageClassName="h-14 w-auto object-contain"
+            fallbackClassName="flex h-12 w-12 items-center justify-center rounded-xl bg-primary"
+            fallbackTextClassName="text-2xl font-black text-white"
+          />
           <h2 className="text-center text-2xl font-bold text-ink">Reset Password</h2>
           <p className="mt-2 text-center text-sm text-slate-600">
             {token

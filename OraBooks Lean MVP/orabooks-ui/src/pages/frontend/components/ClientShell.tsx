@@ -27,6 +27,7 @@ import {
   Wallet,
   X,
 } from 'lucide-react';
+import BrandLogo from '@/components/BrandLogo';
 import { cn } from '@/lib/utils';
 import { getCurrentAppRoute, normalizeAppRoute } from '../lib/wp-routing';
 import { api } from '../api';
@@ -243,9 +244,11 @@ export default function ClientShell({
   const brandBlock = (
     <div className="flex items-center gap-3">
       <div className="flex min-w-0 flex-1 items-center gap-3">
-        <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-base font-black text-primary">
-          OB
-        </div>
+        <BrandLogo
+          wrapperClassName="flex h-11 w-11 items-center justify-center rounded-2xl bg-white p-1.5"
+          imageClassName="h-full w-full object-contain"
+          fallbackClassName="flex h-full w-full items-center justify-center text-base font-black text-primary"
+        />
         <div className="min-w-0">
           <p className="truncate text-sm font-bold text-white">OraBooks</p>
           <p className="truncate text-xs text-white/70">{isPartner ? 'Partner Account (Commission)' : 'Accounting Workspace'}</p>
@@ -353,9 +356,11 @@ export default function ClientShell({
       >
         <div className="flex shrink-0 items-start justify-between gap-2">
           <div className="flex min-w-0 items-center gap-2.5">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white text-sm font-black text-primary">
-              OB
-            </div>
+              <BrandLogo
+                wrapperClassName="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white p-1.5"
+                imageClassName="h-full w-full object-contain"
+                fallbackClassName="flex h-full w-full items-center justify-center text-sm font-black text-primary"
+              />
             <div className="min-w-0">
               <p className="truncate text-sm font-bold text-white">OraBooks</p>
               <p className="truncate text-xs text-white/70">{isPartner ? 'Partner Account' : 'Accounting Workspace'}</p>
@@ -409,9 +414,11 @@ export default function ClientShell({
         >
           <div className="flex items-center justify-between px-4 py-3">
             <div className="flex min-w-0 items-center gap-2.5 sm:gap-3">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary text-xs font-black text-white sm:h-10 sm:w-10 sm:text-sm">
-                OB
-              </div>
+              <BrandLogo
+                wrapperClassName="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary p-1 sm:h-10 sm:w-10 sm:p-1.5"
+                imageClassName="h-full w-full object-contain"
+                fallbackClassName="flex h-full w-full items-center justify-center text-xs font-black text-white sm:text-sm"
+              />
               <div className="min-w-0">
                 <p className="truncate text-sm font-bold text-ink xs:text-sm">OraBooks</p>
                 <p className="truncate text-xs text-ink-secondary">{title}</p>

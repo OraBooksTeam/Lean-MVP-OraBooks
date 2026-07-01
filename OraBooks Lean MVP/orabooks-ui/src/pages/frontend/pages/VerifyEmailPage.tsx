@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
-import { MailCheck } from 'lucide-react';
+import BrandLogo from '@/components/BrandLogo';
 import Button from '@/components/Button';
 import Input from '@/components/Input';
 import { api } from '../api';
@@ -62,9 +62,12 @@ export default function VerifyEmailPage() {
   return (
     <div className="brand-auth-bg flex min-h-screen items-center justify-center px-4 py-12">
       <div className="glass-panel w-full max-w-lg overflow-hidden p-8 text-center">
-        <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-primary">
-          <MailCheck className="h-6 w-6 text-white" />
-        </div>
+        <BrandLogo
+          wrapperClassName="mx-auto mb-4"
+          imageClassName="h-14 w-auto object-contain"
+          fallbackClassName="flex h-12 w-12 items-center justify-center rounded-xl bg-primary"
+          fallbackTextClassName="text-2xl font-black text-white"
+        />
         <h2 className="text-2xl font-bold text-ink">Verify Email</h2>
         {loading ? (
           <p className="mt-4 text-sm text-slate-600">Verifying your email address…</p>

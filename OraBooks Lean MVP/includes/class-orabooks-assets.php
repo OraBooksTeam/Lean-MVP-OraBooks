@@ -281,6 +281,7 @@ class OraBooks_Assets {
             'ajax_url' => admin_url('admin-ajax.php'),
             'nonce' => wp_create_nonce('orabooks_nonce'),
             'current_user_id' => get_current_user_id(),
+            'logo_url' => ORABOOKS_PLUGIN_URL . 'assets/logo/orabooks-logo.png',
             'logout_url' => wp_logout_url(orabooks_get_network_login_url('login')),
             'login_url' => orabooks_get_network_login_url('login'),
             'register_url' => orabooks_get_network_login_url('register'),

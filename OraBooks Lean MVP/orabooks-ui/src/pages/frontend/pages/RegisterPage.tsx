@@ -1,9 +1,9 @@
 import { useState, useEffect, type FormEvent } from 'react';
+import BrandLogo from '@/components/BrandLogo';
 import Button from '@/components/Button';
 import Input from '@/components/Input';
 import { api } from '../api';
 import { getNetworkAuthUrl, storePendingInviteToken } from '../lib/auth-routing';
-import { UserPlus } from 'lucide-react';
 
 type InvitePreview = {
   email?: string;
@@ -136,9 +136,12 @@ export default function RegisterPage() {
     <div className="brand-auth-bg orabooks-register-auth flex min-h-screen items-center justify-center px-4 py-8 sm:px-6 sm:py-10 lg:py-12">
       <div className="glass-panel orabooks-register-panel w-full max-w-3xl overflow-hidden">
         <div className="orabooks-register-panel-inner p-8 sm:p-10 lg:p-12">
-          <div className="mx-auto mb-5 flex h-12 w-12 items-center justify-center rounded-xl bg-primary">
-            <UserPlus className="h-6 w-6 text-white" />
-          </div>
+          <BrandLogo
+            wrapperClassName="mx-auto mb-5"
+            imageClassName="h-14 w-auto object-contain"
+            fallbackClassName="flex h-12 w-12 items-center justify-center rounded-xl bg-primary"
+            fallbackTextClassName="text-2xl font-black text-white"
+          />
 
           <div className="text-center">
             <h2 className="text-2xl font-bold text-ink sm:text-3xl">Create Account</h2>
