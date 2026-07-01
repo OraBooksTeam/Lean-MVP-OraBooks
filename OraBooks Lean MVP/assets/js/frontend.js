@@ -111,7 +111,7 @@ jQuery(document).ready(function($) {
                 partner_type: partnerType,
                 organization_name: organizationName,
                 partner_code: $('#reg-partner-code').val(),
-                accept_terms: $('#reg-accept-terms').is(':checked') ? 1 : 0,
+                accept_terms: isPartner ? ($('#reg-accept-terms').is(':checked') ? 1 : 0) : 1,
                 terms_version: $('#reg-terms-version').val() || '1.0'
             }
         }).done(function(response) {
