@@ -2,10 +2,12 @@
 const WP_PATH_ALIASES: Record<string, string> = {
   '/partner-onboarding': '/onboarding',
   '/partner/onboarding': '/onboarding',
+  '/partner/dashboard': '/partner-program',
   '/security/2fa': '/security-2fa',
 };
 
 const APP_ROUTE_ALIASES: Record<string, string> = {
+  '/partner-program': '/partner/dashboard',
   '/security-2fa': '/security/2fa',
 };
 
