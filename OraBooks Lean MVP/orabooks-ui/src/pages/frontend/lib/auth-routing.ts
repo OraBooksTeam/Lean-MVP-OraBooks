@@ -144,6 +144,7 @@ export function redirectAfterAuth(data: {
   tier_selection_token?: string;
   redirect_to?: string;
   subdomain?: string;
+  org_id?: number | null;
   is_partner?: boolean;
   is_platform_admin?: boolean;
 }) {
@@ -151,7 +152,12 @@ export function redirectAfterAuth(data: {
   clearLogoutSessionFlag();
   clearTierSelectionToken();
 
-  if (data?.needs_accept_invite) {
+  const hasResolvedOrg = Number(data?.org_id || 0) > 0 || String(data?.subdomain || '').trim() !== '';
+  if (data?.invite_onboarded || hasResolvedOrg) {
+    clearPendingInviteToken();
+  }
+
+  if (data?.needs_accept_invite && !hasResolvedOrg && !data?.invite_onboarded) {
     const pendingInvite = consumePendingInviteToken();
     if (pendingInvite) {
       window.location.replace(getAcceptInviteUrl(pendingInvite));
