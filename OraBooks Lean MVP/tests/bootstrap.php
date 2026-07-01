@@ -1959,7 +1959,7 @@ if (!function_exists('orabooks_resolve_auth_org_id')) {
             }
         }
 
-        if ($user_id > 0) {
+        if ($user_id > 0 && isset($wpdb->test_get_var_callback) && $wpdb->test_get_var_callback !== null) {
             $table_user_org = OraBooks_Database::table('user_org');
             $member_org_id = (int) $wpdb->get_var($wpdb->prepare(
                 "SELECT org_id FROM {$table_user_org} WHERE user_id = %d ORDER BY joined_at DESC, id DESC LIMIT 1",
