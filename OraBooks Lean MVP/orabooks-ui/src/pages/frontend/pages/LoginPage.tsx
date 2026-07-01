@@ -8,6 +8,7 @@ import {
   clearLogoutSessionFlag,
   clearStoredAuthTokens,
   consumePendingInviteToken,
+  getPendingInviteToken,
   getAcceptInviteUrl,
   getNetworkAuthUrl,
   isLogoutLanding,
@@ -23,7 +24,7 @@ function redirectAfterLogin(data: any) {
   }
 
   if (data?.needs_accept_invite) {
-    const pendingInvite = consumePendingInviteToken();
+    const pendingInvite = getPendingInviteToken();
     if (pendingInvite) {
       window.location.replace(getAcceptInviteUrl(pendingInvite));
       return;

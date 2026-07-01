@@ -16,6 +16,10 @@ export function consumePendingInviteToken() {
   return token;
 }
 
+export function getPendingInviteToken() {
+  return window.sessionStorage.getItem(PENDING_INVITE_TOKEN_KEY) || '';
+}
+
 export function clearPendingInviteToken() {
   window.sessionStorage.removeItem(PENDING_INVITE_TOKEN_KEY);
 }
@@ -158,7 +162,7 @@ export function redirectAfterAuth(data: {
   }
 
   if (data?.needs_accept_invite && !hasResolvedOrg && !data?.invite_onboarded) {
-    const pendingInvite = consumePendingInviteToken();
+    const pendingInvite = getPendingInviteToken();
     if (pendingInvite) {
       window.location.replace(getAcceptInviteUrl(pendingInvite));
       return;
