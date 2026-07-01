@@ -160,9 +160,9 @@ export default function LoginPage() {
 
   if (show2fa) {
     return (
-      <div className="brand-auth-bg flex min-h-screen items-center justify-center px-4 py-12">
-        <div className="glass-panel w-full max-w-md overflow-hidden">
-          <div className="p-8">
+      <div className="brand-auth-bg flex min-h-screen items-center justify-center px-4 py-8 sm:px-6 sm:py-10 lg:py-12">
+        <div className="glass-panel w-full max-w-lg overflow-hidden">
+          <div className="p-8 sm:p-10 lg:p-12">
           <div className="mx-auto mb-6 flex h-12 w-12 items-center justify-center rounded-xl bg-primary">
             <Flame className="h-6 w-6 text-white" />
           </div>
@@ -194,9 +194,9 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="brand-auth-bg flex min-h-screen items-center justify-center px-4 py-12">
-      <div className="glass-panel w-full max-w-md overflow-hidden">
-        <div className="p-8">
+    <div className="brand-auth-bg flex min-h-screen items-center justify-center px-4 py-8 sm:px-6 sm:py-10 lg:py-12">
+      <div className="glass-panel w-full max-w-lg overflow-hidden">
+        <div className="p-8 sm:p-10 lg:p-12">
         <div className="mx-auto mb-6 flex h-12 w-12 items-center justify-center rounded-xl bg-primary">
           <span className="text-2xl font-black text-white">OB</span>
         </div>
