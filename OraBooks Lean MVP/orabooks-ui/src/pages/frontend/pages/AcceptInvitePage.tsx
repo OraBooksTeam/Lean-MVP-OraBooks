@@ -3,6 +3,7 @@ import { UserPlus } from 'lucide-react';
 import Button from '@/components/Button';
 import { api, hasStoredAuthToken } from '../api';
 import {
+  clearPendingInviteToken,
   getNetworkAuthUrl,
   redirectAfterAuth,
   storePendingInviteToken,
@@ -54,9 +55,11 @@ export default function AcceptInvitePage() {
         if (message.toLowerCase().includes('log in')) {
           setNeedsLogin(true);
         } else {
+          clearPendingInviteToken();
           setError(message);
         }
       } else {
+        clearPendingInviteToken();
         setSuccess('Invitation accepted. Redirecting to your workspace…');
         redirectAfterAuth((res as any).data);
       }

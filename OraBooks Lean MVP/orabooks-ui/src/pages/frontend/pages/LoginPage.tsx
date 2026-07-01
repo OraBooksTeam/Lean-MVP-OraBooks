@@ -22,11 +22,18 @@ function redirectAfterLogin(data: any) {
     return;
   }
 
-  const pendingInvite = consumePendingInviteToken();
-  if (pendingInvite) {
-    window.location.replace(getAcceptInviteUrl(pendingInvite));
+  if (data?.needs_accept_invite) {
+    const pendingInvite = consumePendingInviteToken();
+    if (pendingInvite) {
+      window.location.replace(getAcceptInviteUrl(pendingInvite));
+      return;
+    }
+    redirectAfterAuth(data);
     return;
   }
+
+  // User is fully onboarded; clear stale invite tokens to avoid redirect loops.
+  consumePendingInviteToken();
   redirectAfterAuth(data);
 }
 
