@@ -135,6 +135,15 @@ export default function LoginPage() {
     }
   };
 
+  const authLogoStyle = {
+    height: '100px',
+    width: '100%',
+    objectFit: 'contain' as const,
+    objectPosition: 'center',
+    display: 'block',
+    marginInline: 'auto',
+  };
+
   const submit2fa = async (e: FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -165,7 +174,8 @@ export default function LoginPage() {
           <div className="p-8 sm:p-10 lg:p-12">
           <BrandLogo
             wrapperClassName="mx-auto mb-6 w-full max-w-[240px]"
-            imageClassName="h-[100px] w-full object-contain"
+            imageClassName="w-full"
+            imageStyle={authLogoStyle}
             fallbackClassName="flex h-12 w-12 items-center justify-center rounded-xl bg-primary"
             fallbackTextClassName="text-2xl font-black text-white"
           />
@@ -202,7 +212,8 @@ export default function LoginPage() {
         <div className="p-8 sm:p-10 lg:p-12">
         <BrandLogo
           wrapperClassName="mx-auto mb-6 w-full max-w-[240px]"
-          imageClassName="h-[100px] w-full object-contain"
+          imageClassName="w-full"
+          imageStyle={authLogoStyle}
           fallbackClassName="flex h-12 w-12 items-center justify-center rounded-xl bg-primary"
           fallbackTextClassName="text-2xl font-black text-white"
         />
