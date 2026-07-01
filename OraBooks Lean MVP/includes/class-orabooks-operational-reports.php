@@ -339,14 +339,14 @@ class OraBooks_Operational_Reports {
         $table = OraBooks_Database::table('report_bank_reconciliation_summary');
         $as_of_date = !empty($args['as_of_date']) ? sanitize_text_field($args['as_of_date']) : current_time('Y-m-d');
         $where = 's.org_id = %d';
-        $params = [intval($org_id), $as_of_date];
+        $outer_params = [intval($org_id)];
 
         if (!empty($args['bank_account_id'])) {
             $where .= ' AND s.bank_account_id = %d';
-            $params[] = intval($args['bank_account_id']);
+            $outer_params[] = intval($args['bank_account_id']);
         }
 
-        $params[] = intval($org_id);
+        $params = array_merge([intval($org_id), $as_of_date], $outer_params);
 
         return $wpdb->get_results($wpdb->prepare(
             "SELECT s.*
