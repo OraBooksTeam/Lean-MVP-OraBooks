@@ -1016,6 +1016,14 @@ class OraBooks_Vendors {
 
         $org_id = intval($org_id);
         $vendor_id = intval($vendor_id);
+        $payment_date = !empty($data['payment_date'])
+            ? sanitize_text_field($data['payment_date'])
+            : current_time('Y-m-d');
+        $posting_check = self::validate_posting_window($org_id, $payment_date);
+        if (is_wp_error($posting_check)) {
+            return $posting_check;
+        }
+
         $amount = round(floatval($data['amount'] ?? 0), 2);
         if ($amount <= 0) {
             return new WP_Error('invalid_amount', 'Payment amount must be greater than 0');
@@ -1027,7 +1035,7 @@ class OraBooks_Vendors {
             [
                 'org_id' => $org_id,
                 'vendor_id' => $vendor_id,
-                'payment_date' => $data['payment_date'] ?? current_time('Y-m-d'),
+                'payment_date' => $payment_date,
                 'amount' => $amount,
                 'unapplied_amount' => 0,
                 'payment_method' => $data['payment_method'] ?? 'bank_transfer',
@@ -1057,7 +1065,7 @@ class OraBooks_Vendors {
             $org_id,
             $payment_id,
             $amount,
-            $data['payment_date'] ?? current_time('Y-m-d'),
+            $payment_date,
             $vendor_id,
             orabooks_get_current_user_id()
         );
@@ -1095,6 +1103,12 @@ class OraBooks_Vendors {
 
     public static function reverse_payment($org_id, $payment_id, $user_id, $reason = '') {
         global $wpdb;
+
+        $reverse_date = current_time('Y-m-d');
+        $posting_check = self::validate_posting_window((int) $org_id, $reverse_date);
+        if (is_wp_error($posting_check)) {
+            return $posting_check;
+        }
 
         $table_payments = OraBooks_Database::table('vendor_payments');
         $payment = $wpdb->get_row($wpdb->prepare(
@@ -1139,7 +1153,7 @@ class OraBooks_Vendors {
             [
                 'org_id' => (int) $org_id,
                 'vendor_id' => (int) $payment->vendor_id,
-                'payment_date' => current_time('Y-m-d'),
+                'payment_date' => $reverse_date,
                 'amount' => floatval($payment->amount),
                 'unapplied_amount' => 0,
                 'payment_method' => $payment->payment_method,
@@ -1157,7 +1171,7 @@ class OraBooks_Vendors {
             (int) $org_id,
             $reversal_id,
             floatval($payment->amount),
-            current_time('Y-m-d'),
+            $reverse_date,
             (int) $payment->vendor_id,
             (int) $user_id
         );
@@ -1276,6 +1290,11 @@ class OraBooks_Vendors {
 
         if (!in_array($note->workflow_status, ['draft', 'submitted', 'approved'], true)) {
             return new WP_Error('invalid_status', 'Credit note cannot be posted from current status');
+        }
+
+        $posting_check = self::validate_posting_window((int) $org_id, $note->credit_date ?: current_time('Y-m-d'));
+        if (is_wp_error($posting_check)) {
+            return $posting_check;
         }
 
         $config = self::get_ap_config($org_id);
@@ -1559,6 +1578,14 @@ class OraBooks_Vendors {
 
         $org_id = intval($org_id);
         $vendor_id = intval($data['vendor_id'] ?? 0);
+        $credit_date = !empty($data['credit_date'])
+            ? sanitize_text_field($data['credit_date'])
+            : current_time('Y-m-d');
+        $posting_check = self::validate_posting_window($org_id, $credit_date);
+        if (is_wp_error($posting_check)) {
+            return $posting_check;
+        }
+
         $amount = round(floatval($data['amount'] ?? 0), 2);
         $reason = sanitize_textarea_field($data['reason'] ?? '');
 
@@ -1573,7 +1600,7 @@ class OraBooks_Vendors {
 
         $number = !empty($data['credit_note_number'])
             ? sanitize_text_field($data['credit_note_number'])
-            : self::generate_credit_note_number($org_id, $data['credit_date'] ?? current_time('Y-m-d'));
+            : self::generate_credit_note_number($org_id, $credit_date);
 
         $wpdb->insert(
             OraBooks_Database::table('vendor_credit_notes'),
@@ -1582,7 +1609,7 @@ class OraBooks_Vendors {
                 'vendor_id' => $vendor_id,
                 'bill_id' => !empty($data['bill_id']) ? intval($data['bill_id']) : null,
                 'credit_note_number' => $number,
-                'credit_date' => $data['credit_date'] ?? current_time('Y-m-d'),
+                'credit_date' => $credit_date,
                 'amount' => $amount,
                 'reason' => $reason,
                 'is_adjustment' => !empty($data['is_adjustment']) ? 1 : 0,
