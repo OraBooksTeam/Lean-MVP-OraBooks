@@ -22,6 +22,7 @@ class OraBooks_Vendors {
             add_action('wp_ajax_orabooks_vendor_update', [self::$instance, 'ajax_vendor_update']);
             add_action('wp_ajax_orabooks_bills_list', [self::$instance, 'ajax_bills_list']);
             add_action('wp_ajax_orabooks_bill_create', [self::$instance, 'ajax_bill_create']);
+            add_action('wp_ajax_orabooks_bill_update', [self::$instance, 'ajax_bill_update']);
             add_action('wp_ajax_orabooks_bill_submit', [self::$instance, 'ajax_bill_submit']);
             add_action('wp_ajax_orabooks_bill_approve', [self::$instance, 'ajax_bill_approve']);
             add_action('wp_ajax_orabooks_bill_post', [self::$instance, 'ajax_bill_post']);
@@ -548,6 +549,12 @@ class OraBooks_Vendors {
         }
 
         $bill_date = $data['bill_date'] ?? current_time('Y-m-d');
+        $transaction_date = $data['transaction_date'] ?? $bill_date;
+        $posting_check = self::validate_posting_window($org_id, $transaction_date);
+        if (is_wp_error($posting_check)) {
+            return $posting_check;
+        }
+
         $due_days = intval($data['due_days'] ?? self::get_vendor_payment_terms($vendor_id, $org_id));
         $bill_number = !empty($data['bill_number']) ? sanitize_text_field($data['bill_number']) : self::generate_bill_number($org_id, $bill_date);
         $table = OraBooks_Database::table('bills');
@@ -568,7 +575,7 @@ class OraBooks_Vendors {
                 'vendor_id' => $vendor_id,
                 'bill_number' => $bill_number,
                 'bill_date' => $bill_date,
-                'transaction_date' => $data['transaction_date'] ?? $bill_date,
+                'transaction_date' => $transaction_date,
                 'due_date' => $data['due_date'] ?? date('Y-m-d', strtotime($bill_date . " +{$due_days} days")),
                 'description' => isset($data['description']) ? sanitize_textarea_field($data['description']) : '',
                 'subtotal_amount' => $subtotal,
@@ -615,6 +622,146 @@ class OraBooks_Vendors {
                 ]]);
             }
         }
+
+        return self::get_bill($bill_id, $org_id);
+    }
+
+    public static function update_bill($org_id, $bill_id, $data) {
+        global $wpdb;
+
+        $org_id = intval($org_id);
+        $bill_id = intval($bill_id);
+        $bill = self::get_bill($bill_id, $org_id);
+
+        if (!$bill) {
+            return new WP_Error('not_found', 'Bill not found');
+        }
+
+        if (($bill->workflow_status ?? '') !== 'draft') {
+            return new WP_Error('invalid_status', 'Only draft bills can be edited');
+        }
+
+        $line_items = [];
+        if (class_exists('OraBooks_Bill_Document') && !empty($data['line_items'])) {
+            OraBooks_Bill_Document::ensure_schema();
+            $raw_line_items = $data['line_items'];
+            if (is_string($raw_line_items)) {
+                $decoded = json_decode(wp_unslash($raw_line_items), true);
+                if (!is_array($decoded)) {
+                    $decoded = json_decode(stripslashes($raw_line_items), true);
+                }
+                $raw_line_items = is_array($decoded) ? $decoded : [];
+            }
+            $line_items = OraBooks_Bill_Document::normalize_line_items($raw_line_items);
+            if (!empty($line_items)) {
+                $data['subtotal_amount'] = OraBooks_Bill_Document::subtotal_from_lines($line_items);
+            }
+        }
+
+        $vendor_id = array_key_exists('vendor_id', $data)
+            ? intval($data['vendor_id'])
+            : intval($bill->vendor_id ?? 0);
+        if ($vendor_id <= 0) {
+            return new WP_Error('missing_field', 'Vendor is required');
+        }
+
+        $subtotal = round(floatval($data['subtotal_amount'] ?? $bill->subtotal_amount ?? $bill->total_amount ?? 0), 2);
+
+        $tax_amount = array_key_exists('tax_amount', $data)
+            ? round(floatval($data['tax_amount']), 2)
+            : round(floatval($bill->tax_amount ?? 0), 2);
+        $tax_rate = array_key_exists('tax_rate', $data)
+            ? floatval($data['tax_rate'])
+            : floatval($bill->tax_rate ?? 0);
+        $tax_jurisdiction = array_key_exists('jurisdiction', $data)
+            ? strtoupper(sanitize_text_field($data['jurisdiction']))
+            : strtoupper(sanitize_text_field($bill->tax_jurisdiction ?? 'US'));
+        $tax_type = array_key_exists('tax_type', $data)
+            ? sanitize_text_field($data['tax_type'])
+            : sanitize_text_field($bill->tax_type ?? 'Sales Tax');
+
+        if ($subtotal > 0 && array_key_exists('jurisdiction', $data) && class_exists('OraBooks_Tax')) {
+            $tax_result = OraBooks_Tax::calculate([
+                'org_id' => $org_id,
+                'amount' => $subtotal,
+                'jurisdiction' => $tax_jurisdiction,
+                'product_type' => sanitize_text_field($data['product_type'] ?? 'standard'),
+            ]);
+            if (!is_wp_error($tax_result)) {
+                $tax_amount = round(floatval($tax_result['tax_amount'] ?? 0), 2);
+                $tax_rate = floatval($tax_result['tax_rate'] ?? $tax_rate);
+                $tax_jurisdiction = sanitize_text_field($tax_result['jurisdiction_applied'] ?? $tax_jurisdiction);
+                $tax_type = sanitize_text_field($tax_result['tax_type'] ?? $tax_type);
+            }
+        }
+
+        $total = round(floatval($data['total_amount'] ?? ($subtotal + $tax_amount)), 2);
+        if ($total <= 0) {
+            return new WP_Error('invalid_amount', 'Bill total must be greater than 0');
+        }
+
+        $bill_date = !empty($data['bill_date']) ? sanitize_text_field($data['bill_date']) : $bill->bill_date;
+        $transaction_date = !empty($data['transaction_date']) ? sanitize_text_field($data['transaction_date']) : ($bill->transaction_date ?: $bill_date);
+        $posting_check = self::validate_posting_window($org_id, $transaction_date);
+        if (is_wp_error($posting_check)) {
+            return $posting_check;
+        }
+
+        $due_date = $bill->due_date;
+        if (!empty($data['due_date'])) {
+            $due_date = sanitize_text_field($data['due_date']);
+        } elseif (array_key_exists('due_days', $data)) {
+            $due_days = intval($data['due_days']);
+            $due_date = date('Y-m-d', strtotime($bill_date . " +{$due_days} days"));
+        }
+
+        $updated = $wpdb->update(
+            OraBooks_Database::table('bills'),
+            [
+                'vendor_id' => $vendor_id,
+                'bill_date' => $bill_date,
+                'transaction_date' => $transaction_date,
+                'due_date' => $due_date,
+                'description' => array_key_exists('description', $data)
+                    ? sanitize_textarea_field($data['description'])
+                    : ($bill->description ?? ''),
+                'subtotal_amount' => $subtotal,
+                'tax_amount' => $tax_amount,
+                'tax_rate' => $tax_rate,
+                'tax_jurisdiction' => $tax_jurisdiction,
+                'tax_type' => $tax_type,
+                'total_amount' => $total,
+                'currency' => array_key_exists('currency', $data)
+                    ? strtoupper(sanitize_text_field($data['currency']))
+                    : strtoupper(sanitize_text_field($bill->currency ?? 'USD')),
+                'exchange_rate' => array_key_exists('exchange_rate', $data)
+                    ? floatval($data['exchange_rate'])
+                    : floatval($bill->exchange_rate ?? 1),
+            ],
+            [
+                'id' => $bill_id,
+                'org_id' => $org_id,
+            ],
+            ['%d', '%s', '%s', '%s', '%s', '%f', '%f', '%f', '%s', '%s', '%f', '%s', '%f'],
+            ['%d', '%d']
+        );
+
+        if ($updated === false) {
+            return new WP_Error('update_failed', 'Unable to update bill');
+        }
+
+        if (class_exists('OraBooks_Bill_Document')) {
+            OraBooks_Bill_Document::ensure_schema();
+            if (!empty($line_items)) {
+                OraBooks_Bill_Document::save_line_items($org_id, $bill_id, $line_items);
+            }
+        }
+
+        orabooks_log_event('vendor_bill_updated', "Bill {$bill->bill_number} updated", 'info', [
+            'bill_id' => $bill_id,
+            'vendor_id' => $vendor_id,
+            'total_amount' => $total,
+        ], orabooks_get_current_user_id(), $org_id);
 
         return self::get_bill($bill_id, $org_id);
     }
@@ -1901,6 +2048,23 @@ class OraBooks_Vendors {
         OraBooks_Posting::post_journal($journal_id, $system_user);
     }
 
+    private static function validate_posting_window($org_id, $transaction_date) {
+        if (!class_exists('OraBooks_Fiscal')) {
+            return true;
+        }
+
+        $result = OraBooks_Fiscal::can_post((int) $org_id, $transaction_date);
+        if (is_wp_error($result)) {
+            return new WP_Error(
+                $result->get_error_code(),
+                'Fiscal period is soft/hard closed. Transactions are not allowed.',
+                $result->get_error_data()
+            );
+        }
+
+        return true;
+    }
+
     private static function snapshot_bill_tax($bill, $user_id) {
         if (!class_exists('OraBooks_Tax') || floatval($bill->tax_amount) <= 0) {
             return null;
@@ -1999,9 +2163,31 @@ class OraBooks_Vendors {
         $this->require_ap_permission($user_id, $org_id, ['submit_transaction']);
         $result = self::create_bill($org_id, $_POST);
         if (is_wp_error($result)) {
-            orabooks_json_error($result->get_error_message(), 400);
+            $status = 400;
+            $data = $result->get_error_data();
+            if (is_array($data) && isset($data['status'])) {
+                $status = (int) $data['status'];
+            }
+            orabooks_json_error($result->get_error_message(), $status);
         }
         orabooks_json_success(['bill' => $result]);
+    }
+
+    public function ajax_bill_update() {
+        $user_id = $this->current_user_id();
+        $org_id = intval($_POST['org_id'] ?? 0);
+        $bill_id = intval($_POST['bill_id'] ?? 0);
+        $this->require_ap_permission($user_id, $org_id, ['submit_transaction']);
+        $result = self::update_bill($org_id, $bill_id, $_POST);
+        if (is_wp_error($result)) {
+            $status = 400;
+            $data = $result->get_error_data();
+            if (is_array($data) && isset($data['status'])) {
+                $status = (int) $data['status'];
+            }
+            orabooks_json_error($result->get_error_message(), $status);
+        }
+        orabooks_json_success(['bill' => $result], 'Bill updated');
     }
 
     public function ajax_bill_submit() {
