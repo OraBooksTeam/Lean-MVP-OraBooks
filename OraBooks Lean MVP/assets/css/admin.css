@@ -536,7 +536,7 @@
    GENERAL ADMIN PAGE REFINEMENTS
    ============================================= */
 .orabooks-admin.wrap {
-    margin: 20px 20px 0 2px;
+    margin: 20px 0 0 2px;
 }
 .orabooks-admin h1 {
     font-size: 23px;
@@ -670,7 +670,8 @@
    REACT WP-ADMIN DASHBOARD
    ============================================= */
 .orabooks-admin-react.wrap {
-    max-width: 1400px;
+    max-width: none;
+    width: auto;
     margin-top: 12px;
 }
 
