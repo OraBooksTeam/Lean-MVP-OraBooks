@@ -648,18 +648,33 @@ class OraBooks_Auth {
             return self::handle_partner_first_login($user);
         }
 
-        if (!$user->is_partner) {
+        $org_id = orabooks_resolve_auth_org_id($user->id, (int) $user->org_id);
+        if ($org_id > 0 && (int) $user->org_id !== $org_id) {
+            global $wpdb;
+            $table_users = OraBooks_Database::table('users');
+            $wpdb->update(
+                $table_users,
+                ['org_id' => $org_id],
+                ['id' => (int) $user->id],
+                ['%d'],
+                ['%d']
+            );
+            $user->org_id = $org_id;
+        }
+
+        if (!$user->is_partner && !$org_id) {
             $invite_session = self::try_invite_first_onboarding($user);
             if (!is_wp_error($invite_session)) {
                 return $invite_session;
             }
+
+            $org_id = orabooks_resolve_auth_org_id($user->id, (int) $user->org_id);
         }
 
-        if (!$user->is_partner && !$user->org_id) {
+        if (!$user->is_partner && !$org_id) {
             return self::issue_tier_selection_login($user);
         }
 
-        $org_id = orabooks_resolve_auth_org_id($user->id, (int) $user->org_id);
         $org = $org_id ? OraBooks_Organization::get($org_id) : null;
         if ($org && $org->status !== 'active') {
             $partner_pending = $user->is_partner
