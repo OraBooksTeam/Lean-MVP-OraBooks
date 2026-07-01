@@ -574,14 +574,36 @@ export default function VendorsPage() {
       if (name) productByName.set(name, product);
     }
 
-    const detailLines = ((data.line_items || []) as BillLineItem[]).map((line) => {
-      const rawCode = String(line.sku_code || '').trim();
-      const rawDescription = String(line.description || '').trim();
+    const detailLines = ((data.line_items || []) as BillLineItem[]).map((line: any) => {
+      const rawCode = String(line.sku_code || line.code || line.item_code || '').trim();
+      const rawDescription = String(line.description || line.product_name || line.product || line.name || '').trim();
 
       let resolvedCode = rawCode;
       let resolvedDescription = rawDescription;
 
-      if (resolvedCode) {
+      const codeProduct = resolvedCode ? productByCode.get(resolvedCode.toUpperCase()) : undefined;
+      const descAsCodeProduct = resolvedDescription ? productByCode.get(resolvedDescription.toUpperCase()) : undefined;
+      const descAsNameProduct = resolvedDescription ? productByName.get(resolvedDescription.toLowerCase()) : undefined;
+      const codeAsNameProduct = resolvedCode ? productByName.get(resolvedCode.toLowerCase()) : undefined;
+
+      if (codeProduct) {
+        if (!resolvedDescription || resolvedDescription.toUpperCase() === resolvedCode.toUpperCase()) {
+          resolvedDescription = String(codeProduct.name || resolvedDescription);
+        }
+      } else if (descAsCodeProduct) {
+        // Legacy swap: code was stored in description field.
+        const normalizedCode = String(descAsCodeProduct.sku || descAsCodeProduct.stock_keeping_unit || '').trim();
+        const normalizedName = String(descAsCodeProduct.name || resolvedDescription);
+        if (!resolvedCode || (codeAsNameProduct && codeAsNameProduct.id === descAsCodeProduct.id)) {
+          resolvedCode = normalizedCode;
+          resolvedDescription = codeAsNameProduct ? String(codeAsNameProduct.name || normalizedName) : normalizedName;
+        }
+      } else if (descAsNameProduct) {
+        if (!resolvedCode) {
+          resolvedCode = String(descAsNameProduct.sku || descAsNameProduct.stock_keeping_unit || '').trim();
+        }
+        resolvedDescription = String(descAsNameProduct.name || resolvedDescription);
+      } else if (resolvedCode) {
         const byCode = productByCode.get(resolvedCode.toUpperCase());
         if (byCode && (!resolvedDescription || resolvedDescription.toUpperCase() === resolvedCode.toUpperCase())) {
           resolvedDescription = String(byCode.name || resolvedDescription);
@@ -600,9 +622,9 @@ export default function VendorsPage() {
         }
       }
 
-      // Legacy fallback: old bills can store "Bill BILL-xxxx" as the only line description.
-      if (!resolvedCode && /^bill\s+bill-\d{4}-\d+$/i.test(resolvedDescription)) {
-        resolvedDescription = '';
+      // Keep legacy fallback text visible instead of showing a blank product field.
+      if (!resolvedDescription && /^bill\s+bill-\d{4}-\d+$/i.test(rawDescription)) {
+        resolvedDescription = rawDescription;
       }
 
       return {
