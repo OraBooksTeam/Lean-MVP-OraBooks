@@ -39,7 +39,7 @@ class OraBooks_Workflow_Integration {
         }
 
         if ($record_type === 'expense') {
-            $expense_check = self::expense_preconditions($event, $user_id, $org_id);
+            $expense_check = self::expense_preconditions($event, $user_id, $org_id, $record);
             if (is_wp_error($expense_check)) {
                 return $expense_check;
             }
@@ -49,6 +49,15 @@ class OraBooks_Workflow_Integration {
             $ap_ar_check = self::invoice_bill_preconditions($record_type, $event, $user_id, $org_id);
             if (is_wp_error($ap_ar_check)) {
                 return $ap_ar_check;
+            }
+
+            if (in_array($event, ['send', 'submit', 'approve', 'post'], true)
+                && class_exists('OraBooks_Fiscal')
+                && method_exists('OraBooks_Fiscal', 'can_post')) {
+                $fiscal = OraBooks_Fiscal::can_post($org_id, $record->transaction_date ?? current_time('Y-m-d'));
+                if (is_wp_error($fiscal)) {
+                    return $fiscal;
+                }
             }
         }
 
@@ -146,7 +155,7 @@ class OraBooks_Workflow_Integration {
     /**
      * @return true|WP_Error
      */
-    private static function expense_preconditions($event, $user_id, $org_id) {
+    private static function expense_preconditions($event, $user_id, $org_id, $record = null) {
         if ($user_id <= 0 && $event !== 'lock') {
             return new WP_Error('auth_required', __('Authentication required', 'orabooks'), ['status' => 401]);
         }
@@ -167,6 +176,15 @@ class OraBooks_Workflow_Integration {
             if (!self::has_permission($user_id, $org_id, 'manage_expenses')
                 && !self::has_permission($user_id, $org_id, 'approve_expense')) {
                 return self::deny('manage_expenses');
+            }
+        }
+
+        if (in_array($event, ['submit', 'post'], true)
+            && class_exists('OraBooks_Fiscal')
+            && method_exists('OraBooks_Fiscal', 'can_post')) {
+            $fiscal = OraBooks_Fiscal::can_post($org_id, $record->transaction_date ?? current_time('Y-m-d'));
+            if (is_wp_error($fiscal)) {
+                return $fiscal;
             }
         }
 
