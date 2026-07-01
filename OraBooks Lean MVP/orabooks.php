@@ -899,8 +899,18 @@ function orabooks_admin_enqueue($hook) {
         return;
     }
 
-    wp_enqueue_style('orabooks-admin', ORABOOKS_PLUGIN_URL . 'assets/css/admin.css', [], ORABOOKS_VERSION);
-    wp_enqueue_style('orabooks-frontend', ORABOOKS_PLUGIN_URL . 'assets/css/frontend.css', [], ORABOOKS_VERSION);
+    wp_enqueue_style(
+        'orabooks-admin',
+        ORABOOKS_PLUGIN_URL . 'assets/css/admin.css',
+        [],
+        OraBooks_Assets::get_static_asset_version('assets/css/admin.css')
+    );
+    wp_enqueue_style(
+        'orabooks-frontend',
+        ORABOOKS_PLUGIN_URL . 'assets/css/frontend.css',
+        [],
+        OraBooks_Assets::get_static_asset_version('assets/css/frontend.css')
+    );
 
     $ajax_config = OraBooks_Assets::get_ajax_config('admin');
 
@@ -924,7 +934,12 @@ function orabooks_frontend_enqueue() {
         return;
     }
 
-    wp_enqueue_style('orabooks-frontend', ORABOOKS_PLUGIN_URL . 'assets/css/frontend.css', [], ORABOOKS_VERSION);
+    wp_enqueue_style(
+        'orabooks-frontend',
+        ORABOOKS_PLUGIN_URL . 'assets/css/frontend.css',
+        [],
+        OraBooks_Assets::get_static_asset_version('assets/css/frontend.css')
+    );
 
     $ajax_config = OraBooks_Assets::get_ajax_config('frontend');
 
