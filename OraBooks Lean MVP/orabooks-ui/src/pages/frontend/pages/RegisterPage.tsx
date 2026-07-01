@@ -82,6 +82,7 @@ export default function RegisterPage() {
       });
       if (res.error) setError(typeof res.error === 'string' ? res.error : 'Registration failed');
       else {
+        window.sessionStorage.setItem('orabooks_last_registered_email', email);
         window.location.replace(getNetworkAuthUrl('verify-email'));
       }
     } finally {

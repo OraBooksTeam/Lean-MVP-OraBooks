@@ -7,17 +7,22 @@ import { getNetworkAuthUrl, getAcceptInviteUrl } from '../lib/auth-routing';
 
 export default function VerifyEmailPage() {
   const token = useMemo(() => new URLSearchParams(window.location.search).get('token') || '', []);
+  const sentFromRegistration = useMemo(() => new URLSearchParams(window.location.search).get('sent') === '1', []);
   const [loading, setLoading] = useState(!!token);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState(() => window.sessionStorage.getItem('orabooks_last_registered_email') || '');
   const [resendMsg, setResendMsg] = useState('');
   const [resendError, setResendError] = useState('');
   const [resendLoading, setResendLoading] = useState(false);
 
   useEffect(() => {
     if (!token) {
-      setError('Invalid verification link.');
+      setSuccess(
+        sentFromRegistration
+          ? 'A verification link has been sent to your email. Check your inbox to continue.'
+          : 'Please check your email for the verification link, then return here to verify your account.'
+      );
       setLoading(false);
       return;
     }
@@ -33,7 +38,7 @@ export default function VerifyEmailPage() {
       }
       setLoading(false);
     });
-  }, [token]);
+  }, [sentFromRegistration, token]);
 
   const pendingInviteToken = window.sessionStorage.getItem('orabooks_pending_invite_token') || '';
   const loginUrl = pendingInviteToken

@@ -1,11 +1,23 @@
 <?php
 $token = isset($_GET['token']) ? sanitize_text_field(wp_unslash($_GET['token'])) : '';
+$sent = isset($_GET['sent']) ? sanitize_text_field(wp_unslash($_GET['sent'])) : '';
 ?>
 <div class="orabooks-auth-shell">
     <div class="orabooks-form-container">
         <h2><?php esc_html_e('Verify Email', 'orabooks'); ?></h2>
         <p><?php esc_html_e('Confirm your email address to activate your account.', 'orabooks'); ?></p>
         <div id="orabooks-verify-email-message" class="orabooks-message"></div>
+        <?php if (!$token && $sent === '1') : ?>
+            <script>
+              document.addEventListener('DOMContentLoaded', function () {
+                var msg = document.getElementById('orabooks-verify-email-message');
+                if (!msg) return;
+                msg.className = 'orabooks-message success';
+                msg.textContent = 'A verification link has been sent to your email. Check your inbox to continue.';
+                msg.style.display = 'block';
+              });
+            </script>
+        <?php endif; ?>
         <button type="button" id="orabooks-verify-email-btn" class="orabooks-btn orabooks-btn-primary" data-token="<?php echo esc_attr($token); ?>">
             <?php esc_html_e('Verify Email', 'orabooks'); ?>
         </button>
