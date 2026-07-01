@@ -162,7 +162,7 @@ export default function LoginPage() {
     return (
       <div className="brand-auth-bg flex min-h-screen items-center justify-center px-4 py-12">
         <div className="glass-panel w-full max-w-md overflow-hidden">
-          <div className="p-8">
+          <div className="orabooks-auth-panel-inner">
           <div className="mx-auto mb-6 flex h-12 w-12 items-center justify-center rounded-xl bg-primary">
             <Flame className="h-6 w-6 text-white" />
           </div>
@@ -196,7 +196,7 @@ export default function LoginPage() {
   return (
     <div className="brand-auth-bg flex min-h-screen items-center justify-center px-4 py-12">
       <div className="glass-panel w-full max-w-md overflow-hidden">
-        <div className="p-8">
+        <div className="orabooks-auth-panel-inner">
         <div className="mx-auto mb-6 flex h-12 w-12 items-center justify-center rounded-xl bg-primary">
           <span className="text-2xl font-black text-white">OB</span>
         </div>
