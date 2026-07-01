@@ -18,17 +18,18 @@ export default function BrandLogo({
   fallbackTextClassName = '',
 }: BrandLogoProps) {
   const logoUrl = getBrandLogoUrl();
+  const wrapperClasses = ['flex justify-center', wrapperClassName].filter(Boolean).join(' ');
 
   if (logoUrl) {
     return (
-      <div className={wrapperClassName}>
+      <div className={wrapperClasses}>
         <img src={logoUrl} alt={alt} className={imageClassName} />
       </div>
     );
   }
 
   return (
-    <div className={wrapperClassName}>
+    <div className={wrapperClasses}>
       <div className={fallbackClassName}>
         <span className={fallbackTextClassName}>OB</span>
       </div>
