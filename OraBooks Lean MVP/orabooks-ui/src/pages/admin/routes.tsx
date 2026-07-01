@@ -10,6 +10,7 @@ import AdminAudit from '@/pages/admin/AdminAudit';
 import AdminJobQueue from '@/pages/admin/AdminJobQueue';
 import AdminWebhookSettings from '@/pages/admin/AdminWebhookSettings';
 import AdminObservability from '@/pages/admin/AdminObservability';
+import AdminEventDeadLetter from '@/pages/admin/AdminEventDeadLetter';
 import AdminSecurity from '@/pages/admin/AdminSecurity';
 import AdminNotifications from '@/pages/admin/AdminNotifications';
 import AdminExports from '@/pages/admin/AdminExports';
@@ -58,6 +59,7 @@ const navIconMap: Record<string, typeof LayoutDashboard> = {
   'job-queue': RefreshCw,
   'webhook-settings': Eye,
   observability: Eye,
+  'event-dead-letter': Eye,
   settings: SettingsIcon,
 };
 
@@ -172,6 +174,7 @@ export default function AdminRoutes() {
         <Route path="/admin/job-queue" element={<AdminJobQueue />} />
         <Route path="/admin/webhook-settings" element={<AdminWebhookSettings />} />
         <Route path="/admin/observability" element={<AdminObservability />} />
+        <Route path="/admin/event-dead-letter" element={<AdminEventDeadLetter />} />
         <Route path="/admin/security" element={<AdminSecurity />} />
         <Route path="/admin/notifications" element={<AdminNotifications />} />
         <Route path="/admin/exports" element={<AdminExports />} />
