@@ -1210,6 +1210,18 @@ class OraBooks_Customers {
         $invoice_date = !empty($data['invoice_date']) ? sanitize_text_field($data['invoice_date']) : current_time('Y-m-d');
         $due_days = $data['due_days'] ?? 30;
         $transaction_date = !empty($data['transaction_date']) ? sanitize_text_field($data['transaction_date']) : $invoice_date;
+
+        if (class_exists('OraBooks_Fiscal') && method_exists('OraBooks_Fiscal', 'can_post')) {
+            $fiscal_check = OraBooks_Fiscal::can_post((int) $org_id, $transaction_date);
+            if (is_wp_error($fiscal_check)) {
+                return new WP_Error(
+                    $fiscal_check->get_error_code(),
+                    'Fiscal period is soft/hard closed. Transactions are not allowed.',
+                    $fiscal_check->get_error_data()
+                );
+            }
+        }
+
         $due_date = !empty($data['due_date'])
             ? sanitize_text_field($data['due_date'])
             : date('Y-m-d', strtotime($invoice_date . " +{$due_days} days"));
@@ -1553,6 +1565,17 @@ class OraBooks_Customers {
             return new WP_Error('invalid_status', 'Only draft invoices can be sent');
         }
 
+        if (class_exists('OraBooks_Fiscal') && method_exists('OraBooks_Fiscal', 'can_post')) {
+            $fiscal_check = OraBooks_Fiscal::can_post((int) $org_id, $invoice->transaction_date ?: $invoice->invoice_date);
+            if (is_wp_error($fiscal_check)) {
+                return new WP_Error(
+                    $fiscal_check->get_error_code(),
+                    'Fiscal period is soft/hard closed. Transactions are not allowed.',
+                    $fiscal_check->get_error_data()
+                );
+            }
+        }
+
         $credit_check = self::validate_customer_credit_for_invoice($invoice);
         if (is_wp_error($credit_check)) {
             return $credit_check;
@@ -1601,6 +1624,17 @@ class OraBooks_Customers {
 
         if (!in_array($invoice->workflow_status, ['draft', 'sent'], true)) {
             return new WP_Error('invalid_status', 'Only draft or sent invoices can be posted');
+        }
+
+        if (class_exists('OraBooks_Fiscal') && method_exists('OraBooks_Fiscal', 'can_post')) {
+            $fiscal_check = OraBooks_Fiscal::can_post((int) $org_id, $invoice->transaction_date ?: $invoice->invoice_date);
+            if (is_wp_error($fiscal_check)) {
+                return new WP_Error(
+                    $fiscal_check->get_error_code(),
+                    'Fiscal period is soft/hard closed. Transactions are not allowed.',
+                    $fiscal_check->get_error_data()
+                );
+            }
         }
 
         $credit_check = self::validate_customer_credit_for_invoice($invoice);
@@ -2892,7 +2926,12 @@ class OraBooks_Customers {
             if ($message === '') {
                 $message = sanitize_text_field((string) $result->get_error_code()) ?: 'Invoice creation failed';
             }
-            orabooks_json_error($message, 400);
+            $status = 400;
+            $error_data = $result->get_error_data();
+            if (is_array($error_data) && isset($error_data['status'])) {
+                $status = (int) $error_data['status'];
+            }
+            orabooks_json_error($message, $status);
         }
 
         orabooks_json_success($result, 'Invoice created');
@@ -3060,7 +3099,12 @@ class OraBooks_Customers {
 
         $result = self::send_invoice($org_id, $invoice_id, $user_id);
         if (is_wp_error($result)) {
-            orabooks_json_error($result->get_error_message(), 400);
+            $status = 400;
+            $error_data = $result->get_error_data();
+            if (is_array($error_data) && isset($error_data['status'])) {
+                $status = (int) $error_data['status'];
+            }
+            orabooks_json_error($result->get_error_message(), $status);
         }
 
         orabooks_json_success(['invoice' => $result], 'Invoice sent');
@@ -3095,7 +3139,12 @@ class OraBooks_Customers {
 
         $result = self::post_invoice($org_id, $invoice_id, $user_id);
         if (is_wp_error($result)) {
-            orabooks_json_error($result->get_error_message(), 400);
+            $status = 400;
+            $error_data = $result->get_error_data();
+            if (is_array($error_data) && isset($error_data['status'])) {
+                $status = (int) $error_data['status'];
+            }
+            orabooks_json_error($result->get_error_message(), $status);
         }
 
         orabooks_json_success(['invoice' => $result], 'Invoice posted');
