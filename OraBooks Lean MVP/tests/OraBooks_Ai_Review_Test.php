@@ -13,6 +13,7 @@ class OraBooks_Ai_Review_Test extends TestCase
         global $wpdb;
 
         $GLOBALS['orabooks_test_current_user_id'] = 1;
+        $GLOBALS['orabooks_test_org_callback'] = null;
         $wpdb->test_query_callback = null;
         $wpdb->test_get_row_callback = null;
         $wpdb->test_get_results_callback = null;
@@ -25,6 +26,7 @@ class OraBooks_Ai_Review_Test extends TestCase
         global $wpdb;
 
         $GLOBALS['orabooks_test_current_user_id'] = 1;
+        $GLOBALS['orabooks_test_org_callback'] = null;
         $wpdb->test_query_callback = null;
         $wpdb->test_get_row_callback = null;
         $wpdb->test_get_results_callback = null;
@@ -257,6 +259,52 @@ class OraBooks_Ai_Review_Test extends TestCase
     }
 
     #[Test]
+    public function test_claim_next_item_only_allows_one_worker_to_claim_same_row()
+    {
+        global $wpdb;
+
+        $item = (object) [
+            'id' => 21,
+            'org_id' => 8,
+            'resource_type' => 'journal',
+            'resource_id' => 21,
+            'journal_id' => 21,
+            'status' => 'pending',
+            'created_at' => '2026-06-01 00:00:00',
+            'updated_at' => '2026-06-01 00:00:00',
+        ];
+
+        $claim_calls = 0;
+        $history_actions = [];
+
+        $wpdb->test_get_row_callback = function ($query) use ($item, &$claim_calls) {
+            if (strpos((string) $query, 'FOR UPDATE SKIP LOCKED') !== false) {
+                $claim_calls++;
+                return $claim_calls === 1 ? $item : null;
+            }
+            return null;
+        };
+
+        $wpdb->test_insert_callback = function ($table, $data) use (&$history_actions) {
+            if (strpos((string) $table, 'ai_review_history') !== false) {
+                $history_actions[] = $data['action'] ?? null;
+            }
+        };
+
+        $instance = OraBooks_Ai_Review::init();
+        $method = new ReflectionMethod(OraBooks_Ai_Review::class, 'claim_next_item');
+        $method->setAccessible(true);
+
+        $first = $method->invoke($instance);
+        $second = $method->invoke($instance);
+
+        $this->assertNotNull($first);
+        $this->assertSame(21, (int) $first->id);
+        $this->assertNull($second);
+        $this->assertSame(['claim'], $history_actions);
+    }
+
+    #[Test]
     public function test_retry_helpers_are_deterministic()
     {
         $this->assertSame(1, OraBooks_Ai_Review::next_retry_count(0));
@@ -269,6 +317,55 @@ class OraBooks_Ai_Review_Test extends TestCase
 
         $this->assertFalse(OraBooks_Ai_Review::should_escalate_after_retry(3));
         $this->assertTrue(OraBooks_Ai_Review::should_escalate_after_retry(4));
+    }
+
+    #[Test]
+    public function test_process_queue_item_schedules_retry_with_expected_backoff()
+    {
+        global $wpdb;
+
+        $item = (object) [
+            'id' => 41,
+            'org_id' => 5,
+            'resource_type' => 'csv_import',
+            'resource_id' => 201,
+            'journal_id' => null,
+            'confidence_score' => 45.0,
+            'risk_level' => 'high',
+            'explanation' => 'Needs retry',
+            'model_version' => 'mvp-stub-1.0',
+            'retry_count' => 0,
+            'status' => 'processing',
+        ];
+
+        $retry_update = null;
+        $history_actions = [];
+        $before = time();
+
+        $wpdb->test_update_callback = function ($table, $data) use (&$retry_update) {
+            if (($data['status'] ?? null) === 'pending' && isset($data['next_retry_at'])) {
+                $retry_update = $data;
+            }
+            return 1;
+        };
+
+        $wpdb->test_insert_callback = function ($table, $data) use (&$history_actions) {
+            if (strpos((string) $table, 'ai_review_history') !== false) {
+                $history_actions[] = $data['action'] ?? null;
+            }
+        };
+
+        $instance = OraBooks_Ai_Review::init();
+        $method = new ReflectionMethod(OraBooks_Ai_Review::class, 'process_queue_item');
+        $method->setAccessible(true);
+        $method->invoke($instance, $item);
+
+        $this->assertNotNull($retry_update);
+        $this->assertSame(1, (int) $retry_update['retry_count']);
+        $delta = strtotime((string) $retry_update['next_retry_at']) - $before;
+        $this->assertGreaterThanOrEqual(9, $delta);
+        $this->assertLessThanOrEqual(11, $delta);
+        $this->assertContains('retry', $history_actions);
     }
 
     #[Test]
@@ -370,6 +467,35 @@ class OraBooks_Ai_Review_Test extends TestCase
         $this->assertSame(2, $resolved);
         $this->assertSame([31, 32], $updated_ids);
         $this->assertSame(['resolve', 'resolve'], $history_actions);
+    }
+
+    #[Test]
+    public function test_resolve_ai_review_by_resource_uses_org_scope()
+    {
+        global $wpdb;
+
+        $captured_query = null;
+        $updated_ids = [];
+
+        $wpdb->test_get_results_callback = function ($query) use (&$captured_query) {
+            $captured_query = $query;
+            return [
+                (object) ['id' => 51, 'org_id' => 7, 'resource_type' => 'voice_input', 'resource_id' => 99, 'status' => 'pending'],
+            ];
+        };
+
+        $wpdb->test_update_callback = function ($table, $data, $where) use (&$updated_ids) {
+            $updated_ids[] = (int) ($where['id'] ?? 0);
+            return 1;
+        };
+
+        $resolved = OraBooks_Ai_Review::resolve_ai_review_by_resource(7, 'voice_input', 99, 101);
+
+        $this->assertSame(1, $resolved);
+        $this->assertSame([51], $updated_ids);
+        $this->assertStringContainsString("org_id = 7", (string) $captured_query);
+        $this->assertStringContainsString("resource_type = 'voice_input'", (string) $captured_query);
+        $this->assertStringContainsString("resource_id = 99", (string) $captured_query);
     }
 
     #[Test]
