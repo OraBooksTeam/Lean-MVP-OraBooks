@@ -17,6 +17,10 @@ class OBN_Access_Control {
         'manage_employees' => 'invite_user',
         'manage_settings'  => 'manage_org_settings',
         'manage_roles'     => 'change_role',
+        'view_bank_reconciliation' => 'view_reports',
+        'match_transaction' => 'submit_transaction',
+        'reconcile_bank' => 'manage_org_settings',
+        'connect_bank_feed' => 'manage_org_settings',
     ];
 
     private static $accounting_permissions = [
