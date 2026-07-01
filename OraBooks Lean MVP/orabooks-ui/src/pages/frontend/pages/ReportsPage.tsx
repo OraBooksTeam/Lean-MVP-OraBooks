@@ -1,9 +1,9 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import WpLink from '../components/WpLink';
 import Button from '@/components/Button';
 import { api } from '../api';
 import ClientShell from '../components/ClientShell';
-import { BarChart3, Download, FileText, RefreshCw } from 'lucide-react';
+import { BarChart3, CalendarRange, Download, FileText, RefreshCw, TriangleAlert } from 'lucide-react';
 
 const OPERATIONAL_DEFAULT = 'ar_aging';
 
@@ -18,6 +18,11 @@ export default function ReportsPage() {
   const [periodStart, setPeriodStart] = useState('');
   const [periodEnd, setPeriodEnd] = useState('');
   const [asOfDate, setAsOfDate] = useState('');
+  const [inventoryStatus, setInventoryStatus] = useState('all');
+  const [groupBy, setGroupBy] = useState<'day' | 'week' | 'month'>('day');
+  const [selectedCustomerId, setSelectedCustomerId] = useState('');
+  const [selectedVendorId, setSelectedVendorId] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('');
   const [operationalResult, setOperationalResult] = useState<any>(null);
   const [generatingOperational, setGeneratingOperational] = useState(false);
   const [exportingOperational, setExportingOperational] = useState<'csv' | 'pdf' | null>(null);
@@ -41,7 +46,85 @@ export default function ReportsPage() {
   useEffect(() => { void load(); }, []);
 
   const orgId = data?.context?.organization?.id;
-  const canExport = ['owner', 'admin', 'staff'].includes(data?.context?.role);
+  const canExport = Boolean(data?.permissions?.can_export_operational) || ['owner', 'admin', 'staff'].includes(data?.context?.role);
+  const operationalTypes = data?.operational_types || [];
+  const filterOptions = data?.operational_filters || {};
+  const presets = data?.operational_presets || [];
+
+  const reportTooltips: Record<string, string> = {
+    ar_aging: 'AR aging by customer buckets (0-30, 31-60, 61-90, 90+).',
+    ap_aging: 'AP aging by vendor buckets (0-30, 31-60, 61-90, 90+).',
+    inventory_status: 'Inventory stock and low stock alerts from read models.',
+    bank_reconciliation: 'Unmatched transaction summary per bank account.',
+    sales_summary: 'Sales, returns, and net sales for selected period.',
+    purchase_summary: 'Purchase totals by vendor for selected period.',
+  };
+
+  const activeTooltip = reportTooltips[operationalType] || 'Operational reports from read models.';
+
+  const applyPreset = (preset: string) => {
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = `${now.getMonth() + 1}`.padStart(2, '0');
+    const d = `${now.getDate()}`.padStart(2, '0');
+    const today = `${y}-${m}-${d}`;
+
+    if (preset === 'today') {
+      setPeriodStart(today);
+      setPeriodEnd(today);
+      setAsOfDate(today);
+      return;
+    }
+
+    if (preset === 'this_week') {
+      const weekday = now.getDay();
+      const mondayShift = weekday === 0 ? -6 : 1 - weekday;
+      const start = new Date(now);
+      start.setDate(now.getDate() + mondayShift);
+      const end = new Date(start);
+      end.setDate(start.getDate() + 6);
+      setPeriodStart(formatDate(start));
+      setPeriodEnd(formatDate(end));
+      setAsOfDate(today);
+      return;
+    }
+
+    if (preset === 'this_month') {
+      setPeriodStart(`${y}-${m}-01`);
+      setPeriodEnd(today);
+      setAsOfDate(today);
+    }
+  };
+
+  const queryParams = useMemo(() => {
+    const params: Record<string, string | number> = {};
+    if (asOfDate) params.as_of_date = asOfDate;
+    if (periodStart) params.start_date = periodStart;
+    if (periodEnd) params.end_date = periodEnd;
+
+    if (operationalType === 'ar_aging' && selectedCustomerId) {
+      params.customer_id = Number(selectedCustomerId);
+    }
+
+    if ((operationalType === 'ap_aging' || operationalType === 'purchase_summary') && selectedVendorId) {
+      params.vendor_id = Number(selectedVendorId);
+    }
+
+    if ((operationalType === 'sales_summary') && selectedCustomerId) {
+      params.customer_id = Number(selectedCustomerId);
+    }
+
+    if (operationalType === 'inventory_status') {
+      if (selectedCategory) params.category = selectedCategory;
+      if (inventoryStatus !== 'all') params.status = inventoryStatus;
+    }
+
+    if (operationalType === 'sales_summary' || operationalType === 'purchase_summary') {
+      params.group_by = groupBy;
+    }
+
+    return params;
+  }, [asOfDate, periodStart, periodEnd, operationalType, selectedCustomerId, selectedVendorId, selectedCategory, inventoryStatus, groupBy]);
 
   const runOperational = async () => {
     if (!orgId) return;
@@ -49,11 +132,7 @@ export default function ReportsPage() {
     setOperationalResult(null);
     setError('');
     setSuccess('');
-    const res = await api.generateOperationalReport(orgId, operationalType, {
-      as_of_date: asOfDate,
-      start_date: periodStart,
-      end_date: periodEnd,
-    });
+    const res = await api.generateOperationalReport(orgId, operationalType, queryParams);
     if (res.error) setError(res.error);
     else setOperationalResult((res as any).data);
     setGeneratingOperational(false);
@@ -64,11 +143,7 @@ export default function ReportsPage() {
     setExportingOperational(format);
     setError('');
     setSuccess('');
-    const res = await api.operationalReportExport(orgId, operationalType, format, {
-      as_of_date: asOfDate,
-      start_date: periodStart,
-      end_date: periodEnd,
-    });
+    const res = await api.operationalReportExport(orgId, operationalType, format, queryParams);
     if (res.error) setError(res.error);
     else {
       const exportId = (res as any).data?.id;
@@ -87,6 +162,10 @@ export default function ReportsPage() {
   return (
     <ClientShell title="Reports" eyebrow="Operational reporting (SL-075)" organization={data?.context?.organization}>
       <div className="space-y-5">
+        {loading && (
+          <div className="rounded-xl border border-border bg-white p-4 text-sm text-slate-600">Loading reports dashboard...</div>
+        )}
+
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <Metric label="Net Income (MTD)" value={money(fin?.net_income)} />
           <Metric label="Revenue (MTD)" value={money(fin?.total_revenue)} />
@@ -120,23 +199,117 @@ export default function ReportsPage() {
 
         <div className="grid gap-5 xl:grid-cols-1">
           <section className="glass-panel p-5">
-            <h2 className="font-bold text-ink">Operational Reports (SL-075)</h2>
-            <p className="mt-1 text-sm text-slate-600">AR/AP aging, inventory, bank reconciliation, sales and purchase summaries.</p>
-            <div className="mt-4 grid gap-3 sm:grid-cols-2">
-              <Field label="Report">
-                <select className={fieldClass} value={operationalType} onChange={(e) => setOperationalType(e.target.value)}>
-                  {(data?.operational_types || []).map((item: any) => (
-                    <option key={item.id} value={item.id}>{item.label}</option>
-                  ))}
-                </select>
+            <h2 className="font-bold text-ink">Operational Reports</h2>
+            <p className="mt-1 text-sm text-slate-600">📊 Operational reports – near real-time from read models.</p>
+
+            <div className="mt-4 flex flex-wrap gap-2">
+              {operationalTypes.map((item: any) => {
+                const active = item.id === operationalType;
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    title={reportTooltips[item.id] || item.label}
+                    onClick={() => {
+                      setOperationalType(item.id);
+                      setOperationalResult(null);
+                    }}
+                    className={`rounded-lg border px-3 py-1.5 text-sm font-semibold transition ${active ? 'border-primary bg-primary/10 text-primary-dark' : 'border-border bg-white text-slate-700 hover:bg-slate-50'}`}
+                  >
+                    {item.label}
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="mt-4 grid gap-3 lg:grid-cols-4">
+              <Field label="From" hint='📅 Select period.'>
+                <input type="date" className={fieldClass} value={periodStart} onChange={(e) => setPeriodStart(e.target.value)} />
               </Field>
-              <Field label="As of date">
+              <Field label="To" hint='📅 Select period.'>
+                <input type="date" className={fieldClass} value={periodEnd} onChange={(e) => setPeriodEnd(e.target.value)} />
+              </Field>
+              <Field label="As of date" hint='📅 Select period.'>
                 <input type="date" className={fieldClass} value={asOfDate} onChange={(e) => setAsOfDate(e.target.value)} />
               </Field>
+              <Field label="Presets">
+                <div className="flex h-full flex-wrap gap-2 rounded-lg border border-border bg-white p-2">
+                  {presets.map((preset: any) => (
+                    <button
+                      key={preset.id}
+                      type="button"
+                      className="rounded border border-border px-2 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                      onClick={() => applyPreset(preset.id)}
+                    >
+                      {preset.label}
+                    </button>
+                  ))}
+                </div>
+              </Field>
             </div>
+
+            <div className="mt-4 grid gap-3 lg:grid-cols-3">
+              {(operationalType === 'ar_aging' || operationalType === 'sales_summary') && (
+                <Field label="Customer" hint='🔍 Filter by entity.'>
+                  <select className={fieldClass} value={selectedCustomerId} onChange={(e) => setSelectedCustomerId(e.target.value)}>
+                    <option value="">All customers</option>
+                    {(filterOptions.customers || []).map((row: any) => (
+                      <option key={row.id} value={row.id}>{row.label}</option>
+                    ))}
+                  </select>
+                </Field>
+              )}
+
+              {(operationalType === 'ap_aging' || operationalType === 'purchase_summary') && (
+                <Field label="Vendor" hint='🔍 Filter by entity.'>
+                  <select className={fieldClass} value={selectedVendorId} onChange={(e) => setSelectedVendorId(e.target.value)}>
+                    <option value="">All vendors</option>
+                    {(filterOptions.vendors || []).map((row: any) => (
+                      <option key={row.id} value={row.id}>{row.label}</option>
+                    ))}
+                  </select>
+                </Field>
+              )}
+
+              {operationalType === 'inventory_status' && (
+                <>
+                  <Field label="Product Category" hint='🔍 Filter by entity.'>
+                    <select className={fieldClass} value={selectedCategory} onChange={(e) => setSelectedCategory(e.target.value)}>
+                      <option value="">All categories</option>
+                      {(filterOptions.categories || []).map((category: string) => (
+                        <option key={category} value={category}>{category}</option>
+                      ))}
+                    </select>
+                  </Field>
+                  <Field label="Stock Status">
+                    <select className={fieldClass} value={inventoryStatus} onChange={(e) => setInventoryStatus(e.target.value)}>
+                      <option value="all">All</option>
+                      <option value="low">Low stock only</option>
+                      <option value="ok">In stock</option>
+                    </select>
+                  </Field>
+                </>
+              )}
+
+              {(operationalType === 'sales_summary' || operationalType === 'purchase_summary') && (
+                <Field label="Group by">
+                  <select className={fieldClass} value={groupBy} onChange={(e) => setGroupBy(e.target.value as 'day' | 'week' | 'month')}>
+                    <option value="day">Day</option>
+                    <option value="week">Week</option>
+                    <option value="month">Month</option>
+                  </select>
+                </Field>
+              )}
+            </div>
+
+            <div className="mt-4 flex flex-wrap items-center gap-2 text-xs text-slate-500">
+              <CalendarRange className="h-4 w-4" />
+              <span>{activeTooltip}</span>
+            </div>
+
             <div className="mt-4 flex flex-wrap gap-2">
               <Button onClick={runOperational} disabled={generatingOperational || !orgId}>
-                {generatingOperational ? 'Generating...' : 'Generate Operational Report'}
+                {generatingOperational ? 'Generating...' : 'Generate Report'}
               </Button>
               {canExport && (
                 <>
@@ -161,7 +334,14 @@ export default function ReportsPage() {
                 </>
               )}
             </div>
-            {operationalResult && <ReportOutput title="Operational result" payload={operationalResult} />}
+
+            {operationalResult && (
+              <div className="mt-4 rounded-lg border border-border bg-slate-50/60 p-3 text-xs text-slate-600">
+                📁 Export for daily review. Correlation: {operationalResult?.correlation_id || 'n/a'}
+              </div>
+            )}
+
+            {operationalResult && <ReportOutput reportType={operationalType} payload={operationalResult} />}
           </section>
         </div>
 
@@ -179,8 +359,92 @@ export default function ReportsPage() {
   );
 }
 
-function ReportOutput({ title, payload }: { title: string; payload: any }) {
+function ReportOutput({ reportType, payload }: { reportType: string; payload: any }) {
   const report = payload?.data;
+
+  if (reportType === 'inventory_status' && report?.products) {
+    const rows = report.products as Array<any>;
+    return (
+      <div className="mt-5 overflow-hidden rounded-xl border border-border">
+        <div className="border-b border-border bg-slate-50/70 px-4 py-2 text-sm font-bold text-ink">
+          Inventory Status ({rows.length} items)
+        </div>
+        <div className="max-h-72 overflow-auto">
+          <table className="min-w-full text-left text-sm">
+            <thead>
+              <tr className="border-b border-border bg-white text-xs uppercase text-slate-500">
+                <th className="px-4 py-2 font-semibold">Product</th>
+                <th className="px-4 py-2 font-semibold">SKU</th>
+                <th className="px-4 py-2 text-right font-semibold">Stock</th>
+                <th className="px-4 py-2 text-right font-semibold">Reorder Level</th>
+                <th className="px-4 py-2 font-semibold">Status</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {rows.map((row, idx) => (
+                <tr key={`${row.product_id || idx}`}>
+                  <td className="px-4 py-2 text-slate-700">{row.product_name || '—'}</td>
+                  <td className="px-4 py-2 text-slate-700">{row.sku || '—'}</td>
+                  <td className="px-4 py-2 text-right text-slate-700">{formatCell(row.current_stock)}</td>
+                  <td className="px-4 py-2 text-right text-slate-700">{formatCell(row.reorder_level)}</td>
+                  <td className="px-4 py-2">
+                    {String(row.status) === 'low' ? (
+                      <span className="inline-flex items-center gap-1 rounded border border-red-200 bg-red-50 px-2 py-0.5 text-xs font-semibold text-red-700" title='🔴 Low stock alert. Reorder soon.'>
+                        <TriangleAlert className="h-3.5 w-3.5" />
+                        Low Stock
+                      </span>
+                    ) : (
+                      <span className="inline-flex rounded border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700">
+                        OK
+                      </span>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    );
+  }
+
+  if ((reportType === 'ar_aging' || reportType === 'ap_aging') && Array.isArray(reportType === 'ap_aging' ? report?.rows : report)) {
+    const rows = (reportType === 'ap_aging' ? report.rows : report) as Array<any>;
+    const entityKey = reportType === 'ap_aging' ? 'vendor_id' : 'customer_id';
+    return (
+      <div className="mt-5 overflow-hidden rounded-xl border border-border">
+        <div className="border-b border-border bg-slate-50/70 px-4 py-2 text-sm font-bold text-ink">
+          {reportType === 'ap_aging' ? 'AP Aging' : 'AR Aging'} ({rows.length} entities)
+        </div>
+        <div className="max-h-72 overflow-auto">
+          <table className="min-w-full text-left text-sm">
+            <thead>
+              <tr className="border-b border-border bg-white text-xs uppercase text-slate-500">
+                <th className="px-4 py-2 font-semibold">{reportType === 'ap_aging' ? 'Vendor' : 'Customer'}</th>
+                <th className="px-4 py-2 text-right font-semibold">0-30</th>
+                <th className="px-4 py-2 text-right font-semibold">31-60</th>
+                <th className="px-4 py-2 text-right font-semibold">61-90</th>
+                <th className="px-4 py-2 text-right font-semibold">90+</th>
+                <th className="px-4 py-2 text-right font-semibold">Total Due</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {rows.map((row, idx) => (
+                <tr key={`${row[entityKey] || idx}`}>
+                  <td className="px-4 py-2 text-slate-700">#{row[entityKey] || '—'}</td>
+                  <td className="px-4 py-2 text-right text-slate-700">{formatCell(row['30'] || row.current)}</td>
+                  <td className="px-4 py-2 text-right text-slate-700">{formatCell(row['60'])}</td>
+                  <td className="px-4 py-2 text-right text-slate-700">{formatCell(row['90_plus'])}</td>
+                  <td className="px-4 py-2 text-right text-slate-700">{formatCell(row['90_plus'])}</td>
+                  <td className="px-4 py-2 text-right font-semibold text-slate-800">{formatCell(row.total_due)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    );
+  }
 
   if (Array.isArray(report) && report.length > 0) {
     const sample = report[0];
@@ -188,7 +452,7 @@ function ReportOutput({ title, payload }: { title: string; payload: any }) {
 
     return (
       <div className="mt-5 overflow-hidden rounded-xl border border-border">
-        <div className="border-b border-border bg-slate-50/70 px-4 py-2 text-sm font-bold text-ink">{title}</div>
+        <div className="border-b border-border bg-slate-50/70 px-4 py-2 text-sm font-bold text-ink">Operational Result</div>
         <div className="max-h-72 overflow-auto">
           <table className="min-w-full text-left text-sm">
             <thead>
@@ -216,7 +480,7 @@ function ReportOutput({ title, payload }: { title: string; payload: any }) {
   if (report && typeof report === 'object') {
     return (
       <div className="mt-5 rounded-xl border border-border bg-slate-50/70 p-4">
-        <p className="text-sm font-bold text-ink">{title}</p>
+        <p className="text-sm font-bold text-ink">Operational Result</p>
         <pre className="mt-3 max-h-64 overflow-auto text-xs text-slate-700">{JSON.stringify(report, null, 2)}</pre>
       </div>
     );
@@ -224,16 +488,17 @@ function ReportOutput({ title, payload }: { title: string; payload: any }) {
 
   return (
     <div className="mt-5 rounded-xl border border-border bg-slate-50/70 p-4 text-sm text-slate-600">
-      {title}: no rows returned for this period.
+      No rows returned for this period.
     </div>
   );
 }
 
-function Field({ label, children }: { label: string; children: ReactNode }) {
+function Field({ label, children, hint = '' }: { label: string; children: ReactNode; hint?: string }) {
   return (
     <label className="block">
       <span className="text-xs font-semibold uppercase text-slate-500">{label}</span>
       <div className="mt-1">{children}</div>
+      {hint ? <span className="mt-1 block text-[11px] text-slate-500">{hint}</span> : null}
     </label>
   );
 }
@@ -255,4 +520,11 @@ function formatCell(value: unknown) {
 
 function money(value?: string | number) {
   return new Intl.NumberFormat(undefined, { style: 'currency', currency: 'USD' }).format(Number(value || 0));
+}
+
+function formatDate(date: Date) {
+  const y = date.getFullYear();
+  const m = `${date.getMonth() + 1}`.padStart(2, '0');
+  const d = `${date.getDate()}`.padStart(2, '0');
+  return `${y}-${m}-${d}`;
 }
