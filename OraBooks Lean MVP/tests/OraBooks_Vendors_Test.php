@@ -148,6 +148,79 @@ class OraBooks_Vendors_Test extends TestCase
     }
 
     #[Test]
+    public function test_create_bill_blocked_when_fiscal_period_soft_closed()
+    {
+        global $wpdb;
+
+        $wpdb->test_get_var_callback = function ($query) {
+            if (stripos($query, 'fiscal_periods') !== false) {
+                return 'soft_closed';
+            }
+            return 0;
+        };
+
+        $bill = OraBooks_Vendors::create_bill(5, [
+            'vendor_id' => 10,
+            'bill_date' => '2026-06-01',
+            'subtotal_amount' => 100,
+            'tax_amount' => 20,
+        ]);
+
+        $this->assertInstanceOf(WP_Error::class, $bill);
+        $this->assertEquals('fiscal_closed', $bill->get_error_code());
+    }
+
+    #[Test]
+    public function test_update_bill_updates_draft_bill_fields()
+    {
+        global $wpdb;
+
+        $billSelectCalls = 0;
+        $wpdb->test_get_var_callback = function ($query) {
+            if (stripos($query, 'fiscal_periods') !== false) {
+                return 'open';
+            }
+            return 0;
+        };
+        $wpdb->test_get_row_callback = function ($query) use (&$billSelectCalls) {
+            if (stripos($query, 'orabooks_bills') !== false && stripos($query, 'JOIN') !== false) {
+                $billSelectCalls++;
+                if ($billSelectCalls === 1) {
+                    return $this->mockBill([
+                        'workflow_status' => 'draft',
+                        'description' => 'Initial bill',
+                        'total_amount' => '100.00',
+                        'subtotal_amount' => '100.00',
+                        'tax_amount' => '0.00',
+                    ]);
+                }
+
+                return $this->mockBill([
+                    'workflow_status' => 'draft',
+                    'description' => 'Updated bill note',
+                    'total_amount' => '150.00',
+                    'subtotal_amount' => '150.00',
+                    'tax_amount' => '0.00',
+                ]);
+            }
+            return null;
+        };
+
+        $result = OraBooks_Vendors::update_bill(5, 100, [
+            'description' => 'Updated bill note',
+            'subtotal_amount' => 150,
+            'tax_amount' => 0,
+            'total_amount' => 150,
+            'bill_date' => '2026-06-02',
+            'due_days' => 20,
+        ]);
+
+        $this->assertIsObject($result);
+        $this->assertEquals('Updated bill note', $result->description);
+        $this->assertEquals('150.00', $result->total_amount);
+    }
+
+    #[Test]
     public function test_submit_bill_moves_draft_to_submitted()
     {
         global $wpdb;
