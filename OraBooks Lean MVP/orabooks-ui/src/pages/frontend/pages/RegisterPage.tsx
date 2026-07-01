@@ -139,6 +139,12 @@ export default function RegisterPage() {
     display: 'block',
     marginInline: 'auto',
   };
+  const authLogoWrapStyle = {
+    width: '100%',
+    maxWidth: '240px',
+    marginInline: 'auto',
+    justifyContent: 'center',
+  };
 
   return (
     <div className="brand-auth-bg orabooks-register-auth flex min-h-screen items-center justify-center px-4 py-8 sm:px-6 sm:py-10 lg:py-12">
@@ -146,6 +152,7 @@ export default function RegisterPage() {
         <div className="orabooks-register-panel-inner p-8 sm:p-10 lg:p-12">
           <BrandLogo
             wrapperClassName="auth-logo-wrap mx-auto mb-5 w-full max-w-[240px]"
+            wrapperStyle={authLogoWrapStyle}
             imageClassName="w-full"
             imageStyle={authLogoStyle}
             fallbackClassName="flex h-12 w-12 items-center justify-center rounded-xl bg-primary"
