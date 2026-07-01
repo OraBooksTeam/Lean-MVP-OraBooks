@@ -114,9 +114,16 @@ export default function LoginPage() {
   const submit = async (e: FormEvent) => {
     e.preventDefault();
     setError('');
+    const normalizedEmail = email.trim();
+
+    if (!normalizedEmail || !password) {
+      setError('Email and password are required.');
+      return;
+    }
+
     setLoading(true);
     try {
-      const res = await api.login(email, password);
+      const res = await api.login(normalizedEmail, password);
       if (res.error) setError(typeof res.error === 'string' ? res.error : 'Login failed');
       else if ((res as any).data?.requires_2fa) {
         setShow2fa(true);
