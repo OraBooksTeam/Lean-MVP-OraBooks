@@ -553,12 +553,51 @@ export default function VendorsPage() {
 
     const data = (res as any).data || {};
     const detailBill = (data.bill || bill) as Bill;
-    const detailLines = ((data.line_items || []) as BillLineItem[]).map((line) => ({
-      description: line.description || '',
-      quantity: String(line.quantity ?? 1),
-      unit_price: String(line.unit_price ?? 0),
-      sku_code: line.sku_code || '',
-    }));
+
+    let productOptions = products;
+    if (productOptions.length === 0) {
+      const productsRes = await api.invoiceProductsSearch(orgId);
+      if (!productsRes.error) {
+        productOptions = ((productsRes as any).data?.products || []) as ProductOption[];
+        setProducts(productOptions);
+      }
+    }
+
+    const productByCode = new Map<string, ProductOption>();
+    for (const product of productOptions) {
+      const sku = String(product.sku || '').trim().toUpperCase();
+      const stockKeepingUnit = String(product.stock_keeping_unit || '').trim().toUpperCase();
+      if (sku) productByCode.set(sku, product);
+      if (stockKeepingUnit) productByCode.set(stockKeepingUnit, product);
+    }
+
+    const detailLines = ((data.line_items || []) as BillLineItem[]).map((line) => {
+      const rawCode = String(line.sku_code || '').trim();
+      const rawDescription = String(line.description || '').trim();
+
+      let resolvedCode = rawCode;
+      let resolvedDescription = rawDescription;
+
+      if (resolvedCode) {
+        const byCode = productByCode.get(resolvedCode.toUpperCase());
+        if (byCode && (!resolvedDescription || resolvedDescription.toUpperCase() === resolvedCode.toUpperCase())) {
+          resolvedDescription = String(byCode.name || resolvedDescription);
+        }
+      } else if (resolvedDescription) {
+        const byDescriptionCode = productByCode.get(resolvedDescription.toUpperCase());
+        if (byDescriptionCode) {
+          resolvedCode = String(byDescriptionCode.sku || byDescriptionCode.stock_keeping_unit || '').trim();
+          resolvedDescription = String(byDescriptionCode.name || resolvedDescription);
+        }
+      }
+
+      return {
+        description: resolvedDescription,
+        quantity: String(line.quantity ?? 1),
+        unit_price: String(line.unit_price ?? 0),
+        sku_code: resolvedCode,
+      };
+    });
 
     setEditingBill(detailBill);
     setBillLineItems(detailLines.length ? detailLines : [emptyBillLineItem()]);
@@ -1118,7 +1157,7 @@ export default function VendorsPage() {
 
         {showBillForm && (
           <Modal
-            title={editingBill ? `Edit bill ${editingBill.bill_number || `#${editingBill.id}`}` : 'Create bill'}
+            title={editingBill ? `Edit ${editingBill.bill_number || `#${editingBill.id}`}` : 'Create bill'}
             onClose={closeBillForm}
             wide
             elevated={!!viewingWalletVendor}
