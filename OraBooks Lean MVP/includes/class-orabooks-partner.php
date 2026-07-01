@@ -328,7 +328,7 @@ class OraBooks_Partner {
             case 'active':
                 return '✅ Your code is active. Share it to earn commissions.';
             case 'inactive':
-                return "🚫 Your partner code is inactive because you have no active customers and haven't brought any new customer in the last 12 months. Contact support to reactivate.";
+                return "🚫 Your partner code is inactive because you have no active customers and haven't brought any new customer in the last 12 months. Request reactivation from dashboard.";
             default:
                 return 'Partner code status: ' . $code_status;
         }
@@ -389,19 +389,7 @@ class OraBooks_Partner {
         if (is_wp_error($result)) {
             return $result;
         }
-        
-        $wpdb->update(
-            $table_codes,
-            [
-                'status' => 'pending_review',
-                'disabled_at' => null,
-                'disabled_reason' => null
-            ],
-            ['id' => $code->id],
-            ['%s', null, null],
-            ['%d']
-        );
-        
+
         return $result;
     }
     
@@ -732,10 +720,19 @@ class OraBooks_Partner {
         
         // Compute low-activity flag (per SL-139 spec)
         // Low-activity = no new attribution for 6+ months (applies to ALL partners)
+        $now = time();
         $last_attr_ts = $partner->last_attribution_at ? strtotime($partner->last_attribution_at) : 0;
-        $six_months_ago = time() - (6 * 30 * 86400);
-        
-        $is_dormant = ($last_attr_ts === 0 || $last_attr_ts < $six_months_ago);
+        $six_months_ago = $now - (6 * 30 * 86400);
+        $twelve_months_ago = $now - (12 * 30 * 86400);
+
+        // Single dormant definition (SL-139):
+        // active_customer_count = 0 AND last_attribution_at between 6 and 12 months ago.
+        $is_dormant = (
+            $active_customer_count === 0
+            && $last_attr_ts > 0
+            && $last_attr_ts <= $six_months_ago
+            && $last_attr_ts > $twelve_months_ago
+        );
         
         // ATTRIBUTION STATS
         $attribution_stats = (object) [
@@ -868,6 +865,7 @@ class OraBooks_Partner {
             'partner_type' => $partner->partner_type,
             'organization_name' => $partner->organization_name,
             'code_status' => $code_status,
+            'partner_code_status' => $code_status,
             'org_status' => $org_status,
             'org_name' => $partner->org_name,
             'created_at' => $partner->created_at,
@@ -875,6 +873,7 @@ class OraBooks_Partner {
             'active_customer_count' => $active_customer_count,
             'is_dormant' => $is_dormant,
             'is_inactive' => $is_inactive,
+            'inactive' => $is_inactive,
             'is_blocked' => $is_blocked,
             'read_only' => $read_only,
             'payout_disabled' => $payout_disabled,
@@ -884,6 +883,7 @@ class OraBooks_Partner {
             'attribution_stats' => $attribution_stats,
             'commission_summary' => $commission_summary,
             'payout_breakdown' => $payout_breakdown,
+            'commission_payouts' => $payout_breakdown,
             'attributions' => $attr_with_commission
         ];
     }
@@ -906,7 +906,7 @@ class OraBooks_Partner {
         }
 
         if ($is_dormant) {
-            return ['type' => 'info', 'message' => '💡 You haven\'t referred any new customer in the last 6 months. Share your code to earn more commissions!'];
+            return ['type' => 'info', 'message' => '💡 You have no active customers. Refer new customers to earn commissions.'];
         }
 
         return null;
@@ -1025,8 +1025,8 @@ class OraBooks_Partner {
             orabooks_json_error($tenant->get_error_message(), 403);
         }
         
-        if (!orabooks_check_rate_limit('reactivate_' . $user_id, 5, 3600)) {
-            orabooks_json_error('Too many reactivation attempts. Please try again later.', 429);
+        if (!orabooks_check_rate_limit('reactivate_' . $user_id, 60, 60)) {
+            orabooks_json_error('Too many requests', 429);
         }
         
         $result = self::request_reactivation($user_id, $org_id, $reason);
@@ -1035,19 +1035,27 @@ class OraBooks_Partner {
             orabooks_json_error($result->get_error_message(), 400);
         }
         
+        $active_customer_count = self::get_active_customer_count($user_id);
+
         // Audit: reactivation requested
         orabooks_log_event('partner_reactivation_requested', 'Partner requested reactivation', 'info', [
             'reason' => $reason,
-            'active_customer_count' => self::get_active_customer_count($user_id)
+            'active_customer_count' => $active_customer_count
         ], $user_id, $org_id);
 
         do_action('orabooks_partner_reactivation_requested', $org_id, [
             'user_id' => $user_id,
             'reason' => $reason,
-            'active_customer_count' => self::get_active_customer_count($user_id),
+            'active_customer_count' => $active_customer_count,
         ]);
-        
-        orabooks_json_success([], 'Reactivation request submitted for review. An admin will review your request.');
+
+        orabooks_json_response([
+            'error' => false,
+            'message' => 'Reactivation request submitted. Admin will review.',
+            'data' => [
+                'request_id' => null,
+            ],
+        ], 202);
     }
     
     /**
