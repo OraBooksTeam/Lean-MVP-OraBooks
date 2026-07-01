@@ -558,9 +558,23 @@ class OraBooks_Ajax {
                 'status' => 'low',
             ]);
             if (!is_wp_error($inventory) && is_array($inventory['data'] ?? null)) {
-                $operational_preview['low_stock_items'] = count($inventory['data']);
+                $operational_preview['low_stock_items'] = count((array) ($inventory['data']['products'] ?? []));
             }
         }
+
+        global $wpdb;
+        $customers = $wpdb->get_results($wpdb->prepare(
+            "SELECT id, display_name FROM " . OraBooks_Database::table('customers') . " WHERE org_id = %d ORDER BY display_name ASC LIMIT 200",
+            $org_id
+        ));
+        $vendors = $wpdb->get_results($wpdb->prepare(
+            "SELECT id, name FROM " . OraBooks_Database::table('vendors') . " WHERE org_id = %d ORDER BY name ASC LIMIT 200",
+            $org_id
+        ));
+        $categories = $wpdb->get_col($wpdb->prepare(
+            "SELECT DISTINCT category_name FROM " . OraBooks_Database::table('products') . " WHERE org_id = %d AND category_name IS NOT NULL AND category_name != '' ORDER BY category_name ASC LIMIT 200",
+            $org_id
+        ));
 
         $recent_snapshots = class_exists('OraBooks_Financial_Reports')
             ? OraBooks_Financial_Reports::get_recent_snapshots($org_id, ['limit' => 10])
@@ -588,6 +602,24 @@ class OraBooks_Ajax {
                 ['id' => 'bank_reconciliation', 'label' => 'Bank Reconciliation'],
                 ['id' => 'sales_summary', 'label' => 'Sales Summary'],
                 ['id' => 'purchase_summary', 'label' => 'Purchase Summary'],
+            ],
+            'operational_presets' => [
+                ['id' => 'today', 'label' => 'Today'],
+                ['id' => 'this_week', 'label' => 'This Week'],
+                ['id' => 'this_month', 'label' => 'This Month'],
+            ],
+            'operational_filters' => [
+                'customers' => array_map(static function ($row) {
+                    return ['id' => intval($row->id), 'label' => $row->display_name ?: ('Customer #' . intval($row->id))];
+                }, $customers ?: []),
+                'vendors' => array_map(static function ($row) {
+                    return ['id' => intval($row->id), 'label' => $row->name ?: ('Vendor #' . intval($row->id))];
+                }, $vendors ?: []),
+                'categories' => array_values(array_filter(array_map('strval', (array) $categories))),
+            ],
+            'permissions' => [
+                'can_export_operational' => OraBooks_RBAC::require_permission($context['user_id'], $org_id, 'export_reports'),
+                'can_view_operational' => OraBooks_RBAC::require_permission($context['user_id'], $org_id, 'view_operational_reports'),
             ],
             'financial_preview' => $financial_preview,
             'operational_preview' => $operational_preview,
