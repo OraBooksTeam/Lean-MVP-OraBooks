@@ -68,6 +68,9 @@ export default function AcceptInvitePage() {
         const messageLower = message.toLowerCase();
         if (messageLower.includes('log in')) {
           setNeedsLogin(true);
+        } else if (messageLower.includes('verify your email')) {
+          setNeedsLogin(true);
+          setError(message);
         } else {
           const looksInvalidOrExpired = messageLower.includes('invalid') || messageLower.includes('expired');
           if (looksInvalidOrExpired && hasStoredAuthToken()) {
@@ -82,7 +85,9 @@ export default function AcceptInvitePage() {
               return;
             }
           }
-          clearPendingInviteToken();
+          if (looksInvalidOrExpired) {
+            clearPendingInviteToken();
+          }
           setError(message);
         }
       } else {
