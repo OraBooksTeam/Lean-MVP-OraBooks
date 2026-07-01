@@ -32,7 +32,20 @@ export default function AcceptInvitePage() {
 
   useEffect(() => {
     if (!token) {
-      setError('This invitation link is invalid or missing a token.');
+      if (hasStoredAuthToken()) {
+        void api.frontendContext().then((ctxRes) => {
+          const ctxData = (ctxRes as any).data || {};
+          const hasOrg = Number(ctxData?.org_id || 0) > 0 || String(ctxData?.subdomain || '').trim() !== '';
+          if (!ctxRes.error && hasOrg) {
+            clearPendingInviteToken();
+            redirectAfterAuth({ ...ctxData, needs_accept_invite: false });
+            return;
+          }
+          setError('This invitation link is invalid or missing a token.');
+        });
+      } else {
+        setError('This invitation link is invalid or missing a token.');
+      }
       setLoading(false);
       return;
     }
@@ -52,9 +65,23 @@ export default function AcceptInvitePage() {
       const res = await api.acceptInvite(token);
       if (res.error) {
         const message = typeof res.error === 'string' ? res.error : 'Unable to accept invitation.';
-        if (message.toLowerCase().includes('log in')) {
+        const messageLower = message.toLowerCase();
+        if (messageLower.includes('log in')) {
           setNeedsLogin(true);
         } else {
+          const looksInvalidOrExpired = messageLower.includes('invalid') || messageLower.includes('expired');
+          if (looksInvalidOrExpired && hasStoredAuthToken()) {
+            const ctxRes = await api.frontendContext();
+            const ctxData = (ctxRes as any).data || {};
+            const hasOrg = Number(ctxData?.org_id || 0) > 0 || String(ctxData?.subdomain || '').trim() !== '';
+            if (!ctxRes.error && hasOrg) {
+              clearPendingInviteToken();
+              setSuccess('Invitation already processed. Redirecting to your workspace…');
+              redirectAfterAuth({ ...ctxData, needs_accept_invite: false });
+              setLoading(false);
+              return;
+            }
+          }
           clearPendingInviteToken();
           setError(message);
         }
