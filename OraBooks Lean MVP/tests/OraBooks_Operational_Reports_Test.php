@@ -281,11 +281,11 @@ class OraBooks_Operational_Reports_Test extends TestCase
         $flat = OraBooks_Operational_Reports::flatten_for_export([
             'report_type' => 'ar_aging',
             'data' => [
-                ['customer_id' => 10, 'current' => 100, '30' => 50, '60' => 0, '90_plus' => 0, 'total_due' => 150],
+                ['customer_id' => 10, 'current' => 100, '30' => 50, '60' => 0, '90' => 0, '90_plus' => 0, 'total_due' => 150],
             ],
         ]);
 
-        $this->assertSame(['customer_id', 'current', '30', '60', '90_plus', 'total_due'], $flat['columns']);
+        $this->assertSame(['customer_id', 'current', '30', '60', '90', '90_plus', 'total_due'], $flat['columns']);
         $this->assertCount(1, $flat['rows']);
         $this->assertEquals(150, $flat['rows'][0]['total_due']);
     }
