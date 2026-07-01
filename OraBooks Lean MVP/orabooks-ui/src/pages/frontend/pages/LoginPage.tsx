@@ -164,8 +164,8 @@ export default function LoginPage() {
         <div className="glass-panel w-full max-w-lg overflow-hidden">
           <div className="p-8 sm:p-10 lg:p-12">
           <BrandLogo
-            wrapperClassName="mx-auto mb-6"
-            imageClassName="h-14 w-auto object-contain"
+            wrapperClassName="mx-auto mb-6 w-full max-w-[240px]"
+            imageClassName="h-[100px] w-full object-contain"
             fallbackClassName="flex h-12 w-12 items-center justify-center rounded-xl bg-primary"
             fallbackTextClassName="text-2xl font-black text-white"
           />
@@ -201,8 +201,8 @@ export default function LoginPage() {
       <div className="glass-panel w-full max-w-lg overflow-hidden">
         <div className="p-8 sm:p-10 lg:p-12">
         <BrandLogo
-          wrapperClassName="mx-auto mb-6"
-          imageClassName="h-14 w-auto object-contain"
+          wrapperClassName="mx-auto mb-6 w-full max-w-[240px]"
+          imageClassName="h-[100px] w-full object-contain"
           fallbackClassName="flex h-12 w-12 items-center justify-center rounded-xl bg-primary"
           fallbackTextClassName="text-2xl font-black text-white"
         />

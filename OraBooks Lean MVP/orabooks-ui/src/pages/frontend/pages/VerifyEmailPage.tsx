@@ -63,8 +63,8 @@ export default function VerifyEmailPage() {
     <div className="brand-auth-bg flex min-h-screen items-center justify-center px-4 py-12">
       <div className="glass-panel w-full max-w-lg overflow-hidden p-8 text-center">
         <BrandLogo
-          wrapperClassName="mx-auto mb-4"
-          imageClassName="h-14 w-auto object-contain"
+          wrapperClassName="mx-auto mb-4 w-full max-w-[240px]"
+          imageClassName="h-[100px] w-full object-contain"
           fallbackClassName="flex h-12 w-12 items-center justify-center rounded-xl bg-primary"
           fallbackTextClassName="text-2xl font-black text-white"
         />
