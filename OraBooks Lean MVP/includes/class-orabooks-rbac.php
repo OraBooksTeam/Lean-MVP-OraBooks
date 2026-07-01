@@ -29,6 +29,7 @@ class OraBooks_RBAC {
     private static function define_permissions() {
         self::$permissions = [
             'view_reports'                => ['owner', 'admin', 'approver', 'staff', 'viewer'],
+            'view_bank_reconciliation'    => ['owner', 'admin', 'approver', 'staff', 'viewer'],
             'view_financial_reports'      => ['owner', 'admin', 'approver', 'staff', 'viewer'],
             'view_operational_reports'    => ['owner', 'admin', 'approver', 'staff', 'viewer'],
             'view_ai_review_queue'        => ['owner', 'admin', 'approver'],
@@ -40,7 +41,10 @@ class OraBooks_RBAC {
             'view_voice_inputs'           => ['owner', 'admin', 'approver', 'staff', 'viewer'],
             'manage_voice_inputs'         => ['owner', 'admin', 'staff'],
             'submit_transaction'          => ['owner', 'admin', 'staff'],
+            'match_transaction'           => ['owner', 'admin', 'approver', 'staff'],
             'approve_journal'             => ['owner', 'admin', 'approver'],
+            'reconcile_bank'              => ['owner', 'admin'],
+            'connect_bank_feed'           => ['owner', 'admin'],
             'reverse_journal'             => ['owner', 'admin'],
             'sign_report'                 => ['owner', 'admin'],
             'invite_user'                 => ['owner', 'admin'],
