@@ -175,6 +175,21 @@ class OraBooks_Assets {
     }
 
     /**
+     * Cache-busting version for plugin static assets.
+     */
+    public static function get_static_asset_version($relative_path) {
+        $path = ORABOOKS_PLUGIN_DIR . ltrim($relative_path, '/');
+        if (file_exists($path) && !is_dir($path)) {
+            $mtime = filemtime($path);
+            if ($mtime !== false) {
+                return ORABOOKS_VERSION . '-' . (string) $mtime;
+            }
+        }
+
+        return ORABOOKS_VERSION;
+    }
+
+    /**
      * Cache-busting version for React bundles (manifest timestamp + file mtime).
      */
     public static function get_react_bundle_version($file = 'frontend.js') {
@@ -335,7 +350,7 @@ class OraBooks_Assets {
             'orabooks-theme-compat',
             ORABOOKS_PLUGIN_URL . 'assets/css/theme-compat.css',
             $deps,
-            ORABOOKS_VERSION
+            self::get_static_asset_version('assets/css/theme-compat.css')
         );
     }
 
@@ -355,7 +370,7 @@ class OraBooks_Assets {
             'orabooks-divi-compat',
             ORABOOKS_PLUGIN_URL . 'assets/css/divi-compat.css',
             $deps,
-            ORABOOKS_VERSION
+            self::get_static_asset_version('assets/css/divi-compat.css')
         );
     }
 
