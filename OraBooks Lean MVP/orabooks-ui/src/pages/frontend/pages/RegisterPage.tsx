@@ -89,7 +89,7 @@ export default function RegisterPage() {
         partner_type: userType === 'partner' ? partnerType : 'individual',
         organization_name: userType === 'partner' ? orgName.trim() : '',
         partner_code: userType === 'customer' ? partnerCode.trim() : '',
-        accept_terms: userType === 'partner' && acceptTerms ? 1 : 0,
+        accept_terms: userType === 'partner' ? (acceptTerms ? 1 : 0) : 1,
         terms_version: '1.0',
       });
       if (res.error) setError(typeof res.error === 'string' ? res.error : 'Registration failed');
