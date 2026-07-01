@@ -569,7 +569,7 @@ function orabooks_admin_menu() {
         'Event Dead Letters',
         'read',
         'orabooks-event-dead-letter',
-        ['OraBooks_Event_Module', 'render_dead_letter_replay_page']
+        'orabooks_admin_event_dead_letter'
     );
 
     // Security dashboard (admin only)
@@ -779,6 +779,9 @@ function orabooks_admin_webhook_settings() {
 }
 function orabooks_admin_observability() {
     orabooks_admin_react_page('/admin/observability');
+}
+function orabooks_admin_event_dead_letter() {
+    orabooks_admin_react_page('/admin/event-dead-letter');
 }
 function orabooks_admin_security() {
     orabooks_admin_react_page('/admin/security');
