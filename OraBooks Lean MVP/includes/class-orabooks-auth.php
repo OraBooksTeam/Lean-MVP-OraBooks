@@ -605,39 +605,6 @@ class OraBooks_Auth {
     }
 
     /**
-     * Auto-accept a pending team invite and issue a tenant session (SL-003 Option A).
-     *
-     * @param object $user
-     * @return array<string, mixed>|WP_Error
-     */
-    private static function try_invite_first_onboarding($user) {
-        if (!class_exists('OraBooks_Team') || !orabooks_user_has_any_pending_invite((int) $user->id)) {
-            return new WP_Error('no_pending_invite', 'No pending team invitation');
-        }
-
-        $accepted = OraBooks_Team::accept_pending_invite_for_user((int) $user->id);
-        if (is_wp_error($accepted)) {
-            return $accepted;
-        }
-
-        $session = self::issue_auth_session(
-            (int) $accepted['user_id'],
-            (int) $accepted['org_id'],
-            (string) $accepted['role'],
-            '/team/'
-        );
-
-        if (is_wp_error($session)) {
-            return $session;
-        }
-
-        $session['invite_onboarded'] = true;
-        $session['message'] = 'Team invitation accepted. Welcome to your workspace.';
-
-        return orabooks_enrich_login_response($session);
-    }
-
-    /**
      * Complete login after password/OIDC/2FA verification (partner org, tier selection, or normal session).
      *
      * @param object $user
@@ -660,15 +627,6 @@ class OraBooks_Auth {
                 ['%d']
             );
             $user->org_id = $org_id;
-        }
-
-        if (!$user->is_partner && !$org_id) {
-            $invite_session = self::try_invite_first_onboarding($user);
-            if (!is_wp_error($invite_session)) {
-                return $invite_session;
-            }
-
-            $org_id = orabooks_resolve_auth_org_id($user->id, (int) $user->org_id);
         }
 
         if (!$user->is_partner && !$org_id) {
