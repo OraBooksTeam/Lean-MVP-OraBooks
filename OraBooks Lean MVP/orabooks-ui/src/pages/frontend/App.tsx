@@ -80,6 +80,7 @@ const ROUTES: Record<string, RouteConfig> = {
   '/onboarding': { element: <PartnerOnboardingPage /> },
   '/partner-onboarding': { element: <PartnerOnboardingPage /> },
   '/partner/onboarding': { element: <PartnerOnboardingPage /> },
+  '/partner/dashboard': { element: <PartnerProgramPage /> },
   '/partner-program': { element: <PartnerProgramPage /> },
   '/commissions': { element: <CommissionsPage /> },
   '/notifications': { element: <NotificationsPage /> },
