@@ -249,6 +249,7 @@ class OraBooks_Operational_Reports {
                     'current' => 0.0,
                     '30' => 0.0,
                     '60' => 0.0,
+                    '90' => 0.0,
                     '90_plus' => 0.0,
                     'total_due' => 0.0,
                 ];
@@ -271,6 +272,7 @@ class OraBooks_Operational_Reports {
                     'current' => 0.0,
                     '30' => 0.0,
                     '60' => 0.0,
+                    '90' => 0.0,
                     '90_plus' => 0.0,
                     'total_due' => 0.0,
                 ];
@@ -284,7 +286,7 @@ class OraBooks_Operational_Reports {
     }
 
     private static function aging_totals($rows) {
-        $totals = ['current' => 0.0, '30' => 0.0, '60' => 0.0, '90_plus' => 0.0];
+        $totals = ['current' => 0.0, '30' => 0.0, '60' => 0.0, '90' => 0.0, '90_plus' => 0.0];
         foreach ($rows as $row) {
             $totals[self::normalize_bucket($row->bucket)] += (float) $row->amount;
         }
@@ -293,7 +295,7 @@ class OraBooks_Operational_Reports {
 
     private static function normalize_bucket($bucket) {
         $bucket = sanitize_text_field($bucket);
-        return in_array($bucket, ['current', '30', '60', '90_plus'], true) ? $bucket : 'current';
+        return in_array($bucket, ['current', '30', '60', '90', '90_plus'], true) ? $bucket : 'current';
     }
 
     public static function get_inventory_status($org_id, $args = []) {
@@ -692,6 +694,9 @@ class OraBooks_Operational_Reports {
         if ($days <= 60) {
             return '60';
         }
+        if ($days <= 90) {
+            return '90';
+        }
         return '90_plus';
     }
 
@@ -812,14 +817,14 @@ class OraBooks_Operational_Reports {
             case 'ar_aging':
                 $rows = is_array($data) ? array_values($data) : [];
                 return [
-                    'columns' => ['customer_id', 'current', '30', '60', '90_plus', 'total_due'],
+                    'columns' => ['customer_id', 'current', '30', '60', '90', '90_plus', 'total_due'],
                     'rows' => $rows,
                 ];
 
             case 'ap_aging':
                 $rows = is_array($data) && isset($data['rows']) ? $data['rows'] : (is_array($data) ? array_values($data) : []);
                 return [
-                    'columns' => ['vendor_id', 'current', '30', '60', '90_plus', 'total_due'],
+                    'columns' => ['vendor_id', 'current', '30', '60', '90', '90_plus', 'total_due'],
                     'rows' => $rows,
                 ];
 
