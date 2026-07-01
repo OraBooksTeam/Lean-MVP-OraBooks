@@ -961,13 +961,25 @@ class OraBooks_Expenses {
     public static function create_draft_from_voice($org_id, $user_id, array $extracted, $confidence = null, $risk_level = 'low') {
         global $wpdb;
 
+        $transaction_date = sanitize_text_field($extracted['transaction_date'] ?? current_time('Y-m-d'));
+        if (class_exists('OraBooks_Fiscal') && method_exists('OraBooks_Fiscal', 'can_post')) {
+            $fiscal_check = OraBooks_Fiscal::can_post((int) $org_id, $transaction_date);
+            if (is_wp_error($fiscal_check)) {
+                return new WP_Error(
+                    $fiscal_check->get_error_code(),
+                    'Fiscal period is soft/hard closed. Transactions are not allowed.',
+                    $fiscal_check->get_error_data()
+                );
+            }
+        }
+
         $table = OraBooks_Database::table(self::TABLE_EXPENSES);
         $wpdb->insert($table, [
             'org_id'            => intval($org_id),
             'vendor'            => sanitize_text_field($extracted['vendor'] ?? ''),
             'vendor_tax_id'     => sanitize_text_field($extracted['vendor_tax_id'] ?? ''),
             'invoice_number'    => sanitize_text_field($extracted['invoice_number'] ?? ''),
-            'transaction_date'  => sanitize_text_field($extracted['transaction_date'] ?? current_time('Y-m-d')),
+            'transaction_date'  => $transaction_date,
             'due_date'          => !empty($extracted['due_date']) ? sanitize_text_field($extracted['due_date']) : null,
             'subtotal'          => isset($extracted['subtotal']) ? (float) $extracted['subtotal'] : null,
             'tax_amount'        => isset($extracted['tax_amount']) ? (float) $extracted['tax_amount'] : null,
