@@ -68,10 +68,17 @@ jQuery(document).ready(function($) {
         e.preventDefault();
         var $form = $(this);
         var $msg = $('#orabooks-register-message');
+        var email = ($('#reg-email').val() || '').toString().trim();
+        var password = ($('#reg-password').val() || '').toString();
         
         // Check password match
         if ($('#reg-password').val() !== $('#reg-confirm-password').val()) {
             $msg.removeClass('success').addClass('error').text('Passwords do not match').show();
+            return;
+        }
+
+        if (!email || !password) {
+            $msg.removeClass('success').addClass('error').text('Email and password are required.').show();
             return;
         }
 
@@ -98,8 +105,8 @@ jQuery(document).ready(function($) {
             dataType: 'json',
             data: {
                 action: 'orabooks_register',
-                email: $('#reg-email').val(),
-                password: $('#reg-password').val(),
+                email: email,
+                password: password,
                 user_type: $('#reg-user-type').val(),
                 partner_type: partnerType,
                 organization_name: organizationName,
@@ -138,42 +145,64 @@ jQuery(document).ready(function($) {
         e.preventDefault();
         var $form = $(this);
         var $msg = $('#orabooks-login-message');
+        var email = ($('#login-email').val() || '').toString().trim();
+        var password = ($('#login-password').val() || '').toString();
+
+        if (!email || !password) {
+            $msg.removeClass('success').addClass('error').text('Email and password are required.').show();
+            return;
+        }
         
         $msg.hide();
         $form.find('button').prop('disabled', true).text('Logging in...');
         
-        $.post(orabooks_ajax.ajax_url, {
-            action: 'orabooks_login',
-            email: $('#login-email').val(),
-            password: $('#login-password').val()
-        }, function(response) {
-            if (response.error) {
-                $msg.removeClass('success').addClass('error').text(response.message).show();
-                $form.find('button').prop('disabled', false).text('Log In');
-            } else {
-                if (response.data.token) {
-                    localStorage.setItem('orabooks_token', response.data.token);
-                }
-                if (response.data.refresh_token) {
-                    localStorage.setItem('orabooks_refresh_token', response.data.refresh_token);
-                }
-                
-                if (response.data.requires_2fa) {
-                    // Show 2FA challenge form (replace login form)
-                    orabooksShow2faChallenge(response.data.temp_token, response.data.user_id);
-                } else if (response.data.needs_tier_selection) {
-                    window.location.href = '/tier-selection/';
-                } else if (response.data.redirect_to) {
-                    window.location.href = response.data.redirect_to;
-                } else {
-                    $msg.removeClass('error').addClass('success').text('Login successful! Redirecting...').show();
-                    setTimeout(function() {
-                        window.location.href = '/dashboard/';
-                    }, 1000);
-                }
+        $.ajax({
+            url: orabooks_ajax.ajax_url,
+            type: 'POST',
+            dataType: 'json',
+            data: {
+                action: 'orabooks_login',
+                email: email,
+                password: password
             }
-        }).fail(function() {
-            $msg.removeClass('success').addClass('error').text('An error occurred. Please try again.').show();
+        }).done(function(response) {
+            orabooksHandleAjaxResponse(response, $msg, function(message) {
+                $msg.removeClass('success').addClass('error').text(message).show();
+                $form.find('button').prop('disabled', false).text('Log In');
+            }, function(response) {
+                var payload = response.data || {};
+
+                if (payload.token) {
+                    localStorage.setItem('orabooks_token', payload.token);
+                }
+                if (payload.refresh_token) {
+                    localStorage.setItem('orabooks_refresh_token', payload.refresh_token);
+                }
+
+                if (payload.requires_2fa) {
+                    // Show 2FA challenge form (replace login form)
+                    orabooksShow2faChallenge(payload.temp_token, payload.user_id);
+                    return;
+                }
+
+                if (payload.needs_tier_selection) {
+                    window.location.href = '/tier-selection/';
+                    return;
+                }
+
+                if (payload.redirect_to) {
+                    window.location.href = payload.redirect_to;
+                    return;
+                }
+
+                $msg.removeClass('error').addClass('success').text('Login successful! Redirecting...').show();
+                setTimeout(function() {
+                    window.location.href = '/dashboard/';
+                }, 1000);
+            });
+        }).fail(function(xhr) {
+            $msg.removeClass('success').addClass('error')
+                .text(orabooksAjaxErrorMessage(xhr, 'An error occurred. Please try again.')).show();
             $form.find('button').prop('disabled', false).text('Log In');
         });
     });
