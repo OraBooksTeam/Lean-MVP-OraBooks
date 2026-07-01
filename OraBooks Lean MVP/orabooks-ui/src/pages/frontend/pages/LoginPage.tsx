@@ -144,6 +144,13 @@ export default function LoginPage() {
     marginInline: 'auto',
   };
 
+  const authLogoWrapStyle = {
+    width: '100%',
+    maxWidth: '240px',
+    marginInline: 'auto',
+    justifyContent: 'center',
+  };
+
   const submit2fa = async (e: FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -174,6 +181,7 @@ export default function LoginPage() {
           <div className="p-8 sm:p-10 lg:p-12">
           <BrandLogo
             wrapperClassName="auth-logo-wrap mx-auto mb-6 w-full max-w-[240px]"
+            wrapperStyle={authLogoWrapStyle}
             imageClassName="w-full"
             imageStyle={authLogoStyle}
             fallbackClassName="flex h-12 w-12 items-center justify-center rounded-xl bg-primary"
@@ -212,6 +220,7 @@ export default function LoginPage() {
         <div className="p-8 sm:p-10 lg:p-12">
         <BrandLogo
           wrapperClassName="auth-logo-wrap mx-auto mb-6 w-full max-w-[240px]"
+          wrapperStyle={authLogoWrapStyle}
           imageClassName="w-full"
           imageStyle={authLogoStyle}
           fallbackClassName="flex h-12 w-12 items-center justify-center rounded-xl bg-primary"
