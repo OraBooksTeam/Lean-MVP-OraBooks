@@ -37,6 +37,7 @@ class OraBooks_Auth_Test extends TestCase
         $GLOBALS['orabooks_test_wp_remote_post_callback'] = null;
         $GLOBALS['orabooks_test_org_callback'] = null;
         $GLOBALS['orabooks_test_get_user_role_callback'] = null;
+        $GLOBALS['orabooks_test_user_has_pending_invite_callback'] = null;
         $GLOBALS['orabooks_test_user_meta'] = [];
         $GLOBALS['orabooks_test_use_insert_id'] = null;
 
@@ -1228,6 +1229,31 @@ class OraBooks_Auth_Test extends TestCase
         $this->assertArrayHasKey('tier_selection_token', $result);
         $this->assertArrayNotHasKey('token', $result);
         $this->assertArrayNotHasKey('refresh_token', $result);
+    }
+
+    #[Test]
+    public function test_login_customer_with_pending_invite_requires_accept_invite()
+    {
+        global $wpdb;
+
+        $wpdb->test_get_row_callback = function ($query) {
+            return $this->makeLoginUser([
+                'is_partner' => 0,
+                'org_id'     => null,
+            ]);
+        };
+
+        $GLOBALS['orabooks_test_user_has_pending_invite_callback'] = function ($user_id) {
+            return (int) $user_id === 1;
+        };
+
+        $result = OraBooks_Auth::login('customer@example.com', 'Password1!');
+
+        $this->assertNotInstanceOf(WP_Error::class, $result);
+        $this->assertTrue($result['needs_accept_invite']);
+        $this->assertArrayNotHasKey('token', $result);
+        $this->assertArrayNotHasKey('refresh_token', $result);
+        $this->assertArrayNotHasKey('needs_tier_selection', $result);
     }
 
     #[Test]
