@@ -455,6 +455,35 @@ export default function ClientShell({
                 {eyebrow && <p className="text-xs font-bold uppercase tracking-wide text-primary">{eyebrow}</p>}
                 <h1 className="text-2xl font-black text-ink sm:text-3xl">{title}</h1>
               </div>
+              <div className="ml-auto flex items-center gap-1.5">
+                <WpLink
+                  to="/notifications"
+                  className={cn(
+                    'relative rounded-lg p-2 transition',
+                    currentRoute === '/notifications'
+                      ? 'bg-accent text-white shadow-sm'
+                      : 'text-primary hover:bg-primary/10'
+                  )}
+                  title="Notifications"
+                  aria-label="Notifications"
+                >
+                  <Bell className="h-5 w-5" />
+                  {unreadCount > 0 && (
+                    <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-accent px-1 text-[9px] font-bold text-white">
+                      {unreadCount > 99 ? '99+' : unreadCount}
+                    </span>
+                  )}
+                </WpLink>
+                <button
+                  type="button"
+                  className="rounded-lg p-2 text-primary transition hover:bg-primary/10 lg:hidden"
+                  aria-label="Open navigation menu"
+                  aria-expanded={mobileNavOpen}
+                  onClick={() => setMobileNavOpen(true)}
+                >
+                  <Menu className="h-5 w-5" />
+                </button>
+              </div>
             </div>
           </header>
           {needs2faSetup && currentRoute !== '/security/2fa' && currentRoute !== '/profile' && (
