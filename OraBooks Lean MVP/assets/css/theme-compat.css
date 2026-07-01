@@ -217,6 +217,20 @@ body.orabooks-page #orabooks-app-root svg {
     height: auto;
 }
 
+body.orabooks-page.orabooks-auth-page #orabooks-app-root .auth-logo-wrap {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+body.orabooks-page.orabooks-auth-page #orabooks-app-root .auth-logo-wrap img {
+    display: block;
+    float: none;
+    margin-left: auto;
+    margin-right: auto;
+    object-position: center center;
+}
+
 body.orabooks-page #orabooks-app-root table {
     width: 100%;
     border-collapse: collapse;

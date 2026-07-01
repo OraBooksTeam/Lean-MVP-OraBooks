@@ -145,7 +145,7 @@ export default function RegisterPage() {
       <div className="glass-panel orabooks-register-panel w-full max-w-3xl overflow-hidden">
         <div className="orabooks-register-panel-inner p-8 sm:p-10 lg:p-12">
           <BrandLogo
-            wrapperClassName="mx-auto mb-5 w-full max-w-[240px]"
+            wrapperClassName="auth-logo-wrap mx-auto mb-5 w-full max-w-[240px]"
             imageClassName="w-full"
             imageStyle={authLogoStyle}
             fallbackClassName="flex h-12 w-12 items-center justify-center rounded-xl bg-primary"

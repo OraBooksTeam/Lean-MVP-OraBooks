@@ -442,6 +442,20 @@ body.orabooks-page.orabooks-divi-theme.orabooks-auth-page #orabooks-app-root a.t
     color: #1A69B4 !important;
 }
 
+body.orabooks-page.orabooks-divi-theme.orabooks-auth-page #orabooks-app-root .auth-logo-wrap {
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+}
+
+body.orabooks-page.orabooks-divi-theme.orabooks-auth-page #orabooks-app-root .auth-logo-wrap img {
+    display: block !important;
+    float: none !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+    object-position: center center !important;
+}
+
 @media (max-width: 767px) {
     body.orabooks-page.orabooks-divi-theme.orabooks-auth-page #orabooks-app-root .brand-auth-bg {
         padding: 24px 12px !important;
