@@ -586,9 +586,17 @@ class OraBooks_Inventory {
             ? round(floatval($data['sales_price']), 2)
             : self::calculate_sales_price($price, $profit_margin);
         $mrp = array_key_exists('mrp', $data) ? round(floatval($data['mrp']), 2) : $sales_price;
+        $stock_before = round(floatval($product->current_stock ?? 0), 4);
+        $stock_after = array_key_exists('current_stock', $data)
+            ? round(floatval($data['current_stock']), 4)
+            : $stock_before;
 
         if ($price < 0 || $purchase_price < 0) {
             return new WP_Error('invalid_cost', 'Price cannot be negative');
+        }
+
+        if ($stock_after < 0) {
+            return new WP_Error('negative_stock', 'Current stock cannot be negative');
         }
 
         $table = OraBooks_Database::table('products');
@@ -617,6 +625,7 @@ class OraBooks_Inventory {
                 'warehouse_name' => sanitize_text_field($data['warehouse_name'] ?? $product->warehouse_name ?? ''),
                 'item_type' => self::enum_value($data['item_type'] ?? $product->item_type ?? 'Single', ['Single', 'Variants', 'service'], 'Single'),
                 'seller_points' => round(floatval($data['seller_points'] ?? $product->seller_points ?? 0), 2),
+                'current_stock' => $stock_after,
                 'low_stock_threshold' => array_key_exists('low_stock_threshold', $data)
                     ? ($data['low_stock_threshold'] === '' || $data['low_stock_threshold'] === null
                         ? null
@@ -631,7 +640,7 @@ class OraBooks_Inventory {
             [
                 '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s',
                 '%f', '%f', '%f', '%f', '%f', '%f', '%s', '%f', '%s', '%s',
-                '%s', '%f', '%f', '%d',
+                '%s', '%f', '%f', '%f', '%d',
             ],
             ['%d', '%d']
         );
@@ -640,9 +649,32 @@ class OraBooks_Inventory {
             return new WP_Error('update_failed', 'Unable to update product.');
         }
 
+        $movement_id = null;
+        $stock_diff = round($stock_after - $stock_before, 4);
+        if (abs($stock_diff) > 0.00001) {
+            $movement_id = self::insert_movement([
+                'org_id' => intval($org_id),
+                'product_id' => intval($product_id),
+                'quantity_change' => $stock_diff,
+                'stock_before' => $stock_before,
+                'stock_after' => $stock_after,
+                'unit_cost' => round(floatval($product->average_cost ?? 0), 6),
+                'movement_value' => round(abs($stock_diff) * floatval($product->average_cost ?? 0), 2),
+                'reference_type' => 'adjustment',
+                'reference_id' => null,
+                'reason' => 'Product edit stock update',
+                'note' => sanitize_textarea_field($data['stock_note'] ?? ''),
+                'journal_id' => null,
+                'created_by' => orabooks_get_current_user_id(),
+            ]);
+        }
+
         orabooks_log_event('inventory_product_updated', "Product updated: {$product->sku}", 'info', [
             'product_id' => $product_id,
             'sku' => $product->sku,
+            'stock_before' => $stock_before,
+            'stock_after' => $stock_after,
+            'movement_id' => $movement_id,
         ], orabooks_get_current_user_id(), $org_id);
 
         return self::get_product($product_id, $org_id);
