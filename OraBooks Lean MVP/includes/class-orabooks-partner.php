@@ -1007,7 +1007,7 @@ class OraBooks_Partner {
         ], $user_id, (int) ($access->org_id ?? 0));
 
         orabooks_json_success([
-            'redirect_to' => '/partner-program/',
+            'redirect_to' => '/partner/dashboard/',
             'onboarding_completed' => true,
         ]);
     }
