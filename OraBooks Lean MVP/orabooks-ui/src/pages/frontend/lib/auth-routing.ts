@@ -213,7 +213,7 @@ export function redirectAfterAuth(data: {
   }
 
   if (data?.subdomain) {
-    const wpPath = data.is_partner ? '/partner-program/' : '/dashboard/';
+    const wpPath = data.is_partner ? '/partner/dashboard/' : '/dashboard/';
     redirectToOrgSubdomain(data.subdomain, wpPath);
     return;
   }

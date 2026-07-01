@@ -84,7 +84,7 @@ export default function CommissionsPage() {
       <div className="space-y-6">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <WpLink
-            to="/partner-program"
+            to="/partner/dashboard"
             className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:text-primary-dark"
           >
             <ArrowLeft className="h-4 w-4" />
