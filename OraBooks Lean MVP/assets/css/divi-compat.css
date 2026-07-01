@@ -343,3 +343,82 @@ body.orabooks-page.orabooks-divi-theme.orabooks-auth-page .orabooks-auth-shell .
         border-radius: 12px !important;
     }
 }
+
+/* Divi + React auth pages (Login/Register/Reset/Verify): guard Tailwind UI from Divi globals */
+body.orabooks-page.orabooks-divi-theme.orabooks-auth-page #orabooks-app-root .brand-auth-bg {
+    min-height: 100vh;
+    min-height: 100dvh;
+    padding: 48px 16px !important;
+    background: #1A69B4 !important;
+}
+
+body.orabooks-page.orabooks-divi-theme.orabooks-auth-page #orabooks-app-root .glass-panel {
+    width: min(100%, 540px);
+    border: 1px solid #d8e6f3 !important;
+    border-radius: 16px !important;
+    background: #ffffff !important;
+    box-shadow: 0 14px 40px rgba(26, 105, 180, 0.08) !important;
+}
+
+body.orabooks-page.orabooks-divi-theme.orabooks-auth-page #orabooks-app-root h1,
+body.orabooks-page.orabooks-divi-theme.orabooks-auth-page #orabooks-app-root h2,
+body.orabooks-page.orabooks-divi-theme.orabooks-auth-page #orabooks-app-root h3,
+body.orabooks-page.orabooks-divi-theme.orabooks-auth-page #orabooks-app-root p,
+body.orabooks-page.orabooks-divi-theme.orabooks-auth-page #orabooks-app-root label,
+body.orabooks-page.orabooks-divi-theme.orabooks-auth-page #orabooks-app-root span,
+body.orabooks-page.orabooks-divi-theme.orabooks-auth-page #orabooks-app-root a {
+    text-transform: none !important;
+    letter-spacing: normal !important;
+}
+
+body.orabooks-page.orabooks-divi-theme.orabooks-auth-page #orabooks-app-root input,
+body.orabooks-page.orabooks-divi-theme.orabooks-auth-page #orabooks-app-root select,
+body.orabooks-page.orabooks-divi-theme.orabooks-auth-page #orabooks-app-root textarea {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-height: 44px;
+    padding: 10px 14px !important;
+    border: 1px solid #d8e6f3 !important;
+    border-radius: 10px !important;
+    background: #ffffff !important;
+    color: #102f52 !important;
+    box-shadow: none !important;
+}
+
+body.orabooks-page.orabooks-divi-theme.orabooks-auth-page #orabooks-app-root input:focus,
+body.orabooks-page.orabooks-divi-theme.orabooks-auth-page #orabooks-app-root select:focus,
+body.orabooks-page.orabooks-divi-theme.orabooks-auth-page #orabooks-app-root textarea:focus {
+    border-color: #1A69B4 !important;
+    box-shadow: 0 0 0 3px rgba(26, 105, 180, 0.16) !important;
+    outline: none !important;
+}
+
+body.orabooks-page.orabooks-divi-theme.orabooks-auth-page #orabooks-app-root button,
+body.orabooks-page.orabooks-divi-theme.orabooks-auth-page #orabooks-app-root [type="button"],
+body.orabooks-page.orabooks-divi-theme.orabooks-auth-page #orabooks-app-root [type="submit"] {
+    min-height: 44px;
+    border-radius: 10px !important;
+    text-transform: none !important;
+    letter-spacing: normal !important;
+}
+
+body.orabooks-page.orabooks-divi-theme.orabooks-auth-page #orabooks-app-root .bg-primary,
+body.orabooks-page.orabooks-divi-theme.orabooks-auth-page #orabooks-app-root .bg-primary:hover {
+    background: #1A69B4 !important;
+    color: #ffffff !important;
+}
+
+body.orabooks-page.orabooks-divi-theme.orabooks-auth-page #orabooks-app-root .text-primary,
+body.orabooks-page.orabooks-divi-theme.orabooks-auth-page #orabooks-app-root a.text-primary {
+    color: #1A69B4 !important;
+}
+
+@media (max-width: 767px) {
+    body.orabooks-page.orabooks-divi-theme.orabooks-auth-page #orabooks-app-root .brand-auth-bg {
+        padding: 24px 12px !important;
+    }
+
+    body.orabooks-page.orabooks-divi-theme.orabooks-auth-page #orabooks-app-root .glass-panel {
+        border-radius: 12px !important;
+    }
+}
