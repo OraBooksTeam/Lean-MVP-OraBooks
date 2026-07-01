@@ -570,7 +570,7 @@ export default function VendorsPage() {
       use_due_date: true,
       currency: (detailBill.currency || 'USD').toUpperCase(),
       subtotal_amount: String(detailBill.subtotal_amount ?? ''),
-      jurisdiction: ((detailBill as any).tax_jurisdiction || taxConfigs[0]?.jurisdiction || 'US'),
+      jurisdiction: (detailBill.tax_jurisdiction || taxConfigs[0]?.jurisdiction || 'US'),
       description: detailBill.description || '',
     });
     setShowBillForm(true);
