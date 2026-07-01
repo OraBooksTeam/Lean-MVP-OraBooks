@@ -188,6 +188,7 @@ export default function VendorsPage() {
   const [vendorForm, setVendorForm] = useState<VendorFormState>(emptyVendorForm());
 
   const [showBillForm, setShowBillForm] = useState(false);
+  const [editingBill, setEditingBill] = useState<Bill | null>(null);
   const [billForm, setBillForm] = useState({
     vendor_id: '',
     bill_date: new Date().toISOString().slice(0, 10),
@@ -501,6 +502,76 @@ export default function VendorsPage() {
     })();
   }, [showBillForm, orgId]);
 
+  const resetBillForm = (vendorId?: number) => {
+    setBillLineItems([emptyBillLineItem()]);
+    setBillForm({
+      vendor_id: vendorId ? String(vendorId) : '',
+      bill_date: new Date().toISOString().slice(0, 10),
+      due_date: '',
+      due_days: '30',
+      use_due_date: false,
+      currency: 'USD',
+      subtotal_amount: '',
+      jurisdiction: taxConfigs[0]?.jurisdiction || 'US',
+      description: '',
+    });
+    setBillPreview(null);
+  };
+
+  const openCreateBillForm = (vendorId?: number) => {
+    setEditingBill(null);
+    setError('');
+    setSuccess('');
+    resetBillForm(vendorId);
+    setShowBillForm(true);
+  };
+
+  const closeBillForm = () => {
+    setShowBillForm(false);
+    setEditingBill(null);
+    resetBillForm();
+  };
+
+  const openEditBill = async (bill: Bill) => {
+    if (!orgId) return;
+    if ((bill.workflow_status || '') !== 'draft') {
+      setError('Only draft bills can be edited.');
+      return;
+    }
+
+    setError('');
+    setSuccess('');
+    const res = await api.billGet(orgId, bill.id);
+    if (res.error) {
+      setError(res.error);
+      return;
+    }
+
+    const data = (res as any).data || {};
+    const detailBill = (data.bill || bill) as Bill;
+    const detailLines = ((data.line_items || []) as BillLineItem[]).map((line) => ({
+      description: line.description || '',
+      quantity: String(line.quantity ?? 1),
+      unit_price: String(line.unit_price ?? 0),
+      sku_code: line.sku_code || '',
+    }));
+
+    setEditingBill(detailBill);
+    setBillLineItems(detailLines.length ? detailLines : [emptyBillLineItem()]);
+    setBillForm({
+      vendor_id: String(detailBill.vendor_id || ''),
+      bill_date: detailBill.bill_date || new Date().toISOString().slice(0, 10),
+      due_date: detailBill.due_date || '',
+      due_days: '30',
+      use_due_date: true,
+      currency: (detailBill.currency || 'USD').toUpperCase(),
+      subtotal_amount: String(detailBill.subtotal_amount ?? ''),
+      jurisdiction: ((detailBill as any).tax_jurisdiction || taxConfigs[0]?.jurisdiction || 'US'),
+      description: detailBill.description || '',
+    });
+    setShowBillForm(true);
+  };
+
   const handleCreateVendor = async () => {
     if (!orgId || !vendorForm.name.trim()) {
       setError('Vendor name is required.');
@@ -559,7 +630,7 @@ export default function VendorsPage() {
     setSaving(false);
   };
 
-  const handleCreateBill = async () => {
+  const handleSaveBill = async () => {
     const lines = buildBillLineItemsPayload(billLineItems);
     const subtotal = lines.length ? billLineItemsSubtotal(billLineItems) : 0;
 
@@ -583,26 +654,18 @@ export default function VendorsPage() {
     } else {
       payload.due_days = parseInt(billForm.due_days, 10) || 30;
     }
-    const res = await api.billCreate(orgId, payload);
+    const res = editingBill
+      ? await api.billUpdate(orgId, editingBill.id, payload)
+      : await api.billCreate(orgId, payload);
     if (res.error) setError(res.error);
     else {
-      setSuccess('Bill created in draft.');
-      setShowBillForm(false);
-      setBillLineItems([emptyBillLineItem()]);
-      setBillForm({
-        vendor_id: '',
-        bill_date: new Date().toISOString().slice(0, 10),
-        due_date: '',
-        due_days: '30',
-        use_due_date: false,
-        currency: 'USD',
-        subtotal_amount: '',
-        jurisdiction: taxConfigs[0]?.jurisdiction || 'US',
-        description: '',
-      });
-      setBillPreview(null);
+      setSuccess(editingBill ? 'Bill updated.' : 'Bill created in draft.');
+      closeBillForm();
       if (viewingWalletVendor && String(viewingWalletVendor.id) === billForm.vendor_id) {
         await refreshWalletData(viewingWalletVendor, { updatePaymentAmount: true });
+      }
+      if (selectedBillId) {
+        await loadBillDetail(selectedBillId);
       }
       await load();
     }
@@ -802,7 +865,7 @@ export default function VendorsPage() {
             <Plus className="h-4 w-4" />
             Add vendor
           </Button>
-          <Button size="sm" onClick={() => { setShowBillForm(true); setBillLineItems([emptyBillLineItem()]); setError(''); setSuccess(''); }}>
+          <Button size="sm" onClick={() => openCreateBillForm()}>
             <Plus className="h-4 w-4" />
             Create bill
           </Button>
@@ -986,6 +1049,9 @@ export default function VendorsPage() {
                   setCreditNoteForm((p) => ({ ...p, amount: String(Number(bill.total_amount || 0) - Number(bill.paid_amount || 0)) }));
                 }
               }}
+              onEdit={(bill) => {
+                void openEditBill(bill);
+              }}
               onPayment={(bill) => {
                 const vendor = vendors.find((v) => v.id === bill.vendor_id);
                 if (vendor) openPayment(vendor);
@@ -1001,9 +1067,7 @@ export default function VendorsPage() {
               onOpenWallet={(vendor) => void openWallet(vendor)}
               onCreditNote={(vendor) => { setCreditNoteVendor(vendor); setCreditNoteBill(null); setError(''); }}
               onCreateBill={(vendorId) => {
-                setShowBillForm(true);
-                setBillLineItems([emptyBillLineItem()]);
-                setBillForm((p) => ({ ...p, vendor_id: String(vendorId) }));
+                openCreateBillForm(vendorId);
               }}
               onCreditNoteAction={runCreditNoteAction}
               onReversePayment={reversePayment}
@@ -1042,8 +1106,8 @@ export default function VendorsPage() {
 
         {showBillForm && (
           <Modal
-            title="Create bill"
-            onClose={() => setShowBillForm(false)}
+            title={editingBill ? `Edit bill ${editingBill.bill_number || `#${editingBill.id}`}` : 'Create bill'}
+            onClose={closeBillForm}
             wide
             elevated={!!viewingWalletVendor}
             elevatedZIndex={100030}
@@ -1198,8 +1262,10 @@ export default function VendorsPage() {
               )}
             </div>
             <div className="mt-6 flex justify-end gap-2">
-              <Button variant="secondary" onClick={() => setShowBillForm(false)}>Cancel</Button>
-              <Button onClick={handleCreateBill} disabled={saving || !billForm.vendor_id || billCreateTotals.subtotal <= 0}>Create bill</Button>
+              <Button variant="secondary" onClick={closeBillForm}>Cancel</Button>
+              <Button onClick={handleSaveBill} disabled={saving || !billForm.vendor_id || billCreateTotals.subtotal <= 0}>
+                {editingBill ? 'Save bill' : 'Create bill'}
+              </Button>
             </div>
           </Modal>
         )}
@@ -1362,9 +1428,7 @@ export default function VendorsPage() {
                     type="button"
                     size="sm"
                     onClick={() => {
-                      setShowBillForm(true);
-                      setBillLineItems([emptyBillLineItem()]);
-                      setBillForm((prev) => ({ ...prev, vendor_id: String(viewingWalletVendor.id) }));
+                      openCreateBillForm(viewingWalletVendor.id);
                     }}
                   >
                     Create bill
