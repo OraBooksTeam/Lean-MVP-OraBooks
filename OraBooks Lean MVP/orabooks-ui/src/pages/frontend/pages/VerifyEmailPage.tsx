@@ -32,7 +32,7 @@ export default function VerifyEmailPage() {
       else {
         setSuccess(
           pendingInvite
-            ? 'Email verified. Log in to finish joining your team.'
+            ? 'Email verified. Log in, then open the invitation link to finish joining your team.'
             : 'Email verified successfully. You can now log in.'
         );
       }
