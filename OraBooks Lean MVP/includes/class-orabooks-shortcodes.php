@@ -221,7 +221,7 @@ class OraBooks_Shortcodes {
      * Partner Dashboard Shortcode (SL-139)
      */
     public function partner_dashboard() {
-        return $this->react_page('/partner-program');
+        return $this->react_page('/partner/dashboard');
     }
     
     /**
