@@ -62,7 +62,7 @@ export default function PartnerOnboardingPage() {
       setContinuing(false);
       return;
     }
-    const redirect = (res as any).data?.redirect_to || '/partner-program';
+    const redirect = (res as any).data?.redirect_to || '/partner/dashboard';
     window.location.replace(toWpUrl(redirect));
   };
 
