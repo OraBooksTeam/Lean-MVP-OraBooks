@@ -1,5 +1,6 @@
 type BrandLogoProps = {
   wrapperClassName?: string;
+  wrapperStyle?: React.CSSProperties;
   imageClassName?: string;
   imageStyle?: React.CSSProperties;
   alt?: string;
@@ -13,6 +14,7 @@ function getBrandLogoUrl(): string {
 
 export default function BrandLogo({
   wrapperClassName = '',
+  wrapperStyle,
   imageClassName = 'h-12 w-auto object-contain',
   imageStyle,
   alt = 'OraBooks',
@@ -24,14 +26,14 @@ export default function BrandLogo({
 
   if (logoUrl) {
     return (
-      <div className={wrapperClasses}>
+      <div className={wrapperClasses} style={wrapperStyle}>
         <img src={logoUrl} alt={alt} className={imageClassName} style={imageStyle} />
       </div>
     );
   }
 
   return (
-    <div className={wrapperClasses}>
+    <div className={wrapperClasses} style={wrapperStyle}>
       <div className={fallbackClassName}>
         <span className={fallbackTextClassName}>OB</span>
       </div>
