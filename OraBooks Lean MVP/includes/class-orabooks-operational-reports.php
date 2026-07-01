@@ -21,6 +21,12 @@ class OraBooks_Operational_Reports {
             self::$instance = new self();
 
             add_action('wp_ajax_orabooks_operational_report', [self::$instance, 'ajax_generate_report']);
+            add_action('wp_ajax_orabooks_operational_ar_aging', [self::$instance, 'ajax_ar_aging']);
+            add_action('wp_ajax_orabooks_operational_ap_aging', [self::$instance, 'ajax_ap_aging']);
+            add_action('wp_ajax_orabooks_operational_inventory_status', [self::$instance, 'ajax_inventory_status']);
+            add_action('wp_ajax_orabooks_operational_bank_reconciliation_summary', [self::$instance, 'ajax_bank_reconciliation_summary']);
+            add_action('wp_ajax_orabooks_operational_sales_summary', [self::$instance, 'ajax_sales_summary']);
+            add_action('wp_ajax_orabooks_operational_purchase_summary', [self::$instance, 'ajax_purchase_summary']);
             add_action('wp_ajax_orabooks_operational_export', [self::$instance, 'ajax_request_export']);
             add_action('wp_ajax_orabooks_inventory_reorder_level', [self::$instance, 'ajax_update_reorder_level']);
 
@@ -173,6 +179,10 @@ class OraBooks_Operational_Reports {
         $table = OraBooks_Database::table('report_ar_aging');
         $where = 'org_id = %d';
         $params = [intval($org_id)];
+        $as_of_date = $as_of_date ? sanitize_text_field($as_of_date) : current_time('Y-m-d');
+
+        $where .= ' AND period_date <= %s';
+        $params[] = $as_of_date;
 
         if ($customer_id > 0) {
             $where .= ' AND entity_id = %d';
@@ -204,6 +214,10 @@ class OraBooks_Operational_Reports {
         $table = OraBooks_Database::table('report_ap_aging');
         $where = 'org_id = %d';
         $params = [intval($org_id)];
+        $as_of_date = $as_of_date ? sanitize_text_field($as_of_date) : current_time('Y-m-d');
+
+        $where .= ' AND period_date <= %s';
+        $params[] = $as_of_date;
 
         if ($vendor_id > 0) {
             $where .= ' AND entity_id = %d';
@@ -321,21 +335,31 @@ class OraBooks_Operational_Reports {
         global $wpdb;
 
         $table = OraBooks_Database::table('report_bank_reconciliation_summary');
-        $where = 'org_id = %d';
+        $where = 's.org_id = %d';
         $params = [intval($org_id)];
+        $as_of_date = !empty($args['as_of_date']) ? sanitize_text_field($args['as_of_date']) : current_time('Y-m-d');
 
         if (!empty($args['bank_account_id'])) {
-            $where .= ' AND bank_account_id = %d';
+            $where .= ' AND s.bank_account_id = %d';
             $params[] = intval($args['bank_account_id']);
         }
 
-        if (!empty($args['as_of_date'])) {
-            $where .= ' AND as_of_date <= %s';
-            $params[] = sanitize_text_field($args['as_of_date']);
-        }
+        $params[] = $as_of_date;
 
         return $wpdb->get_results($wpdb->prepare(
-            "SELECT * FROM {$table} WHERE {$where} ORDER BY as_of_date DESC, bank_account_id ASC",
+            "SELECT s.*
+             FROM {$table} s
+             INNER JOIN (
+                SELECT org_id, bank_account_id, MAX(as_of_date) AS latest_date
+                FROM {$table}
+                WHERE org_id = %d AND as_of_date <= %s
+                GROUP BY org_id, bank_account_id
+             ) latest
+                ON latest.org_id = s.org_id
+                AND latest.bank_account_id = s.bank_account_id
+                AND latest.latest_date = s.as_of_date
+             WHERE {$where}
+             ORDER BY s.bank_account_id ASC",
             $params
         ));
     }
@@ -368,16 +392,24 @@ class OraBooks_Operational_Reports {
             $params[] = intval($args[$entity_col]);
         }
 
+        $group_by = sanitize_text_field($args['group_by'] ?? 'day');
+        $date_expr = 'period_date';
+        if ($group_by === 'month') {
+            $date_expr = "DATE_FORMAT(period_date, '%Y-%m-01')";
+        } elseif ($group_by === 'week') {
+            $date_expr = 'DATE_SUB(period_date, INTERVAL WEEKDAY(period_date) DAY)';
+        }
+
         $sum_cols = [];
         foreach ($amount_cols as $col) {
             $sum_cols[] = "SUM({$col}) as {$col}";
         }
 
         return $wpdb->get_results($wpdb->prepare(
-            "SELECT period_date, {$entity_col}, " . implode(', ', $sum_cols) . "
+            "SELECT {$date_expr} as period_date, {$entity_col}, " . implode(', ', $sum_cols) . "
              FROM {$table}
              WHERE {$where}
-             GROUP BY period_date, {$entity_col}
+             GROUP BY {$date_expr}, {$entity_col}
              ORDER BY period_date ASC",
             $params
         ));
@@ -594,7 +626,7 @@ class OraBooks_Operational_Reports {
 
         $org_id = intval($org_id);
         $bank_account_id = intval($payload['bank_account_id'] ?? 0);
-        if ($org_id <= 0 || $bank_account_id <= 0) {
+        if ($org_id <= 0) {
             return new WP_Error('invalid_bank_projection', 'Missing bank reconciliation projection identifiers.');
         }
 
@@ -603,35 +635,47 @@ class OraBooks_Operational_Reports {
         $table_summary = OraBooks_Database::table('report_bank_reconciliation_summary');
         $as_of_date = sanitize_text_field($payload['as_of_date'] ?? current_time('Y-m-d'));
 
-        $summary = $wpdb->get_row($wpdb->prepare(
-            "SELECT COUNT(*) as unmatched_count, COALESCE(SUM(amount), 0) as unmatched_amount
-             FROM {$table_tx}
-             WHERE org_id = %d AND bank_account_id = %d AND status = 'unmatched'",
-            $org_id,
-            $bank_account_id
-        ));
-        $last_reconciled_at = $wpdb->get_var($wpdb->prepare(
-            "SELECT MAX(reconciled_at) FROM {$table_log} WHERE org_id = %d AND bank_account_id = %d",
-            $org_id,
-            $bank_account_id
-        ));
+        $account_ids = [];
+        if ($bank_account_id > 0) {
+            $account_ids[] = $bank_account_id;
+        } else {
+            $account_ids = array_map('intval', (array) $wpdb->get_col($wpdb->prepare(
+                "SELECT id FROM " . OraBooks_Database::table('bank_accounts') . " WHERE org_id = %d AND is_active = 1",
+                $org_id
+            )));
+        }
 
-        $wpdb->query($wpdb->prepare(
-            "INSERT INTO {$table_summary} (org_id, bank_account_id, as_of_date, total_unmatched_count, total_unmatched_amount, last_reconciled_at, last_event_id)
-             VALUES (%d, %d, %s, %d, %f, %s, %d)
-             ON DUPLICATE KEY UPDATE
-                total_unmatched_count = VALUES(total_unmatched_count),
-                total_unmatched_amount = VALUES(total_unmatched_amount),
-                last_reconciled_at = VALUES(last_reconciled_at),
-                last_event_id = GREATEST(COALESCE(last_event_id, 0), VALUES(last_event_id))",
-            $org_id,
-            $bank_account_id,
-            $as_of_date,
-            intval($summary->unmatched_count ?? 0),
-            (float) ($summary->unmatched_amount ?? 0),
-            $last_reconciled_at,
-            intval($payload['event_id'] ?? 0)
-        ));
+        foreach ($account_ids as $account_id) {
+            $summary = $wpdb->get_row($wpdb->prepare(
+                "SELECT COUNT(*) as unmatched_count, COALESCE(SUM(amount), 0) as unmatched_amount
+                 FROM {$table_tx}
+                 WHERE org_id = %d AND bank_account_id = %d AND status = 'unmatched'",
+                $org_id,
+                intval($account_id)
+            ));
+            $last_reconciled_at = $wpdb->get_var($wpdb->prepare(
+                "SELECT MAX(reconciled_at) FROM {$table_log} WHERE org_id = %d AND bank_account_id = %d",
+                $org_id,
+                intval($account_id)
+            ));
+
+            $wpdb->query($wpdb->prepare(
+                "INSERT INTO {$table_summary} (org_id, bank_account_id, as_of_date, total_unmatched_count, total_unmatched_amount, last_reconciled_at, last_event_id)
+                 VALUES (%d, %d, %s, %d, %f, %s, %d)
+                 ON DUPLICATE KEY UPDATE
+                    total_unmatched_count = VALUES(total_unmatched_count),
+                    total_unmatched_amount = VALUES(total_unmatched_amount),
+                    last_reconciled_at = VALUES(last_reconciled_at),
+                    last_event_id = GREATEST(COALESCE(last_event_id, 0), VALUES(last_event_id))",
+                $org_id,
+                intval($account_id),
+                $as_of_date,
+                intval($summary->unmatched_count ?? 0),
+                (float) ($summary->unmatched_amount ?? 0),
+                $last_reconciled_at,
+                intval($payload['event_id'] ?? 0)
+            ));
+        }
 
         self::invalidate_cache($org_id, 'bank_reconciliation');
         return true;
@@ -685,6 +729,35 @@ class OraBooks_Operational_Reports {
         }
 
         return ['alerts' => count($rows)];
+    }
+
+    private function ajax_generate_report_type($report_type) {
+        $_REQUEST['report_type'] = $report_type;
+        $this->ajax_generate_report();
+    }
+
+    public function ajax_ar_aging() {
+        $this->ajax_generate_report_type('ar_aging');
+    }
+
+    public function ajax_ap_aging() {
+        $this->ajax_generate_report_type('ap_aging');
+    }
+
+    public function ajax_inventory_status() {
+        $this->ajax_generate_report_type('inventory_status');
+    }
+
+    public function ajax_bank_reconciliation_summary() {
+        $this->ajax_generate_report_type('bank_reconciliation');
+    }
+
+    public function ajax_sales_summary() {
+        $this->ajax_generate_report_type('sales_summary');
+    }
+
+    public function ajax_purchase_summary() {
+        $this->ajax_generate_report_type('purchase_summary');
     }
 
     private static function cache_key($org_id, $report_type, $args) {
