@@ -348,12 +348,12 @@ body.orabooks-page.orabooks-divi-theme.orabooks-auth-page .orabooks-auth-shell .
 body.orabooks-page.orabooks-divi-theme.orabooks-auth-page #orabooks-app-root .brand-auth-bg {
     min-height: 100vh;
     min-height: 100dvh;
-    padding: 48px 16px !important;
+    padding: 36px 16px !important;
     background: #1A69B4 !important;
 }
 
 body.orabooks-page.orabooks-divi-theme.orabooks-auth-page #orabooks-app-root .glass-panel {
-    width: min(100%, 540px);
+    width: min(100%, 620px);
     border: 1px solid #d8e6f3 !important;
     border-radius: 16px !important;
     background: #ffffff !important;
@@ -361,11 +361,16 @@ body.orabooks-page.orabooks-divi-theme.orabooks-auth-page #orabooks-app-root .gl
 }
 
 body.orabooks-page.orabooks-divi-theme.orabooks-auth-page #orabooks-app-root .orabooks-register-panel {
-    width: min(100%, 720px);
+    width: min(100%, 860px);
 }
 
 body.orabooks-page.orabooks-divi-theme.orabooks-auth-page #orabooks-app-root .orabooks-register-panel-inner {
     display: block;
+    padding: 40px !important;
+}
+
+body.orabooks-page.orabooks-divi-theme.orabooks-auth-page #orabooks-app-root .brand-auth-bg > .glass-panel > div {
+    padding: 40px !important;
 }
 
 body.orabooks-page.orabooks-divi-theme.orabooks-auth-page #orabooks-app-root .orabooks-register-form {
@@ -444,9 +449,15 @@ body.orabooks-page.orabooks-divi-theme.orabooks-auth-page #orabooks-app-root a.t
 
     body.orabooks-page.orabooks-divi-theme.orabooks-auth-page #orabooks-app-root .glass-panel {
         border-radius: 12px !important;
+        width: 100% !important;
     }
 
     body.orabooks-page.orabooks-divi-theme.orabooks-auth-page #orabooks-app-root .orabooks-register-panel {
         width: 100%;
+    }
+
+    body.orabooks-page.orabooks-divi-theme.orabooks-auth-page #orabooks-app-root .brand-auth-bg > .glass-panel > div,
+    body.orabooks-page.orabooks-divi-theme.orabooks-auth-page #orabooks-app-root .orabooks-register-panel-inner {
+        padding: 28px 22px !important;
     }
 }
