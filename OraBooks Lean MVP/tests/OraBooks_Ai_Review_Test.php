@@ -362,9 +362,9 @@ class OraBooks_Ai_Review_Test extends TestCase
 
         $this->assertNotNull($retry_update);
         $this->assertSame(1, (int) $retry_update['retry_count']);
-        $delta = strtotime((string) $retry_update['next_retry_at']) - $before;
-        $this->assertGreaterThanOrEqual(9, $delta);
-        $this->assertLessThanOrEqual(11, $delta);
+        $expected = gmdate('Y-m-d H:i:s', $before + OraBooks_Ai_Review::backoff_seconds_for_retry(1));
+        $delta = abs(strtotime((string) $retry_update['next_retry_at'] . ' UTC') - strtotime($expected . ' UTC'));
+        $this->assertLessThanOrEqual(1, $delta);
         $this->assertContains('retry', $history_actions);
     }
 
