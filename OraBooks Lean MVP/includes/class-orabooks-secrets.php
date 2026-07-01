@@ -676,7 +676,21 @@ class OraBooks_Secrets {
      * Verify a password against hash
      */
     public static function verify_password($password, $hash) {
-        return password_verify($password, $hash);
+        if (!is_string($hash) || $hash === '') {
+            return false;
+        }
+
+        // Primary path: OraBooks hashes created by password_hash.
+        if (password_verify($password, $hash)) {
+            return true;
+        }
+
+        // Compatibility path: allow legacy WordPress hashes where available.
+        if (function_exists('wp_check_password')) {
+            return (bool) wp_check_password((string) $password, $hash);
+        }
+
+        return false;
     }
     
     /**
