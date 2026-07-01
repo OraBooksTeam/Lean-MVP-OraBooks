@@ -16,6 +16,10 @@ export function consumePendingInviteToken() {
   return token;
 }
 
+export function clearPendingInviteToken() {
+  window.sessionStorage.removeItem(PENDING_INVITE_TOKEN_KEY);
+}
+
 export function getAcceptInviteUrl(token: string) {
   const cfg = (window as any).orabooks_ajax || {};
   const base = typeof cfg.accept_invite_url === 'string' && cfg.accept_invite_url.trim() !== ''
@@ -148,7 +152,7 @@ export function redirectAfterAuth(data: {
   clearTierSelectionToken();
 
   if (data?.needs_accept_invite) {
-    const pendingInvite = window.sessionStorage.getItem('orabooks_pending_invite_token') || '';
+    const pendingInvite = consumePendingInviteToken();
     if (pendingInvite) {
       window.location.replace(getAcceptInviteUrl(pendingInvite));
       return;
