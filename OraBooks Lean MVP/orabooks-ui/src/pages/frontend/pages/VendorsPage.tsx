@@ -538,8 +538,8 @@ export default function VendorsPage() {
 
   const openEditBill = async (bill: Bill) => {
     if (!orgId) return;
-    if ((bill.workflow_status || '') !== 'draft') {
-      setError('Only draft bills can be edited.');
+    if (['posted', 'void'].includes(bill.workflow_status || '')) {
+      setError('Posted/void bills cannot be edited.');
       return;
     }
 
@@ -997,7 +997,7 @@ export default function VendorsPage() {
                   <td className="px-5 py-3 text-right font-bold text-ink">{money(bill.total_amount, bill.currency)}</td>
                   <td className="px-5 py-3">
                     <div className="flex flex-wrap gap-1" onClick={(e) => e.stopPropagation()}>
-                      {bill.workflow_status === 'draft' && (
+                      {!['posted', 'void'].includes(bill.workflow_status || '') && (
                         <Button size="sm" variant="secondary" onClick={() => { void openEditBill(bill); }}>
                           Edit
                         </Button>
@@ -1900,7 +1900,7 @@ function BillDetailPanel({
       </div>
 
       <div className="flex flex-wrap gap-2">
-        {bill.workflow_status === 'draft' && (
+        {!['posted', 'void'].includes(bill.workflow_status || '') && (
           <Button size="sm" variant="secondary" onClick={() => onEdit(bill)}>Edit</Button>
         )}
         {bill.workflow_status === 'draft' && (
