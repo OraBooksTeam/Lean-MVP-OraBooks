@@ -383,7 +383,7 @@ class OraBooks_Csv_Imports {
             return new WP_Error('empty_csv', 'CSV file contains no data');
         }
 
-        $headers = str_getcsv(array_shift($lines));
+        $headers = str_getcsv(array_shift($lines), ',', '"', '\\');
         $headers = array_map(function ($h) {
             return trim(sanitize_text_field($h));
         }, $headers);
@@ -397,7 +397,7 @@ class OraBooks_Csv_Imports {
             if (trim($line) === '') {
                 continue;
             }
-            $row = str_getcsv($line);
+            $row = str_getcsv($line, ',', '"', '\\');
             if (count($row) === 1 && $row[0] === null) {
                 continue;
             }
