@@ -637,8 +637,8 @@ class OraBooks_Vendors {
             return new WP_Error('not_found', 'Bill not found');
         }
 
-        if (($bill->workflow_status ?? '') !== 'draft') {
-            return new WP_Error('invalid_status', 'Only draft bills can be edited');
+        if (!in_array(($bill->workflow_status ?? ''), ['draft', 'submitted', 'approved'], true)) {
+            return new WP_Error('invalid_status', 'Only draft, submitted, or approved bills can be edited');
         }
 
         $line_items = [];
@@ -737,12 +737,14 @@ class OraBooks_Vendors {
                 'exchange_rate' => array_key_exists('exchange_rate', $data)
                     ? floatval($data['exchange_rate'])
                     : floatval($bill->exchange_rate ?? 1),
+                'workflow_status' => 'draft',
+                'lock_status' => 'unlocked',
             ],
             [
                 'id' => $bill_id,
                 'org_id' => $org_id,
             ],
-            ['%d', '%s', '%s', '%s', '%s', '%f', '%f', '%f', '%s', '%s', '%f', '%s', '%f'],
+            ['%d', '%s', '%s', '%s', '%s', '%f', '%f', '%f', '%s', '%s', '%f', '%s', '%f', '%s', '%s'],
             ['%d', '%d']
         );
 
@@ -831,6 +833,11 @@ class OraBooks_Vendors {
         $bill = self::get_bill($bill_id, $org_id);
         if (!$bill || $bill->workflow_status !== 'draft') {
             return new WP_Error('invalid_status', 'Only draft bills can be submitted');
+        }
+
+        $posting_check = self::validate_posting_window((int) $org_id, $bill->transaction_date ?: $bill->bill_date);
+        if (is_wp_error($posting_check)) {
+            return $posting_check;
         }
 
         if (!class_exists('OraBooks_Workflow')) {
@@ -936,6 +943,11 @@ class OraBooks_Vendors {
         $bill = self::get_bill($bill_id, $org_id);
         if (!$bill || !in_array($bill->workflow_status, ['approved', 'submitted'], true)) {
             return new WP_Error('invalid_status', 'Bill must be approved before posting');
+        }
+
+        $posting_check = self::validate_posting_window((int) $org_id, $bill->transaction_date ?: $bill->bill_date);
+        if (is_wp_error($posting_check)) {
+            return $posting_check;
         }
 
         $tax_amount = round(floatval($bill->tax_amount ?? 0), 2);
@@ -2196,7 +2208,12 @@ class OraBooks_Vendors {
         $this->require_ap_permission($user_id, $org_id, ['submit_transaction']);
         $result = self::submit_bill($org_id, intval($_POST['bill_id'] ?? 0), $user_id);
         if (is_wp_error($result)) {
-            orabooks_json_error($result->get_error_message(), 400);
+            $status = 400;
+            $data = $result->get_error_data();
+            if (is_array($data) && isset($data['status'])) {
+                $status = (int) $data['status'];
+            }
+            orabooks_json_error($result->get_error_message(), $status);
         }
         orabooks_json_success([], 'Bill submitted');
     }
@@ -2218,7 +2235,12 @@ class OraBooks_Vendors {
         $this->require_ap_permission($user_id, $org_id, ['approve_journal', 'manage_org_settings']);
         $result = self::post_bill($org_id, intval($_POST['bill_id'] ?? 0), $user_id);
         if (is_wp_error($result)) {
-            orabooks_json_error($result->get_error_message(), 400);
+            $status = 400;
+            $data = $result->get_error_data();
+            if (is_array($data) && isset($data['status'])) {
+                $status = (int) $data['status'];
+            }
+            orabooks_json_error($result->get_error_message(), $status);
         }
         orabooks_json_success([], 'Bill posted');
     }
