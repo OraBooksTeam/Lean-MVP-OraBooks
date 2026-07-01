@@ -743,12 +743,24 @@ export const api = {
       projection_name: projectionName,
       ...options,
     }),
-  generateOperationalReport: (orgId: number, reportType: string, params: Record<string, string> = {}) =>
+  generateOperationalReport: (orgId: number, reportType: string, params: Record<string, string | number> = {}) =>
     api.get('orabooks_operational_report', {
       org_id: orgId,
       report_type: reportType,
       ...params,
     }),
+  operationalArAging: (orgId: number, params: Record<string, string | number> = {}) =>
+    api.get('orabooks_operational_ar_aging', { org_id: orgId, ...params }),
+  operationalApAging: (orgId: number, params: Record<string, string | number> = {}) =>
+    api.get('orabooks_operational_ap_aging', { org_id: orgId, ...params }),
+  operationalInventoryStatus: (orgId: number, params: Record<string, string | number> = {}) =>
+    api.get('orabooks_operational_inventory_status', { org_id: orgId, ...params }),
+  operationalBankReconciliationSummary: (orgId: number, params: Record<string, string | number> = {}) =>
+    api.get('orabooks_operational_bank_reconciliation_summary', { org_id: orgId, ...params }),
+  operationalSalesSummary: (orgId: number, params: Record<string, string | number> = {}) =>
+    api.get('orabooks_operational_sales_summary', { org_id: orgId, ...params }),
+  operationalPurchaseSummary: (orgId: number, params: Record<string, string | number> = {}) =>
+    api.get('orabooks_operational_purchase_summary', { org_id: orgId, ...params }),
   financialReportExport: (
     orgId: number,
     reportType: string,
@@ -767,7 +779,7 @@ export const api = {
     orgId: number,
     reportType: string,
     format: 'csv' | 'pdf',
-    params: Record<string, string> = {},
+    params: Record<string, string | number> = {},
   ) =>
     api.post('orabooks_operational_export', {
       org_id: orgId,
