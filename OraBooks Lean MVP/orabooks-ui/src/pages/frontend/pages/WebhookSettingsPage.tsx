@@ -75,8 +75,8 @@ export default function WebhookSettingsPage() {
       ) : (
       <div className="max-w-3xl space-y-4 rounded-2xl border border-border bg-white p-5">
         <p className="text-sm text-slate-600">
-          Add one webhook URL per line. Domain events from SL-302 are dispatched through SL-303
-          as `webhook_dispatch` background jobs.
+          Add one webhook URL per line. Domain events are dispatched as `webhook_dispatch`
+          background jobs.
         </p>
         <p className="rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-800">
           Localhost URLs are useful for local tests only; external webhook services cannot reach

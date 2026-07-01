@@ -194,7 +194,7 @@ export default function FinancialReportsPage() {
   return (
     <ClientShell
       title="Financial Reports"
-      eyebrow="Core financial statements (SL-074)"
+      eyebrow="Core financial statements"
       organization={context?.context?.organization}
     >
       <div className="space-y-5">

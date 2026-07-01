@@ -181,7 +181,7 @@ export default function PartnerProgramPage() {
               <section className="glass-panel p-5">
                 <h2 className="text-sm font-bold uppercase tracking-wide text-slate-500">Commission Details</h2>
                 <p className="mt-2 text-sm text-slate-600">
-                  View earned commissions, escrow schedule, payout batches, and aging from SL-068.
+                  View earned commissions, escrow schedule, payout batches, and aging.
                 </p>
                 <WpLink
                   to="/commissions"
@@ -196,7 +196,7 @@ export default function PartnerProgramPage() {
             <section className="glass-panel overflow-hidden">
               <div className="border-b border-border px-5 py-4">
                 <h2 className="font-bold text-ink">Commission Payout Breakdown</h2>
-                <p className="mt-1 text-sm text-slate-600">Gross, transaction fee, and net payout per period (from SL-068).</p>
+                <p className="mt-1 text-sm text-slate-600">Gross, transaction fee, and net payout per period.</p>
               </div>
               <table className="min-w-full text-left text-sm">
                 <thead>

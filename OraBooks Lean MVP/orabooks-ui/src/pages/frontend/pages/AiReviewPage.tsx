@@ -69,7 +69,7 @@ export default function AiReviewPage() {
   const caps = data?.capabilities || {};
 
   return (
-    <ClientShell title="AI Review Queue" eyebrow="SL-076 automated review" organization={data?.context?.organization}>
+    <ClientShell title="AI Review Queue" eyebrow="Automated review" organization={data?.context?.organization}>
       <div className="space-y-5">
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
           <Metric label="Escalated" value={data?.stats?.escalated ?? 0} tone="warning" />

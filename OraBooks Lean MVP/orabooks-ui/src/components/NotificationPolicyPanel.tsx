@@ -64,7 +64,7 @@ export default function NotificationPolicyPanel({ orgId }: { orgId: number }) {
 
   return (
     <section className="glass-panel p-5">
-      <h2 className="font-bold text-ink">Org Notification Policy (SL-250)</h2>
+      <h2 className="font-bold text-ink">Org Notification Policy</h2>
       <p className="mt-1 text-sm text-slate-600">Owner/admin: mandatory alerts, channel restrictions, budget, and retention.</p>
 
       {error && <p className="mt-3 text-sm text-red-600">{error}</p>}

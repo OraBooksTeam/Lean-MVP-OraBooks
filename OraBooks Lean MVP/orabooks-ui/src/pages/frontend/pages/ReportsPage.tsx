@@ -160,7 +160,7 @@ export default function ReportsPage() {
   const op = data?.operational_preview;
 
   return (
-    <ClientShell title="Reports" eyebrow="Operational reporting (SL-075)" organization={data?.context?.organization}>
+    <ClientShell title="Reports" eyebrow="Operational reporting" organization={data?.context?.organization}>
       <div className="space-y-5">
         {loading && (
           <div className="rounded-xl border border-border bg-white p-4 text-sm text-slate-600">Loading reports dashboard...</div>

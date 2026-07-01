@@ -152,7 +152,7 @@ export default function ApprovalSettingsPage() {
 
   if (!canManage && !loading) {
     return (
-      <ClientShell title="Approval Settings" eyebrow="SL-002 governance" organization={context?.organization}>
+      <ClientShell title="Approval Settings" eyebrow="Governance" organization={context?.organization}>
         <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
           Only organization owners can manage approval policy and delegation.
         </div>
@@ -161,7 +161,7 @@ export default function ApprovalSettingsPage() {
   }
 
   return (
-    <ClientShell title="Approval Settings" eyebrow="SL-002 policy & delegation" organization={context?.organization}>
+    <ClientShell title="Approval Settings" eyebrow="Policy & delegation" organization={context?.organization}>
       <div className="space-y-5">
         <div className="flex justify-end">
           <Button variant="secondary" size="sm" onClick={() => void load()}>

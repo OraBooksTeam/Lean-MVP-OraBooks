@@ -117,7 +117,7 @@ export default function ExportStatusPage() {
   return (
     <ClientShell
       title="My Exports"
-      eyebrow="SL-114 generated files"
+      eyebrow="Generated files"
       organization={context?.organization}
       isPartner={context?.organization?.organization_type === 'partner' || context?.user?.is_partner}
     >

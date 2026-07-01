@@ -11,7 +11,7 @@ $urls = class_exists('OraBooks_AsyncQueue') ? implode("\n", OraBooks_AsyncQueue:
 ?>
 <div class="wrap orabooks-webhook-settings">
     <h1>Webhook Settings</h1>
-    <p>Configure one webhook URL per line. Domain events are dispatched through SL-303 as webhook jobs.</p>
+    <p>Configure one webhook URL per line. Domain events are dispatched as webhook jobs.</p>
     <div class="notice notice-warning inline">
         <p>Localhost URLs are useful for testing only; hosted webhook services cannot call your local machine or private port.</p>
     </div>

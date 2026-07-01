@@ -967,7 +967,7 @@ function ClassificationPanel({
             </span>
           )}
         </p>
-        <p title="Tax hint from AI and SL-305 tax engine">
+        <p title="Tax hint from AI and the tax engine">
           <strong>Tax hint:</strong>{' '}
           {tax.tax_type ? `${tax.tax_type} ${tax.tax_rate ?? 0}%` : '—'}
         </p>

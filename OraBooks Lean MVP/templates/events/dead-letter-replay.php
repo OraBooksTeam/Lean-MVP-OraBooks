@@ -11,7 +11,7 @@ if (!defined('ABSPATH')) {
 ?>
 <div class="wrap orabooks-event-dead-letter">
     <h1><?php esc_html_e('Event Dead Letters', 'orabooks'); ?></h1>
-    <p><?php esc_html_e('Replay or discard failed SL-302 domain events after reviewing the error.', 'orabooks'); ?></p>
+    <p><?php esc_html_e('Replay or discard failed domain events after reviewing the error.', 'orabooks'); ?></p>
 
     <div style="display:flex;gap:12px;flex-wrap:wrap;margin:16px 0;">
         <div class="card"><strong><?php esc_html_e('Status', 'orabooks'); ?></strong><br><?php echo esc_html(strtoupper($health['status'] ?? 'healthy')); ?></div>
