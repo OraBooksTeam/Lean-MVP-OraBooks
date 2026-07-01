@@ -90,14 +90,18 @@ type Bill = {
   bill_number?: string;
   vendor_id?: number;
   vendor_name?: string;
+  bill_date?: string;
+  transaction_date?: string;
   due_date?: string;
   workflow_status?: string;
   payment_status?: string;
   subtotal_amount?: string | number;
   tax_amount?: string | number;
+  tax_jurisdiction?: string;
   total_amount?: string | number;
   paid_amount?: string | number;
   currency?: string;
+  exchange_rate?: string | number;
   description?: string | null;
   line_items?: BillLineItem[];
 };
@@ -994,6 +998,11 @@ export default function VendorsPage() {
                   <td className="px-5 py-3">
                     <div className="flex flex-wrap gap-1" onClick={(e) => e.stopPropagation()}>
                       {bill.workflow_status === 'draft' && (
+                        <Button size="sm" variant="secondary" onClick={() => { void openEditBill(bill); }}>
+                          Edit
+                        </Button>
+                      )}
+                      {bill.workflow_status === 'draft' && (
                         <Button size="sm" variant="secondary" disabled={actionBillId === bill.id} onClick={() => void runBillAction('submit', bill.id)}>
                           Submit
                         </Button>
@@ -1844,6 +1853,7 @@ function BillDetailPanel({
   onClose,
   onAction,
   onVoid,
+  onEdit,
   onCreditNote,
   onPayment,
   canVoid,
@@ -1856,6 +1866,7 @@ function BillDetailPanel({
   onClose: () => void;
   onAction: (action: 'submit' | 'approve' | 'post', billId: number) => void;
   onVoid: (bill: Bill) => void;
+  onEdit: (bill: Bill) => void;
   onCreditNote: (bill: Bill) => void;
   onPayment: (bill: Bill) => void;
   canVoid: (bill: Bill) => boolean;
@@ -1889,6 +1900,9 @@ function BillDetailPanel({
       </div>
 
       <div className="flex flex-wrap gap-2">
+        {bill.workflow_status === 'draft' && (
+          <Button size="sm" variant="secondary" onClick={() => onEdit(bill)}>Edit</Button>
+        )}
         {bill.workflow_status === 'draft' && (
           <Button size="sm" variant="secondary" disabled={actionBillId === bill.id} onClick={() => void onAction('submit', bill.id)}>Submit</Button>
         )}
