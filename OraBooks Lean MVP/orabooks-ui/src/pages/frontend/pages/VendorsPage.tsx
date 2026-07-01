@@ -997,11 +997,14 @@ export default function VendorsPage() {
                   <td className="px-5 py-3 text-right font-bold text-ink">{money(bill.total_amount, bill.currency)}</td>
                   <td className="px-5 py-3">
                     <div className="flex flex-wrap gap-1" onClick={(e) => e.stopPropagation()}>
-                      {!['posted', 'void'].includes(bill.workflow_status || '') && (
-                        <Button size="sm" variant="secondary" onClick={() => { void openEditBill(bill); }}>
-                          Edit
-                        </Button>
-                      )}
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        disabled={['posted', 'void'].includes(bill.workflow_status || '')}
+                        onClick={() => { void openEditBill(bill); }}
+                      >
+                        Edit
+                      </Button>
                       {bill.workflow_status === 'draft' && (
                         <Button size="sm" variant="secondary" disabled={actionBillId === bill.id} onClick={() => void runBillAction('submit', bill.id)}>
                           Submit
@@ -1900,9 +1903,14 @@ function BillDetailPanel({
       </div>
 
       <div className="flex flex-wrap gap-2">
-        {!['posted', 'void'].includes(bill.workflow_status || '') && (
-          <Button size="sm" variant="secondary" onClick={() => onEdit(bill)}>Edit</Button>
-        )}
+        <Button
+          size="sm"
+          variant="secondary"
+          disabled={['posted', 'void'].includes(bill.workflow_status || '')}
+          onClick={() => onEdit(bill)}
+        >
+          Edit
+        </Button>
         {bill.workflow_status === 'draft' && (
           <Button size="sm" variant="secondary" disabled={actionBillId === bill.id} onClick={() => void onAction('submit', bill.id)}>Submit</Button>
         )}
