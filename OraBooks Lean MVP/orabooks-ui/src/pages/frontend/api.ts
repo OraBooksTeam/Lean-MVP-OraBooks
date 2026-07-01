@@ -417,6 +417,8 @@ export const api = {
     api.get('orabooks_bills_list', { org_id: orgId, ...filters }),
   billCreate: (orgId: number, data: Record<string, unknown>) =>
     api.post('orabooks_bill_create', { org_id: orgId, ...data }),
+  billUpdate: (orgId: number, billId: number, data: Record<string, unknown>) =>
+    api.post('orabooks_bill_update', { org_id: orgId, bill_id: billId, ...data }),
   billSubmit: (orgId: number, billId: number) =>
     api.post('orabooks_bill_submit', { org_id: orgId, bill_id: billId }),
   billApprove: (orgId: number, billId: number) =>
