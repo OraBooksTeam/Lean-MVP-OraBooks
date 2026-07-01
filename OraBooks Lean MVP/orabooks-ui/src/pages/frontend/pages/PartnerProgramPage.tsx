@@ -274,7 +274,7 @@ export default function PartnerProgramPage() {
           <div className="w-full max-w-md rounded-2xl border border-border bg-white p-6 shadow-xl">
             <h3 className="text-lg font-bold text-ink">Request Reactivation</h3>
             <p className="mt-1 text-sm text-slate-600">
-              Your partner code is inactive. Submit a request for admin review (SL-140).
+              Your partner code is inactive. Submit a request for admin review.
             </p>
             <textarea
               className="mt-4 w-full rounded-lg border border-border px-3.5 py-2.5 text-sm"
