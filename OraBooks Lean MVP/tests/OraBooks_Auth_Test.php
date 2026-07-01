@@ -1266,7 +1266,7 @@ class OraBooks_Auth_Test extends TestCase
         };
 
         $wpdb->test_get_var_callback = function ($query) {
-            if (strpos($query, 'FROM wp_orabooks_user_org') !== false) {
+            if (strpos($query, 'user_org') !== false) {
                 return 7;
             }
 
