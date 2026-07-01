@@ -16,6 +16,12 @@ import {
 } from '../lib/auth-routing';
 
 function redirectAfterLogin(data: any) {
+  if (data?.invite_onboarded) {
+    consumePendingInviteToken();
+    redirectAfterAuth(data);
+    return;
+  }
+
   const pendingInvite = consumePendingInviteToken();
   if (pendingInvite) {
     window.location.replace(getAcceptInviteUrl(pendingInvite));
