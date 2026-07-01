@@ -1254,6 +1254,40 @@ class OraBooks_Auth_Test extends TestCase
         $this->assertEquals(0, $result['is_partner']);
     }
 
+    #[Test]
+    public function test_login_resolves_org_from_membership_when_user_org_id_is_stale()
+    {
+        global $wpdb;
+
+        $wpdb->test_get_row_callback = function ($query) {
+            return $this->makeLoginUser([
+                'org_id' => null,
+            ]);
+        };
+
+        $wpdb->test_get_var_callback = function ($query) {
+            if (strpos($query, 'FROM wp_orabooks_user_org') !== false) {
+                return 7;
+            }
+
+            return 0;
+        };
+
+        $GLOBALS['orabooks_test_get_user_role_callback'] = function ($user_id, $org_id) {
+            return ((int) $org_id === 7) ? 'staff' : 'viewer';
+        };
+
+        $result = OraBooks_Auth::login('user@example.com', 'Password1!');
+
+        $this->assertNotInstanceOf(WP_Error::class, $result);
+        $this->assertArrayHasKey('token', $result);
+        $this->assertArrayHasKey('refresh_token', $result);
+        $this->assertEquals(7, (int) $result['org_id']);
+        $this->assertEquals('staff', $result['role']);
+        $this->assertArrayNotHasKey('needs_accept_invite', $result);
+        $this->assertArrayNotHasKey('needs_tier_selection', $result);
+    }
+
     // ================================================================
     // EMAIL VERIFICATION — verify_email()
     // ================================================================
