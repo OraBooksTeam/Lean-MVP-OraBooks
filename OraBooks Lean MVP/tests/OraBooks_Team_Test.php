@@ -60,6 +60,23 @@ class OraBooks_Team_Test extends TestCase
         }
     }
 
+    /**
+     * @return array<string, mixed>
+     */
+    private function captureJsonSuccess(callable $callback): array
+    {
+        try {
+            $callback();
+            $this->fail('Expected JSON success response.');
+        } catch (\RuntimeException $exception) {
+            $payload = json_decode($exception->getMessage(), true);
+            $this->assertIsArray($payload);
+            $this->assertFalse($payload['error']);
+
+            return $payload;
+        }
+    }
+
     #[Test]
     public function test_invite_user_rejects_invalid_email(): void
     {
@@ -220,6 +237,90 @@ class OraBooks_Team_Test extends TestCase
 
         $this->assertInstanceOf(WP_Error::class, $result);
         $this->assertSame('invite_email_mismatch', $result->get_error_code());
+    }
+
+    #[Test]
+    public function test_accept_invite_rejects_unverified_email(): void
+    {
+        global $wpdb;
+
+        $invite = (object) [
+            'id' => 6,
+            'org_id' => 10,
+            'email' => 'invitee@example.com',
+            'role' => 'staff',
+        ];
+        $user = (object) [
+            'id' => 5,
+            'email' => 'invitee@example.com',
+            'org_id' => null,
+            'is_email_verified' => 0,
+        ];
+
+        $wpdb->test_get_row_callback = function ($query) use ($invite, $user) {
+            if (stripos($query, 'org_invites') !== false) {
+                return $invite;
+            }
+            if (stripos($query, 'users') !== false) {
+                return $user;
+            }
+
+            return null;
+        };
+        $wpdb->test_get_var_callback = fn() => null;
+        $wpdb->test_query_callback = fn() => 1;
+
+        $result = OraBooks_Team::accept_invite('token-unverified', 5);
+
+        $this->assertInstanceOf(WP_Error::class, $result);
+        $this->assertSame('email_not_verified', $result->get_error_code());
+    }
+
+    #[Test]
+    public function test_accept_invite_returns_already_member_flag_when_membership_exists(): void
+    {
+        global $wpdb;
+
+        $invite = (object) [
+            'id' => 11,
+            'org_id' => 33,
+            'email' => 'member@example.com',
+            'role' => 'viewer',
+        ];
+        $user = (object) [
+            'id' => 8,
+            'email' => 'member@example.com',
+            'org_id' => null,
+            'is_email_verified' => 1,
+        ];
+
+        $wpdb->test_get_row_callback = function ($query) use ($invite, $user) {
+            if (stripos($query, 'org_invites') !== false) {
+                return $invite;
+            }
+            if (stripos($query, 'users') !== false) {
+                return $user;
+            }
+
+            return null;
+        };
+        $wpdb->test_get_var_callback = function ($query) {
+            if (stripos($query, 'user_org') !== false) {
+                return 8;
+            }
+            return null;
+        };
+        $wpdb->test_update_callback = fn() => 1;
+        $wpdb->test_query_callback = fn() => 1;
+        $GLOBALS['orabooks_test_get_user_role_callback'] = fn() => 'admin';
+
+        $result = OraBooks_Team::accept_invite('token-existing', 8);
+
+        $this->assertIsArray($result);
+        $this->assertTrue((bool) ($result['already_member'] ?? false));
+        $this->assertSame('admin', $result['role']);
+        $this->assertSame(8, $result['user_id']);
+        $this->assertSame(33, $result['org_id']);
     }
 
     #[Test]
@@ -590,5 +691,69 @@ class OraBooks_Team_Test extends TestCase
         });
 
         $this->assertStringContainsString('log in', strtolower($payload['message']));
+    }
+
+    #[Test]
+    public function test_ajax_resend_invite_rejects_missing_or_used_invite(): void
+    {
+        global $wpdb;
+
+        $_POST['org_id'] = 10;
+        $_POST['invite_id'] = 999;
+
+        $wpdb->test_get_row_callback = fn() => null;
+        $team = OraBooks_Team::init();
+
+        $payload = $this->captureJsonError(function () use ($team) {
+            $team->ajax_resend_invite();
+        });
+
+        $this->assertStringContainsString('not found', strtolower($payload['message']));
+    }
+
+    #[Test]
+    public function test_ajax_resend_invite_rotates_token_and_logs_event(): void
+    {
+        global $wpdb;
+
+        $_POST['org_id'] = 10;
+        $_POST['invite_id'] = 77;
+
+        $updates = [];
+        $invite = (object) [
+            'id' => 77,
+            'org_id' => 10,
+            'email' => 'invitee@example.com',
+            'role' => 'staff',
+            'used' => 0,
+        ];
+
+        $wpdb->test_get_row_callback = function ($query) use ($invite) {
+            if (stripos($query, 'org_invites') !== false) {
+                return $invite;
+            }
+            return null;
+        };
+        $wpdb->test_update_callback = function ($table, $data, $where) use (&$updates) {
+            $updates[] = [$table, $data, $where];
+            return 1;
+        };
+
+        $team = OraBooks_Team::init();
+        $payload = $this->captureJsonSuccess(function () use ($team) {
+            $team->ajax_resend_invite();
+        });
+
+        $this->assertStringContainsString('accept-invite', (string) ($payload['data']['invite_link'] ?? ''));
+        $this->assertNotEmpty(array_filter(
+            $updates,
+            fn($row) => str_contains($row[0], 'org_invites')
+                && !empty($row[1]['token_hash'])
+                && !empty($row[1]['expires_at'])
+        ));
+        $this->assertNotEmpty(array_filter(
+            $GLOBALS['orabooks_test_log_events'],
+            fn($event) => $event['event_type'] === 'invite_resent'
+        ));
     }
 }
