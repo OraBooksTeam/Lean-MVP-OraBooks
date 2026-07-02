@@ -502,6 +502,8 @@ if (!function_exists('wp_mkdir_p')) {
 
 if (!function_exists('wp_send_json')) {
     function wp_send_json($data, $status_code = 200) {
+        $GLOBALS['orabooks_test_last_json_payload'] = $data;
+        $GLOBALS['orabooks_test_last_status_code'] = (int) $status_code;
         throw new \RuntimeException(json_encode($data));
     }
 }
