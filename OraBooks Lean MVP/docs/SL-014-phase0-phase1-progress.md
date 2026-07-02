@@ -332,3 +332,79 @@ Date: 2026-07-02
 - Phase 4: Complete.
 - Phase 5: Complete.
 - Phase 6: In Progress (kickoff + contract parity + regression shield updates complete).
+
+## Phase 6 - API/UI Contract and UX Hardening (Completed)
+
+### Finalized implementation scope
+1. Machine-readable error contract for team flows:
+   - Files:
+     - `includes/helpers.php`
+     - `includes/class-orabooks-team.php`
+   - Added `orabooks_json_error_with_code()` helper.
+   - Team AJAX endpoints now return consistent `code` and aligned HTTP status for error paths.
+   - Conflict/business-rule cases now consistently surface as `409` where appropriate.
+
+2. Team endpoint status/code consistency updates:
+   - File: `includes/class-orabooks-team.php`
+   - Hardened and aligned error semantics for:
+     - `ajax_invite_user` (`already_member` -> `409`, `rate_limit` -> `429`)
+     - `ajax_update_role` (owner/last-owner conflicts -> `409`)
+     - `ajax_remove_user` (owner/last-owner conflicts -> `409`)
+     - `ajax_resend_invite` / `ajax_cancel_invite` stale invite -> `404` + `invalid_invite`
+
+3. Team frontend UX consistency sweep:
+   - File: `orabooks-ui/src/pages/frontend/pages/TeamPage.tsx`
+   - Added centralized `teamActionErrorMessage()` mapper to consume status/code contract.
+   - Added in-flight guard checks to prevent duplicate action triggers.
+   - Unified action failure messaging for permission, conflict, rate-limit, and stale invite cases.
+
+4. Regression shield expansion for machine-readable contract:
+   - File: `tests/OraBooks_Team_Test.php`
+   - Added/extended tests:
+     - `test_ajax_update_role_returns_conflict_code_for_owner_row`
+     - `test_ajax_remove_user_returns_conflict_code_for_owner_row`
+     - `test_ajax_resend_invite_rejects_missing_or_used_invite` (asserts `invalid_invite` code)
+     - `test_ajax_cancel_invite_rejects_missing_or_used_invite` (asserts `invalid_invite` code)
+   - Bootstrap compatibility update:
+     - File: `tests/bootstrap.php`
+     - Added `orabooks_json_error_with_code()` test stub.
+
+### Validation after Phase 6 finalization
+1. Team suite:
+- Command:
+  - `php tests/vendor/bin/phpunit --configuration \\10.124.1.254\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\phpunit.xml --testsuite "OraBooks Team Tests"`
+- Result:
+  - `OK (31 tests, 98 assertions)`
+
+2. Auth suite:
+- Command:
+  - `php tests/vendor/bin/phpunit --configuration \\10.124.1.254\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\phpunit.xml --testsuite "OraBooks Auth Tests"`
+- Result:
+  - `OK (100 tests, 303 assertions)`
+
+3. RBAC suite:
+- Command:
+  - `php tests/vendor/bin/phpunit --configuration \\10.124.1.254\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\phpunit.xml --testsuite "OraBooks RBAC Tests"`
+- Result:
+  - `OK (14 tests, 47 assertions)`
+
+4. Organization suite:
+- Command:
+  - `php tests/vendor/bin/phpunit --configuration \\10.124.1.254\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\phpunit.xml --testsuite "OraBooks Organization Tests"`
+- Result:
+  - `OK (12 tests, 21 assertions)`
+
+5. Frontend typecheck:
+- Command:
+  - `cmd /c "pushd \\10.124.1.254\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\orabooks-ui & npm run typecheck & popd"`
+- Result:
+  - `OK (tsc --noEmit passed; no TypeScript errors)`
+
+## Latest consolidated status
+- Phase 0: Complete.
+- Phase 1: Complete.
+- Phase 2: Complete.
+- Phase 3: Complete.
+- Phase 4: Complete.
+- Phase 5: Complete.
+- Phase 6: Complete.
