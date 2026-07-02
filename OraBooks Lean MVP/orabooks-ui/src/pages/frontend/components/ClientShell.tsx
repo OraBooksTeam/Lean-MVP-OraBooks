@@ -321,8 +321,8 @@ export default function ClientShell({
         unreadCount={unreadCount}
         className="scrollbar-hide mt-6 min-h-0 flex-1 space-y-1.5 overflow-y-auto overscroll-contain"
         linkClassName="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition"
-        activeClassName="bg-primary text-white shadow-sm"
-        inactiveClassName="text-white/75 hover:bg-white/10 hover:text-white"
+        activeClassName="border border-primary/45 bg-primary/35 text-white shadow-sm"
+        inactiveClassName="border border-primary/25 bg-primary/15 text-white/90 hover:bg-primary/25 hover:text-white"
       />
 
       {logoutLink}
@@ -400,8 +400,8 @@ export default function ClientShell({
           unreadCount={unreadCount}
           className="scrollbar-hide mt-6 min-h-0 flex-1 space-y-1.5 overflow-y-auto overscroll-contain"
           linkClassName="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition"
-          activeClassName="bg-primary text-white shadow-sm"
-          inactiveClassName="text-white/75 hover:bg-white/10 hover:text-white"
+          activeClassName="border border-primary/45 bg-primary/35 text-white shadow-sm"
+          inactiveClassName="border border-primary/25 bg-primary/15 text-white/90 hover:bg-primary/25 hover:text-white"
         />
 
         {logoutLink}

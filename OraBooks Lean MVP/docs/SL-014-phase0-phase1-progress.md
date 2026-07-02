@@ -269,3 +269,33 @@ Date: 2026-07-02
 - Phase 3: Complete.
 - Phase 4: Complete.
 - Phase 5: Complete.
+
+## Phase 6 - API/UI Contract and UX Hardening (Started)
+
+### Implemented in kickoff
+1. Frontend API error contract normalization:
+   - File: `orabooks-ui/src/pages/frontend/api.ts`
+   - `ApiResult` error branch now carries optional `status` and `code`.
+   - Added error normalization helpers so JSON and HTTP failures preserve backend code and HTTP status for deterministic UI handling.
+
+2. Team UI deterministic invite action handling:
+   - File: `orabooks-ui/src/pages/frontend/pages/TeamPage.tsx`
+   - Invite flow now provides status-aware messaging for conflict paths (already-member / `409`).
+   - Resend and cancel flows now treat stale invite (`404`) as refresh-required state and auto-reload team data.
+   - Resend success path now reloads dashboard data for UI/API state parity.
+
+### Validation for kickoff patch
+1. Frontend typecheck:
+- Command:
+  - `cmd /c "pushd \\10.124.1.254\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\orabooks-ui & npm run typecheck & popd"`
+- Result:
+  - `OK (tsc --noEmit passed; no TypeScript errors)`
+
+## Updated status after Phase 6 kickoff
+- Phase 0: Complete.
+- Phase 1: Complete.
+- Phase 2: Complete.
+- Phase 3: Complete.
+- Phase 4: Complete.
+- Phase 5: Complete.
+- Phase 6: In Progress (kickoff patch complete).
