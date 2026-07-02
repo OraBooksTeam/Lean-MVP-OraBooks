@@ -321,8 +321,8 @@ export default function ClientShell({
         unreadCount={unreadCount}
         className="scrollbar-hide mt-6 min-h-0 flex-1 space-y-1.5 overflow-y-auto overscroll-contain"
         linkClassName="flex items-center gap-3 rounded-xl border px-3 py-2.5 text-sm font-medium backdrop-blur-sm transition-all duration-150"
-        activeClassName="border-primary/85 bg-primary text-white shadow-lg shadow-primary/35 ring-1 ring-white/30"
-        inactiveClassName="border-white/25 bg-white/12 text-white/90 hover:border-white/40 hover:bg-white/20 hover:text-white"
+        activeClassName="border-primary/90 bg-primary text-white shadow-md shadow-primary/40 ring-1 ring-white/25"
+        inactiveClassName="border-white/25 bg-white/10 text-white/85 hover:border-white/45 hover:bg-white/20 hover:text-white"
       />
 
       {logoutLink}
@@ -400,8 +400,8 @@ export default function ClientShell({
           unreadCount={unreadCount}
           className="scrollbar-hide mt-6 min-h-0 flex-1 space-y-1.5 overflow-y-auto overscroll-contain"
           linkClassName="flex items-center gap-3 rounded-xl border px-3 py-2.5 text-sm font-medium backdrop-blur-sm transition-all duration-150"
-          activeClassName="border-primary/85 bg-primary text-white shadow-lg shadow-primary/35 ring-1 ring-white/30"
-          inactiveClassName="border-white/25 bg-white/12 text-white/90 hover:border-white/40 hover:bg-white/20 hover:text-white"
+          activeClassName="border-primary/90 bg-primary text-white shadow-md shadow-primary/40 ring-1 ring-white/25"
+          inactiveClassName="border-white/25 bg-white/10 text-white/85 hover:border-white/45 hover:bg-white/20 hover:text-white"
         />
 
         {logoutLink}
