@@ -152,3 +152,62 @@ Date: 2026-07-02
 - Phase 1: Complete.
 - Phase 2: Complete.
 - Phase 3: Complete.
+
+## Phase 4 - Partner + Multi-Org Doctrine Validation (Completed)
+
+### Implemented changes
+1. Multi-org auth resolver query hardening:
+   - File: `includes/helpers.php`
+   - Fixed `orabooks_resolve_auth_org_id()` membership lookup query to remove non-existent `id` column dependency.
+   - Query now orders by `joined_at DESC` only, aligned with `user_org` schema.
+
+2. Organization test coverage extended for resolver correctness:
+   - File: `tests/OraBooks_Organization_Test.php`
+   - Added test:
+     - `test_resolve_auth_org_id_prefers_latest_membership_without_id_column_dependency`
+
+3. Partner permission doctrine regression coverage extended:
+   - File: `tests/OraBooks_RBAC_Test.php`
+   - Added test:
+     - `test_partner_commission_access_denied_for_staff_viewer_by_default`
+   - Verifies staff/viewer remain denied unless partner org setting explicitly enables access.
+
+4. Test bootstrap parity fix:
+   - File: `tests/bootstrap.php`
+   - Updated test stub `orabooks_resolve_auth_org_id()` to match production resolver query (removed `id DESC`).
+
+### Validation after Phase 4
+1. Organization suite:
+- Command:
+  - `php tests/vendor/bin/phpunit --configuration \\10.124.1.254\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\phpunit.xml --testsuite "OraBooks Organization Tests"`
+- Result:
+  - `OK (12 tests, 21 assertions)`
+
+2. RBAC suite:
+- Command:
+  - `php tests/vendor/bin/phpunit --configuration \\10.124.1.254\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\phpunit.xml --testsuite "OraBooks RBAC Tests"`
+- Result:
+  - `OK (14 tests, 47 assertions)`
+
+3. Auth regression suite:
+- Command:
+  - `php tests/vendor/bin/phpunit --configuration \\10.124.1.254\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\phpunit.xml --testsuite "OraBooks Auth Tests"`
+- Result:
+  - `OK (100 tests, 303 assertions)`
+
+4. Team regression suite:
+- Command:
+  - `php tests/vendor/bin/phpunit --configuration \\10.124.1.254\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\phpunit.xml --testsuite "OraBooks Team Tests"`
+- Result:
+  - `OK (23 tests, 65 assertions)`
+
+5. Diagnostics:
+- Checked modified files for workspace errors.
+- Result: no new errors.
+
+## Latest consolidated status
+- Phase 0: Complete.
+- Phase 1: Complete.
+- Phase 2: Complete.
+- Phase 3: Complete.
+- Phase 4: Complete.
