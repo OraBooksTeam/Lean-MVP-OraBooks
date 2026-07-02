@@ -272,12 +272,91 @@ class OraBooks_Team_Test extends TestCase
     }
 
     #[Test]
+    public function test_accept_pending_invite_uses_row_locks_for_user_and_membership(): void
+    {
+        global $wpdb;
+
+        $invite = (object) [
+            'id' => 21,
+            'org_id' => 77,
+            'email' => 'lockcheck@example.com',
+            'role' => 'viewer',
+        ];
+        $user = (object) [
+            'id' => 44,
+            'email' => 'lockcheck@example.com',
+            'org_id' => null,
+        ];
+
+        $row_queries = [];
+        $var_queries = [];
+
+        $wpdb->test_get_row_callback = function ($query) use ($invite, $user, &$row_queries) {
+            $row_queries[] = (string) $query;
+            if (stripos($query, 'org_invites') !== false) {
+                return $invite;
+            }
+            if (stripos($query, 'users') !== false) {
+                return $user;
+            }
+
+            return null;
+        };
+        $wpdb->test_get_var_callback = function ($query) use (&$var_queries) {
+            $var_queries[] = (string) $query;
+
+            return null;
+        };
+        $wpdb->test_insert_callback = fn() => 1;
+        $wpdb->test_update_callback = fn() => 1;
+        $wpdb->test_query_callback = fn() => 1;
+
+        $result = OraBooks_Team::accept_pending_invite_for_user(44);
+
+        $this->assertIsArray($result);
+        $this->assertNotEmpty(array_filter(
+            $row_queries,
+            fn($query) => stripos($query, 'FROM') !== false
+                && stripos($query, 'users') !== false
+                && stripos($query, 'WHERE email') !== false
+                && stripos($query, 'FOR UPDATE') !== false
+        ));
+        $this->assertNotEmpty(array_filter(
+            $var_queries,
+            fn($query) => stripos($query, 'user_org') !== false
+                && stripos($query, 'FOR UPDATE') !== false
+        ));
+    }
+
+    #[Test]
     public function test_update_role_rejects_self_change(): void
     {
         $result = OraBooks_Team::update_role(10, 5, 'admin', 5);
 
         $this->assertInstanceOf(WP_Error::class, $result);
         $this->assertSame('self_change', $result->get_error_code());
+    }
+
+    #[Test]
+    public function test_update_role_rejects_owner_assignment(): void
+    {
+        global $wpdb;
+
+        $wpdb->test_get_var_callback = function ($query) {
+            if (stripos($query, "role = 'owner'") !== false) {
+                return 2;
+            }
+            if (stripos($query, 'SELECT role') !== false) {
+                return 'staff';
+            }
+
+            return null;
+        };
+
+        $result = OraBooks_Team::update_role(10, 20, 'owner', 1);
+
+        $this->assertInstanceOf(WP_Error::class, $result);
+        $this->assertSame('invalid_role', $result->get_error_code());
     }
 
     #[Test]
