@@ -318,7 +318,7 @@ class OraBooks_Team_Test extends TestCase
             $row_queries,
             fn($query) => stripos($query, 'FROM') !== false
                 && stripos($query, 'users') !== false
-                && stripos($query, 'WHERE email') !== false
+                && (stripos($query, 'WHERE email') !== false || stripos($query, 'WHERE id') !== false)
                 && stripos($query, 'FOR UPDATE') !== false
         ));
         $this->assertNotEmpty(array_filter(
