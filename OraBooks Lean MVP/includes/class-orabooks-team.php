@@ -287,6 +287,16 @@ class OraBooks_Team {
             return new WP_Error('invalid_role', 'Invalid invite role');
         }
 
+        if ($user) {
+            $locked_user = $wpdb->get_row($wpdb->prepare(
+                "SELECT * FROM {$table_users} WHERE id = %d FOR UPDATE",
+                (int) $user->id
+            ));
+            if ($locked_user) {
+                $user = $locked_user;
+            }
+        }
+
         if (!$user) {
             $user = $wpdb->get_row($wpdb->prepare(
                 "SELECT * FROM {$table_users} WHERE email = %s FOR UPDATE",
