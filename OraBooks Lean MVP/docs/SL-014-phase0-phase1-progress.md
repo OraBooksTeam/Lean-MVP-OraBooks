@@ -299,3 +299,36 @@ Date: 2026-07-02
 - Phase 4: Complete.
 - Phase 5: Complete.
 - Phase 6: In Progress (kickoff patch complete).
+
+### Phase 6 - Next Part (Completed in this iteration)
+1. Backend contract parity for cancel invite:
+   - File: `includes/class-orabooks-team.php`
+   - `ajax_cancel_invite()` now validates pending invite (`used = 0`) and returns `404` when invite is missing/used.
+   - Aligns cancel semantics with resend semantics for deterministic API behavior.
+
+2. Expanded test shield for cancel invite edge paths:
+   - File: `tests/OraBooks_Team_Test.php`
+   - Added:
+     - `test_ajax_cancel_invite_rejects_missing_or_used_invite`
+     - `test_ajax_cancel_invite_deletes_pending_invite_and_logs_event`
+
+3. Validation rerun after next-part changes:
+   - Team suite:
+     - `OK (29 tests, 88 assertions)`
+   - Auth suite:
+     - `OK (100 tests, 303 assertions)`
+   - RBAC suite:
+     - `OK (14 tests, 47 assertions)`
+   - Organization suite:
+     - `OK (12 tests, 21 assertions)`
+   - Frontend typecheck (`tsc --noEmit`):
+     - Passed.
+
+## Current status after Phase 6 next part
+- Phase 0: Complete.
+- Phase 1: Complete.
+- Phase 2: Complete.
+- Phase 3: Complete.
+- Phase 4: Complete.
+- Phase 5: Complete.
+- Phase 6: In Progress (kickoff + contract parity + regression shield updates complete).
