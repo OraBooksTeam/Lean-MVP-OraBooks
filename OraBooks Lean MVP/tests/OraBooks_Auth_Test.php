@@ -18,6 +18,21 @@ if (!function_exists('get_option')) {
     }
 }
 
+if (!class_exists('OraBooks_Team')) {
+    class OraBooks_Team
+    {
+        public static function accept_pending_invite_for_user($user_id)
+        {
+            $callback = $GLOBALS['orabooks_test_accept_pending_invite_callback'] ?? null;
+            if (is_callable($callback)) {
+                return $callback((int) $user_id);
+            }
+
+            return new WP_Error('no_pending_invite', 'No pending invitation found for this account');
+        }
+    }
+}
+
 class OraBooks_Auth_Test extends TestCase
 {
     // -----------------------------------------------------------------------
@@ -38,6 +53,7 @@ class OraBooks_Auth_Test extends TestCase
         $GLOBALS['orabooks_test_org_callback'] = null;
         $GLOBALS['orabooks_test_get_user_role_callback'] = null;
         $GLOBALS['orabooks_test_user_has_pending_invite_callback'] = null;
+        $GLOBALS['orabooks_test_accept_pending_invite_callback'] = null;
         $GLOBALS['orabooks_test_user_meta'] = [];
         $GLOBALS['orabooks_test_use_insert_id'] = null;
 
@@ -1253,6 +1269,45 @@ class OraBooks_Auth_Test extends TestCase
         $this->assertTrue($result['needs_accept_invite']);
         $this->assertArrayNotHasKey('token', $result);
         $this->assertArrayNotHasKey('refresh_token', $result);
+        $this->assertArrayNotHasKey('needs_tier_selection', $result);
+    }
+
+    #[Test]
+    public function test_login_customer_with_pending_invite_auto_onboards_and_returns_session()
+    {
+        global $wpdb;
+
+        $wpdb->test_get_row_callback = function ($query) {
+            return $this->makeLoginUser([
+                'is_partner' => 0,
+                'org_id'     => null,
+            ]);
+        };
+
+        $GLOBALS['orabooks_test_user_has_pending_invite_callback'] = function ($user_id) {
+            return (int) $user_id === 1;
+        };
+
+        $GLOBALS['orabooks_test_accept_pending_invite_callback'] = function ($user_id) {
+            return [
+                'org_id' => 1,
+                'role' => 'staff',
+                'user_id' => (int) $user_id,
+            ];
+        };
+
+        $GLOBALS['orabooks_test_get_user_role_callback'] = function () {
+            return 'staff';
+        };
+
+        $result = OraBooks_Auth::login('customer@example.com', 'Password1!');
+
+        $this->assertNotInstanceOf(WP_Error::class, $result);
+        $this->assertArrayHasKey('token', $result);
+        $this->assertArrayHasKey('refresh_token', $result);
+        $this->assertEquals(1, (int) $result['org_id']);
+        $this->assertTrue((bool) ($result['invite_onboarded'] ?? false));
+        $this->assertArrayNotHasKey('needs_accept_invite', $result);
         $this->assertArrayNotHasKey('needs_tier_selection', $result);
     }
 
