@@ -84,6 +84,7 @@ export default function TeamPage() {
   }, []);
 
   const handleInvite = async () => {
+    if (inviting) return;
     if (!orgId || !inviteEmail.trim()) {
       setError('Enter an email address to invite.');
       return;
@@ -94,11 +95,7 @@ export default function TeamPage() {
     setSuccess('');
     const res = await api.inviteTeamUser(orgId, inviteEmail.trim(), inviteRole);
     if (res.error) {
-      if ((res as any).status === 409) {
-        setError(apiErrorMessage(res, 'User is already a member of this organization.'));
-      } else {
-        setError(apiErrorMessage(res, 'Unable to send invitation.'));
-      }
+      setError(teamActionErrorMessage(res, 'Unable to send invitation.'));
     } else {
       setSuccess('Invitation sent.');
       setInviteEmail('');
@@ -109,11 +106,12 @@ export default function TeamPage() {
 
   const handleRoleChange = async (userId: number, role: string) => {
     if (!orgId) return;
+    if (actionUserId !== null) return;
     setActionUserId(userId);
     setError('');
     setSuccess('');
     const res = await api.updateTeamRole(orgId, userId, role);
-    if (res.error) setError(apiErrorMessage(res, 'Unable to update role.'));
+    if (res.error) setError(teamActionErrorMessage(res, 'Unable to update role.'));
     else {
       const requiresRelogin = Boolean((res as any).data?.requires_relogin);
       setSuccess(requiresRelogin ? 'Role updated. The user should sign in again to refresh access.' : 'Role updated.');
@@ -124,11 +122,12 @@ export default function TeamPage() {
 
   const handleRemove = async (userId: number) => {
     if (!orgId || !window.confirm('Remove this user from the organization?')) return;
+    if (actionUserId !== null) return;
     setActionUserId(userId);
     setError('');
     setSuccess('');
     const res = await api.removeTeamUser(orgId, userId);
-    if (res.error) setError(apiErrorMessage(res, 'Unable to remove user.'));
+    if (res.error) setError(teamActionErrorMessage(res, 'Unable to remove user.'));
     else {
       setSuccess('User removed.');
       await load();
@@ -138,16 +137,17 @@ export default function TeamPage() {
 
   const handleResend = async (inviteId: number) => {
     if (!orgId) return;
+    if (actionInviteId !== null) return;
     setActionInviteId(inviteId);
     setError('');
     setSuccess('');
     const res = await api.resendTeamInvite(orgId, inviteId);
     if (res.error) {
-      if ((res as any).status === 404) {
+      if ((res as any).code === 'invalid_invite' && (res as any).status === 404) {
         setError('Invitation no longer exists or has already been used. The list has been refreshed.');
         await load();
       } else {
-        setError(apiErrorMessage(res, 'Unable to resend invitation.'));
+        setError(teamActionErrorMessage(res, 'Unable to resend invitation.'));
       }
     } else {
       setSuccess('Invitation resent.');
@@ -158,16 +158,17 @@ export default function TeamPage() {
 
   const handleCancelInvite = async (inviteId: number) => {
     if (!orgId || !window.confirm('Cancel this invitation?')) return;
+    if (actionInviteId !== null) return;
     setActionInviteId(inviteId);
     setError('');
     setSuccess('');
     const res = await api.cancelTeamInvite(orgId, inviteId);
     if (res.error) {
-      if ((res as any).status === 404) {
+      if ((res as any).code === 'invalid_invite' && (res as any).status === 404) {
         setError('Invitation was already missing. The list has been refreshed.');
         await load();
       } else {
-        setError(apiErrorMessage(res, 'Unable to cancel invitation.'));
+        setError(teamActionErrorMessage(res, 'Unable to cancel invitation.'));
       }
     } else {
       setSuccess('Invitation cancelled.');
