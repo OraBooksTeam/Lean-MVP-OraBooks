@@ -130,6 +130,11 @@ Recommended post-release checks:
 4. Role-change and user-removal event volume.
 5. Support tickets related to Team access or invitation flow.
 
+## Manual UAT Runbook
+
+Use the consolidated manual checklist for Phase 0 through Phase 8 verification:
+- `docs/SL-014-phase0-to-phase8-manual-test-checklist.md`
+
 ## Final Recommendation
 
 SL-014 is ready for sign-off from an engineering perspective.
