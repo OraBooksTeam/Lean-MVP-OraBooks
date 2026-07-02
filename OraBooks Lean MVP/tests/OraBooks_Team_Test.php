@@ -787,6 +787,103 @@ class OraBooks_Team_Test extends TestCase
     }
 
     #[Test]
+    public function test_ajax_list_members_requires_authentication_with_code(): void
+    {
+        $GLOBALS['orabooks_test_current_user_id'] = 0;
+        $_POST['org_id'] = 10;
+
+        $team = OraBooks_Team::init();
+        $payload = $this->captureJsonError(function () use ($team) {
+            $team->ajax_list_members();
+        });
+
+        $this->assertSame('not_authenticated', $payload['code'] ?? '');
+        $this->assertStringContainsString('not authenticated', strtolower($payload['message']));
+        $this->assertLastStatusCode(401);
+    }
+
+    #[Test]
+    public function test_ajax_list_members_requires_valid_org_with_code(): void
+    {
+        $_POST['org_id'] = 0;
+
+        $team = OraBooks_Team::init();
+        $payload = $this->captureJsonError(function () use ($team) {
+            $team->ajax_list_members();
+        });
+
+        $this->assertSame('invalid_org', $payload['code'] ?? '');
+        $this->assertStringContainsString('organization is required', strtolower($payload['message']));
+        $this->assertLastStatusCode(400);
+    }
+
+    #[Test]
+    public function test_ajax_list_members_returns_org_not_found_code(): void
+    {
+        $_POST['org_id'] = 999;
+        $GLOBALS['orabooks_test_org_callback'] = fn() => null;
+
+        $team = OraBooks_Team::init();
+        $payload = $this->captureJsonError(function () use ($team) {
+            $team->ajax_list_members();
+        });
+
+        $this->assertSame('org_not_found', $payload['code'] ?? '');
+        $this->assertStringContainsString('organization not found', strtolower($payload['message']));
+        $this->assertLastStatusCode(404);
+    }
+
+    #[Test]
+    public function test_ajax_list_members_returns_org_inactive_code(): void
+    {
+        $_POST['org_id'] = 55;
+        $GLOBALS['orabooks_test_org_callback'] = fn($orgId) => (object) [
+            'id' => (int) $orgId,
+            'owner_id' => 1,
+            'organization_type' => 'customer',
+            'tier' => 'free',
+            'subdomain' => 'inactive-org',
+            'status' => 'suspended',
+            'name' => 'Inactive Org',
+        ];
+
+        $team = OraBooks_Team::init();
+        $payload = $this->captureJsonError(function () use ($team) {
+            $team->ajax_list_members();
+        });
+
+        $this->assertSame('org_inactive', $payload['code'] ?? '');
+        $this->assertStringContainsString('not active', strtolower($payload['message']));
+        $this->assertLastStatusCode(403);
+    }
+
+    #[Test]
+    public function test_ajax_list_members_requires_org_membership_code(): void
+    {
+        global $wpdb;
+
+        $_POST['org_id'] = 10;
+        $wpdb->test_get_var_callback = function ($query) {
+            if (stripos($query, 'SELECT 1 FROM') !== false && stripos($query, 'user_org') !== false) {
+                return null;
+            }
+            if (stripos($query, 'SELECT 1 FROM') !== false && stripos($query, 'organizations') !== false) {
+                return null;
+            }
+            return null;
+        };
+
+        $team = OraBooks_Team::init();
+        $payload = $this->captureJsonError(function () use ($team) {
+            $team->ajax_list_members();
+        });
+
+        $this->assertSame('org_membership_required', $payload['code'] ?? '');
+        $this->assertStringContainsString('not a member', strtolower($payload['message']));
+        $this->assertLastStatusCode(403);
+    }
+
+    #[Test]
     public function test_ajax_update_role_returns_conflict_code_for_owner_row(): void
     {
         global $wpdb;
