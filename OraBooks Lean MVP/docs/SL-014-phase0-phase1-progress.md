@@ -109,3 +109,46 @@ Date: 2026-07-02
 - Phase 0: Complete.
 - Phase 1: Complete.
 - Phase 2: Complete.
+
+## Phase 3 - Team Access + Owner Row UI/Backend Parity (Completed)
+
+### Implemented changes
+1. Team dashboard access restricted to Owner/Admin:
+   - File: `includes/class-orabooks-ajax.php`
+   - `ajax_team_dashboard()` now denies access with `403` if user does not have `manage_employees` permission.
+
+2. Owner member immutability enforced in backend:
+   - File: `includes/class-orabooks-team.php`
+   - `update_role()` now blocks changing any owner row via team role endpoint (`owner_role_locked`).
+   - `remove_user()` now blocks removing owner rows (`owner_remove_blocked`).
+
+3. Owner row immutability reflected in frontend:
+   - File: `orabooks-ui/src/pages/frontend/pages/TeamPage.tsx`
+   - Role dropdown and Remove action are disabled for owner rows.
+
+4. Team tests aligned with owner immutability contract:
+   - File: `tests/OraBooks_Team_Test.php`
+   - Updated expected error codes for owner role/update and owner remove behavior.
+
+### Validation after Phase 3
+1. Team suite:
+- Command:
+  - `php tests/vendor/bin/phpunit --configuration \\10.124.1.254\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\phpunit.xml --testsuite "OraBooks Team Tests"`
+- Result:
+  - `OK (23 tests, 65 assertions)`
+
+2. Auth regression suite:
+- Command:
+  - `php tests/vendor/bin/phpunit --configuration \\10.124.1.254\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\phpunit.xml --testsuite "OraBooks Auth Tests"`
+- Result:
+  - `OK (100 tests, 303 assertions)`
+
+3. Diagnostics:
+- Checked modified files for workspace errors.
+- Result: no new errors.
+
+## Updated consolidated status
+- Phase 0: Complete.
+- Phase 1: Complete.
+- Phase 2: Complete.
+- Phase 3: Complete.
