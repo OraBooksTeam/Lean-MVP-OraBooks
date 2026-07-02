@@ -421,7 +421,7 @@ export default function ClientShell({
               />
               <div className="min-w-0">
                 <p className="truncate text-sm font-bold text-ink xs:text-sm">OraBooks</p>
-                <p className="truncate text-xs text-ink-secondary"></p>
+                <p className="truncate text-xs text-ink-secondary">{title}</p>
               </div>
             </div>
             <div className="flex items-center gap-0.5 sm:gap-1">
