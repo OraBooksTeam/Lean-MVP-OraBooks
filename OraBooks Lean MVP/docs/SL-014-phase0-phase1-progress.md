@@ -211,3 +211,61 @@ Date: 2026-07-02
 - Phase 2: Complete.
 - Phase 3: Complete.
 - Phase 4: Complete.
+
+## Phase 5 - Test Shield Expansion + Resend Endpoint Safety (Completed)
+
+### Implemented changes
+1. Resend invite endpoint safety hardening:
+   - File: `includes/class-orabooks-team.php`
+   - `ajax_resend_invite()` now validates pending invite existence (`used = 0`) and returns `404` when invite is missing/used.
+   - Prevents null dereference paths and enforces deterministic error semantics.
+
+2. Invite acceptance resilience tests added:
+   - File: `tests/OraBooks_Team_Test.php`
+   - Added:
+     - `test_accept_invite_rejects_unverified_email`
+     - `test_accept_invite_returns_already_member_flag_when_membership_exists`
+
+3. Resend invite AJAX tests added:
+   - File: `tests/OraBooks_Team_Test.php`
+   - Added:
+     - `test_ajax_resend_invite_rejects_missing_or_used_invite`
+     - `test_ajax_resend_invite_rotates_token_and_logs_event`
+   - Added JSON success capture helper for endpoint success assertions.
+
+4. Team test setup permission parity fix:
+   - File: `tests/OraBooks_Team_Test.php`
+   - Added `OraBooks_RBAC::init()` in `setUp()` so AJAX permission checks use initialized permission matrix.
+
+### Validation after Phase 5
+1. Team suite:
+- Command:
+  - `php tests/vendor/bin/phpunit --configuration \\10.124.1.254\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\phpunit.xml --testsuite "OraBooks Team Tests"`
+- Result:
+  - `OK (27 tests, 80 assertions)`
+
+2. Auth regression suite:
+- Command:
+  - `php tests/vendor/bin/phpunit --configuration \\10.124.1.254\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\phpunit.xml --testsuite "OraBooks Auth Tests"`
+- Result:
+  - `OK (100 tests, 303 assertions)`
+
+3. RBAC regression suite:
+- Command:
+  - `php tests/vendor/bin/phpunit --configuration \\10.124.1.254\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\phpunit.xml --testsuite "OraBooks RBAC Tests"`
+- Result:
+  - `OK (14 tests, 47 assertions)`
+
+4. Organization regression suite:
+- Command:
+  - `php tests/vendor/bin/phpunit --configuration \\10.124.1.254\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\phpunit.xml --testsuite "OraBooks Organization Tests"`
+- Result:
+  - `OK (12 tests, 21 assertions)`
+
+## Final consolidated status
+- Phase 0: Complete.
+- Phase 1: Complete.
+- Phase 2: Complete.
+- Phase 3: Complete.
+- Phase 4: Complete.
+- Phase 5: Complete.
