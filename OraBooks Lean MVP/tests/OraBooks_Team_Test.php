@@ -701,6 +701,15 @@ class OraBooks_Team_Test extends TestCase
         $_POST['org_id'] = 10;
         $_POST['invite_id'] = 999;
 
+        $wpdb->test_get_var_callback = function ($query) {
+            if (stripos($query, 'SELECT role') !== false) {
+                return 'owner';
+            }
+            if (stripos($query, 'user_org') !== false) {
+                return 1;
+            }
+            return null;
+        };
         $wpdb->test_get_row_callback = fn() => null;
         $team = OraBooks_Team::init();
 
@@ -727,6 +736,16 @@ class OraBooks_Team_Test extends TestCase
             'role' => 'staff',
             'used' => 0,
         ];
+
+        $wpdb->test_get_var_callback = function ($query) {
+            if (stripos($query, 'SELECT role') !== false) {
+                return 'owner';
+            }
+            if (stripos($query, 'user_org') !== false) {
+                return 1;
+            }
+            return null;
+        };
 
         $wpdb->test_get_row_callback = function ($query) use ($invite) {
             if (stripos($query, 'org_invites') !== false) {
