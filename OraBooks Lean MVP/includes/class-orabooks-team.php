@@ -289,7 +289,7 @@ class OraBooks_Team {
 
         if (!$user) {
             $user = $wpdb->get_row($wpdb->prepare(
-                "SELECT * FROM {$table_users} WHERE email = %s",
+                "SELECT * FROM {$table_users} WHERE email = %s FOR UPDATE",
                 $invite->email
             ));
         }
@@ -313,7 +313,7 @@ class OraBooks_Team {
         }
 
         $existing = $wpdb->get_var($wpdb->prepare(
-            "SELECT user_id FROM {$table_user_org} WHERE user_id = %d AND org_id = %d",
+            "SELECT user_id FROM {$table_user_org} WHERE user_id = %d AND org_id = %d FOR UPDATE",
             $user->id,
             $invite->org_id
         ));
@@ -392,7 +392,8 @@ class OraBooks_Team {
             return new WP_Error('last_owner', 'Cannot demote the last owner');
         }
 
-        if (!self::is_member_role($new_role)) {
+        // Owner transfer is reserved; role update endpoint only supports non-owner roles.
+        if (!self::is_invite_role($new_role)) {
             return new WP_Error('invalid_role', 'Invalid role');
         }
         
@@ -581,7 +582,8 @@ class OraBooks_Team {
         
         $result = self::invite_user($org_id, $email, $role, $user_id);
         if (is_wp_error($result)) {
-            orabooks_json_error($result->get_error_message(), 400);
+            $status = $result->get_error_code() === 'already_member' ? 409 : 400;
+            orabooks_json_error($result->get_error_message(), $status);
         }
         orabooks_json_success($result, 'Invitation sent');
     }
