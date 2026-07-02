@@ -23,6 +23,7 @@ class OraBooks_Inventory_Test extends TestCase
         $wpdb->test_get_row_callback = null;
         $wpdb->test_get_results_callback = null;
         $wpdb->test_insert_callback = null;
+        $wpdb->test_update_callback = null;
         $wpdb->test_query_callback = null;
         $wpdb->insert_id = 0;
         $wpdb->last_query = '';
