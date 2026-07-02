@@ -17,6 +17,8 @@ import {
 } from '../lib/auth-routing';
 
 function redirectAfterLogin(data: any) {
+  const hasResolvedOrg = Number(data?.org_id || 0) > 0 || String(data?.subdomain || '').trim() !== '';
+
   if (data?.invite_onboarded) {
     consumePendingInviteToken();
     redirectAfterAuth(data);
@@ -25,7 +27,7 @@ function redirectAfterLogin(data: any) {
 
   if (data?.needs_accept_invite) {
     const pendingInvite = getPendingInviteToken();
-    if (pendingInvite) {
+    if (pendingInvite && !hasResolvedOrg) {
       window.location.replace(getAcceptInviteUrl(pendingInvite));
       return;
     }
