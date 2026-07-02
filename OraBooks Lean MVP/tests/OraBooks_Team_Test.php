@@ -776,4 +776,84 @@ class OraBooks_Team_Test extends TestCase
             fn($event) => $event['event_type'] === 'invite_resent'
         ));
     }
+
+    #[Test]
+    public function test_ajax_cancel_invite_rejects_missing_or_used_invite(): void
+    {
+        global $wpdb;
+
+        $_POST['org_id'] = 10;
+        $_POST['invite_id'] = 999;
+
+        $wpdb->test_get_var_callback = function ($query) {
+            if (stripos($query, 'SELECT role') !== false) {
+                return 'owner';
+            }
+            if (stripos($query, 'user_org') !== false) {
+                return 1;
+            }
+            return null;
+        };
+        $wpdb->test_get_row_callback = fn() => null;
+
+        $team = OraBooks_Team::init();
+        $payload = $this->captureJsonError(function () use ($team) {
+            $team->ajax_cancel_invite();
+        });
+
+        $this->assertStringContainsString('not found', strtolower($payload['message']));
+    }
+
+    #[Test]
+    public function test_ajax_cancel_invite_deletes_pending_invite_and_logs_event(): void
+    {
+        global $wpdb;
+
+        $_POST['org_id'] = 10;
+        $_POST['invite_id'] = 88;
+
+        $deleted = [];
+        $invite = (object) [
+            'id' => 88,
+            'org_id' => 10,
+            'email' => 'cancelme@example.com',
+            'role' => 'staff',
+            'used' => 0,
+        ];
+
+        $wpdb->test_get_var_callback = function ($query) {
+            if (stripos($query, 'SELECT role') !== false) {
+                return 'owner';
+            }
+            if (stripos($query, 'user_org') !== false) {
+                return 1;
+            }
+            return null;
+        };
+        $wpdb->test_get_row_callback = function ($query) use ($invite) {
+            if (stripos($query, 'org_invites') !== false) {
+                return $invite;
+            }
+            return null;
+        };
+        $wpdb->test_delete_callback = function ($table, $where) use (&$deleted) {
+            $deleted[] = [$table, $where];
+            return 1;
+        };
+
+        $team = OraBooks_Team::init();
+        $payload = $this->captureJsonSuccess(function () use ($team) {
+            $team->ajax_cancel_invite();
+        });
+
+        $this->assertSame([], $payload['data'] ?? []);
+        $this->assertNotEmpty(array_filter(
+            $deleted,
+            fn($row) => str_contains($row[0], 'org_invites') && (int) ($row[1]['id'] ?? 0) === 88
+        ));
+        $this->assertNotEmpty(array_filter(
+            $GLOBALS['orabooks_test_log_events'],
+            fn($event) => $event['event_type'] === 'invite_cancelled'
+        ));
+    }
 }
