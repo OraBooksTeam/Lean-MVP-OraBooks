@@ -517,7 +517,7 @@ Date: 2026-07-02
 - Phase 6: Complete.
 - Phase 7: Complete.
 
-## Phase 8 - Release Gate and Sign-off (Started)
+## Phase 8 - Release Gate and Sign-off (Completed)
 
 ### Kickoff actions completed
 1. Full release-gate regression run completed across core suites.
@@ -532,6 +532,10 @@ Date: 2026-07-02
 - Organization: `OK (12 tests, 21 assertions)`
 - Frontend typecheck: passed
 
+### Manual validation guide
+1. Phase 0-8 manual test runbook prepared:
+  - `docs/SL-014-phase0-to-phase8-manual-test-checklist.md`
+
 ## Current status
 - Phase 0: Complete.
 - Phase 1: Complete.
@@ -541,4 +545,4 @@ Date: 2026-07-02
 - Phase 5: Complete.
 - Phase 6: Complete.
 - Phase 7: Complete.
-- Phase 8: In Progress (release-gate evidence and sign-off draft complete).
+- Phase 8: Complete.
