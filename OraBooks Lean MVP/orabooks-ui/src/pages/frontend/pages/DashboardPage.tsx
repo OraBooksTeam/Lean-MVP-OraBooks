@@ -138,7 +138,7 @@ export default function DashboardPage() {
 
   if (error) {
     return (
-      <ClientShell title="Client Dashboard" eyebrow="Lean MVP workspace" organization={context?.organization}>
+      <ClientShell title="My Dashboard" eyebrow="Lean MVP workspace" organization={context?.organization}>
         <div className="glass-panel max-w-md p-6 text-center">
           <p className="font-medium text-danger">{error}</p>
           <Button onClick={load} variant="secondary" className="mt-4">Try again</Button>
