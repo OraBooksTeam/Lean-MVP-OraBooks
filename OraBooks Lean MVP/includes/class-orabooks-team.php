@@ -746,12 +746,18 @@ class OraBooks_Team {
         }
         
         $table = OraBooks_Database::table('org_invites');
-        $invite = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$table} WHERE id = %d AND org_id = %d", $invite_id, $org_id));
-        
-        if ($invite) {
-            $wpdb->delete($table, ['id' => $invite_id], ['%d']);
-            orabooks_log_event('invite_cancelled', "Invite cancelled for {$invite->email}", 'info', [], $user_id, $org_id);
+        $invite = $wpdb->get_row($wpdb->prepare(
+            "SELECT * FROM {$table} WHERE id = %d AND org_id = %d AND used = 0",
+            $invite_id,
+            $org_id
+        ));
+
+        if (!$invite) {
+            orabooks_json_error('Invitation not found or already used.', 404);
         }
+
+        $wpdb->delete($table, ['id' => $invite_id], ['%d']);
+        orabooks_log_event('invite_cancelled', "Invite cancelled for {$invite->email}", 'info', [], $user_id, $org_id);
         
         orabooks_json_success([], 'Invitation cancelled');
     }
