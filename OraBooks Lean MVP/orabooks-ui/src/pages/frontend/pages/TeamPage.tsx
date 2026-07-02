@@ -247,8 +247,9 @@ export default function TeamPage() {
               ) : (
                 members.map((member: any) => {
                   const isSelf = member.id === currentUserId;
-                  const canEdit = caps.change_role && !isSelf;
-                  const canRemove = caps.remove_user && !isSelf;
+                  const isOwnerRow = member.role === 'owner';
+                  const canEdit = caps.change_role && !isSelf && !isOwnerRow;
+                  const canRemove = caps.remove_user && !isSelf && !isOwnerRow;
 
                   return (
                     <tr key={member.id} className="hover:bg-slate-50/70">

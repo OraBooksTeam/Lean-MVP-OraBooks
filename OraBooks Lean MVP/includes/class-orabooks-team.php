@@ -397,6 +397,10 @@ class OraBooks_Team {
             "SELECT role FROM {$table_user_org} WHERE user_id = %d AND org_id = %d",
             $target_user_id, $org_id
         ));
+
+        if ($current_role === 'owner') {
+            return new WP_Error('owner_role_locked', 'Owner role cannot be changed from this endpoint');
+        }
         
         if ($current_role === 'owner' && $owner_count <= 1) {
             return new WP_Error('last_owner', 'Cannot demote the last owner');
@@ -459,6 +463,10 @@ class OraBooks_Team {
             "SELECT role FROM {$table_user_org} WHERE user_id = %d AND org_id = %d",
             $target_user_id, $org_id
         ));
+
+        if ($current_role === 'owner') {
+            return new WP_Error('owner_remove_blocked', 'Owner cannot be removed from the organization');
+        }
         
         if ($current_role === 'owner' && $owner_count <= 1) {
             return new WP_Error('last_owner', 'Cannot remove the last owner');
