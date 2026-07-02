@@ -378,7 +378,7 @@ class OraBooks_Team_Test extends TestCase
         $result = OraBooks_Team::update_role(10, 20, 'admin', 1);
 
         $this->assertInstanceOf(WP_Error::class, $result);
-        $this->assertSame('last_owner', $result->get_error_code());
+        $this->assertSame('owner_role_locked', $result->get_error_code());
     }
 
     #[Test]
@@ -440,7 +440,7 @@ class OraBooks_Team_Test extends TestCase
         $result = OraBooks_Team::remove_user(10, 20, 1);
 
         $this->assertInstanceOf(WP_Error::class, $result);
-        $this->assertSame('last_owner', $result->get_error_code());
+        $this->assertSame('owner_remove_blocked', $result->get_error_code());
     }
 
     #[Test]
