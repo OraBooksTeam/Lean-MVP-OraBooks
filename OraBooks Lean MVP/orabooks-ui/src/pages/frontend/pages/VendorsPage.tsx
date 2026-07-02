@@ -440,6 +440,35 @@ export default function VendorsPage() {
     return Number.isFinite(price) && price > 0 ? price : 0;
   };
 
+  const productLookup = useMemo(() => {
+    const byCode = new Map<string, ProductOption>();
+    const byName = new Map<string, ProductOption>();
+    for (const product of products) {
+      const sku = String(product.sku || '').trim().toUpperCase();
+      const stockKeepingUnit = String(product.stock_keeping_unit || '').trim().toUpperCase();
+      const name = String(product.name || '').trim().toLowerCase();
+
+      if (sku) byCode.set(sku, product);
+      if (stockKeepingUnit) byCode.set(stockKeepingUnit, product);
+      if (name) byName.set(name, product);
+    }
+    return { byCode, byName };
+  }, [products]);
+
+  const resolveLineProduct = (line: BillLineItemForm): ProductOption | null => {
+    const code = String(line.sku_code || '').trim().toUpperCase();
+    if (code && productLookup.byCode.has(code)) {
+      return productLookup.byCode.get(code) || null;
+    }
+
+    const description = String(line.description || '').trim().toLowerCase();
+    if (description && productLookup.byName.has(description)) {
+      return productLookup.byName.get(description) || null;
+    }
+
+    return null;
+  };
+
   const applyProductToLine = (index: number, product: ProductOption) => {
     const unitPrice = productUnitPrice(product);
     setBillLineItems((items) => items.map((row, i) => (
@@ -453,6 +482,44 @@ export default function VendorsPage() {
         : row
     )));
   };
+
+  useEffect(() => {
+    if (!showBillForm || products.length === 0) {
+      return;
+    }
+
+    setBillLineItems((items) => {
+      let changed = false;
+      const next = items.map((line) => {
+        const matched = resolveLineProduct(line);
+        if (!matched) {
+          return line;
+        }
+
+        const resolvedCode = String(matched.sku || matched.stock_keeping_unit || '').trim();
+        const resolvedName = String(matched.name || '').trim();
+        const resolvedUnitPrice = productUnitPrice(matched);
+
+        const shouldSetCode = !String(line.sku_code || '').trim() && !!resolvedCode;
+        const shouldSetDescription = !String(line.description || '').trim() && !!resolvedName;
+        const shouldSetUnitPrice = !String(line.unit_price || '').trim() && resolvedUnitPrice > 0;
+
+        if (!shouldSetCode && !shouldSetDescription && !shouldSetUnitPrice) {
+          return line;
+        }
+
+        changed = true;
+        return {
+          ...line,
+          sku_code: shouldSetCode ? resolvedCode : line.sku_code,
+          description: shouldSetDescription ? resolvedName : line.description,
+          unit_price: shouldSetUnitPrice ? String(resolvedUnitPrice) : line.unit_price,
+        };
+      });
+
+      return changed ? next : items;
+    });
+  }, [showBillForm, products, productLookup]);
 
   const toProductOption = (product: CreatedProduct): ProductOption => ({
     id: product.id,
@@ -1257,7 +1324,29 @@ export default function VendorsPage() {
                   {billLineItems.map((line, index) => (
                     <div key={index} className="grid grid-cols-12 gap-2 rounded-lg border border-border p-3">
                       <div className="col-span-2">
-                        <Input value={line.sku_code} onChange={(e) => setBillLineItems((items) => items.map((row, i) => i === index ? { ...row, sku_code: e.target.value } : row))} placeholder="Code" />
+                        <Input
+                          value={line.sku_code}
+                          onChange={(e) => {
+                            const nextCode = e.target.value;
+                            setBillLineItems((items) => items.map((row, i) => {
+                              if (i !== index) return row;
+
+                              const nextRow = { ...row, sku_code: nextCode };
+                              const matched = resolveLineProduct(nextRow);
+                              if (!matched) {
+                                return nextRow;
+                              }
+
+                              const unitPrice = productUnitPrice(matched);
+                              return {
+                                ...nextRow,
+                                description: String(matched.name || nextRow.description || ''),
+                                unit_price: unitPrice > 0 ? String(unitPrice) : nextRow.unit_price,
+                              };
+                            }));
+                          }}
+                          placeholder="Code"
+                        />
                       </div>
                       <div className="col-span-4">
                         <div className="flex gap-2">
@@ -1265,7 +1354,25 @@ export default function VendorsPage() {
                             <ProductAutocomplete
                               value={line.description}
                               products={products}
-                              onChange={(value) => setBillLineItems((items) => items.map((row, i) => i === index ? { ...row, description: value } : row))}
+                              onChange={(value) => {
+                                setBillLineItems((items) => items.map((row, i) => {
+                                  if (i !== index) return row;
+
+                                  const nextRow = { ...row, description: value };
+                                  const matched = resolveLineProduct(nextRow);
+                                  if (!matched) {
+                                    return nextRow;
+                                  }
+
+                                  const resolvedCode = String(matched.sku || matched.stock_keeping_unit || '').trim();
+                                  const unitPrice = productUnitPrice(matched);
+                                  return {
+                                    ...nextRow,
+                                    sku_code: resolvedCode || nextRow.sku_code,
+                                    unit_price: unitPrice > 0 ? String(unitPrice) : nextRow.unit_price,
+                                  };
+                                }));
+                              }}
                               onSelectProduct={(product) => applyProductToLine(index, product)}
                             />
                           </div>
