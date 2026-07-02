@@ -22,7 +22,7 @@ const TOKEN_KEY = AUTH_TOKEN_STORAGE_KEY;
 type Json = Record<string, any> | any[] | null;
 type ApiResult<T = Json> =
   | { data: T; error?: never; success?: never }
-  | { data?: never; error: string; success?: never }
+  | { data?: never; error: string; status?: number; code?: string; success?: never }
   | { data?: never; error?: never; success: true };
 
 type RequestOptions = {
@@ -37,6 +37,24 @@ function extractError(data: any, fallback: string) {
   if (data?.data?.message) return String(data.data.message);
   if (data?.code && data?.message) return String(data.message);
   return fallback;
+}
+
+function extractCode(data: any): string | undefined {
+  if (typeof data?.code === 'string' && data.code.trim()) {
+    return String(data.code);
+  }
+  if (typeof data?.data?.code === 'string' && data.data.code.trim()) {
+    return String(data.data.code);
+  }
+  return undefined;
+}
+
+function toApiError(data: any, fallback: string, status?: number): ApiResult<never> {
+  return {
+    error: extractError(data, fallback),
+    ...(typeof status === 'number' ? { status } : {}),
+    ...(extractCode(data) ? { code: extractCode(data) } : {}),
+  };
 }
 
 function getStoredToken() {
@@ -70,7 +88,7 @@ export function clearPersistedAuthTokens() {
 
 function normalizeResponse<T = any>(json: any): ApiResult<T> {
   if (json?.success === false) {
-    return { error: extractError(json.data ?? json.message, 'OraBooks request failed.') };
+    return toApiError(json, 'OraBooks request failed.');
   }
 
   if (json?.success === true && Object.prototype.hasOwnProperty.call(json, 'data')) {
@@ -84,11 +102,11 @@ function normalizeResponse<T = any>(json: any): ApiResult<T> {
   }
 
   if (json?.error === true || json?.error === 'true') {
-    return { error: extractError(json.message ?? json.data, 'OraBooks request failed.') };
+    return toApiError(json, 'OraBooks request failed.');
   }
 
   if (json?.error && typeof json.error === 'string') {
-    return { error: json.error };
+    return toApiError(json, 'OraBooks request failed.');
   }
 
   return json as ApiResult<T>;
@@ -117,13 +135,19 @@ async function parseResponse<T = any>(
     if (hasParsedJson) {
       const normalized = normalizeResponse<T>(parsed);
       if (typeof normalized === 'object' && normalized !== null && 'error' in normalized && normalized.error) {
-        return normalized;
+        return {
+          ...normalized,
+          status: res.status,
+        };
       }
-      return { error: extractError(parsed, `OraBooks request failed with HTTP ${res.status}.`) };
+      return toApiError(parsed, `OraBooks request failed with HTTP ${res.status}.`, res.status);
     }
     const trimmed = text.trim();
     const preview = trimmed ? trimmed.slice(0, 160) : `HTTP ${res.status}`;
-    return { error: `OraBooks request failed: ${preview}` };
+    return {
+      error: `OraBooks request failed: ${preview}`,
+      status: res.status,
+    };
   }
 
   if (hasParsedJson) {
