@@ -25,6 +25,37 @@ export default function TeamPage() {
   const currentUserId = data?.context?.user_id;
   const caps = data?.capabilities || {};
 
+  const apiErrorMessage = (res: any, fallback: string) => {
+    if (res?.error && String(res.error).trim()) return String(res.error);
+    return fallback;
+  };
+
+  const teamActionErrorMessage = (res: any, fallback: string) => {
+    const code = String((res as any)?.code || '').trim();
+    const status = Number((res as any)?.status || 0);
+
+    if (code === 'permission_denied' || status === 403) {
+      return 'You do not have permission to perform this action.';
+    }
+    if (code === 'already_member' || status === 409) {
+      return 'User is already a member of this organization.';
+    }
+    if (code === 'owner_role_locked') {
+      return 'Owner role cannot be changed from the Team page.';
+    }
+    if (code === 'owner_remove_blocked') {
+      return 'Owner cannot be removed from the organization.';
+    }
+    if (code === 'rate_limit' || status === 429) {
+      return 'Too many invite attempts. Please wait and try again.';
+    }
+    if (code === 'invalid_invite' && status === 404) {
+      return 'Invitation no longer exists or has already been used.';
+    }
+
+    return apiErrorMessage(res, fallback);
+  };
+
   const load = async () => {
     setLoading(true);
     setError('');
