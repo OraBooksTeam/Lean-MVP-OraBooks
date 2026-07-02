@@ -123,7 +123,7 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <ClientShell title="My Dashboard" eyebrow="Lean MVP workspace" organization={context?.organization}>
+      <ClientShell title="My dashboard" eyebrow="Lean MVP workspace" organization={context?.organization}>
         <div className="space-y-6">
           <div className="h-10 w-48 animate-pulse rounded-lg bg-slate-200" />
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -138,7 +138,7 @@ export default function DashboardPage() {
 
   if (error) {
     return (
-      <ClientShell title="My Dashboard" eyebrow="Lean MVP workspace" organization={context?.organization}>
+      <ClientShell title="My dashboard" eyebrow="Lean MVP workspace" organization={context?.organization}>
         <div className="glass-panel max-w-md p-6 text-center">
           <p className="font-medium text-danger">{error}</p>
           <Button onClick={load} variant="secondary" className="mt-4">Try again</Button>
@@ -162,7 +162,7 @@ export default function DashboardPage() {
   ];
 
   return (
-    <ClientShell title="Client Dashboard" eyebrow="Lean MVP workspace" organization={organization}>
+    <ClientShell title="My dashboard" eyebrow="Lean MVP workspace" organization={organization}>
       <div className="space-y-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex flex-wrap gap-2">
