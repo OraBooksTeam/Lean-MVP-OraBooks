@@ -322,7 +322,7 @@ export default function ClientShell({
         className="scrollbar-hide mt-6 min-h-0 flex-1 space-y-1.5 overflow-y-auto overscroll-contain"
         linkClassName="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium backdrop-blur-md transition-all duration-150"
         activeClassName="bg-primary/90 text-white shadow-[0_0_0_1px_rgba(255,255,255,0.2),0_0_18px_rgba(26,105,180,0.45)]"
-        inactiveClassName="bg-white/12 text-white/90 hover:bg-white/24 hover:text-white"
+        inactiveClassName="bg-white/12 text-white/90 hover:bg-white/10 hover:text-white"
       />
 
       {logoutLink}
@@ -401,7 +401,7 @@ export default function ClientShell({
           className="scrollbar-hide mt-6 min-h-0 flex-1 space-y-1.5 overflow-y-auto overscroll-contain"
           linkClassName="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium backdrop-blur-md transition-all duration-150"
           activeClassName="bg-primary/90 text-white shadow-[0_0_0_1px_rgba(255,255,255,0.2),0_0_18px_rgba(26,105,180,0.45)]"
-          inactiveClassName="bg-white/12 text-white/90 hover:bg-white/24 hover:text-white"
+          inactiveClassName="bg-white/12 text-white/90 hover:bg-white/10 hover:text-white"
         />
 
         {logoutLink}
