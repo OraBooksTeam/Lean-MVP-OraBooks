@@ -582,6 +582,11 @@ class OraBooks_Auth {
      */
     private static function issue_tier_selection_login($user) {
         if (orabooks_user_has_any_pending_invite((int) $user->id)) {
+            $invite_onboarded = self::try_auto_onboard_pending_invite($user);
+            if (is_array($invite_onboarded)) {
+                return $invite_onboarded;
+            }
+
             return [
                 'needs_accept_invite' => true,
                 'user_id' => (int) $user->id,
@@ -602,6 +607,37 @@ class OraBooks_Auth {
             'user_id' => $user->id,
             'message' => 'Please select a tier to continue',
         ];
+    }
+
+    /**
+     * Attempt to complete invite onboarding during login when a pending invite exists.
+     *
+     * @param object $user
+     * @return array<string, mixed>|null
+     */
+    private static function try_auto_onboard_pending_invite($user) {
+        if (!class_exists('OraBooks_Team') || !method_exists('OraBooks_Team', 'accept_pending_invite_for_user')) {
+            return null;
+        }
+
+        $accepted = OraBooks_Team::accept_pending_invite_for_user((int) $user->id);
+        if (is_wp_error($accepted)) {
+            return null;
+        }
+
+        $org_id = (int) ($accepted['org_id'] ?? 0);
+        if ($org_id <= 0) {
+            return null;
+        }
+
+        $user->org_id = $org_id;
+        $session = self::complete_authenticated_login($user);
+        if (is_wp_error($session) || !is_array($session)) {
+            return null;
+        }
+
+        $session['invite_onboarded'] = true;
+        return $session;
     }
 
     /**
