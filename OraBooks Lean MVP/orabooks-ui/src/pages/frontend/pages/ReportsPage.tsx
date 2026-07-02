@@ -176,7 +176,7 @@ export default function ReportsPage() {
         <div className="flex flex-wrap items-center justify-end gap-2">
           <WpLink
             to="/financial-reports"
-            className="inline-flex items-center gap-1.5 rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-sm font-medium text-primary shadow-sm transition hover:bg-primary/10"
+            className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-white shadow-md shadow-primary/30 transition hover:bg-primary-dark"
           >
             <BarChart3 className="h-4 w-4" />
             Financial Reports
@@ -205,6 +205,7 @@ export default function ReportsPage() {
             <div className="mt-4 flex flex-wrap gap-2">
               {operationalTypes.map((item: any) => {
                 const active = item.id === operationalType;
+                const isAging = item.id === 'ar_aging' || item.id === 'ap_aging';
                 return (
                   <button
                     key={item.id}
@@ -214,7 +215,12 @@ export default function ReportsPage() {
                       setOperationalType(item.id);
                       setOperationalResult(null);
                     }}
-                    className={`rounded-lg border px-3 py-1.5 text-sm font-semibold transition ${active ? 'border-primary bg-primary/10 text-primary-dark' : 'border-border bg-white text-slate-700 hover:bg-slate-50'}`}
+                    className={`rounded-lg border px-3 py-1.5 text-sm font-semibold transition ${active
+                      ? 'border-primary bg-primary text-white shadow-sm shadow-primary/30'
+                      : isAging
+                        ? 'border-primary/25 bg-primary/8 text-primary hover:bg-primary/12'
+                        : 'border-border bg-white text-slate-700 hover:bg-slate-50'
+                    }`}
                   >
                     {item.label}
                   </button>
