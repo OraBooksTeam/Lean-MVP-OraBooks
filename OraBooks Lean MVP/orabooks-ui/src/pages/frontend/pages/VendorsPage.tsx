@@ -466,6 +466,14 @@ export default function VendorsPage() {
       return productLookup.byName.get(description) || null;
     }
 
+    const unitPrice = productUnitPrice({ ...line, sales_price: line.unit_price } as unknown as ProductOption);
+    if (unitPrice > 0) {
+      const exactPriceMatches = products.filter((product) => productUnitPrice(product) === unitPrice);
+      if (exactPriceMatches.length === 1) {
+        return exactPriceMatches[0];
+      }
+    }
+
     return null;
   };
 
