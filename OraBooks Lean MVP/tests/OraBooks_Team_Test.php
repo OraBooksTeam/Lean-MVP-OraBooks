@@ -17,6 +17,7 @@ class OraBooks_Team_Test extends TestCase
         parent::setUp();
 
         OraBooks_Team::init();
+        OraBooks_RBAC::init();
 
         global $wpdb;
         $wpdb->test_get_var_callback = null;
