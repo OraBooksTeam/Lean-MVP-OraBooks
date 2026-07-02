@@ -506,6 +506,16 @@ if (!function_exists('wp_send_json')) {
     }
 }
 
+if (!function_exists('orabooks_json_error_with_code')) {
+    function orabooks_json_error_with_code($message, $status_code = 400, $code = '') {
+        $payload = ['error' => true, 'message' => $message];
+        if (is_string($code) && $code !== '') {
+            $payload['code'] = $code;
+        }
+        wp_send_json($payload, $status_code);
+    }
+}
+
 if (!function_exists('get_current_user_id')) {
     /**
      * Mock get_current_user_id.
