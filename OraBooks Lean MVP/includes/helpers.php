@@ -2698,6 +2698,22 @@ function orabooks_json_error($message, $status_code = 400) {
 }
 
 /**
+ * Error response helper with optional machine-readable code.
+ */
+function orabooks_json_error_with_code($message, $status_code = 400, $code = '') {
+    if (class_exists('OraBooks_Security') && method_exists('OraBooks_Security', 'record_http_response')) {
+        OraBooks_Security::record_http_response($status_code, $message);
+    }
+
+    $payload = ['error' => true, 'message' => $message];
+    if (is_string($code) && $code !== '') {
+        $payload['code'] = $code;
+    }
+
+    wp_send_json($payload, $status_code);
+}
+
+/**
  * Success response helper
  */
 function orabooks_json_success($data = [], $message = '') {
