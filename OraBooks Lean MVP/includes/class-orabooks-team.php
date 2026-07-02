@@ -564,25 +564,25 @@ class OraBooks_Team {
 
     private function require_org_member_access($user_id, $org_id) {
         if (!$user_id) {
-            orabooks_json_error('Not authenticated', 401);
+            orabooks_json_error_with_code('Not authenticated', 401, 'not_authenticated');
         }
 
         $org_id = intval($org_id);
         if ($org_id <= 0) {
-            orabooks_json_error('Organization is required', 400);
+            orabooks_json_error_with_code('Organization is required', 400, 'invalid_org');
         }
 
         $org = OraBooks_Organization::get($org_id);
         if (!$org) {
-            orabooks_json_error('Organization not found', 404);
+            orabooks_json_error_with_code('Organization not found', 404, 'org_not_found');
         }
 
         if ($org->status !== 'active') {
-            orabooks_json_error('Your organization is not active. Please contact support.', 403);
+            orabooks_json_error_with_code('Your organization is not active. Please contact support.', 403, 'org_inactive');
         }
 
         if (!orabooks_user_belongs_to_org((int) $user_id, $org_id)) {
-            orabooks_json_error('You are not a member of this organization', 403);
+            orabooks_json_error_with_code('You are not a member of this organization', 403, 'org_membership_required');
         }
     }
     
@@ -595,13 +595,19 @@ class OraBooks_Team {
         $this->require_org_member_access($user_id, $org_id);
         
         if (!OraBooks_RBAC::require_permission($user_id, $org_id, 'manage_employees')) {
-            orabooks_json_error('Permission denied', 403);
+            orabooks_json_error_with_code('Permission denied', 403, 'permission_denied');
         }
         
         $result = self::invite_user($org_id, $email, $role, $user_id);
         if (is_wp_error($result)) {
-            $status = $result->get_error_code() === 'already_member' ? 409 : 400;
-            orabooks_json_error($result->get_error_message(), $status);
+            $error_code = (string) $result->get_error_code();
+            $status = 400;
+            if ($error_code === 'already_member') {
+                $status = 409;
+            } elseif ($error_code === 'rate_limit') {
+                $status = 429;
+            }
+            orabooks_json_error_with_code($result->get_error_message(), $status, $error_code);
         }
         orabooks_json_success($result, 'Invitation sent');
     }
@@ -627,12 +633,14 @@ class OraBooks_Team {
         $this->require_org_member_access($user_id, $org_id);
         
         if (!OraBooks_RBAC::require_permission($user_id, $org_id, 'manage_roles')) {
-            orabooks_json_error('Permission denied', 403);
+            orabooks_json_error_with_code('Permission denied', 403, 'permission_denied');
         }
         
         $result = self::update_role($org_id, $target_user_id, $new_role, $user_id);
         if (is_wp_error($result)) {
-            orabooks_json_error($result->get_error_message(), 400);
+            $error_code = (string) $result->get_error_code();
+            $status = in_array($error_code, ['owner_role_locked', 'last_owner'], true) ? 409 : 400;
+            orabooks_json_error_with_code($result->get_error_message(), $status, $error_code);
         }
 
         $updated_role = orabooks_get_user_role($target_user_id, $org_id);
@@ -652,12 +660,14 @@ class OraBooks_Team {
         $this->require_org_member_access($user_id, $org_id);
         
         if (!OraBooks_RBAC::require_permission($user_id, $org_id, 'remove_user')) {
-            orabooks_json_error('Permission denied', 403);
+            orabooks_json_error_with_code('Permission denied', 403, 'permission_denied');
         }
         
         $result = self::remove_user($org_id, $target_user_id, $user_id);
         if (is_wp_error($result)) {
-            orabooks_json_error($result->get_error_message(), 400);
+            $error_code = (string) $result->get_error_code();
+            $status = in_array($error_code, ['owner_remove_blocked', 'last_owner'], true) ? 409 : 400;
+            orabooks_json_error_with_code($result->get_error_message(), $status, $error_code);
         }
         orabooks_json_success([], 'User removed');
     }
@@ -669,7 +679,7 @@ class OraBooks_Team {
         $this->require_org_member_access($user_id, $org_id);
 
         if (!OraBooks_RBAC::require_permission($user_id, $org_id, 'manage_employees')) {
-            orabooks_json_error('Permission denied', 403);
+            orabooks_json_error_with_code('Permission denied', 403, 'permission_denied');
         }
 
         $invites = self::list_pending_invites($org_id);
@@ -688,7 +698,7 @@ class OraBooks_Team {
         $this->require_org_member_access($user_id, $org_id);
         
         if (!OraBooks_RBAC::require_permission($user_id, $org_id, 'manage_employees')) {
-            orabooks_json_error('Permission denied', 403);
+            orabooks_json_error_with_code('Permission denied', 403, 'permission_denied');
         }
         
         $table = OraBooks_Database::table('org_invites');
@@ -698,7 +708,7 @@ class OraBooks_Team {
             $org_id
         ));
         if (!$invite) {
-            orabooks_json_error('Invitation not found or already used.', 404);
+            orabooks_json_error_with_code('Invitation not found or already used.', 404, 'invalid_invite');
         }
         
         $raw_token = orabooks_random_string(32);
@@ -742,7 +752,7 @@ class OraBooks_Team {
         $this->require_org_member_access($user_id, $org_id);
         
         if (!OraBooks_RBAC::require_permission($user_id, $org_id, 'manage_employees')) {
-            orabooks_json_error('Permission denied', 403);
+            orabooks_json_error_with_code('Permission denied', 403, 'permission_denied');
         }
         
         $table = OraBooks_Database::table('org_invites');
@@ -753,7 +763,7 @@ class OraBooks_Team {
         ));
 
         if (!$invite) {
-            orabooks_json_error('Invitation not found or already used.', 404);
+            orabooks_json_error_with_code('Invitation not found or already used.', 404, 'invalid_invite');
         }
 
         $wpdb->delete($table, ['id' => $invite_id], ['%d']);
