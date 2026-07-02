@@ -516,3 +516,29 @@ Date: 2026-07-02
 - Phase 5: Complete.
 - Phase 6: Complete.
 - Phase 7: Complete.
+
+## Phase 8 - Release Gate and Sign-off (Started)
+
+### Kickoff actions completed
+1. Full release-gate regression run completed across core suites.
+2. Frontend typecheck (`tsc --noEmit`) completed.
+3. Dedicated Phase 8 sign-off report prepared:
+  - `docs/SL-014-phase8-release-gate-report.md`
+
+### Gate validation snapshot
+- Team: `OK (39 tests, 138 assertions)`
+- Auth: `OK (100 tests, 303 assertions)`
+- RBAC: `OK (14 tests, 47 assertions)`
+- Organization: `OK (12 tests, 21 assertions)`
+- Frontend typecheck: passed
+
+## Current status
+- Phase 0: Complete.
+- Phase 1: Complete.
+- Phase 2: Complete.
+- Phase 3: Complete.
+- Phase 4: Complete.
+- Phase 5: Complete.
+- Phase 6: Complete.
+- Phase 7: Complete.
+- Phase 8: In Progress (release-gate evidence and sign-off draft complete).
