@@ -185,11 +185,6 @@ export default function TeamPage() {
   const canViewAccessMatrix = ['owner', 'admin'].includes(data?.context?.role);
   const permissionMatrix = data?.context?.permission_matrix || {};
 
-  const apiErrorMessage = (res: any, fallback: string) => {
-    if (res?.error && String(res.error).trim()) return String(res.error);
-    return fallback;
-  };
-
   const savePartnerAccessSetting = async () => {
     if (!orgId) return;
     setSavingAccessSettings(true);
