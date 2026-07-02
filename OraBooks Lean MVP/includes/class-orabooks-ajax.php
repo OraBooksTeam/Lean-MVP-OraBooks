@@ -743,6 +743,10 @@ class OraBooks_Ajax {
             orabooks_json_error('You are not a member of this organization', 403);
         }
 
+        if (!OraBooks_RBAC::require_permission($context['user_id'], $org_id, 'manage_employees')) {
+            orabooks_json_error('Only Owner or Admin can access team management.', 403);
+        }
+
         $stats = [
             'total_members' => 0,
             'pending_invites' => 0,
@@ -762,10 +766,8 @@ class OraBooks_Ajax {
             $member_rows = OraBooks_Team::list_members($org_id);
             $members = array_map([OraBooks_Team::class, 'format_member'], $member_rows ?: []);
 
-            if (OraBooks_RBAC::require_permission($context['user_id'], $org_id, 'manage_employees')) {
-                $invite_rows = OraBooks_Team::list_pending_invites($org_id);
-                $pending_invites = array_map([OraBooks_Team::class, 'format_invite'], $invite_rows ?: []);
-            }
+            $invite_rows = OraBooks_Team::list_pending_invites($org_id);
+            $pending_invites = array_map([OraBooks_Team::class, 'format_invite'], $invite_rows ?: []);
         }
 
         $role_labels = [
