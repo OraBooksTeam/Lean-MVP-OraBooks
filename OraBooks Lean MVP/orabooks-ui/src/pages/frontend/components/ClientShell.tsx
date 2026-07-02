@@ -321,7 +321,7 @@ export default function ClientShell({
         unreadCount={unreadCount}
         className="scrollbar-hide mt-6 min-h-0 flex-1 space-y-1.5 overflow-y-auto overscroll-contain"
         linkClassName="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition"
-        activeClassName="bg-accent text-white shadow-sm"
+        activeClassName="bg-primary text-white shadow-sm"
         inactiveClassName="text-white/75 hover:bg-white/10 hover:text-white"
       />
 
@@ -332,7 +332,7 @@ export default function ClientShell({
   return (
     <div className="orabooks-client-shell brand-page-bg w-full" style={shellHeight}>
       <aside
-        className="orabooks-client-sidebar fixed left-0 z-[100] hidden w-72 flex-col bg-primary p-5 text-white shadow-xl shadow-primary/20 lg:flex"
+        className="orabooks-client-sidebar fixed left-0 z-[100] hidden w-72 flex-col bg-accent p-5 text-white shadow-xl shadow-accent/20 lg:flex"
         style={{ ...adminBarTop, ...sidebarHeight }}
       >
         {sidebarContent}
@@ -349,7 +349,7 @@ export default function ClientShell({
 
       <aside
         className={cn(
-          'orabooks-mobile-drawer fixed left-0 top-0 z-[111] flex h-dvh w-[min(100vw,18rem)] flex-col bg-primary p-5 text-white shadow-xl transition-transform duration-200 lg:hidden',
+          'orabooks-mobile-drawer fixed left-0 top-0 z-[111] flex h-dvh w-[min(100vw,18rem)] flex-col bg-accent p-5 text-white shadow-xl transition-transform duration-200 lg:hidden',
           mobileNavOpen ? 'translate-x-0' : 'pointer-events-none -translate-x-full'
         )}
         aria-hidden={!mobileNavOpen}
@@ -400,7 +400,7 @@ export default function ClientShell({
           unreadCount={unreadCount}
           className="scrollbar-hide mt-6 min-h-0 flex-1 space-y-1.5 overflow-y-auto overscroll-contain"
           linkClassName="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition"
-          activeClassName="bg-accent text-white shadow-sm"
+          activeClassName="bg-primary text-white shadow-sm"
           inactiveClassName="text-white/75 hover:bg-white/10 hover:text-white"
         />
 
