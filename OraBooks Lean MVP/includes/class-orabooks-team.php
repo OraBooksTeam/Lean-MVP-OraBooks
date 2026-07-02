@@ -692,6 +692,14 @@ class OraBooks_Team {
         }
         
         $table = OraBooks_Database::table('org_invites');
+        $invite = $wpdb->get_row($wpdb->prepare(
+            "SELECT * FROM {$table} WHERE id = %d AND org_id = %d AND used = 0",
+            $invite_id,
+            $org_id
+        ));
+        if (!$invite) {
+            orabooks_json_error('Invitation not found or already used.', 404);
+        }
         
         $raw_token = orabooks_random_string(32);
         $token_hash = orabooks_hash_token($raw_token);
@@ -705,7 +713,8 @@ class OraBooks_Team {
             ['%d', '%d']
         );
         
-        $invite = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$table} WHERE id = %d", $invite_id));
+        $invite->token_hash = $token_hash;
+        $invite->expires_at = $expires;
         
         orabooks_log_event('invite_resent', "Invite resent to {$invite->email}", 'info', [], $user_id, $org_id);
 
