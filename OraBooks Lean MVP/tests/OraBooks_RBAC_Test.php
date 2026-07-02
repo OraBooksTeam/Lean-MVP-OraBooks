@@ -65,6 +65,23 @@ class OraBooks_RBAC_Test extends TestCase
     }
 
     #[Test]
+    public function test_partner_commission_access_denied_for_staff_viewer_by_default()
+    {
+        $GLOBALS['orabooks_test_org_callback'] = function () {
+            return (object) [
+                'id' => 10,
+                'status' => 'active',
+                'organization_type' => 'partner',
+                'partner_commission_for_staff_viewer' => 0,
+                'config' => '{}',
+            ];
+        };
+
+        $this->assertFalse(OraBooks_RBAC::check_permission('staff', 'partner_commission_access', 10));
+        $this->assertFalse(OraBooks_RBAC::check_permission('viewer', 'partner_commission_access', 10));
+    }
+
+    #[Test]
     public function test_require_permission_blocks_partner_accounting_even_for_owner()
     {
         $GLOBALS['orabooks_test_org_callback'] = function () {
