@@ -16,16 +16,16 @@ export default function Button({
   ...props
 }: ButtonProps) {
   const base =
-    'inline-flex items-center justify-center rounded-lg font-semibold transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30';
+    'inline-flex items-center justify-center rounded-lg font-semibold transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40';
 
   const variants: Record<string, string> = {
-    primary: 'border border-primary/35 bg-primary/15 text-primary hover:bg-primary/25 active:scale-[0.98] shadow-sm shadow-primary/10',
+    primary: 'bg-primary text-white hover:bg-primary-dark active:scale-[0.98] shadow-sm shadow-primary/20',
     secondary:
-      'border border-primary/25 bg-primary/10 text-primary hover:bg-primary/20 active:scale-[0.98] shadow-sm shadow-primary/10',
+      'bg-primary text-white hover:bg-primary-dark active:scale-[0.98] shadow-sm shadow-primary/10',
     ghost:
-      'bg-primary/10 text-primary hover:bg-primary/20 active:scale-[0.98]',
+      'bg-primary/80 text-white hover:bg-primary active:scale-[0.98]',
     danger:
-      'border border-primary/35 bg-primary/15 text-primary hover:bg-primary/25 active:scale-[0.98] shadow-sm shadow-primary/10',
+      'bg-primary text-white hover:bg-primary-dark active:scale-[0.98] shadow-sm shadow-primary/20',
   };
 
   const sizes: Record<string, string> = {
