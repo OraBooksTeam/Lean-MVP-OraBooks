@@ -36,6 +36,8 @@ class OraBooks_Team_Test extends TestCase
         $GLOBALS['orabooks_test_get_user_role_callback'] = null;
         $GLOBALS['orabooks_test_current_user_id'] = 1;
         $GLOBALS['orabooks_test_current_user_can'] = true;
+        $GLOBALS['orabooks_test_last_json_payload'] = null;
+        $GLOBALS['orabooks_test_last_status_code'] = null;
         unset($GLOBALS['orabooks_test_rate_limit_allowed']);
 
         $_POST = [];
@@ -76,6 +78,11 @@ class OraBooks_Team_Test extends TestCase
 
             return $payload;
         }
+    }
+
+    private function assertLastStatusCode(int $expected): void
+    {
+        $this->assertSame($expected, (int) ($GLOBALS['orabooks_test_last_status_code'] ?? 0));
     }
 
     #[Test]
@@ -692,6 +699,91 @@ class OraBooks_Team_Test extends TestCase
         });
 
         $this->assertStringContainsString('log in', strtolower($payload['message']));
+    }
+
+    #[Test]
+    public function test_ajax_invite_user_returns_rate_limit_code_and_429(): void
+    {
+        global $wpdb;
+
+        $_POST['org_id'] = 10;
+        $_POST['email'] = 'newuser@example.com';
+        $_POST['role'] = 'staff';
+
+        $GLOBALS['orabooks_test_rate_limit_allowed'] = false;
+        $wpdb->test_get_var_callback = function ($query) {
+            if (stripos($query, 'SELECT 1 FROM') !== false && stripos($query, 'user_org') !== false) {
+                return 1;
+            }
+            if (stripos($query, 'SELECT uo.user_id FROM') !== false) {
+                return null;
+            }
+            return null;
+        };
+
+        $team = OraBooks_Team::init();
+        $payload = $this->captureJsonError(function () use ($team) {
+            $team->ajax_invite_user();
+        });
+
+        $this->assertSame('rate_limit', $payload['code'] ?? '');
+        $this->assertStringContainsString('too many invites', strtolower($payload['message']));
+        $this->assertLastStatusCode(429);
+    }
+
+    #[Test]
+    public function test_ajax_invite_user_returns_already_member_conflict_code(): void
+    {
+        global $wpdb;
+
+        $_POST['org_id'] = 10;
+        $_POST['email'] = 'member@example.com';
+        $_POST['role'] = 'staff';
+
+        $wpdb->test_get_var_callback = function ($query) {
+            if (stripos($query, 'SELECT 1 FROM') !== false && stripos($query, 'user_org') !== false) {
+                return 1;
+            }
+            if (stripos($query, 'SELECT uo.user_id FROM') !== false) {
+                return 77;
+            }
+            return null;
+        };
+
+        $team = OraBooks_Team::init();
+        $payload = $this->captureJsonError(function () use ($team) {
+            $team->ajax_invite_user();
+        });
+
+        $this->assertSame('already_member', $payload['code'] ?? '');
+        $this->assertStringContainsString('already in organization', strtolower($payload['message']));
+        $this->assertLastStatusCode(409);
+    }
+
+    #[Test]
+    public function test_ajax_resend_invite_returns_permission_denied_code_for_viewer(): void
+    {
+        global $wpdb;
+
+        $_POST['org_id'] = 10;
+        $_POST['invite_id'] = 123;
+
+        $GLOBALS['orabooks_test_get_user_role_callback'] = fn() => 'viewer';
+        $wpdb->test_get_var_callback = function ($query) {
+            if (stripos($query, 'SELECT 1 FROM') !== false && stripos($query, 'user_org') !== false) {
+                return 1;
+            }
+            return null;
+        };
+
+        $team = OraBooks_Team::init();
+        $payload = $this->captureJsonError(function () use ($team) {
+            $team->ajax_resend_invite();
+        });
+
+        $this->assertSame('permission_denied', $payload['code'] ?? '');
+        $this->assertStringContainsString('permission denied', strtolower($payload['message']));
+        $this->assertLastStatusCode(403);
     }
 
     #[Test]
