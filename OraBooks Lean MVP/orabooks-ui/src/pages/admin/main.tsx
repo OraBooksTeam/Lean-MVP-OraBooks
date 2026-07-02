@@ -14,7 +14,7 @@ declare global {
 function showAdminBootError(root: HTMLElement, message: string) {
   root.classList.add('is-mounted');
   root.innerHTML = `<div style="padding:24px;border:1px solid #d8e6f3;border-radius:16px;background:#fff;color:#102f52;">
-    <h2 style="margin:0 0 8px;color:#3AB54A;">OraBooks could not start</h2>
+    <h2 style="margin:0 0 8px;color:#1A69B4;">OraBooks could not start</h2>
     <p style="margin:0;">${message}</p>
   </div>`;
 }
