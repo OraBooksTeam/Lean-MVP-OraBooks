@@ -321,7 +321,7 @@ export default function ClientShell({
         unreadCount={unreadCount}
         className="scrollbar-hide mt-6 min-h-0 flex-1 space-y-1.5 overflow-y-auto overscroll-contain"
         linkClassName="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium backdrop-blur-md transition-all duration-150"
-        activeClassName="-translate-y-[1px] bg-gradient-to-b from-white/24 via-primary/70 to-primary/85 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.35),inset_0_-1px_0_rgba(255,255,255,0.12),0_10px_18px_rgba(9,30,66,0.22),0_0_22px_rgba(26,105,180,0.46)]"
+        activeClassName="-translate-y-[1px] bg-primary text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.3),0_8px_16px_rgba(9,30,66,0.22),0_0_20px_rgba(26,105,180,0.55)]"
         inactiveClassName="bg-white/12 text-white/90 hover:bg-white/10 hover:text-white"
       />
 
@@ -400,7 +400,7 @@ export default function ClientShell({
           unreadCount={unreadCount}
           className="scrollbar-hide mt-6 min-h-0 flex-1 space-y-1.5 overflow-y-auto overscroll-contain"
           linkClassName="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium backdrop-blur-md transition-all duration-150"
-          activeClassName="-translate-y-[1px] bg-gradient-to-b from-white/24 via-primary/70 to-primary/85 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.35),inset_0_-1px_0_rgba(255,255,255,0.12),0_10px_18px_rgba(9,30,66,0.22),0_0_22px_rgba(26,105,180,0.46)]"
+          activeClassName="-translate-y-[1px] bg-primary text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.3),0_8px_16px_rgba(9,30,66,0.22),0_0_20px_rgba(26,105,180,0.55)]"
           inactiveClassName="bg-white/12 text-white/90 hover:bg-white/10 hover:text-white"
         />
 
