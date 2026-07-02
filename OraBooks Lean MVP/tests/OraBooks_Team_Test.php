@@ -695,6 +695,67 @@ class OraBooks_Team_Test extends TestCase
     }
 
     #[Test]
+    public function test_ajax_update_role_returns_conflict_code_for_owner_row(): void
+    {
+        global $wpdb;
+
+        $_POST['org_id'] = 10;
+        $_POST['user_id'] = 20;
+        $_POST['role'] = 'admin';
+
+        $wpdb->test_get_var_callback = function ($query) {
+            if (stripos($query, 'SELECT 1 FROM') !== false && stripos($query, 'user_org') !== false) {
+                return 1;
+            }
+            if (stripos($query, 'SELECT role FROM') !== false) {
+                return 'owner';
+            }
+            if (stripos($query, "role = 'owner'") !== false) {
+                return 1;
+            }
+            return null;
+        };
+
+        $team = OraBooks_Team::init();
+        $payload = $this->captureJsonError(function () use ($team) {
+            $team->ajax_update_role();
+        });
+
+        $this->assertSame('owner_role_locked', $payload['code'] ?? '');
+        $this->assertStringContainsString('owner role', strtolower($payload['message']));
+    }
+
+    #[Test]
+    public function test_ajax_remove_user_returns_conflict_code_for_owner_row(): void
+    {
+        global $wpdb;
+
+        $_POST['org_id'] = 10;
+        $_POST['user_id'] = 20;
+
+        $wpdb->test_get_var_callback = function ($query) {
+            if (stripos($query, 'SELECT 1 FROM') !== false && stripos($query, 'user_org') !== false) {
+                return 1;
+            }
+            if (stripos($query, 'SELECT role FROM') !== false) {
+                return 'owner';
+            }
+            if (stripos($query, "role = 'owner'") !== false) {
+                return 1;
+            }
+            return null;
+        };
+
+        $team = OraBooks_Team::init();
+        $payload = $this->captureJsonError(function () use ($team) {
+            $team->ajax_remove_user();
+        });
+
+        $this->assertSame('owner_remove_blocked', $payload['code'] ?? '');
+        $this->assertStringContainsString('owner', strtolower($payload['message']));
+    }
+
+    #[Test]
     public function test_ajax_resend_invite_rejects_missing_or_used_invite(): void
     {
         global $wpdb;
@@ -718,6 +779,7 @@ class OraBooks_Team_Test extends TestCase
             $team->ajax_resend_invite();
         });
 
+        $this->assertSame('invalid_invite', $payload['code'] ?? '');
         $this->assertStringContainsString('not found', strtolower($payload['message']));
     }
 
@@ -801,6 +863,7 @@ class OraBooks_Team_Test extends TestCase
             $team->ajax_cancel_invite();
         });
 
+        $this->assertSame('invalid_invite', $payload['code'] ?? '');
         $this->assertStringContainsString('not found', strtolower($payload['message']));
     }
 
