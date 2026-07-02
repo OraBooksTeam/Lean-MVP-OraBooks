@@ -175,4 +175,24 @@ class OraBooks_Organization_Test extends TestCase
         $org_id = orabooks_resolve_request_org_id(5, 12);
         $this->assertSame(12, $org_id);
     }
+
+    public function test_resolve_auth_org_id_prefers_latest_membership_without_id_column_dependency()
+    {
+        $membershipQuery = '';
+
+        $this->wpdb->test_get_var_callback = function ($query) use (&$membershipQuery) {
+            if (stripos($query, 'orabooks_user_org') !== false) {
+                $membershipQuery = (string) $query;
+                return 77;
+            }
+
+            return null;
+        };
+
+        $org_id = orabooks_resolve_auth_org_id(5, 0);
+
+        $this->assertSame(77, $org_id);
+        $this->assertStringContainsString('ORDER BY joined_at DESC', $membershipQuery);
+        $this->assertStringNotContainsString('id DESC', $membershipQuery);
+    }
 }
