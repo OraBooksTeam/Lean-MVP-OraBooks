@@ -993,7 +993,7 @@ function orabooks_mark_partner_onboarding_completed($user_id) {
  */
 function orabooks_get_partner_post_login_path($user_id) {
     return orabooks_has_completed_partner_onboarding($user_id)
-        ? '/partner/dashboard/'
+    ? '/partner-program/'
         : '/partner/onboarding/';
 }
 
