@@ -408,3 +408,56 @@ Date: 2026-07-02
 - Phase 4: Complete.
 - Phase 5: Complete.
 - Phase 6: Complete.
+
+## Phase 7 - Test Shield Deep Expansion (Started)
+
+### Kickoff scope completed
+1. JSON response test instrumentation for HTTP status assertions:
+   - File: `tests/bootstrap.php`
+   - `wp_send_json()` stub now records:
+     - `orabooks_test_last_json_payload`
+     - `orabooks_test_last_status_code`
+
+2. Team AJAX contract tests expanded for Phase 7:
+   - File: `tests/OraBooks_Team_Test.php`
+   - Added:
+     - `test_ajax_invite_user_returns_rate_limit_code_and_429`
+     - `test_ajax_invite_user_returns_already_member_conflict_code`
+     - `test_ajax_resend_invite_returns_permission_denied_code_for_viewer`
+   - Added helper:
+     - `assertLastStatusCode()` for status-code assertions in JSON endpoint tests.
+
+### Validation after Phase 7 kickoff
+1. Team suite:
+- Command:
+  - `php tests/vendor/bin/phpunit --configuration \\10.124.1.254\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\phpunit.xml --testsuite "OraBooks Team Tests"`
+- Result:
+  - `OK (34 tests, 113 assertions)`
+
+2. Auth suite:
+- Command:
+  - `php tests/vendor/bin/phpunit --configuration \\10.124.1.254\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\phpunit.xml --testsuite "OraBooks Auth Tests"`
+- Result:
+  - `OK (100 tests, 303 assertions)`
+
+3. RBAC suite:
+- Command:
+  - `php tests/vendor/bin/phpunit --configuration \\10.124.1.254\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\phpunit.xml --testsuite "OraBooks RBAC Tests"`
+- Result:
+  - `OK (14 tests, 47 assertions)`
+
+4. Organization suite:
+- Command:
+  - `php tests/vendor/bin/phpunit --configuration \\10.124.1.254\Jahid_ Shared_Folder\Project Share Folder\Lean MVP OraBooks\OraBooks Lean MVP\tests\phpunit.xml --testsuite "OraBooks Organization Tests"`
+- Result:
+  - `OK (12 tests, 21 assertions)`
+
+## Current status
+- Phase 0: Complete.
+- Phase 1: Complete.
+- Phase 2: Complete.
+- Phase 3: Complete.
+- Phase 4: Complete.
+- Phase 5: Complete.
+- Phase 6: Complete.
+- Phase 7: In Progress (kickoff test-shield expansion complete).
